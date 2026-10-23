@@ -1,0 +1,256 @@
+# hexmesh — Design
+
+This document states the design philosophy of hexmesh: what the tool is,
+the rules every part of it follows, and how pipe fittings are assembled
+into a network.  Where current code deviates from these rules, the
+deviation is listed in [Current deviations](#current-deviations) and is
+considered technical debt, not precedent.
+
+---
+
+## 1. Purpose and scope
+
+hexmesh generates **structured, all-hex, conformal** meshes of pipe
+networks for CFD (primarily OpenFOAM), including multi-material
+cross-sections (fluid, pipe wall, insulation) for conjugate heat transfer.
+
+**In scope**
+
+- Circular and rectangular pipes with concentric material layers
+- Standard fittings: straights, bends, elbows, miters, reducers,
+  transitions, spline routes, tees, wyes, laterals, crosses
+- Tree and looped networks with multiple inlets and outlets
+- Networks defined in code or from piping data (graph, PCF, …)
+
+**Out of scope**
+
+- Arbitrary CAD geometry
+- Tetrahedral or hex-dominant fallback meshing
+- Repairing non-conformal geometry after the fact
+
+If a geometry cannot be meshed under these rules, hexmesh rejects it with
+an error that names the offending fitting or interface.
+
+---
+
+## 2. Core principles
+
+1. **All-hex, structured, conformal.** Every cell is a hexahedron; every
+   shared face has exactly one node set on both sides.
+2. **Conformal by construction, never by repair.** No `occ.fragment()`,
+   no `removeDuplicateNodes()`, no spatial (bbox) entity recovery.  If a
+   fitting needs any of these, its block template is wrong.
+3. **Topology first, geometry second, GMSH last.** Block structure is
+   decided and validated before any point is placed; GMSH is only called
+   once the whole network is known to be consistent.
+4. **Fail before meshing.** Every check that can be made without GMSH is
+   made without GMSH.
+5. **Topology and density are separate.** Topology (`n_outer`, `rot`,
+   layer stack) fixes where interfaces land.  Density (`nang`, `nrad`,
+   `n_layers`, grading) only sets resolution and can be scaled freely.
+
+---
+
+## 3. Layers
+
+| Layer | Answers | Contains | Calls GMSH |
+|---|---|---|---|
+| **Intent** | *What* is the network? | Graph of nodes (absolute positions) and edges (fitting type + parameters + pipe spec) | No |
+| **Topology** | *How* do blocks connect? | Interfaces with types and frames; fitting block templates with typed ports; resolved density | No |
+| **Realisation** | *Where* are the points? | GMSH geometry, transfinite constraints, physical groups, mesh | Yes |
+
+Each layer only consumes the one above it.  The turtle-style `Network.add()`
+API is a front end to the Intent layer: it records nodes and edges, it
+does not build geometry.
+
+---
+
+## 4. Assembly rules
+
+Assembly is defined by one question: **who creates shared faces?**
+The answer in hexmesh is: **the assembler does, once, before any fitting
+is built.**
+
+### Rule A1 — Interfaces are first-class
+
+Every boundary between two fittings, and every open network end, is an
+**interface**.  Interfaces are created by the assembler.  A fitting never
+creates its own port faces.
+
+### Rule A2 — Fittings are fills
+
+A fitting is a **fill between N existing port faces**.  It creates only its
+internal entities (points, curves, surfaces, volumes) and must not create,
+modify or duplicate any entity belonging to an interface.
+
+### Rule A3 — Every interface has its own frame
+
+An interface has an absolute pose: position, normal, and roll (an `up`
+vector).  The roll fixes where structural corners lie.  Any twist needed
+between two frames is the responsibility of the fitting between them,
+never of the assembler.
+
+### Rule A4 — Ports are typed
+
+An interface type consists of:
+
+- boundary kind (circular / rectangular / square shell)
+- layer stack (material names and order)
+- `n_outer` and `rot`
+- `nang` (or `nang_w`, `nang_h`) and per-layer `nrad`
+
+Every port that touches an interface must match its type exactly.  Type
+changes (diameter, layer stack, boundary kind) happen *inside* a fitting
+(Reducer, Transition), never across an interface.
+
+### Rule A5 — Density is solved globally; axial resolution is local
+
+`nang` and `nrad` must agree across every connected interface and are
+resolved over the whole network before realisation.  `n_layers` and axial
+grading belong to the individual fitting.  `Network.refinement` scales
+all of them uniformly.
+
+### Rule A6 — Build order is irrelevant
+
+Once interfaces exist, fittings may be filled in any order and must
+produce an identical mesh.  Any order dependence indicates a violation of
+A1 or A2.
+
+### Rule A7 — Boundaries come from the graph
+
+Physical groups are derived from the graph, not from geometric search:
+
+- volumes — by material layer (optionally also by fitting)
+- open interfaces (ports with no neighbour) — one patch per node, named
+  after the node
+- outer walls and material interfaces — from the fittings' declared
+  wall and interface surfaces
+
+---
+
+## 5. The assembly pipeline
+
+```
+1. Intent      build graph (nodes, edges, specs)           net.add(...) / readers
+2. Place       compute every interface pose                 absolute coordinates
+3. Validate    port types, density, fit, clearance         errors name fitting/interface
+4. Faces       build each interface face in GMSH, once
+5. Fill        build each fitting between its port faces   any order
+6. Groups      physical groups from the graph
+7. Mesh        transfinite meshing + quality report
+```
+
+Steps 1–3 never touch GMSH.  A network that passes step 3 must mesh.
+
+---
+
+## 6. The fitting contract
+
+Every fitting type provides:
+
+| Member | Layer | Purpose |
+|---|---|---|
+| `ports(...)` | Topology | Given the incoming interface (or graph context), return the pose and type of every port |
+| `validate(ports)` | Topology | Check that the fitting can be built between these ports (length, radius, angle, clearance); raise naming the fitting |
+| `template` | Topology | The fixed block topology of the fitting for a given `n_outer` |
+| `fill(port_faces)` | Realisation | Build internal entities between existing port faces; return volumes, walls and material interfaces |
+
+The block template of a fitting is fixed for a given fitting type and
+`n_outer`; only geometry is parameterised.  New fitting variants
+(equal-diameter tee, lateral, cross) are new templates, not special cases
+inside existing ones.
+
+The fill primitive is a transfinite volume built between existing faces
+(see `fittings._connect_layer`).  OCC `extrude` / `revolve` create their
+own outlet face and therefore cannot be used to fill toward an existing
+interface.
+
+**Exactness lives in curves and nodes, not in OCC surfaces.**  OCC filled
+surfaces deviate from the true geometry (≈3 % of radius on a 30° bend
+slab, ≈21 % on a 90° slab), and exact trimmed surfaces of revolution are
+unreliable in OCC.  A fitting therefore guarantees geometric accuracy by
+placing every mesh node on an exact curve: station faces plus exact axial
+curves (lines, circular arcs), with one axial layer per slab where the
+axis is curved.  Filled side surfaces then only carry element faces
+between exact nodes.
+
+The prototype in `hexmesh/assembly/` implements this pipeline for
+`Straight` and `Bend` (`tests/test_assembly.py`).
+
+---
+
+## 7. Junctions
+
+A junction is an ordinary fitting with three or more ports.  Its internal
+blocks (stub, saddle, T-zone) are private to it.  Neighbouring fittings see
+only its port faces.
+
+Junction port frames must place structural corners where the junction
+template needs them.  This is why `n_outer = 8` is the target topology:
+it puts corners at 0°/90°/180°/270° so tee tips and wye split planes fall
+on structural corners rather than arc midpoints.
+
+---
+
+## 8. Loops
+
+A loop is closed by a fitting whose ports are *both* existing interfaces.
+Under A1/A2 this needs no special assembly logic.  The closing fitting
+must:
+
+- absorb any roll mismatch between the two frames (A3), and
+- reject closures it cannot fill within quality limits (A3, principle 4).
+
+Implementation (`Assembly.close(source, target, fitting)`):
+
+- Any fitting can close a loop if its `validate()` accepts the two given
+  frames — a `Straight` or `Bend` that fits exactly, or a `Closure` for an
+  arbitrary gap.
+- Flow direction is enforced: *source* must be a downstream end and
+  *target* an upstream end.  Joining two outlets head-on needs a
+  different fitting and is not supported.
+- `Closure` follows a cubic Hermite centreline tangent to both interface
+  normals, with parallel-transported (Bishop) frames.  In a non-planar
+  loop the transported frame returns rotated (holonomy); this residual
+  roll is distributed linearly by arc length.
+- Roll only matters modulo the cross-section symmetry `2π / n_outer`
+  (90° for `n_outer = 4`), so the absorbed twist never exceeds
+  `π / n_outer`.
+- Validation computes the minimum centreline bend radius before any GMSH
+  call and rejects paths tighter than the pipe outer radius.
+
+---
+
+## 9. Current deviations
+
+The present code predates these rules.  Known deviations:
+
+| Deviation | Rule | Where |
+|---|---|---|
+| Fittings create their own outlet faces (producer-owns) | A1, A2 | all connectors via `connect(inlet, cursor)` |
+| Relative (cursor-chained) placement; no graph | §3, A3 | `Network.add()` |
+| OCC `extrude` / `revolve` used for fills | A2 | `straight.py`, `bend.py` |
+| `occ.fragment()` + bbox surface recovery | P2 | `y_block.py`, `junction.py` |
+| `removeDuplicateNodes()` | P2 | `model.py`, `network.py` |
+| Geometry built inside `connect()`; no pre-GMSH validation | P3, P4 | all connectors |
+| Topology detected from surface count | A4 | `straight.py`, `bend.py`, `fittings.py` |
+| `nang` checked per connector, not resolved across the network | A5 | `fittings.py`, `spec.py` |
+| Corner correspondence between two faces found by nearest-distance search, not from interface frames | A3, P2 | `fittings._connect_layer` (also used by `hexmesh/assembly`) |
+
+New code must not add to this table.
+
+---
+
+## 10. Open decisions
+
+- **Library or tool?** A scripting library for engineers, or a tool that
+  takes plant data and returns a mesh.  Determines how much investment
+  goes into readers and automatic sizing.
+- **`n_outer` per network or per interface?** One value per network is
+  simplest; mixed values require transition templates.
+- **Reject or degrade?** When quality limits cannot be met, should
+  validation fail, or warn and continue?
+- **Loop twist.** User-supplied closing segment, or solver-distributed
+  twist across the loop?
+- **Interface placement at bends.** How tangent points are derived from
+  piping data (trimming straight lengths against bend radii).

@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "hexmesh"
+version = "0.1.0"
+description = "Composable structured hex mesh generation for CFD pipe systems"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+io = [
+    "scipy>=1.10",      # bathymetry interpolation
+    "numpy>=1.24",
+]
+dev = [
+    "pytest>=7",
+    "pytest-cov",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["hexmesh*"]

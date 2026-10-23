@@ -1,0 +1,17 @@
+"""
+Interface-first network assembly — prototype of the DESIGN.md assembly rules.
+
+Interfaces (shared faces) are placed and validated before any GMSH call,
+built exactly once, and fittings fill between them.  No fragment, no
+duplicate-node merging.
+"""
+
+from .interface import Frame, Interface, port_type
+from .fittings  import Straight, Bend, Closure, FillResult
+from .assembler import Assembly, AssemblyError
+
+__all__ = [
+    "Frame", "Interface", "port_type",
+    "Straight", "Bend", "Closure", "FillResult",
+    "Assembly", "AssemblyError",
+]
