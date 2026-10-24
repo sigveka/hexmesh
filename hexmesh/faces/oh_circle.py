@@ -52,7 +52,8 @@ import numpy as np
 from ..core.cross_section import CrossSection, BoundaryType
 from ..core.shape import CircleShape
 from ._gmsh_helpers import (
-    add_point, add_arc, add_line, add_line_loop, add_surface,
+    add_point, add_arc, add_conic_arc, add_line, add_line_loop, add_surface,
+    stretched,
     set_transfinite_line, set_transfinite_line_bump,
     set_transfinite_surface, set_recombine_surface,
 )
@@ -71,6 +72,7 @@ def build_oh_circle(
     mbmp:   float = 1.0,
     ratio:  float = 0.6,
     rot:    float = 0.0,
+    stretch: tuple | None = None,
 ) -> CrossSection:
     """Build a 5-patch OH-circle cross-section in GMSH.
 
@@ -99,6 +101,10 @@ def build_oh_circle(
         Rotation offset added to all corner angles (radians).
         Use ``rot = -π/4`` to align patch boundaries with the horizontal
         axis for half-buried pipes.
+    stretch : (ndarray, float), optional
+        ``(b, s)``: scale the face by ``s >= 1`` along the in-plane unit
+        vector ``b`` about the centre.  Circles become ellipses; used for
+        the oblique cut face of a miter joint.
 
     Returns
     -------
@@ -139,7 +145,7 @@ def build_oh_circle(
 
     def _coords_from_uv(u: float, v: float):
         """Map in-plane (u, v) offsets to 3-D (x, y, z) via cursor frame."""
-        p = _centre + u * _h + v * _v
+        p = stretched(_centre + u * _h + v * _v, _centre, stretch)
         return float(p[0]), float(p[1]), float(p[2])
 
     # ------------------------------------------------------------------ #
@@ -167,15 +173,20 @@ def build_oh_circle(
         u, v = _pt2(ang, ratio * r)
         s_pts.append(add_point(*_coords_from_uv(u, v), lc))
     s1, s2, s3, s4 = s_pts
+    s_xyz = [_coords_from_uv(*_pt2(ang, ratio * r)) for ang in angles_s]
+
+    def arc(start, centre, end, centre_xyz):
+        return add_conic_arc(start, centre, end, centre_xyz, stretch)
 
     # ------------------------------------------------------------------ #
     # Curves                                                              #
     # ------------------------------------------------------------------ #
     # Outer arcs (CCW viewed from extrusion direction)
-    a1 = add_arc(o1, center, o2)   # NE→NW
-    a3 = add_arc(o2, center, o3)   # NW→SW
-    a5 = add_arc(o3, center, o4)   # SW→SE
-    a7 = add_arc(o4, center, o1)   # SE→NE
+    c_xyz = (cx, cy, cz)
+    a1 = arc(o1, center, o2, c_xyz)   # NE→NW
+    a3 = arc(o2, center, o3, c_xyz)   # NW→SW
+    a5 = arc(o3, center, o4, c_xyz)   # SW→SE
+    a7 = arc(o4, center, o1, c_xyz)   # SE→NE
 
     # Radial lines: inner corner → outer corner
     r1 = add_line(i2, o2)   # NW
@@ -184,10 +195,10 @@ def build_oh_circle(
     r4 = add_line(i4, o4)   # SE
 
     # Inner arcs (for centre patch boundary and quadrant inner edges)
-    a2 = add_arc(i2, s4, i1)   # NW→NE  (top    inner, centre s4=S)
-    a4 = add_arc(i3, s1, i2)   # SW→NW  (left   inner, centre s1=E)
-    a6 = add_arc(i4, s2, i3)   # SE→SW  (bottom inner, centre s2=N)
-    a8 = add_arc(i1, s3, i4)   # NE→SE  (right  inner, centre s3=W)
+    a2 = arc(i2, s4, i1, s_xyz[3])   # NW→NE  (top    inner, centre s4=S)
+    a4 = arc(i3, s1, i2, s_xyz[0])   # SW→NW  (left   inner, centre s1=E)
+    a6 = arc(i4, s2, i3, s_xyz[1])   # SE→SW  (bottom inner, centre s2=N)
+    a8 = arc(i1, s3, i4, s_xyz[2])   # NE→SE  (right  inner, centre s3=W)
 
     # ------------------------------------------------------------------ #
     # Surfaces                                                            #

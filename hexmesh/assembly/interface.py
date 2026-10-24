@@ -136,11 +136,14 @@ class Interface:
         return f"Interface({label}, pos={np.round(self.frame.position, 4)})"
 
 
-def build_face(spec: PipeSpec, frame: Frame, lc: float) -> LayeredCrossSection:
+def build_face(spec: PipeSpec, frame: Frame, lc: float,
+               stretch: tuple | None = None) -> LayeredCrossSection:
     """Build the GMSH face of an interface (realisation layer only).
 
     Used both by the assembler (interface faces) and by fittings for their
-    own *internal* stations.
+    own *internal* stations.  *stretch* ``(b, s)`` scales an internal
+    station by ``s`` along the in-plane direction ``b`` (miter cut faces);
+    interfaces are never stretched.
     """
     cx, cy, cz = (float(c) for c in frame.position)
     h_axis, v_axis = frame.right, frame.up
@@ -152,12 +155,14 @@ def build_face(spec: PipeSpec, frame: Frame, lc: float) -> LayeredCrossSection:
         shape=core_shape, h_axis=h_axis, v_axis=v_axis, lc=lc,
         nrad=spec._core_nrad, mprg=spec._core_mprg,
         mbmp=spec.mbmp, rot=spec.rot,
+        **({'stretch': stretch} if stretch is not None else {}),
     )
     layers = [(core_name, cs)]
     for shell in spec.shells:
         cs = build_annulus(
             inner=cs, dR=shell.dR, lc=lc,
             nrad=shell.nrad, mprg=shell.mprg, mbmp=spec.mbmp, rot=spec.rot,
+            stretch=stretch,
         )
         layers.append((shell.name, cs))
     return LayeredCrossSection(layers)

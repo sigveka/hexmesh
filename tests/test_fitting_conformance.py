@@ -27,7 +27,7 @@ import gmsh
 import numpy as np
 import pytest
 
-from hexmesh.assembly import Assembly, Bend, Closure, Straight, Tee
+from hexmesh.assembly import Assembly, Bend, Closure, Elbow, MiterBend, Straight, Tee
 from hexmesh.core.shape import CircleShape
 from hexmesh.core.spec import PipeSpec
 
@@ -107,6 +107,10 @@ CASES = {
     "bend-rolled-180":     lambda: _rolled_outlet(_one(), Bend(0.3, 90, n_layers=4), 180),
     "tee-0.5":             lambda: _tee(0.5),
     "tee-0.9-oblique":     lambda: _tee(0.9, direction=(1, 1, 0.2)),
+    "miter-1cut":          lambda: _between(_one(), MiterBend(0.3, 90, n_cuts=1)),
+    "miter-3cut-2layer":   lambda: _between(_two(), MiterBend(0.3, 90, n_cuts=3)),
+    "miter-rolled":        lambda: _between(_two(), MiterBend(0.3, -60, n_cuts=2, roll=30)),
+    "elbow-short":         lambda: _between(_two(), Elbow(90, "short", n_layers=4, roll=45)),
 }
 
 

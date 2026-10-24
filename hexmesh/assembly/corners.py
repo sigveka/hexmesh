@@ -133,6 +133,7 @@ def connect_aligned(
     prev_outer_side_surfs: "list[int] | None" = None,
     planar_radial: bool = True,
     axial_curve: "Callable[[int, int], int] | None" = None,
+    side_surface: "Callable[[int], int] | None" = None,
 ) -> "tuple[list[int], list[int], list[int]]":
     """Build one layer's hex slab once corner correspondence is fixed.
 
@@ -141,6 +142,8 @@ def connect_aligned(
     corresponds to entry ``i`` of the outlet; ``in_quad_surfs[i]`` and
     ``out_quad_surfs[i]`` are the quadrant patches between corners ``i``
     and ``i+1``.  How the correspondence is found is the caller's concern.
+    *side_surface* builds the non-planar side faces from a curve loop
+    (default: OCC plate filling, ``addSurfaceFilling``).
     Returns ``(volumes, outer_side_surfs, outer_axial, deferred)``; the
     outer side surfaces and axial curves seed the next layer
     (*prev_outer_side_surfs*, *prev_outer_axial*).  *deferred* holds the
@@ -151,6 +154,8 @@ def connect_aligned(
     mesh = gmsh.model.mesh
     if axial_curve is None:
         axial_curve = geo.addLine
+    if side_surface is None:
+        side_surface = geo.addSurfaceFilling
     ip_in, op_in, ic_in, oc_in, rc_in = (g_in[k] for k in ('ip', 'op', 'ic', 'oc', 'rc'))
     ip_out, op_out, ic_out, oc_out, rc_out = (g_out[k] for k in ('ip', 'op', 'ic', 'oc', 'rc'))
     n = in_cs.n_outer
@@ -193,7 +198,7 @@ def connect_aligned(
     for i in range(n):
         j = (i + 1) % n
         loop = geo.addCurveLoop([oc_in[i], outer_axial[j], -oc_out[i], -outer_axial[i]])
-        surf = geo.addSurfaceFilling(loop)
+        surf = side_surface(loop)
         outer_side_surfs.append(surf)
     geo.synchronize()
 
@@ -210,7 +215,7 @@ def connect_aligned(
             loop = geo.addCurveLoop([
                 ic_in[i], inner_axial[j], -ic_out[i], -inner_axial[i],
             ])
-            surf = geo.addSurfaceFilling(loop)
+            surf = side_surface(loop)
             inner_side_surfs.append(surf)
             new_inner_side_surfs.append(surf)
         geo.synchronize()
@@ -232,7 +237,7 @@ def connect_aligned(
         if planar_radial:
             surf = geo.addPlaneSurface([loop])
         else:
-            surf = geo.addSurfaceFilling(loop)
+            surf = side_surface(loop)
         radial_side_surfs.append(surf)
     geo.synchronize()
 

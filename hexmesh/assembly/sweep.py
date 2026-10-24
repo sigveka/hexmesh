@@ -130,6 +130,14 @@ class Path:
         Spec per station, or ``None`` for a constant cross-section.
     min_radius
         Smallest centreline bend radius (``inf`` for a straight path).
+    stretch
+        Per station, ``None`` or the in-plane stretch ``(b, s)`` of its face
+        (``build_face``).  A miter cut is the station face in the bisecting
+        plane, stretched by ``1 / cos(half turn)`` along the bend direction.
+    prism
+        Every slab is a straight prism: its two faces are parallel
+        projections of each other along straight axial lines, so radial
+        side faces are planar and the chord-turn limit does not apply.
     """
 
     frames:     list[Frame]
@@ -137,15 +145,22 @@ class Path:
     axial:      Arc | None = None
     specs:      list[PipeSpec] | None = None
     min_radius: float = math.inf
+    stretch:    list[tuple | None] | None = None
+    prism:      bool = False
 
     def __post_init__(self) -> None:
         if len(self.layers) != len(self.frames) - 1:
             raise ValueError("Path needs one layer count per slab")
+        if self.prism and any(n != 1 for n in self.layers):
+            raise ValueError("prism slabs need one axial layer each (no interior wall nodes)")
         if any(n < 1 for n in self.layers):
             raise ValueError("every slab needs at least one axial layer")
 
     def spec_at(self, k: int, default: PipeSpec) -> PipeSpec:
         return default if self.specs is None else self.specs[k]
+
+    def stretch_at(self, k: int) -> tuple | None:
+        return None if self.stretch is None else self.stretch[k]
 
     def offsets(self, spec: PipeSpec) -> list[int]:
         """Corner correspondence of every slab, from frames (pure numpy)."""
@@ -169,10 +184,22 @@ class Path:
 MAX_CHORD_TURN = 30.0   # degrees
 
 
+def _ruled(loop: int) -> int:
+    """Side face of a prism slab.
+
+    Its single axial layer leaves no interior nodes, so the surface only has
+    to be valid.  OCC plate filling (``addSurfaceFilling``) fails between
+    nearly identical B-spline arcs (miter stations less than ~0.2° apart);
+    B-spline "Stretch" filling does not.
+    """
+    return gmsh.model.occ.addBSplineFilling(loop, type="Stretch")
+
+
 def _fill_slab(in_face: LayeredCrossSection, out_face: LayeredCrossSection,
                n_layers: int, offset: int = 0, axial_curve=None,
                planar_radial: bool = True,
-               grading: dict[int, tuple[str, float]] | None = None) -> FillResult:
+               grading: dict[int, tuple[str, float]] | None = None,
+               side_surface=None) -> FillResult:
     """Fill all concentric layers between two existing faces.
 
     *offset* is the corner correspondence from ``frame_offset``; *grading*
@@ -191,6 +218,7 @@ def _fill_slab(in_face: LayeredCrossSection, out_face: LayeredCrossSection,
             prev_outer_side_surfs=prev_side,
             planar_radial=planar_radial,
             axial_curve=axial_curve,
+            side_surface=side_surface,
         )
         result.volumes.setdefault(name, []).extend(vols)
         if prev_side is not None:
@@ -210,13 +238,13 @@ def sweep_fill(path: Path, faces: list[LayeredCrossSection],
     """Build internal station faces along *path* and fill every slab."""
     stations = [faces[0]]
     for k, fr in enumerate(path.frames[1:-1], start=1):
-        stations.append(build_face(path.spec_at(k, spec), fr, lc))
+        stations.append(build_face(path.spec_at(k, spec), fr, lc, path.stretch_at(k)))
     stations.append(faces[1])
     if len(stations) > 2:
         gmsh.model.occ.synchronize()
 
     axial_curve = path.axial.builder() if path.axial is not None else None
-    planar = path.is_straight
+    planar = path.is_straight or path.prism
     offsets = path.offsets(spec)
     grading: dict[int, tuple[str, float]] = {}
     for k, st in enumerate(stations):
@@ -225,7 +253,8 @@ def sweep_fill(path: Path, faces: list[LayeredCrossSection],
     for k, n in enumerate(path.layers):
         result.merge(_fill_slab(stations[k], stations[k + 1], n, offsets[k],
                                 axial_curve=axial_curve, planar_radial=planar,
-                                grading=grading))
+                                grading=grading,
+                                side_surface=_ruled if path.prism else None))
     return result
 
 
@@ -268,7 +297,7 @@ class Sweep:
                 f"path bends with radius {path.min_radius:.4g}, tighter than "
                 f"the pipe outer radius {R}"
             )
-        if path.axial is None:
+        if path.axial is None and not path.prism:
             for k, turn in enumerate(path.turns()):
                 if turn > MAX_CHORD_TURN:
                     raise ValueError(

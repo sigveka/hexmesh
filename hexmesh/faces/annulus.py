@@ -26,7 +26,8 @@ import numpy as np
 from ..core.cross_section import CrossSection, BoundaryType
 from ..core.shape import CircleShape
 from ._gmsh_helpers import (
-    add_point, add_arc, add_line, add_line_loop, add_surface,
+    add_point, add_arc, add_conic_arc, add_line, add_line_loop, add_surface,
+    stretched,
     set_transfinite_line, set_transfinite_line_bump,
     set_transfinite_surface, set_recombine_surface,
 )
@@ -40,6 +41,7 @@ def build_annulus(
     mprg:   float = 1.0,
     mbmp:   float = 1.0,
     rot:    float = 0.0,
+    stretch: tuple | None = None,
 ) -> CrossSection:
     """Build an n_outer-patch annular shell on top of *inner*.
 
@@ -68,6 +70,9 @@ def build_annulus(
     rot : float
         Additional rotation (radians) applied on top of the inner layer's
         corner angles.  Default 0.0 (outer corners align with inner corners).
+    stretch : (ndarray, float), optional
+        In-plane stretch ``(b, s)`` of the face; must match the one *inner*
+        was built with (see ``build_oh_circle``).
 
     Returns
     -------
@@ -103,7 +108,7 @@ def build_annulus(
     def _coords(angle: float, r: float):
         u = math.cos(angle) * r
         v = math.sin(angle) * r
-        p = _centre + u * h_axis + v * v_axis
+        p = stretched(_centre + u * h_axis + v * v_axis, _centre, stretch)
         return float(p[0]), float(p[1]), float(p[2])
 
     # Corner angles: when the inner layer recorded its corner angles, outer
@@ -130,7 +135,8 @@ def build_annulus(
     # ------------------------------------------------------------------ #
     # Outer arcs: O[k] → O[(k+1)%n]                                      #
     # ------------------------------------------------------------------ #
-    A_out = [add_arc(O[k], center, O[(k + 1) % n]) for k in range(n)]
+    A_out = [add_conic_arc(O[k], center, O[(k + 1) % n], (cx, cy, cz), stretch)
+             for k in range(n)]
 
     # ------------------------------------------------------------------ #
     # Surfaces: patch k bounded by A_out[k], -R[k+1], -ia[k], R[k]      #

@@ -22,10 +22,10 @@ from dataclasses import dataclass
 import numpy as np
 
 from ..core.spec import PipeSpec
-from .interface import Frame, roll_mismatch, rotate
+from .interface import Frame, outer_radius, roll_mismatch, rotate
 from .sweep import Arc, FillResult, Path, Sweep
 
-__all__ = ["Straight", "Bend", "Closure", "FillResult"]
+__all__ = ["Straight", "Bend", "MiterBend", "Elbow", "Closure", "FillResult"]
 
 
 # ---------------------------------------------------------------------------
@@ -118,6 +118,167 @@ class Bend(Sweep):
         axis, centre = self._axis_centre(a)
         return Path([a, *inner, b], [1] * n, axial=Arc(axis, centre),
                     min_radius=self.radius)
+
+
+# ---------------------------------------------------------------------------
+# Miter bend
+# ---------------------------------------------------------------------------
+
+# Direction change allowed at one miter cut.  Hexes next to a cut are skewed
+# by half the cut angle; a single 90° cut keeps minSICN ≈ 0.19, and below
+# 1° the legs collapse to sliver cells (measured, docs/tasks/0012).
+MAX_MITER_CUT = 90.0   # degrees
+MIN_MITER_CUT = 1.0    # degrees
+
+
+@dataclass(frozen=True)
+class MiterBend(Sweep):
+    """Segmented (mitred) bend: straight pipe pieces joined at planar cuts.
+
+    The centreline is the tangent polygon of the smooth bend with the same
+    *radius* and *angle*: ``n_cuts`` cuts each turn ``angle / n_cuts``, the
+    end legs are half segments, and the ports are exactly those of
+    ``Bend(radius, angle, roll=roll)``.  Each cut face lies in the plane
+    bisecting its turn; it is the station face stretched into the exact
+    ellipse where the two cylinders meet, so wall nodes on a cut lie on
+    both pipes.
+
+    Parameters
+    ----------
+    radius : float
+        Centreline radius of the equivalent smooth bend; must exceed the pipe
+        outer radius (the end legs are ``radius * tan(cut / 2)`` long).
+    angle : float
+        Total bend angle in degrees.
+    n_cuts : int
+        Number of cuts (welds); 1 is a single miter joint.
+    n_layers : int
+        Axial layers of each end leg; inner segments, twice as long, get
+        ``2 * n_layers``.  Every layer is its own station (see ``path``).
+    roll : float
+        Bend-plane rotation about the pipe axis in degrees, as for ``Bend``.
+    """
+
+    radius:   float
+    angle:    float
+    n_cuts:   int = 1
+    n_layers: int = 2
+    roll:     float = 0.0
+
+    @property
+    def _arc(self) -> Bend:
+        return Bend(self.radius, self.angle, 1, self.roll)
+
+    @property
+    def cut_angle(self) -> float:
+        return self.angle / self.n_cuts
+
+    def ports(self, inlet: Frame, spec: PipeSpec) -> list[tuple[Frame, PipeSpec]]:
+        return self._arc.ports(inlet, spec)
+
+    def check(self, spec: PipeSpec) -> None:
+        super().check(spec)
+        if self.n_cuts < 1:
+            raise ValueError(f"n_cuts must be >= 1, got {self.n_cuts!r}")
+        if not 0 < abs(self.angle) < 360:
+            raise ValueError(f"angle must be in (0, 360) degrees, got {self.angle!r}")
+        if abs(self.cut_angle) < MIN_MITER_CUT:
+            raise ValueError(
+                f"each cut turns {abs(self.cut_angle):.4g}°, below "
+                f"{MIN_MITER_CUT:.0f}°; use fewer cuts or a Straight"
+            )
+        if abs(self.cut_angle) > MAX_MITER_CUT:
+            raise ValueError(
+                f"each cut turns {abs(self.cut_angle):.4g}° (limit "
+                f"{MAX_MITER_CUT:.0f}°); use n_cuts >= "
+                f"{math.ceil(abs(self.angle) / MAX_MITER_CUT)}"
+            )
+
+    def corners(self, inlet: Frame) -> list[np.ndarray]:
+        """Centreline polygon from the inlet: inlet position, then each cut."""
+        arc = self._arc
+        _, centre = arc._axis_centre(inlet)
+        half = math.radians(self.cut_angle) / 2
+        out = [inlet.position]
+        for j in range(self.n_cuts):
+            f = arc._rotated(inlet, self.cut_angle * (j + 0.5))
+            out.append(centre + (f.position - centre) / math.cos(half))
+        return out
+
+    def path(self, a: Frame, b: Frame, spec: PipeSpec) -> Path:
+        """Tangent polygon with one station per axial layer.
+
+        Along a segment, station planes tilt about the bend axis from one
+        cut plane to the next.  Each is the segment's circular section
+        projected along the segment axis onto that plane, i.e. the station
+        face stretched by ``1 / cos(tilt)``, so every wall node lies on an
+        exact station curve and every axial edge runs parallel to the axis.
+        """
+        arc, n = self._arc, self.n_cuts
+        axis, _ = arc._axis_centre(a)
+        beta = math.radians(self.cut_angle)
+        corners = self.corners(a) + [b.position]
+
+        frames, stretch = [], []
+        for j in range(n + 1):                       # segment j, after j cuts
+            seg = arc._rotated(a, self.cut_angle * j)
+            t0 = 0.0 if j == 0 else -beta / 2        # tilt at the segment ends
+            t1 = 0.0 if j == n else beta / 2
+            m = self.n_layers * (1 if j in (0, n) else 2)
+            for k in range(m + 1):
+                if k == 0 and j > 0:
+                    continue                         # shared with the previous segment
+                u = k / m
+                tilt = t0 + (t1 - t0) * u
+                pos = corners[j] + (corners[j + 1] - corners[j]) * u
+                normal = rotate(seg.normal, axis, tilt)
+                frames.append(Frame(pos, normal, rotate(seg.up, axis, tilt)))
+                stretch.append(None if tilt == 0.0 else
+                               (np.cross(axis, normal), 1.0 / math.cos(tilt)))
+        frames[0], frames[-1] = a, b
+        return Path(frames, [1] * (len(frames) - 1), min_radius=self.radius,
+                    stretch=stretch, prism=True)
+
+
+# ---------------------------------------------------------------------------
+# Elbow
+# ---------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class Elbow(Sweep):
+    """Standard butt-weld elbow: a ``Bend`` whose radius follows the pipe.
+
+    ``schedule="long"`` gives a centreline radius of 1.5 D, ``"short"`` 1 D
+    (ASME B16.9 long- and short-radius elbows), with D the outer diameter
+    of the inlet spec.  The radius therefore needs the spec and is resolved
+    in ``ports`` / ``validate``.
+    """
+
+    angle:    float = 90.0
+    schedule: str = "long"
+    n_layers: int = 8
+    roll:     float = 0.0
+
+    FACTORS = {"long": 1.5, "short": 1.0}
+
+    def radius(self, spec: PipeSpec) -> float:
+        return self.FACTORS[self.schedule] * 2 * outer_radius(spec)
+
+    def bend(self, spec: PipeSpec) -> Bend:
+        return Bend(self.radius(spec), self.angle, self.n_layers, self.roll)
+
+    def ports(self, inlet: Frame, spec: PipeSpec) -> list[tuple[Frame, PipeSpec]]:
+        return self.bend(spec).ports(inlet, spec)
+
+    def check(self, spec: PipeSpec) -> None:
+        if self.schedule not in self.FACTORS:
+            raise ValueError(
+                f"schedule must be one of {sorted(self.FACTORS)}, got {self.schedule!r}"
+            )
+        self.bend(spec).check(spec)
+
+    def path(self, a: Frame, b: Frame, spec: PipeSpec) -> Path:
+        return self.bend(spec).path(a, b, spec)
 
 
 # ---------------------------------------------------------------------------

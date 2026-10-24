@@ -21,7 +21,7 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0009](0009-per-fitting-wall-patches.md) | Per-fitting wall patches | ready | 0001 |
 | [0010](0010-equipment-nozzle-boundaries.md) | Equipment nozzles as network boundaries | ready | 0002 |
 | [0011](0011-assembly-independent-of-legacy.md) | Assembly independent of legacy code | done | 0004 |
-| [0012](0012-miter-bend-and-elbow.md) | Miter bends and standard elbows | ready | 0004 |
+| [0012](0012-miter-bend-and-elbow.md) | Miter bends and standard elbows | done | 0004 |
 | [0013](0013-reducer-expander.md) | Reducer, expander and transition | ready | 0004 |
 | [0014](0014-spline-pipe.md) | Spline pipe | ready | 0004 |
 | [0015](0015-io-on-assembly.md) | PCF and bathymetry readers build an Assembly | ready | 0004 |
