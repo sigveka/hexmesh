@@ -16,13 +16,51 @@ CHT pipe networks, junction-flow CFD, parametric and surrogate studies.
   `fill()`.
 - Every task adds tests.  New fittings or fill changes must still pass the
   conformance kit, `tests/test_fitting_conformance.py`.
-- Run tests with `python3 -m pytest` (never `python`).  Gate: the full
-  suite passes before and after each task.
+- Run tests with `python3 -m pytest` (never `python`).  Gate: no new
+  failures before and after each task.  The 10 `TestYJunctionQuality`
+  failures in the legacy suite are known and out of scope: the legacy
+  Y-junction's `occ.fragment()` breaks on both gmsh 4.12/OCC 7.6 and
+  gmsh 4.15.
 - Keep each task a separate, reviewable change.  Match the surrounding code
   style: dataclasses, numpy, short docstrings that cite DESIGN rules.
 
-Suggested order: 3 → 1 → 2 → 4 → 7 → 6 → 5 → 8 → 9.  Tasks 1, 4 and 6 have
-the highest value.
+Suggested order: 0 → 3 → 1 → 2 → 4 → 7 → 6 → 5 → 8 → 9.  Tasks 1, 4 and 6
+have the highest value.  Task 0 is a bug fix that tasks 1 and 2 build on.
+
+The multi-layer tee (needed for CHT networks with junctions) is not
+low-hanging fruit and is tracked separately; it fits best after task 4,
+when first-cell grading and per-fitting quality can measure its wall
+layers.
+
+---
+
+## 0. Keep face-builder grading through meshing (bug fix)
+
+**Why.**  `PipeSpec`'s radial progression `mprg` is silently lost in the
+assembly pipeline.  The face builders set progressions on radial curves,
+but `Assembly.mesh()` re-applies every transfinite curve from
+`FillResult.curves` as `(tag, n)` with no progression, overriding them.
+Measured: a `Straight` with `mprg=1.3` meshes with uniform radial cells
+(last/first cell length ratio 1.000).
+
+**Do.**
+1. Extend curve records to `(tag, n, kind, coef)` (this is task 1, step 1);
+   `kind` is "Progression" or "Bump", `coef` a float, default uniform.
+   Update `FillResult.merge`, `Assembly.mesh()` (pass
+   `meshType`/`coef` to `setTransfiniteCurve`) and `BlockLayout.realise`.
+2. Radial curves of interface and station faces carry the layer's `mprg`,
+   oriented inner → outer by endpoint tags (`corners.canonical_geom`
+   already signs `rc` inner → outer).  Angular arcs carry `mbmp` as
+   "Bump".
+3. A curve that appears twice must get one consistent record; conflicting
+   records are an error, not "last wins".
+
+**Accept.**
+- Uniform specs mesh identically to before.
+- New test: radial cell lengths of a meshed `Straight` grow by `mprg`
+  from the inner end, for the core and for a shell layer.
+
+---
 
 ---
 
@@ -49,6 +87,16 @@ concentrated near a tee or a bend exit.
    `Bend`, `Closure`), e.g. `axial_grading: float = 1.0` (progression) or
    `axial_bump`.  Apply it **only to axial curves**, never to curves owned
    by an interface face (rule A2).
+   - `Straight` has one slab with `n_layers` divisions: grade its axial
+     curves.
+   - `Bend` and `Closure` have **one layer per slab** (so wall nodes stay
+     exact, DESIGN §6).  A curve progression on them does nothing; grade
+     them by spacing their `Path` stations non-uniformly instead.  This is
+     a `Path` property, so it belongs in `Sweep`, not in each fitting.
+   - Block layouts (`Tee`): parallel edges in one division class must share
+     the grading *direction*.  `BlockLayout._division_classes` must track
+     orientation (union-find with parity) and reject a class whose edges
+     disagree.
 3. Progression direction must follow the flow (inlet → outlet), whatever
    order GMSH gives the curve's endpoints.  Resolve it by endpoint tags
    (DESIGN §6.1: never by distance).
@@ -58,7 +106,7 @@ concentrated near a tee or a bend exit.
   unchanged.
 - New test: a `Straight` with progression `r` has axial cell lengths in
   ratio `r` (read node coordinates along one axial line).  The first cell
-  is at the inlet end.
+  is at the inlet end.  Same for a `Bend` (station spacing).
 - The conformance kit passes with graded fittings added to `CASES`.
 
 ---
@@ -69,6 +117,8 @@ concentrated near a tee or a bend exit.
 specify a first-cell height at the wall.
 
 **Where.**  `hexmesh/core/spec.py` (`core()`/`shell()` take `nrad`, `mprg`).
+Depends on task 0: before it, `mprg` has no effect in the assembly
+pipeline.
 
 **Do.**
 1. Add a pure function such as
@@ -104,10 +154,13 @@ makes "refinement ×2 ⇒ 8× cells" (CLAUDE.md) visible before meshing.
 `assembly/fittings.py` and `assembly/tee.py`.
 
 **Do.**
-1. Add `cell_count(spec) -> int` to the fitting protocol: per-layer
+1. Add `cell_count(frames, spec) -> int` to the fitting protocol (frames,
+   like `validate`, because block layouts need them): per-layer
    cross-section quads × axial layers for sweeps, the sum over blocks for
    `Tee`.  Derive cross-section quad counts from
-   `n_outer`/`nang`/`nrad`; no GMSH.
+   `n_outer`/`nang`/`nrad`; no GMSH.  For block layouts this is generic:
+   `BlockLayout` already solves the division classes, so a block's cells
+   are the product of its three class counts.
 2. Add `Assembly.cell_count()` (the sum) and
    `Assembly.validate(max_cells=None)`, which raises `AssemblyError` naming
    the total and the largest fitting when the budget is exceeded.
@@ -135,8 +188,10 @@ but only the legacy `network.py:874` uses them.
 3. Allow metrics from `quality_hex` as well as gmsh quality names.  Add
    **scaled Jacobian** (Knupp: minimum over the 8 corners of
    det(J)/(|e1||e2||e3|)) and **NES** (max of
-   `(θmax−90)/90`, `(90−θmin)/90` over face angles) if not already
-   present.  These are the metrics used in `docs/RESEARCH.md` §4.2 and §7.1.
+   `(θmax−90)/90`, `(90−θmin)/90` over face angles); neither is in
+   `quality_hex.py` yet (it has mean ratio, shape regularity and face
+   metrics).  `BlockLayout.corner_jacobians()` already computes the
+   scaled Jacobian per block corner before GMSH; reuse the formula.  These are the metrics used in `docs/RESEARCH.md` §4.2 and §7.1.
 4. Report rows show the fitting index, type name and the worst value.
 
 **Accept.**
@@ -219,7 +274,9 @@ Variants:
 
 If GMSH node numbering is not stable across variants, compare
 connectivity through a canonical ordering, such as sorting by (fitting,
-block, i, j, k) when available.  Otherwise report the gap rather than
+block, i, j, k) when available.  Known risk: OCC may store a circular arc
+reversed depending on its geometry, which flips node order along that
+curve without changing topology.  Otherwise report the gap rather than
 weakening the test.
 
 **Accept.**  The tests pass, or a clearly documented failure explains
@@ -235,9 +292,12 @@ region of interest, typically 5–10 D upstream and more downstream.
 **Do.**  Add `Assembly.extend_open_ends(upstream=5.0, downstream=10.0,
 n_layers=...)`, in diameters.  It must run before `build()`:
 - downstream: `add(iface, Straight(length))` on each open outlet
-- upstream: needs a new inlet *before* the current one.  If the graph
-  cannot prepend, implement downstream only and document the limitation;
-  don't hack placement.
+- upstream: needs a new inlet *before* the current one.  This fits the
+  graph without hacks: place a new inlet frame `L` back along the current
+  inlet's normal, add an edge `[new, old]` with a `Straight` (whose
+  `validate` already checks that placement), and make the new interface
+  `Assembly.inlet`.  Add this as `Assembly.prepend(fitting)`, limited to
+  fittings that can be placed backwards (`Straight`).
 
 Patch names of the extended ends must keep the original names.
 
@@ -257,8 +317,9 @@ also by fitting" for volumes.
 1. `Assembly.write_physical_groups(walls_by_fitting=False)`.  When true,
    emit `"{outer}_wall_{fitting_name}"` per edge instead of one wall group,
    with each surface still in exactly one group (A7).
-2. Fitting names: an optional `name` on `add()`, defaulting to
-   `f"{type}{index}"`.
+2. Fitting names: an optional `label` on `add()`, defaulting to
+   `f"{type}{index}"`.  Not `name`: `add(..., names=...)` already names
+   the outlet interfaces.
 
 **Accept.**  The kit's "each surface belongs to exactly one physical group"
 check passes with the option on.  The wall groups' union equals the
@@ -272,6 +333,9 @@ task.  How `gmshToFoam` treats internal physical surfaces is unverified.
 ## Out of scope for these tasks
 
 Do not combine these tasks with: Y-junction/Stage 6 work, miter bends in
-`Sweep`, the tee side-corner arc split, `n_outer = 8` core filling, or
-anything in `docs/RESEARCH.md` §8.  Those are design decisions, not
-low-hanging fruit.
+`Sweep`, tee generalisation (multi-layer, laterals, offset taps, exact
+tee walls), `n_outer = 8` core filling, or anything in
+`docs/RESEARCH.md` §8.  Those are design decisions, not low-hanging fruit.
+
+(The tee side-corner arc split is no longer needed: the block-layout tee
+places its saddle corners on the branch diagonals, DESIGN §7.1.)
