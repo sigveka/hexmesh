@@ -28,7 +28,7 @@ import numpy as np
 import pytest
 
 from hexmesh.assembly import (
-    Assembly, Bend, Closure, Elbow, MiterBend, Reducer, Straight, Tee,
+    Assembly, Bend, Closure, Elbow, MiterBend, Reducer, SplinePipe, Straight, Tee,
 )
 from hexmesh.core.shape import CircleShape
 from hexmesh.core.spec import PipeSpec
@@ -83,6 +83,15 @@ def _rolled_outlet(spec, fitting, degrees):
     return asm
 
 
+def _spline(spec, points, **kw):
+    """Straight → SplinePipe (points relative to its inlet) → Straight."""
+    asm = Assembly(spec, direction=[0, 1, 0], up=[0, 0, 1], lc=0.1)
+    start = asm.add(Straight(0.2, n_layers=2)).frame.position
+    asm.add(SplinePipe(tuple(tuple(start + p) for p in points), n_layers=20, **kw))
+    asm.add(Straight(0.2, n_layers=2))
+    return asm
+
+
 def _tee(ratio, direction=(0, 1, 0)):
     """Straight → Tee → Straight on both outlets."""
     asm = Assembly(_one(), direction=list(direction), up=[0, 0, 1], lc=0.1)
@@ -116,6 +125,10 @@ CASES = {
     "reducer":             lambda: _between(_one(), Reducer(_one(0.06), 0.15, n_layers=3)),
     "expander":            lambda: _between(_one(0.06), Reducer(_one(), 0.15, n_layers=3)),
     "reducer-2layer":      lambda: _between(_two(), Reducer(_two(0.07, 0.015), 0.2, n_layers=4)),
+    "spline-s-bend":       lambda: _spline(_one(), ((0, 0, 0), (0.1, 0.4, 0), (0.4, 0.8, 0),
+                                                    (0.5, 1.2, 0))),
+    "spline-3d-2layer":    lambda: _spline(_two(), ((0, 0, 0), (0.1, 0.4, 0.1), (0.4, 0.7, 0.4),
+                                                    (0.5, 0.9, 0.9)), end_tangent=(0, 0, 1)),
 }
 
 

@@ -26,7 +26,8 @@ from ..core.spec import PipeSpec
 from .interface import Frame, outer_radius, roll_mismatch, rotate
 from .sweep import Arc, FillResult, Path, Sweep
 
-__all__ = ["Straight", "Bend", "MiterBend", "Elbow", "Reducer", "Closure", "FillResult"]
+__all__ = ["Straight", "Bend", "MiterBend", "Elbow", "Reducer", "SplinePipe",
+           "Closure", "FillResult"]
 
 
 # ---------------------------------------------------------------------------
@@ -365,6 +366,182 @@ class Reducer(Sweep):
 
 
 # ---------------------------------------------------------------------------
+# Curved centrelines (Closure, SplinePipe)
+# ---------------------------------------------------------------------------
+
+_SAMPLES = 2000   # dense samples per curve for arc length and curvature
+
+
+def _min_radius(curve) -> float:
+    """Smallest radius of curvature of *curve* (``t -> (pos, d1, d2)``)."""
+    _, d1, d2 = curve(np.linspace(0.0, 1.0, _SAMPLES))
+    speed = np.linalg.norm(d1, axis=1)
+    if speed.min() < 1e-12:
+        return 0.0
+    kappa = np.linalg.norm(np.cross(d1, d2), axis=1) / speed**3
+    return float(1.0 / kappa.max()) if kappa.max() > 0 else math.inf
+
+
+def _transported_stations(curve, n_layers: int, start: Frame,
+                          end: Frame | None = None,
+                          n_outer: int = 4) -> tuple[list[Frame], float]:
+    """Station frames along *curve* for ``t`` in [0, 1], both ends included.
+
+    Stations equidistribute arc length + turning angle (equal weight), so
+    sharp turns get proportionally more stations.  ``up`` is parallel
+    transported from *start* (Bishop frame, no spurious twist).  With *end*
+    given, the last frame is *end* and the residual roll mismatch, modulo
+    the ``2π / n_outer`` symmetry, is distributed linearly by arc length;
+    it is returned as the absorbed twist.  Without *end* the last frame is
+    the transported one and the twist is 0.
+    """
+    t = np.linspace(0.0, 1.0, _SAMPLES)
+    pos, d1, _ = curve(t)
+    seg = np.linalg.norm(np.diff(pos, axis=0), axis=1)
+    s = np.concatenate([[0.0], np.cumsum(seg)])
+    td = d1 / np.linalg.norm(d1, axis=1)[:, None]
+    dtheta = np.arccos(np.clip(np.sum(td[:-1] * td[1:], axis=1), -1, 1))
+    theta = np.concatenate([[0.0], np.cumsum(dtheta)])
+    m = s / s[-1] + (theta / theta[-1] if theta[-1] > 1e-12 else 0.0)
+    ts = np.interp(np.linspace(0.0, m[-1], n_layers + 1), m, t)
+    targets = np.interp(ts, t, s)          # arc length at each station
+    P, D, _ = curve(ts)
+    T = D / np.linalg.norm(D, axis=1)[:, None]
+    T[0] = start.normal
+    if end is not None:
+        T[-1] = end.normal
+
+    ups = [start.up]
+    for k in range(1, len(T)):
+        axis = np.cross(T[k - 1], T[k])
+        n = np.linalg.norm(axis)
+        u = ups[-1]
+        if n > 1e-14:
+            u = rotate(u, axis / n, math.atan2(n, np.dot(T[k - 1], T[k])))
+        u = u - np.dot(u, T[k]) * T[k]
+        ups.append(u / np.linalg.norm(u))
+
+    twist = 0.0 if end is None else roll_mismatch(ups[-1], end.up, end.normal, n_outer)
+    frames = [Frame(P[k], T[k], rotate(ups[k], T[k], twist * targets[k] / targets[-1]))
+              for k in range(len(T))]
+    frames[0] = start
+    if end is not None:
+        frames[-1] = end
+    return frames, twist
+
+
+def _cubic_spline(points: np.ndarray, d0: np.ndarray, d1: np.ndarray | None = None):
+    """Cubic spline through *points*, chord-length parametrised, as
+    ``t -> (pos, first, second derivative)`` for ``t`` in [0, 1].
+
+    The start derivative (per unit chord length) is clamped to *d0*; the end
+    to *d1*, or natural (zero curvature) when *d1* is ``None``.
+    """
+    P = np.asarray(points, dtype=float)
+    h = np.linalg.norm(np.diff(P, axis=0), axis=1)
+    knots = np.concatenate([[0.0], np.cumsum(h)])
+    n, L = len(h), knots[-1]
+    A = np.zeros((n + 1, n + 1))
+    rhs = np.zeros((n + 1, 3))
+    slope = np.diff(P, axis=0) / h[:, None]
+    A[0, 0], A[0, 1] = 2 * h[0], h[0]
+    rhs[0] = 6 * (slope[0] - d0)
+    for i in range(1, n):
+        A[i, i - 1], A[i, i], A[i, i + 1] = h[i - 1], 2 * (h[i - 1] + h[i]), h[i]
+        rhs[i] = 6 * (slope[i] - slope[i - 1])
+    if d1 is None:
+        A[n, n] = 1.0
+    else:
+        A[n, n - 1], A[n, n] = h[n - 1], 2 * h[n - 1]
+        rhs[n] = 6 * (d1 - slope[n - 1])
+    M = np.linalg.solve(A, rhs)
+
+    def curve(u: np.ndarray):
+        x = np.clip(np.asarray(u, dtype=float) * L, 0.0, L)
+        i = np.clip(np.searchsorted(knots, x, side="right") - 1, 0, n - 1)
+        hi, a, b = h[i][:, None], (knots[i + 1] - x)[:, None], (x - knots[i])[:, None]
+        Mi, Mj, Pi, Pj = M[i], M[i + 1], P[i], P[i + 1]
+        pos = (Mi * a**3 + Mj * b**3) / (6 * hi) \
+            + (Pi / hi - Mi * hi / 6) * a + (Pj / hi - Mj * hi / 6) * b
+        der = (-Mi * a**2 + Mj * b**2) / (2 * hi) - (Pi / hi - Mi * hi / 6) \
+            + (Pj / hi - Mj * hi / 6)
+        sec = (Mi * a + Mj * b) / hi
+        return pos, der * L, sec * L * L
+
+    return curve
+
+
+# ---------------------------------------------------------------------------
+# Spline pipe
+# ---------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class SplinePipe(Sweep):
+    """Pipe along a cubic spline through *points* (first point = inlet).
+
+    The spline leaves the inlet along its normal; it ends along
+    *end_tangent* if given, otherwise with zero curvature.  Stations are
+    placed as for ``Closure`` (arc length + turning angle), one axial layer
+    each, with parallel-transported (Bishop) frames, so the outlet roll
+    follows from the curve and every wall node lies on a station circle.
+
+    Parameters
+    ----------
+    points : sequence of 3-vectors
+        At least two distinct consecutive points; ``points[0]`` must be
+        the inlet position.
+    n_layers : int
+        Hex layers (= stations) along the curve.
+    end_tangent : 3-vector, optional
+        Outlet direction (normalised).
+    """
+
+    points:      tuple
+    n_layers:    int
+    end_tangent: tuple | None = None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "points", tuple(tuple(map(float, p)) for p in self.points))
+        if self.end_tangent is not None:
+            object.__setattr__(self, "end_tangent", tuple(map(float, self.end_tangent)))
+
+    def _curve(self, inlet: Frame):
+        P = np.asarray(self.points)
+        d1 = None
+        if self.end_tangent is not None:
+            d1 = np.asarray(self.end_tangent) / np.linalg.norm(self.end_tangent)
+        return _cubic_spline(P, inlet.normal, d1)
+
+    def _check_points(self, inlet: Frame) -> None:
+        if self.n_layers < 1:
+            raise ValueError(f"n_layers must be >= 1, got {self.n_layers!r}")
+        P = np.asarray(self.points)
+        if P.ndim != 2 or P.shape[1] != 3 or len(P) < 2:
+            raise ValueError("points must be at least two 3-vectors")
+        scale = max(1.0, float(np.abs(P).max()))
+        if np.linalg.norm(P[0] - inlet.position) > 1e-9 * scale:
+            raise ValueError(
+                f"points[0] {P[0]} is not the inlet position {inlet.position}"
+            )
+        if np.linalg.norm(np.diff(P, axis=0), axis=1).min() < 1e-12 * scale:
+            raise ValueError("consecutive points coincide")
+        if self.end_tangent is not None and np.linalg.norm(self.end_tangent) < 1e-12:
+            raise ValueError("end_tangent must be non-zero")
+
+    def ports(self, inlet: Frame, spec: PipeSpec) -> list[tuple[Frame, PipeSpec]]:
+        self._check_points(inlet)
+        frames, _ = _transported_stations(self._curve(inlet), self.n_layers, inlet)
+        return [(frames[-1], spec)]
+
+    def path(self, a: Frame, b: Frame, spec: PipeSpec) -> Path:
+        self._check_points(a)
+        curve = self._curve(a)
+        frames, _ = _transported_stations(curve, self.n_layers, a)
+        frames[-1] = b
+        return Path(frames, [1] * self.n_layers, min_radius=_min_radius(curve))
+
+
+# ---------------------------------------------------------------------------
 # Closure
 # ---------------------------------------------------------------------------
 
@@ -394,7 +571,6 @@ class Closure(Sweep):
     tension:  float = 1.0
 
     places_outlet = False
-    _SAMPLES = 2000
 
     def ports(self, inlet: Frame, spec: PipeSpec):
         raise TypeError("Closure joins two existing interfaces; use Assembly.close()")
@@ -422,51 +598,16 @@ class Closure(Sweep):
               + (-12*t + 6) * p1 + (6*t - 2) * m1)
         return pos, d1, d2
 
+    def _curve(self, a: Frame, b: Frame):
+        return lambda t: self._hermite(a, b, t)
+
     def _min_bend_radius(self, a: Frame, b: Frame) -> float:
-        t = np.linspace(0.0, 1.0, self._SAMPLES)
-        _, d1, d2 = self._hermite(a, b, t)
-        speed = np.linalg.norm(d1, axis=1)
-        if speed.min() < 1e-12:
-            return 0.0
-        kappa = np.linalg.norm(np.cross(d1, d2), axis=1) / speed**3
-        return float(1.0 / kappa.max()) if kappa.max() > 0 else math.inf
+        return _min_radius(self._curve(a, b))
 
     def stations(self, a: Frame, b: Frame, n_outer: int) -> tuple[list[Frame], float]:
         """Station frames (inclusive of both ends) and the absorbed twist."""
-        t = np.linspace(0.0, 1.0, self._SAMPLES)
-        pos, d1, _ = self._hermite(a, b, t)
-        seg = np.linalg.norm(np.diff(pos, axis=0), axis=1)
-        s = np.concatenate([[0.0], np.cumsum(seg)])
-        # Stations equidistribute arc length + turning angle (equal weight),
-        # so sharp turns get proportionally more stations.
-        td = d1 / np.linalg.norm(d1, axis=1)[:, None]
-        dtheta = np.arccos(np.clip(np.sum(td[:-1] * td[1:], axis=1), -1, 1))
-        theta = np.concatenate([[0.0], np.cumsum(dtheta)])
-        m = s / s[-1] + (theta / theta[-1] if theta[-1] > 1e-12 else 0.0)
-        ts = np.interp(np.linspace(0.0, m[-1], self.n_layers + 1), m, t)
-        targets = np.interp(ts, t, s)          # arc length at each station
-        P, D, _ = self._hermite(a, b, ts)
-        T = D / np.linalg.norm(D, axis=1)[:, None]
-        T[0], T[-1] = a.normal, b.normal
-
-        # Parallel transport of up (Bishop frame).
-        ups = [a.up]
-        for k in range(1, len(T)):
-            axis = np.cross(T[k - 1], T[k])
-            n = np.linalg.norm(axis)
-            u = ups[-1]
-            if n > 1e-14:
-                u = rotate(u, axis / n, math.atan2(n, np.dot(T[k - 1], T[k])))
-            u = u - np.dot(u, T[k]) * T[k]
-            ups.append(u / np.linalg.norm(u))
-
-        twist = roll_mismatch(ups[-1], b.up, b.normal, n_outer)
-        frames = []
-        for k in range(len(T)):
-            u = rotate(ups[k], T[k], twist * targets[k] / targets[-1])
-            frames.append(Frame(P[k], T[k], u))
-        frames[0], frames[-1] = a, b
-        return frames, twist
+        return _transported_stations(self._curve(a, b), self.n_layers, a,
+                                     end=b, n_outer=n_outer)
 
     def path(self, a: Frame, b: Frame, spec: PipeSpec) -> Path:
         if np.linalg.norm(b.position - a.position) < 1e-12:
