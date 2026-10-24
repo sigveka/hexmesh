@@ -6,13 +6,15 @@ Each case builds a small assembly with the fitting under test placed so
 that its ports are shared with neighbours (or closing a loop).  Every case
 runs the same checks:
 
-* topology    ``ports`` / ``validate`` run without GMSH          (P3, P4)
+* topology    ``ports`` / ``validate`` / ``cell_count`` run without
+              GMSH                                               (P3, P4)
 * realisation port faces untouched by ``fill``                   (A1, A2)
               no duplicated surfaces, no coincident hex nodes    (P2)
               interior interfaces shared by exactly two fittings (P2)
               hex mesh valid (minSICN > 0)
               every surface in at most one physical group and
               every boundary face of the mesh in one             (A7)
+              cell count predicted before GMSH equals the mesh   (P4)
 * order       every fill order gives the identical mesh          (A6)
 
 A new fitting is added by writing one case function and listing it in
@@ -175,12 +177,14 @@ class TestConformance:
         assert not gmsh.isInitialized()
         asm = CASES[case]()
         asm.validate()
+        assert asm.cell_count() > 0
         assert not gmsh.isInitialized()
 
     def test_realisation(self, case):
         _session()
         try:
             asm = CASES[case]()
+            predicted = asm.cell_count()
             asm.build_faces()
             before = _face_snapshot(asm)
             asm.fill()
@@ -201,6 +205,9 @@ class TestConformance:
 
             report = asm.check_quality()
             assert report.ok, str(report)
+
+            n_hex = sum(len(t) for t in gmsh.model.mesh.getElements(3)[1])
+            assert n_hex == predicted, f"predicted {predicted} cells, meshed {n_hex}"
 
             quads, owners = _grouped_quads()
             assert all(n == 1 for n in owners.values()), "surface in two groups"

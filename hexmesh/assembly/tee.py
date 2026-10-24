@@ -233,6 +233,10 @@ class Tee:
         except LayoutError as e:
             raise ValueError(f"block layout invalid: {e}") from None
 
+    def cell_count(self, frames: list[Frame], spec: PipeSpec) -> int:
+        """Exact hex count of the block layout (pure; DESIGN P4)."""
+        return self.layout(frames, spec).cell_count()
+
     def fill(self, faces, frames, spec, lc):
         lay = self.layout(frames, spec)
         for prefix, face in zip("ABE", faces):

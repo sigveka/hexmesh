@@ -255,6 +255,20 @@ class BlockLayout:
         return {"blocks": len(self.blocks), "faces": len(use),
                 "wall_faces": len(boundary), "min_corner_sj": float(sj.min())}
 
+    def cell_count(self) -> int:
+        """Exact hex count: per block, the product of its three division
+        counts (pure; solves the division classes if needed)."""
+        if self._classes is None:
+            self._classes = self._division_classes()
+        total = 0
+        for ids, _ in self.blocks:
+            n = 1
+            for group in _EDGES.values():
+                a, b = group[0]
+                n *= self._classes[_key(ids[a], ids[b])]
+            total += n
+        return total
+
     # -- realisation (GMSH) ----------------------------------------------
 
     def _point(self, vid) -> int:

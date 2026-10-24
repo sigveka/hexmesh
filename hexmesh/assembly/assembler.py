@@ -188,8 +188,12 @@ class Assembly:
     # 3. Validation (pure Python)
     # ------------------------------------------------------------------
 
-    def validate(self) -> None:
-        """Check every interface and fitting; raise AssemblyError on failure."""
+    def validate(self, max_cells: int | None = None) -> None:
+        """Check every interface and fitting; raise AssemblyError on failure.
+
+        With *max_cells*, also reject an assembly whose exact cell count
+        (``cell_count()``, computed without GMSH) exceeds the budget.
+        """
         if not self._edges:
             raise AssemblyError("assembly has no fittings")
         for iface in self._interfaces:
@@ -218,6 +222,24 @@ class Assembly:
                 )
             except ValueError as e:
                 raise AssemblyError(f"{edge}: {e}") from None
+        if max_cells is not None:
+            counts = self.cell_counts()
+            total = sum(counts.values())
+            if total > max_cells:
+                worst = max(self._edges, key=lambda e: counts[e.index])
+                raise AssemblyError(
+                    f"assembly has {total} cells, over the budget of {max_cells}; "
+                    f"largest is {worst} with {counts[worst.index]}"
+                )
+
+    def cell_counts(self) -> dict[int, int]:
+        """Exact hex count per fitting (edge index), without GMSH (DESIGN P4)."""
+        return {e.index: e.fitting.cell_count([p.frame for p in e.ports], e.ports[0].spec)
+                for e in self._edges}
+
+    def cell_count(self) -> int:
+        """Exact hex count of the whole assembly, without GMSH (DESIGN P4)."""
+        return sum(self.cell_counts().values())
 
     # ------------------------------------------------------------------
     # 4–5. Realisation

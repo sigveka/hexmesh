@@ -59,6 +59,18 @@ def face_grading(face: LayeredCrossSection, spec: PipeSpec) -> dict[int, tuple[s
     return out
 
 
+def section_cells(spec: PipeSpec) -> int:
+    """Quads in one OH cross-section of *spec* (pure; DESIGN P4).
+
+    The core is an ``a × a`` centre patch plus ``n_outer`` ring patches of
+    ``a × nrad``, with ``a`` divisions per outer arc; every shell adds
+    ``n_outer`` patches of ``a × nrad``.
+    """
+    a = spec.nang // (spec.n_outer // 4)
+    nrads = [spec._core_nrad] + [sh.nrad for sh in spec.shells]
+    return a * a + spec.n_outer * a * sum(nrads)
+
+
 @dataclass
 class FillResult:
     """Entities created by one fitting fill."""
@@ -264,6 +276,10 @@ class Sweep:
                         f"with straight axial edges); use more axial layers"
                     )
         path.offsets(spec)   # raises if any correspondence is undefined
+
+    def cell_count(self, frames: list[Frame], spec: PipeSpec) -> int:
+        """Exact hex count, from topology and density alone (DESIGN P4)."""
+        return section_cells(spec) * sum(self.path(frames[0], frames[1], spec).layers)
 
     def fill(self, faces: list[LayeredCrossSection], frames: list[Frame],
              spec: PipeSpec, lc: float) -> FillResult:
