@@ -71,12 +71,12 @@ def _rolled_outlet(spec, fitting, degrees):
     corner 0 of the inlet meets corner k of the outlet.
     """
     from hexmesh.assembly.interface import Frame
-    from hexmesh.core.cursor import _rodrigues
+    from hexmesh.assembly.interface import rotate
     asm = Assembly(spec, direction=[0, 1, 0], up=[0, 0, 1], lc=0.1)
     out = asm.add(fitting)
     f = out.frame
     out.frame = Frame(f.position, f.normal,
-                      _rodrigues(f.up, f.normal, math.radians(degrees)))
+                      rotate(f.up, f.normal, math.radians(degrees)))
     asm.add(Straight(0.2, n_layers=2))
     return asm
 

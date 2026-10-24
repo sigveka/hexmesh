@@ -135,10 +135,10 @@ def _mesh_nodes(fitting, spec, roll=0.0):
         asm = Assembly(spec, direction=[0, 1, 0], up=[0, 0, 1], lc=0.1)
         out = asm.add(fitting)
         if roll:
-            from hexmesh.core.cursor import _rodrigues
+            from hexmesh.assembly.interface import rotate
             f = out.frame
             out.frame = Frame(f.position, f.normal,
-                              _rodrigues(f.up, f.normal, math.radians(roll)))
+                              rotate(f.up, f.normal, math.radians(roll)))
         asm.mesh()
         c = kit._hex_nodes()
         n = sum(len(t) for t in gmsh.model.mesh.getElements(3)[1])

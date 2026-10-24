@@ -15,13 +15,14 @@ numpy, so it is checked during validation and reused unchanged in ``fill``.
 
 from __future__ import annotations
 import math
+from typing import Callable
 
 import gmsh
 import numpy as np
 
 from ..core.cross_section import CrossSection
+from ..core.shape import CircleShape
 from ..core.spec import PipeSpec
-from ..connectors.fittings import _connect_layer_aligned
 from .interface import Frame
 
 
@@ -33,8 +34,8 @@ def curve_endpoints(curve: int) -> tuple[int, int]:
     curve's own parametrisation: the end point at the lower parameter bound.
     This only distinguishes the curve's own two end points; it never
     matches entities of different faces by distance (DESIGN §6.1).
-    (``connectors.fittings._curve_endpoints`` assumes the first boundary
-    point is the start and is wrong whenever the start has the higher tag.)
+    OCC's ``getBoundary`` lists the two end points in ascending tag order,
+    not start → end, so the boundary order alone cannot be trusted.
     """
     pts = [t for _, t in gmsh.model.getBoundary([(1, abs(curve))], oriented=False)]
     if len(pts) != 2:
@@ -108,13 +109,218 @@ def frame_offset(a: Frame, b: Frame, spec: PipeSpec) -> int:
 
 def connect_layer(in_cs: CrossSection, out_cs: CrossSection, n_layers: int,
                   offset: int, **kwargs):
-    """``_connect_layer`` with correspondence from frames (*offset*)."""
+    """``connect_aligned`` with correspondence from frames (*offset*)."""
     n = in_cs.n_outer
     g_in, g_out = canonical_geom(in_cs), canonical_geom(out_cs)
     g_out = {key: [v[(i + offset) % n] for i in range(n)] for key, v in g_out.items()}
     off = 1 if len(in_cs.surfaces) == n + 1 else 0
     in_quads = [in_cs.surfaces[off + i] for i in range(n)]
     out_quads = [out_cs.surfaces[off + (i + offset) % n] for i in range(n)]
-    return _connect_layer_aligned(
+    return connect_aligned(
         in_cs, out_cs, g_in, g_out, in_quads, out_quads, n_layers, **kwargs,
     )
+
+
+def connect_aligned(
+    in_cs:    CrossSection,
+    out_cs:   CrossSection,
+    g_in:     dict,
+    g_out:    dict,
+    in_quad_surfs:  "list[int]",
+    out_quad_surfs: "list[int]",
+    n_layers: int,
+    prev_outer_axial:      "list[int] | None" = None,
+    prev_outer_side_surfs: "list[int] | None" = None,
+    planar_radial: bool = True,
+    axial_curve: "Callable[[int, int], int] | None" = None,
+) -> "tuple[list[int], list[int], list[int]]":
+    """Build one layer's hex slab once corner correspondence is fixed.
+
+    ``g_in`` / ``g_out`` hold signed entity tags ``ip, op, ic, oc, rc``
+    (see ``canonical_geom``) indexed so that entry ``i`` of the inlet
+    corresponds to entry ``i`` of the outlet; ``in_quad_surfs[i]`` and
+    ``out_quad_surfs[i]`` are the quadrant patches between corners ``i``
+    and ``i+1``.  How the correspondence is found is the caller's concern.
+    Returns ``(volumes, outer_side_surfs, outer_axial, deferred)``; the
+    outer side surfaces and axial curves seed the next layer
+    (*prev_outer_side_surfs*, *prev_outer_axial*).  *deferred* holds the
+    transfinite constraints for the caller to apply after the last
+    synchronize.
+    """
+    geo  = gmsh.model.occ
+    mesh = gmsh.model.mesh
+    if axial_curve is None:
+        axial_curve = geo.addLine
+    ip_in, op_in, ic_in, oc_in, rc_in = (g_in[k] for k in ('ip', 'op', 'ic', 'oc', 'rc'))
+    ip_out, op_out, ic_out, oc_out, rc_out = (g_out[k] for k in ('ip', 'op', 'ic', 'oc', 'rc'))
+    n = in_cs.n_outer
+    is_core = (len(in_cs.surfaces) == n + 1)
+
+    # ------------------------------------------------------------------
+    # Axial lines for inner corners
+    # ------------------------------------------------------------------
+    new_inner_axial: list[int] = []   # only populated when we create new lines
+    if prev_outer_axial is None:
+        inner_axial = []
+        for pt_in, pt_out in zip(ip_in, ip_out):
+            L = axial_curve(pt_in, pt_out)
+            inner_axial.append(L)
+            new_inner_axial.append(L)
+        geo.synchronize()   # needed before addCurveLoop references these lines
+    else:
+        inner_axial = prev_outer_axial
+        geo.synchronize()   # still needed so OCC buffer is clean
+
+    # ------------------------------------------------------------------
+    # Axial lines for outer corners
+    # ------------------------------------------------------------------
+    outer_axial_lines: list[int] = []
+    for pt_in, pt_out in zip(op_in, op_out):
+        outer_axial_lines.append(axial_curve(pt_in, pt_out))
+    outer_axial = outer_axial_lines
+    geo.synchronize()   # needed before addCurveLoop references these lines
+    # outer_axial = [NE, NW, SW, SE]
+
+    # ------------------------------------------------------------------
+    # Outer arc side-surfaces  (one per patch, shared with next layer)
+    # Each connects oc_in[i] to oc_out[i] via outer_axial[i] and [j]
+    # Loop: op_in[i] →(oc_in[i])→ op_in[j] →(oa[j])→ op_out[j]
+    #         →(-oc_out[i])→ op_out[i] →(-oa[i])→ op_in[i]
+    # Use addSurfaceFilling: the boundary curves are arcs in different
+    # planes (inlet vs outlet), so the surface is non-planar.
+    # ------------------------------------------------------------------
+    outer_side_surfs: list[int] = []
+    for i in range(n):
+        j = (i + 1) % n
+        loop = geo.addCurveLoop([oc_in[i], outer_axial[j], -oc_out[i], -outer_axial[i]])
+        surf = geo.addSurfaceFilling(loop)
+        outer_side_surfs.append(surf)
+    geo.synchronize()
+
+    # ------------------------------------------------------------------
+    # Inner arc side-surfaces
+    # For the innermost layer (OH core) build them fresh;
+    # for outer layers reuse the previous layer's outer_side_surfs.
+    # ------------------------------------------------------------------
+    new_inner_side_surfs: list[int] = []   # only populated when we create new ones
+    if prev_outer_side_surfs is None:
+        inner_side_surfs: list[int] = []
+        for i in range(n):
+            j = (i + 1) % n
+            loop = geo.addCurveLoop([
+                ic_in[i], inner_axial[j], -ic_out[i], -inner_axial[i],
+            ])
+            surf = geo.addSurfaceFilling(loop)
+            inner_side_surfs.append(surf)
+            new_inner_side_surfs.append(surf)
+        geo.synchronize()
+    else:
+        inner_side_surfs = prev_outer_side_surfs
+
+    # ------------------------------------------------------------------
+    # Radial side-surfaces  (one per corner)
+    # Each connects rc_in[i] (ip→op on inlet) to rc_out[i] (ip→op on outlet)
+    # via outer_axial[i] and inner_axial[i].
+    # Loop: ip_in[i] →(rc_in[i])→ op_in[i] →(oa[i])→ op_out[i]
+    #         →(-rc_out[i])→ ip_out[i] →(-ia[i])→ ip_in[i]
+    # ------------------------------------------------------------------
+    radial_side_surfs: list[int] = []
+    for i in range(n):
+        loop = geo.addCurveLoop([
+            rc_in[i], outer_axial[i], -rc_out[i], -inner_axial[i],
+        ])
+        if planar_radial:
+            surf = geo.addPlaneSurface([loop])
+        else:
+            surf = geo.addSurfaceFilling(loop)
+        radial_side_surfs.append(surf)
+    geo.synchronize()
+
+    # ------------------------------------------------------------------
+    # Volumes
+    # ------------------------------------------------------------------
+    vols: list[int] = []
+
+    if is_core:
+        # Center patch: in + out + all n inner arc sides
+        # OCC addSurfaceLoop: orientation not used, all tags positive
+        sloop = geo.addSurfaceLoop([
+            in_cs.surfaces[0], out_cs.surfaces[0],
+            *inner_side_surfs,
+        ])
+        vol = geo.addVolume([sloop])
+        vols.append(vol)
+        surf_offset = 1
+    else:
+        surf_offset = 0
+
+    for i in range(n):
+        j = (i + 1) % n
+        in_surf  = in_quad_surfs[i]
+        out_surf = out_quad_surfs[i]
+
+        sloop = geo.addSurfaceLoop([
+            in_surf,               out_surf,
+            outer_side_surfs[i],   inner_side_surfs[i],
+            radial_side_surfs[i],  radial_side_surfs[j],
+        ])
+        vol = geo.addVolume([sloop])
+        vols.append(vol)
+
+    # ------------------------------------------------------------------
+    # Collect deferred mesh constraints.
+    # Do NOT apply them here — the caller accumulates constraints from all
+    # concentric layers and applies them in a single final synchronize pass
+    # so that no subsequent geo.synchronize() can reset them.
+    #
+    # Arc and radial curves need matching node counts on the inlet and
+    # outlet faces so that the taper side-surfaces are transfinite-
+    # compatible (opposite edges of a surface must have equal node counts).
+    # The axial lines (new_inner_axial + outer_axial) are stored as bare
+    # tags; the caller wraps them as (tag, n_layers+1).  Arc and radial
+    # curves carry their own node counts stored as (tag, n_nodes) pairs in
+    # "arc_curves".
+    # ------------------------------------------------------------------
+    nang = in_cs.shape.nang if isinstance(in_cs.shape, CircleShape) else 5
+    nrad = in_cs.nrad
+    # Divisions per arc: for n_outer=4 each arc spans 90° (nang divisions);
+    # for n_outer=8 each arc spans 45° (nang//2 divisions), etc.
+    nang_per_arc = nang // (n // 4)
+
+    # Deduplicated (tag, n_nodes) pairs for arc and radial curves.
+    _arc_seen: set[int] = set()
+    arc_curve_constraints: list[tuple[int, int]] = []
+
+    def _add_arcs(signed_tags: list[int], n_nodes: int) -> None:
+        for t in signed_tags:
+            tag = abs(t)
+            if tag and tag not in _arc_seen:
+                _arc_seen.add(tag)
+                arc_curve_constraints.append((tag, n_nodes))
+
+    # Angular arcs: nang_per_arc+1 nodes on both inlet and outlet faces so that
+    # the outer/inner arc side-surfaces have matching opposing edge counts.
+    _add_arcs(oc_in,  nang_per_arc + 1)
+    _add_arcs(oc_out, nang_per_arc + 1)
+    _add_arcs(ic_in,  nang_per_arc + 1)
+    _add_arcs(ic_out, nang_per_arc + 1)
+
+    # Radial curves: nrad+1 nodes on both faces so the radial side-
+    # surfaces have matching opposing edge counts.
+    _add_arcs(rc_in,  nrad + 1)
+    _add_arcs(rc_out, nrad + 1)
+
+    deferred: dict = {
+        "curves":      new_inner_axial + outer_axial,
+        "arc_curves":  arc_curve_constraints,
+        "surfaces": (
+            new_inner_side_surfs
+            + outer_side_surfs
+            + radial_side_surfs
+            + list(in_cs.surfaces)
+            + list(out_cs.surfaces)
+        ),
+        "volumes": vols,
+    }
+
+    return vols, outer_side_surfs, outer_axial, deferred

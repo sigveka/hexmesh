@@ -21,9 +21,8 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from ..core.cursor import _rodrigues
 from ..core.spec import PipeSpec
-from .interface import Frame, roll_mismatch
+from .interface import Frame, roll_mismatch, rotate
 from .sweep import Arc, FillResult, Path, Sweep
 
 __all__ = ["Straight", "Bend", "Closure", "FillResult"]
@@ -80,7 +79,7 @@ class Bend(Sweep):
         Total hex layers along the arc.
     roll : float
         Bend-plane rotation about the pipe axis in degrees
-        (0 = bend toward ``up``; same convention as ``connectors.Bend``).
+        (0 = bend toward ``up``).
     """
 
     radius:   float
@@ -100,9 +99,9 @@ class Bend(Sweep):
         axis, centre = self._axis_centre(inlet)
         a = math.radians(angle_deg)
         return Frame(
-            centre + _rodrigues(inlet.position - centre, axis, a),
-            _rodrigues(inlet.normal, axis, a),
-            _rodrigues(inlet.up, axis, a),
+            centre + rotate(inlet.position - centre, axis, a),
+            rotate(inlet.normal, axis, a),
+            rotate(inlet.up, axis, a),
         )
 
     def ports(self, inlet: Frame, spec: PipeSpec) -> list[tuple[Frame, PipeSpec]]:
@@ -213,14 +212,14 @@ class Closure(Sweep):
             n = np.linalg.norm(axis)
             u = ups[-1]
             if n > 1e-14:
-                u = _rodrigues(u, axis / n, math.atan2(n, np.dot(T[k - 1], T[k])))
+                u = rotate(u, axis / n, math.atan2(n, np.dot(T[k - 1], T[k])))
             u = u - np.dot(u, T[k]) * T[k]
             ups.append(u / np.linalg.norm(u))
 
         twist = roll_mismatch(ups[-1], b.up, b.normal, n_outer)
         frames = []
         for k in range(len(T)):
-            u = _rodrigues(ups[k], T[k], twist * targets[k] / targets[-1])
+            u = rotate(ups[k], T[k], twist * targets[k] / targets[-1])
             frames.append(Frame(P[k], T[k], u))
         frames[0], frames[-1] = a, b
         return frames, twist

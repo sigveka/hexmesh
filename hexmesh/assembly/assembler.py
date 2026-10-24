@@ -30,8 +30,8 @@ import gmsh
 
 from ..core.spec import PipeSpec
 from ..faces._gmsh_helpers import add_physical_group
-from ..network import QualityReport, RegionQuality
 from .fittings import FillResult
+from .quality import QualityReport, RegionQuality
 from .interface import (
     Frame, Interface, build_face, check_supported, outer_radius, port_type,
 )

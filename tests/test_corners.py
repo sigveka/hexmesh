@@ -14,7 +14,7 @@ from hexmesh.assembly.corners import (
     canonical_geom, corner0_angle, curve_endpoints, frame_offset,
 )
 from hexmesh.assembly.interface import Frame, build_face
-from hexmesh.core.cursor import _rodrigues
+from hexmesh.assembly.interface import rotate
 from hexmesh.core.shape import CircleShape
 from hexmesh.core.spec import PipeSpec
 
@@ -26,7 +26,7 @@ def _spec(n_outer=4, rot=0.0):
 
 
 def _rolled(f, degrees):
-    return Frame(f.position, f.normal, _rodrigues(f.up, f.normal, math.radians(degrees)))
+    return Frame(f.position, f.normal, rotate(f.up, f.normal, math.radians(degrees)))
 
 
 A = Frame.from_vectors([0, 0, 0], [1, 0, 0], [0, 0, 1])

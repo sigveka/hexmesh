@@ -23,11 +23,26 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from ..core.cross_section import CrossSection, LayeredCrossSection
-from ..core.cursor import Cursor, _perpendicular
 from ..core.shape import CircleShape
 from ..core.spec import PipeSpec, SquareShellSpec
 from ..faces.oh_circle import build_oh_circle, build_oh_circle8
 from ..faces.annulus import build_annulus
+
+
+
+def rotate(v: np.ndarray, axis: np.ndarray, angle: float) -> np.ndarray:
+    """Rotate *v* about the unit *axis* by *angle* radians (Rodrigues)."""
+    c, s = math.cos(angle), math.sin(angle)
+    return v * c + np.cross(axis, v) * s + axis * np.dot(axis, v) * (1 - c)
+
+
+def perpendicular(v: np.ndarray) -> np.ndarray:
+    """An arbitrary unit vector perpendicular to *v*."""
+    candidate = np.array([1.0, 0.0, 0.0])
+    if abs(np.dot(v, candidate)) > 0.9:
+        candidate = np.array([0.0, 1.0, 0.0])
+    w = np.cross(v, candidate)
+    return w / np.linalg.norm(w)
 
 
 @dataclass(frozen=True)
@@ -54,7 +69,7 @@ class Frame:
         n = np.array([1., 0., 0.]) if normal is None else np.asarray(normal, dtype=float)
         n = n / np.linalg.norm(n)
         if up is None:
-            u = np.array([0., 0., 1.]) if abs(n[2]) < 0.9 else _perpendicular(n)
+            u = np.array([0., 0., 1.]) if abs(n[2]) < 0.9 else perpendicular(n)
         else:
             u = np.asarray(up, dtype=float)
         # Remove any component along the normal so the frame is orthonormal.
@@ -65,9 +80,6 @@ class Frame:
     @property
     def right(self) -> np.ndarray:
         return np.cross(self.normal, self.up)
-
-    def cursor(self) -> Cursor:
-        return Cursor(self.position, self.normal, self.up)
 
 
 def port_type(spec: PipeSpec) -> tuple:
