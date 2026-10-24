@@ -17,8 +17,46 @@ import gmsh
 
 from ..core.cross_section import LayeredCrossSection
 from ..core.spec import PipeSpec
-from .corners import connect_layer, frame_offset
+from .corners import canonical_geom, connect_layer, frame_offset
 from .interface import Frame, build_face, outer_radius, roll_mismatch
+
+
+@dataclass(frozen=True)
+class CurveMesh:
+    """Transfinite constraint of one curve, in its parametric direction.
+
+    *kind* is a GMSH transfinite type ("Progression" or "Bump"); *coef*
+    1.0 means uniform.
+    """
+
+    tag:   int
+    nodes: int
+    kind:  str   = "Progression"
+    coef:  float = 1.0
+
+
+UNIFORM = ("Progression", 1.0)
+
+
+def face_grading(face: LayeredCrossSection, spec: PipeSpec) -> dict[int, tuple[str, float]]:
+    """Grading of the curves of an OH *face* built from *spec*.
+
+    Radial curves carry the layer's ``mprg`` from the inner to the outer
+    end (the face-builder convention, ``core.spec.LayerSpec``); angular
+    arcs carry ``mbmp`` as a bump.  Orientation comes from endpoint tags
+    (``canonical_geom`` signs radials inner → outer), never from distance.
+    """
+    mprgs = [spec._core_mprg] + [getattr(sh, "mprg", 1.0) for sh in spec.shells]
+    out: dict[int, tuple[str, float]] = {}
+    for (_, cs), mprg in zip(face.layers, mprgs):
+        g = canonical_geom(cs)
+        if spec.mbmp != 1.0:
+            for c in g['oc'] + g['ic']:
+                out[abs(c)] = ("Bump", spec.mbmp)
+        if mprg != 1.0:
+            for c in g['rc']:
+                out[abs(c)] = ("Progression", mprg if c > 0 else 1.0 / mprg)
+    return out
 
 
 @dataclass
@@ -28,7 +66,7 @@ class FillResult:
     volumes:    dict[str, list[int]] = field(default_factory=dict)
     walls:      list[int]            = field(default_factory=list)
     interfaces: dict[str, list[int]] = field(default_factory=dict)
-    curves:     list[tuple[int, int]] = field(default_factory=list)
+    curves:     list[CurveMesh]      = field(default_factory=list)
     surfaces:   list[int]            = field(default_factory=list)
     mesh_vols:  list[int]            = field(default_factory=list)
 
@@ -121,11 +159,14 @@ MAX_CHORD_TURN = 30.0   # degrees
 
 def _fill_slab(in_face: LayeredCrossSection, out_face: LayeredCrossSection,
                n_layers: int, offset: int = 0, axial_curve=None,
-               planar_radial: bool = True) -> FillResult:
+               planar_radial: bool = True,
+               grading: dict[int, tuple[str, float]] | None = None) -> FillResult:
     """Fill all concentric layers between two existing faces.
 
-    *offset* is the corner correspondence from ``frame_offset``.
+    *offset* is the corner correspondence from ``frame_offset``; *grading*
+    maps face-curve tags to their ``face_grading`` (default uniform).
     """
+    grading = grading or {}
     result = FillResult()
     names = in_face.interface_names()
     prev_axial = prev_side = None
@@ -142,8 +183,9 @@ def _fill_slab(in_face: LayeredCrossSection, out_face: LayeredCrossSection,
         result.volumes.setdefault(name, []).extend(vols)
         if prev_side is not None:
             result.interfaces.setdefault(names[idx - 1], []).extend(prev_side)
-        result.curves.extend((c, n_layers + 1) for c in deferred["curves"])
-        result.curves.extend(deferred["arc_curves"])
+        result.curves.extend(CurveMesh(c, n_layers + 1) for c in deferred["curves"])
+        result.curves.extend(CurveMesh(c, n, *grading.get(c, UNIFORM))
+                             for c, n in deferred["arc_curves"])
         result.surfaces.extend(deferred["surfaces"])
         result.mesh_vols.extend(deferred["volumes"])
         prev_axial, prev_side = axial, side
@@ -164,10 +206,14 @@ def sweep_fill(path: Path, faces: list[LayeredCrossSection],
     axial_curve = path.axial.builder() if path.axial is not None else None
     planar = path.is_straight
     offsets = path.offsets(spec)
+    grading: dict[int, tuple[str, float]] = {}
+    for k, st in enumerate(stations):
+        grading.update(face_grading(st, path.spec_at(k, spec)))
     result = FillResult()
     for k, n in enumerate(path.layers):
         result.merge(_fill_slab(stations[k], stations[k + 1], n, offsets[k],
-                                axial_curve=axial_curve, planar_radial=planar))
+                                axial_curve=axial_curve, planar_radial=planar,
+                                grading=grading))
     return result
 
 

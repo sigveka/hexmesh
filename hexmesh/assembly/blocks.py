@@ -31,8 +31,8 @@ from dataclasses import dataclass, field
 import numpy as np
 import gmsh
 
-from ..connectors.fittings import _curve_endpoints
-from .sweep import FillResult
+from .corners import curve_endpoints
+from .sweep import CurveMesh, FillResult
 
 # Corner (a, b, c) ∈ {0,1}³ → vertex index
 _IDX = {(0, 0, 0): 0, (1, 0, 0): 1, (1, 1, 0): 2, (0, 1, 0): 3,
@@ -82,6 +82,7 @@ class _Edge:
     geom: object = field(default_factory=Line)
     tag: int | None = None          # bound or realised curve tag (unsigned)
     start: object = None            # vertex id at the curve's parametric start
+    grading: tuple = ("Progression", 1.0)   # oriented a → b
 
 
 # ---------------------------------------------------------------------------
@@ -111,16 +112,17 @@ class BlockLayout:
         return vid
 
     def edge(self, a, b, geom=None, curve: int | None = None,
-             divisions: int | None = None) -> None:
+             divisions: int | None = None, grading: tuple | None = None) -> None:
         """Declare the edge *a*–*b* (straight by default).
 
         *curve* binds an existing curve tag; *divisions* fixes the edge's
-        division class.
+        division class; *grading* is a ``(kind, coef)`` transfinite grading
+        oriented from *a* to *b* (default uniform).
         """
-        e = _Edge(a, b, geom or Line())
+        e = _Edge(a, b, geom or Line(), grading=grading or ("Progression", 1.0))
         if curve is not None:
             e.tag = abs(curve)
-            t0, _ = _curve_endpoints(abs(curve))
+            t0, _ = curve_endpoints(abs(curve))
             e.start = a if self.points.get(a) == t0 else b
         self.edges[_key(a, b)] = e
         if divisions is not None:
@@ -133,7 +135,7 @@ class BlockLayout:
         """Bind declared edge *a*–*b* to an existing curve (points bound first)."""
         e = self.edges.setdefault(_key(a, b), _Edge(a, b))
         e.tag = abs(curve)
-        t0, _ = _curve_endpoints(abs(curve))
+        t0, _ = curve_endpoints(abs(curve))
         e.start = a if self.points.get(a) == t0 else b
 
     def port_face(self, ids, surface: int | None = None) -> None:
@@ -332,7 +334,11 @@ class BlockLayout:
         geo.synchronize()
 
         for k, n in self._classes.items():
-            result.curves.append((self.edges[k].tag, n + 1))
+            e = self.edges[k]
+            kind, coef = e.grading
+            if kind == "Progression" and e.start != e.a:
+                coef = 1.0 / coef
+            result.curves.append(CurveMesh(e.tag, n + 1, kind, coef))
         materials = {}
         for bi, (ids, material) in enumerate(self.blocks):
             for f in _FACES:
@@ -378,16 +384,20 @@ def face_vertices(layout: BlockLayout, prefix, frame, spec, port: bool = True) -
     a0 = corner0_angle(spec)
     nang = spec.nang // (n // 4)
     nrads = [spec._core_nrad] + [sh.nrad for sh in spec.shells]
+    mprgs = [spec._core_mprg] + [sh.mprg for sh in spec.shells]
+    bump = ("Bump", spec.mbmp) if spec.mbmp != 1.0 else None
     for lvl, rad in enumerate(face_levels(spec)):
         for k in range(n):
             ang = a0 + 2 * np.pi * k / n
             layout.vertex((prefix, lvl, k), frame.position
                           + rad * (np.cos(ang) * frame.right + np.sin(ang) * frame.up))
         for k in range(n):
-            layout.edge((prefix, lvl, k), (prefix, lvl, (k + 1) % n), divisions=nang)
+            layout.edge((prefix, lvl, k), (prefix, lvl, (k + 1) % n),
+                        divisions=nang, grading=bump)
             if lvl:
                 layout.edge((prefix, lvl - 1, k), (prefix, lvl, k),
-                            divisions=nrads[lvl - 1])
+                            divisions=nrads[lvl - 1],
+                            grading=("Progression", mprgs[lvl - 1]))
     if port:
         for _, cyc in face_patches(prefix, spec):
             layout.port_face(cyc)

@@ -10,9 +10,10 @@ import numpy as np
 import pytest
 
 from hexmesh.assembly import Assembly, AssemblyError, Closure, Straight, Bend
-from hexmesh.assembly.corners import canonical_geom, corner0_angle, frame_offset
+from hexmesh.assembly.corners import (
+    canonical_geom, corner0_angle, curve_endpoints, frame_offset,
+)
 from hexmesh.assembly.interface import Frame, build_face
-from hexmesh.connectors.fittings import _curve_endpoints
 from hexmesh.core.cursor import _rodrigues
 from hexmesh.core.shape import CircleShape
 from hexmesh.core.spec import PipeSpec
@@ -64,6 +65,20 @@ class TestFrameOffset:
         assert frame_offset(A, b, _spec(n_outer=8)) == 1
 
 
+class TestCurveEndpoints:
+    def test_start_with_higher_tag(self, gmsh_session):
+        """OCC getBoundary lists end points by ascending tag, not start/end."""
+        g = gmsh.model.occ
+        a, b = g.addPoint(0, 0, 0), g.addPoint(1, 0, 0)
+        fwd, back = g.addLine(a, b), g.addLine(b, a)
+        arc_c = g.addPoint(0.5, -0.5, 0)
+        arc = g.addCircleArc(b, arc_c, a)
+        g.synchronize()
+        assert curve_endpoints(fwd) == (a, b)
+        assert curve_endpoints(back) == (b, a)
+        assert curve_endpoints(arc) == (b, a)
+
+
 class TestCanonicalGeom:
     @pytest.mark.parametrize("rot", [0.0, 0.3])
     def test_builder_convention(self, gmsh_session, rot):
@@ -85,7 +100,7 @@ class TestCanonicalGeom:
                                   ('ic', g['ip'][k], g['ip'][(k + 1) % 4]),
                                   ('rc', g['ip'][k], g['op'][k])]:
                     c = g[key][k]
-                    t0, t1 = _curve_endpoints(abs(c))
+                    t0, t1 = curve_endpoints(abs(c))
                     assert (t0, t1) == ((a, b) if c > 0 else (b, a))
 
 

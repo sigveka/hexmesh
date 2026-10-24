@@ -16,17 +16,38 @@ numpy, so it is checked during validation and reused unchanged in ``fill``.
 from __future__ import annotations
 import math
 
+import gmsh
 import numpy as np
 
 from ..core.cross_section import CrossSection
 from ..core.spec import PipeSpec
-from ..connectors.fittings import _connect_layer_aligned, _curve_endpoints
+from ..connectors.fittings import _connect_layer_aligned
 from .interface import Frame
+
+
+def curve_endpoints(curve: int) -> tuple[int, int]:
+    """(start, end) point tags of *curve* in its parametric direction.
+
+    With the OCC kernel ``getBoundary`` returns a curve's two end points in
+    ascending tag order, not start/end, so the start is read from the
+    curve's own parametrisation: the end point at the lower parameter bound.
+    This only distinguishes the curve's own two end points; it never
+    matches entities of different faces by distance (DESIGN §6.1).
+    (``connectors.fittings._curve_endpoints`` assumes the first boundary
+    point is the start and is wrong whenever the start has the higher tag.)
+    """
+    pts = [t for _, t in gmsh.model.getBoundary([(1, abs(curve))], oriented=False)]
+    if len(pts) != 2:
+        raise RuntimeError(f"curve {abs(curve)} has {len(pts)} end points")
+    lo = gmsh.model.getParametrizationBounds(1, abs(curve))[0][0]
+    x0 = np.asarray(gmsh.model.getValue(1, abs(curve), [lo]))
+    d = [np.linalg.norm(np.asarray(gmsh.model.getValue(0, p, [])) - x0) for p in pts]
+    return (pts[0], pts[1]) if d[0] <= d[1] else (pts[1], pts[0])
 
 
 def _oriented(curve: int, start: int, end: int) -> int:
     """Signed *curve* tag running from point *start* to point *end*."""
-    t0, t1 = _curve_endpoints(abs(curve))
+    t0, t1 = curve_endpoints(abs(curve))
     if (t0, t1) == (start, end):
         return abs(curve)
     if (t0, t1) == (end, start):

@@ -21,6 +21,7 @@ Usage::
 """
 
 from __future__ import annotations
+import math
 from dataclasses import dataclass
 from typing import Iterable
 
@@ -38,6 +39,23 @@ from .interface import (
 
 class AssemblyError(ValueError):
     """Raised during validation; names the offending fitting or interface."""
+
+
+def curve_constraints(records) -> dict:
+    """One transfinite constraint per curve tag; disagreeing records raise.
+
+    A curve shared by two fittings (an interface face curve) is reported by
+    both; their records must agree.
+    """
+    out: dict = {}
+    for c in records:
+        prev = out.setdefault(c.tag, c)
+        if (prev.nodes != c.nodes or prev.kind != c.kind
+                or not math.isclose(prev.coef, c.coef, rel_tol=1e-12)):
+            raise AssemblyError(
+                f"curve {c.tag}: conflicting transfinite constraints {prev} and {c}"
+            )
+    return out
 
 
 @dataclass(eq=False)
@@ -302,8 +320,8 @@ class Assembly:
         gmsh.model.occ.synchronize()
         self.write_physical_groups()
         msh = gmsh.model.mesh
-        for tag, n in dict(self._fill.curves).items():
-            msh.setTransfiniteCurve(tag, n)
+        for c in curve_constraints(self._fill.curves).values():
+            msh.setTransfiniteCurve(c.tag, c.nodes, c.kind, c.coef)
         for tag in dict.fromkeys(self._fill.surfaces):
             msh.setTransfiniteSurface(tag)
             msh.setRecombine(2, tag)
