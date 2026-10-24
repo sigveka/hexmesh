@@ -10,6 +10,29 @@ For fitting mathematics (frames, bend/miter geometry, tee/lateral intersection
 curves, published bifurcation block topologies) see `docs/RESEARCH.md`;
 citations in `docs/references.bib`, papers in `docs/papers/`.
 
+## Design ↔ coding workflow
+
+Design discussion and coding happen in separate sessions, handed over
+through files:
+
+- `docs/decisions/NNNN-*.md`: why (options, choice, consequences).  The
+  only route by which `DESIGN.md` changes.  Process and template in
+  `docs/decisions/README.md`.
+- `docs/tasks/NNNN-*.md`: what (steps, acceptance, findings).  Index,
+  ground rules and template in `docs/tasks/README.md`.
+
+**Coding session:** work only `ready` tasks, and keep the status current in
+the task file and the index.  You may refine a task's steps (record it under
+*Agent notes*).  Never edit `DESIGN.md` or a decision record.  For design
+questions, or proposed DESIGN wording, write under *Questions for design*,
+set the task to `blocked`, and stop or switch task.  Finish with *Outcome*:
+files, test counts, measurements, surprises, proposed follow-ups.
+
+**Design session:** start by reading tasks that are `blocked` or newly
+`done`.  Move measurements into `RESEARCH.md` and answer questions.
+Record settled questions as decisions, then write tasks; unsettled ones
+stay `proposed`, with no tasks.
+
 ---
 
 ## Cross-section topology: `n_outer` design
