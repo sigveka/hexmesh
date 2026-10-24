@@ -1,6 +1,6 @@
 # 0013 — Reducer, expander and transition
 
-- **Status:** ready
+- **Status:** blocked
 - **Decision:** [0004 — Retire the legacy API](../decisions/0004-retire-legacy-api.md)
 - **Depends on:** 0011
 
@@ -36,8 +36,57 @@ n_layers)`, `Expander`, `Transition`; `_taper_connect` at `:164`).  New:
 
 ## Agent notes
 
+- **Step 2 refined: a reducer changes radii only.**  The outlet spec
+  must equal the inlet in everything except the core radius and the shell
+  thicknesses: `n_outer`, `rot`, `nang`, `mbmp`, layer names and order,
+  `nrad` and `mprg` per layer.  `validate` names the first field that
+  differs (`fittings._density`).  The legacy `_check_nang_compatible`
+  checked only `nang`.  A different `nrad` or grading is a density change,
+  which a reducer doesn't need, and a different layer stack is decision
+  0006 (proposed).
+- **Exact cone walls.**  There is one station per axial layer, with
+  linearly interpolated radii (`fittings._with_radii`).  Corners at the
+  same angle are joined by straight lines, which are generators of the
+  cone, and radial faces are planar.  Every wall node is on the cone to
+  1e-12 (tested), with no interior wall nodes.  The cell count is
+  unchanged (`n_layers` slabs of one layer).
+- **Step 3: one class.**  The legacy `Expander` is code-identical to
+  `Reducer`, so there is only `Reducer` (a larger outlet makes it an
+  expander, as its docstring says).
+- **`Transition` is not ported.**  Legacy `Transition` is circle → square
+  shell (`BoundaryType.SQUARE`, `faces/square_shell.py`), and the
+  assembly rejects square shells (`interface.check_supported`).  See
+  **Questions for design**.
+- No cone-angle limit is needed so far.  A 74° half-angle (radius
+  0.1 → 0.03 over 0.02) still meshes with min SICN 0.090, the same as a
+  54° cone; `check_quality` reports quality.
+
 ## Questions for design
+
+- **`Transition` (circle → square).**  It needs square-shell faces in the
+  assembly, which DESIGN doesn't cover (rejected in
+  `check_supported`).  Options:
+  1. accept losing it in decision 0004.  It is used only by legacy
+     tests (`test_connectors.py`, `test_quality.py::TestTransitionQuality`),
+     not by examples or `io`.
+  2. a separate decision to support square / rectangular sections in the
+     assembly (ducts, bundle cells), with `Transition` as one of its
+     tasks.
+
+  Recommendation: 1 now, and 2 if ducts are a target.  Everything else
+  in this task is done.  Only this question keeps it `blocked`.
 
 ## Outcome
 
-_Not done._
+(Reducer/expander done; `Transition` pending the question above.)
+
+- **Files:** `assembly/fittings.py` (`Reducer`, `_density`, `_radii`,
+  `_with_radii`), `assembly/__init__.py`, `tests/test_reducer.py` (new,
+  8 tests), kit cases `reducer`, `expander`, `reducer-2layer`.
+- **Tests:** 499 passed, 10 failed (the known `TestYJunctionQuality`
+  failures), 4 xfailed.
+- **Measured:**
+  - Wall nodes lie on the cone to 1e-12 for both a reducer and an
+    expander.
+  - Predicted cells equal meshed cells for every taper tried.
+  - Min SICN 0.178 (0.1 → 0.06 over 0.15), 0.203 (two-layer).

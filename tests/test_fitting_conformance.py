@@ -27,7 +27,9 @@ import gmsh
 import numpy as np
 import pytest
 
-from hexmesh.assembly import Assembly, Bend, Closure, Elbow, MiterBend, Straight, Tee
+from hexmesh.assembly import (
+    Assembly, Bend, Closure, Elbow, MiterBend, Reducer, Straight, Tee,
+)
 from hexmesh.core.shape import CircleShape
 from hexmesh.core.spec import PipeSpec
 
@@ -36,12 +38,12 @@ from hexmesh.core.spec import PipeSpec
 # Cases
 # ---------------------------------------------------------------------------
 
-def _one():
-    return PipeSpec(nang=4).core("fluid", CircleShape(radius=0.1, nang=4), nrad=3)
+def _one(radius=0.1):
+    return PipeSpec(nang=4).core("fluid", CircleShape(radius=radius, nang=4), nrad=3)
 
 
-def _two():
-    return _one().shell("wall", dR=0.025, nrad=2)
+def _two(radius=0.1, dR=0.025):
+    return _one(radius).shell("wall", dR=dR, nrad=2)
 
 
 def _between(spec, fitting, **kw):
@@ -111,6 +113,9 @@ CASES = {
     "miter-3cut-2layer":   lambda: _between(_two(), MiterBend(0.3, 90, n_cuts=3)),
     "miter-rolled":        lambda: _between(_two(), MiterBend(0.3, -60, n_cuts=2, roll=30)),
     "elbow-short":         lambda: _between(_two(), Elbow(90, "short", n_layers=4, roll=45)),
+    "reducer":             lambda: _between(_one(), Reducer(_one(0.06), 0.15, n_layers=3)),
+    "expander":            lambda: _between(_one(0.06), Reducer(_one(), 0.15, n_layers=3)),
+    "reducer-2layer":      lambda: _between(_two(), Reducer(_two(0.07, 0.015), 0.2, n_layers=4)),
 }
 
 

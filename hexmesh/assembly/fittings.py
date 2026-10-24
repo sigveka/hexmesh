@@ -21,11 +21,12 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from ..core.shape import CircleShape
 from ..core.spec import PipeSpec
 from .interface import Frame, outer_radius, roll_mismatch, rotate
 from .sweep import Arc, FillResult, Path, Sweep
 
-__all__ = ["Straight", "Bend", "MiterBend", "Elbow", "Closure", "FillResult"]
+__all__ = ["Straight", "Bend", "MiterBend", "Elbow", "Reducer", "Closure", "FillResult"]
 
 
 # ---------------------------------------------------------------------------
@@ -279,6 +280,88 @@ class Elbow(Sweep):
 
     def path(self, a: Frame, b: Frame, spec: PipeSpec) -> Path:
         return self.bend(spec).path(a, b, spec)
+
+
+# ---------------------------------------------------------------------------
+# Reducer
+# ---------------------------------------------------------------------------
+
+def _density(spec: PipeSpec) -> tuple:
+    """Everything of *spec* except its radii: the part a reducer keeps."""
+    name, shape = spec._core
+    return (
+        spec.n_outer, spec.rot, spec.nang, spec.mbmp,
+        name, type(shape).__name__, getattr(shape, "nang", None),
+        spec._core_nrad, spec._core_mprg,
+        tuple((type(sh).__name__, sh.name, sh.nrad, getattr(sh, "mprg", None))
+              for sh in spec.shells),
+    )
+
+
+_DENSITY_FIELDS = ("n_outer", "rot", "nang", "mbmp", "core name", "core shape",
+                   "core shape nang", "core nrad", "core mprg", "shells")
+
+
+def _radii(spec: PipeSpec) -> list[float]:
+    return [spec.core_shape.radius] + [sh.dR for sh in spec.shells]
+
+
+def _with_radii(spec: PipeSpec, radii: list[float]) -> PipeSpec:
+    """*spec* with core radius ``radii[0]`` and shell thicknesses ``radii[1:]``."""
+    name, shape = spec._core
+    out = (PipeSpec(nang=spec.nang, n_outer=spec.n_outer, rot=spec.rot, mbmp=spec.mbmp)
+           .core(name, CircleShape(radius=radii[0], nang=shape.nang),
+                 nrad=spec._core_nrad, mprg=spec._core_mprg))
+    for sh, dR in zip(spec.shells, radii[1:]):
+        out = out.shell(sh.name, dR=dR, nrad=sh.nrad, mprg=sh.mprg)
+    return out
+
+
+@dataclass(frozen=True)
+class Reducer(Sweep):
+    """Concentric reducer (or expander): a straight cone between two radii.
+
+    *outlet* is the outlet spec.  It must equal the inlet spec in everything
+    except its radii (core radius and shell thicknesses): the same layers,
+    ``nrad``, ``nang``, gradings, ``n_outer`` and ``rot``, so that every
+    axial edge joins matching nodes (rule A4).  A larger outlet makes it an
+    expander.
+
+    Every axial layer is a station whose radii interpolate linearly, and
+    corresponding corners are joined by straight lines, which are generators
+    of the cone; wall nodes therefore lie exactly on the cone.
+    """
+
+    outlet:   PipeSpec
+    length:   float
+    n_layers: int
+
+    def ports(self, inlet: Frame, spec: PipeSpec) -> list[tuple[Frame, PipeSpec]]:
+        out = Frame(inlet.position + self.length * inlet.normal,
+                    inlet.normal, inlet.up)
+        return [(out, self.outlet)]
+
+    def check(self, spec: PipeSpec) -> None:
+        super().check(spec)
+        if self.length <= 0:
+            raise ValueError(f"length must be positive, got {self.length!r}")
+        for name, a, b in zip(_DENSITY_FIELDS, _density(spec), _density(self.outlet)):
+            if a != b:
+                raise ValueError(
+                    f"outlet spec differs from the inlet in {name} ({a!r} vs {b!r}); "
+                    f"a reducer may change radii only"
+                )
+        if not isinstance(spec.core_shape, CircleShape):
+            raise ValueError("Reducer supports circular cross-sections only")
+
+    def path(self, a: Frame, b: Frame, spec: PipeSpec) -> Path:
+        n = self.n_layers
+        r0, r1 = np.array(_radii(spec)), np.array(_radii(self.outlet))
+        frames = [a] + [Frame(a.position + (b.position - a.position) * k / n,
+                              a.normal, a.up) for k in range(1, n)] + [b]
+        specs = [spec] + [_with_radii(spec, list(r0 + (r1 - r0) * k / n))
+                          for k in range(1, n)] + [self.outlet]
+        return Path(frames, [1] * n, specs=specs)
 
 
 # ---------------------------------------------------------------------------

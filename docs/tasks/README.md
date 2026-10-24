@@ -22,11 +22,12 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0010](0010-equipment-nozzle-boundaries.md) | Equipment nozzles as network boundaries | ready | 0002 |
 | [0011](0011-assembly-independent-of-legacy.md) | Assembly independent of legacy code | done | 0004 |
 | [0012](0012-miter-bend-and-elbow.md) | Miter bends and standard elbows | done | 0004 |
-| [0013](0013-reducer-expander.md) | Reducer, expander and transition | ready | 0004 |
+| [0013](0013-reducer-expander.md) | Reducer, expander and transition | blocked | 0004 |
 | [0014](0014-spline-pipe.md) | Spline pipe | ready | 0004 |
 | [0015](0015-io-on-assembly.md) | PCF and bathymetry readers build an Assembly | ready | 0004 |
 | [0016](0016-public-api-and-examples.md) | Public API, examples and docs on the assembly | ready | 0004 |
 | [0017](0017-delete-legacy.md) | Delete the legacy code | ready | 0004 |
+| [0018](0018-layer-termination-in-sweep.md) | Layer termination in `Sweep` (insulation stops and starts) | ready | 0006 |
 
 Decision 0004 (retire legacy) comes first: 0011 → 0012 / 0013 / 0014 →
 0015 → 0016 → 0017.  0017 waits for all the others.  Then the rest of
@@ -35,6 +36,9 @@ decision 0001.
 Suggested order for decision 0001: 0000 → 0003 → 0001 → 0002 → 0004 → 0007 → 0006 → 0005 →
 0008 → 0009, then 0010 (after 0006, which it builds on).  0001, 0004 and
 0006 have the highest value.  0000 is a bug fix that 0001 and 0002 build on.
+
+0018 (decision 0006) can start once 0013 is done; it touches the same
+sweep spec handling.
 
 The multi-layer tee (needed for CHT networks with junctions) is not
 low-hanging fruit and has no task yet.  It needs a design decision first;
