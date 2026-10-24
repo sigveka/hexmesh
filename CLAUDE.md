@@ -6,6 +6,10 @@ Structured all-hex mesh generator for CFD pipe networks using GMSH. Pipes are bu
 
 **Read `DESIGN.md` first.** It defines the design principles and assembly rules (interfaces first-class, fittings are fills, conformal by construction). New code must follow it and must not add to its "Current deviations" table.
 
+For fitting mathematics (frames, bend/miter geometry, tee/lateral intersection
+curves, published bifurcation block topologies) see `docs/RESEARCH.md`;
+citations in `docs/references.bib`, papers in `docs/papers/`.
+
 ---
 
 ## Cross-section topology: `n_outer` design
@@ -102,6 +106,9 @@ Gate for each stage: all existing tests still pass on the 4-corner path.
 ---
 
 ## Y-junction constraints (current, pre-Stage 6)
+
+Stage 6 background (separation-plane and Hermite-butterfly bifurcation
+templates, and whether `n_outer = 8` is required): `docs/RESEARCH.md` §4.
 
 These constraints apply to the current `n_outer=4` implementation and will be
 removed by Stage 6:
@@ -214,3 +221,5 @@ and should be passed via `outer_point_tags[2]` / `[0]`.
 
 For the side corners: coincide with a transfinite node only when θ_max is a multiple of 90°/nang.
 Full side-corner conformality requires pre-splitting the main pipe outer arc at ±θ_max (future work).
+The general intersection curve for any branch angle and axis offset (laterals, off-centre taps) and
+the open `nang` sub-arc rule are in `docs/RESEARCH.md` §3.

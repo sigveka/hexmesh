@@ -9,9 +9,10 @@ duplicate-node merging.
 from .interface import Frame, Interface, port_type
 from .fittings  import Straight, Bend, Closure, FillResult
 from .assembler import Assembly, AssemblyError
+from .tee       import Tee
 
 __all__ = [
     "Frame", "Interface", "port_type",
     "Straight", "Bend", "Closure", "FillResult",
-    "Assembly", "AssemblyError",
+    "Assembly", "AssemblyError", "Tee",
 ]

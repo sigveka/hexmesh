@@ -6,6 +6,10 @@ into a network.  Where current code deviates from these rules, the
 deviation is listed in [Current deviations](#current-deviations) and is
 considered technical debt, not precedent.
 
+The mathematics behind individual fittings (frames, bend and miter
+geometry, cylinder intersections, junction block topologies) and the
+supporting literature are in [`docs/RESEARCH.md`](docs/RESEARCH.md).
+
 ---
 
 ## 1. Purpose and scope
@@ -172,7 +176,9 @@ unreliable in OCC.  A fitting therefore guarantees geometric accuracy by
 placing every mesh node on an exact curve: station faces plus exact axial
 curves (lines, circular arcs), with one axial layer per slab where the
 axis is curved.  Filled side surfaces then only carry element faces
-between exact nodes.
+between exact nodes.  Interior nodes follow from transfinite
+interpolation of those exact boundaries
+([RESEARCH §5](docs/RESEARCH.md#5-filling-blocks-between-fixed-boundaries)).
 
 The prototype in `hexmesh/assembly/` implements this pipeline for
 `Straight`, `Bend` and `Closure` (`tests/test_assembly.py`).
@@ -196,6 +202,12 @@ creates the internal station faces and fills the slabs between them.
 | Reducer / Expander | two frames | line | interpolated |
 | Spline pipe | spline centreline, Bishop frames | line | constant |
 
+Path geometry for each row (frames, torus bend, reducers) is in
+[RESEARCH §1–2](docs/RESEARCH.md#1-frames-along-a-centreline).  Miter
+bends are absent from the table: their oblique joint plane does not fit
+the sweep model as it stands
+([RESEARCH §2.3](docs/RESEARCH.md#23-miter-bend-miterbend)).
+
 A new single-path fitting supplies a path and, where needed, its own
 `validate` checks; it must not write its own fill.  `Sweep.validate`
 checks every slab before GMSH: centreline bend radius above the pipe
@@ -218,7 +230,9 @@ shared corners, edges and faces from a registry keyed by *topological
 identity* (owning block and local index), never by coordinates.  This
 keeps a junction conformal by construction (P2) without `fragment()` or
 node merging.  Tee, wye, lateral and cross are block layouts on top of
-this builder, not separate geometry code.
+this builder, not separate geometry code.  The closed-form tee/lateral
+intersection curve and published bifurcation block layouts are in
+[RESEARCH §3–4](docs/RESEARCH.md#3-tee-and-lateral-the-intersection-curve).
 
 **Conformance — every fitting passes one shared test kit.**
 A parametrised suite checks the design rules for any fitting:
@@ -235,7 +249,9 @@ A fitting is not finished until it passes the kit.
 **Not built on speculation.**  The infrastructure is a protocol plus
 shared builders, not a class hierarchy or a plugin registry.  Generic
 N-port junction topology is derived from at least two working junctions
-(tee and wye), not designed ahead of them.
+(tee and wye), not designed ahead of them.  Published n-way constructions
+exist ([RESEARCH §4.4](docs/RESEARCH.md#44-what-this-means-for-stage-6-y-junction-redesign))
+but are held back by this rule.
 
 ---
 
@@ -248,7 +264,41 @@ only its port faces.
 Junction port frames must place structural corners where the junction
 template needs them.  This is why `n_outer = 8` is the target topology:
 it puts corners at 0°/90°/180°/270° so tee tips and wye split planes fall
-on structural corners rather than arc midpoints.
+on structural corners rather than arc midpoints.  The literature suggests
+`n_outer = 4` with a π/4 interface roll may also suffice; see
+[RESEARCH §4.4](docs/RESEARCH.md#44-what-this-means-for-stage-6-y-junction-redesign).
+Tee side corners land at ±arcsin(r/R) for any `n_outer`
+([RESEARCH §3.2](docs/RESEARCH.md#32-consequences-for-block-topology)).
+
+### 7.1 Tee: continuous ring layer
+
+The tee (`hexmesh/assembly/tee.py`, `n_outer = 4`, `rot = 0`) does not
+place the branch on the main pipe's wall.  Instead the O-grid ring layer
+stays continuous around the junction, as an offset of the whole tee wall:
+
+- the main approach and departure top-ring blocks turn the corner into
+  the branch's −x and +x ring blocks;
+- the junction's two side-ring blocks turn into the branch's ±y ring
+  blocks;
+- one core block at the T-point links the main cores to the branch core.
+
+Each turn face runs from a saddle arc to the branch core and bisects the
+270° re-entrant corner, so every block stays a proper hex.  The saddle
+corners are the branch OH's diagonal corners, at ±r/√2 along both the
+main axis and the transverse direction.  They become the corners of the
+junction's internal stations, so every arc keeps `nang` divisions and no
+sub-arc rule is needed.  All three ports keep the standard OH pattern.
+
+Tried and rejected: hole-on-wall layouts, where the branch's 5 patches
+sit on the main pipe's wall and the main blocks below are split to
+match.  The branch's ring sheet must then either end at a closed "cap"
+or "plate" block with five faces on one smooth surface (degenerate
+cells), or run through to the main inlet and outlet faces, which would
+change their topology.
+
+Measured on the prototype (single layer, nang = 4): all-hex, no bad
+cells for r/R from 0.3 to 0.95, minimum SICN rising from 0.16 to 0.38
+with r/R.
 
 ---
 
@@ -272,7 +322,9 @@ Implementation (`Assembly.close(source, target, fitting)`):
 - `Closure` follows a cubic Hermite centreline tangent to both interface
   normals, with parallel-transported (Bishop) frames.  In a non-planar
   loop the transported frame returns rotated (holonomy); this residual
-  roll is distributed linearly by arc length.
+  roll is distributed linearly by arc length.  Frame theory and a
+  higher-order transport (double reflection) are in
+  [RESEARCH §1](docs/RESEARCH.md#1-frames-along-a-centreline).
 - Roll only matters modulo the cross-section symmetry `2π / n_outer`
   (90° for `n_outer = 4`), so the absorbed twist never exceeds
   `π / n_outer`.
@@ -297,6 +349,8 @@ The present code predates these rules.  Known deviations:
 | `nang` checked per connector, not resolved across the network | A5 | `fittings.py`, `spec.py` |
 | Corner correspondence between two faces found by nearest-distance search, not from interface frames | A3, §6.1 | `fittings._connect_layer` — legacy connectors only; `hexmesh/assembly` uses `corners.frame_offset` |
 | `n_outer = 8` core cannot be filled: its 8-sided centre patch does not bound a transfinite hex block (needs splitting into 4 blocks) | §7 | `faces/oh_circle.build_oh_circle8`; rejected in validation by `hexmesh/assembly` |
+| Tee wall faces (junction and run slabs) are OCC-filled surfaces, so interior wall nodes lie 2–5 % of R off the true cylinders | §6 exactness | `hexmesh/assembly/tee.py` |
+| Tee prototype limited to single-layer specs, `rot = 0`, perpendicular centred branch | §7.1 | `hexmesh/assembly/tee.py` |
 
 New code must not add to this table.
 
@@ -308,9 +362,15 @@ New code must not add to this table.
   takes plant data and returns a mesh.  Determines how much investment
   goes into readers and automatic sizing.
 - **`n_outer` per network or per interface?** One value per network is
-  simplest; mixed values require transition templates.
+  simplest; mixed values require transition templates.  Evidence on
+  whether junctions need `n_outer = 8`:
+  [RESEARCH §4.4](docs/RESEARCH.md#44-what-this-means-for-stage-6-y-junction-redesign).
 - **Reject or degrade?** When quality limits cannot be met, should
-  validation fail, or warn and continue?
+  validation fail, or warn and continue?  Published structured
+  bifurcations reach min scaled Jacobian ≈ 0.49
+  ([RESEARCH §4.2](docs/RESEARCH.md#42-hermite-curve-butterfly-marcinno_and_hinz_etal_2025)).
+  Metric definitions and a flow-validation benchmark:
+  [RESEARCH §7](docs/RESEARCH.md#7-validation-and-quality-metrics).
 - **Loop twist.** User-supplied closing segment, or solver-distributed
   twist across the loop?
 - **Interface placement at bends.** How tangent points are derived from

@@ -180,12 +180,19 @@ class Assembly:
             except NotImplementedError as e:
                 raise AssemblyError(f"{iface}: {e}") from None
         for edge in self._edges:
-            # A4 — every port type must match its interface type.
-            key = port_type(edge.ports[0].spec)
-            for iface in edge.ports[1:]:
-                if port_type(iface.spec) != key:
+            # A4 — every port type must match the type the fitting declares
+            # for it; a fitting that only joins existing interfaces keeps
+            # its inlet type throughout.
+            inlet = edge.ports[0]
+            if getattr(edge.fitting, "places_outlet", True):
+                declared = [s for _, s in edge.fitting.ports(inlet.frame, inlet.spec)]
+            else:
+                declared = [inlet.spec] * (len(edge.ports) - 1)
+            for iface, want in zip(edge.ports[1:], declared):
+                if port_type(iface.spec) != port_type(want):
                     raise AssemblyError(
-                        f"{edge}: port type at {iface} differs from inlet"
+                        f"{edge}: port type at {iface} differs from the type "
+                        f"the fitting declares"
                     )
             try:
                 edge.fitting.validate(

@@ -87,15 +87,15 @@ class TestTopologyWithoutGmsh:
         assert not gmsh.isInitialized()
 
     def test_port_type_mismatch_rejected(self):
-        other = PipeSpec(nang=6).core("fluid", CircleShape(radius=0.1, nang=6), nrad=3)
-
-        class Retyping(Straight):
-            def ports(self, inlet, spec):
-                (frame, _), = super().ports(inlet, spec)
-                return [(frame, other)]
-
-        asm = Assembly(_one_layer())
-        asm.add(Retyping(0.2, n_layers=2))
+        """An interface whose type differs from what its fitting declares
+        (here: a closure joining two different pipes) is rejected."""
+        asm = Assembly(_one_layer(), up=[0, 0, 1])
+        for _ in range(3):
+            asm.add(Straight(0.6, n_layers=3))
+            asm.add(Bend(radius=0.3, angle=90, n_layers=4, roll=90))
+        tail = asm.interfaces[-1]
+        tail.spec = PipeSpec(nang=6).core("fluid", CircleShape(radius=0.1, nang=6), nrad=3)
+        asm.close(tail, asm.inlet, Closure(n_layers=8))
         with pytest.raises(AssemblyError, match="port type"):
             asm.validate()
 

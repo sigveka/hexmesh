@@ -25,7 +25,7 @@ import gmsh
 import numpy as np
 import pytest
 
-from hexmesh.assembly import Assembly, Bend, Closure, Straight
+from hexmesh.assembly import Assembly, Bend, Closure, Straight, Tee
 from hexmesh.core.shape import CircleShape
 from hexmesh.core.spec import PipeSpec
 
@@ -79,6 +79,17 @@ def _rolled_outlet(spec, fitting, degrees):
     return asm
 
 
+def _tee(ratio, direction=(0, 1, 0)):
+    """Straight → Tee → Straight on both outlets."""
+    asm = Assembly(_one(), direction=list(direction), up=[0, 0, 1], lc=0.1)
+    asm.add(Straight(0.2, n_layers=2))
+    main, branch = asm.add(Tee(run_length=0.2, branch_length=0.25,
+                               branch_radius=ratio * 0.1), names=["main", "branch"])
+    asm.add(main, Straight(0.2, n_layers=2))
+    asm.add(branch, Straight(0.2, n_layers=2))
+    return asm
+
+
 CASES = {
     "straight":            lambda: _between(_one(), Straight(0.3, n_layers=3)),
     "straight-2layer":     lambda: _between(_two(), Straight(0.3, n_layers=3)),
@@ -92,6 +103,8 @@ CASES = {
                                          extra_straight=True),
     "straight-rolled-90":  lambda: _rolled_outlet(_two(), Straight(0.3, n_layers=3), 90),
     "bend-rolled-180":     lambda: _rolled_outlet(_one(), Bend(0.3, 90, n_layers=4), 180),
+    "tee-0.5":             lambda: _tee(0.5),
+    "tee-0.9-oblique":     lambda: _tee(0.9, direction=(1, 1, 0.2)),
 }
 
 
