@@ -20,8 +20,19 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0008](0008-open-end-extensions.md) | Inlet and outlet extensions | ready | 0001 |
 | [0009](0009-per-fitting-wall-patches.md) | Per-fitting wall patches | ready | 0001 |
 | [0010](0010-equipment-nozzle-boundaries.md) | Equipment nozzles as network boundaries | ready | 0002 |
+| [0011](0011-assembly-independent-of-legacy.md) | Assembly independent of legacy code | done | 0004 |
+| [0012](0012-miter-bend-and-elbow.md) | Miter bends and standard elbows | ready | 0004 |
+| [0013](0013-reducer-expander.md) | Reducer, expander and transition | ready | 0004 |
+| [0014](0014-spline-pipe.md) | Spline pipe | ready | 0004 |
+| [0015](0015-io-on-assembly.md) | PCF and bathymetry readers build an Assembly | ready | 0004 |
+| [0016](0016-public-api-and-examples.md) | Public API, examples and docs on the assembly | ready | 0004 |
+| [0017](0017-delete-legacy.md) | Delete the legacy code | ready | 0004 |
 
-Suggested order: 0000 → 0003 → 0001 → 0002 → 0004 → 0007 → 0006 → 0005 →
+Decision 0004 (retire legacy) comes first: 0011 → 0012 / 0013 / 0014 →
+0015 → 0016 → 0017.  0017 waits for all the others.  Then the rest of
+decision 0001.
+
+Suggested order for decision 0001: 0000 → 0003 → 0001 → 0002 → 0004 → 0007 → 0006 → 0005 →
 0008 → 0009, then 0010 (after 0006, which it builds on).  0001, 0004 and
 0006 have the highest value.  0000 is a bug fix that 0001 and 0002 build on.
 
@@ -38,7 +49,7 @@ These apply to every task.
   to its "Current deviations" table.
 - Work only in `hexmesh/assembly/` (and `hexmesh/core/` where stated).  Do
   not touch the legacy connectors (`hexmesh/connectors/`, `network.py`)
-  unless a task says so.
+  unless a task says so (tasks 0011–0017, decision 0004, do).
 - Anything computable without GMSH must be computed without GMSH (DESIGN
   P3/P4): in `ports()`, `validate()` or `Assembly.validate()`, never in
   `fill()`.
@@ -54,8 +65,7 @@ These apply to every task.
 
 ### Not part of any task
 
-Don't fold these into a task: Y-junction/Stage 6 work, miter bends in
-`Sweep`, tee generalisation (multi-layer, laterals, offset taps, exact tee
+Don't fold these into a task: Y-junction/Stage 6 work, tee generalisation (multi-layer, laterals, offset taps, exact tee
 walls), `n_outer = 8` core filling, or anything in `docs/RESEARCH.md` §8.
 They are design decisions, not low-hanging fruit.  (The tee side-corner
 arc split is no longer needed: the block-layout tee places its saddle

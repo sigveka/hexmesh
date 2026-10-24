@@ -18,6 +18,7 @@ rejected.  Records are written in design sessions, and they are the only way
 | [0001](0001-complete-assembly-prototype.md) | Complete A5/A7 in the assembly prototype | accepted |
 | [0002](0002-equipment-nozzle-boundaries.md) | Equipment nozzles as network boundaries | accepted |
 | [0003](0003-drum-body-and-shell-nozzles.md) | Meshing drum bodies and shell nozzles | proposed |
+| [0004](0004-retire-legacy-api.md) | Retire the legacy API | accepted |
 
 ## The loop
 
