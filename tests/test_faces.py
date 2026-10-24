@@ -14,7 +14,7 @@ import pytest
 import numpy as np
 
 from hexmesh.core.cross_section import BoundaryType
-from hexmesh.core.cursor import Cursor, Plane
+from hexmesh.assembly.interface import Frame
 from hexmesh.core.shape import CircleShape, RectShape
 from hexmesh.core.spec import SquareShellSpec
 from hexmesh.faces.oh_circle import build_oh_circle, build_oh_circle8
@@ -28,7 +28,7 @@ from hexmesh.faces.square_shell import build_square_shell
 # ---------------------------------------------------------------------------
 
 def _cursor_xz():
-    return Cursor.from_plane(Plane.XZ)  # direction=+Y, right=+X, up=+Z
+    return Frame.from_vectors([0, 0, 0], [0, 1, 0], [0, 0, 1])  # right=+X, up=+Z
 
 
 # ===========================================================================
@@ -126,10 +126,10 @@ class TestBuildOhCircle:
 
     def test_arbitrary_orientation(self, gmsh_session):
         """h_axis/v_axis from an arbitrary cursor are stored correctly."""
-        c = Cursor(
-            position=[0., 0., 0.],
-            direction=np.array([1., 1., 0.]) / np.sqrt(2),
-            up=np.array([0., 0., 1.]),
+        c = Frame.from_vectors(
+            [0., 0., 0.],
+            np.array([1., 1., 0.]) / np.sqrt(2),
+            np.array([0., 0., 1.]),
         )
         cs = build_oh_circle(
             cx=0., cy=0., cz=0.,
@@ -213,10 +213,10 @@ class TestBuildOhCircle8:
         assert len(cs.surfaces) == 9
 
     def test_arbitrary_orientation(self, gmsh_session):
-        c = Cursor(
-            position=[0., 0., 0.],
-            direction=np.array([1., 1., 0.]) / np.sqrt(2),
-            up=np.array([0., 0., 1.]),
+        c = Frame.from_vectors(
+            [0., 0., 0.],
+            np.array([1., 1., 0.]) / np.sqrt(2),
+            np.array([0., 0., 1.]),
         )
         cs = build_oh_circle8(
             cx=0., cy=0., cz=0.,

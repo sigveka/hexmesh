@@ -408,7 +408,7 @@ def build_oh_circle8(
         h_axis        = _h,
         v_axis        = _v,
         cx=cx, cy=cy, cz=cz,
-        # Inner boundary for taper connectors (8 entries each)
+        # Inner boundary (8 entries each)
         inner_points  = I,
         inner_curves  = A_in,           # CCW: I[0]→I[1], I[1]→I[2], …
         radial_curves = R,              # I[k]→O[k] for k=0..7

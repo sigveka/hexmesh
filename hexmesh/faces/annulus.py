@@ -113,8 +113,8 @@ def build_annulus(
 
     # Corner angles: when the inner layer recorded its corner angles, outer
     # corners align with them exactly (no additional rotation — the inner
-    # angles already include any pipe-spec rot).  Fall back to the legacy
-    # formula when corner_angles is absent (CrossSections created without
+    # angles already include any pipe-spec rot).  Fall back to the default
+    # corner layout when corner_angles is absent (CrossSections created without
     # a face builder, e.g. manually in tests), applying rot from scratch.
     if inner.corner_angles:
         angles = list(inner.corner_angles)

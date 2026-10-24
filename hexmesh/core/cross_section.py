@@ -3,7 +3,7 @@ CrossSection — the result of building a 2-D face in GMSH.
 
 A CrossSection is the output of every face builder (build_oh_circle,
 build_oh_rect, build_annulus, build_square_shell).  It captures the GMSH
-entity tags that subsequent layers or connectors must reuse for conformality.
+entity tags that subsequent layers and fittings must reuse for conformality.
 
 Stacking protocol
 -----------------
@@ -101,7 +101,8 @@ class CrossSection:
     cx:            float
     cy:            float
     cz:            float
-    # Inner boundary — populated by face builders for taper connectors.
+    # Inner boundary — populated by face builders; used to match corners
+    # between faces (assembly/corners.py).
     # inner_points : [NE, NW, SW, SE] inner corner point tags
     # inner_curves : signed curve tags for the inner boundary loop in
     #                NE→NW, NW→SW, SW→SE, SE→NE order (same as outer_curves)
@@ -109,17 +110,14 @@ class CrossSection:
     inner_points:  list[int]   = field(default_factory=list)
     inner_curves:  list[int]   = field(default_factory=list)
     radial_curves: list[int]   = field(default_factory=list)
-    # Number of transfinite node layers on radial lines; preserved through
-    # extrusion connectors so MiterBend can rebuild the face with matching params.
+    # Number of transfinite node layers on radial lines.
     nrad: int   = 4
-    # GMSH characteristic mesh length used when this face was built.  Preserved
-    # so that junction connectors can rebuild a fresh face with the same lc
-    # without it being hardcoded.
+    # GMSH characteristic mesh length used when this face was built.
     lc:   float = 0.1
     # Angles (radians) of the outer corner points, in the same order as
     # outer_points.  Stored by face builders so annulus layers can position
     # their outer corners at matching angles without re-deriving them.
-    # Empty list = not set (legacy CrossSection).
+    # Empty list = not set.
     corner_angles: list[float] = field(default_factory=list)
     # Number of outer structural corners.  Automatically derived from
     # outer_points in __post_init__; do not pass explicitly.

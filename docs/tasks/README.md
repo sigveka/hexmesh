@@ -22,11 +22,11 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0010](0010-equipment-nozzle-boundaries.md) | Equipment nozzles as network boundaries | ready | 0002 |
 | [0011](0011-assembly-independent-of-legacy.md) | Assembly independent of legacy code | done | 0004 |
 | [0012](0012-miter-bend-and-elbow.md) | Miter bends and standard elbows | done | 0004 |
-| [0013](0013-reducer-expander.md) | Reducer, expander and transition | blocked | 0004 |
-| [0014](0014-spline-pipe.md) | Spline pipe | ready | 0004 |
-| [0015](0015-io-on-assembly.md) | PCF and bathymetry readers build an Assembly | ready | 0004 |
-| [0016](0016-public-api-and-examples.md) | Public API, examples and docs on the assembly | ready | 0004 |
-| [0017](0017-delete-legacy.md) | Delete the legacy code | ready | 0004 |
+| [0013](0013-reducer-expander.md) | Reducer, expander and transition | done | 0004 |
+| [0014](0014-spline-pipe.md) | Spline pipe | done | 0004 |
+| [0015](0015-io-on-assembly.md) | PCF and bathymetry readers build an Assembly | done | 0004 |
+| [0016](0016-public-api-and-examples.md) | Public API, examples and docs on the assembly | done | 0004 |
+| [0017](0017-delete-legacy.md) | Delete the legacy code | done | 0004 |
 | [0018](0018-layer-termination-in-sweep.md) | Layer termination in `Sweep` (insulation stops and starts) | ready | 0006 |
 
 Decision 0004 (retire legacy) comes first: 0011 → 0012 / 0013 / 0014 →
@@ -51,19 +51,15 @@ These apply to every task.
 
 - Read `DESIGN.md` first.  Changes must follow it and must **not** add rows
   to its "Current deviations" table.
-- Work only in `hexmesh/assembly/` (and `hexmesh/core/` where stated).  Do
-  not touch the legacy connectors (`hexmesh/connectors/`, `network.py`)
-  unless a task says so (tasks 0011–0017, decision 0004, do).
+- Work only in `hexmesh/assembly/` (and `hexmesh/core/` where stated).
 - Anything computable without GMSH must be computed without GMSH (DESIGN
   P3/P4): in `ports()`, `validate()` or `Assembly.validate()`, never in
   `fill()`.
 - Every task adds tests.  New fittings or fill changes must still pass the
   conformance kit, `tests/test_fitting_conformance.py`.
 - Run tests with `python3 -m pytest` (never `python`).  Gate: no new
-  failures before and after each task.  The 10 `TestYJunctionQuality`
-  failures in the legacy suite are known and out of scope: the legacy
-  Y-junction's `occ.fragment()` breaks on both gmsh 4.12/OCC 7.6 and
-  gmsh 4.15.
+  failures before and after each task.  The full suite has no known
+  failures.
 - Keep each task a separate, reviewable change.  Match the surrounding code
   style: dataclasses, numpy, short docstrings that cite DESIGN rules.
 

@@ -1,15 +1,10 @@
 """
-Region tracking — volumes and surfaces per material.
-
-RegionSet
-    Accumulates GMSH entity tags for one named material region across
-    multiple segments.  Passed to write_physical_groups at the end of
-    network assembly.
+Material graph — materials and their conformal interfaces.
 
 MaterialGraph
     Directed graph: nodes are material names, edges are conformal
     interfaces.  Drives Physical group generation and validates that
-    connectors don't create unlabelled interfaces.
+    fittings don't create unlabelled interfaces.
 
     For a single insulated pipe the graph is linear:
         fluid → pipe_wall → insulation
@@ -26,35 +21,6 @@ MaterialGraph
 from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Iterator
-
-
-@dataclass
-class RegionSet:
-    """GMSH entity tags accumulated for one material across all segments.
-
-    Attributes
-    ----------
-    volumes : list[int]
-        Volume tags (Physical Volume).
-    inlets : list[int]
-        Start-face surface tags (Physical Surface "inlet").
-    outlets : list[int]
-        End-face surface tags (Physical Surface "outlet").
-    walls : list[int]
-        Outer lateral surface tags (Physical Surface "wall" or custom).
-    """
-
-    volumes: list[int] = field(default_factory=list)
-    inlets:  list[int] = field(default_factory=list)
-    outlets: list[int] = field(default_factory=list)
-    walls:   list[int] = field(default_factory=list)
-
-    def merge(self, other: "RegionSet") -> None:
-        """In-place merge of another RegionSet into this one."""
-        self.volumes += other.volumes
-        self.inlets  += other.inlets
-        self.outlets += other.outlets
-        self.walls   += other.walls
 
 
 @dataclass

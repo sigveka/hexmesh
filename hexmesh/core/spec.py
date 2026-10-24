@@ -28,7 +28,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from .shape import CircleShape, RectShape, SquareShape, Shape
+from .shape import CircleShape, RectShape, Shape
 from .region import MaterialGraph
 
 if TYPE_CHECKING:
@@ -215,7 +215,7 @@ class PipeSpec:
         name : str
             Material label for the core region.
         shape : Shape, optional
-            ``CircleShape``, ``RectShape``, or ``SquareShape`` describing the
+            ``CircleShape`` or ``RectShape`` describing the
             core outer boundary.  Mutually exclusive with ``radius`` /
             ``half_w`` / ``half_h``.
         nrad : int
@@ -315,13 +315,6 @@ class PipeSpec:
         if self._core is None:
             raise RuntimeError("Call PipeSpec.core() before .shell().")
         _, core_shape = self._core
-        if isinstance(core_shape, SquareShape):
-            raise TypeError(
-                "SquareShape uses a single-patch topology that is incompatible "
-                "with OH-topology shells.  SquareShape has no inner boundary to "
-                "stack an annulus on.  Use RectShape (OH/butterfly) or "
-                "CircleShape for multi-layer pipes."
-            )
         if self._shells and isinstance(self._shells[-1], SquareShellSpec):
             raise RuntimeError(
                 "Cannot add a circular shell after a square_shell layer."
@@ -358,12 +351,6 @@ class PipeSpec:
         if self._core is None:
             raise RuntimeError("Call PipeSpec.core() before .square_shell().")
         _, core_shape = self._core
-        if isinstance(core_shape, SquareShape):
-            raise TypeError(
-                "SquareShape uses a single-patch topology that is incompatible "
-                "with OH-topology shells.  Use RectShape or CircleShape for "
-                "multi-layer pipes."
-            )
         if not isinstance(core_shape, CircleShape):
             raise TypeError(
                 "square_shell() requires a circular core (CircleShape)."
@@ -452,7 +439,7 @@ class PipeSpec:
                     f"PipeSpec nang={self._nang} must be divisible by "
                     f"n_outer//4={divisor} (n_outer={self._n_outer})."
                 )
-        elif isinstance(shape, (RectShape, SquareShape)):
+        elif isinstance(shape, RectShape):
             if self._nang_w is not None and shape.nang_w != self._nang_w:
                 raise ValueError(
                     f"{type(shape).__name__}.nang_w={shape.nang_w} does not match "

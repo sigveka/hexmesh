@@ -46,14 +46,3 @@ __all__ = [
 ]
 __version__ = "0.3.0"
 
-
-def __getattr__(name):
-    # Legacy API, loaded on first use; removed with the legacy code
-    # (docs/tasks/0017).
-    if name == "Model":
-        from .model import Model
-        return Model
-    if name in ("Network", "Node"):
-        from . import network
-        return getattr(network, name)
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

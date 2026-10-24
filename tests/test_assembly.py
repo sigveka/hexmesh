@@ -4,7 +4,7 @@ Tests for the interface-first assembly prototype (DESIGN.md §4–§6).
 Each test targets one design rule:
 
 * Topology/validation runs without GMSH (principles 3, 4)
-* Quality matches the legacy Network pipeline for the same geometry
+* Every mesh passes minSICN > 0 with no degenerate hexes
 * Conformal by construction: no coincident hex nodes, no node merging (P2)
 * Fill order is irrelevant (A6)
 * Physical groups come from the graph, one group per surface (A7)
