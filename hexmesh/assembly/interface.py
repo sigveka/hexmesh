@@ -158,6 +158,12 @@ def check_supported(spec: PipeSpec) -> None:
             f"assembly prototype supports circular cores only, "
             f"got {type(spec.core_shape).__name__}."
         )
+    if spec.n_outer != 4:
+        raise NotImplementedError(
+            f"assembly prototype supports n_outer=4 only, got {spec.n_outer}: "
+            f"the n_outer=8 core centre patch has 8 sides and cannot bound a "
+            f"transfinite hex block"
+        )
     if any(isinstance(s, SquareShellSpec) for s in spec.shells):
         raise NotImplementedError(
             "assembly prototype does not support square_shell layers."

@@ -175,7 +175,67 @@ axis is curved.  Filled side surfaces then only carry element faces
 between exact nodes.
 
 The prototype in `hexmesh/assembly/` implements this pipeline for
-`Straight` and `Bend` (`tests/test_assembly.py`).
+`Straight`, `Bend` and `Closure` (`tests/test_assembly.py`).
+
+### 6.1 Shared fitting infrastructure
+
+Fittings are thin: they describe *what* to build, and a small set of
+shared builders does the building.  Four pieces, each with one rule.
+
+**Sweeps — every single-path fitting is a sweep.**
+A fitting with one inlet and one outlet is defined only by its *path* —
+station frames, and the spec at each station — and the kind of axial
+curve joining stations (line, arc about an axis).  One shared builder
+creates the internal station faces and fills the slabs between them.
+
+| Fitting | Path | Axial curve | Spec along path |
+|---|---|---|---|
+| Straight | two frames | line | constant |
+| Bend | frames rotated about the bend axis | arc | constant |
+| Closure | Hermite centreline, Bishop frames, distributed twist | line | constant |
+| Reducer / Expander | two frames | line | interpolated |
+| Spline pipe | spline centreline, Bishop frames | line | constant |
+
+A new single-path fitting supplies a path and, where needed, its own
+`validate` checks; it must not write its own fill.  `Sweep.validate`
+checks every slab before GMSH: centreline bend radius above the pipe
+outer radius, corner correspondence defined, and — where axial edges are
+straight chords — a normal turn of at most 30° per slab.
+
+**Corner identity — corners are named by the frame, never found by distance.**
+Corner *k* of a face lies at angle `π/4 + rot + k · 2π / n_outer` from
+`frame.right`.  The correspondence between two faces is the index offset
+given by their frames alone (modulo the `2π / n_outer` symmetry), computed
+in pure numpy so it is checked in validation and reused unchanged in
+`fill`; curve directions are resolved by endpoint tags.  Nearest-distance matching is forbidden: it
+fails for faces that are far apart or at large angles to each other, such
+as a junction branch.
+
+**Blocks — every multi-port fitting is a layout of hex blocks.**
+A junction is built from hex blocks (8 corners, 12 edges with a curve
+kind, 6 faces), some of whose faces are interface faces.  Blocks get
+shared corners, edges and faces from a registry keyed by *topological
+identity* (owning block and local index), never by coordinates.  This
+keeps a junction conformal by construction (P2) without `fragment()` or
+node merging.  Tee, wye, lateral and cross are block layouts on top of
+this builder, not separate geometry code.
+
+**Conformance — every fitting passes one shared test kit.**
+A parametrised suite checks the design rules for any fitting:
+
+- `ports` and `validate` run without GMSH (P3, P4)
+- `fill` leaves port faces untouched (A1, A2)
+- no coincident hex nodes; every interior interface is shared by
+  exactly two fittings (P2)
+- every permutation of the fill order gives the same mesh (A6)
+- each surface belongs to exactly one physical group (A7)
+
+A fitting is not finished until it passes the kit.
+
+**Not built on speculation.**  The infrastructure is a protocol plus
+shared builders, not a class hierarchy or a plugin registry.  Generic
+N-port junction topology is derived from at least two working junctions
+(tee and wye), not designed ahead of them.
 
 ---
 
@@ -235,7 +295,8 @@ The present code predates these rules.  Known deviations:
 | Geometry built inside `connect()`; no pre-GMSH validation | P3, P4 | all connectors |
 | Topology detected from surface count | A4 | `straight.py`, `bend.py`, `fittings.py` |
 | `nang` checked per connector, not resolved across the network | A5 | `fittings.py`, `spec.py` |
-| Corner correspondence between two faces found by nearest-distance search, not from interface frames | A3, P2 | `fittings._connect_layer` (also used by `hexmesh/assembly`) |
+| Corner correspondence between two faces found by nearest-distance search, not from interface frames | A3, §6.1 | `fittings._connect_layer` — legacy connectors only; `hexmesh/assembly` uses `corners.frame_offset` |
+| `n_outer = 8` core cannot be filled: its 8-sided centre patch does not bound a transfinite hex block (needs splitting into 4 blocks) | §7 | `faces/oh_circle.build_oh_circle8`; rejected in validation by `hexmesh/assembly` |
 
 New code must not add to this table.
 

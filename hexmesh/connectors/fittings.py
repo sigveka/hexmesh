@@ -725,6 +725,50 @@ def _connect_layer(
             out_cs.surfaces[_surf_off_out + _i] for _i in range(n)
         ]
 
+    in_quad_surfs = [in_cs.surfaces[_surf_off_out + _i] for _i in range(n)]
+    return _connect_layer_aligned(
+        in_cs, out_cs,
+        {'ip': ip_in,  'op': op_in,  'ic': ic_in,  'oc': oc_in,  'rc': rc_in},
+        {'ip': ip_out, 'op': op_out, 'ic': ic_out, 'oc': oc_out, 'rc': rc_out},
+        in_quad_surfs, out_quad_surfs, n_layers,
+        prev_outer_axial=prev_outer_axial,
+        prev_outer_side_surfs=prev_outer_side_surfs,
+        planar_radial=planar_radial,
+        axial_curve=axial_curve,
+    )
+
+
+def _connect_layer_aligned(
+    in_cs:    CrossSection,
+    out_cs:   CrossSection,
+    g_in:     dict,
+    g_out:    dict,
+    in_quad_surfs:  "list[int]",
+    out_quad_surfs: "list[int]",
+    n_layers: int,
+    prev_outer_axial:      "list[int] | None" = None,
+    prev_outer_side_surfs: "list[int] | None" = None,
+    planar_radial: bool = True,
+    axial_curve: "Callable[[int, int], int] | None" = None,
+) -> "tuple[list[int], list[int], list[int]]":
+    """Build one layer's hex slab once corner correspondence is fixed.
+
+    ``g_in`` / ``g_out`` hold signed entity tags ``ip, op, ic, oc, rc``
+    (see ``_extract_geom``) indexed so that entry ``i`` of the inlet
+    corresponds to entry ``i`` of the outlet; ``in_quad_surfs[i]`` and
+    ``out_quad_surfs[i]`` are the quadrant patches between corners ``i``
+    and ``i+1``.  How the correspondence is found is the caller's concern.
+    Parameters and return values otherwise as ``_connect_layer``.
+    """
+    geo  = gmsh.model.occ
+    mesh = gmsh.model.mesh
+    if axial_curve is None:
+        axial_curve = geo.addLine
+    ip_in, op_in, ic_in, oc_in, rc_in = (g_in[k] for k in ('ip', 'op', 'ic', 'oc', 'rc'))
+    ip_out, op_out, ic_out, oc_out, rc_out = (g_out[k] for k in ('ip', 'op', 'ic', 'oc', 'rc'))
+    n = in_cs.n_outer
+    is_core = (len(in_cs.surfaces) == n + 1)
+
     # ------------------------------------------------------------------
     # Axial lines for inner corners
     # ------------------------------------------------------------------
@@ -825,7 +869,7 @@ def _connect_layer(
 
     for i in range(n):
         j = (i + 1) % n
-        in_surf  = in_cs.surfaces[surf_offset + i]
+        in_surf  = in_quad_surfs[i]
         out_surf = out_quad_surfs[i]
 
         sloop = geo.addSurfaceLoop([

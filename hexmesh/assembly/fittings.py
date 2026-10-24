@@ -11,77 +11,22 @@ Every fitting implements the contract:
                             Realisation.  Build *internal* entities only,
                             between the given existing port faces.
 
-A fitting may create internal station faces (e.g. inside a bend) but must
-never create, modify or duplicate a port face.
+The single-path fittings here are sweeps (DESIGN.md §6.1): each describes
+its ``Path`` and inherits ``validate`` / ``fill`` from ``Sweep``.
 """
 
 from __future__ import annotations
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import numpy as np
-import gmsh
 
-from ..core.cross_section import LayeredCrossSection
 from ..core.cursor import _rodrigues
 from ..core.spec import PipeSpec
-from ..connectors.fittings import _connect_layer
-from .interface import Frame, build_face, outer_radius, roll_mismatch
+from .interface import Frame, roll_mismatch
+from .sweep import Arc, FillResult, Path, Sweep
 
-
-@dataclass
-class FillResult:
-    """Entities created by one fitting fill."""
-
-    volumes:    dict[str, list[int]] = field(default_factory=dict)
-    walls:      list[int]            = field(default_factory=list)
-    interfaces: dict[str, list[int]] = field(default_factory=dict)
-    curves:     list[tuple[int, int]] = field(default_factory=list)
-    surfaces:   list[int]            = field(default_factory=list)
-    mesh_vols:  list[int]            = field(default_factory=list)
-
-    def merge(self, other: "FillResult") -> None:
-        for k, v in other.volumes.items():
-            self.volumes.setdefault(k, []).extend(v)
-        self.walls.extend(other.walls)
-        for k, v in other.interfaces.items():
-            self.interfaces.setdefault(k, []).extend(v)
-        self.curves.extend(other.curves)
-        self.surfaces.extend(other.surfaces)
-        self.mesh_vols.extend(other.mesh_vols)
-
-
-def _fill_slab(
-    in_face:       LayeredCrossSection,
-    out_face:      LayeredCrossSection,
-    n_layers:      int,
-    axial_curve=None,
-    planar_radial: bool = True,
-) -> FillResult:
-    """Fill all concentric layers between two existing faces."""
-    result = FillResult()
-    names = in_face.interface_names()
-    prev_axial = prev_side = None
-    for idx, ((name, in_cs), (_, out_cs)) in enumerate(
-        zip(in_face.layers, out_face.layers)
-    ):
-        vols, side, axial, deferred = _connect_layer(
-            in_cs, out_cs, n_layers,
-            prev_outer_axial=prev_axial,
-            prev_outer_side_surfs=prev_side,
-            planar_radial=planar_radial,
-            axial_curve=axial_curve,
-        )
-        result.volumes.setdefault(name, []).extend(vols)
-        if prev_side is not None:
-            result.interfaces.setdefault(names[idx - 1], []).extend(prev_side)
-        result.curves.extend((c, n_layers + 1) for c in deferred["curves"])
-        result.curves.extend(deferred["arc_curves"])
-        result.surfaces.extend(deferred["surfaces"])
-        result.mesh_vols.extend(deferred["volumes"])
-        prev_axial, prev_side = axial, side
-    result.walls.extend(prev_side)
-    return result
+__all__ = ["Straight", "Bend", "Closure", "FillResult"]
 
 
 # ---------------------------------------------------------------------------
@@ -89,7 +34,7 @@ def _fill_slab(
 # ---------------------------------------------------------------------------
 
 @dataclass(frozen=True)
-class Straight:
+class Straight(Sweep):
     """Straight pipe run between two parallel interfaces."""
 
     length:   float
@@ -100,25 +45,13 @@ class Straight:
                     inlet.normal, inlet.up)
         return [(out, spec)]
 
-    def validate(self, frames: list[Frame], spec: PipeSpec) -> None:
+    def check(self, spec: PipeSpec) -> None:
+        super().check(spec)
         if self.length <= 0:
             raise ValueError(f"length must be positive, got {self.length!r}")
-        if self.n_layers < 1:
-            raise ValueError(f"n_layers must be >= 1, got {self.n_layers!r}")
-        a, b = frames
-        tol = 1e-9 * max(1.0, self.length)
-        if np.linalg.norm(b.position - (a.position + self.length * a.normal)) > tol:
-            raise ValueError(
-                f"outlet is not {self.length} along the inlet axis"
-            )
-        if np.dot(a.normal, b.normal) < 1 - 1e-9:
-            raise ValueError("inlet and outlet directions differ")
-        if abs(roll_mismatch(a.up, b.up, b.normal, spec.n_outer)) > 1e-9:
-            raise ValueError("Straight cannot twist: inlet and outlet roll differ")
 
-    def fill(self, faces: list[LayeredCrossSection], frames: list[Frame],
-             spec: PipeSpec, lc: float) -> FillResult:
-        return _fill_slab(faces[0], faces[1], self.n_layers)
+    def path(self, a: Frame, b: Frame, spec: PipeSpec) -> Path:
+        return Path([a, b], [self.n_layers])
 
 
 # ---------------------------------------------------------------------------
@@ -126,14 +59,12 @@ class Straight:
 # ---------------------------------------------------------------------------
 
 @dataclass(frozen=True)
-class Bend:
+class Bend(Sweep):
     """Circular-arc bend whose mesh nodes lie exactly on the true geometry.
 
-    An internal station face is placed at every axial layer and stations are
-    joined by circular arcs about the bend axis.  Every mesh node therefore
-    lies on a station face or an axial arc, so wall and material-interface
-    nodes are exactly on their tori.  OCC filled side surfaces only carry
-    the element faces between nodes; their shape is never sampled.
+    A station is placed at every axial layer and stations are joined by
+    circular arcs about the bend axis, so every mesh node lies on a station
+    face or an axial arc and wall nodes are exactly on the torus.
 
     (Exact OCC side surfaces via trimmed revolutions were tried and rejected:
     OCC fails to trim revolutions of the off-centre inner-square arcs and,
@@ -177,54 +108,17 @@ class Bend:
     def ports(self, inlet: Frame, spec: PipeSpec) -> list[tuple[Frame, PipeSpec]]:
         return [(self._rotated(inlet, self.angle), spec)]
 
-    def validate(self, frames: list[Frame], spec: PipeSpec) -> None:
-        if self.n_layers < 1:
-            raise ValueError(f"n_layers must be >= 1, got {self.n_layers!r}")
+    def check(self, spec: PipeSpec) -> None:
+        super().check(spec)
         if not 0 < abs(self.angle) < 360:
             raise ValueError(f"angle must be in (0, 360) degrees, got {self.angle!r}")
-        R = outer_radius(spec)
-        if self.radius <= R:
-            raise ValueError(
-                f"bend radius {self.radius} must exceed pipe outer radius {R}"
-            )
-        expected = self._rotated(frames[0], self.angle)
-        b = frames[1]
-        if (np.linalg.norm(expected.position - b.position) > 1e-9 * self.radius
-                or np.dot(expected.normal, b.normal) < 1 - 1e-9
-                or abs(roll_mismatch(expected.up, b.up, b.normal, spec.n_outer)) > 1e-9):
-            raise ValueError("outlet interface does not match bend geometry")
 
-    def fill(self, faces: list[LayeredCrossSection], frames: list[Frame],
-             spec: PipeSpec, lc: float) -> FillResult:
-        inlet = frames[0]
-        axis, centre = self._axis_centre(inlet)
-        geo = gmsh.model.occ
-
-        def arc(pt_in: int, pt_out: int) -> int:
-            p = np.asarray(gmsh.model.getValue(0, pt_in, []))
-            c = centre + axis * np.dot(p - centre, axis)
-            ct = geo.addPoint(*c)
-            tag = geo.addCircleArc(pt_in, ct, pt_out)
-            geo.remove([(0, ct)])
-            return tag
-
-        # Internal stations, one per axial layer — owned by this fitting,
-        # not interfaces.
+    def path(self, a: Frame, b: Frame, spec: PipeSpec) -> Path:
         n = self.n_layers
-        stations = [faces[0]]
-        for k in range(1, n):
-            fr = self._rotated(inlet, self.angle * k / n)
-            stations.append(build_face(spec, fr, lc))
-        stations.append(faces[1])
-        geo.synchronize()
-
-        result = FillResult()
-        for k in range(n):
-            result.merge(_fill_slab(
-                stations[k], stations[k + 1], 1,
-                axial_curve=arc, planar_radial=False,
-            ))
-        return result
+        inner = [self._rotated(a, self.angle * k / n) for k in range(1, n)]
+        axis, centre = self._axis_centre(a)
+        return Path([a, *inner, b], [1] * n, axial=Arc(axis, centre),
+                    min_radius=self.radius)
 
 
 # ---------------------------------------------------------------------------
@@ -232,19 +126,17 @@ class Bend:
 # ---------------------------------------------------------------------------
 
 @dataclass(frozen=True)
-class Closure:
+class Closure(Sweep):
     """Smooth run between two *existing* interfaces — closes loops.
 
     Only usable through ``Assembly.close()``: both ports are given, so
     ``ports()`` is undefined.  The centreline is a cubic Hermite curve that
     leaves the source along its normal and arrives at the target along its
-    normal.  Cross-section frames are parallel-transported (no spurious
-    twist) and the residual roll mismatch — modulo the ``2π / n_outer``
-    symmetry of the cross-section — is distributed linearly by arc length.
-
-    Every station face is internal to the fitting and consecutive stations
-    are one axial layer apart, so all mesh nodes lie on station faces
-    (DESIGN.md §6, exactness).
+    normal.  Stations equidistribute arc length plus turning angle, so
+    sharp turns get more stations.  Cross-section frames are
+    parallel-transported (no spurious twist) and the residual roll mismatch
+    — modulo the ``2π / n_outer`` symmetry of the cross-section — is
+    distributed linearly by arc length.
 
     Parameters
     ----------
@@ -258,10 +150,16 @@ class Closure:
     n_layers: int
     tension:  float = 1.0
 
+    places_outlet = False
     _SAMPLES = 2000
 
     def ports(self, inlet: Frame, spec: PipeSpec):
         raise TypeError("Closure joins two existing interfaces; use Assembly.close()")
+
+    def check(self, spec: PipeSpec) -> None:
+        super().check(spec)
+        if self.tension <= 0:
+            raise ValueError(f"tension must be positive, got {self.tension!r}")
 
     # -- centreline -----------------------------------------------------
 
@@ -296,8 +194,14 @@ class Closure:
         pos, d1, _ = self._hermite(a, b, t)
         seg = np.linalg.norm(np.diff(pos, axis=0), axis=1)
         s = np.concatenate([[0.0], np.cumsum(seg)])
-        targets = np.linspace(0.0, s[-1], self.n_layers + 1)
-        ts = np.interp(targets, s, t)
+        # Stations equidistribute arc length + turning angle (equal weight),
+        # so sharp turns get proportionally more stations.
+        td = d1 / np.linalg.norm(d1, axis=1)[:, None]
+        dtheta = np.arccos(np.clip(np.sum(td[:-1] * td[1:], axis=1), -1, 1))
+        theta = np.concatenate([[0.0], np.cumsum(dtheta)])
+        m = s / s[-1] + (theta / theta[-1] if theta[-1] > 1e-12 else 0.0)
+        ts = np.interp(np.linspace(0.0, m[-1], self.n_layers + 1), m, t)
+        targets = np.interp(ts, t, s)          # arc length at each station
         P, D, _ = self._hermite(a, b, ts)
         T = D / np.linalg.norm(D, axis=1)[:, None]
         T[0], T[-1] = a.normal, b.normal
@@ -318,37 +222,12 @@ class Closure:
         for k in range(len(T)):
             u = _rodrigues(ups[k], T[k], twist * targets[k] / targets[-1])
             frames.append(Frame(P[k], T[k], u))
-        frames[0], frames[-1] = a, Frame(b.position, b.normal, frames[-1].up)
+        frames[0], frames[-1] = a, b
         return frames, twist
 
-    # -- contract -------------------------------------------------------
-
-    def validate(self, frames: list[Frame], spec: PipeSpec) -> None:
-        if self.n_layers < 1:
-            raise ValueError(f"n_layers must be >= 1, got {self.n_layers!r}")
-        if self.tension <= 0:
-            raise ValueError(f"tension must be positive, got {self.tension!r}")
-        a, b = frames
+    def path(self, a: Frame, b: Frame, spec: PipeSpec) -> Path:
         if np.linalg.norm(b.position - a.position) < 1e-12:
             raise ValueError("source and target interfaces coincide")
-        R = outer_radius(spec)
-        rmin = self._min_bend_radius(a, b)
-        if rmin <= R:
-            raise ValueError(
-                f"closure path bends with radius {rmin:.4g}, tighter than the "
-                f"pipe outer radius {R}; move the interfaces apart or adjust tension"
-            )
-
-    def fill(self, faces: list[LayeredCrossSection], frames: list[Frame],
-             spec: PipeSpec, lc: float) -> FillResult:
-        stations, _ = self.stations(frames[0], frames[1], spec.n_outer)
-        lcs = [faces[0]]
-        for fr in stations[1:-1]:
-            lcs.append(build_face(spec, fr, lc))
-        lcs.append(faces[1])
-        gmsh.model.occ.synchronize()
-
-        result = FillResult()
-        for k in range(self.n_layers):
-            result.merge(_fill_slab(lcs[k], lcs[k + 1], 1, planar_radial=False))
-        return result
+        frames, _ = self.stations(a, b, spec.n_outer)
+        return Path(frames, [1] * self.n_layers,
+                    min_radius=self._min_bend_radius(a, b))

@@ -276,9 +276,9 @@ class TestLoopClosure:
         asm = _chain([60, 0])
         asm.add(Straight(0.6, n_layers=3))
         tail = _tail(asm)
-        _, twist = Closure(10).stations(tail.frame, asm.inlet.frame, 4)
+        _, twist = Closure(12).stations(tail.frame, asm.inlet.frame, 4)
         assert abs(math.degrees(twist)) > 10
-        asm.close(tail, asm.inlet, Closure(n_layers=10))
+        asm.close(tail, asm.inlet, Closure(n_layers=12))
         _full_check(asm)
         _assert_closed_and_conformal(asm)
 
@@ -286,8 +286,8 @@ class TestLoopClosure:
         asm = _chain([60, 0])
         asm.add(Straight(0.6, n_layers=3))
         a, b = _tail(asm).frame, asm.inlet.frame
-        frames, _ = Closure(10).stations(a, b, 4)
-        assert len(frames) == 11
+        frames, _ = Closure(12).stations(a, b, 4)
+        assert len(frames) == 13
         for f in frames:
             assert abs(np.dot(f.normal, f.up)) < 1e-12
         # Arrives on the target with zero residual roll (mod 90°)
@@ -298,7 +298,7 @@ class TestLoopValidation:
     def test_tight_closure_rejected_before_gmsh(self):
         asm = _chain([90, 0])
         asm.add(Straight(0.6, n_layers=3))
-        asm.close(_tail(asm), asm.inlet, Closure(n_layers=10))
+        asm.close(_tail(asm), asm.inlet, Closure(n_layers=12))
         with pytest.raises(AssemblyError, match=r"Closure.*tighter than the pipe"):
             asm.validate()
         assert not gmsh.isInitialized()
@@ -308,7 +308,7 @@ class TestLoopValidation:
         asm.add(Straight(0.6, n_layers=3))
         asm.add(Bend(radius=0.3, angle=90, n_layers=4, roll=90))
         asm.close(_tail(asm), asm.inlet, Straight(0.5, n_layers=3))
-        with pytest.raises(AssemblyError, match="along the inlet axis"):
+        with pytest.raises(AssemblyError, match="does not match Straight geometry"):
             asm.validate()
 
     def test_closure_cannot_be_added(self):

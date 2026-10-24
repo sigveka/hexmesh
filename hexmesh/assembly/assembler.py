@@ -80,6 +80,7 @@ class Assembly:
         self._edges:      list[Edge]      = []
         self._lc = lc
         self._fill: FillResult | None = None
+        self._faces_built = False
         self.inlet = self._new_interface(
             Frame.from_vectors(position, direction, up), spec, inlet_name,
         )
@@ -96,7 +97,7 @@ class Assembly:
         branches from a given interface.  Returns the outlet Interface (or a
         list for multi-outlet fittings).
         """
-        if self._fill is not None:
+        if self._faces_built:
             raise AssemblyError("cannot add fittings after the assembly is built")
         if fitting is None:
             source, fitting, update_tail = self._tail, source, True
@@ -131,7 +132,7 @@ class Assembly:
         the two frames can close a loop: ``Closure`` for an arbitrary gap,
         or a ``Straight`` / ``Bend`` that fits exactly.
         """
-        if self._fill is not None:
+        if self._faces_built:
             raise AssemblyError("cannot add fittings after the assembly is built")
         for iface in (source, target):
             if not any(iface is i for i in self._interfaces):
@@ -200,6 +201,8 @@ class Assembly:
     def build(self, order: Iterable[int] | None = None) -> None:
         """Validate, build interface faces, then fill fittings.
 
+        Equivalent to ``build_faces()`` followed by ``fill(order)``.
+
         Parameters
         ----------
         order : iterable of int, optional
@@ -208,13 +211,24 @@ class Assembly:
         """
         if self._fill is not None:
             return
+        self.build_faces()
+        self.fill(order)
+
+    def build_faces(self) -> None:
+        """Pipeline steps 3–4: validate, then build every interface face once."""
+        if self._faces_built:
+            return
         self.validate()
-
-        lc = self._lc or outer_radius(self.inlet.spec) / 4
         for iface in self._interfaces:
-            iface.face = build_face(iface.spec, iface.frame, lc)
+            iface.face = build_face(iface.spec, iface.frame, self.lc)
         gmsh.model.occ.synchronize()
+        self._faces_built = True
 
+    def fill(self, order: Iterable[int] | None = None) -> None:
+        """Pipeline step 5: fill every fitting between its existing faces."""
+        if self._fill is not None:
+            return
+        self.build_faces()
         edges = (self._edges if order is None
                  else [self._edges[i] for i in order])
         if sorted(e.index for e in edges) != list(range(len(self._edges))):
@@ -225,7 +239,7 @@ class Assembly:
             fill.merge(edge.fitting.fill(
                 [p.face for p in edge.ports],
                 [p.frame for p in edge.ports],
-                edge.ports[0].spec, lc,
+                edge.ports[0].spec, self.lc,
             ))
         gmsh.model.occ.synchronize()
 
@@ -237,6 +251,11 @@ class Assembly:
             gmsh.model.occ.remove(debris)
             gmsh.model.occ.synchronize()
         self._fill = fill
+
+    @property
+    def lc(self) -> float:
+        """Characteristic length used for all faces."""
+        return self._lc or outer_radius(self.inlet.spec) / 4
 
     # ------------------------------------------------------------------
     # 6–7. Groups and mesh
