@@ -6,8 +6,9 @@ pipeline route (list of waypoints or a Shapefile), projects the route
 onto the surface, and returns a NetworkSpec of straight segments.
 
 The resulting NetworkSpec carries the 3-D centreline of the pipe as a
-sequence of ``ComponentSpec(kind="pipe")`` objects.  Pass it to
-``NetworkSpec.to_network(pipe_spec)`` to build the GMSH Network.
+sequence of ``ComponentSpec(kind="pipe")`` objects.  Build it with
+``NetworkSpec.to_assembly(pipe_spec, kinks="spline")``: the route bends at
+its vertices without fittings, so the pipes are joined into a spline.
 
 Supported input formats
 -----------------------

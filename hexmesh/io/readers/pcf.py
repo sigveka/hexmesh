@@ -2,8 +2,8 @@
 PCF (Piping Component File) reader.
 
 Parses an Isogen PCF file and returns a NetworkSpec — a declarative
-description of the pipe network that can be converted to a Network via
-``NetworkSpec.to_network()``.
+description of the pipe network that can be converted to an assembly via
+``NetworkSpec.to_assembly()``.
 
 PCF format summary
 ------------------
@@ -16,9 +16,9 @@ Supported component types
 PIPE                     → ComponentSpec(kind="pipe")
 ELBOW                    → ComponentSpec(kind="elbow")
 REDUCER-CONCENTRIC       → ComponentSpec(kind="reducer")
-FLANGE, VALVE, INSTRUMENT→ ComponentSpec(kind="fitting") — modelled as
-                            short straight segments; set ignored=True to
-                            skip them entirely.
+FLANGE, VALVE, INSTRUMENT→ ComponentSpec(kind="fitting", ignored=True):
+                            no fitting geometry of their own; meshed as
+                            straight runs by ``to_assembly``.
 
 Unsupported types (TEE, CROSS, …) are collected in ``NetworkSpec.skipped``
 with a warning rather than raising an exception.
@@ -66,6 +66,8 @@ class ComponentSpec:
         True for component types that are parsed but not meshed.
     raw : dict
         All raw attribute key→value pairs from the PCF record.
+    record_type : str
+        PCF component keyword (e.g. ``"REDUCER-ECCENTRIC"``).
     """
 
     kind:     str
@@ -76,6 +78,7 @@ class ComponentSpec:
     end_bore: float | None = None
     ignored:  bool = False
     raw:      dict = field(default_factory=dict)
+    record_type: str = ""
 
 
 @dataclass
@@ -96,47 +99,43 @@ class NetworkSpec:
     skipped:    list[tuple[str, dict]] = field(default_factory=list)
     source:     str = ""
 
-    def to_network(self, pipe_spec, **kwargs):
-        """Convert this NetworkSpec to a hexmesh Network.
+    def to_assembly(self, spec, *, axial_cell: float | None = None,
+                    kinks: str = "error", tol: float = 1e-4, lc: float | None = None):
+        """Build an ``hexmesh.assembly.Assembly`` from the components.
+
+        Each component is placed from the previous outlet and its PCF end
+        point is then checked against the placed outlet; a gap or a change of
+        direction larger than *tol* raises ``AssemblyError`` naming the
+        component (nothing is snapped).  *tol* (metres) absorbs PCF
+        coordinate rounding.
+
+        Mapping: ``pipe`` and ``fitting`` (flange, valve, …) → ``Straight``;
+        ``elbow`` → ``Bend`` in the plane of its centre point;
+        ``reducer`` (concentric) → ``Reducer``.  Ignored fittings are meshed
+        as straight runs, since they occupy pipe length.
 
         Parameters
         ----------
-        pipe_spec : PipeSpec
-            Cross-section specification applied to every pipe component.
-        **kwargs
-            Passed to Network.__init__ (e.g. lc=0.05).
+        spec : PipeSpec or callable
+            Cross-section of the first component, or ``bore -> PipeSpec``.
+            With a single spec, a reducer's outlet keeps the shells and
+            scales the core radius by ``end_bore / bore``.
+        axial_cell : float, optional
+            Target axial cell length; default the outer radius.
+        kinks : {"error", "spline"}
+            Consecutive pipes that change direction without a fitting (e.g.
+            bathymetry routes) raise an error, or are joined into one
+            ``SplinePipe`` through their end points.
+        tol : float
+            Position tolerance in metres; directions to ``tol`` per metre.
+        lc : float, optional
+            Passed to ``Assembly``.
 
         Returns
         -------
-        Network
+        Assembly
         """
-        from ...network import Network
-        from ...connectors import Straight, Bend, Reducer
-        from ...core.cursor import Cursor
-
-        sorted_comps = _sort_by_connectivity(self.components)
-        if not sorted_comps:
-            raise ValueError("NetworkSpec has no components to build.")
-
-        first = sorted_comps[0]
-        cursor = Cursor(
-            position  = first.start,
-            direction = _unit(first.end - first.start),
-            up        = _perpendicular(_unit(first.end - first.start)),
-        )
-        net = Network(pipe_spec, cursor=cursor, **kwargs)
-
-        for comp in sorted_comps:
-            if comp.ignored:
-                continue
-            if comp.kind == "pipe":
-                length = float(np.linalg.norm(comp.end - comp.start))
-                net.add(Straight(length=length, n_layers=max(1, int(length / 0.1))))
-            elif comp.kind == "elbow":
-                radius, angle = _elbow_params(comp)
-                net.add(Bend(radius=radius, angle=angle, n_layers=8))
-            # reducers require outlet PipeSpec — skipped here, user handles manually
-        return net
+        return _build_assembly(self, spec, axial_cell, kinks, tol, lc)
 
 
 # ---------------------------------------------------------------------------
@@ -215,7 +214,7 @@ def read_pcf(
         spec.components.append(ComponentSpec(
             kind=kind, start=start, end=end,
             centre=centre, bore=bore, end_bore=end_bore,
-            ignored=ignored, raw=attrs,
+            ignored=ignored, raw=attrs, record_type=record_type.upper(),
         ))
 
     return spec
@@ -245,6 +244,11 @@ def _classify(record_type: str) -> str | None:
     return _COMPONENT_MAP.get(record_type.upper())
 
 
+# A signed decimal number; the keywords themselves contain hyphens
+# ("END-POINT"), so a bare character class would match them.
+_NUMBER = re.compile(r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?")
+
+
 def _iter_records(path: Path) -> Iterator[tuple[str, dict]]:
     """Yield (record_type, attrs_dict) for each PCF component record."""
     current_type: str | None = None
@@ -271,10 +275,10 @@ def _iter_records(path: Path) -> Iterator[tuple[str, dict]]:
                 current_attrs  = {}
                 endpoints      = []
             elif "END-POINT" in line:
-                nums = [float(x) for x in re.findall(r"[-\d.]+", line)]
+                nums = [float(x) for x in _NUMBER.findall(line)]
                 endpoints.append(nums)
             elif "CENTRE-POINT" in line:
-                nums = [float(x) for x in re.findall(r"[-\d.]+", line)]
+                nums = [float(x) for x in _NUMBER.findall(line)]
                 current_attrs["CENTRE-POINT"] = nums
             else:
                 # Generic attribute line
@@ -327,6 +331,15 @@ def _perpendicular(v: np.ndarray) -> np.ndarray:
     return _unit(np.cross(v, candidate))
 
 
+def _start_direction(comp: ComponentSpec) -> np.ndarray:
+    """Unit direction in which *comp* leaves its start point."""
+    v = comp.end - comp.start
+    if comp.kind == "elbow" and comp.centre is not None:
+        r = _unit(comp.start - comp.centre)
+        v = v - np.dot(v, r) * r
+    return _unit(v)
+
+
 def _elbow_params(comp: ComponentSpec) -> tuple[float, float]:
     """Estimate bend radius and angle from an elbow ComponentSpec."""
     if comp.centre is None:
@@ -340,3 +353,118 @@ def _elbow_params(comp: ComponentSpec) -> tuple[float, float]:
     import math
     angle  = math.degrees(math.acos(cos_a))
     return radius, angle
+
+
+# ---------------------------------------------------------------------------
+# Assembly builder
+# ---------------------------------------------------------------------------
+
+def _build_assembly(net: NetworkSpec, spec, axial_cell, kinks, tol, lc):
+    import math
+    from ...assembly import Assembly, AssemblyError, Bend, Reducer, SplinePipe, Straight
+    from ...assembly.fittings import _with_radii
+    from ...assembly.interface import outer_radius
+
+    if kinks not in ("error", "spline"):
+        raise ValueError(f"kinks must be 'error' or 'spline', got {kinks!r}")
+    comps = _sort_by_connectivity(net.components)
+    if not comps:
+        raise ValueError("NetworkSpec has no components to build.")
+    spec_for = spec if callable(spec) else None
+    first = comps[0]
+    current = spec_for(first.bore) if spec_for else spec
+    cell = axial_cell or outer_radius(current)
+
+    def layers(length: float) -> int:
+        return max(1, math.ceil(length / cell - 1e-9))
+
+    d0 = _unit(first.end - first.start)
+    asm = Assembly(current, position=first.start, direction=d0,
+                   up=_perpendicular(d0), lc=lc)
+
+    def label(k):
+        c = comps[k]
+        return f"component {k} ({c.record_type or c.kind} at {np.round(c.start, 4)})"
+
+    def check(k, frame, end, direction=None):
+        if np.linalg.norm(frame.position - end) > tol:
+            raise AssemblyError(
+                f"{label(k)}: placed outlet {np.round(frame.position, 6)} misses its "
+                f"end point {np.round(end, 6)} by {np.linalg.norm(frame.position - end):.3g} m"
+            )
+        if direction is not None and np.linalg.norm(frame.normal - direction) > tol:
+            raise AssemblyError(f"{label(k)}: outlet direction does not match")
+
+    def straight_on(k, frame):
+        c = comps[k]
+        d = c.end - c.start
+        L = float(np.linalg.norm(d))
+        return L > tol and np.linalg.norm(_unit(d) - frame.normal) <= tol
+
+    k = 0
+    while k < len(comps):
+        c = comps[k]
+        frame = asm.interfaces[-1].frame
+        if np.linalg.norm(c.start - frame.position) > tol:
+            raise AssemblyError(
+                f"{label(k)}: starts {np.linalg.norm(c.start - frame.position):.3g} m "
+                f"from the previous outlet"
+            )
+        length = float(np.linalg.norm(c.end - c.start))
+        if c.kind in ("pipe", "fitting"):
+            if length <= tol:
+                k += 1
+                continue
+            if not straight_on(k, frame):
+                if kinks == "error" or c.kind != "pipe":
+                    raise AssemblyError(
+                        f"{label(k)}: changes direction without a fitting "
+                        f"(use kinks='spline' for routes)"
+                    )
+                # maximal run of pipes from here, joined by one spline
+                j = k
+                while j + 1 < len(comps) and comps[j + 1].kind == "pipe":
+                    j += 1
+                pts = [frame.position] + [comps[i].end for i in range(k, j + 1)]
+                nxt = comps[j + 1] if j + 1 < len(comps) else None
+                end_t = None if nxt is None else tuple(_start_direction(nxt))
+                run = sum(float(np.linalg.norm(comps[i].end - comps[i].start))
+                          for i in range(k, j + 1))
+                out = asm.add(SplinePipe(tuple(map(tuple, pts)), layers(run),
+                                         end_tangent=end_t))
+                check(j, out.frame, comps[j].end)
+                k = j + 1
+                continue
+            out = asm.add(Straight(length, layers(length)))
+            check(k, out.frame, c.end)
+        elif c.kind == "elbow":
+            if c.centre is None:
+                raise AssemblyError(f"{label(k)}: elbow has no CENTRE-POINT")
+            to_c = c.centre - c.start
+            radius = float(np.linalg.norm(to_c))
+            if abs(np.dot(_unit(to_c), frame.normal)) > tol:
+                raise AssemblyError(f"{label(k)}: elbow is not tangent to the incoming pipe")
+            b = _unit(to_c)
+            roll = math.degrees(math.atan2(np.dot(b, frame.right), np.dot(b, frame.up)))
+            _, angle = _elbow_params(c)
+            out = asm.add(Bend(radius, angle, layers(radius * math.radians(angle)), roll))
+            check(k, out.frame, c.end)
+        elif c.kind == "reducer":
+            if c.record_type == "REDUCER-ECCENTRIC":
+                raise AssemblyError(f"{label(k)}: eccentric reducers are not supported")
+            if not c.end_bore or not c.bore:
+                raise AssemblyError(f"{label(k)}: reducer needs both bores")
+            if spec_for:
+                outlet = spec_for(c.end_bore)
+            else:
+                cur = asm.interfaces[-1].spec
+                radii = [cur.core_shape.radius * c.end_bore / c.bore] + [sh.dR for sh in cur.shells]
+                outlet = _with_radii(cur, radii)
+            if not straight_on(k, frame):
+                raise AssemblyError(f"{label(k)}: reducer axis is not the incoming direction")
+            out = asm.add(Reducer(outlet, length, layers(length)))
+            check(k, out.frame, c.end)
+        else:
+            raise AssemblyError(f"{label(k)}: unsupported kind {c.kind!r}")
+        k += 1
+    return asm
