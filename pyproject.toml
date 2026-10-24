@@ -4,7 +4,7 @@ build-backend = "setuptools.backends.legacy:build"
 
 [project]
 name = "hexmesh"
-version = "0.1.0"
+version = "0.3.0"
 description = "Composable structured hex mesh generation for CFD pipe systems"
 readme = "README.md"
 requires-python = ">=3.10"

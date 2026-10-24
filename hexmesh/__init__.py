@@ -1,42 +1,59 @@
 """
-hexmesh — composable structured hex mesh generation for CFD pipe systems.
+hexmesh — structured all-hex meshes for CFD pipe networks.
 
 Quick start
 -----------
 ::
 
-    from hexmesh import Model
-    from hexmesh.core import PipeSpec, Cursor, Plane
-    from hexmesh.core.shape import CircleShape
-    from hexmesh.connectors import Straight, Bend
-    from hexmesh.network import Network
+    from hexmesh import Assembly, Bend, CircleShape, PipeSpec, Session, Straight
 
     pipe = (
-        PipeSpec(nang=5)
-        .core("fluid",      shape=CircleShape(0.3, nang=5), nrad=5)
-        .shell("pipe_wall", dR=0.05, nrad=3)
-        .shell("insulation",dR=0.10, nrad=4)
+        PipeSpec(nang=4)
+        .core("fluid",      CircleShape(radius=0.1, nang=4), nrad=4)
+        .shell("pipe_wall", dR=0.01, nrad=2)
     )
 
-    with Model("insulated_pipe") as m:
-        net = Network(pipe)
-        net.add(Straight(length=1.0, n_layers=10))
-        net.add(Bend(radius=0.5, angle=90, n_layers=8))
-        net.add(Straight(length=0.5, n_layers=5))
-        net.write_physical_groups()
-        m.mesh(dim=3)
-        m.write("insulated_pipe.msh")
+    with Session("elbow"):
+        asm = Assembly(pipe, direction=[1, 0, 0], up=[0, 0, 1])
+        asm.add(Straight(0.5, n_layers=10))
+        asm.add(Bend(radius=0.3, angle=90, n_layers=12))
+        asm.add(Straight(0.5, n_layers=10))
+        asm.validate()              # pure Python, before any GMSH call
+        print(asm.cell_count())     # exact, before meshing
+        asm.write("elbow.msh")
+        print(asm.check_quality())
+
+See ``README.md`` and ``API.md``; the design rules are in ``DESIGN.md``.
 """
 
-from .model       import Model
-from .network     import Network, Node, QualityReport, RegionQuality
-from .quality_hex import (
-    HexVolumeQuality,
-    all_metrics as hex_all_metrics,
+from .assembly import (
+    Assembly, AssemblyError, Bend, Closure, Elbow, Frame, Interface,
+    MiterBend, Reducer, SplinePipe, Straight, Tee,
 )
+from .assembly.quality import QualityReport, RegionQuality
+from .core.shape import CircleShape
+from .core.spec import PipeSpec
+from .quality_hex import HexVolumeQuality, all_metrics as hex_all_metrics
+from .session import Session
 
 __all__ = [
-    "Model", "Network", "Node", "QualityReport", "RegionQuality",
-    "HexVolumeQuality", "hex_all_metrics",
+    "Assembly", "AssemblyError", "Frame", "Interface",
+    "Straight", "Bend", "Elbow", "MiterBend", "Reducer", "SplinePipe",
+    "Closure", "Tee",
+    "PipeSpec", "CircleShape",
+    "QualityReport", "RegionQuality", "HexVolumeQuality", "hex_all_metrics",
+    "Session",
 ]
-__version__ = "0.2.0"
+__version__ = "0.3.0"
+
+
+def __getattr__(name):
+    # Legacy API, loaded on first use; removed with the legacy code
+    # (docs/tasks/0017).
+    if name == "Model":
+        from .model import Model
+        return Model
+    if name in ("Network", "Node"):
+        from . import network
+        return getattr(network, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
