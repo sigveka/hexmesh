@@ -496,6 +496,71 @@ class PipeSpec:
             if self._nang_h is None:
                 self._nang_h = shape.nang_h
 
+    # ------------------------------------------------------------------
+    # Serialisation (docs/tasks/0006)
+    # ------------------------------------------------------------------
+
+    def to_dict(self) -> dict:
+        """Plain JSON-serialisable description of this spec.
+
+        Lengths are stored in the user's unit, unconverted.  ``mprg`` is
+        stored as resolved, so a spec built with ``first_cell=`` reloads
+        with the same progression.
+        """
+        if self._core is None:
+            raise RuntimeError("PipeSpec has no core defined.")
+        name, shape = self._core
+        if isinstance(shape, CircleShape):
+            shape_d = {"type": "circle", "radius": shape.radius, "nang": shape.nang}
+        elif isinstance(shape, RectShape):
+            shape_d = {"type": "rect", "half_w": shape.half_w, "half_h": shape.half_h,
+                       "nang_w": shape.nang_w, "nang_h": shape.nang_h}
+        else:
+            raise TypeError(f"cannot serialise core shape {type(shape).__name__}")
+        shells = []
+        for sh in self._shells:
+            if isinstance(sh, SquareShellSpec):
+                shells.append({"type": "square_shell", "name": sh.name,
+                               "half_w": sh.half_w, "half_h": sh.half_h,
+                               "nrad": sh.nrad, "mprg": sh.mprg})
+            else:
+                shells.append({"type": "shell", "name": sh.name, "dR": sh.dR,
+                               "nrad": sh.nrad, "mprg": sh.mprg})
+        return {
+            "nang": self._nang, "nang_w": self._nang_w, "nang_h": self._nang_h,
+            "mbmp": self._mbmp, "rot": self._rot, "n_outer": self._n_outer,
+            "core": {"name": name, "shape": shape_d,
+                     "nrad": self._core_nrad, "mprg": self._core_mprg},
+            "shells": shells,
+        }
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "PipeSpec":
+        """Rebuild a spec from :meth:`to_dict` output."""
+        spec = cls(nang=d.get("nang"), nang_w=d.get("nang_w"), nang_h=d.get("nang_h"),
+                   mbmp=d.get("mbmp", 1.0), rot=d.get("rot", 0.0),
+                   n_outer=d.get("n_outer", 4))
+        core = d["core"]
+        sd = dict(core["shape"])
+        kind = sd.pop("type")
+        if kind == "circle":
+            shape = CircleShape(**sd)
+        elif kind == "rect":
+            shape = RectShape(**sd)
+        else:
+            raise ValueError(f"unknown core shape type {kind!r}")
+        spec.core(core["name"], shape, nrad=core["nrad"], mprg=core.get("mprg", 1.0))
+        for sh in d.get("shells", []):
+            sh = dict(sh)
+            kind = sh.pop("type")
+            if kind == "shell":
+                spec.shell(**sh)
+            elif kind == "square_shell":
+                spec.square_shell(**sh)
+            else:
+                raise ValueError(f"unknown shell type {kind!r}")
+        return spec
+
     def __repr__(self) -> str:
         return (
             f"PipeSpec(core={self._core[0] if self._core else None!r}, "

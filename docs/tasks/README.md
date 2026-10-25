@@ -15,7 +15,7 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0003](0003-cell-count.md) | Exact cell count before GMSH | done | 0001 |
 | [0004](0004-quality-per-fitting.md) | Quality report per fitting, with hex metrics | done | 0001 |
 | [0005](0005-openfoam-output.md) | OpenFOAM-compatible output | ready | 0001 |
-| [0006](0006-intent-serialization.md) | Save and load the network description (Intent layer) | ready | 0001 |
+| [0006](0006-intent-serialization.md) | Save and load the network description (Intent layer) | done | 0001 |
 | [0007](0007-topology-invariance-test.md) | Test that topology is unchanged across geometry variants | done | 0001 |
 | [0008](0008-open-end-extensions.md) | Inlet and outlet extensions | ready | 0001 |
 | [0009](0009-per-fitting-wall-patches.md) | Per-fitting wall patches | ready | 0001 |
@@ -29,6 +29,7 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0017](0017-delete-legacy.md) | Delete the legacy code | done | 0004 |
 | [0018](0018-layer-termination-in-sweep.md) | Layer termination in `Sweep` (insulation stops and starts) | ready | 0006 |
 | [0019](0019-port-face-signatures-and-classifier.md) | Port-face signatures and the topology-switch classifier | ready | 0011 |
+| [0020](0020-validation-poiseuille.md) | Validation: laminar Hagen–Poiseuille pipe, three refinement levels | ready | 0012 |
 
 Decision 0004 (retire legacy) comes first: 0011 → 0012 / 0013 / 0014 →
 0015 → 0016 → 0017.  0017 waits for all the others.  Then the rest of

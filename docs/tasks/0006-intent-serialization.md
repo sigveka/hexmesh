@@ -1,6 +1,6 @@
 # 0006 — Save and load the network description (Intent layer)
 
-- **Status:** ready
+- **Status:** done
 - **Decision:** [0001 — Complete A5/A7 in the assembly prototype](../decisions/0001-complete-assembly-prototype.md)
 - **Depends on:** —
 
@@ -36,12 +36,65 @@ dataclasses in `assembly/fittings.py` and `assembly/tee.py`; `PipeSpec` in
 
 ## Agent notes
 
-_None yet._
+- **Format** (`hexmesh/assembly/intent.py`, `format: "hexmesh.assembly"`,
+  `version: 1`):
+  - `inlet`: `position`, `normal`, `up`, `spec`, `name`;
+  - `edges` in creation order.  Each holds `fitting` (`type` plus every
+    dataclass field) and either `source` (interface index), or `close`
+    (`[source, target]`) for a `close()` call;
+  - optional `names` (outlet interface names);
+  - `tail`, and `lc` if set.
+- **Replay, not geometry.**  `from_dict` calls `add` / `close` in order,
+  so the interfaces are recreated in the same order and indices are
+  stable.  Outlet frames are derived from the fittings, so editing one
+  fitting moves everything downstream (tested).
+- **Frame overrides.**  The kit case `straight-rolled-90` sets
+  `outlet.frame` by hand after `add()`, which `add` does not record.
+  `to_dict` compares each outlet frame with the fitting's `ports()`
+  result and stores only the ones that differ, under `frames`.
+- **Exactness.**  Frames are rebuilt with `Frame(...)` directly, not
+  `Frame.from_vectors`, so they are bit-identical after JSON (Python's
+  float repr round-trips).  `PipeSpec.to_dict` stores the resolved
+  `mprg`, so `first_cell=` specs reload with the same grading.
+- **Registry.**  `FITTING_TYPES` is a plain dict of the eight fitting
+  classes.  An unknown type or an unknown field raises `ValueError`;
+  missing fields take the dataclass defaults.
+- **PipeSpec** `to_dict` / `from_dict` cover:
+  - `nang`, `nang_w`, `nang_h`, `mbmp`, `rot`, `n_outer`;
+  - the core: name, shape (circle or rect), `nrad`, `mprg`;
+  - shells: circular, and `square_shell`.
+- **Files:** `Assembly.save(path)` / `Assembly.load(path)` write and read
+  indented JSON with sorted keys.
 
 ## Questions for design
 
-_None._
+1. **Absolute or relative nodes?**  DESIGN §3 describes the Intent layer
+   as a graph whose nodes have absolute positions.  This format stores
+   only the inlet pose absolutely; every other interface follows from
+   replaying the fittings.  That gives exact round trips and makes edits
+   propagate downstream, which suits parametric studies.  A plant-data
+   reader, however, produces absolute nodes, and those currently pass
+   through `NetworkSpec.to_assembly`.  Should the file also carry each
+   interface's absolute frame, as a check on load or as the authority?
+   Not blocking.
+2. **Hand-set frames.**  Is setting `outlet.frame` after `add()` a
+   supported operation?  Only the kit uses it, to test corner rolls.  If
+   it is not supported, `frames` overrides could be dropped from the
+   format.
 
 ## Outcome
 
-_Not done._
+- **Files:**
+  - new `hexmesh/assembly/intent.py`;
+  - `assembly/assembler.py`: `to_dict`, `from_dict`, `save`, `load`;
+  - `core/spec.py`: `PipeSpec.to_dict` / `from_dict`;
+  - new `tests/test_intent.py` (32 tests);
+  - docs: `API.md`, `README.md`.
+- **Accept:** all 25 conformance-kit cases round trip through JSON:
+  - identical `to_dict`;
+  - bit-identical interface frames, with the same names and specs;
+  - identical node count, element counts (2-D and 3-D) and physical
+    group names after meshing.
+
+  All eight shipped examples round trip, with identical cell counts.
+- **Tests:** 434 passed, 0 failed.

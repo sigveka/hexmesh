@@ -256,6 +256,20 @@ inlet or outlet groups.
 
 ---
 
+## Saving a network
+
+An assembly can be saved as a JSON description of how it was built, and
+loaded again, with no GMSH involved:
+
+```python
+asm.save("network.json")
+asm = Assembly.load("network.json")   # same interfaces, same mesh
+```
+
+The file lists the inlet, then every fitting in order with its parameters.
+Edit a parameter there and everything downstream moves with it, which
+suits parametric studies.  Lengths are in your unit, unconverted.
+
 ## Reading plant data
 
 ```python

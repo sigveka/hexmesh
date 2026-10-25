@@ -21,6 +21,7 @@ Usage::
 """
 
 from __future__ import annotations
+import json
 import math
 from dataclasses import dataclass
 from typing import Iterable
@@ -31,6 +32,7 @@ import gmsh
 from ..core.spec import PipeSpec
 from ..faces._gmsh_helpers import add_physical_group
 from ..quality_hex import METRICS, hex_vertices
+from . import intent
 from .corners import transfinite_surface_corners, transfinite_volume_corners
 from .fittings import FillResult
 from .quality import QualityReport, RegionQuality
@@ -173,6 +175,35 @@ class Assembly:
         target.edges.append(edge)
         if self._tail is source:
             self._tail = None
+
+    # ------------------------------------------------------------------
+    # Intent serialisation (docs/tasks/0006)
+    # ------------------------------------------------------------------
+
+    def to_dict(self) -> dict:
+        """The Intent layer as plain JSON-serialisable data.
+
+        Inlet pose and spec, then every ``add`` / ``close`` in order with
+        its fitting's type and fields.  Lengths are in the user's unit,
+        unconverted.  See ``hexmesh.assembly.intent``.
+        """
+        return intent.to_dict(self)
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "Assembly":
+        """Rebuild an assembly from :meth:`to_dict` output."""
+        return intent.from_dict(cls, d)
+
+    def save(self, path) -> None:
+        """Write :meth:`to_dict` as indented JSON with sorted keys."""
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(intent.dumps(self))
+
+    @classmethod
+    def load(cls, path) -> "Assembly":
+        """Read an assembly written by :meth:`save`."""
+        with open(path, encoding="utf-8") as f:
+            return cls.from_dict(json.load(f))
 
     @property
     def interfaces(self) -> list[Interface]:

@@ -69,6 +69,31 @@ An interface-first pipe network ([DESIGN.md](DESIGN.md) §5).
 | `build_faces()`, `fill(order=None)` | The individual steps; `fill` takes any order of edge indices (rule A6) |
 | `patch_name(interface)` | Patch name of an open interface |
 
+**Saving and loading (no GMSH)**
+
+| Method | Does |
+|---|---|
+| `to_dict()` / `Assembly.from_dict(d)` | The network description as plain JSON-serialisable data, and back |
+| `save(path)` / `Assembly.load(path)` | The same, as a JSON file (indented, sorted keys) |
+
+The file records how the network was built, not its geometry:
+- the inlet's pose, spec and name;
+- every `add` and `close` in order, each with its fitting's type and
+  fields, and the index of the interface it starts from (`source`) or
+  joins (`close: [source, target]`);
+- the tail and `lc`.
+
+Replaying it recreates the interfaces in the same order, so interface
+indices are stable, and editing a fitting in the file moves everything
+downstream of it.  An outlet frame set by hand after `add()` is the one
+exception; it is stored as an override under `frames`.
+
+**Units.** Lengths are in your unit, stored unconverted; angles in
+degrees, as in the fitting.
+
+The fitting types are a fixed registry, `hexmesh.assembly.intent.FITTING_TYPES`.
+An unknown type or field raises `ValueError`.
+
 ### `AssemblyError`
 
 A subclass of `ValueError`, raised by validation and graph operations. The
@@ -122,6 +147,10 @@ A concentric layer of thickness `dR` on top of the previous one.
 `first_cell` sets the radial height of the cell at the layer's outer
 boundary in place of `mprg`. It is exact all round. The solver is
 `hexmesh.core.grading.progression_for_first_cell(thickness, n_cells, h)`.
+
+`spec.to_dict()` / `PipeSpec.from_dict(d)` serialise a spec.  `mprg` is
+stored as resolved, so a spec built with `first_cell=` reloads with the
+same grading.
 
 The assembly supports circular cores and circular shells. Rectangular cores
 (`half_w`, `half_h`) and `.square_shell()` exist in `PipeSpec` but are
