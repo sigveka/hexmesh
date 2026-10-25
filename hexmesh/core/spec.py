@@ -29,7 +29,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from .grading import progression_for_first_cell
-from .shape import OH_RATIO, CircleShape, RectShape, Shape
+from .shape import CircleShape, RectShape, Shape, oh_core_wall_span
 from .region import MaterialGraph
 
 if TYPE_CHECKING:
@@ -247,12 +247,12 @@ class PipeSpec:
         half_h : float, optional
             Half-height of a rectangular core.  See ``half_w``.
         first_cell : float, optional
-            Radial height of the cell at the core's outer wall (the circle);
-            sets ``mprg`` (< 1) so that the corner radial curves, of length
-            ``(1 - OH_RATIO) * radius``, end in a cell of this height.
-            Circular cores only; mutually exclusive with ``mprg``.  Between
-            corners the core is thicker, so the wall cell there is larger
-            by up to the thickness ratio (docs/tasks/0002).
+            Largest radial height of a cell at the core's outer wall (the
+            circle); sets ``mprg`` (< 1).  The core ring is thickest at
+            mid-arc (``oh_core_wall_span``), where the wall cell equals
+            *first_cell*; at the corners it is about 0.81 of it.  Circular,
+            ``n_outer = 4`` cores only; mutually exclusive with ``mprg``
+            (docs/tasks/0002).
         """
         if self._core is not None:
             raise RuntimeError("PipeSpec.core() may only be called once.")
@@ -308,7 +308,11 @@ class PipeSpec:
         if first_cell is not None:
             if not isinstance(shape, CircleShape):
                 raise TypeError("first_cell= supports circular cores only")
-            mprg = _wall_progression(mprg, (1 - OH_RATIO) * shape.radius,
+            if self._n_outer != 4:
+                raise TypeError("first_cell= supports n_outer=4 cores only")
+            # Solved on the thickest span (mid-arc), so first_cell is the
+            # largest wall cell; at the corners it is 0.4/0.491 ≈ 0.81 of it.
+            mprg = _wall_progression(mprg, oh_core_wall_span(shape.radius),
                                      nrad, first_cell)
         self._core = (name, shape)
         # Store core nrad/mprg as a pseudo-LayerSpec for uniform iteration

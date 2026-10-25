@@ -99,3 +99,16 @@ Shape = Union[CircleShape, RectShape]
 # curves run from there to the circle, so they are ``(1 - OH_RATIO) * r``
 # long.
 OH_RATIO = 0.6
+
+
+def oh_core_wall_span(radius: float, ratio: float = OH_RATIO) -> float:
+    """Largest radial span of the 4-corner OH core ring, inner arc to circle.
+
+    The inner arcs are centred on the opposite inner-square point
+    ``(-ρ, 0)``, ``ρ = ratio·radius``, through the corner
+    ``(ρ/√2, ρ/√2)``, so they bulge toward the centre and the ring is
+    thickest at mid-arc: ``radius - (|(-ρ, 0) - corner| - ρ)``, 0.491 R
+    for ``ratio = 0.6`` against 0.4 R at the corners.
+    """
+    rho = ratio * radius
+    return radius - (math.hypot(rho + rho / math.sqrt(2), rho / math.sqrt(2)) - rho)

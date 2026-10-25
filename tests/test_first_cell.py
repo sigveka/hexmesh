@@ -3,8 +3,9 @@ Radial grading from a first-cell height (docs/tasks/0002).
 
 ``first_cell=`` on ``core()`` / ``shell()`` sets the height of the cell at
 the layer's outer boundary.  For a shell every radial is ``dR`` long, so
-the height is exact all round; the core grades its corner radials, of
-length ``(1 - OH_RATIO) * radius``.
+the height is exact all round.  The core ring is thickest at mid-arc;
+``first_cell`` is solved there, so it is the core's largest wall cell
+(option (b), chosen 2026-10-25).
 """
 
 import math
@@ -14,7 +15,7 @@ import pytest
 
 from hexmesh.assembly import Assembly, Straight
 from hexmesh.core.grading import first_cell_height, progression_for_first_cell
-from hexmesh.core.shape import OH_RATIO
+from hexmesh.core.shape import OH_RATIO, oh_core_wall_span
 from hexmesh.core.spec import PipeSpec
 
 from tests import test_fitting_conformance as kit
@@ -49,7 +50,7 @@ class TestSpec:
     def test_wall_cell_is_outer(self):
         spec = (PipeSpec(nang=4).core("fluid", radius=R, nrad=6, first_cell=1e-3)
                 .shell("wall", dR=DR, nrad=4, first_cell=1e-3))
-        core_t = (1 - OH_RATIO) * R
+        core_t = oh_core_wall_span(R)
         assert spec._core_mprg < 1 and spec.shells[0].mprg < 1    # fine at the outer end
         # mprg grows cells outward, so the last (outer) cell is the first-cell height
         assert first_cell_height(core_t, 6, spec._core_mprg) * spec._core_mprg ** 5 \
@@ -113,9 +114,34 @@ def meshed(gmsh_session):
     return _face_nodes()
 
 
-def test_core_first_cell_at_corner_radial(meshed):
+def test_core_mid_arc_cell_is_first_cell(meshed):
+    """The thickest span, where the core's largest wall cell sits."""
     r, a = meshed
-    assert _wall_cell(r, a, 45.0, R) == pytest.approx(H, rel=0.01)
+    assert _wall_cell(r, a, 0.0, R) == pytest.approx(H, rel=0.01)
+
+
+def test_core_wall_cell_never_exceeds_first_cell(gmsh_session):
+    """Every wall node's nearest interior neighbour is at most first_cell in."""
+    spec = PipeSpec(nang=6).core("fluid", radius=R, nrad=8, first_cell=H)
+    asm = Assembly(spec, lc=0.1)
+    asm.add(Straight(0.2, n_layers=2))
+    asm.mesh()
+    c = kit._hex_nodes()
+    c = c[np.abs(c[:, 0]) < 1e-9][:, 1:]
+    r = np.hypot(c[:, 0], c[:, 1])
+    wall, inner = c[np.abs(r - R) < 1e-9], c[r < R - 1e-9]
+    gaps = [R - np.hypot(*inner[np.argmin(np.linalg.norm(inner - w, axis=1))]) for w in wall]
+    assert max(gaps) == pytest.approx(H, rel=0.01)      # reached at mid-arc
+    assert min(gaps) == pytest.approx(H * (1 - OH_RATIO) * R / oh_core_wall_span(R), rel=0.01)
+
+
+def test_core_corner_cell_scales_by_span(meshed):
+    """At the corners the span is (1 - OH_RATIO)·R, so the cell is smaller
+    by the span ratio (0.4 / 0.491 ≈ 0.81)."""
+    r, a = meshed
+    ratio = (1 - OH_RATIO) * R / oh_core_wall_span(R)
+    assert _wall_cell(r, a, 45.0, R) == pytest.approx(H * ratio, rel=0.01)
+    assert 0.8 < ratio < 0.82
 
 
 def test_shell_first_cell_all_round(meshed):
@@ -124,16 +150,14 @@ def test_shell_first_cell_all_round(meshed):
         assert _wall_cell(r, a, angle, R + DR) == pytest.approx(H, rel=0.01)
 
 
-def test_core_mid_arc_cell_is_larger_by_thickness_ratio(meshed):
-    """Between corners the core is thicker (inner arcs bulge inward); the
-    transfinite fractions are the corner's, so the wall cell scales with the
-    local thickness (recorded in docs/tasks/0002)."""
+def test_wall_span_matches_geometry(meshed):
+    """oh_core_wall_span is the built face's inner-arc mid-edge distance."""
     r, a = meshed
-    # inner arc NE→SE is centred on the opposite square point W = (-ρ, 0),
-    # ρ = OH_RATIO·R, and passes through the corner (ρ/√2, ρ/√2)
-    rho = OH_RATIO * R
-    inner_mid = math.hypot(rho + rho / math.sqrt(2), rho / math.sqrt(2)) - rho
-    ratio = (R - inner_mid) / ((1 - OH_RATIO) * R)
-    h_mid = _wall_cell(r, a, 0.0, R)
-    assert h_mid == pytest.approx(H * ratio, rel=0.01)
-    assert 1.2 < ratio < 1.3
+    ring = r[(np.abs(a) < 1e-6) & (r < R - 1e-9)]
+    inner_mid = R - oh_core_wall_span(R)
+    assert np.min(np.abs(ring - inner_mid)) < 1e-9
+
+
+def test_n_outer_8_rejected():
+    with pytest.raises(TypeError, match="n_outer=4"):
+        PipeSpec(nang=4, n_outer=8).core("fluid", radius=R, nrad=6, first_cell=1e-3)

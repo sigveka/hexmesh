@@ -174,9 +174,9 @@ PipeSpec(nang=6).core("fluid", radius=0.05, nrad=4).shell("pipe_wall", dR=0.005,
   ```
 
   This is a geometric height, not y⁺, which also depends on the flow.
-  In a shell the height is exact all the way round. In the core it is
-  exact at the four corner radials; between them the core is thicker, so
-  the wall cell is up to 1.23× larger, the largest at mid-arc.
+  In a shell the height is exact all the way round. In the core it is the
+  largest wall cell: it is reached at mid-arc, where the core is thickest,
+  and the cells at the four corners are about 0.81× it.
 
 Each layer becomes its own physical volume, and neighbouring layers meet at
 conformal material interfaces, which is what conjugate heat transfer needs.

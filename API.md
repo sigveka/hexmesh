@@ -106,13 +106,14 @@ argument instead of `radius=`. `nrad` is the cells from the inner square to
 the circle, and `mprg` the radial progression (above 1 refines toward the
 inner side).
 
-`first_cell` replaces `mprg` with the radial height of the cell at the
-circle, the pipe wall. It is solved on the corner radials, which run from
-the inner-square corner at 0.6 R to the circle, so they are 0.4 R long.
-Between corners the core is thicker, and the wall cell is up to 1.23×
-`first_cell`, the largest at mid-arc. It raises `ValueError` if no
-progression fits (for example `first_cell` ≥ the thickness), and
-`TypeError` together with `mprg`.
+`first_cell` replaces `mprg` with the largest radial height of a cell at
+the circle, the pipe wall. The core ring is thickest at mid-arc, 0.491 R
+from the inner arc to the circle
+(`hexmesh.core.shape.oh_core_wall_span`), and the progression is solved
+there. So no wall cell is larger than `first_cell`, and the cells at the
+corners (span 0.4 R) are about 0.81× it. It needs `n_outer = 4`. It raises
+`ValueError` if no progression fits (for example `first_cell` ≥ the span),
+and `TypeError` together with `mprg`.
 
 #### `.shell(name, dR, nrad, mprg=1.0, first_cell=None)`
 

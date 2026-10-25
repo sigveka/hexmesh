@@ -55,9 +55,15 @@ velocity; don't add a y+ API.
 - **Core thickness.**  The core grades its four corner radials, of length
   `(1 - OH_RATIO) * radius` = 0.4 R.  Between corners the inner arcs bulge
   inward and the core reaches 0.491 R at mid-arc.  Transfinite
-  interpolation keeps the corner fractions, so the wall cell there is
-  1.228 × `first_cell` (measured, matching the thickness ratio to 1 %).
-  Shells are exact all round.  See Questions for design.
+  interpolation keeps the corner fractions, so wall cells scale with the
+  local span (measured to 1 %).  Shells are exact all round.
+- **Option (b) applied** (the user chose it on 2026-10-25, answering
+  question 1 below).  The core progression is solved on the mid-arc span,
+  `core.shape.oh_core_wall_span(radius)`, so `first_cell` is the largest
+  wall cell; at the corners it is 0.81 of it.  First version (commit
+  `36cf45f`) solved on the corner span instead (a): corners exact,
+  mid-arc 1.23× larger.  `first_cell` on an `n_outer = 8` core now raises
+  (its inner arcs differ).
 - **`OH_RATIO`** moved to `core/shape.py` as the single source; the face
   builder's default, the block layout and the tee use it.
 - Rectangular cores raise `TypeError` for `first_cell` (their inner
@@ -68,7 +74,9 @@ velocity; don't add a y+ API.
 
 ## Questions for design
 
-1. **Core wall cell.**  `first_cell` is exact at the core's corner
+1. **Core wall cell.**  *Answered by the user, 2026-10-25: option (b).
+   Implemented; for the design session to record in a decision or
+   RESEARCH if wanted.*  `first_cell` is exact at the core's corner
    radials and up to 1.23× larger at mid-arc.  For y⁺ targets a user
    usually wants an upper bound, not a value met at four lines.  Options:
    (a) keep it (documented); (b) solve on the mid-arc thickness, so
@@ -85,12 +93,14 @@ velocity; don't add a y+ API.
 
 ## Outcome
 
-- **Files:** new `hexmesh/core/grading.py`; `core/spec.py`
+- **Files:** new `hexmesh/core/grading.py`; `core/shape.py`
+  (`oh_core_wall_span`); `core/spec.py`
   (`first_cell=` on `core()`/`shell()`, `_wall_progression`);
   `core/shape.py` (`OH_RATIO`); `faces/oh_circle.py` and
   `assembly/blocks.py` (use it); new `tests/test_first_cell.py` (29
   tests); `README.md`, `API.md`.
-- **Measured** on a meshed `Straight`, `first_cell = 1.5 mm`: core corner
-  radial 1.5 mm (< 1 %); shell at 0°, 45°, 60°, 75° 1.5 mm (< 1 %); core
-  mid-arc 1.84 mm = 1.228 × (the thickness ratio).
-- **Tests:** 370 passed, 0 failed.
+- **Measured** on a meshed `Straight`, `first_cell = 1.5 mm`, option (b):
+  core mid-arc 1.5 mm and, over every wall node, the largest radial gap
+  1.5 mm (< 1 %); core corners 1.22 mm = 0.814 × (the span ratio); shell
+  at 0°, 45°, 60°, 75° 1.5 mm (< 1 %).
+- **Tests:** 373 passed, 0 failed (after option (b)).
