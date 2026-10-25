@@ -129,6 +129,14 @@ CASES = {
                                                     (0.5, 1.2, 0))),
     "spline-3d-2layer":    lambda: _spline(_two(), ((0, 0, 0), (0.1, 0.4, 0.1), (0.4, 0.7, 0.4),
                                                     (0.5, 0.9, 0.9)), end_tangent=(0, 0, 1)),
+    # axial grading (docs/tasks/0001): curve progression or station spacing
+    "straight-graded-2layer": lambda: _between(_two(), Straight(0.3, n_layers=4, axial_grading=1.3)),
+    "bend-graded-2layer":  lambda: _between(_two(), Bend(0.3, 90, n_layers=6, axial_grading=0.8)),
+    "reducer-graded":      lambda: _between(_one(), Reducer(_one(0.06), 0.15, n_layers=4,
+                                                            axial_grading=1.2)),
+    "closure-graded":      lambda: _ring(_one(), [90, 90, 90], Closure(n_layers=8, axial_grading=1.15)),
+    "spline-graded":       lambda: _spline(_one(), ((0, 0, 0), (0.1, 0.4, 0), (0.4, 0.8, 0),
+                                                    (0.5, 1.2, 0)), axial_grading=1.05),
 }
 
 

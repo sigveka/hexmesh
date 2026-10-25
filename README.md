@@ -100,14 +100,14 @@ ellipse where the two pipes meet. There are two known exceptions:
 
 | Fitting | Use |
 |---|---|
-| `Straight(length, n_layers)` | Straight run |
-| `Bend(radius, angle, n_layers, roll=0)` | Circular-arc bend. `roll` (degrees) turns the bend plane about the pipe axis; 0 bends toward `up` |
-| `Elbow(angle=90, schedule="long", n_layers=8, roll=0)` | Butt-weld elbow: a `Bend` with radius 1.5 D (`"long"`) or 1 D (`"short"`), D = outer diameter |
+| `Straight(length, n_layers, axial_grading=1)` | Straight run |
+| `Bend(radius, angle, n_layers, roll=0, axial_grading=1)` | Circular-arc bend. `roll` (degrees) turns the bend plane about the pipe axis; 0 bends toward `up` |
+| `Elbow(angle=90, schedule="long", n_layers=8, roll=0, axial_grading=1)` | Butt-weld elbow: a `Bend` with radius 1.5 D (`"long"`) or 1 D (`"short"`), D = outer diameter |
 | `MiterBend(radius, angle, n_cuts=1, n_layers=2, roll=0)` | Segmented bend of straight pieces. Same ports as `Bend(radius, angle)`; each cut turns ≤ 90° |
-| `Reducer(outlet, length, n_layers)` | Concentric cone to another radius (reducer or expander). Only radii may change |
-| `SplinePipe(points, n_layers, end_tangent=None)` | Pipe along a cubic spline; `points[0]` is the inlet position |
+| `Reducer(outlet, length, n_layers, axial_grading=1)` | Concentric cone to another radius (reducer or expander). Only radii may change |
+| `SplinePipe(points, n_layers, end_tangent=None, axial_grading=1)` | Pipe along a cubic spline; `points[0]` is the inlet position |
 | `Tee(run_length, branch_length, branch_radius, n_run=3, n_branch=3, n_turn=2)` | Perpendicular side-branch tee, block layout; returns `(main, branch)` |
-| `Closure(n_layers, tension=1.0)` | Smooth run between two existing interfaces, used with `close()` for loops |
+| `Closure(n_layers, tension=1.0, axial_grading=1)` | Smooth run between two existing interfaces, used with `close()` for loops |
 
 ### Building a network
 
@@ -201,6 +201,16 @@ axial layers:
 asm.validate(max_cells=2_000_000)   # raises AssemblyError over budget
 asm.cell_count()                    # total, without GMSH
 asm.cell_counts()                   # per fitting
+```
+
+**Axial grading.** `axial_grading` is the ratio of consecutive axial cell
+lengths along a fitting, inlet to outlet. Above 1, cells are finest at the
+inlet (for example after a tee); below 1, finest at the outlet. It doesn't
+change the cell count. `MiterBend` and `Tee` are not graded yet.
+
+```python
+asm.add(Straight(1.0, n_layers=20, axial_grading=1.1))   # first cell at the inlet
+asm.add(Bend(radius=0.3, angle=90, n_layers=12, axial_grading=0.9))
 ```
 
 > **Refinement is cubic.** Doubling `nang`, every `nrad` and every `n_layers`

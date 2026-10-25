@@ -17,7 +17,7 @@ import gmsh
 
 from ..core.cross_section import LayeredCrossSection
 from ..core.spec import PipeSpec
-from .corners import canonical_geom, connect_layer, frame_offset
+from .corners import canonical_geom, connect_layer, curve_endpoints, frame_offset
 from .interface import Frame, build_face, outer_radius, roll_mismatch
 
 
@@ -36,6 +36,19 @@ class CurveMesh:
 
 
 UNIFORM = ("Progression", 1.0)
+
+
+def station_fractions(n: int, ratio: float = 1.0) -> np.ndarray:
+    """Positions of ``n + 1`` stations in [0, 1] for *n* cells whose lengths
+    grow by *ratio* from one cell to the next, inlet to outlet (pure).
+
+    This is GMSH's transfinite "Progression" law, so a sweep graded by
+    station spacing matches a straight slab graded by its axial curves.
+    """
+    k = np.arange(n + 1, dtype=float)
+    if ratio == 1.0:
+        return k / n
+    return (ratio ** k - 1.0) / (ratio ** n - 1.0)
 
 
 def face_grading(face: LayeredCrossSection, spec: PipeSpec) -> dict[int, tuple[str, float]]:
@@ -138,6 +151,11 @@ class Path:
         Every slab is a straight prism: its two faces are parallel
         projections of each other along straight axial lines, so radial
         side faces are planar and the chord-turn limit does not apply.
+    axial_grading
+        Progression ratio of the axial curves inside a slab, inlet to
+        outlet.  Only slabs with several layers have such nodes; sweeps
+        with one layer per slab grade by station spacing instead
+        (``station_fractions``).
     """
 
     frames:     list[Frame]
@@ -147,6 +165,7 @@ class Path:
     min_radius: float = math.inf
     stretch:    list[tuple | None] | None = None
     prism:      bool = False
+    axial_grading: float = 1.0
 
     def __post_init__(self) -> None:
         if len(self.layers) != len(self.frames) - 1:
@@ -199,11 +218,12 @@ def _fill_slab(in_face: LayeredCrossSection, out_face: LayeredCrossSection,
                n_layers: int, offset: int = 0, axial_curve=None,
                planar_radial: bool = True,
                grading: dict[int, tuple[str, float]] | None = None,
-               side_surface=None) -> FillResult:
+               side_surface=None, axial_grading: float = 1.0) -> FillResult:
     """Fill all concentric layers between two existing faces.
 
     *offset* is the corner correspondence from ``frame_offset``; *grading*
-    maps face-curve tags to their ``face_grading`` (default uniform).
+    maps face-curve tags to their ``face_grading`` (default uniform);
+    *axial_grading* is the inlet → outlet progression of the axial curves.
     """
     grading = grading or {}
     result = FillResult()
@@ -223,7 +243,8 @@ def _fill_slab(in_face: LayeredCrossSection, out_face: LayeredCrossSection,
         result.volumes.setdefault(name, []).extend(vols)
         if prev_side is not None:
             result.interfaces.setdefault(names[idx - 1], []).extend(prev_side)
-        result.curves.extend(CurveMesh(c, n_layers + 1) for c in deferred["curves"])
+        result.curves.extend(_axial_mesh(c, n_layers, axial_grading, in_cs)
+                             for c in deferred["curves"])
         result.curves.extend(CurveMesh(c, n, *grading.get(c, UNIFORM))
                              for c, n in deferred["arc_curves"])
         result.surfaces.extend(deferred["surfaces"])
@@ -231,6 +252,21 @@ def _fill_slab(in_face: LayeredCrossSection, out_face: LayeredCrossSection,
         prev_axial, prev_side = axial, side
     result.walls.extend(prev_side)
     return result
+
+
+def _axial_mesh(curve: int, n_layers: int, ratio: float,
+                in_cs) -> CurveMesh:
+    """Transfinite record of an axial curve, progression oriented by flow.
+
+    The direction is read from the curve's start point *tag* (on the inlet
+    face or not), never from distances (DESIGN §6.1).
+    """
+    if ratio == 1.0:
+        return CurveMesh(curve, n_layers + 1)
+    start, _ = curve_endpoints(curve)
+    inlet_pts = set(in_cs.inner_points) | set(in_cs.outer_points)
+    return CurveMesh(curve, n_layers + 1, "Progression",
+                     ratio if start in inlet_pts else 1.0 / ratio)
 
 
 def sweep_fill(path: Path, faces: list[LayeredCrossSection],
@@ -254,7 +290,8 @@ def sweep_fill(path: Path, faces: list[LayeredCrossSection],
         result.merge(_fill_slab(stations[k], stations[k + 1], n, offsets[k],
                                 axial_curve=axial_curve, planar_radial=planar,
                                 grading=grading,
-                                side_surface=_ruled if path.prism else None))
+                                side_surface=_ruled if path.prism else None,
+                                axial_grading=path.axial_grading))
     return result
 
 
@@ -269,13 +306,20 @@ class Sweep:
     """
 
     places_outlet = True
+    axial_grading = 1.0     # fittings that support grading declare a field
 
     def path(self, a: Frame, b: Frame, spec: PipeSpec) -> Path:
         raise NotImplementedError
 
+    def fractions(self, n: int) -> np.ndarray:
+        """Station positions in [0, 1] for *n* graded layers (rule A5)."""
+        return station_fractions(n, self.axial_grading)
+
     def check(self, spec: PipeSpec) -> None:
         if self.n_layers < 1:
             raise ValueError(f"n_layers must be >= 1, got {self.n_layers!r}")
+        if not self.axial_grading > 0:
+            raise ValueError(f"axial_grading must be positive, got {self.axial_grading!r}")
 
     def validate(self, frames: list[Frame], spec: PipeSpec) -> None:
         self.check(spec)

@@ -26,6 +26,7 @@ Hex corner order (GMSH convention)::
 """
 
 from __future__ import annotations
+import math
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -75,6 +76,10 @@ def _key(*ids) -> frozenset:
     return frozenset(ids)
 
 
+def _same_grading(g, h) -> bool:
+    return g[0] == h[0] and math.isclose(g[1], h[1], rel_tol=1e-12)
+
+
 @dataclass
 class _Edge:
     a: object
@@ -100,7 +105,7 @@ class BlockLayout:
         self.port_faces: set[frozenset] = set()
         self.blocks:  list[tuple[tuple, str]] = []
         self.counts:  dict[frozenset, int] = {}        # fixed edge divisions
-        self._classes: dict[frozenset, int] | None = None
+        self._classes: dict[frozenset, tuple[int, tuple]] | None = None
 
     # -- construction -----------------------------------------------------
 
@@ -174,21 +179,56 @@ class BlockLayout:
                 use.setdefault(_key(*cyc), []).append((bi, cyc))
         return use
 
-    def _division_classes(self) -> dict[frozenset, int]:
+    def _division_classes(self) -> dict[frozenset, tuple[int, tuple]]:
+        """Edge key → (divisions, grading oriented edge.a → edge.b).
+
+        Parallel edges of a block form one class (union-find).  Each class
+        node also tracks its *parity*: whether the edge's a → b runs with or
+        against the class root, so a progression keeps its direction across
+        the class.  Every edge of a class gets the class grading; declared
+        gradings that disagree (in kind, coefficient or direction) raise.
+        """
         parent: dict[frozenset, frozenset] = {}
+        parity: dict[frozenset, int] = {}       # 1: a → b runs against parent
 
         def find(x):
-            parent.setdefault(x, x)
+            if x not in parent:
+                parent[x], parity[x] = x, 0
+            path = []
             while parent[x] != x:
-                parent[x] = parent[parent[x]]
+                path.append(x)
                 x = parent[x]
+            acc = 0
+            for y in reversed(path):            # compress, accumulating parity
+                acc ^= parity[y]
+                parent[y], parity[y] = x, acc
             return x
+
+        # Orientation of every edge: the declared a → b, else the first
+        # traversal in block order — the order in which ``realise`` creates
+        # undeclared edges, so both agree.
+        start: dict[frozenset, object] = {k: e.a for k, e in self.edges.items()}
+        for ids, _ in self.blocks:
+            for group in _EDGES.values():
+                for a, b in group:
+                    start.setdefault(_key(ids[a], ids[b]), ids[a])
+
+        def flip(k, a) -> int:
+            """1 if the block traverses edge *k* against its orientation."""
+            return 0 if start[k] == a else 1
 
         for ids, _ in self.blocks:
             for group in _EDGES.values():
-                keys = [_key(ids[a], ids[b]) for a, b in group]
-                for k in keys[1:]:
-                    parent[find(k)] = find(keys[0])
+                (a0, b0), *rest = group
+                k0 = _key(ids[a0], ids[b0])
+                f0 = flip(k0, ids[a0])
+                for a, b in rest:
+                    k = _key(ids[a], ids[b])
+                    rel = flip(k, ids[a]) ^ f0  # k against k0
+                    r0, r = find(k0), find(k)
+                    if r0 != r:
+                        parent[r] = r0
+                        parity[r] = parity[k] ^ rel ^ parity[k0]
 
         root_count: dict[frozenset, tuple[int, frozenset]] = {}
         for k, n in self.counts.items():
@@ -200,6 +240,26 @@ class BlockLayout:
                     f"edge {set(other)} needs {root_count[r][0]}"
                 )
             root_count[r] = (n, k)
+
+        def to_root(grading, p):
+            kind, coef = grading
+            return (kind, 1.0 / coef) if p and kind == "Progression" else (kind, coef)
+
+        root_grading: dict[frozenset, tuple[tuple, frozenset]] = {}
+        for k, e in self.edges.items():
+            if e.grading == ("Progression", 1.0) or k not in parent:
+                continue
+            r = find(k)
+            g = to_root(e.grading, parity[k])
+            if r in root_grading and not _same_grading(root_grading[r][0], g):
+                other = root_grading[r][1]
+                raise LayoutError(
+                    f"grading conflict: edge {set(k)} is graded {e.grading} but "
+                    f"parallel edge {set(other)} is graded "
+                    f"{self.edges[other].grading} (directions compared along the class)"
+                )
+            root_grading[r] = (g, k)
+
         result = {}
         for k in list(parent):
             r = find(k)
@@ -208,7 +268,8 @@ class BlockLayout:
                     f"edge {set(k)} has no division count (its parallel class "
                     f"reaches no edge with a fixed count)"
                 )
-            result[k] = root_count[r][0]
+            g = root_grading.get(r, (("Progression", 1.0), None))[0]
+            result[k] = (root_count[r][0], to_root(g, parity[k]))
         return result
 
     def corner_jacobians(self) -> np.ndarray:
@@ -265,7 +326,7 @@ class BlockLayout:
             n = 1
             for group in _EDGES.values():
                 a, b = group[0]
-                n *= self._classes[_key(ids[a], ids[b])]
+                n *= self._classes[_key(ids[a], ids[b])][0]
             total += n
         return total
 
@@ -347,9 +408,8 @@ class BlockLayout:
             result.mesh_vols.append(vol)
         geo.synchronize()
 
-        for k, n in self._classes.items():
+        for k, (n, (kind, coef)) in self._classes.items():
             e = self.edges[k]
-            kind, coef = e.grading
             if kind == "Progression" and e.start != e.a:
                 coef = 1.0 / coef
             result.curves.append(CurveMesh(e.tag, n + 1, kind, coef))

@@ -118,6 +118,15 @@ rejected by validation until decision 0009 is implemented.
 
 ## Fittings
 
+**Axial grading.** `Straight`, `Bend`, `Elbow`, `Reducer`, `SplinePipe` and
+`Closure` take `axial_grading=1.0`: the ratio of consecutive axial cell
+lengths, inlet → outlet (GMSH's "Progression" law). Above 1 refines toward
+the inlet, below 1 toward the outlet. `Straight` grades its axial curves.
+The other fittings place one station per layer, so they space their
+stations by the same law (for `SplinePipe` and `Closure`, in arc length
+plus turning angle). The cell count is unchanged. `MiterBend` and `Tee` are
+not graded.
+
 Every fitting has three parts:
 - `ports(inlet, spec)`: where its outlets go;
 - `validate(frames, spec)`: geometry checks;
@@ -126,18 +135,18 @@ Every fitting has three parts:
 All three are pure Python. Fittings never build their own interface faces;
 they only fill between the faces the assembly built.
 
-### `Straight(length, n_layers)`
+### `Straight(length, n_layers, axial_grading=1.0)`
 
 A straight run with `n_layers` axial cells.
 
-### `Bend(radius, angle, n_layers, roll=0.0)`
+### `Bend(radius, angle, n_layers, roll=0.0, axial_grading=1.0)`
 
 A circular-arc bend with centreline `radius` and `angle` in (0°, 360°). It
 places one station per axial layer, joined by exact arcs. `roll` rotates the
 bend plane about the pipe axis: 0 bends toward `up`, 90 toward `right`.
 `radius` must exceed the outer radius.
 
-### `Elbow(angle=90.0, schedule="long", n_layers=8, roll=0.0)`
+### `Elbow(angle=90.0, schedule="long", n_layers=8, roll=0.0, axial_grading=1.0)`
 
 A `Bend` whose radius follows the pipe: 1.5 D for `"long"` and 1 D for
 `"short"` (ASME B16.9), where D is the outer diameter of the inlet spec.
@@ -156,7 +165,7 @@ A segmented bend: straight pieces joined at `n_cuts` planar cuts.
 - **Measured quality.** min SICN equals the straight-pipe value up to a 60°
   cut, and is about 0.18 at a single 90° cut.
 
-### `Reducer(outlet, length, n_layers)`
+### `Reducer(outlet, length, n_layers, axial_grading=1.0)`
 
 A concentric cone from the inlet spec to `outlet`; a larger outlet makes it an
 expander. The outlet must equal the inlet in everything except its radii (core
@@ -164,7 +173,7 @@ radius and shell thicknesses). That covers the layer names and order, `nrad`,
 `nang`, gradings, `n_outer` and `rot`. Validation names the first field that
 differs. Wall nodes lie exactly on the cone.
 
-### `SplinePipe(points, n_layers, end_tangent=None)`
+### `SplinePipe(points, n_layers, end_tangent=None, axial_grading=1.0)`
 
 A pipe along a cubic spline through `points`, parametrised by chord length.
 
@@ -190,7 +199,7 @@ A perpendicular, centred side-branch tee, built as a block layout.
 - **Limits.** A single-layer spec, `rot = 0`, and `branch_radius` below the
   main radius.
 
-### `Closure(n_layers, tension=1.0)`
+### `Closure(n_layers, tension=1.0, axial_grading=1.0)`
 
 For `close()` only. It runs a cubic Hermite centreline between two existing
 interfaces, leaving and arriving along their normals. The roll mismatch is

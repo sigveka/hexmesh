@@ -36,10 +36,15 @@ __all__ = ["Straight", "Bend", "MiterBend", "Elbow", "Reducer", "SplinePipe",
 
 @dataclass(frozen=True)
 class Straight(Sweep):
-    """Straight pipe run between two parallel interfaces."""
+    """Straight pipe run between two parallel interfaces.
+
+    *axial_grading* is the ratio of consecutive axial cell lengths, inlet →
+    outlet (1 = uniform; > 1 refines toward the inlet).
+    """
 
     length:   float
     n_layers: int
+    axial_grading: float = 1.0
 
     def ports(self, inlet: Frame, spec: PipeSpec) -> list[tuple[Frame, PipeSpec]]:
         out = Frame(inlet.position + self.length * inlet.normal,
@@ -52,7 +57,7 @@ class Straight(Sweep):
             raise ValueError(f"length must be positive, got {self.length!r}")
 
     def path(self, a: Frame, b: Frame, spec: PipeSpec) -> Path:
-        return Path([a, b], [self.n_layers])
+        return Path([a, b], [self.n_layers], axial_grading=self.axial_grading)
 
 
 # ---------------------------------------------------------------------------
@@ -82,12 +87,16 @@ class Bend(Sweep):
     roll : float
         Bend-plane rotation about the pipe axis in degrees
         (0 = bend toward ``up``).
+    axial_grading : float
+        Ratio of consecutive axial cell lengths, inlet → outlet (1 =
+        uniform; > 1 refines toward the inlet).  Stations are spaced accordingly.
     """
 
     radius:   float
     angle:    float
     n_layers: int
     roll:     float = 0.0
+    axial_grading: float = 1.0
 
     def _axis_centre(self, inlet: Frame) -> tuple[np.ndarray, np.ndarray]:
         phi = math.radians(self.roll)
@@ -116,7 +125,8 @@ class Bend(Sweep):
 
     def path(self, a: Frame, b: Frame, spec: PipeSpec) -> Path:
         n = self.n_layers
-        inner = [self._rotated(a, self.angle * k / n) for k in range(1, n)]
+        u = self.fractions(n)
+        inner = [self._rotated(a, self.angle * u[k]) for k in range(1, n)]
         axis, centre = self._axis_centre(a)
         return Path([a, *inner, b], [1] * n, axial=Arc(axis, centre),
                     min_radius=self.radius)
@@ -260,6 +270,7 @@ class Elbow(Sweep):
     schedule: str = "long"
     n_layers: int = 8
     roll:     float = 0.0
+    axial_grading: float = 1.0
 
     FACTORS = {"long": 1.5, "short": 1.0}
 
@@ -267,7 +278,8 @@ class Elbow(Sweep):
         return self.FACTORS[self.schedule] * 2 * outer_radius(spec)
 
     def bend(self, spec: PipeSpec) -> Bend:
-        return Bend(self.radius(spec), self.angle, self.n_layers, self.roll)
+        return Bend(self.radius(spec), self.angle, self.n_layers, self.roll,
+                    self.axial_grading)
 
     def ports(self, inlet: Frame, spec: PipeSpec) -> list[tuple[Frame, PipeSpec]]:
         return self.bend(spec).ports(inlet, spec)
@@ -331,11 +343,13 @@ class Reducer(Sweep):
     Every axial layer is a station whose radii interpolate linearly, and
     corresponding corners are joined by straight lines, which are generators
     of the cone; wall nodes therefore lie exactly on the cone.
+    *axial_grading* spaces the stations as for ``Straight``.
     """
 
     outlet:   PipeSpec
     length:   float
     n_layers: int
+    axial_grading: float = 1.0
 
     def ports(self, inlet: Frame, spec: PipeSpec) -> list[tuple[Frame, PipeSpec]]:
         out = Frame(inlet.position + self.length * inlet.normal,
@@ -357,10 +371,11 @@ class Reducer(Sweep):
 
     def path(self, a: Frame, b: Frame, spec: PipeSpec) -> Path:
         n = self.n_layers
+        u = self.fractions(n)
         r0, r1 = np.array(_radii(spec)), np.array(_radii(self.outlet))
-        frames = [a] + [Frame(a.position + (b.position - a.position) * k / n,
+        frames = [a] + [Frame(a.position + (b.position - a.position) * u[k],
                               a.normal, a.up) for k in range(1, n)] + [b]
-        specs = [spec] + [_with_radii(spec, list(r0 + (r1 - r0) * k / n))
+        specs = [spec] + [_with_radii(spec, list(r0 + (r1 - r0) * u[k]))
                           for k in range(1, n)] + [self.outlet]
         return Path(frames, [1] * n, specs=specs)
 
@@ -384,11 +399,15 @@ def _min_radius(curve) -> float:
 
 def _transported_stations(curve, n_layers: int, start: Frame,
                           end: Frame | None = None,
-                          n_outer: int = 4) -> tuple[list[Frame], float]:
+                          n_outer: int = 4,
+                          fractions: np.ndarray | None = None,
+                          ) -> tuple[list[Frame], float]:
     """Station frames along *curve* for ``t`` in [0, 1], both ends included.
 
     Stations equidistribute arc length + turning angle (equal weight), so
-    sharp turns get proportionally more stations.  ``up`` is parallel
+    sharp turns get proportionally more stations; *fractions*
+    (``station_fractions``) grade that measure instead of splitting it
+    evenly.  ``up`` is parallel
     transported from *start* (Bishop frame, no spurious twist).  With *end*
     given, the last frame is *end* and the residual roll mismatch, modulo
     the ``2π / n_outer`` symmetry, is distributed linearly by arc length;
@@ -403,7 +422,9 @@ def _transported_stations(curve, n_layers: int, start: Frame,
     dtheta = np.arccos(np.clip(np.sum(td[:-1] * td[1:], axis=1), -1, 1))
     theta = np.concatenate([[0.0], np.cumsum(dtheta)])
     m = s / s[-1] + (theta / theta[-1] if theta[-1] > 1e-12 else 0.0)
-    ts = np.interp(np.linspace(0.0, m[-1], n_layers + 1), m, t)
+    if fractions is None:
+        fractions = np.linspace(0.0, 1.0, n_layers + 1)
+    ts = np.interp(np.asarray(fractions) * m[-1], m, t)
     targets = np.interp(ts, t, s)          # arc length at each station
     P, D, _ = curve(ts)
     T = D / np.linalg.norm(D, axis=1)[:, None]
@@ -494,11 +515,15 @@ class SplinePipe(Sweep):
         Hex layers (= stations) along the curve.
     end_tangent : 3-vector, optional
         Outlet direction (normalised).
+    axial_grading : float
+        Ratio of consecutive station spacings (in arc length + turning
+        angle), inlet → outlet; 1 = uniform.
     """
 
     points:      tuple
     n_layers:    int
     end_tangent: tuple | None = None
+    axial_grading: float = 1.0
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "points", tuple(tuple(map(float, p)) for p in self.points))
@@ -515,6 +540,8 @@ class SplinePipe(Sweep):
     def _check_points(self, inlet: Frame) -> None:
         if self.n_layers < 1:
             raise ValueError(f"n_layers must be >= 1, got {self.n_layers!r}")
+        if not self.axial_grading > 0:
+            raise ValueError(f"axial_grading must be positive, got {self.axial_grading!r}")
         P = np.asarray(self.points)
         if P.ndim != 2 or P.shape[1] != 3 or len(P) < 2:
             raise ValueError("points must be at least two 3-vectors")
@@ -530,13 +557,15 @@ class SplinePipe(Sweep):
 
     def ports(self, inlet: Frame, spec: PipeSpec) -> list[tuple[Frame, PipeSpec]]:
         self._check_points(inlet)
-        frames, _ = _transported_stations(self._curve(inlet), self.n_layers, inlet)
+        frames, _ = _transported_stations(self._curve(inlet), self.n_layers, inlet,
+                                          fractions=self.fractions(self.n_layers))
         return [(frames[-1], spec)]
 
     def path(self, a: Frame, b: Frame, spec: PipeSpec) -> Path:
         self._check_points(a)
         curve = self._curve(a)
-        frames, _ = _transported_stations(curve, self.n_layers, a)
+        frames, _ = _transported_stations(curve, self.n_layers, a,
+                                          fractions=self.fractions(self.n_layers))
         frames[-1] = b
         return Path(frames, [1] * self.n_layers, min_radius=_min_radius(curve))
 
@@ -565,10 +594,14 @@ class Closure(Sweep):
     tension : float
         End-tangent magnitude as a multiple of the chord length.  Larger
         values keep the run straighter near its ends.
+    axial_grading : float
+        Ratio of consecutive station spacings, source → target, as for
+        ``SplinePipe``; 1 = uniform.
     """
 
     n_layers: int
     tension:  float = 1.0
+    axial_grading: float = 1.0
 
     places_outlet = False
 
@@ -607,7 +640,8 @@ class Closure(Sweep):
     def stations(self, a: Frame, b: Frame, n_outer: int) -> tuple[list[Frame], float]:
         """Station frames (inclusive of both ends) and the absorbed twist."""
         return _transported_stations(self._curve(a, b), self.n_layers, a,
-                                     end=b, n_outer=n_outer)
+                                     end=b, n_outer=n_outer,
+                                     fractions=self.fractions(self.n_layers))
 
     def path(self, a: Frame, b: Frame, spec: PipeSpec) -> Path:
         if np.linalg.norm(b.position - a.position) < 1e-12:
