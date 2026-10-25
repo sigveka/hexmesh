@@ -31,6 +31,7 @@ import gmsh
 from ..core.spec import PipeSpec
 from ..faces._gmsh_helpers import add_physical_group
 from ..quality_hex import METRICS, hex_vertices
+from .corners import transfinite_surface_corners, transfinite_volume_corners
 from .fittings import FillResult
 from .quality import QualityReport, RegionQuality
 from .interface import (
@@ -348,11 +349,13 @@ class Assembly:
         msh = gmsh.model.mesh
         for c in curve_constraints(self._fill.curves).values():
             msh.setTransfiniteCurve(c.tag, c.nodes, c.kind, c.coef)
+        # Corners from tags, not GMSH's geometric choice, so geometry
+        # variants of one assembly get identical node numbering (task 0007).
         for tag in dict.fromkeys(self._fill.surfaces):
-            msh.setTransfiniteSurface(tag)
+            msh.setTransfiniteSurface(tag, cornerTags=transfinite_surface_corners(tag))
             msh.setRecombine(2, tag)
         for tag in self._fill.mesh_vols:
-            msh.setTransfiniteVolume(tag)
+            msh.setTransfiniteVolume(tag, cornerTags=transfinite_volume_corners(tag))
             msh.setRecombine(3, tag)
         msh.generate(dim)
 

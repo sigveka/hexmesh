@@ -46,6 +46,57 @@ def curve_endpoints(curve: int) -> tuple[int, int]:
     return (pts[0], pts[1]) if d[0] <= d[1] else (pts[1], pts[0])
 
 
+def _point_graph(dim: int, tag: int) -> dict[int, set[int]]:
+    """Corner points of entity (*dim*, *tag*) and the curves joining them."""
+    if dim == 2:
+        curves = [abs(c) for _, c in gmsh.model.getBoundary([(2, tag)], oriented=False)]
+    else:
+        curves = list(dict.fromkeys(
+            abs(c) for _, s in gmsh.model.getBoundary([(3, tag)], oriented=False)
+            for _, c in gmsh.model.getBoundary([(2, abs(s))], oriented=False)))
+    adj: dict[int, set[int]] = {}
+    for c in curves:
+        a, b = curve_endpoints(c)
+        adj.setdefault(a, set()).add(b)
+        adj.setdefault(b, set()).add(a)
+    return adj
+
+
+def transfinite_surface_corners(surface: int) -> list[int]:
+    """The 4 corners of a quad *surface* in a canonical order, from tags.
+
+    GMSH starts a transfinite grid at a corner it chooses itself, which can
+    depend on the geometry, so two variants of the same assembly could
+    number their nodes differently (docs/tasks/0007).  Starting at the
+    smallest point tag and walking toward its smaller-tag neighbour fixes
+    the grid by topology alone.  ``[]`` (GMSH's choice) if not a quad.
+    """
+    adj = _point_graph(2, surface)
+    if len(adj) != 4 or any(len(n) != 2 for n in adj.values()):
+        return []
+    c0 = min(adj)
+    c1, c3 = sorted(adj[c0])
+    c2 = (adj[c1] - {c0}).pop()
+    return [c0, c1, c2, c3]
+
+
+def transfinite_volume_corners(volume: int) -> list[int]:
+    """The 8 corners of a hex *volume* in a canonical order, from tags.
+
+    Bottom face: the smallest-tag corner and its two smaller-tag
+    neighbours; top: each bottom corner's third neighbour.  ``[]`` if the
+    volume is not a hex block.
+    """
+    adj = _point_graph(3, volume)
+    if len(adj) != 8 or any(len(n) != 3 for n in adj.values()):
+        return []
+    p0 = min(adj)
+    p1, p3, _ = sorted(adj[p0])
+    p2 = ((adj[p1] & adj[p3]) - {p0}).pop()
+    bottom = [p0, p1, p2, p3]
+    return bottom + [(adj[b] - set(bottom)).pop() for b in bottom]
+
+
 def _oriented(curve: int, start: int, end: int) -> int:
     """Signed *curve* tag running from point *start* to point *end*."""
     t0, t1 = curve_endpoints(abs(curve))

@@ -16,7 +16,7 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0004](0004-quality-per-fitting.md) | Quality report per fitting, with hex metrics | done | 0001 |
 | [0005](0005-openfoam-output.md) | OpenFOAM-compatible output | ready | 0001 |
 | [0006](0006-intent-serialization.md) | Save and load the network description (Intent layer) | ready | 0001 |
-| [0007](0007-topology-invariance-test.md) | Test that topology is unchanged across geometry variants | ready | 0001 |
+| [0007](0007-topology-invariance-test.md) | Test that topology is unchanged across geometry variants | done | 0001 |
 | [0008](0008-open-end-extensions.md) | Inlet and outlet extensions | ready | 0001 |
 | [0009](0009-per-fitting-wall-patches.md) | Per-fitting wall patches | ready | 0001 |
 | [0010](0010-equipment-nozzle-boundaries.md) | Equipment nozzles as network boundaries | ready | 0002 |
@@ -28,6 +28,7 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0016](0016-public-api-and-examples.md) | Public API, examples and docs on the assembly | done | 0004 |
 | [0017](0017-delete-legacy.md) | Delete the legacy code | done | 0004 |
 | [0018](0018-layer-termination-in-sweep.md) | Layer termination in `Sweep` (insulation stops and starts) | ready | 0006 |
+| [0019](0019-port-face-signatures-and-classifier.md) | Port-face signatures and the topology-switch classifier | ready | 0011 |
 
 Decision 0004 (retire legacy) comes first: 0011 → 0012 / 0013 / 0014 →
 0015 → 0016 → 0017.  0017 waits for all the others.  Then the rest of
@@ -37,8 +38,10 @@ Suggested order for decision 0001: 0000 → 0003 → 0001 → 0002 → 0004 → 
 0008 → 0009, then 0010 (after 0006, which it builds on).  0001, 0004 and
 0006 have the highest value.  0000 is a bug fix that 0001 and 0002 build on.
 
-0018 (decision 0006) can start once 0013 is done; it touches the same
-sweep spec handling.
+0018 (decision 0006) can start now that 0013 is done; it touches the
+same sweep spec handling.  Prefer **0019 before 0018**: 0019 adds the
+port-pair classifier, and 0018 then declares class 1 for layer
+termination instead of adding its own check.
 
 The multi-layer tee (needed for CHT networks with junctions) is not
 low-hanging fruit and has no task yet.  It needs a design decision first;
