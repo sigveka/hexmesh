@@ -160,6 +160,7 @@ class TestAllMetrics:
             "interp_quality_min", "interp_quality_avg",
             "mean_ratio_min", "mean_ratio_avg",
             "shape_regularity_ratio", "shape_regularity_knupp",
+            "scaled_jacobian", "nes",
         }
         assert set(m.keys()) == expected_keys
 

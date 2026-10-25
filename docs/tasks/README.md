@@ -13,7 +13,7 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0001](0001-axial-grading.md) | Axial grading per fitting | done | 0001 |
 | [0002](0002-first-cell-height.md) | Radial grading from first-cell height | done | 0001 |
 | [0003](0003-cell-count.md) | Exact cell count before GMSH | done | 0001 |
-| [0004](0004-quality-per-fitting.md) | Quality report per fitting, with hex metrics | ready | 0001 |
+| [0004](0004-quality-per-fitting.md) | Quality report per fitting, with hex metrics | done | 0001 |
 | [0005](0005-openfoam-output.md) | OpenFOAM-compatible output | ready | 0001 |
 | [0006](0006-intent-serialization.md) | Save and load the network description (Intent layer) | ready | 0001 |
 | [0007](0007-topology-invariance-test.md) | Test that topology is unchanged across geometry variants | ready | 0001 |

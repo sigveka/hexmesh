@@ -66,6 +66,14 @@ with Session("elbow"):
     print(asm.check_quality())     # per-material minSICN report
 ```
 
+To find the fitting that holds the worst cell, group by fitting and use
+a shape metric:
+
+```python
+report = asm.check_quality("scaled_jacobian", threshold=0.6, by="fitting")
+print(report.worst_region.name)    # e.g. "#3 Tee"
+```
+
 To inspect a mesh, run `gmsh elbow.msh`. Use Tools → Clipping to see inside,
 and Tools → Visibility to show individual patches.
 

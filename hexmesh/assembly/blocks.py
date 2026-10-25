@@ -33,12 +33,10 @@ import numpy as np
 import gmsh
 
 from ..core.shape import OH_RATIO   # re-exported: inner-square scale of the OH face
+from ..quality_hex import corner_scaled_jacobians
 from .corners import curve_endpoints
 from .sweep import CurveMesh, FillResult
 
-# Corner (a, b, c) ∈ {0,1}³ → vertex index
-_IDX = {(0, 0, 0): 0, (1, 0, 0): 1, (1, 1, 0): 2, (0, 1, 0): 3,
-        (0, 0, 1): 4, (1, 0, 1): 5, (1, 1, 1): 6, (0, 1, 1): 7}
 _EDGES = {  # direction → the four parallel edges
     'i': [(0, 1), (3, 2), (4, 5), (7, 6)],
     'j': [(0, 3), (1, 2), (4, 7), (5, 6)],
@@ -274,19 +272,13 @@ class BlockLayout:
         return result
 
     def corner_jacobians(self) -> np.ndarray:
-        """Scaled Jacobian at every block corner (straight-edge estimate)."""
-        out = []
-        for ids, _ in self.blocks:
-            p = [self.coords[v] for v in ids]
-            for (a, b, c), idx in _IDX.items():
-                def nb(da, db, dc):
-                    return p[_IDX[(a ^ da, b ^ db, c ^ dc)]] - p[idx]
-                ei = nb(1, 0, 0) * (1 if a == 0 else -1)
-                ej = nb(0, 1, 0) * (1 if b == 0 else -1)
-                ek = nb(0, 0, 1) * (1 if c == 0 else -1)
-                n = np.linalg.norm(ei) * np.linalg.norm(ej) * np.linalg.norm(ek)
-                out.append(np.dot(np.cross(ei, ej), ek) / n if n > 0 else 0.0)
-        return np.array(out)
+        """Scaled Jacobian at every block corner (straight-edge estimate),
+        8 per block, by the same formula as the mesh metric
+        (``quality_hex.corner_scaled_jacobians``)."""
+        return np.concatenate([
+            corner_scaled_jacobians(np.array([self.coords[v] for v in ids]))
+            for ids, _ in self.blocks
+        ])
 
     def validate(self) -> dict:
         """Check topology, densities and corner Jacobians; return a report."""

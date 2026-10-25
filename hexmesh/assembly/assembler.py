@@ -30,6 +30,7 @@ import gmsh
 
 from ..core.spec import PipeSpec
 from ..faces._gmsh_helpers import add_physical_group
+from ..quality_hex import METRICS, hex_vertices
 from .fittings import FillResult
 from .quality import QualityReport, RegionQuality
 from .interface import (
@@ -98,6 +99,7 @@ class Assembly:
         self._edges:      list[Edge]      = []
         self._lc = lc
         self._fill: FillResult | None = None
+        self._fitting_volumes: dict[int, list[int]] = {}
         self._faces_built = False
         self.inlet = self._new_interface(
             Frame.from_vectors(position, direction, up), spec, inlet_name,
@@ -283,11 +285,13 @@ class Assembly:
 
         fill = FillResult()
         for edge in edges:
-            fill.merge(edge.fitting.fill(
+            part = edge.fitting.fill(
                 [p.face for p in edge.ports],
                 [p.frame for p in edge.ports],
                 edge.ports[0].spec, self.lc,
-            ))
+            )
+            self._fitting_volumes[edge.index] = [v for vs in part.volumes.values() for v in vs]
+            fill.merge(part)
         gmsh.model.occ.synchronize()
 
         # Face builders leave construction points (arc centres, helpers)
@@ -366,23 +370,63 @@ class Assembly:
         self.build()
         return {k: list(v) for k, v in self._fill.volumes.items()}
 
+    def fitting_volumes(self) -> dict[int, list[int]]:
+        """Volume tags per fitting, keyed by edge index (after build)."""
+        self.build()
+        return {k: list(v) for k, v in self._fitting_volumes.items()}
+
     def check_quality(self, quality_name: str = "minSICN",
-                      threshold: float = 0.0) -> QualityReport:
-        """Per-material GMSH quality report of the generated mesh."""
-        report = QualityReport(quality_name=quality_name, threshold=threshold)
-        for name, vols in self.volumes.items():
-            tags: list[int] = []
-            for v in vols:
-                _, etags, _ = gmsh.model.mesh.getElements(3, v)
-                for arr in etags:
-                    tags.extend(arr.tolist())
-            if not tags:
+                      threshold: float | None = None,
+                      by: str = "material") -> QualityReport:
+        """Quality report of the generated mesh.
+
+        *quality_name* is a GMSH element quality ("minSICN", "minSIGE",
+        "gamma", …) or a hex metric from ``quality_hex.METRICS``
+        ("scaled_jacobian", "nes", …).  *by* groups the rows per
+        "material" or per "fitting" (index and type, rule A2: a failure
+        names its fitting).  *threshold* defaults to 0 for GMSH qualities
+        and to the metric's own limit otherwise; an element is bad when it
+        is at or beyond it, on the metric's worse side.
+        """
+        if by == "material":
+            groups = [(name, None, vols) for name, vols in self.volumes.items()]
+        elif by == "fitting":
+            self.build()
+            groups = [(f"#{e.index} {type(e.fitting).__name__}", e.index,
+                       self._fitting_volumes[e.index]) for e in self._edges]
+        else:
+            raise ValueError(f'by must be "material" or "fitting", got {by!r}')
+
+        metric = METRICS.get(quality_name)
+        higher = metric.higher_is_better if metric else True
+        if threshold is None:
+            threshold = metric.default_threshold if metric else 0.0
+        report = QualityReport(quality_name=quality_name, threshold=threshold,
+                               higher_is_better=higher)
+        for name, index, vols in groups:
+            q = self._element_qualities(vols, quality_name, metric)
+            if not q.size:
                 continue
-            q = np.array(gmsh.model.mesh.getElementQualities(tags, quality_name))
+            bad = (q <= threshold) if higher else (q >= threshold)
             report.regions.append(RegionQuality(
-                name=name, n_elements=len(q), n_bad=int((q <= threshold).sum()),
+                name=name, n_elements=len(q), n_bad=int(bad.sum()),
                 min_quality=float(q.min()), max_quality=float(q.max()),
                 mean_quality=float(q.mean()),
                 quality_name=quality_name, threshold=threshold,
+                higher_is_better=higher, fitting=index,
             ))
         return report
+
+    @staticmethod
+    def _element_qualities(vols: list[int], quality_name: str, metric) -> np.ndarray:
+        if metric is not None:
+            _, verts = hex_vertices(vols)
+            return np.array([metric.fn(v) for v in verts])
+        tags: list[int] = []
+        for v in vols:
+            _, etags, _ = gmsh.model.mesh.getElements(3, v)
+            for arr in etags:
+                tags.extend(arr.tolist())
+        if not tags:
+            return np.empty(0)
+        return np.array(gmsh.model.mesh.getElementQualities(tags, quality_name))

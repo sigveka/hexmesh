@@ -64,7 +64,8 @@ An interface-first pipe network ([DESIGN.md](DESIGN.md) §5).
 |---|---|
 | `mesh(dim=3)` | Build faces, fill all fittings, write physical groups, and mesh |
 | `write(path, dim=3)` | `mesh()`, then `gmsh.write(path)`; the format follows the extension |
-| `check_quality(quality_name="minSICN", threshold=0.0)` | Per-material `QualityReport` |
+| `check_quality(quality_name="minSICN", threshold=None, by="material")` | `QualityReport` per material, or per fitting with `by="fitting"` (see Quality) |
+| `fitting_volumes()` | Volume tags per fitting (edge index → tags) |
 | `build_faces()`, `fill(order=None)` | The individual steps; `fill` takes any order of edge indices (rule A6) |
 | `patch_name(interface)` | Patch name of an open interface |
 
@@ -223,13 +224,45 @@ than the outer radius, or turns more than 30° per layer.
 
 ## Quality
 
+### `Assembly.check_quality(quality_name="minSICN", threshold=None, by="material")`
+
+**Metric.** `quality_name` is either a GMSH element quality (`"minSICN"`,
+`"minSIGE"`, `"gamma"`, …) or a hex metric from `hexmesh.quality_hex.METRICS`:
+
+| Metric | Ideal | Better | Default bad limit |
+|---|---|---|---|
+| `scaled_jacobian` | 1 | higher | ≤ 0 (folded corner) |
+| `nes` | 0 | lower | ≥ 1 (degenerate angle) |
+| `mean_ratio_min`, `shape_regularity_knupp`, … | 1 | higher | ≤ 0 |
+| `skewness` | 0 | lower | ≥ 1 |
+
+- **`scaled_jacobian`** is the minimum over the 8 corners of
+  det(J)/(|e1||e2||e3|) (Knupp).  Verdict also counts a ninth Jacobian
+  at the element centre.
+- **`nes`** is the normalized equiangle skewness,
+  max((θmax − 90°)/90°, (90° − θmin)/90°) over the 24 face angles
+  (GAMBIT/Fluent EquiAngle skewness).
+
+Both are the metrics of RESEARCH §4.2, which suggests targets of
+scaled Jacobian > 0.6 and NES < 0.5.  Pass those as `threshold` to
+enforce them.
+
+**Grouping.** `by="fitting"` gives one row per fitting, named
+`"#<index> <Type>"` (for example `#1 Tee`), so a failure names the
+fitting.
+
+**Note.** SICN is aspect-sensitive: it rates long, thin cells as poor.
+The two shape metrics are not, because a stretched box scores ideal.
+
 ### `QualityReport`
 
-Returned by `Assembly.check_quality()`. It holds one `RegionQuality` per
-material, under `regions`, and these attributes:
-- `ok`: no element below `threshold`;
+Returned by `check_quality`. It holds one `RegionQuality` per group, under
+`regions` (each has `name`, `fitting`, `worst`, `best`, `mean_quality`,
+`n_bad`), and these attributes:
+- `ok`: no bad element;
+- `worst`, and `worst_region`, the row holding it;
 - `min_quality`, `total_elements`, `total_bad`;
-- `quality_name`, `threshold`.
+- `quality_name`, `threshold`, `higher_is_better`.
 
 `print(report)` gives a table.
 

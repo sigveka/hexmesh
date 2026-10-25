@@ -395,6 +395,56 @@ def hex_interpolation_quality(
 
 
 # ===========================================================================
+# Verdict-style metrics used in docs/RESEARCH.md §4.2 and §7.1
+# ===========================================================================
+
+def corner_scaled_jacobians(verts: np.ndarray) -> np.ndarray:
+    """det(A_k) / (|e1| |e2| |e3|) at each of the 8 corners (Knupp).
+
+    1 at every corner of a rectangular box; ≤ 0 at a folded corner.
+    ``BlockLayout.corner_jacobians`` uses this on block corners before GMSH.
+    """
+    out = np.empty(8)
+    for k in range(8):
+        A = _jacobian_at_vertex(verts, k)
+        n = norm(A[:, 0]) * norm(A[:, 1]) * norm(A[:, 2])
+        out[k] = det(A) / n if n > 0 else 0.0
+    return out
+
+
+def scaled_jacobian(verts: np.ndarray) -> float:
+    """Minimum corner scaled Jacobian, in [-1, 1]; 1 for a box.
+
+    The 8-corner form specified in docs/tasks/0004.  Verdict's hex version
+    also includes the Jacobian at the element centre (principal axes), so it
+    can be lower on strongly tapered cells.
+    """
+    return float(corner_scaled_jacobians(verts).min())
+
+
+def face_angles(verts: np.ndarray) -> np.ndarray:
+    """The 24 interior corner angles of the 6 quad faces, in degrees."""
+    out = []
+    for face in _HEX_FACES:
+        p = verts[list(face)]
+        for i in range(4):
+            a, b = p[i - 1] - p[i], p[(i + 1) % 4] - p[i]
+            c = np.dot(a, b) / (norm(a) * norm(b))
+            out.append(np.degrees(np.arccos(np.clip(c, -1.0, 1.0))))
+    return np.array(out)
+
+
+def nes(verts: np.ndarray) -> float:
+    """Normalized equiangle skewness, in [0, 1]; 0 when every face angle is 90°.
+
+    ``max((θmax − 90) / 90, (90 − θmin) / 90)`` over the face angles: the
+    EquiAngle skewness of GAMBIT/Fluent with θe = 90°.
+    """
+    ang = face_angles(verts)
+    return float(max((ang.max() - 90.0) / 90.0, (90.0 - ang.min()) / 90.0))
+
+
+# ===========================================================================
 # Convenience: all metrics at once
 # ===========================================================================
 
@@ -424,9 +474,13 @@ def all_metrics(verts: np.ndarray) -> dict[str, float]:
         mean_ratio_avg            1
         shape_regularity_ratio    1
         shape_regularity_knupp    1
+        scaled_jacobian           1
+        nes                       0
         ========================  =======
     """
     return {
+        "scaled_jacobian":        scaled_jacobian(verts),
+        "nes":                    nes(verts),
         "warping":                hex_warping(verts),
         "aspect_ratio":           hex_aspect_ratio(verts),
         "skewness":               hex_skewness(verts),
@@ -443,6 +497,56 @@ def all_metrics(verts: np.ndarray) -> dict[str, float]:
 # ===========================================================================
 # GMSH integration
 # ===========================================================================
+
+@dataclass(frozen=True)
+class Metric:
+    """An element metric: *fn(verts)*, its direction, and the default limit
+    below (or above) which an element counts as bad."""
+
+    fn:                object
+    higher_is_better:  bool
+    default_threshold: float
+
+
+#: Metrics accepted by ``Assembly.check_quality`` besides GMSH quality names.
+METRICS: dict[str, Metric] = {
+    "scaled_jacobian":        Metric(scaled_jacobian, True, 0.0),
+    "nes":                    Metric(nes, False, 1.0),
+    "mean_ratio_min":         Metric(mean_ratio_min, True, 0.0),
+    "mean_ratio_avg":         Metric(mean_ratio_avg, True, 0.0),
+    "shape_regularity_ratio": Metric(shape_regularity_ratio, True, 0.0),
+    "shape_regularity_knupp": Metric(shape_regularity_knupp, True, 0.0),
+    "interp_quality_min":     Metric(lambda v: hex_interpolation_quality(v, variant="min"),
+                                     True, 0.0),
+    "interp_quality_avg":     Metric(lambda v: hex_interpolation_quality(v, variant="avg"),
+                                     True, 0.0),
+    "warping":                Metric(hex_warping, False, np.inf),
+    "aspect_ratio":           Metric(hex_aspect_ratio, False, np.inf),
+    "skewness":               Metric(hex_skewness, False, 1.0),
+    "taper":                  Metric(hex_taper, False, np.inf),
+}
+
+
+def hex_vertices(volume_tags: list[int]) -> tuple[np.ndarray, np.ndarray]:
+    """Element tags and (N, 8, 3) vertex coordinates of the hex-8 elements
+    in *volume_tags* (open GMSH session with a mesh)."""
+    import gmsh
+
+    tags, xyz, _ = gmsh.model.mesh.getNodes()
+    lookup = dict(zip(tags.tolist(), range(len(tags))))
+    xyz = xyz.reshape(-1, 3)
+    etags, verts = [], []
+    for v in volume_tags:
+        for etype, et, nt in zip(*gmsh.model.mesh.getElements(3, v)):
+            if int(etype) != _GMSH_HEX8:
+                continue
+            idx = np.array([lookup[t] for t in nt.tolist()]).reshape(-1, 8)
+            etags.append(np.asarray(et))
+            verts.append(xyz[idx])
+    if not etags:
+        return np.empty(0, dtype=int), np.empty((0, 8, 3))
+    return np.concatenate(etags), np.concatenate(verts)
+
 
 @dataclass
 class HexElementQuality:

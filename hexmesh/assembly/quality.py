@@ -1,5 +1,5 @@
 """
-Mesh quality report: per-region element statistics.
+Mesh quality report: element statistics per material or per fitting.
 """
 
 from __future__ import annotations
@@ -8,12 +8,12 @@ from dataclasses import dataclass, field
 
 @dataclass
 class RegionQuality:
-    """Mesh quality statistics for one named region (physical volume group).
+    """Mesh quality statistics for one region: a material, or a fitting.
 
     Attributes
     ----------
     name : str
-        Region (material) name.
+        Material name, or ``"#<index> <Type>"`` for a fitting.
     n_elements : int
         Total number of 3-D elements in this region.
     n_bad : int
@@ -27,7 +27,11 @@ class RegionQuality:
     quality_name : str
         Name of the quality measure used (e.g. ``"minSICN"``).
     threshold : float
-        The threshold below which an element is considered bad.
+        Elements at or beyond it, on the metric's worse side, are bad.
+    higher_is_better : bool
+        Direction of the metric (SICN, scaled Jacobian: True; NES: False).
+    fitting : int or None
+        Edge index of the fitting, for per-fitting rows.
     """
 
     name:         str
@@ -38,18 +42,28 @@ class RegionQuality:
     mean_quality: float
     quality_name: str
     threshold:    float
+    higher_is_better: bool = True
+    fitting:      int | None = None
 
     @property
     def ok(self) -> bool:
-        """True when no elements fall below the quality threshold."""
+        """True when no element is bad."""
         return self.n_bad == 0
+
+    @property
+    def worst(self) -> float:
+        return self.min_quality if self.higher_is_better else self.max_quality
+
+    @property
+    def best(self) -> float:
+        return self.max_quality if self.higher_is_better else self.min_quality
 
     def __str__(self) -> str:
         status = "OK" if self.ok else f"WARN ({self.n_bad} bad)"
         return (
             f"{self.name:<20s}  {self.n_elements:>6d} el  "
-            f"min={self.min_quality:+.4f}  mean={self.mean_quality:+.4f}  "
-            f"max={self.max_quality:+.4f}  [{status}]"
+            f"worst={self.worst:+.4f}  mean={self.mean_quality:+.4f}  "
+            f"best={self.best:+.4f}  [{status}]"
         )
 
 
@@ -73,6 +87,7 @@ class QualityReport:
     regions:      list[RegionQuality] = field(default_factory=list)
     quality_name: str   = "minSICN"
     threshold:    float = 0.0
+    higher_is_better: bool = True
 
     @property
     def total_elements(self) -> int:
@@ -90,6 +105,22 @@ class QualityReport:
     def min_quality(self) -> float:
         return min((r.min_quality for r in self.regions), default=float("nan"))
 
+    @property
+    def worst(self) -> float:
+        """Worst value over all regions, in the metric's direction."""
+        vals = [r.worst for r in self.regions]
+        if not vals:
+            return float("nan")
+        return min(vals) if self.higher_is_better else max(vals)
+
+    @property
+    def worst_region(self) -> RegionQuality | None:
+        """The region holding the worst value (e.g. the offending fitting)."""
+        if not self.regions:
+            return None
+        key = (lambda r: r.worst) if self.higher_is_better else (lambda r: -r.worst)
+        return min(self.regions, key=key)
+
     def __str__(self) -> str:
         lines = [
             f"Quality report  ({self.quality_name}, threshold={self.threshold})",
@@ -100,7 +131,7 @@ class QualityReport:
         lines.append("-" * 70)
         lines.append(
             f"{'TOTAL':<20s}  {self.total_elements:>6d} el  "
-            f"min={self.min_quality:+.4f}  "
+            f"worst={self.worst:+.4f}  "
             f"{'OK' if self.ok else f'WARN ({self.total_bad} bad elements)'}"
         )
         return "\n".join(lines)
@@ -109,5 +140,5 @@ class QualityReport:
         return (
             f"QualityReport(regions={len(self.regions)}, "
             f"total={self.total_elements}, bad={self.total_bad}, "
-            f"min={self.min_quality:.4f})"
+            f"worst={self.worst:.4f})"
         )
