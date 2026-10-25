@@ -64,6 +64,7 @@ An interface-first pipe network ([DESIGN.md](DESIGN.md) §5).
 |---|---|
 | `mesh(dim=3)` | Build faces, fill all fittings, write physical groups, and mesh |
 | `write(path, dim=3)` | `mesh()`, then `gmsh.write(path)`; the format follows the extension |
+| `write_openfoam(path, *, interfaces=False)` | `mesh()`, then write a `.msh` for `gmshToFoam`: MSH 2.2 ASCII, without the material-interface groups unless `interfaces=True` (they break `splitMeshRegions`); the GMSH options and groups are restored afterwards |
 | `check_quality(quality_name="minSICN", threshold=None, by="material")` | `QualityReport` per material, or per fitting with `by="fitting"` (see Quality) |
 | `fitting_volumes()` | Volume tags per fitting (edge index → tags) |
 | `build_faces()`, `fill(order=None)` | The individual steps; `fill` takes any order of edge indices (rule A6) |

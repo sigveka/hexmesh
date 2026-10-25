@@ -394,6 +394,48 @@ class Assembly:
         self.mesh(dim)
         gmsh.write(path)
 
+    def write_openfoam(self, path: str, *, interfaces: bool = False) -> None:
+        """Mesh and write a ``.msh`` file for OpenFOAM's ``gmshToFoam``.
+
+        Writes MSH 2.2 ASCII (``Mesh.MshFileVersion = 2.2``,
+        ``Mesh.Binary = 0``), restoring the previous option values
+        afterwards.  OpenFOAM v1912 ``gmshToFoam`` reads both 2.2 and 4.1
+        and gives the same mesh (docs/integrations/openfoam.md); 2.2 is the
+        version every OpenFOAM line reads.
+
+        Physical volumes become cellZones named by material, so a
+        multi-material mesh splits with ``splitMeshRegions -cellZones
+        -overwrite``.  Material-interface groups (``fluid_to_steel``, …)
+        are left out unless *interfaces* is true: ``gmshToFoam`` turns them
+        into empty patches plus faceZones, and their names clash with the
+        ``<a>_to_<b>`` patches ``splitMeshRegions`` creates, which then
+        lumps interfaces together instead of writing ``mappedWall`` pairs.
+        The groups stay in the GMSH model.
+        """
+        if not str(path).endswith(".msh"):
+            raise ValueError(f"write_openfoam writes a .msh file, got {path!r}")
+        self.mesh()
+        dropped = []
+        if not interfaces:
+            labels = set(self._fill.interfaces)
+            for d, t in gmsh.model.getPhysicalGroups(2):
+                name = gmsh.model.getPhysicalName(d, t)
+                if name in labels:
+                    dropped.append((d, t, name,
+                                    list(gmsh.model.getEntitiesForPhysicalGroup(d, t))))
+            gmsh.model.removePhysicalGroups([(d, t) for d, t, _, _ in dropped])
+        options = {k: gmsh.option.getNumber(k) for k in ("Mesh.MshFileVersion", "Mesh.Binary")}
+        try:
+            gmsh.option.setNumber("Mesh.MshFileVersion", 2.2)
+            gmsh.option.setNumber("Mesh.Binary", 0)
+            gmsh.write(str(path))
+        finally:
+            for k, v in options.items():
+                gmsh.option.setNumber(k, v)
+            for d, t, name, ents in dropped:
+                gmsh.model.addPhysicalGroup(d, ents, t)
+                gmsh.model.setPhysicalName(d, t, name)
+
     # ------------------------------------------------------------------
     # Quality
     # ------------------------------------------------------------------

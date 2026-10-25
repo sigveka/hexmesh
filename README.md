@@ -254,6 +254,25 @@ For a layer named `"fluid"`:
 Every boundary face belongs to exactly one group. A closed loop has no
 inlet or outlet groups.
 
+### OpenFOAM
+
+```python
+asm.write_openfoam("pipe.msh")    # MSH 2.2 ASCII, for gmshToFoam
+```
+
+```bash
+gmshToFoam pipe.msh
+splitMeshRegions -cellZones -overwrite   # multi-material (CHT) only
+```
+
+Each material becomes a cellZone, and after the split a region with
+`mappedWall` interfaces to its neighbours.  `write_openfoam` leaves the
+`<a>_to_<b>` interface groups out of the file, because their names clash
+with the patches `splitMeshRegions` creates.  `gmshToFoam` writes every
+patch as type `patch`, so retype the walls to `wall` yourself.  Verified
+with OpenFOAM v1912; details in
+[docs/integrations/openfoam.md](docs/integrations/openfoam.md).
+
 ---
 
 ## Saving a network

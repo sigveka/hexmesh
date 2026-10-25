@@ -14,7 +14,7 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0002](0002-first-cell-height.md) | Radial grading from first-cell height | done | 0001 |
 | [0003](0003-cell-count.md) | Exact cell count before GMSH | done | 0001 |
 | [0004](0004-quality-per-fitting.md) | Quality report per fitting, with hex metrics | done | 0001 |
-| [0005](0005-openfoam-output.md) | OpenFOAM-compatible output | ready | 0001 |
+| [0005](0005-openfoam-output.md) | OpenFOAM-compatible output | done | 0001 |
 | [0006](0006-intent-serialization.md) | Save and load the network description (Intent layer) | done | 0001 |
 | [0007](0007-topology-invariance-test.md) | Test that topology is unchanged across geometry variants | done | 0001 |
 | [0008](0008-open-end-extensions.md) | Inlet and outlet extensions | ready | 0001 |
