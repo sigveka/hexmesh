@@ -4,7 +4,8 @@ Intent layer serialisation (DESIGN.md §3, docs/tasks/0006).
 An assembly is saved as the record of how it was built, not as geometry:
 
 * ``inlet``: pose (``position``, ``normal``, ``up``) and spec of the first
-  interface (index 0);
+  interface (index 0), and ``nozzle`` (drum and nozzle name) for a network
+  started with ``Assembly.from_nozzle``; the drum then sets the pose;
 * ``edges``: in creation order, each a fitting (``type`` + dataclass
   fields) with ``source`` (the interface index it was added from),
   ``close`` (the ``[source, target]`` interfaces it joins), or
@@ -129,7 +130,9 @@ def to_dict(asm: "Assembly") -> dict:
         edges.append(e)
     d = {
         "format": FORMAT, "version": VERSION,
-        "inlet": {**_frame_to_dict(first.frame), "spec": first.spec.to_dict()},
+        "inlet": {**_frame_to_dict(first.frame), "spec": first.spec.to_dict(),
+                  **({"nozzle": {"drum": asm._nozzle[0].to_dict(), "name": asm._nozzle[1]}}
+                     if asm._nozzle is not None else {})},
         "edges": edges,
         "names": {str(i.index): i.name for i in asm.interfaces if i.name is not None},
         "tail": None if asm._tail is None else asm._tail.index,
@@ -145,8 +148,13 @@ def from_dict(cls, d: dict) -> "Assembly":
     if d.get("version") != VERSION:
         raise ValueError(f"unsupported {FORMAT} version {d.get('version')!r}")
     inlet = d["inlet"]
-    asm = cls(PipeSpec.from_dict(inlet["spec"]), lc=d.get("lc"))
-    asm.inlet.frame = _frame_from_dict(inlet)
+    if "nozzle" in inlet:
+        from .equipment import Drum
+        asm = cls.from_nozzle(Drum.from_dict(inlet["nozzle"]["drum"]),
+                              inlet["nozzle"]["name"], lc=d.get("lc"))
+    else:
+        asm = cls(PipeSpec.from_dict(inlet["spec"]), lc=d.get("lc"))
+        asm.inlet.frame = _frame_from_dict(inlet)
     for e in d["edges"]:
         fitting = fitting_from_dict(e["fitting"])
         ifaces = asm.interfaces

@@ -115,6 +115,57 @@ normalises the vectors and makes `up` orthogonal to `normal`.
 
 ---
 
+## Equipment (`hexmesh.assembly.equipment`)
+
+Pure Python: a drum gives nozzle poses and builds no geometry
+(decision 0002).
+
+### `Drum(name, diameter, length, position=(0,0,0), axis=(1,0,0), up=(0,0,1), head="ellipsoidal_2_1", crown_radius=None, knuckle_radius=None, nozzles=())`
+
+- **Dimensions:**
+  - `diameter` is the inside diameter;
+  - `length` is tangent line to tangent line;
+  - `position` is the centre of the first tangent plane;
+  - `axis` runs from the first tangent plane to the second.  A vertical
+    drum is just `axis=(0, 0, 1)`.
+- **Head:**
+  - `"ellipsoidal_2_1"` (depth D/4);
+  - `"hemispherical"` (depth D/2);
+  - `"torispherical"`, which needs both `crown_radius` and
+    `knuckle_radius`.  There is no default, because the proportions
+    depend on the design code.
+- **Angles** are in degrees about `axis` from `up`, right-handed.
+- `frame(name) -> Frame`: the nozzle face.  `normal` points away from
+  the drum; `up` is the drum axis for a shell nozzle, and the head's
+  radial direction for a head nozzle (the drum `up` when centred).
+- `validate()` raises `EquipmentError` naming the drum and nozzle when:
+  - a face lies inside the shell or head over the nozzle footprint;
+  - a nozzle is too large for the drum;
+  - a footprint crosses a tangent line or leaves the head (the crown
+    region, for a torispherical head);
+  - two footprints overlap.
+- `head_height(rho)`: the head profile.  `to_dict()` / `Drum.from_dict(d)`
+  serialise the drum.
+
+### `Nozzle(name, spec, location)`
+
+`location` is one of:
+- `OnShell(axial, angle, projection)`: a radial nozzle on the shell.
+  `projection` is measured from the drum axis to the face.
+- `OnHead(head, offset, angle, projection)`: on the `"first"` or
+  `"second"` head, parallel to the axis.  `projection` is measured from
+  the tangent plane to the face.
+
+### `Assembly.from_nozzle(drum, nozzle, lc=None)`
+
+Starts a network at the nozzle face.  The drum is validated first, and
+the inlet is named `"{drum.name}_{nozzle}"` (patch `fluid_D101_N1`).
+Nothing can be prepended upstream of a nozzle; `extend_open_ends` skips
+it.  Saved files keep the drum, which sets the pose on load.
+
+A network cannot yet *end* at a nozzle: `close()` needs the target to be
+the inlet of a fitting (task 0010, question for design).
+
 ## Cross-section specification
 
 ### `PipeSpec(nang, mbmp=1.0, rot=0.0, n_outer=4)`

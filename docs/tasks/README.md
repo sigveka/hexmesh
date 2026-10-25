@@ -19,7 +19,7 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0007](0007-topology-invariance-test.md) | Test that topology is unchanged across geometry variants | done | 0001 |
 | [0008](0008-open-end-extensions.md) | Inlet and outlet extensions | done | 0001 |
 | [0009](0009-per-fitting-wall-patches.md) | Per-fitting wall patches | done | 0001 |
-| [0010](0010-equipment-nozzle-boundaries.md) | Equipment nozzles as network boundaries | ready | 0002 |
+| [0010](0010-equipment-nozzle-boundaries.md) | Equipment nozzles as network boundaries | done | 0002 |
 | [0011](0011-assembly-independent-of-legacy.md) | Assembly independent of legacy code | done | 0004 |
 | [0012](0012-miter-bend-and-elbow.md) | Miter bends and standard elbows | done | 0004 |
 | [0013](0013-reducer-expander.md) | Reducer, expander and transition | done | 0004 |

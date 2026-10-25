@@ -288,6 +288,24 @@ asm.extend_open_ends(upstream=5, downstream=10)   # 5 D before, 10 D after each 
 The diameter is that of each end's flow core.  The patch names
 (`fluid_inlet`, `fluid_outlet`, named ends) stay the same.
 
+## Starting at a drum nozzle
+
+Declare the drum and its nozzles once, and the nozzle poses follow:
+
+```python
+from hexmesh import Drum, Nozzle, OnShell, OnHead
+
+drum = Drum("D101", diameter=2.0, length=6.0, axis=[1, 0, 0], up=[0, 0, 1],
+            nozzles=[Nozzle("N1", pipe, OnShell(axial=1.5, angle=0, projection=1.4)),
+                     Nozzle("N2", pipe, OnHead("second", offset=0.0, angle=0, projection=0.8))])
+asm = Assembly.from_nozzle(drum, "N1")   # inlet patch fluid_D101_N1
+asm.add(Straight(0.5, n_layers=10))
+```
+
+`drum.validate()` (run by `from_nozzle`) rejects nozzles whose face is
+inside the shell or head, nozzles that are too large, and footprints that
+overlap.  The drum itself is not meshed.
+
 ## Saving a network
 
 An assembly can be saved as a JSON description of how it was built, and

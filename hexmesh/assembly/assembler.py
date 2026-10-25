@@ -113,10 +113,26 @@ class Assembly:
         self._fitting_volumes: dict[int, list[int]] = {}
         self._fitting_walls:   dict[int, list[int]] = {}
         self._faces_built = False
+        self._nozzle = None          # (drum, nozzle name) for from_nozzle()
         self.inlet = self._new_interface(
             Frame.from_vectors(position, direction, up), spec, inlet_name,
         )
         self._tail = self.inlet
+
+    @classmethod
+    def from_nozzle(cls, drum, nozzle: str, lc: float | None = None) -> "Assembly":
+        """Start a network at a drum nozzle (decision 0002).
+
+        The drum is validated first.  The inlet is the nozzle face
+        (``drum.frame(nozzle)``), with the nozzle's spec, and is named
+        ``"{drum.name}_{nozzle}"``, which becomes its patch name (A7).
+        """
+        drum.validate()
+        frame = drum.frame(nozzle)
+        asm = cls(drum.nozzle(nozzle).spec, lc=lc, inlet_name=f"{drum.name}_{nozzle}")
+        asm.inlet.frame = frame
+        asm._nozzle = (drum, nozzle)
+        return asm
 
     # ------------------------------------------------------------------
     # 1–2. Intent and placement (pure Python)
@@ -207,6 +223,9 @@ class Assembly:
         old = self.inlet
         if not old.is_open:
             raise AssemblyError(f"the inlet {old} is not an open end")
+        if self._nozzle is not None and old is self._interfaces[0]:
+            raise AssemblyError(f"the inlet {old} is a drum nozzle; nothing can be "
+                                "placed upstream of it")
         f = old.frame
         frame = Frame(f.position - fitting.length * f.normal, f.normal, f.up)
         new = self._new_interface(frame, old.spec, old.name)
@@ -225,7 +244,7 @@ class Assembly:
 
         Lengths are in diameters of the end's core (the flow passage):
         *upstream* before the inlet, *downstream* after each outlet; 0
-        skips that side.  Each run gets ``round(length / D ×
+        skips that side.  An inlet at a drum nozzle is never extended.  Each run gets ``round(length / D ×
         cells_per_diameter)`` axial cells (at least 1).  Extended ends keep
         their patch names.  Must be called before ``build()``.
         """
@@ -248,7 +267,8 @@ class Assembly:
                 out.name, iface.name = names[iface.index], None
                 if self._tail is iface:
                     self._tail = out
-        if upstream > 0 and self.inlet.is_open:
+        at_nozzle = self._nozzle is not None and self.inlet is self._interfaces[0]
+        if upstream > 0 and self.inlet.is_open and not at_nozzle:
             self.prepend(run(self.inlet, upstream))
 
     # ------------------------------------------------------------------

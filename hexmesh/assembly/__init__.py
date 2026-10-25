@@ -12,10 +12,12 @@ from .fittings  import (
 )
 from .assembler import Assembly, AssemblyError
 from .tee       import Tee
+from .equipment import Drum, Nozzle, OnHead, OnShell, EquipmentError
 
 __all__ = [
     "Frame", "Interface", "port_type",
     "Straight", "Bend", "MiterBend", "Elbow", "Reducer", "SplinePipe", "Closure",
     "FillResult",
     "Assembly", "AssemblyError", "Tee",
+    "Drum", "Nozzle", "OnShell", "OnHead", "EquipmentError",
 ]
