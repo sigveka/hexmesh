@@ -93,3 +93,9 @@ class RectShape:
 
 
 Shape = Union[CircleShape, RectShape]
+
+# Inner-square corner radius of the circular OH face, as a fraction of the
+# core radius (``faces.oh_circle.build_oh_circle``).  The core's radial
+# curves run from there to the circle, so they are ``(1 - OH_RATIO) * r``
+# long.
+OH_RATIO = 0.6

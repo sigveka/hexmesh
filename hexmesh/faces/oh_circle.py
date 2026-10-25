@@ -50,7 +50,7 @@ import gmsh
 import numpy as np
 
 from ..core.cross_section import CrossSection, BoundaryType
-from ..core.shape import CircleShape
+from ..core.shape import OH_RATIO, CircleShape
 from ._gmsh_helpers import (
     add_point, add_arc, add_conic_arc, add_line, add_line_loop, add_surface,
     stretched,
@@ -70,7 +70,7 @@ def build_oh_circle(
     nrad:   int,
     mprg:   float = 1.0,
     mbmp:   float = 1.0,
-    ratio:  float = 0.6,
+    ratio:  float = OH_RATIO,
     rot:    float = 0.0,
     stretch: tuple | None = None,
 ) -> CrossSection:
@@ -260,7 +260,7 @@ def build_oh_circle8(
     nrad:   int,
     mprg:   float = 1.0,
     mbmp:   float = 1.0,
-    ratio:  float = 0.6,
+    ratio:  float = OH_RATIO,
     rot:    float = 0.0,
 ) -> CrossSection:
     """Build a 9-patch OH-circle cross-section with 8 outer corners (n_outer=8).

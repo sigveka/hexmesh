@@ -28,11 +28,24 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from .shape import CircleShape, RectShape, Shape
+from .grading import progression_for_first_cell
+from .shape import OH_RATIO, CircleShape, RectShape, Shape
 from .region import MaterialGraph
 
 if TYPE_CHECKING:
     pass
+
+
+def _wall_progression(mprg: float | None, thickness: float, nrad: int,
+                      first_cell: float) -> float:
+    """``mprg`` giving a cell of *first_cell* at the outer end of a layer.
+
+    Radial curves run inner → outer and ``mprg`` grows cells outward, so a
+    small wall cell needs the reciprocal of the first-cell ratio.
+    """
+    if mprg is not None:
+        raise TypeError("pass either mprg= or first_cell=, not both")
+    return 1.0 / progression_for_first_cell(thickness, nrad, first_cell)
 
 
 @dataclass(frozen=True)
@@ -186,11 +199,12 @@ class PipeSpec:
         name:   str,
         shape:  Shape | None = None,
         nrad:   int = 0,
-        mprg:   float = 1.0,
+        mprg:   float | None = None,
         *,
         radius: float | None = None,
         half_w: float | None = None,
         half_h: float | None = None,
+        first_cell: float | None = None,
     ) -> "PipeSpec":
         """Set the innermost (core) layer.
 
@@ -221,7 +235,8 @@ class PipeSpec:
         nrad : int
             Radial mesh layers (from inner square to outer boundary).
         mprg : float
-            Radial progression factor.
+            Radial progression factor (default 1, uniform; > 1 refines
+            toward the inner square, < 1 toward the outer wall).
         radius : float, optional
             Radius of a circular core.  Requires ``nang`` to be set on the
             ``PipeSpec``.  Mutually exclusive with ``shape``.
@@ -231,6 +246,13 @@ class PipeSpec:
             Mutually exclusive with ``shape`` and ``radius``.
         half_h : float, optional
             Half-height of a rectangular core.  See ``half_w``.
+        first_cell : float, optional
+            Radial height of the cell at the core's outer wall (the circle);
+            sets ``mprg`` (< 1) so that the corner radial curves, of length
+            ``(1 - OH_RATIO) * radius``, end in a cell of this height.
+            Circular cores only; mutually exclusive with ``mprg``.  Between
+            corners the core is thicker, so the wall cell there is larger
+            by up to the thickness ratio (docs/tasks/0002).
         """
         if self._core is not None:
             raise RuntimeError("PipeSpec.core() may only be called once.")
@@ -283,10 +305,15 @@ class PipeSpec:
                 )
 
         self._validate_shape_nang(shape)
+        if first_cell is not None:
+            if not isinstance(shape, CircleShape):
+                raise TypeError("first_cell= supports circular cores only")
+            mprg = _wall_progression(mprg, (1 - OH_RATIO) * shape.radius,
+                                     nrad, first_cell)
         self._core = (name, shape)
         # Store core nrad/mprg as a pseudo-LayerSpec for uniform iteration
         self._core_nrad = nrad
-        self._core_mprg = mprg
+        self._core_mprg = 1.0 if mprg is None else mprg
         return self
 
     def shell(
@@ -294,7 +321,9 @@ class PipeSpec:
         name: str,
         dR:   float,
         nrad: int,
-        mprg: float = 1.0,
+        mprg: float | None = None,
+        *,
+        first_cell: float | None = None,
     ) -> "PipeSpec":
         """Add a concentric circular shell layer.
 
@@ -310,7 +339,12 @@ class PipeSpec:
         nrad : int
             Radial mesh divisions across the layer thickness.
         mprg : float
-            Radial progression factor.
+            Radial progression factor (default 1, uniform; > 1 refines
+            toward the inner boundary, < 1 toward the outer).
+        first_cell : float, optional
+            Radial height of the cell at the layer's outer boundary; sets
+            ``mprg`` (< 1).  Exact all round, since every radial is ``dR``
+            long.  Mutually exclusive with ``mprg``.
         """
         if self._core is None:
             raise RuntimeError("Call PipeSpec.core() before .shell().")
@@ -319,7 +353,10 @@ class PipeSpec:
             raise RuntimeError(
                 "Cannot add a circular shell after a square_shell layer."
             )
-        self._shells.append(LayerSpec(name=name, dR=dR, nrad=nrad, mprg=mprg))
+        if first_cell is not None:
+            mprg = _wall_progression(mprg, dR, nrad, first_cell)
+        self._shells.append(LayerSpec(name=name, dR=dR, nrad=nrad,
+                                      mprg=1.0 if mprg is None else mprg))
         return self
 
     def square_shell(

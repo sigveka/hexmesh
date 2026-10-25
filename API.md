@@ -99,16 +99,27 @@ A builder for a concentric layer stack.
 | `rot` | rotation of the O-H corners, in radians |
 | `n_outer` | structural corners; the assembly supports 4 |
 
-#### `.core(name, radius=..., nrad=..., mprg=1.0)`
+#### `.core(name, radius=..., nrad=..., mprg=1.0, first_cell=None)`
 
 The circular core. A `CircleShape(radius, nang)` can be passed as the second
 argument instead of `radius=`. `nrad` is the cells from the inner square to
 the circle, and `mprg` the radial progression (above 1 refines toward the
 inner side).
 
-#### `.shell(name, dR, nrad, mprg=1.0)`
+`first_cell` replaces `mprg` with the radial height of the cell at the
+circle, the pipe wall. It is solved on the corner radials, which run from
+the inner-square corner at 0.6 R to the circle, so they are 0.4 R long.
+Between corners the core is thicker, and the wall cell is up to 1.23×
+`first_cell`, the largest at mid-arc. It raises `ValueError` if no
+progression fits (for example `first_cell` ≥ the thickness), and
+`TypeError` together with `mprg`.
+
+#### `.shell(name, dR, nrad, mprg=1.0, first_cell=None)`
 
 A concentric layer of thickness `dR` on top of the previous one.
+`first_cell` sets the radial height of the cell at the layer's outer
+boundary in place of `mprg`. It is exact all round. The solver is
+`hexmesh.core.grading.progression_for_first_cell(thickness, n_cells, h)`.
 
 The assembly supports circular cores and circular shells. Rectangular cores
 (`half_w`, `half_h`) and `.square_shell()` exist in `PipeSpec` but are

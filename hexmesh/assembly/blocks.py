@@ -32,6 +32,7 @@ from dataclasses import dataclass, field
 import numpy as np
 import gmsh
 
+from ..core.shape import OH_RATIO   # re-exported: inner-square scale of the OH face
 from .corners import curve_endpoints
 from .sweep import CurveMesh, FillResult
 
@@ -436,7 +437,6 @@ class BlockLayout:
 # inner square, level l ≥ 1 the outer boundary of layer l-1; corner k is
 # named by the frame (corners.corner0_angle + k·2π/n_outer).
 
-OH_RATIO = 0.6   # inner-square scale used by faces.oh_circle.build_oh_circle
 
 
 def face_levels(spec) -> list[float]:

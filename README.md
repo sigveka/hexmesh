@@ -166,6 +166,17 @@ PipeSpec(nang=6).core("fluid", radius=0.05, nrad=4).shell("pipe_wall", dR=0.005,
 - `mprg` is the radial progression. Values above 1 refine toward the inner side
   of the layer.
 - `PipeSpec(mbmp=...)` sets an angular bump.
+- `first_cell=` sets the radial height of the cell at a layer's outer wall,
+  in place of `mprg`:
+
+  ```python
+  PipeSpec(nang=6).core("fluid", radius=0.05, nrad=12, first_cell=2e-4)
+  ```
+
+  This is a geometric height, not y⁺, which also depends on the flow.
+  In a shell the height is exact all the way round. In the core it is
+  exact at the four corner radials; between them the core is thicker, so
+  the wall cell is up to 1.23× larger, the largest at mid-arc.
 
 Each layer becomes its own physical volume, and neighbouring layers meet at
 conformal material interfaces, which is what conjugate heat transfer needs.
