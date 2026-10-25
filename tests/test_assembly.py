@@ -209,7 +209,7 @@ class TestPhysicalGroups:
         assert set(self._groups()) == {
             "fluid", "wall",
             "fluid_inlet", "wall_inlet", "fluid_outlet", "wall_outlet",
-            "wall_wall", "fluid_to_wall",
+            "wall_wall", "interface_fluid_wall",
         }
 
     def test_each_surface_in_one_group(self, gmsh_session):

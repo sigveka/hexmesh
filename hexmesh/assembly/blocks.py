@@ -33,6 +33,7 @@ import numpy as np
 import gmsh
 
 from ..core.shape import OH_RATIO   # re-exported: inner-square scale of the OH face
+from ..core.cross_section import interface_group_name
 from ..quality_hex import corner_scaled_jacobians
 from .corners import curve_endpoints
 from .sweep import CurveMesh, FillResult
@@ -372,8 +373,13 @@ class BlockLayout:
         scale = max(np.linalg.norm(p[2] - p[0]), 1e-30)
         return abs(np.dot(n / max(np.linalg.norm(n), 1e-30), p[2] - p[0])) < 1e-9 * scale
 
-    def realise(self) -> FillResult:
-        """Build every entity in GMSH and return the fill result."""
+    def realise(self, layer_order: list[str] | None = None) -> FillResult:
+        """Build every entity in GMSH and return the fill result.
+
+        *layer_order* (the spec's ``layer_names``, inner → outer) orders
+        each material pair in its interface group name, so a pair gets the
+        same name here as in a sweep.
+        """
         if self._classes is None:
             self.validate()
         geo = gmsh.model.occ
@@ -417,7 +423,10 @@ class BlockLayout:
             elif len(users) == 2:
                 m0, m1 = materials[k]
                 if m0 != m1:
-                    result.interfaces.setdefault(f"{m0}_to_{m1}", []).append(surf_of[k])
+                    if layer_order is not None:
+                        m0, m1 = sorted((m0, m1), key=layer_order.index)
+                    result.interfaces.setdefault(
+                        interface_group_name(m0, m1), []).append(surf_of[k])
         return result
 
 

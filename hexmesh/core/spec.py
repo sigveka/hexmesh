@@ -25,6 +25,7 @@ BundleSpec
 """
 
 from __future__ import annotations
+import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
@@ -34,6 +35,14 @@ from .region import MaterialGraph
 
 if TYPE_CHECKING:
     pass
+
+
+def _check_layer_name(name) -> None:
+    """Layer names become group names (``fluid_inlet``,
+    ``interface_fluid_steel``), so keep them to ``[A-Za-z0-9_]``."""
+    if not isinstance(name, str) or not re.fullmatch(r"[A-Za-z0-9_]+", name):
+        raise ValueError(f"layer name {name!r} must be letters, digits and _ only "
+                         "(it becomes part of physical group names)")
 
 
 def _wall_progression(mprg: float | None, thickness: float, nrad: int,
@@ -314,6 +323,7 @@ class PipeSpec:
             # largest wall cell; at the corners it is 0.4/0.491 ≈ 0.81 of it.
             mprg = _wall_progression(mprg, oh_core_wall_span(shape.radius),
                                      nrad, first_cell)
+        _check_layer_name(name)
         self._core = (name, shape)
         # Store core nrad/mprg as a pseudo-LayerSpec for uniform iteration
         self._core_nrad = nrad
@@ -359,6 +369,7 @@ class PipeSpec:
             )
         if first_cell is not None:
             mprg = _wall_progression(mprg, dR, nrad, first_cell)
+        _check_layer_name(name)
         self._shells.append(LayerSpec(name=name, dR=dR, nrad=nrad,
                                       mprg=1.0 if mprg is None else mprg))
         return self
@@ -396,6 +407,7 @@ class PipeSpec:
             raise TypeError(
                 "square_shell() requires a circular core (CircleShape)."
             )
+        _check_layer_name(name)
         self._shells.append(
             SquareShellSpec(
                 name=name, half_w=half_w, half_h=half_h, nrad=nrad, mprg=mprg

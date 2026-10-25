@@ -241,4 +241,4 @@ class Tee:
         lay = self.layout(frames, spec)
         for prefix, face in zip("ABE", faces):
             bind_face(lay, prefix, face)
-        return lay.realise()
+        return lay.realise(spec.layer_names)

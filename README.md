@@ -248,7 +248,7 @@ For a layer named `"fluid"`:
 | `fluid_inlet` | the inlet face (`Assembly(..., inlet_name=...)`) |
 | `fluid_outlet` | the only other open end, when there is just one |
 | `fluid_<name>` | an open end named with `add(..., names=[...])`; unnamed extra ends are `fluid_port<N>` |
-| `fluid_to_pipe_wall` | conformal interface to the next layer |
+| `interface_fluid_pipe_wall` | conformal interface to the next layer (inner, then outer material) |
 | `pipe_wall_wall` | outer wall of the outermost layer |
 | `pipe_wall_wall_<fitting>` | with `mesh(walls_by_fitting=True)`: the outer wall of one fitting, in place of `pipe_wall_wall`. `<fitting>` is its `add(..., label=...)` or `<Type><index>` (`Bend3`) |
 
@@ -268,8 +268,9 @@ splitMeshRegions -cellZones -overwrite   # multi-material (CHT) only
 
 Each material becomes a cellZone, and after the split a region with
 `mappedWall` interfaces to its neighbours.  `write_openfoam` leaves the
-`<a>_to_<b>` interface groups out of the file, because their names clash
-with the patches `splitMeshRegions` creates.  `gmshToFoam` writes every
+`interface_*` groups out of the file by default, because the split
+rebuilds every interface as a `mappedWall` pair itself;
+`interfaces=True` keeps them as faceZones.  `gmshToFoam` writes every
 patch as type `patch`, so retype the walls to `wall` yourself.  Verified
 with OpenFOAM v1912; details in
 [docs/integrations/openfoam.md](docs/integrations/openfoam.md).

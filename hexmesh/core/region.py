@@ -15,12 +15,14 @@ MaterialGraph
         fluid_3 → wall_3 ╯
 
     Interface labels are automatically derived from the edge (a, b) as
-    "{a}_to_{b}" unless an explicit label is supplied.
+    "interface_{a}_{b}" unless an explicit label is supplied.
 """
 
 from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Iterator
+
+from .cross_section import interface_group_name
 
 
 @dataclass
@@ -75,11 +77,11 @@ class MaterialGraph:
         a, b : str
             Material names.  Both are auto-added if not yet registered.
         label : str, optional
-            Physical Surface name.  Defaults to ``"{a}_to_{b}"``.
+            Physical Surface name.  Defaults to ``"interface_{a}_{b}"``.
         """
         self.add_material(a)
         self.add_material(b)
-        resolved_label = label or f"{a}_to_{b}"
+        resolved_label = label or interface_group_name(a, b)
         self._edges.append(_Edge(a=a, b=b, label=resolved_label))
         return self
 

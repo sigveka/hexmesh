@@ -41,6 +41,18 @@ if TYPE_CHECKING:
     from .shape import Shape
 
 
+
+def interface_group_name(inner: str, outer: str) -> str:
+    """Physical-group name of the interface between two materials.
+
+    ``interface_<inner>_<outer>``, materials in inner → outer order of the
+    layer stack (decision 0013).  The ``interface_`` prefix keeps the name
+    clear of the ``<a>_to_<b>`` patches OpenFOAM's ``splitMeshRegions``
+    creates.
+    """
+    return f"interface_{inner}_{outer}"
+
+
 class BoundaryType(Enum):
     CIRCULAR = "circular"
     SQUARE   = "square"
@@ -177,14 +189,15 @@ class LayeredCrossSection:
         raise KeyError(f"No layer named '{name}'.")
 
     def interface_names(self) -> list[str]:
-        """Auto-generated labels for interfaces between adjacent layers.
+        """Labels for the interfaces between adjacent layers.
 
         Returns a list of length ``len(layers) - 1``.  For a stack
         ["fluid", "pipe_wall", "insulation"] this yields:
-            ["fluid_to_pipe_wall", "pipe_wall_to_insulation"]
+            ["interface_fluid_pipe_wall", "interface_pipe_wall_insulation"]
         """
         names = self.names
-        return [f"{names[i]}_to_{names[i + 1]}" for i in range(len(names) - 1)]
+        return [interface_group_name(names[i], names[i + 1])
+                for i in range(len(names) - 1)]
 
     def add_layer(self, name: str, cs: CrossSection) -> "LayeredCrossSection":
         """Return a new LayeredCrossSection with *cs* appended."""

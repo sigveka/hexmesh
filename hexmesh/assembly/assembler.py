@@ -530,12 +530,13 @@ class Assembly:
 
         Physical volumes become cellZones named by material, so a
         multi-material mesh splits with ``splitMeshRegions -cellZones
-        -overwrite``.  Material-interface groups (``fluid_to_steel``, …)
-        are left out unless *interfaces* is true: ``gmshToFoam`` turns them
-        into empty patches plus faceZones, and their names clash with the
-        ``<a>_to_<b>`` patches ``splitMeshRegions`` creates, which then
-        lumps interfaces together instead of writing ``mappedWall`` pairs.
-        The groups stay in the GMSH model.
+        -overwrite``.  Material-interface groups
+        (``interface_fluid_steel``, …) are left out unless *interfaces* is
+        true: the split rebuilds every interface as a ``mappedWall`` pair
+        itself, and ``gmshToFoam`` would only turn the groups into empty
+        patches plus faceZones.  With *interfaces*, those faceZones are
+        kept and the split is unaffected.  The groups stay in the GMSH
+        model.
         """
         if not str(path).endswith(".msh"):
             raise ValueError(f"write_openfoam writes a .msh file, got {path!r}")

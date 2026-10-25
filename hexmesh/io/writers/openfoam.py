@@ -14,7 +14,9 @@ For multi-region cases (``chtMultiRegionFoam``, ``multiRegionFoam``),
     2. Run ``splitMeshRegions -cellZones -overwrite`` to split by Physical
        Volume into per-region polyMesh directories.
     3. The interface patches are auto-named by OpenFOAM as
-       ``{regionA}_to_{regionB}`` — matching the hexmesh interface labels.
+       ``{regionA}_to_{regionB}`` (``mappedWall``).  hexmesh's own
+       interface groups are ``interface_{inner}_{outer}``, so they do not
+       collide.
 """
 
 from __future__ import annotations

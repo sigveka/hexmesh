@@ -4,7 +4,7 @@ Three-layer insulated pipe: fluid, steel wall, insulation.
     python3 -m hexmesh.examples.insulated_pipe   # writes insulated_pipe.msh
 
 Each layer is its own physical volume, and the layers meet at conformal
-material interfaces (``fluid_to_steel``, …) for conjugate heat transfer.
+material interfaces (``interface_fluid_steel``, …) for conjugate heat transfer.
 ``Elbow`` takes its radius from the pipe: 1.5 D for a long-radius elbow.
 """
 

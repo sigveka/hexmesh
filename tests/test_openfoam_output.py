@@ -68,7 +68,7 @@ def test_interface_groups_left_out_of_file_only(gmsh_session, tmp_path):
         "insulation_wall",
     ])
     in_model = {gmsh.model.getPhysicalName(d, t) for d, t in gmsh.model.getPhysicalGroups()}
-    assert {"fluid_to_steel", "steel_to_insulation"} <= in_model
+    assert {"interface_fluid_steel", "interface_steel_insulation"} <= in_model
 
 
 def test_single_material_keeps_every_group(gmsh_session, tmp_path):
@@ -88,7 +88,7 @@ def test_single_material_keeps_every_group(gmsh_session, tmp_path):
 def test_interface_groups_kept_on_request(gmsh_session, tmp_path):
     out = tmp_path / "pipe.msh"
     _insulated().write_openfoam(out, interfaces=True)
-    assert {"fluid_to_steel", "steel_to_insulation"} <= set(_physical_names(out))
+    assert {"interface_fluid_steel", "interface_steel_insulation"} <= set(_physical_names(out))
 
 
 def test_rejects_other_extensions(gmsh_session, tmp_path):
@@ -99,10 +99,15 @@ def test_rejects_other_extensions(gmsh_session, tmp_path):
 @pytest.mark.openfoam
 @pytest.mark.skipif(not OPENFOAM_RC.exists() or shutil.which("bash") is None,
                     reason="OpenFOAM not installed")
-def test_openfoam_cht_split(gmsh_session, tmp_path):
-    """gmshToFoam → splitMeshRegions -cellZones gives mappedWall pairs."""
+@pytest.mark.parametrize("interfaces", [False, True])
+def test_openfoam_cht_split(gmsh_session, tmp_path, interfaces):
+    """gmshToFoam → splitMeshRegions -cellZones gives mappedWall pairs.
+
+    With *interfaces* the ``interface_*`` groups are kept: they become
+    faceZones and no longer disturb the split (decision 0013).
+    """
     msh = tmp_path / "pipe.msh"
-    _insulated().write_openfoam(msh)
+    _insulated().write_openfoam(msh, interfaces=interfaces)
     case = tmp_path / "case"
     (case / "system").mkdir(parents=True)
     (case / "system" / "controlDict").write_text(
@@ -130,9 +135,16 @@ def test_openfoam_cht_split(gmsh_session, tmp_path):
             r"(\w+)\s*\{\s*type\s+(\w+);[^}]*?nFaces\s+(\d+);", text)}
 
     fluid, steel, insulation = (patches(r) for r in ("fluid", "steel", "insulation"))
+    # every cylindrical surface of this straight has the same face count
     n = fluid["fluid_to_steel"][1]
+    assert n > 0
     assert fluid["fluid_to_steel"] == ("mappedWall", n)
     assert steel["steel_to_fluid"] == ("mappedWall", n)
-    assert steel["steel_to_insulation"][0] == "mappedWall"
-    assert insulation["insulation_to_steel"] == steel["steel_to_insulation"]
-    assert insulation["insulation_wall"][0] == "patch"
+    assert steel["steel_to_insulation"] == ("mappedWall", n)
+    assert insulation["insulation_to_steel"] == ("mappedWall", n)
+    assert insulation["insulation_wall"] == ("patch", n)
+
+    zones_file = case / "constant" / "polyMesh" / "faceZones"
+    zones = zones_file.read_text() if zones_file.exists() else ""
+    kept = "interface_fluid_steel" in zones and "interface_steel_insulation" in zones
+    assert kept == interfaces

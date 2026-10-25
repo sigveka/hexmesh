@@ -66,7 +66,7 @@ An interface-first pipe network ([DESIGN.md](DESIGN.md) §5).
 |---|---|
 | `mesh(dim=3, *, walls_by_fitting=False)` | Build faces, fill all fittings, write physical groups, and mesh. With `walls_by_fitting`, one wall group per fitting, `{outer}_wall_{name}`, in place of `{outer}_wall`; *name* is the fitting's label or `<Type><index>` (`Bend3`) |
 | `write(path, dim=3, *, walls_by_fitting=False)` | `mesh()`, then `gmsh.write(path)`; the format follows the extension |
-| `write_openfoam(path, *, interfaces=False, walls_by_fitting=False)` | `mesh()`, then write a `.msh` for `gmshToFoam`: MSH 2.2 ASCII, without the material-interface groups unless `interfaces=True` (they break `splitMeshRegions`); the GMSH options and groups are restored afterwards |
+| `write_openfoam(path, *, interfaces=False, walls_by_fitting=False)` | `mesh()`, then write a `.msh` for `gmshToFoam`: MSH 2.2 ASCII, without the material-interface groups unless `interfaces=True` (the split rebuilds them as `mappedWall`; kept, they become faceZones); the GMSH options and groups are restored afterwards |
 | `check_quality(quality_name="minSICN", threshold=None, by="material")` | `QualityReport` per material, or per fitting with `by="fitting"` (see Quality) |
 | `fitting_volumes()` | Volume tags per fitting (edge index → tags) |
 | `build_faces()`, `fill(order=None)` | The individual steps; `fill` takes any order of edge indices (rule A6) |
@@ -401,5 +401,5 @@ The naming convention is in [README.md](README.md#physical-groups). It
 follows from the graph (rule A7):
 - volumes per material;
 - `<layer>_<patch>` for each open interface;
-- `<layer>_to_<next>` for material interfaces;
+- `interface_<inner>_<outer>` for material interfaces;
 - `<outermost>_wall` for the outer wall.
