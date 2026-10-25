@@ -23,6 +23,7 @@ Usage::
 from __future__ import annotations
 import json
 import math
+import re
 from dataclasses import dataclass
 from typing import Iterable
 
@@ -70,6 +71,12 @@ class Edge:
     fitting: object
     ports:   list[Interface]
     kind:    str = "add"     # "add", "close" or "prepend": how it entered the graph
+    label:   str | None = None
+
+    @property
+    def name(self) -> str:
+        """``label``, or ``<Type><index>`` (``Bend3``): used in wall patch names."""
+        return self.label or f"{type(self.fitting).__name__}{self.index}"
 
     def __repr__(self) -> str:
         return f"fitting #{self.index} {self.fitting!r}"
@@ -104,6 +111,7 @@ class Assembly:
         self._lc = lc
         self._fill: FillResult | None = None
         self._fitting_volumes: dict[int, list[int]] = {}
+        self._fitting_walls:   dict[int, list[int]] = {}
         self._faces_built = False
         self.inlet = self._new_interface(
             Frame.from_vectors(position, direction, up), spec, inlet_name,
@@ -114,12 +122,15 @@ class Assembly:
     # 1–2. Intent and placement (pure Python)
     # ------------------------------------------------------------------
 
-    def add(self, source, fitting=None, names: Iterable[str] | None = None):
+    def add(self, source, fitting=None, names: Iterable[str] | None = None,
+            label: str | None = None):
         """Append a fitting.
 
         ``add(fitting)`` continues from the tail; ``add(interface, fitting)``
         branches from a given interface.  Returns the outlet Interface (or a
-        list for multi-outlet fittings).
+        list for multi-outlet fittings).  *names* names the outlet
+        interfaces; *label* names the fitting itself (its wall patch with
+        ``walls_by_fitting``; default ``<Type><index>``).
         """
         if self._faces_built:
             raise AssemblyError("cannot add fittings after the assembly is built")
@@ -138,7 +149,8 @@ class Assembly:
             self._new_interface(frame, spec, name)
             for (frame, spec), name in zip(port_list, names)
         ]
-        edge = Edge(len(self._edges), fitting, [source, *outlets])
+        self._check_label(label)
+        edge = Edge(len(self._edges), fitting, [source, *outlets], label=label)
         self._edges.append(edge)
         for iface in edge.ports:
             iface.edges.append(edge)
@@ -147,7 +159,8 @@ class Assembly:
             self._tail = outlets[0]
         return outlets[0] if len(outlets) == 1 else outlets
 
-    def close(self, source: Interface, target: Interface, fitting) -> None:
+    def close(self, source: Interface, target: Interface, fitting,
+              label: str | None = None) -> None:
         """Join two existing open interfaces with *fitting* (DESIGN.md §8).
 
         *source* must be a downstream end (an outlet of its fitting) and
@@ -170,14 +183,15 @@ class Assembly:
         if target.edges[0].ports[0] is not target:
             raise AssemblyError(f"target {target} is a downstream end, not an inlet")
 
-        edge = Edge(len(self._edges), fitting, [source, target], kind="close")
+        self._check_label(label)
+        edge = Edge(len(self._edges), fitting, [source, target], kind="close", label=label)
         self._edges.append(edge)
         source.edges.append(edge)
         target.edges.append(edge)
         if self._tail is source:
             self._tail = None
 
-    def prepend(self, fitting: Straight) -> Interface:
+    def prepend(self, fitting: Straight, label: str | None = None) -> Interface:
         """Place *fitting* upstream of the inlet; return the new inlet.
 
         The new inlet sits ``fitting.length`` back along the current
@@ -197,7 +211,8 @@ class Assembly:
         frame = Frame(f.position - fitting.length * f.normal, f.normal, f.up)
         new = self._new_interface(frame, old.spec, old.name)
         old.name = None
-        edge = Edge(len(self._edges), fitting, [new, old], kind="prepend")
+        self._check_label(label)
+        edge = Edge(len(self._edges), fitting, [new, old], kind="prepend", label=label)
         self._edges.append(edge)
         new.edges.append(edge)
         old.edges.append(edge)
@@ -272,6 +287,16 @@ class Assembly:
     @property
     def edges(self) -> list[Edge]:
         return list(self._edges)
+
+    def _check_label(self, label: str | None) -> None:
+        if label is None:
+            return
+        if not isinstance(label, str) or not re.fullmatch(r"[A-Za-z0-9_]+", label):
+            raise AssemblyError(
+                f"fitting label {label!r} must be letters, digits and _ only "
+                "(it becomes part of a patch name)")
+        if any(e.name == label for e in self._edges):
+            raise AssemblyError(f"fitting label {label!r} is already used")
 
     def _new_interface(self, frame: Frame, spec: PipeSpec, name: str | None) -> Interface:
         iface = Interface(len(self._interfaces), frame, spec, name)
@@ -383,6 +408,7 @@ class Assembly:
                 edge.ports[0].spec, self.lc,
             )
             self._fitting_volumes[edge.index] = [v for vs in part.volumes.values() for v in vs]
+            self._fitting_walls[edge.index] = list(part.walls)
             fill.merge(part)
         gmsh.model.occ.synchronize()
 
@@ -417,8 +443,14 @@ class Assembly:
             return "outlet"
         return f"port{iface.index}"
 
-    def write_physical_groups(self) -> None:
-        """Physical groups derived from the graph (rule A7)."""
+    def write_physical_groups(self, walls_by_fitting: bool = False) -> None:
+        """Physical groups derived from the graph (rule A7).
+
+        With *walls_by_fitting*, the outer wall is split into one group per
+        fitting, ``{outer}_wall_{name}`` (``Edge.name``: its label, or
+        ``<Type><index>``), in place of the single ``{outer}_wall``.  Each
+        wall surface is still in exactly one group.
+        """
         self.build()
         fill = self._fill
         for name, vols in fill.volumes.items():
@@ -428,15 +460,27 @@ class Assembly:
             for name, cs in iface.face.layers:
                 add_physical_group(2, list(cs.surfaces), f"{name}_{patch}")
         outer = self.inlet.spec.layer_names[-1]
-        add_physical_group(2, fill.walls, f"{outer}_wall")
+        if walls_by_fitting:
+            names = [e.name for e in self._edges]
+            if len(set(names)) != len(names):
+                raise AssemblyError(f"fitting names are not unique: {names}")
+            for e in self._edges:
+                if self._fitting_walls[e.index]:
+                    add_physical_group(2, self._fitting_walls[e.index],
+                                       f"{outer}_wall_{e.name}")
+        else:
+            add_physical_group(2, fill.walls, f"{outer}_wall")
         for label, tags in fill.interfaces.items():
             add_physical_group(2, tags, label)
 
-    def mesh(self, dim: int = 3) -> None:
-        """Build, write physical groups, and generate the mesh."""
+    def mesh(self, dim: int = 3, *, walls_by_fitting: bool = False) -> None:
+        """Build, write physical groups, and generate the mesh.
+
+        *walls_by_fitting*: see :meth:`write_physical_groups`.
+        """
         self.build()
         gmsh.model.occ.synchronize()
-        self.write_physical_groups()
+        self.write_physical_groups(walls_by_fitting)
         msh = gmsh.model.mesh
         for c in curve_constraints(self._fill.curves).values():
             msh.setTransfiniteCurve(c.tag, c.nodes, c.kind, c.coef)
@@ -450,11 +494,12 @@ class Assembly:
             msh.setRecombine(3, tag)
         msh.generate(dim)
 
-    def write(self, path: str, dim: int = 3) -> None:
-        self.mesh(dim)
+    def write(self, path: str, dim: int = 3, *, walls_by_fitting: bool = False) -> None:
+        self.mesh(dim, walls_by_fitting=walls_by_fitting)
         gmsh.write(path)
 
-    def write_openfoam(self, path: str, *, interfaces: bool = False) -> None:
+    def write_openfoam(self, path: str, *, interfaces: bool = False,
+                       walls_by_fitting: bool = False) -> None:
         """Mesh and write a ``.msh`` file for OpenFOAM's ``gmshToFoam``.
 
         Writes MSH 2.2 ASCII (``Mesh.MshFileVersion = 2.2``,
@@ -474,7 +519,7 @@ class Assembly:
         """
         if not str(path).endswith(".msh"):
             raise ValueError(f"write_openfoam writes a .msh file, got {path!r}")
-        self.mesh()
+        self.mesh(walls_by_fitting=walls_by_fitting)
         dropped = []
         if not interfaces:
             labels = set(self._fill.interfaces)
@@ -483,7 +528,8 @@ class Assembly:
                 if name in labels:
                     dropped.append((d, t, name,
                                     list(gmsh.model.getEntitiesForPhysicalGroup(d, t))))
-            gmsh.model.removePhysicalGroups([(d, t) for d, t, _, _ in dropped])
+            if dropped:   # an empty list would remove every group
+                gmsh.model.removePhysicalGroups([(d, t) for d, t, _, _ in dropped])
         options = {k: gmsh.option.getNumber(k) for k in ("Mesh.MshFileVersion", "Mesh.Binary")}
         try:
             gmsh.option.setNumber("Mesh.MshFileVersion", 2.2)

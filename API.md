@@ -40,10 +40,10 @@ An interface-first pipe network ([DESIGN.md](DESIGN.md) §5).
 
 | Method | Does |
 |---|---|
-| `add(fitting, names=None)` | Attach *fitting* to the tail and move the tail to its first outlet. Returns the outlet `Interface`, or a list for multi-outlet fittings |
-| `add(interface, fitting, names=None)` | Attach *fitting* to *interface*; the tail does not move. Use the returned outlet to continue that line |
-| `close(source, target, fitting)` | Join two existing open interfaces. *source* must be an outlet and *target* an inlet, so flow runs source → target. Use `Closure` for any gap, or a `Straight` / `Bend` that fits exactly |
-| `prepend(straight)` | Place a `Straight` upstream of the inlet and make its start the new `inlet`; the inlet name moves with it. Returns the new inlet |
+| `add(fitting, names=None, label=None)` | Attach *fitting* to the tail and move the tail to its first outlet. Returns the outlet `Interface`, or a list for multi-outlet fittings. *names* names the outlet interfaces; *label* names the fitting (letters, digits, `_`; unique) |
+| `add(interface, fitting, names=None, label=None)` | Attach *fitting* to *interface*; the tail does not move. Use the returned outlet to continue that line |
+| `close(source, target, fitting, label=None)` | Join two existing open interfaces. *source* must be an outlet and *target* an inlet, so flow runs source → target. Use `Closure` for any gap, or a `Straight` / `Bend` that fits exactly |
+| `prepend(straight, label=None)` | Place a `Straight` upstream of the inlet and make its start the new `inlet`; the inlet name moves with it. Returns the new inlet |
 | `extend_open_ends(upstream=5.0, downstream=10.0, cells_per_diameter=4.0)` | Straight runs before the inlet and after every open outlet, in diameters of each end's core; 0 skips a side. Each run gets `round(diameters × cells_per_diameter)` axial cells. Patch names are unchanged. Call before building |
 | `interfaces`, `edges` | All interfaces and fitting edges, in creation order |
 | `inlet` | The inlet interface |
@@ -64,9 +64,9 @@ An interface-first pipe network ([DESIGN.md](DESIGN.md) §5).
 
 | Method | Does |
 |---|---|
-| `mesh(dim=3)` | Build faces, fill all fittings, write physical groups, and mesh |
-| `write(path, dim=3)` | `mesh()`, then `gmsh.write(path)`; the format follows the extension |
-| `write_openfoam(path, *, interfaces=False)` | `mesh()`, then write a `.msh` for `gmshToFoam`: MSH 2.2 ASCII, without the material-interface groups unless `interfaces=True` (they break `splitMeshRegions`); the GMSH options and groups are restored afterwards |
+| `mesh(dim=3, *, walls_by_fitting=False)` | Build faces, fill all fittings, write physical groups, and mesh. With `walls_by_fitting`, one wall group per fitting, `{outer}_wall_{name}`, in place of `{outer}_wall`; *name* is the fitting's label or `<Type><index>` (`Bend3`) |
+| `write(path, dim=3, *, walls_by_fitting=False)` | `mesh()`, then `gmsh.write(path)`; the format follows the extension |
+| `write_openfoam(path, *, interfaces=False, walls_by_fitting=False)` | `mesh()`, then write a `.msh` for `gmshToFoam`: MSH 2.2 ASCII, without the material-interface groups unless `interfaces=True` (they break `splitMeshRegions`); the GMSH options and groups are restored afterwards |
 | `check_quality(quality_name="minSICN", threshold=None, by="material")` | `QualityReport` per material, or per fitting with `by="fitting"` (see Quality) |
 | `fitting_volumes()` | Volume tags per fitting (edge index → tags) |
 | `build_faces()`, `fill(order=None)` | The individual steps; `fill` takes any order of edge indices (rule A6) |

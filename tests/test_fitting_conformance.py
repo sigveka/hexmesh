@@ -15,6 +15,7 @@ runs the same checks:
               every surface in at most one physical group and
               every boundary face of the mesh in one             (A7)
               cell count predicted before GMSH equals the mesh   (P4)
+              per-fitting wall groups keep the above        (A7)
 * order       every fill order gives the identical mesh          (A6)
 
 A new fitting is added by writing one case function and listing it in
@@ -243,6 +244,28 @@ class TestConformance:
             assert all(n == 1 for n in owners.values()), "surface in two groups"
             missing = _boundary_faces() - quads
             assert not missing, f"{len(missing)} boundary faces in no group"
+        finally:
+            gmsh.finalize()
+
+    def test_walls_by_fitting(self, case):
+        """Per-fitting wall groups (docs/tasks/0009) keep rule A7."""
+        _session()
+        try:
+            asm = CASES[case]()
+            asm.mesh(walls_by_fitting=True)
+            quads, owners = _grouped_quads()
+            assert all(n == 1 for n in owners.values()), "surface in two groups"
+            missing = _boundary_faces() - quads
+            assert not missing, f"{len(missing)} boundary faces in no group"
+            outer = asm.inlet.spec.layer_names[-1]
+            walls = {}
+            for d, t in gmsh.model.getPhysicalGroups(2):
+                name = gmsh.model.getPhysicalName(d, t)
+                assert name != f"{outer}_wall", "single wall group still written"
+                if name.startswith(f"{outer}_wall_"):
+                    walls[name] = set(gmsh.model.getEntitiesForPhysicalGroup(d, t))
+            assert set().union(*walls.values()) == set(asm._fill.walls)
+            assert set(walls) <= {f"{outer}_wall_{e.name}" for e in asm.edges}
         finally:
             gmsh.finalize()
 

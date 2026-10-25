@@ -2,8 +2,9 @@
 OpenFOAM-compatible output (docs/tasks/0005).
 
 The CI tests parse the written ``.msh``; the last test runs OpenFOAM
-(``gmshToFoam``, ``splitMeshRegions``, ``checkMesh``) and is skipped where
-it is not installed.
+(``gmshToFoam``, ``splitMeshRegions``, ``checkMesh``).  It is marked
+``openfoam`` (opt-in: ``pytest -m openfoam``) and is skipped where OpenFOAM
+is not installed.
 """
 
 import pathlib
@@ -70,6 +71,20 @@ def test_interface_groups_left_out_of_file_only(gmsh_session, tmp_path):
     assert {"fluid_to_steel", "steel_to_insulation"} <= in_model
 
 
+def test_single_material_keeps_every_group(gmsh_session, tmp_path):
+    """No interface groups to drop: removePhysicalGroups([]) would remove all."""
+    out = tmp_path / "pipe.msh"
+    spec = PipeSpec(nang=4).core("fluid", radius=0.1, nrad=3)
+    asm = Assembly(spec)
+    asm.add(Straight(0.3, n_layers=4))
+    asm.write_openfoam(out)
+    assert _physical_names(out) == ["fluid", "fluid_inlet", "fluid_outlet", "fluid_wall"]
+    text = out.read_text()
+    elements = text.split("$Elements")[1].split("$EndElements")[0].split("\n")[2:-1]
+    assert all(int(line.split()[3]) > 0 for line in elements), "element in no group"
+    assert len(gmsh.model.getPhysicalGroups()) == 4
+
+
 def test_interface_groups_kept_on_request(gmsh_session, tmp_path):
     out = tmp_path / "pipe.msh"
     _insulated().write_openfoam(out, interfaces=True)
@@ -81,6 +96,7 @@ def test_rejects_other_extensions(gmsh_session, tmp_path):
         _insulated().write_openfoam(tmp_path / "pipe.vtk")
 
 
+@pytest.mark.openfoam
 @pytest.mark.skipif(not OPENFOAM_RC.exists() or shutil.which("bash") is None,
                     reason="OpenFOAM not installed")
 def test_openfoam_cht_split(gmsh_session, tmp_path):

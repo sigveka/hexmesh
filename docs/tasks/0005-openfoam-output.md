@@ -98,4 +98,10 @@ Measured on OpenFOAM v1912 (Debian 1912.200626) and gmsh 4.12.1,
   After the split, the insulated pipe gives fluid 5616, steel 1728 and
   insulation 3456 cells, each "Mesh OK".
 - **Follow-up:** retype walls, from the Q2 answer.
+- **Correction (found in task 0009).**  As first committed,
+  `write_openfoam` emptied *every* physical group on single-material
+  meshes, because `removePhysicalGroups([])` removes all groups.  The
+  tee figures above came from a plain `gmsh.write` of MSH 2.2, not from
+  `write_openfoam`.  Fixed in 0009, with a regression test.
+
 - **Tests:** 440 passed, 0 failed (the OpenFOAM test ran, not skipped).

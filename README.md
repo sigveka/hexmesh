@@ -250,6 +250,7 @@ For a layer named `"fluid"`:
 | `fluid_<name>` | an open end named with `add(..., names=[...])`; unnamed extra ends are `fluid_port<N>` |
 | `fluid_to_pipe_wall` | conformal interface to the next layer |
 | `pipe_wall_wall` | outer wall of the outermost layer |
+| `pipe_wall_wall_<fitting>` | with `mesh(walls_by_fitting=True)`: the outer wall of one fitting, in place of `pipe_wall_wall`. `<fitting>` is its `add(..., label=...)` or `<Type><index>` (`Bend3`) |
 
 Every boundary face belongs to exactly one group. A closed loop has no
 inlet or outlet groups.

@@ -8,7 +8,8 @@ An assembly is saved as the record of how it was built, not as geometry:
 * ``edges``: in creation order, each a fitting (``type`` + dataclass
   fields) with ``source`` (the interface index it was added from),
   ``close`` (the ``[source, target]`` interfaces it joins), or
-  ``prepend: true`` (placed upstream of the inlet);
+  ``prepend: true`` (placed upstream of the inlet), and its ``label`` if
+  set;
 * ``names``: interface index → name, for every named interface;
 * ``tail``: the interface index ``add(fitting)`` continues from.
 
@@ -110,6 +111,8 @@ def to_dict(asm: "Assembly") -> dict:
     edges = []
     for edge in asm.edges:
         e = {"fitting": fitting_to_dict(edge.fitting)}
+        if edge.label is not None:
+            e["label"] = edge.label
         src, *outs = edge.ports
         if edge.kind == "close":
             e["close"] = [src.index, outs[0].index]
@@ -149,12 +152,12 @@ def from_dict(cls, d: dict) -> "Assembly":
         ifaces = asm.interfaces
         if "close" in e:
             src, tgt = e["close"]
-            asm.close(ifaces[src], ifaces[tgt], fitting)
+            asm.close(ifaces[src], ifaces[tgt], fitting, label=e.get("label"))
             continue
         if e.get("prepend"):
-            asm.prepend(fitting)
+            asm.prepend(fitting, label=e.get("label"))
             continue
-        out = asm.add(ifaces[e["source"]], fitting)
+        out = asm.add(ifaces[e["source"]], fitting, label=e.get("label"))
         outs = out if isinstance(out, list) else [out]
         for k, fr in e.get("frames", {}).items():
             outs[int(k)].frame = _frame_from_dict(fr)
