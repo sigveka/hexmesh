@@ -34,7 +34,7 @@ from ..faces._gmsh_helpers import add_physical_group
 from ..quality_hex import METRICS, hex_vertices
 from . import intent
 from .corners import transfinite_surface_corners, transfinite_volume_corners
-from .fittings import FillResult
+from .fittings import FillResult, Straight
 from .quality import QualityReport, RegionQuality
 from .interface import (
     Frame, Interface, build_face, check_supported, outer_radius, port_type,
@@ -69,6 +69,7 @@ class Edge:
     index:   int
     fitting: object
     ports:   list[Interface]
+    kind:    str = "add"     # "add", "close" or "prepend": how it entered the graph
 
     def __repr__(self) -> str:
         return f"fitting #{self.index} {self.fitting!r}"
@@ -169,12 +170,71 @@ class Assembly:
         if target.edges[0].ports[0] is not target:
             raise AssemblyError(f"target {target} is a downstream end, not an inlet")
 
-        edge = Edge(len(self._edges), fitting, [source, target])
+        edge = Edge(len(self._edges), fitting, [source, target], kind="close")
         self._edges.append(edge)
         source.edges.append(edge)
         target.edges.append(edge)
         if self._tail is source:
             self._tail = None
+
+    def prepend(self, fitting: Straight) -> Interface:
+        """Place *fitting* upstream of the inlet; return the new inlet.
+
+        The new inlet sits ``fitting.length`` back along the current
+        inlet's normal, and the edge ``[new, old]`` is validated like any
+        other.  Only a ``Straight`` can be placed backwards.  The inlet's
+        name moves to the new inlet, so the inlet patch keeps its name.
+        """
+        if self._faces_built:
+            raise AssemblyError("cannot add fittings after the assembly is built")
+        if type(fitting) is not Straight:
+            raise TypeError(
+                f"prepend places a Straight only, got {type(fitting).__name__}")
+        old = self.inlet
+        if not old.is_open:
+            raise AssemblyError(f"the inlet {old} is not an open end")
+        f = old.frame
+        frame = Frame(f.position - fitting.length * f.normal, f.normal, f.up)
+        new = self._new_interface(frame, old.spec, old.name)
+        old.name = None
+        edge = Edge(len(self._edges), fitting, [new, old], kind="prepend")
+        self._edges.append(edge)
+        new.edges.append(edge)
+        old.edges.append(edge)
+        self.inlet = new
+        return new
+
+    def extend_open_ends(self, upstream: float = 5.0, downstream: float = 10.0,
+                         cells_per_diameter: float = 4.0) -> None:
+        """Add straight runs at the inlet and at every open outlet.
+
+        Lengths are in diameters of the end's core (the flow passage):
+        *upstream* before the inlet, *downstream* after each outlet; 0
+        skips that side.  Each run gets ``round(length / D ×
+        cells_per_diameter)`` axial cells (at least 1).  Extended ends keep
+        their patch names.  Must be called before ``build()``.
+        """
+        if self._faces_built:
+            raise AssemblyError("cannot add fittings after the assembly is built")
+        if upstream < 0 or downstream < 0 or cells_per_diameter <= 0:
+            raise ValueError("upstream and downstream must be >= 0, "
+                             "and cells_per_diameter > 0")
+
+        def run(iface, diameters):
+            d = 2.0 * iface.spec.core_shape.radius
+            n = max(1, round(diameters * cells_per_diameter))
+            return Straight(diameters * d, n_layers=n)
+
+        outlets = [i for i in self.open_interfaces() if i is not self.inlet]
+        names = {i.index: self.patch_name(i) for i in outlets}
+        if downstream > 0:
+            for iface in outlets:
+                out = self.add(iface, run(iface, downstream))
+                out.name, iface.name = names[iface.index], None
+                if self._tail is iface:
+                    self._tail = out
+        if upstream > 0 and self.inlet.is_open:
+            self.prepend(run(self.inlet, upstream))
 
     # ------------------------------------------------------------------
     # Intent serialisation (docs/tasks/0006)

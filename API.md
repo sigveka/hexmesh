@@ -43,6 +43,8 @@ An interface-first pipe network ([DESIGN.md](DESIGN.md) §5).
 | `add(fitting, names=None)` | Attach *fitting* to the tail and move the tail to its first outlet. Returns the outlet `Interface`, or a list for multi-outlet fittings |
 | `add(interface, fitting, names=None)` | Attach *fitting* to *interface*; the tail does not move. Use the returned outlet to continue that line |
 | `close(source, target, fitting)` | Join two existing open interfaces. *source* must be an outlet and *target* an inlet, so flow runs source → target. Use `Closure` for any gap, or a `Straight` / `Bend` that fits exactly |
+| `prepend(straight)` | Place a `Straight` upstream of the inlet and make its start the new `inlet`; the inlet name moves with it. Returns the new inlet |
+| `extend_open_ends(upstream=5.0, downstream=10.0, cells_per_diameter=4.0)` | Straight runs before the inlet and after every open outlet, in diameters of each end's core; 0 skips a side. Each run gets `round(diameters × cells_per_diameter)` axial cells. Patch names are unchanged. Call before building |
 | `interfaces`, `edges` | All interfaces and fitting edges, in creation order |
 | `inlet` | The inlet interface |
 | `open_interfaces()` | Interfaces touched by one fitting only: the network boundary |
@@ -78,11 +80,11 @@ An interface-first pipe network ([DESIGN.md](DESIGN.md) §5).
 | `save(path)` / `Assembly.load(path)` | The same, as a JSON file (indented, sorted keys) |
 
 The file records how the network was built, not its geometry:
-- the inlet's pose, spec and name;
-- every `add` and `close` in order, each with its fitting's type and
-  fields, and the index of the interface it starts from (`source`) or
-  joins (`close: [source, target]`);
-- the tail and `lc`.
+- the pose and spec of the first interface;
+- every `add`, `close` and `prepend` in order, each with its fitting's
+  type and fields, and the index of the interface it starts from
+  (`source`) or joins (`close: [source, target]`), or `prepend: true`;
+- the interface names, the tail and `lc`.
 
 Replaying it recreates the interfaces in the same order, so interface
 indices are stable, and editing a fitting in the file moves everything

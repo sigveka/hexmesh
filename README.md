@@ -275,6 +275,18 @@ with OpenFOAM v1912; details in
 
 ---
 
+## Inlet and outlet runs
+
+CFD boundary conditions want straight pipe before and after the region of
+interest.  Add it in diameters, before building:
+
+```python
+asm.extend_open_ends(upstream=5, downstream=10)   # 5 D before, 10 D after each outlet
+```
+
+The diameter is that of each end's flow core.  The patch names
+(`fluid_inlet`, `fluid_outlet`, named ends) stay the same.
+
 ## Saving a network
 
 An assembly can be saved as a JSON description of how it was built, and
