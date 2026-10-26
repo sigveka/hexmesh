@@ -423,34 +423,56 @@ The manifest, `<stem>.roles.json`, looks like this:
 
 ## Readers (`hexmesh.io.readers`)
 
-### `pcf.read_pcf(path, unit_scale=1e-3, ignore_types=None) -> NetworkSpec`
+### `pcf.read_pcf(path, unit_scale=None, ignore_types=None, joint_max=1.6e-3) -> NetworkSpec`
 
-Parses an Isogen PCF file into components (pipe, elbow, reducer, and
-fittings such as flanges and valves). Unsupported types such as `TEE` are
-listed in `NetworkSpec.skipped`, with a warning.
+Parses an Isogen PCF file, following the *PCF Reference Guide*
+(`docs/integrations/pcf.md`).
 
-### `NetworkSpec.to_assembly(spec, *, axial_cell=None, kinks="error", tol=1e-4, lc=None) -> Assembly`
+- **Header and units.**  Header keywords go to `NetworkSpec.header`.
+  - Coordinates scale from `UNITS-CO-ORDS` (`MM`, `MM-HUNDREDTHS`, `INCH`).
+  - Bore scales from `UNITS-BORE` (`MM`, `INCH`, `INCH-SIXTEENTH`),
+    independently of the coordinates.
+  - `unit_scale` (metres per coordinate unit) overrides the header, with a
+    warning if they disagree.
+  - A file without `UNITS-CO-ORDS` is read as mm, with one warning.
+- **Bore is the nominal size in metres** (4" → 0.1016), not an inside
+  diameter.  Map it to a cross-section with `to_assembly(lambda bore: …)`.
+- **Sections.**  `PIPELINE-REFERENCE` attributes go to
+  `NetworkSpec.pipelines`; each component records its `pipeline`.
+  `END-CONNECTION-*` and `EQUIPMENT-REFERENCE` blocks go to
+  `NetworkSpec.connections`.  `MATERIALS` (the last section) is skipped.
+- **Joints.**  `GAP`, and `WELD`, `COUPLING` or `GASKET` no longer than
+  `joint_max` (just above the 1/16" weld gap), become `kind="joint"`.
+  Longer ones are fittings.
+- Unsupported types such as `TEE` are listed in `NetworkSpec.skipped`, with
+  one warning each.
+
+### `NetworkSpec.to_assembly(spec, *, axial_cell=None, kinks="error", tol=None, lc=None) -> Assembly`
 
 **Mapping**
 
 | PCF component | Fitting |
 |---|---|
-| pipe, flange, valve | `Straight` |
-| elbow | `Bend`, rolled into the elbow's plane from its centre point |
+| pipe, flange, valve, cap | `Straight`, from the placed outlet to the component's end point |
+| elbow, bend | `Bend`.  `CENTRE-POINT` is the corner where the tangent legs meet: θ = 180° − ∠(start − C, end − C), R = \|start − C\| / tan(θ/2).  Checked against `ANGLE` (hundredths of a degree) and `BEND-RADIUS` (`nD` × nominal size, or absolute) when present |
 | concentric reducer | `Reducer` |
 | eccentric reducer | rejected |
+| joint | absorbed: the preceding straight run is extended over it, or else the following one starts at it; dropped at an open end next to a non-straight fitting; rejected between two non-straight fittings |
 
 **Parameters**
 
 | Parameter | Meaning |
 |---|---|
-| `spec` | a `PipeSpec`, or a callable `bore → PipeSpec`. With a single spec, a reducer outlet scales the core radius by the bore ratio |
+| `spec` | a `PipeSpec`, or a callable `bore → PipeSpec` (nominal size in metres). With a single spec, a reducer outlet scales the core radius by the bore ratio |
 | `axial_cell` | target axial cell length; defaults to the outer radius |
 | `kinks` | `"error"` raises on pipes that change direction without a fitting; `"spline"` joins such runs into one `SplinePipe` (bathymetry routes) |
-| `tol` | position tolerance, for PCF rounding |
+| `tol` | position tolerance in metres.  Default: 1e-4 × the model diagonal, at least 0.11" (2.79 mm), just above the weld gap |
 
 Every component is checked against its PCF end points, and a mismatch raises
-`AssemblyError` naming the component.
+`AssemblyError` naming the component.  Lateral offsets within `tol` are
+accepted, a documented deviation: exporters offset components by up to the
+weld gap.  `NetworkSpec.report` records the tolerance, the joints absorbed or
+dropped, and the largest lateral offset absorbed.
 
 ### `bathymetry.read_bathymetry(surface_path, route, burial_depth=0.0, surface_format="xyz", route_format=None, unit_scale=1.0, max_segment_length=None) -> NetworkSpec`
 

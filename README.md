@@ -361,17 +361,25 @@ suits parametric studies.  Lengths are in your unit, unconverted.
 ```python
 from hexmesh.io.readers.pcf import read_pcf
 
-net = read_pcf("line.pcf")                       # Isogen PCF, mm → m
+net = read_pcf("line.pcf")                       # Isogen PCF; units from its header
 asm = net.to_assembly(pipe)                      # or pipe=lambda bore: PipeSpec(...)
 ```
 
+The reader follows the PCF reference guide.  Units come from
+`UNITS-CO-ORDS` and `UNITS-BORE`.  `bore` is the **nominal** size in
+metres (4" → 0.1016 m), not an inside diameter.
+
 `to_assembly` maps the PCF components to fittings:
-- pipes, flanges and valves become `Straight`;
-- elbows become `Bend` in their own plane;
-- concentric reducers become `Reducer`.
+- pipes, flanges, valves and caps become `Straight`;
+- elbows and bends become `Bend`, from their corner point, checked against
+  `ANGLE` and `BEND-RADIUS`;
+- concentric reducers become `Reducer`;
+- welds, couplings and gaskets up to 1/16" long are absorbed into the
+  neighbouring straight runs instead of being meshed as slivers.
 
 It checks every component against its PCF end points and raises
-`AssemblyError` naming the component on any gap; nothing is snapped.
+`AssemblyError` naming the component on any gap; nothing is snapped.  The
+tolerance scales with the model (at least 0.11").
 
 Pipeline routes from `hexmesh.io.readers.bathymetry.read_bathymetry` bend at
 their vertices without fittings, so build them with
