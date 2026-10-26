@@ -1,11 +1,8 @@
 # Results: laminar Hagen–Poiseuille
 
-**Status: not accepted.**  Task 0020 is blocked on a mesh finding (below).
-
-Versions: hexmesh `82147f4`, gmsh 4.12.1, OpenFOAM v1912
-(Ubuntu `openfoam` 1912.200626-2build3).  Run 2026-10-26.
-
-Exact: Δp = 8.000000e-05 m²/s² (15 D → 25 D), u_max = 1.000000e-02 m/s.
+**Status: accepted** (task 0020, gates of decision 0015).  The first run
+was blocked by sagging walls in `Straight` (history below); task 0025
+fixed them.
 
 ## With exact walls (after task 0025)
 
@@ -55,6 +52,10 @@ approaching the ~45° limit of the O-H core's 135° corner kink.
 
 ## History: before task 0025 (sagged plate walls)
 
+Versions: hexmesh `82147f4`, gmsh 4.12.1, OpenFOAM v1912
+(Ubuntu `openfoam` 1912.200626-2build3).  Run 2026-10-26.  Judged by the
+original criteria (absolute errors, error-ratio orders).
+
 | Level | Cells | min SJ | max non-orth. (°) | max skewness | Iterations | Δp (m²/s²) | e(Δp) | u_max (m/s) | e(u_max) | mass balance |
 |---|---|---|---|---|---|---|---|---|---|---|
 | coarse | 5184 | 0.793 | 23.3 | 0.430 | 107 | 8.207188e-05 | 2.590% | 1.001405e-02 | 0.141% | 1.8e-12 |
@@ -91,7 +92,7 @@ What fails:
   measured Δp (Poiseuille at fixed Q, Δp ∝ 1/A²) within 0.1 %:
   1.0262 vs 1.0263, and 1.0246 vs 1.0260.
 
-## Diagnostic: exact walls (not a fix)
+### Diagnostic: exact walls (prototype of task 0025)
 
 The same run, with the `Straight` side surfaces built as ruled B-spline
 fillings (`sweep._ruled`, patched in at run time).  All wall nodes are
@@ -119,5 +120,10 @@ With exact walls:
 But **Δp converges at about first order** (below the 1.5 threshold).
 
 Max non-orthogonality and skewness *grow* with refinement (23 → 33 →
-39°, 0.42 → 0.52), so the O-grid core corners are the first suspect.
-That is open (task 0020, *Questions for design*).
+39°, 0.42 → 0.52), so the O-grid core corners were the first suspect.
+
+**Settled by decision 0015:** the first-order Δp comes from the reference,
+not the O-H section.  The meshed section is an inscribed polygon whose
+area deficit adds a second-order error of the opposite sign.  Richardson
+extrapolation and the meshed-section reference (above) show convergence.
+The `nang` sweep shows non-orthogonality levelling off near 45°.

@@ -4,8 +4,8 @@ Steady laminar flow in a straight pipe meshed by hexmesh, compared with the
 exact solution at three refinement levels (decision 0012, task 0020).
 
 ```bash
-python3 validation/poiseuille/run.py                       # all levels (~22 min)
-python3 validation/poiseuille/run.py --levels coarse       # one level (~5 s)
+python3 validation/poiseuille/run.py                       # all levels + nang sweep (~22 min)
+python3 validation/poiseuille/run.py --levels coarse --no-trend   # one level (~5 s)
 python3 validation/poiseuille/run.py --json out.json       # results as JSON
 python3 -m pytest -m openfoam tests/test_validation.py     # acceptance checks
 ```
@@ -40,7 +40,28 @@ Needs OpenFOAM v1912 (`/usr/share/openfoam/etc/bashrc`).  Cases go to
      c₀.  No face centre lies on the axis; the nearest are 0.12 R off it at
      the coarse level, a 1.5 % offset in the exact profile.
 
+5. **Errors, signed** (decision 0015), against two references:
+   - **circle:** the exact solution below;
+   - **mesh:** Poiseuille for the equivalent circle of the meshed section,
+     Δp_ref = 8 π ν L Q / A² and u_max,ref = 2 Q / A.  A is the inlet
+     patch's face area (the section is an inscribed polygon, about
+     1.1 / 0.29 / 0.07 % short of πR²), and Q is the measured outlet
+     flow.
+6. **Richardson extrapolation** of the three levels
+   (`celik_and_ghia_etal_2008`, ratio 2): observed order, extrapolated
+   value and fine-level GCI for Δp and u_max.
+7. **Non-orthogonality sweep** (skip with `--no-trend`): `checkMesh` only,
+   on a 2 D pipe with the same cross-section at `nang` 6–96
+   (`nrad` = `nang` / 2).
+
 Exact values: Δp = 32 ν Ū L / D² = 8.0e-5 m²/s² over L = 10 D, and
 u_max = 2 Ū = 1.0e-2 m/s.
+
+**Acceptance** (`tests/test_validation.py`):
+- extrapolated Δp and u_max within 0.1 % of exact;
+- fine-level |error| below 1 % for both, decreasing at every level;
+- u_max observed order ≥ 1.5.
+- Δp's order is reported only, because the polygon's area error
+  competes with it.
 
 Results: [RESULTS.md](RESULTS.md).
