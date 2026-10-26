@@ -35,7 +35,7 @@ from ..faces._gmsh_helpers import add_physical_group
 from ..quality_hex import METRICS, hex_vertices
 from . import intent
 from ..io.writers.openfoam_boundary import roles_path, write_roles
-from .signature import check_port_pairs
+from .signature import check_port_pairs, classify, signature
 from .corners import transfinite_surface_corners, transfinite_volume_corners
 from .fittings import FillResult, Straight
 from .quality import QualityReport, RegionQuality
@@ -113,7 +113,7 @@ class Assembly:
         self._lc = lc
         self._fill: FillResult | None = None
         self._fitting_volumes: dict[int, list[int]] = {}
-        self._fitting_walls:   dict[int, list[int]] = {}
+        self._fitting_walls:   dict[int, dict[str, list[int]]] = {}
         self._faces_built = False
         self._nozzle = None          # (drum, nozzle name) for from_nozzle()
         self._group_roles: dict[str, str] = {}
@@ -369,9 +369,11 @@ class Assembly:
                 declared = [inlet.spec] * (len(edge.ports) - 1)
             for iface, want in zip(edge.ports[1:], declared):
                 if port_type(iface.spec) != port_type(want):
+                    diff = classify(signature(want), signature(iface.spec)).differences
                     raise AssemblyError(
                         f"{edge}: port type at {iface} differs from the type "
                         f"the fitting declares"
+                        + (f" ({'; '.join(map(str, diff))})" if diff else " (radii)")
                     )
         if max_cells is not None:
             counts = self.cell_counts()
@@ -440,7 +442,13 @@ class Assembly:
                 edge.ports[0].spec, self.lc,
             )
             self._fitting_volumes[edge.index] = [v for vs in part.volumes.values() for v in vs]
-            self._fitting_walls[edge.index] = list(part.walls)
+            # Wall group per surface; a fill that names none has its
+            # inlet's stack throughout (DESIGN A7, decision 0006).
+            default = f"{edge.ports[0].spec.layer_names[-1]}_wall"
+            walls: dict[str, list[int]] = {}
+            for w in part.walls:
+                walls.setdefault(part.wall_groups.get(w, default), []).append(w)
+            self._fitting_walls[edge.index] = walls
             fill.merge(part)
         gmsh.model.occ.synchronize()
 
@@ -478,10 +486,12 @@ class Assembly:
     def write_physical_groups(self, walls_by_fitting: bool = False) -> None:
         """Physical groups derived from the graph (rule A7).
 
-        With *walls_by_fitting*, the outer wall is split into one group per
-        fitting, ``{outer}_wall_{name}`` (``Edge.name``: its label, or
-        ``<Type><index>``), in place of the single ``{outer}_wall``.  Each
-        wall surface is still in exactly one group.
+        Walls are named after the layer that is outermost where they are:
+        ``{layer}_wall``, plus ``{layer}_end`` for the end annuli of a layer
+        that stops or starts inside a fitting (decision 0006).  With
+        *walls_by_fitting* each is split into one group per fitting,
+        ``{group}_{name}`` (``Edge.name``: its label, or ``<Type><index>``).
+        Each wall surface is still in exactly one group.
 
         Each group's role (``volume``, ``open_end``, ``wall`` or
         ``interface``) is recorded as it is added, from the graph and never
@@ -501,16 +511,20 @@ class Assembly:
             patch = self.patch_name(iface)
             for name, cs in iface.face.layers:
                 group(2, list(cs.surfaces), f"{name}_{patch}", "open_end")
-        outer = self.inlet.spec.layer_names[-1]
         if walls_by_fitting:
             names = [e.name for e in self._edges]
             if len(set(names)) != len(names):
                 raise AssemblyError(f"fitting names are not unique: {names}")
             for e in self._edges:
-                if self._fitting_walls[e.index]:
-                    group(2, self._fitting_walls[e.index], f"{outer}_wall_{e.name}", "wall")
+                for base, tags in self._fitting_walls[e.index].items():
+                    group(2, tags, f"{base}_{e.name}", "wall")
         else:
-            group(2, fill.walls, f"{outer}_wall", "wall")
+            merged: dict[str, list[int]] = {}
+            for e in self._edges:
+                for base, tags in self._fitting_walls[e.index].items():
+                    merged.setdefault(base, []).extend(tags)
+            for base, tags in merged.items():
+                group(2, tags, base, "wall")
         for label, tags in fill.interfaces.items():
             group(2, tags, label, "interface")
 

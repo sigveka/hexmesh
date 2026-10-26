@@ -48,6 +48,10 @@ def _two(radius=0.1, dR=0.025):
     return _one(radius).shell("wall", dR=dR, nrad=2)
 
 
+def _three(radius=0.1):
+    return _two(radius).shell("insulation", dR=0.03, nrad=2)
+
+
 def _between(spec, fitting, **kw):
     """Straight → fitting → Straight."""
     asm = Assembly(spec, direction=[0, 1, 0], up=[0, 0, 1], lc=0.1, **kw)
@@ -137,6 +141,11 @@ CASES = {
     "reducer-graded":      lambda: _between(_one(), Reducer(_one(0.06), 0.15, n_layers=4,
                                                             axial_grading=1.2)),
     "closure-graded":      lambda: _ring(_one(), [90, 90, 90], Closure(n_layers=8, axial_grading=1.15)),
+    # layer termination (decision 0006): insulation stops and restarts
+    "straight-insulation-gap": lambda: _between(_three(), Straight(
+        0.6, n_layers=6, stack_changes=((2, _two()), (4, _three())))),
+    "bend-insulation-ends": lambda: _between(_three(), Bend(
+        0.3, 90, n_layers=6, axial_grading=1.2, stack_changes=((3, _two()),))),
     "spline-graded":       lambda: _spline(_one(), ((0, 0, 0), (0.1, 0.4, 0), (0.4, 0.8, 0),
                                                     (0.5, 1.2, 0)), axial_grading=1.05),
 }
@@ -269,15 +278,18 @@ class TestConformance:
             assert all(n == 1 for n in owners.values()), "surface in two groups"
             missing = _boundary_faces() - quads
             assert not missing, f"{len(missing)} boundary faces in no group"
-            outer = asm.inlet.spec.layer_names[-1]
+            roles = asm.group_roles()
             walls = {}
             for d, t in gmsh.model.getPhysicalGroups(2):
                 name = gmsh.model.getPhysicalName(d, t)
-                assert name != f"{outer}_wall", "single wall group still written"
-                if name.startswith(f"{outer}_wall_"):
+                if roles[name] == "wall":
                     walls[name] = set(gmsh.model.getEntitiesForPhysicalGroup(d, t))
             assert set().union(*walls.values()) == set(asm._fill.walls)
-            assert set(walls) <= {f"{outer}_wall_{e.name}" for e in asm.edges}
+            # {layer}_wall_{fitting} or {layer}_end_{fitting}, never unsplit
+            layers = {n for e in asm.edges for p in e.ports for n in p.spec.layer_names}
+            allowed = {f"{l}_{kind}_{e.name}" for l in layers for kind in ("wall", "end")
+                       for e in asm.edges}
+            assert set(walls) <= allowed, set(walls) - allowed
         finally:
             gmsh.finalize()
 

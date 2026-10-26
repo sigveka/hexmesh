@@ -97,14 +97,22 @@ def test_reducer_changing_nang_rejected():
 
 
 def test_straight_dropping_a_layer_rejected():
+    """Straight bridges class 1 only through its own stack changes (task
+    0018); an outlet spec edited by hand is still not the declared type."""
     asm = Assembly(_spec())
     out = asm.add(Straight(0.3, n_layers=2))
     out.spec = _spec(layers=())
     with pytest.raises(AssemblyError,
-                       match=r"layer `wall` present only at the inlet\. That is switch "
-                             r"class 1, which needs layer termination"):
+                       match=r"port type .* \(shells: layer `wall` present only at the inlet\)"):
         asm.validate()
     assert not gmsh.isInitialized()
+
+
+def test_class_1_rejected_where_not_declared():
+    from hexmesh.assembly import MiterBend
+    from hexmesh.assembly.signature import check_port_pairs
+    with pytest.raises(ValueError, match="class 1, which needs layer termination"):
+        check_port_pairs(MiterBend(0.3, 90, n_cuts=1), [_spec(), _spec(layers=())])
 
 
 def test_straight_joined_to_another_stack_rejected():
@@ -118,6 +126,8 @@ def test_straight_joined_to_another_stack_rejected():
 
 def test_every_fitting_declares_strategies():
     from hexmesh.assembly import fittings
-    for cls in (fittings.Straight, fittings.Bend, fittings.MiterBend, fittings.Elbow,
-                fittings.Reducer, fittings.SplinePipe, fittings.Closure, Tee):
+    for cls in (fittings.MiterBend, fittings.Elbow, fittings.Reducer,
+                fittings.SplinePipe, fittings.Closure, Tee):
         assert cls.__dict__.get("strategies") == frozenset({0}), cls.__name__
+    for cls in (fittings.Straight, fittings.Bend):          # layer termination (0018)
+        assert cls.__dict__.get("strategies") == frozenset({0, 1}), cls.__name__

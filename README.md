@@ -108,8 +108,8 @@ ellipse where the two pipes meet. There are two known exceptions:
 
 | Fitting | Use |
 |---|---|
-| `Straight(length, n_layers, axial_grading=1)` | Straight run |
-| `Bend(radius, angle, n_layers, roll=0, axial_grading=1)` | Circular-arc bend. `roll` (degrees) turns the bend plane about the pipe axis; 0 bends toward `up` |
+| `Straight(length, n_layers, axial_grading=1, stack_changes=())` | Straight run. `stack_changes` ends or starts outer layers inside it (see *Insulation gaps*) |
+| `Bend(radius, angle, n_layers, roll=0, axial_grading=1, stack_changes=())` | Circular-arc bend. `roll` (degrees) turns the bend plane about the pipe axis; 0 bends toward `up` |
 | `Elbow(angle=90, schedule="long", n_layers=8, roll=0, axial_grading=1)` | Butt-weld elbow: a `Bend` with radius 1.5 D (`"long"`) or 1 D (`"short"`), D = outer diameter |
 | `MiterBend(radius, angle, n_cuts=1, n_layers=2, roll=0)` | Segmented bend of straight pieces. Same ports as `Bend(radius, angle)`; each cut turns ≤ 90° |
 | `Reducer(outlet, length, n_layers, axial_grading=1)` | Concentric cone to another radius (reducer or expander). Only radii may change |
@@ -249,11 +249,36 @@ For a layer named `"fluid"`:
 | `fluid_outlet` | the only other open end, when there is just one |
 | `fluid_<name>` | an open end named with `add(..., names=[...])`; unnamed extra ends are `fluid_port<N>` |
 | `interface_fluid_pipe_wall` | conformal interface to the next layer (inner, then outer material) |
-| `pipe_wall_wall` | outer wall of the outermost layer |
-| `pipe_wall_wall_<fitting>` | with `mesh(walls_by_fitting=True)`: the outer wall of one fitting, in place of `pipe_wall_wall`. `<fitting>` is its `add(..., label=...)` or `<Type><index>` (`Bend3`) |
+| `pipe_wall_wall` | outer wall, named after the layer that is outermost there |
+| `insulation_end` | end faces of a layer that stops or starts inside a fitting |
+| `pipe_wall_wall_<fitting>` | with `mesh(walls_by_fitting=True)`: the outer wall of one fitting, in place of `pipe_wall_wall` (likewise `insulation_end_<fitting>`). `<fitting>` is its `add(..., label=...)` or `<Type><index>` (`Bend3`) |
 
 Every boundary face belongs to exactly one group. A closed loop has no
 inlet or outlet groups.
+
+### Insulation gaps
+
+Outer layers can stop and start inside a `Straight` or `Bend`, e.g. at a
+flange or a support.  `stack_changes` lists `(i, spec)` pairs: from axial
+cell `i` on, the stack is `spec`.
+
+```python
+bare = PipeSpec(nang=4).core("fluid", radius=0.1, nrad=3).shell("pipe_wall", dR=0.01, nrad=2)
+insulated = PipeSpec(nang=4).core("fluid", radius=0.1, nrad=3) \
+    .shell("pipe_wall", dR=0.01, nrad=2).shell("insulation", dR=0.03, nrad=2)
+
+asm = Assembly(insulated)
+asm.add(Straight(1.0, n_layers=10, stack_changes=((3, bare), (7, insulated))))
+```
+
+Cells 3–6 are bare.  The rules:
+- only outermost layers may stop or start;
+- the remaining layers keep their names, radii, `nrad` and grading (to
+  change those, use a `Reducer`);
+- changes sit inside the fitting (`0 < i < n_layers`), never at a port.
+
+The outlet port carries the last stack.  The cell count counts each layer
+only where it is present.
 
 ### OpenFOAM
 
@@ -372,6 +397,11 @@ python3 -m hexmesh.examples.smooth_bend
 | `loop` | closed, non-planar loop with `Closure` |
 | `spline_pipe` | 3-D spline |
 | `pipe_network` | header with two tees, branches built from interfaces |
+| `pipe_rack` | 3-D route with every sweep fitting: elbow, segmented miter, spline offset, reducer, rolled bend |
+| `insulated_route` | three-layer stack through a reducer, miter, spline and elbow; `first_cell` wall grading |
+| `distribution_tree` | tee on a tee's branch after a reducer; named outlets, mixed bend kinds |
+| `drum_nozzle` | network starting at a drum nozzle (`Drum`, `Assembly.from_nozzle`), tee, `extend_open_ends` |
+| `graded_bend` | CFD-ready bend: `first_cell`, `axial_grading` toward the bend, extensions, `walls_by_fitting` |
 
 ---
 

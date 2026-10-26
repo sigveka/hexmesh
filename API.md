@@ -64,7 +64,7 @@ An interface-first pipe network ([DESIGN.md](DESIGN.md) §5).
 
 | Method | Does |
 |---|---|
-| `mesh(dim=3, *, walls_by_fitting=False)` | Build faces, fill all fittings, write physical groups, and mesh. With `walls_by_fitting`, one wall group per fitting, `{outer}_wall_{name}`, in place of `{outer}_wall`; *name* is the fitting's label or `<Type><index>` (`Bend3`) |
+| `mesh(dim=3, *, walls_by_fitting=False)` | Build faces, fill all fittings, write physical groups, and mesh. Walls are `{layer}_wall`, after the layer outermost where they are, plus `{layer}_end` for the end faces of a terminated layer. With `walls_by_fitting`, each is split per fitting, `{group}_{name}`; *name* is the fitting's label or `<Type><index>` (`Bend3`) |
 | `write(path, dim=3, *, walls_by_fitting=False)` | `mesh()`, then `gmsh.write(path)`; the format follows the extension |
 | `write_openfoam(path, *, interfaces=False, walls_by_fitting=False)` | `mesh()`, then write a `.msh` for `gmshToFoam`: MSH 2.2 ASCII, without the material-interface groups unless `interfaces=True` (the split rebuilds them as `mappedWall`; kept, they become faceZones); the GMSH options and groups are restored afterwards.  Also writes the role manifest `<stem>.roles.json` |
 | `group_roles()` | Physical-group name → role (`volume`, `open_end`, `wall`, `interface`), from the graph, as last written by `mesh()` |
@@ -232,9 +232,24 @@ Every fitting has three parts:
 All three are pure Python. Fittings never build their own interface faces;
 they only fill between the faces the assembly built.
 
+**Layer termination (decision 0006).**  `Straight` and `Bend` take
+`stack_changes=((i, spec), …)`: from axial cell `i` on (`0 < i <
+n_layers`), the stack is `spec`.  Each change adds or removes whole
+outermost layers; the remaining layers must keep their names, radii,
+`nrad` and grading.  `validate()` checks this before GMSH and names the
+fitting and the layer.
+- The station face at a change is built with the fuller stack.  The
+  ending layer's annulus there becomes `{layer}_end`.
+- `ports()` returns the last stack for the outlet.
+- `cell_count()` counts each layer only in the cells where it is present.
+- In a `Straight`, a change adds an internal station.  The axial
+  progression continues across it, so the nodes are those of the unsplit
+  run.
+
 **Switch classes (`hexmesh.assembly.signature`, DESIGN A4).**  Each
 fitting declares `strategies`: the switch classes it can bridge between
-its inlet and each outlet.  Today every fitting declares `{0}`.  A
+its inlet and each outlet.  `Straight` and `Bend` declare `{0, 1}`
+(layer termination); the other fittings declare `{0}`.  A
 frozenset applies to every port pair; a tuple gives one per outlet.
 
 - `signature(spec)` is the hashable connectivity signature:

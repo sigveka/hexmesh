@@ -48,7 +48,9 @@ FITTING_TYPES = {cls.__name__: cls for cls in (
 
 
 def _plain(v):
-    """Numbers, tuples and arrays as JSON-native values."""
+    """Numbers, tuples, arrays and specs as JSON-native values."""
+    if isinstance(v, PipeSpec):
+        return v.to_dict()
     if isinstance(v, np.generic):
         return v.item()
     if isinstance(v, (tuple, list, np.ndarray)):
@@ -57,7 +59,10 @@ def _plain(v):
 
 
 def _tuples(v):
-    """Inverse of _plain for tuple-valued fields (lists become tuples)."""
+    """Inverse of _plain for tuple-valued fields (lists become tuples, and
+    dicts inside them specs, as in ``stack_changes``)."""
+    if isinstance(v, dict):
+        return PipeSpec.from_dict(v)
     return tuple(_tuples(x) for x in v) if isinstance(v, list) else v
 
 

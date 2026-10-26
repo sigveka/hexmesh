@@ -24,7 +24,7 @@ import numpy as np
 from ..core.shape import CircleShape
 from ..core.spec import PipeSpec
 from .interface import Frame, outer_radius, roll_mismatch, rotate
-from .sweep import Arc, FillResult, Path, Sweep
+from .sweep import Arc, FillResult, Path, Sweep, _radii
 
 __all__ = ["Straight", "Bend", "MiterBend", "Elbow", "Reducer", "SplinePipe",
            "Closure", "FillResult"]
@@ -40,18 +40,25 @@ class Straight(Sweep):
 
     *axial_grading* is the ratio of consecutive axial cell lengths, inlet →
     outlet (1 = uniform; > 1 refines toward the inlet).
+
+    *stack_changes* ends or starts outer layers inside the run (decision
+    0006): each ``(i, spec)`` gives the stack from axial cell *i* on
+    (``0 < i < n_layers``).  ``((3, bare), (7, insulated))`` with
+    ``n_layers=10`` leaves a bare gap of cells 3–6.  The outlet port carries
+    the last stack.
     """
 
-    strategies = frozenset({0})   # switch classes it bridges (DESIGN A4)
+    strategies = frozenset({0, 1})   # switch classes it bridges (DESIGN A4)
 
     length:   float
     n_layers: int
     axial_grading: float = 1.0
+    stack_changes: tuple = ()
 
     def ports(self, inlet: Frame, spec: PipeSpec) -> list[tuple[Frame, PipeSpec]]:
         out = Frame(inlet.position + self.length * inlet.normal,
                     inlet.normal, inlet.up)
-        return [(out, spec)]
+        return [(out, self.outlet_spec(spec))]
 
     def check(self, spec: PipeSpec) -> None:
         super().check(spec)
@@ -59,7 +66,16 @@ class Straight(Sweep):
             raise ValueError(f"length must be positive, got {self.length!r}")
 
     def path(self, a: Frame, b: Frame, spec: PipeSpec) -> Path:
-        return Path([a, b], [self.n_layers], axial_grading=self.axial_grading)
+        if not self.stack_changes:
+            return Path([a, b], [self.n_layers], axial_grading=self.axial_grading)
+        # A station at each change; graded sub-slabs continue the same
+        # progression, so the nodes are those of the unsplit run.
+        cuts = [0] + [i for i, _ in self.stack_changes] + [self.n_layers]
+        u = self.fractions(self.n_layers)
+        frames = [a] + [Frame(a.position + (b.position - a.position) * u[i],
+                              a.normal, a.up) for i in cuts[1:-1]] + [b]
+        path = Path(frames, list(np.diff(cuts)), axial_grading=self.axial_grading)
+        return self.stacked(path, spec)
 
 
 # ---------------------------------------------------------------------------
@@ -92,15 +108,19 @@ class Bend(Sweep):
     axial_grading : float
         Ratio of consecutive axial cell lengths, inlet → outlet (1 =
         uniform; > 1 refines toward the inlet).  Stations are spaced accordingly.
+    stack_changes : tuple
+        ``(i, spec)`` pairs ending or starting outer layers from axial cell
+        *i* on, as for ``Straight`` (decision 0006).
     """
 
-    strategies = frozenset({0})   # switch classes it bridges (DESIGN A4)
+    strategies = frozenset({0, 1})   # switch classes it bridges (DESIGN A4)
 
     radius:   float
     angle:    float
     n_layers: int
     roll:     float = 0.0
     axial_grading: float = 1.0
+    stack_changes: tuple = ()
 
     def _axis_centre(self, inlet: Frame) -> tuple[np.ndarray, np.ndarray]:
         phi = math.radians(self.roll)
@@ -120,7 +140,7 @@ class Bend(Sweep):
         )
 
     def ports(self, inlet: Frame, spec: PipeSpec) -> list[tuple[Frame, PipeSpec]]:
-        return [(self._rotated(inlet, self.angle), spec)]
+        return [(self._rotated(inlet, self.angle), self.outlet_spec(spec))]
 
     def check(self, spec: PipeSpec) -> None:
         super().check(spec)
@@ -132,8 +152,8 @@ class Bend(Sweep):
         u = self.fractions(n)
         inner = [self._rotated(a, self.angle * u[k]) for k in range(1, n)]
         axis, centre = self._axis_centre(a)
-        return Path([a, *inner, b], [1] * n, axial=Arc(axis, centre),
-                    min_radius=self.radius)
+        return self.stacked(Path([a, *inner, b], [1] * n, axial=Arc(axis, centre),
+                                 min_radius=self.radius), spec)
 
 
 # ---------------------------------------------------------------------------
@@ -306,10 +326,6 @@ class Elbow(Sweep):
 # ---------------------------------------------------------------------------
 # Reducer
 # ---------------------------------------------------------------------------
-
-def _radii(spec: PipeSpec) -> list[float]:
-    return [spec.core_shape.radius] + [sh.dR for sh in spec.shells]
-
 
 def _with_radii(spec: PipeSpec, radii: list[float]) -> PipeSpec:
     """*spec* with core radius ``radii[0]`` and shell thicknesses ``radii[1:]``."""

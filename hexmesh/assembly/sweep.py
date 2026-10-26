@@ -9,6 +9,7 @@ optionally the spec at each station.  ``Sweep`` provides ``validate`` and
 """
 
 from __future__ import annotations
+import copy
 import math
 from dataclasses import dataclass, field
 
@@ -19,7 +20,7 @@ from ..core.cross_section import LayeredCrossSection
 from ..core.spec import PipeSpec
 from .corners import canonical_geom, connect_layer, curve_endpoints, frame_offset
 from .interface import Frame, build_face, outer_radius, roll_mismatch
-from .signature import check_port_pairs
+from .signature import check_port_pairs, classify, signature
 
 
 @dataclass(frozen=True)
@@ -85,12 +86,28 @@ def section_cells(spec: PipeSpec) -> int:
     return a * a + spec.n_outer * a * sum(nrads)
 
 
+def trim_spec(spec: PipeSpec, n: int) -> PipeSpec:
+    """*spec* keeping only its innermost *n* layers (core included)."""
+    if n >= len(spec.layer_names):
+        return spec
+    out = copy.copy(spec)
+    out._shells = list(spec.shells[:n - 1])
+    return out
+
+
 @dataclass
 class FillResult:
-    """Entities created by one fitting fill."""
+    """Entities created by one fitting fill.
+
+    *walls* holds every wall surface; *wall_groups* names the group of
+    those a fill knows (``{layer}_wall`` for side walls, ``{layer}_end``
+    for the end annuli of a terminated layer).  Walls it leaves out belong
+    to ``{outer}_wall`` of the fitting's inlet stack.
+    """
 
     volumes:    dict[str, list[int]] = field(default_factory=dict)
     walls:      list[int]            = field(default_factory=list)
+    wall_groups: dict[int, str]      = field(default_factory=dict)
     interfaces: dict[str, list[int]] = field(default_factory=dict)
     curves:     list[CurveMesh]      = field(default_factory=list)
     surfaces:   list[int]            = field(default_factory=list)
@@ -100,6 +117,7 @@ class FillResult:
         for k, v in other.volumes.items():
             self.volumes.setdefault(k, []).extend(v)
         self.walls.extend(other.walls)
+        self.wall_groups.update(other.wall_groups)
         for k, v in other.interfaces.items():
             self.interfaces.setdefault(k, []).extend(v)
         self.curves.extend(other.curves)
@@ -142,6 +160,10 @@ class Path:
         ``None`` for straight axial lines, or an ``Arc``.
     specs
         Spec per station, or ``None`` for a constant cross-section.
+    fill
+        Layers filled per slab, innermost first, or ``None`` for all of
+        them.  A slab with fewer layers than a station face leaves the
+        rest of that face as end walls (layer termination, decision 0006).
     min_radius
         Smallest centreline bend radius (``inf`` for a straight path).
     stretch
@@ -167,10 +189,13 @@ class Path:
     stretch:    list[tuple | None] | None = None
     prism:      bool = False
     axial_grading: float = 1.0
+    fill:       list[int] | None = None
 
     def __post_init__(self) -> None:
         if len(self.layers) != len(self.frames) - 1:
             raise ValueError("Path needs one layer count per slab")
+        if self.fill is not None and len(self.fill) != len(self.layers):
+            raise ValueError("Path needs one fill count per slab")
         if self.prism and any(n != 1 for n in self.layers):
             raise ValueError("prism slabs need one axial layer each (no interior wall nodes)")
         if any(n < 1 for n in self.layers):
@@ -178,6 +203,16 @@ class Path:
 
     def spec_at(self, k: int, default: PipeSpec) -> PipeSpec:
         return default if self.specs is None else self.specs[k]
+
+    def slab_spec(self, k: int, default: PipeSpec) -> PipeSpec:
+        """Spec of the layers slab *k* fills."""
+        spec = self.spec_at(k, default)
+        return spec if self.fill is None else trim_spec(spec, self.fill[k])
+
+    def cells(self, spec: PipeSpec) -> int:
+        """Exact hex count (DESIGN P4): each layer only where it is filled."""
+        return sum(section_cells(self.slab_spec(k, spec)) * n
+                   for k, n in enumerate(self.layers))
 
     def stretch_at(self, k: int) -> tuple | None:
         return None if self.stretch is None else self.stretch[k]
@@ -219,20 +254,30 @@ def _fill_slab(in_face: LayeredCrossSection, out_face: LayeredCrossSection,
                n_layers: int, offset: int = 0, axial_curve=None,
                planar_radial: bool = True,
                grading: dict[int, tuple[str, float]] | None = None,
-               side_surface=None, axial_grading: float = 1.0) -> FillResult:
-    """Fill all concentric layers between two existing faces.
+               side_surface=None, axial_grading: float = 1.0,
+               n_fill: int | None = None) -> FillResult:
+    """Fill the innermost *n_fill* concentric layers (default: all) between
+    two existing faces.
 
-    *offset* is the corner correspondence from ``frame_offset``; *grading*
-    maps face-curve tags to their ``face_grading`` (default uniform);
-    *axial_grading* is the inlet → outlet progression of the axial curves.
+    Layers are paired by name; faces may carry further outer layers, which
+    this slab leaves alone (layer termination).  *offset* is the corner
+    correspondence from ``frame_offset``; *grading* maps face-curve tags to
+    their ``face_grading`` (default uniform); *axial_grading* is the inlet →
+    outlet progression of the axial curves.
     """
     grading = grading or {}
     result = FillResult()
     names = in_face.interface_names()
+    if n_fill is None:
+        n_fill = len(in_face.layers)
+    pairs = list(zip(in_face.layers[:n_fill], out_face.layers[:n_fill]))
+    if len(pairs) != n_fill:
+        raise ValueError(f"slab fills {n_fill} layers but a face has fewer")
+    for (a, _), (b, _) in pairs:
+        if a != b:
+            raise ValueError(f"slab would join layer `{a}` to layer `{b}`")
     prev_axial = prev_side = None
-    for idx, ((name, in_cs), (_, out_cs)) in enumerate(
-        zip(in_face.layers, out_face.layers)
-    ):
+    for idx, ((name, in_cs), (_, out_cs)) in enumerate(pairs):
         vols, side, axial, deferred = connect_layer(
             in_cs, out_cs, n_layers, offset,
             prev_outer_axial=prev_axial,
@@ -252,6 +297,7 @@ def _fill_slab(in_face: LayeredCrossSection, out_face: LayeredCrossSection,
         result.mesh_vols.extend(deferred["volumes"])
         prev_axial, prev_side = axial, side
     result.walls.extend(prev_side)
+    result.wall_groups.update((w, f"{pairs[-1][0][0]}_wall") for w in prev_side)
     return result
 
 
@@ -292,7 +338,16 @@ def sweep_fill(path: Path, faces: list[LayeredCrossSection],
                                 axial_curve=axial_curve, planar_radial=planar,
                                 grading=grading,
                                 side_surface=_ruled if path.prism else None,
-                                axial_grading=path.axial_grading))
+                                axial_grading=path.axial_grading,
+                                n_fill=None if path.fill is None else path.fill[k]))
+    if path.fill is not None:
+        # End walls: internal-station layers filled on one side only.
+        for k in range(1, len(stations) - 1):
+            up, down = path.fill[k - 1], path.fill[k]
+            for i, (name, cs) in enumerate(stations[k].layers):
+                if (i < up) != (i < down):
+                    result.walls.extend(cs.surfaces)
+                    result.wall_groups.update((t, f"{name}_end") for t in cs.surfaces)
     return result
 
 
@@ -321,6 +376,8 @@ class Sweep:
             raise ValueError(f"n_layers must be >= 1, got {self.n_layers!r}")
         if not self.axial_grading > 0:
             raise ValueError(f"axial_grading must be positive, got {self.axial_grading!r}")
+        if self.stack_changes:
+            self.check_stack_changes(spec)
 
     def validate(self, frames: list[Frame], spec: PipeSpec) -> None:
         self.check(spec)
@@ -356,8 +413,101 @@ class Sweep:
 
     def cell_count(self, frames: list[Frame], spec: PipeSpec) -> int:
         """Exact hex count, from topology and density alone (DESIGN P4)."""
-        return section_cells(spec) * sum(self.path(frames[0], frames[1], spec).layers)
+        return self.path(frames[0], frames[1], spec).cells(spec)
+
+    # -- layer termination (decision 0006) -----------------------------
+
+    stack_changes: tuple = ()
+
+    def cell_specs(self, spec: PipeSpec) -> list[PipeSpec]:
+        """Layer stack of each axial cell: *spec*, changed by every
+        ``(i, spec)`` in ``stack_changes`` from cell *i* on."""
+        out, cur = [], spec
+        changes = dict(self.stack_changes)
+        for j in range(self.n_layers):
+            cur = changes.get(j, cur)
+            out.append(cur)
+        return out
+
+    def outlet_spec(self, spec: PipeSpec) -> PipeSpec:
+        return self.cell_specs(spec)[-1] if self.stack_changes else spec
+
+    def check_stack_changes(self, spec: PipeSpec) -> None:
+        """Termination rules (decision 0006), pure Python.
+
+        Changes sit at cell boundaries inside the fitting (never at a
+        port), and each one adds or removes whole outermost layers while
+        every remaining layer keeps its name, radius, ``nrad`` and grading.
+        """
+        name = type(self).__name__
+        idx = [i for i, _ in self.stack_changes]
+        if idx != sorted(set(idx)) or any(not 1 <= i < self.n_layers for i in idx):
+            raise ValueError(
+                f"{name}: stack_changes must be at increasing cell boundaries "
+                f"1 … {self.n_layers - 1} (layers end inside the fitting, never "
+                f"at a port), got {idx}")
+        prev = spec
+        for i, nxt in self.stack_changes:
+            _check_termination(name, i, prev, nxt)
+            prev = nxt
+
+    def stacked(self, path: Path, spec: PipeSpec) -> Path:
+        """*path* with station specs and per-slab fill counts from
+        ``stack_changes``.  Every change must sit at a slab boundary of
+        *path*; each internal station face carries the fuller adjacent
+        stack, so the ending layer's annulus exists there."""
+        if not self.stack_changes:
+            return path
+        cells = self.cell_specs(spec)
+        bounds = np.cumsum([0] + list(path.layers))
+        slab = [cells[b] for b in bounds[:-1]]
+        for k, (lo, hi) in enumerate(zip(bounds[:-1], bounds[1:])):
+            if any(c is not slab[k] for c in cells[lo:hi]):
+                raise ValueError(f"{type(self).__name__}: a stack change falls "
+                                 f"inside slab {k}")
+        n = [len(s.layer_names) for s in slab]
+        specs = [slab[0]] + [slab[k - 1] if n[k - 1] >= n[k] else slab[k]
+                             for k in range(1, len(slab))] + [slab[-1]]
+        path.specs = specs if path.specs is None else path.specs
+        path.fill = n
+        return path
+
 
     def fill(self, faces: list[LayeredCrossSection], frames: list[Frame],
              spec: PipeSpec, lc: float) -> FillResult:
         return sweep_fill(self.path(frames[0], frames[1], spec), faces, spec, lc)
+
+
+def _radii(spec: PipeSpec) -> list[float]:
+    return [spec.core_shape.radius] + [sh.dR for sh in spec.shells]
+
+
+def _check_termination(fitting: str, i: int, a: PipeSpec, b: PipeSpec) -> None:
+    """Raise unless *a* → *b* only adds or removes whole outermost layers."""
+    la, lb = a.layer_names, b.layer_names
+    short, long_ = (la, lb) if len(la) <= len(lb) else (lb, la)
+    where = f"{fitting}: stack change at cell {i}"
+    if la == lb:
+        raise ValueError(f"{where} keeps the layers {la}; a stack change must "
+                         f"end or start a layer")
+    if long_[:len(short)] != short:
+        gone = [x for x in long_ if x not in short]
+        if set(short) <= set(long_):
+            raise ValueError(
+                f"{where}: only outermost layers may stop or start; "
+                f"{', '.join(f'`{x}`' for x in gone)} is not outermost")
+        raise ValueError(f"{where}: layers {la} → {lb} are not the same stack "
+                         f"with outer layers removed or added")
+    c = classify(signature(a), signature(b))
+    if c.cls != 1:
+        what = "; ".join(str(d) for d in c.differences if d.field != "shells")
+        raise ValueError(f"{where}: the remaining layers must match ({what}); "
+                         f"use a Reducer to change them")
+    n = len(short)
+    for lname, ra, rb in zip(short, _radii(a)[:n], _radii(b)[:n]):
+        if ra != rb:
+            raise ValueError(f"{where}: the remaining layers must match "
+                             f"(`{lname}` radius {ra} vs {rb}); use a Reducer")
+    if a.rot != b.rot:
+        raise ValueError(f"{where}: the remaining layers must match "
+                         f"(rot {a.rot} vs {b.rot})")
