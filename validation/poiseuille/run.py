@@ -7,12 +7,17 @@ Steady laminar flow in a straight pipe, three refinement levels:
     hexmesh Assembly → write_openfoam → gmshToFoam → apply_boundary_roles
     → checkMesh → topoSet → simpleFoam → post-processing in Python
 
-and errors against the exact solution.  Usage::
+and signed errors against two references (decision 0015): the exact
+circle, and Poiseuille for the equivalent circle of the meshed
+cross-section (an inscribed polygon).  Richardson extrapolation of the
+three levels gives observed orders, extrapolated values and the fine-level
+GCI [celik_and_ghia_etal_2008].  A checkMesh-only sweep reports how
+non-orthogonality and skewness grow with ``nang``.  Usage::
 
     python3 validation/poiseuille/run.py [--levels coarse medium fine]
-                                         [--work DIR] [--results RESULTS.md]
+                                         [--work DIR] [--json FILE] [--no-trend]
 
-Prints one JSON object per level, and the convergence table.
+Prints one JSON object per level, and the convergence tables.
 """
 
 from __future__ import annotations
@@ -268,6 +273,17 @@ def read_internal(path: Path, ncomp: int):
         else np.array(body.split(), float)
 
 
+def read_patch_faces(path: Path, patch: str):
+    """Face labels of *patch*, from ``constant/polyMesh/boundary``."""
+    import numpy as np
+    text = _strip_header(path.read_text())
+    i = re.search(rf"^\s*{patch}\s*\{{", text, re.M).end()
+    body = text[i:text.index("}", i)]
+    n = int(re.search(r"nFaces\s+(\d+)", body).group(1))
+    start = int(re.search(r"startFace\s+(\d+)", body).group(1))
+    return np.arange(start, start + n)
+
+
 def read_patch_values(path: Path, patch: str):
     import numpy as np
     text = _strip_header(path.read_text())
@@ -328,9 +344,19 @@ def results(case: Path) -> dict:
     q_in = -float(read_patch_values(t / "phi", "fluid_inlet").sum())
     q_out = float(read_patch_values(t / "phi", "fluid_outlet").sum())
     q_exact = U_MEAN * math.pi * R**2
+    # meshed geometry: Poiseuille for the circle of the inlet's own area A,
+    # carrying the measured Q (decision 0015)
+    _, a_in = face_geom(read_patch_faces(mesh / "boundary", "fluid_inlet"))
+    area = float(a_in.sum())
+    dp_mesh = 8 * math.pi * NU * (X_B - X_A) * q_out / area**2
+    u_max_mesh = 2 * q_out / area
+    dp_e, u_e = (dp - DP_EXACT) / DP_EXACT, (u_max - U_MAX_EXACT) / U_MAX_EXACT
     return {
-        "dp": dp, "dp_err": abs(dp - DP_EXACT) / DP_EXACT,
-        "u_max": u_max, "u_max_err": abs(u_max - U_MAX_EXACT) / U_MAX_EXACT,
+        "dp": dp, "dp_err": abs(dp_e), "dp_err_signed": dp_e,
+        "u_max": u_max, "u_max_err": abs(u_e), "u_max_err_signed": u_e,
+        "area": area, "area_err_signed": (area - math.pi * R**2) / (math.pi * R**2),
+        "dp_ref_mesh": dp_mesh, "dp_err_mesh": (dp - dp_mesh) / dp_mesh,
+        "u_max_ref_mesh": u_max_mesh, "u_max_err_mesh": (u_max - u_max_mesh) / u_max_mesh,
         "u_max_fit_faces": int(fit.sum()),
         "u_near_axis": float(u[near].mean()),
         "u_max_axis_offset": float(r[near].mean()),
@@ -390,6 +416,57 @@ def orders(rows: list[dict], key: str) -> list[float]:
     return [math.log2(a[key] / b[key]) for a, b in zip(rows, rows[1:])]
 
 
+def richardson(coarse: float, medium: float, fine: float, ratio: float = 2.0) -> dict:
+    """Three-level Richardson extrapolation with a constant refinement ratio
+    [celik_and_ghia_etal_2008], §2.1, steps 3–5 (q(p) = 0 for constant r).
+
+    ``fine``/``medium``/``coarse`` are f1/f2/f3.  Returns the observed order,
+    the extrapolated value, the approximate and extrapolated relative errors
+    of the fine level, the fine-level GCI (safety factor 1.25), and whether
+    convergence is oscillatory (ε32/ε21 < 0).
+    """
+    e21, e32 = medium - fine, coarse - medium
+    p = abs(math.log(abs(e32 / e21))) / math.log(ratio)
+    rp = ratio ** p
+    ext = (rp * fine - medium) / (rp - 1)
+    e_a = abs((fine - medium) / fine)
+    return {"order": p, "extrapolated": ext, "e_a": e_a,
+            "e_ext": abs((ext - fine) / ext), "gci_fine": 1.25 * e_a / (rp - 1),
+            "oscillatory": e32 / e21 < 0}
+
+
+TREND_NANG = (6, 12, 24, 48, 96)
+
+
+def nonorth_trend(work: Path, nangs=TREND_NANG) -> list[dict]:
+    """checkMesh only, on a 2 D pipe with this case's cross-section
+    (``nrad`` = ``nang`` / 2) and 4 axial layers."""
+    rows = []
+    for nang in nangs:
+        case = work / f"trend-{nang}"
+        if case.exists():
+            shutil.rmtree(case)
+        case.mkdir(parents=True)
+        with Session(f"poiseuille-trend-{nang}"):
+            spec = PipeSpec(nang=nang).core("fluid", radius=R, nrad=nang // 2)
+            asm = Assembly(spec, position=[0, 0, 0], direction=[1, 0, 0], up=[0, 0, 1])
+            asm.add(Straight(2 * D, n_layers=4))
+            cells = asm.cell_count()
+            msh = case / "pipe.msh"
+            asm.write_openfoam(msh)
+        write_case(case, 1)
+        foam(f"gmshToFoam {msh.name}", case, "log.gmshToFoam")
+        check = foam("checkMesh", case, "log.checkMesh")
+        rows.append({
+            "nang": nang, "nrad": nang // 2, "cells": cells, "mesh_ok": "Mesh OK." in check,
+            "max_non_orthogonality": float(
+                re.search(r"non-orthogonality Max: ([\d.e+-]+)", check).group(1)),
+            "max_skewness": float(re.search(r"Max skewness = ([\d.e+-]+)", check).group(1)),
+        })
+        print(f"[trend] nang {nang}: {rows[-1]}", flush=True)
+    return rows
+
+
 def versions() -> dict:
     git = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=HERE,
                          capture_output=True, text=True).stdout.strip()
@@ -404,14 +481,43 @@ def versions() -> dict:
 
 def table(rows: list[dict]) -> str:
     lines = ["| Level | Cells | min SJ | max non-orth. (°) | max skewness | Iterations "
-             "| Δp (m²/s²) | e(Δp) | u_max (m/s) | e(u_max) | mass balance |",
-             "|---|---|---|---|---|---|---|---|---|---|---|"]
+             "| mass balance |",
+             "|---|---|---|---|---|---|---|"]
     for r in rows:
         lines.append(
             f"| {r['level']} | {r['cells']} | {r['min_scaled_jacobian']:.3f} "
             f"| {r['max_non_orthogonality']:.1f} | {r['max_skewness']:.3f} "
-            f"| {r['iterations']} | {r['dp']:.6e} | {r['dp_err']:.3%} "
-            f"| {r['u_max']:.6e} | {r['u_max_err']:.3%} | {r['mass_err']:.1e} |")
+            f"| {r['iterations']} | {r['mass_err']:.1e} |")
+    lines += ["", "Signed errors; *circle* = exact solution, *mesh* = Poiseuille for the "
+              "equivalent circle of the meshed section (area A, measured Q).", "",
+              "| Level | A − πR² | Δp (m²/s²) | e(Δp), circle | e(Δp), mesh "
+              "| u_max (m/s) | e(u_max), circle | e(u_max), mesh |",
+              "|---|---|---|---|---|---|---|---|"]
+    for r in rows:
+        lines.append(
+            f"| {r['level']} | {r['area_err_signed']:+.3%} | {r['dp']:.6e} "
+            f"| {r['dp_err_signed']:+.3%} | {r['dp_err_mesh']:+.3%} | {r['u_max']:.6e} "
+            f"| {r['u_max_err_signed']:+.3%} | {r['u_max_err_mesh']:+.3%} |")
+    return "\n".join(lines)
+
+
+def richardson_table(rich: dict) -> str:
+    exact = {"dp": DP_EXACT, "u_max": U_MAX_EXACT}
+    lines = ["| Quantity | observed order | extrapolated | extrapolated − exact "
+             "| GCI fine | oscillatory |", "|---|---|---|---|---|---|"]
+    for k, r in rich.items():
+        lines.append(f"| {k} | {r['order']:.2f} | {r['extrapolated']:.6e} "
+                     f"| {(r['extrapolated'] - exact[k]) / exact[k]:+.3%} "
+                     f"| {r['gci_fine']:.3%} | {r['oscillatory']} |")
+    return "\n".join(lines)
+
+
+def trend_table(trend: list[dict]) -> str:
+    lines = ["| nang | nrad | cells | Mesh OK | max non-orth. (°) | max skewness |",
+             "|---|---|---|---|---|---|"]
+    for t in trend:
+        lines.append(f"| {t['nang']} | {t['nrad']} | {t['cells']} | {t['mesh_ok']} "
+                     f"| {t['max_non_orthogonality']:.1f} | {t['max_skewness']:.3f} |")
     return "\n".join(lines)
 
 
@@ -421,6 +527,8 @@ def main(argv=None) -> list[dict]:
     ap.add_argument("--work", type=Path, default=HERE / "work")
     ap.add_argument("--end-time", type=int, default=20000)
     ap.add_argument("--json", type=Path, help="write all results as JSON")
+    ap.add_argument("--no-trend", action="store_true",
+                    help="skip the checkMesh-only non-orthogonality sweep")
     args = ap.parse_args(argv)
     rows = []
     for name in args.levels:
@@ -429,11 +537,19 @@ def main(argv=None) -> list[dict]:
         rows.append(r)
     print(f"\nexact: dp = {DP_EXACT:.6e}, u_max = {U_MAX_EXACT:.6e}\n")
     print(table(rows))
+    rich = {}
     if len(rows) > 1:
-        print(f"\nobserved order, dp:    {orders(rows, 'dp_err')}")
-        print(f"observed order, u_max: {orders(rows, 'u_max_err')}")
+        print(f"\nerror ratio order, dp:    {orders(rows, 'dp_err')}")
+        print(f"error ratio order, u_max: {orders(rows, 'u_max_err')}")
+    if len(rows) == 3:
+        rich = {k: richardson(*(r[k] for r in rows)) for k in ("dp", "u_max")}
+        print("\n" + richardson_table(rich))
+    trend = [] if args.no_trend else nonorth_trend(args.work)
+    if trend:
+        print("\n" + trend_table(trend))
     if args.json:
         args.json.write_text(json.dumps({"versions": versions(), "levels": rows,
+                                         "richardson": rich, "trend": trend,
                                          "exact": {"dp": DP_EXACT, "u_max": U_MAX_EXACT}},
                                         indent=1))
     return rows

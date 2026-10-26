@@ -7,7 +7,53 @@ Versions: hexmesh `82147f4`, gmsh 4.12.1, OpenFOAM v1912
 
 Exact: Δp = 8.000000e-05 m²/s² (15 D → 25 D), u_max = 1.000000e-02 m/s.
 
-## As meshed by hexmesh
+## With exact walls (after task 0025)
+
+Run 2026-10-26: hexmesh 4ba565b, gmsh 4.12.1, OpenFOAM v1912.
+Exact: Δp = 8.000000e-05 m²/s², u_max = 1.000000e-02 m/s.
+
+| Level | Cells | min SJ | max non-orth. (°) | max skewness | Iterations | mass balance |
+|---|---|---|---|---|---|---|
+| coarse | 5184 | 0.793 | 23.5 | 0.422 | 125 | 1.2e-11 |
+| medium | 41472 | 0.752 | 33.2 | 0.484 | 333 | 1.1e-10 |
+| fine | 331776 | 0.730 | 38.9 | 0.515 | 1092 | 6.9e-11 |
+
+Signed errors; *circle* = exact solution, *mesh* = Poiseuille for the equivalent circle of the meshed section (area A, measured Q).
+
+| Level | A − πR² | Δp (m²/s²) | e(Δp), circle | e(Δp), mesh | u_max (m/s) | e(u_max), circle | e(u_max), mesh |
+|---|---|---|---|---|---|---|---|
+| coarse | -1.138% | 8.036058e-05 | +0.451% | -0.693% | 9.906548e-03 | -0.935% | -0.935% |
+| medium | -0.285% | 8.016547e-05 | +0.207% | -0.079% | 9.974559e-03 | -0.254% | -0.254% |
+| fine | -0.071% | 8.008353e-05 | +0.104% | +0.033% | 9.992713e-03 | -0.073% | -0.073% |
+
+Richardson extrapolation [celik_and_ghia_etal_2008], ratio 2:
+
+| Quantity | observed order | extrapolated | extrapolated − exact | GCI fine | oscillatory |
+|---|---|---|---|---|---|
+| dp | 1.25 | 8.002422e-05 | +0.030% | 0.093% | False |
+| u_max | 1.91 | 9.999323e-03 | -0.007% | 0.083% | False |
+
+Gates (decision 0015): extrapolated Δp and u_max within 0.1 % of exact
+(+0.030 %, −0.007 %): **pass**.  Fine |error| < 1 % (0.104 %, 0.073 %):
+**pass**.  Monotonic decrease: **pass**.  u_max order 1.91 ≥ 1.5:
+**pass**.  Δp order 1.25 is reported only: against the meshed section's
+own circle the Δp error changes sign (−0.69 → −0.08 → +0.03 %), the
+polygon's area deficit competing with discretisation error.
+
+### Non-orthogonality trend (checkMesh only, 2 D pipe, 4 axial layers)
+
+| nang | nrad | cells | Mesh OK | max non-orth. (°) | max skewness |
+|---|---|---|---|---|---|
+| 6 | 3 | 432 | True | 23.5 | 0.422 |
+| 12 | 6 | 1728 | True | 33.2 | 0.484 |
+| 24 | 12 | 6912 | True | 38.9 | 0.515 |
+| 48 | 24 | 27648 | True | 41.9 | 0.530 |
+| 96 | 48 | 110592 | True | 43.4 | 0.538 |
+
+Growth per doubling: +9.8°, +5.6°, +3.0°, +1.5°.  It levels off,
+approaching the ~45° limit of the O-H core's 135° corner kink.
+
+## History: before task 0025 (sagged plate walls)
 
 | Level | Cells | min SJ | max non-orth. (°) | max skewness | Iterations | Δp (m²/s²) | e(Δp) | u_max (m/s) | e(u_max) | mass balance |
 |---|---|---|---|---|---|---|---|---|---|---|
