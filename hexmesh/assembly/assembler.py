@@ -292,6 +292,29 @@ class Assembly:
         """Rebuild an assembly from :meth:`to_dict` output."""
         return intent.from_dict(cls, d)
 
+    def refined(self, k: int) -> "Assembly":
+        """A new assembly at k× the resolution in every direction.
+
+        Built from the saved description (:meth:`to_dict`, scaled,
+        :meth:`from_dict`); this assembly is unchanged.  ``nang``, every
+        ``nrad`` and every axial count (``n_layers``; a tee's ``n_run``,
+        ``n_branch`` and ``n_turn``) are multiplied by *k*, and every
+        grading ratio (radial ``mprg``, ``axial_grading``) becomes its
+        k-th root, so each coarse cell splits into k cells of the same
+        growth.  Geometry, topology and ``mbmp`` are unchanged.
+
+        **Cost:** k³ × the cells (``refined(2)`` has 8×).
+
+        A spec built with ``first_cell=`` stores its resolved ``mprg``, so
+        the refined first cell is smaller, not the requested height.
+
+        Use it for grid-convergence studies (decision 0015); refining part
+        of a network needs density switches (decision 0003).
+        """
+        if isinstance(k, bool) or not isinstance(k, (int, np.integer)) or k < 1:
+            raise ValueError(f"refined(k): k must be an integer >= 1, got {k!r}")
+        return type(self).from_dict(intent.refined_dict(self.to_dict(), int(k)))
+
     def save(self, path) -> None:
         """Write :meth:`to_dict` as indented JSON with sorted keys."""
         with open(path, "w", encoding="utf-8") as f:

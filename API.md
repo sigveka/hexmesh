@@ -79,6 +79,7 @@ An interface-first pipe network ([DESIGN.md](DESIGN.md) §5).
 |---|---|
 | `to_dict()` / `Assembly.from_dict(d)` | The network description as plain JSON-serialisable data, and back |
 | `save(path)` / `Assembly.load(path)` | The same, as a JSON file (indented, sorted keys) |
+| `refined(k)` | A new assembly at k× the resolution (integer k ≥ 1), built from `to_dict()`: `nang`, every `nrad`, every `n_layers` and a tee's `n_run` / `n_branch` / `n_turn` × k, the axial cell index of each `stack_changes` entry × k, and `mprg` and `axial_grading` → their k-th root.  Geometry, topology and `mbmp` stay; `first_cell` specs keep their resolved `mprg`.  **k³× the cells.** |
 
 The file records how the network was built, not its geometry:
 - the pose and spec of the first interface;

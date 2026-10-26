@@ -182,6 +182,59 @@ def from_dict(cls, d: dict) -> "Assembly":
     return asm
 
 
+# --- uniform refinement (task 0026, decision 0015) ----------------------------
+
+# Axial cell counts per fitting type.  Everything else in a fitting is
+# geometry or topology (MiterBend.n_cuts included) and stays.
+AXIAL_COUNTS = ("n_layers", "n_run", "n_branch", "n_turn")
+
+
+def refine_spec_dict(d: dict, k: int) -> dict:
+    """A :meth:`PipeSpec.to_dict` description at k× the density: every
+    angular and radial count × k, every radial ``mprg`` → ``mprg ** (1/k)``
+    so each coarse cell splits into k cells of the same growth.  Topology
+    (``n_outer``, ``rot``, layers), ``mbmp`` and geometry are unchanged."""
+    d = json.loads(json.dumps(d))
+    for key in ("nang", "nang_w", "nang_h"):
+        if d.get(key) is not None:
+            d[key] *= k
+    for key in ("nang", "nang_w", "nang_h"):
+        if key in d["core"]["shape"]:
+            d["core"]["shape"][key] *= k
+    for layer in (d["core"], *d["shells"]):
+        layer["nrad"] *= k
+        layer["mprg"] = layer.get("mprg", 1.0) ** (1.0 / k)
+    return d
+
+
+def _refine_fitting_dict(d: dict, k: int) -> dict:
+    d = dict(d)
+    for key in AXIAL_COUNTS:
+        if key in d:
+            d[key] *= k
+    if "axial_grading" in d:
+        d["axial_grading"] **= 1.0 / k
+    if "outlet" in d:
+        d["outlet"] = refine_spec_dict(d["outlet"], k)
+    if "stack_changes" in d:          # (axial cell index, spec): cell i → cell k·i
+        d["stack_changes"] = [[i * k, refine_spec_dict(spec, k)]
+                              for i, spec in d["stack_changes"]]
+    return d
+
+
+def refined_dict(d: dict, k: int) -> dict:
+    """:func:`to_dict` output at k× the density in every direction."""
+    d = json.loads(json.dumps(d))
+    inlet = d["inlet"]
+    inlet["spec"] = refine_spec_dict(inlet["spec"], k)
+    if "nozzle" in inlet:
+        for n in inlet["nozzle"]["drum"]["nozzles"]:
+            n["spec"] = refine_spec_dict(n["spec"], k)
+    for e in d["edges"]:
+        e["fitting"] = _refine_fitting_dict(e["fitting"], k)
+    return d
+
+
 def dumps(asm: "Assembly") -> str:
     """Human-readable JSON: indented, sorted keys."""
     return json.dumps(to_dict(asm), indent=2, sort_keys=True) + "\n"

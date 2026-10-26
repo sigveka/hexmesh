@@ -236,6 +236,19 @@ asm.add(Bend(radius=0.3, angle=90, n_layers=12, axial_grading=0.9))
 > doubles the nodes in each direction, which gives **8× the cells** in 3-D. If
 > you come from unstructured meshing, expect this rather than a linear increase.
 
+**Convergence studies.** `asm.refined(k)` returns a copy at k× the
+resolution in every direction: `nang`, every `nrad` and every axial count
+× k, and every grading ratio replaced by its k-th root, so each coarse cell
+splits into k cells of the same growth. It has **k³× the cells**, and the
+original is unchanged.
+
+```python
+levels = [asm, asm.refined(2), asm.refined(4)]   # 1×, 8×, 64× the cells
+```
+
+A spec built with `first_cell=` keeps its resolved progression, so the
+refined first cell is smaller.
+
 ---
 
 ## Physical groups
