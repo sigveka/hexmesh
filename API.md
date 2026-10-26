@@ -66,7 +66,8 @@ An interface-first pipe network ([DESIGN.md](DESIGN.md) §5).
 |---|---|
 | `mesh(dim=3, *, walls_by_fitting=False)` | Build faces, fill all fittings, write physical groups, and mesh. With `walls_by_fitting`, one wall group per fitting, `{outer}_wall_{name}`, in place of `{outer}_wall`; *name* is the fitting's label or `<Type><index>` (`Bend3`) |
 | `write(path, dim=3, *, walls_by_fitting=False)` | `mesh()`, then `gmsh.write(path)`; the format follows the extension |
-| `write_openfoam(path, *, interfaces=False, walls_by_fitting=False)` | `mesh()`, then write a `.msh` for `gmshToFoam`: MSH 2.2 ASCII, without the material-interface groups unless `interfaces=True` (the split rebuilds them as `mappedWall`; kept, they become faceZones); the GMSH options and groups are restored afterwards |
+| `write_openfoam(path, *, interfaces=False, walls_by_fitting=False)` | `mesh()`, then write a `.msh` for `gmshToFoam`: MSH 2.2 ASCII, without the material-interface groups unless `interfaces=True` (the split rebuilds them as `mappedWall`; kept, they become faceZones); the GMSH options and groups are restored afterwards.  Also writes the role manifest `<stem>.roles.json` |
+| `group_roles()` | Physical-group name → role (`volume`, `open_end`, `wall`, `interface`), from the graph, as last written by `mesh()` |
 | `check_quality(quality_name="minSICN", threshold=None, by="material")` | `QualityReport` per material, or per fitting with `by="fitting"` (see Quality) |
 | `fitting_volumes()` | Volume tags per fitting (edge index → tags) |
 | `build_faces()`, `fill(order=None)` | The individual steps; `fill` takes any order of edge indices (rule A6) |
@@ -355,6 +356,29 @@ Element-level hex metrics (warping, skewness, scaled Jacobian, …) from
 `hexmesh.quality_hex`.
 
 ---
+
+## OpenFOAM boundary roles (`hexmesh.io.writers.openfoam_boundary`)
+
+The manifest, `<stem>.roles.json`, looks like this:
+
+```json
+{"format": 1,
+ "groups": {"fluid": "volume", "fluid_inlet": "open_end", "fluid_wall": "wall",
+            "interface_fluid_steel": "interface"},
+ "not_written": ["interface_fluid_steel"]}
+```
+
+- **`groups`** gives each physical group's role, taken from the network
+  graph, never from the name.
+- **`not_written`** lists groups in the manifest that `write_openfoam`
+  left out of the `.msh`.
+
+| Function | Does |
+|---|---|
+| `apply_boundary_roles(case_dir, roles, region=None)` | Retype `constant[/<region>]/polyMesh/boundary` in place (plain Python, atomic write). `wall` patches get `type wall;` and `inGroups 1(wall);`; `open_end` patches stay `patch`; `mappedWall` patches are untouched. Patches missing from the manifest are left alone, with one warning naming them. *roles* is the manifest dict or its path. Returns the retyped patch names |
+| `apply_boundary_roles_to_regions(case_dir, roles)` | The same for every `constant/<region>` after `splitMeshRegions`, or for `constant/polyMesh` if there are no regions. Returns region → retyped names |
+| `retype_boundary_text(text, groups)` | The text transformation: `(new_text, retyped, unknown)` |
+| `roles_path(msh)`, `write_roles(path, groups, not_written)`, `read_roles(path_or_dict)` | Manifest helpers |
 
 ## Readers (`hexmesh.io.readers`)
 

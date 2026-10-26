@@ -29,6 +29,29 @@ def _insulated():
     return asm
 
 
+def foam_case(case):
+    """A minimal OpenFOAM case directory (system/ dictionaries only)."""
+    (case / "system").mkdir(parents=True)
+    (case / "system" / "controlDict").write_text(
+        "FoamFile { version 2.0; format ascii; class dictionary; object controlDict; }\n"
+        "application none; startFrom startTime; startTime 0; stopAt endTime;\n"
+        "endTime 1; deltaT 1; writeControl timeStep; writeInterval 1;\n")
+    header = "FoamFile { version 2.0; format ascii; class dictionary; object %s; }\n"
+    (case / "system" / "fvSchemes").write_text(
+        header % "fvSchemes" +
+        "ddtSchemes { default steadyState; } gradSchemes { default Gauss linear; }\n"
+        "divSchemes { default none; } laplacianSchemes { default Gauss linear corrected; }\n"
+        "interpolationSchemes { default linear; } snGradSchemes { default corrected; }\n")
+    (case / "system" / "fvSolution").write_text(header % "fvSolution")
+    return case
+
+
+def run_foam(script):
+    """Run *script* in bash with the OpenFOAM environment; return the result."""
+    return subprocess.run(["bash", "-c", f"source {OPENFOAM_RC} >/dev/null 2>&1; set -e; {script}"],
+                          capture_output=True, text=True)
+
+
 def _mesh_format(path):
     lines = pathlib.Path(path).read_text().splitlines()
     assert lines[0] == "$MeshFormat"
@@ -108,19 +131,7 @@ def test_openfoam_cht_split(gmsh_session, tmp_path, interfaces):
     """
     msh = tmp_path / "pipe.msh"
     _insulated().write_openfoam(msh, interfaces=interfaces)
-    case = tmp_path / "case"
-    (case / "system").mkdir(parents=True)
-    (case / "system" / "controlDict").write_text(
-        "FoamFile { version 2.0; format ascii; class dictionary; object controlDict; }\n"
-        "application none; startFrom startTime; startTime 0; stopAt endTime;\n"
-        "endTime 1; deltaT 1; writeControl timeStep; writeInterval 1;\n")
-    header = "FoamFile { version 2.0; format ascii; class dictionary; object %s; }\n"
-    (case / "system" / "fvSchemes").write_text(
-        header % "fvSchemes" +
-        "ddtSchemes { default steadyState; } gradSchemes { default Gauss linear; }\n"
-        "divSchemes { default none; } laplacianSchemes { default Gauss linear corrected; }\n"
-        "interpolationSchemes { default linear; } snGradSchemes { default corrected; }\n")
-    (case / "system" / "fvSolution").write_text(header % "fvSolution")
+    case = foam_case(tmp_path / "case")
     script = (f"source {OPENFOAM_RC} >/dev/null 2>&1; set -e; "
               f"gmshToFoam -case {case} {msh}; "
               f"splitMeshRegions -case {case} -cellZones -overwrite; "

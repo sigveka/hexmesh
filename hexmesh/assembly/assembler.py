@@ -34,6 +34,7 @@ from ..core.spec import PipeSpec
 from ..faces._gmsh_helpers import add_physical_group
 from ..quality_hex import METRICS, hex_vertices
 from . import intent
+from ..io.writers.openfoam_boundary import roles_path, write_roles
 from .corners import transfinite_surface_corners, transfinite_volume_corners
 from .fittings import FillResult, Straight
 from .quality import QualityReport, RegionQuality
@@ -114,6 +115,7 @@ class Assembly:
         self._fitting_walls:   dict[int, list[int]] = {}
         self._faces_built = False
         self._nozzle = None          # (drum, nozzle name) for from_nozzle()
+        self._group_roles: dict[str, str] = {}
         self.inlet = self._new_interface(
             Frame.from_vectors(position, direction, up), spec, inlet_name,
         )
@@ -470,15 +472,25 @@ class Assembly:
         fitting, ``{outer}_wall_{name}`` (``Edge.name``: its label, or
         ``<Type><index>``), in place of the single ``{outer}_wall``.  Each
         wall surface is still in exactly one group.
+
+        Each group's role (``volume``, ``open_end``, ``wall`` or
+        ``interface``) is recorded as it is added, from the graph and never
+        from the name; :meth:`group_roles` returns them (decision 0013).
         """
         self.build()
         fill = self._fill
+        self._group_roles = {}
+
+        def group(dim, tags, name, role):
+            add_physical_group(dim, tags, name)
+            self._group_roles[name] = role
+
         for name, vols in fill.volumes.items():
-            add_physical_group(3, vols, name)
+            group(3, vols, name, "volume")
         for iface in self.open_interfaces():
             patch = self.patch_name(iface)
             for name, cs in iface.face.layers:
-                add_physical_group(2, list(cs.surfaces), f"{name}_{patch}")
+                group(2, list(cs.surfaces), f"{name}_{patch}", "open_end")
         outer = self.inlet.spec.layer_names[-1]
         if walls_by_fitting:
             names = [e.name for e in self._edges]
@@ -486,12 +498,18 @@ class Assembly:
                 raise AssemblyError(f"fitting names are not unique: {names}")
             for e in self._edges:
                 if self._fitting_walls[e.index]:
-                    add_physical_group(2, self._fitting_walls[e.index],
-                                       f"{outer}_wall_{e.name}")
+                    group(2, self._fitting_walls[e.index], f"{outer}_wall_{e.name}", "wall")
         else:
-            add_physical_group(2, fill.walls, f"{outer}_wall")
+            group(2, fill.walls, f"{outer}_wall", "wall")
         for label, tags in fill.interfaces.items():
-            add_physical_group(2, tags, label)
+            group(2, tags, label, "interface")
+
+    def group_roles(self) -> dict[str, str]:
+        """Physical-group name → role, as last written by
+        :meth:`write_physical_groups` (so after :meth:`mesh`)."""
+        if not getattr(self, "_group_roles", None):
+            raise AssemblyError("no physical groups written yet; call mesh() first")
+        return dict(self._group_roles)
 
     def mesh(self, dim: int = 3, *, walls_by_fitting: bool = False) -> None:
         """Build, write physical groups, and generate the mesh.
@@ -537,6 +555,11 @@ class Assembly:
         patches plus faceZones.  With *interfaces*, those faceZones are
         kept and the split is unaffected.  The groups stay in the GMSH
         model.
+
+        Also writes the boundary-role manifest ``<stem>.roles.json`` next to
+        the file (``pipe.msh`` → ``pipe.roles.json``), which
+        ``hexmesh.io.writers.openfoam_boundary.apply_boundary_roles`` uses
+        to retype the walls of the converted case.
         """
         if not str(path).endswith(".msh"):
             raise ValueError(f"write_openfoam writes a .msh file, got {path!r}")
@@ -551,6 +574,8 @@ class Assembly:
                                     list(gmsh.model.getEntitiesForPhysicalGroup(d, t))))
             if dropped:   # an empty list would remove every group
                 gmsh.model.removePhysicalGroups([(d, t) for d, t, _, _ in dropped])
+        write_roles(roles_path(path), self.group_roles(),
+                    not_written=[name for _, _, name, _ in dropped])
         options = {k: gmsh.option.getNumber(k) for k in ("Mesh.MshFileVersion", "Mesh.Binary")}
         try:
             gmsh.option.setNumber("Mesh.MshFileVersion", 2.2)

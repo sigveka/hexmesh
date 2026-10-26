@@ -270,9 +270,19 @@ Each material becomes a cellZone, and after the split a region with
 `mappedWall` interfaces to its neighbours.  `write_openfoam` leaves the
 `interface_*` groups out of the file by default, because the split
 rebuilds every interface as a `mappedWall` pair itself;
-`interfaces=True` keeps them as faceZones.  `gmshToFoam` writes every
-patch as type `patch`, so retype the walls to `wall` yourself.  Verified
-with OpenFOAM v1912; details in
+`interfaces=True` keeps them as faceZones.
+
+`gmshToFoam` writes every patch as type `patch`.  `write_openfoam` also
+writes `pipe.roles.json`, the role of each group taken from the network
+(wall, open end, interface, volume), and one call retypes the walls:
+
+```python
+from hexmesh.io.writers.openfoam_boundary import apply_boundary_roles_to_regions
+apply_boundary_roles_to_regions("case", "pipe.roles.json")   # every region, or the unsplit mesh
+```
+
+Open ends stay `patch`, and the split's `mappedWall` interfaces are left
+alone.  Verified with OpenFOAM v1912; details in
 [docs/integrations/openfoam.md](docs/integrations/openfoam.md).
 
 ---
