@@ -18,6 +18,7 @@ runs the same checks:
               cell count predicted before GMSH equals the mesh   (P4)
               per-fitting wall groups keep the above        (A7)
 * order       every fill order gives the identical mesh          (A6)
+* exactness   wall and interface nodes on their analytic surface (§6)
 
 A new fitting is added by writing one case function and listing it in
 ``CASES``.  A fitting is not finished until it passes the kit.
@@ -207,6 +208,83 @@ def _grouped_quads():
     return quads, owners
 
 
+def _layer_radii(spec):
+    """Radii of every cylindrical boundary of *spec*: core, then each shell."""
+    return np.cumsum([spec.core_shape.radius] + [sh.dR for sh in spec.shells])
+
+
+def wall_deviations(asm) -> dict[str, float]:
+    """Largest distance, relative to the outer radius, of any node on a
+    fitting's wall or material-interface surfaces from its analytic surface
+    (DESIGN §6, task 0025).  Pure check on a meshed assembly; reusable for
+    new fittings.
+
+    The surface comes from the fitting's own ``Path``:
+    * arc axial curves (``Bend``, ``Elbow``): the torus about the arc;
+    * straight axial curves (``Straight``, ``Reducer``, ``MiterBend`` legs):
+      the distance to the axis line of the slab whose axis segment is
+      nearest, with layer radii interpolated linearly between its two
+      stations (a cone for a reducer).  A node on a miter cut lies on both
+      legs' cylinders;
+    * other paths (``SplinePipe``, ``Closure``): no closed form; they must
+      have one axial layer per slab, so no surface carries interior nodes
+      (asserted), and they are not measured.
+    """
+    fill = asm._fill
+    # end annuli of a terminated layer lie on station planes, not cylinders
+    ends = {t for t, g in fill.wall_groups.items() if g.endswith("_end")}
+    sides = (set(fill.walls) - ends) | {t for ts in fill.interfaces.values() for t in ts}
+    out = {}
+    for e in asm.edges:
+        frames = [p.frame for p in e.ports]
+        spec = e.ports[0].spec
+        if len(frames) != 2:
+            continue                                   # junctions: DESIGN deviations table
+        path = e.fitting.path(frames[0], frames[1], spec)
+        vols = asm.fitting_volumes()[e.index]
+        bnd = {abs(t) for _, t in gmsh.model.getBoundary([(3, v) for v in vols],
+                                                       combined=False, oriented=False)}
+        surfs = sorted(bnd & sides)
+        x = np.vstack([gmsh.model.mesh.getNodes(2, t, includeBoundary=True)[1].reshape(-1, 3)
+                       for t in surfs])
+        scale = max(_layer_radii(path.spec_at(k, spec))[-1] for k in range(len(path.frames)))
+        if path.axial is not None:                     # torus about the arc
+            a, c = path.axial.axis, path.axial.centre
+            rb = np.linalg.norm((path.frames[0].position - c)
+                                - np.dot(path.frames[0].position - c, a) * a)
+            v = x - c
+            h = v @ a
+            rho = np.linalg.norm(v - np.outer(h, a), axis=1)
+            d = np.hypot(rho - rb, h)
+            radii = _layer_radii(spec)
+            dev = np.min(np.abs(d[:, None] - radii[None, :]), axis=1)
+        elif path.is_straight or path.prism:           # per-slab axis lines
+            seg = np.full(len(x), np.inf)               # distance to the nearest axis segment
+            dev = np.full(len(x), np.inf)
+            for k in range(len(path.layers)):
+                p0, p1 = path.frames[k].position, path.frames[k + 1].position
+                L = np.linalg.norm(p1 - p0)
+                ax = (p1 - p0) / L
+                t = (x - p0) @ ax
+                d = np.linalg.norm((x - p0) - np.outer(t, ax), axis=1)
+                u = np.clip(t / L, 0, 1)
+                to_seg = np.linalg.norm(x - (p0 + np.outer(u * L, ax)), axis=1)
+                r0 = _layer_radii(path.slab_spec(k, spec))
+                r1 = _layer_radii(path.spec_at(k + 1, spec))[:len(r0)]
+                r = r0[None, :] + (r1 - r0)[None, :] * u[:, None]
+                dk = np.min(np.abs(d[:, None] - r), axis=1)
+                nearer = to_seg < seg - 1e-12 * scale
+                tie = np.abs(to_seg - seg) <= 1e-12 * scale     # on a cut: either leg
+                dev = np.where(nearer, dk, np.where(tie, np.minimum(dev, dk), dev))
+                seg = np.minimum(seg, to_seg)
+        else:
+            assert all(n == 1 for n in path.layers), (
+                f"{e}: no analytic surface, so every slab needs one axial layer")
+            continue
+        out[e.name] = float(dev.max() / scale)
+    return out
+
+
 # ---------------------------------------------------------------------------
 # The kit
 # ---------------------------------------------------------------------------
@@ -290,6 +368,20 @@ class TestConformance:
             allowed = {f"{l}_{kind}_{e.name}" for l in layers for kind in ("wall", "end")
                        for e in asm.edges}
             assert set(walls) <= allowed, set(walls) - allowed
+        finally:
+            gmsh.finalize()
+
+    def test_walls_exact(self, case):
+        """Every wall and interface node on its analytic surface (DESIGN §6)."""
+        if case.startswith("tee"):
+            pytest.skip("tee run slabs: DESIGN deviations table")
+        _session()
+        try:
+            asm = CASES[case]()
+            asm.mesh()
+            dev = wall_deviations(asm)
+            bad = {k: v for k, v in dev.items() if v > 1e-9}
+            assert not bad, f"wall nodes off the analytic surface (× R): {bad}"
         finally:
             gmsh.finalize()
 

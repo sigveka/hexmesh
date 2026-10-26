@@ -36,7 +36,7 @@ from ..core.shape import OH_RATIO   # re-exported: inner-square scale of the OH 
 from ..core.cross_section import interface_group_name
 from ..quality_hex import corner_scaled_jacobians
 from .corners import curve_endpoints
-from .sweep import CurveMesh, FillResult
+from .sweep import CurveMesh, FillResult, _ruled
 
 _EDGES = {  # direction → the four parallel edges
     'i': [(0, 1), (3, 2), (4, 5), (7, 6)],
@@ -360,12 +360,27 @@ class BlockLayout:
             curves = [self._curve(cyc[i], cyc[(i + 1) % 4]) for i in range(4)]
             loop = geo.addCurveLoop(curves)
             # Curves are synchronised before any surface is built.
-            straight = all(gmsh.model.getType(1, abs(c)) == "Line" for c in curves)
+            types = [gmsh.model.getType(1, abs(c)) for c in curves]
+            straight = all(t == "Line" for t in types)
             if straight and self._coplanar(cyc):
                 self.faces[k] = geo.addPlaneSurface([loop])
+            elif self._ruled_cylinder(types):
+                # two opposite straight lines between two arcs: the ruled
+                # surface is the exact cylinder (DESIGN §6, task 0025), as
+                # in a sweep's straight slab
+                self.faces[k] = _ruled(loop)
             else:
                 self.faces[k] = geo.addSurfaceFilling(loop)
         return self.faces[k]
+
+    @staticmethod
+    def _ruled_cylinder(types) -> bool:
+        """Arcs on one pair of opposite sides, lines on the other."""
+        for i in (0, 1):
+            if (types[i] == types[i + 2] == "Circle"
+                    and types[i + 1] == types[(i + 3) % 4] == "Line"):
+                return True
+        return False
 
     def _coplanar(self, cyc) -> bool:
         p = [self.coords[v] for v in cyc]

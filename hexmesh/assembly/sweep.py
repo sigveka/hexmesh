@@ -240,12 +240,16 @@ MAX_CHORD_TURN = 30.0   # degrees
 
 
 def _ruled(loop: int) -> int:
-    """Side face of a prism slab.
+    """Ruled side face of a straight or prism slab.
 
-    Its single axial layer leaves no interior nodes, so the surface only has
-    to be valid.  OCC plate filling (``addSurfaceFilling``) fails between
-    nearly identical B-spline arcs (miter stations less than ~0.2° apart);
-    B-spline "Stretch" filling does not.
+    Between two coaxial arcs at the same angles, joined by straight axial
+    lines, the ruled surface is the exact cylinder (or, for a reducer, the
+    exact cone).  So a straight slab with several axial layers keeps its
+    interior wall nodes on the true surface; OCC plate filling
+    (``addSurfaceFilling``) sags up to 1.08 % of R there (DESIGN §6, task
+    0025).  Plate filling also fails between nearly identical B-spline arcs
+    (miter stations less than ~0.2° apart); B-spline "Stretch" filling does
+    not.
     """
     return gmsh.model.occ.addBSplineFilling(loop, type="Stretch")
 
@@ -337,7 +341,9 @@ def sweep_fill(path: Path, faces: list[LayeredCrossSection],
         result.merge(_fill_slab(stations[k], stations[k + 1], n, offsets[k],
                                 axial_curve=axial_curve, planar_radial=planar,
                                 grading=grading,
-                                side_surface=_ruled if path.prism else None,
+                                # exact surfaces wherever slabs are straight
+                                # (DESIGN §6); plate filling elsewhere
+                                side_surface=_ruled if path.prism or planar else None,
                                 axial_grading=path.axial_grading,
                                 n_fill=None if path.fill is None else path.fill[k]))
     if path.fill is not None:
