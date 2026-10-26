@@ -35,6 +35,7 @@ from ..faces._gmsh_helpers import add_physical_group
 from ..quality_hex import METRICS, hex_vertices
 from . import intent
 from ..io.writers.openfoam_boundary import roles_path, write_roles
+from .signature import check_port_pairs
 from .corners import transfinite_surface_corners, transfinite_volume_corners
 from .fittings import FillResult, Straight
 from .quality import QualityReport, RegionQuality
@@ -343,6 +344,21 @@ class Assembly:
             except NotImplementedError as e:
                 raise AssemblyError(f"{iface}: {e}") from None
         for edge in self._edges:
+            # The fitting's own checks first: they give the most specific
+            # reason (e.g. "Tee prototype supports single-layer specs only").
+            try:
+                edge.fitting.validate(
+                    [p.frame for p in edge.ports], edge.ports[0].spec
+                )
+            except ValueError as e:
+                raise AssemblyError(f"{edge}: {e}") from None
+            # A4: each port pair, as connected, must be in a switch class the
+            # fitting declares (decision 0011).  Before the exact type check
+            # below, so the error names what differs.
+            try:
+                check_port_pairs(edge.fitting, [p.spec for p in edge.ports])
+            except ValueError as e:
+                raise AssemblyError(f"{edge}: {e}") from None
             # A4 — every port type must match the type the fitting declares
             # for it; a fitting that only joins existing interfaces keeps
             # its inlet type throughout.
@@ -357,12 +373,6 @@ class Assembly:
                         f"{edge}: port type at {iface} differs from the type "
                         f"the fitting declares"
                     )
-            try:
-                edge.fitting.validate(
-                    [p.frame for p in edge.ports], edge.ports[0].spec
-                )
-            except ValueError as e:
-                raise AssemblyError(f"{edge}: {e}") from None
         if max_cells is not None:
             counts = self.cell_counts()
             total = sum(counts.values())

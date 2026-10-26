@@ -8,6 +8,7 @@ runs the same checks:
 
 * topology    ``ports`` / ``validate`` / ``cell_count`` run without
               GMSH                                               (P3, P4)
+              every port pair's switch class is declared         (A4)
 * realisation port faces untouched by ``fill``                   (A1, A2)
               no duplicated surfaces, no coincident hex nodes    (P2)
               interior interfaces shared by exactly two fittings (P2)
@@ -209,6 +210,17 @@ class TestConformance:
         asm = CASES[case]()
         asm.validate()
         assert asm.cell_count() > 0
+        assert not gmsh.isInitialized()
+
+    def test_switch_classes_declared(self, case):
+        """Every port pair's switch class is one the fitting declares (A4)."""
+        from hexmesh.assembly.signature import classify, signature, strategies_for
+        asm = CASES[case]()
+        for edge in asm.edges:
+            a = signature(edge.ports[0].spec)
+            for k, port in enumerate(edge.ports[1:]):
+                c = classify(a, signature(port.spec))
+                assert c.cls in strategies_for(edge.fitting, k), (edge, c)
         assert not gmsh.isInitialized()
 
     def test_realisation(self, case):

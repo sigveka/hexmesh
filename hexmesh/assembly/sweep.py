@@ -19,6 +19,7 @@ from ..core.cross_section import LayeredCrossSection
 from ..core.spec import PipeSpec
 from .corners import canonical_geom, connect_layer, curve_endpoints, frame_offset
 from .interface import Frame, build_face, outer_radius, roll_mismatch
+from .signature import check_port_pairs
 
 
 @dataclass(frozen=True)
@@ -325,6 +326,9 @@ class Sweep:
         self.check(spec)
         a, b = frames
         if self.places_outlet:
+            # Port pairs this fitting declares (DESIGN A4, decision 0011);
+            # Assembly.validate checks the pairs as actually connected.
+            check_port_pairs(self, [spec] + [s for _, s in self.ports(a, spec)])
             expected = self.ports(a, spec)[0][0]
             scale = max(1.0, float(np.linalg.norm(b.position - a.position)))
             if (np.linalg.norm(expected.position - b.position) > 1e-9 * scale

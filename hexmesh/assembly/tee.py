@@ -39,6 +39,7 @@ from .blocks import (
     face_vertices,
 )
 from .interface import Frame, outer_radius
+from .signature import check_port_pairs
 
 _SAMPLES = 9   # interior points per spline edge
 
@@ -68,6 +69,8 @@ class Tee:
     n_turn : int
         Layers of the junction's turning blocks (into the branch).
     """
+
+    strategies = frozenset({0})   # both port pairs: main in → main out, → branch
 
     run_length:    float
     branch_length: float
@@ -222,6 +225,7 @@ class Tee:
 
     def validate(self, frames: list[Frame], spec: PipeSpec) -> None:
         self.check(spec)
+        check_port_pairs(self, [spec] + [s for _, s in self.ports(frames[0], spec)])
         expected = [f for f, _ in self.ports(frames[0], spec)]
         for want, got in zip(expected, frames[1:]):
             if (np.linalg.norm(want.position - got.position) > 1e-9 * self.run_length

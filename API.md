@@ -232,6 +232,32 @@ Every fitting has three parts:
 All three are pure Python. Fittings never build their own interface faces;
 they only fill between the faces the assembly built.
 
+**Switch classes (`hexmesh.assembly.signature`, DESIGN A4).**  Each
+fitting declares `strategies`: the switch classes it can bridge between
+its inlet and each outlet.  Today every fitting declares `{0}`.  A
+frozenset applies to every port pair; a tuple gives one per outlet.
+
+- `signature(spec)` is the hashable connectivity signature:
+  - per layer: name, layout (`oh_core` or `annulus`), `nrad` and `mprg`;
+  - per section: `n_outer`, the symmetry period, `nang` and `mbmp`.
+
+  Radii and `rot` are geometry, not connectivity, so they are left out.
+- `classify(a, b)` sorts a pair into a class and lists what differs:
+
+  | Class | Meaning | Bridged by |
+  |---|---|---|
+  | 0 | equal | any fitting |
+  | 1 | whole outermost layers on one side only | layer termination (task 0018) |
+  | 2 | same layers, different counts or grading | a density switch (decision 0003) |
+  | 3 | anything else | a topology switch (decision 0003) |
+
+`Assembly.validate` rejects an undeclared class before GMSH, naming the
+fitting, the field and the class, for example:
+
+> Reducer: outlet spec differs from the inlet in nang (4 vs 8). That is
+> switch class 2, which needs a density switch (decision 0003); Reducer
+> declares strategies [0]
+
 ### `Straight(length, n_layers, axial_grading=1.0)`
 
 A straight run with `n_layers` axial cells.

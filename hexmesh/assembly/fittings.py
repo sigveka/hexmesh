@@ -42,6 +42,8 @@ class Straight(Sweep):
     outlet (1 = uniform; > 1 refines toward the inlet).
     """
 
+    strategies = frozenset({0})   # switch classes it bridges (DESIGN A4)
+
     length:   float
     n_layers: int
     axial_grading: float = 1.0
@@ -91,6 +93,8 @@ class Bend(Sweep):
         Ratio of consecutive axial cell lengths, inlet → outlet (1 =
         uniform; > 1 refines toward the inlet).  Stations are spaced accordingly.
     """
+
+    strategies = frozenset({0})   # switch classes it bridges (DESIGN A4)
 
     radius:   float
     angle:    float
@@ -170,6 +174,8 @@ class MiterBend(Sweep):
     roll : float
         Bend-plane rotation about the pipe axis in degrees, as for ``Bend``.
     """
+
+    strategies = frozenset({0})   # switch classes it bridges (DESIGN A4)
 
     radius:   float
     angle:    float
@@ -266,6 +272,8 @@ class Elbow(Sweep):
     in ``ports`` / ``validate``.
     """
 
+    strategies = frozenset({0})   # switch classes it bridges (DESIGN A4)
+
     angle:    float = 90.0
     schedule: str = "long"
     n_layers: int = 8
@@ -299,22 +307,6 @@ class Elbow(Sweep):
 # Reducer
 # ---------------------------------------------------------------------------
 
-def _density(spec: PipeSpec) -> tuple:
-    """Everything of *spec* except its radii: the part a reducer keeps."""
-    name, shape = spec._core
-    return (
-        spec.n_outer, spec.rot, spec.nang, spec.mbmp,
-        name, type(shape).__name__, getattr(shape, "nang", None),
-        spec._core_nrad, spec._core_mprg,
-        tuple((type(sh).__name__, sh.name, sh.nrad, getattr(sh, "mprg", None))
-              for sh in spec.shells),
-    )
-
-
-_DENSITY_FIELDS = ("n_outer", "rot", "nang", "mbmp", "core name", "core shape",
-                   "core shape nang", "core nrad", "core mprg", "shells")
-
-
 def _radii(spec: PipeSpec) -> list[float]:
     return [spec.core_shape.radius] + [sh.dR for sh in spec.shells]
 
@@ -346,6 +338,8 @@ class Reducer(Sweep):
     *axial_grading* spaces the stations as for ``Straight``.
     """
 
+    strategies = frozenset({0})   # switch classes it bridges (DESIGN A4)
+
     outlet:   PipeSpec
     length:   float
     n_layers: int
@@ -360,12 +354,12 @@ class Reducer(Sweep):
         super().check(spec)
         if self.length <= 0:
             raise ValueError(f"length must be positive, got {self.length!r}")
-        for name, a, b in zip(_DENSITY_FIELDS, _density(spec), _density(self.outlet)):
-            if a != b:
-                raise ValueError(
-                    f"outlet spec differs from the inlet in {name} ({a!r} vs {b!r}); "
-                    f"a reducer may change radii only"
-                )
+        # rot is placement, not connectivity (task 0019), so the signature
+        # check in Sweep.validate does not see it; the cone needs it equal.
+        if spec.rot != self.outlet.rot:
+            raise ValueError(
+                f"outlet spec differs from the inlet in rot ({spec.rot!r} vs "
+                f"{self.outlet.rot!r}); a reducer may change radii only")
         if not isinstance(spec.core_shape, CircleShape):
             raise ValueError("Reducer supports circular cross-sections only")
 
@@ -520,6 +514,8 @@ class SplinePipe(Sweep):
         angle), inlet → outlet; 1 = uniform.
     """
 
+    strategies = frozenset({0})   # switch classes it bridges (DESIGN A4)
+
     points:      tuple
     n_layers:    int
     end_tangent: tuple | None = None
@@ -598,6 +594,8 @@ class Closure(Sweep):
         Ratio of consecutive station spacings, source → target, as for
         ``SplinePipe``; 1 = uniform.
     """
+
+    strategies = frozenset({0})   # switch classes it bridges (DESIGN A4)
 
     n_layers: int
     tension:  float = 1.0

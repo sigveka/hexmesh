@@ -96,6 +96,17 @@ class TestTopologyWithoutGmsh:
         tail = asm.interfaces[-1]
         tail.spec = PipeSpec(nang=6).core("fluid", CircleShape(radius=0.1, nang=6), nrad=3)
         asm.close(tail, asm.inlet, Closure(n_layers=8))
+        # caught by the switch-class check (task 0019), which names the field
+        with pytest.raises(AssemblyError, match=r"nang \(4 vs 6\).*class 2"):
+            asm.validate()
+
+    def test_port_type_mismatch_with_equal_signature_rejected(self):
+        """A radius-only mismatch is class 0 but still not the declared
+        type: the exact A4 check rejects it."""
+        asm = Assembly(_one_layer(), up=[0, 0, 1])
+        out = asm.add(Straight(0.6, n_layers=3))
+        out.spec = PipeSpec(nang=4).core("fluid", CircleShape(radius=0.12, nang=4), nrad=3)
+        asm.add(Straight(0.3, n_layers=2))
         with pytest.raises(AssemblyError, match="port type"):
             asm.validate()
 
