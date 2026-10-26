@@ -327,15 +327,23 @@ class Elbow(Sweep):
 # Reducer
 # ---------------------------------------------------------------------------
 
-def _with_radii(spec: PipeSpec, radii: list[float]) -> PipeSpec:
-    """*spec* with core radius ``radii[0]`` and shell thicknesses ``radii[1:]``."""
+def _with_radii(spec: PipeSpec, radii: list[float],
+                mprgs: list[float] | None = None) -> PipeSpec:
+    """*spec* with core radius ``radii[0]`` and shell thicknesses ``radii[1:]``,
+    and, if given, radial gradings *mprgs* (core first)."""
     name, shape = spec._core
+    if mprgs is None:
+        mprgs = [spec._core_mprg] + [sh.mprg for sh in spec.shells]
     out = (PipeSpec(nang=spec.nang, n_outer=spec.n_outer, rot=spec.rot, mbmp=spec.mbmp)
            .core(name, CircleShape(radius=radii[0], nang=shape.nang),
-                 nrad=spec._core_nrad, mprg=spec._core_mprg))
-    for sh, dR in zip(spec.shells, radii[1:]):
-        out = out.shell(sh.name, dR=dR, nrad=sh.nrad, mprg=sh.mprg)
+                 nrad=spec._core_nrad, mprg=mprgs[0]))
+    for sh, dR, m in zip(spec.shells, radii[1:], mprgs[1:]):
+        out = out.shell(sh.name, dR=dR, nrad=sh.nrad, mprg=m)
     return out
+
+
+def _mprgs(spec: PipeSpec) -> np.ndarray:
+    return np.array([spec._core_mprg] + [sh.mprg for sh in spec.shells])
 
 
 @dataclass(frozen=True)
@@ -343,18 +351,22 @@ class Reducer(Sweep):
     """Concentric reducer (or expander): a straight cone between two radii.
 
     *outlet* is the outlet spec.  It must equal the inlet spec in everything
-    except its radii (core radius and shell thicknesses): the same layers,
-    ``nrad``, ``nang``, gradings, ``n_outer`` and ``rot``, so that every
-    axial edge joins matching nodes (rule A4).  A larger outlet makes it an
-    expander.
+    except its radii (core radius and shell thicknesses) and radial
+    gradings (``mprg`` per layer): the same layers, ``nrad``, ``nang``,
+    ``mbmp``, ``n_outer`` and ``rot``, so that every axial edge joins
+    matching nodes (rule A4).  A larger outlet makes it an expander.
 
     Every axial layer is a station whose radii interpolate linearly, and
     corresponding corners are joined by straight lines, which are generators
-    of the cone; wall nodes therefore lie exactly on the cone.
+    of the cone; wall nodes therefore lie exactly on the cone.  Radial
+    gradings interpolate geometrically at the same fractions
+    (``mprg_in^(1-u) · mprg_out^u``), so a wall-resolved pipe (absolute
+    ``first_cell``) can change diameter (decision 0016).
     *axial_grading* spaces the stations as for ``Straight``.
     """
 
-    strategies = frozenset({0})   # switch classes it bridges (DESIGN A4)
+    # switch classes it bridges (DESIGN A4): 2 for grading-only pairs
+    strategies = frozenset({0, 2})
 
     outlet:   PipeSpec
     length:   float
@@ -383,9 +395,11 @@ class Reducer(Sweep):
         n = self.n_layers
         u = self.fractions(n)
         r0, r1 = np.array(_radii(spec)), np.array(_radii(self.outlet))
+        m0, m1 = _mprgs(spec), _mprgs(self.outlet)
         frames = [a] + [Frame(a.position + (b.position - a.position) * u[k],
                               a.normal, a.up) for k in range(1, n)] + [b]
-        specs = [spec] + [_with_radii(spec, list(r0 + (r1 - r0) * u[k]))
+        specs = [spec] + [_with_radii(spec, list(r0 + (r1 - r0) * u[k]),
+                                      list(m0 ** (1 - u[k]) * m1 ** u[k]))
                           for k in range(1, n)] + [self.outlet]
         return Path(frames, [1] * n, specs=specs)
 

@@ -250,7 +250,8 @@ fitting and the layer.
 **Switch classes (`hexmesh.assembly.signature`, DESIGN A4).**  Each
 fitting declares `strategies`: the switch classes it can bridge between
 its inlet and each outlet.  `Straight` and `Bend` declare `{0, 1}`
-(layer termination); the other fittings declare `{0}`.  A
+(layer termination), `Reducer` declares `{0, 2}` (grading-only, below),
+and the other fittings declare `{0}`.  A
 frozenset applies to every port pair; a tuple gives one per outlet.
 
 - `signature(spec)` is the hashable connectivity signature:
@@ -264,15 +265,26 @@ frozenset applies to every port pair; a tuple gives one per outlet.
   |---|---|---|
   | 0 | equal | any fitting |
   | 1 | whole outermost layers on one side only | layer termination (task 0018) |
-  | 2 | same layers, different counts or grading | a density switch (decision 0003) |
+  | 2 | same layers, different counts or grading | grading only: a sweep that interpolates grading per station (`Reducer`); counts: a density switch (decision 0003) |
   | 3 | anything else | a topology switch (decision 0003) |
+
+  A class-2 pair whose only differences are per-layer radial `mprg` is
+  marked `grading_only` (decision 0016), as class 1 is marked
+  `ends="wall"`.  Declaring class 2 bridges those pairs only; a count or
+  `mbmp` difference is still rejected:
+
+  > Reducer: outlet spec differs from the inlet in core nrad (3 vs 5); core
+  > mprg (1.0 vs 1.2). That is switch class 2 beyond radial grading (counts
+  > or mbmp), which needs a density switch (decision 0003); Reducer bridges
+  > grading-only class-2 pairs (radial mprg) only
 
 `Assembly.validate` rejects an undeclared class before GMSH, naming the
 fitting, the field and the class, for example:
 
 > Reducer: outlet spec differs from the inlet in nang (4 vs 8). That is
-> switch class 2, which needs a density switch (decision 0003); Reducer
-> declares strategies [0]
+> switch class 2 beyond radial grading (counts or mbmp), which needs a
+> density switch (decision 0003); Reducer bridges grading-only class-2
+> pairs (radial mprg) only
 
 ### `Straight(length, n_layers, axial_grading=1.0)`
 
@@ -307,10 +319,21 @@ A segmented bend: straight pieces joined at `n_cuts` planar cuts.
 ### `Reducer(outlet, length, n_layers, axial_grading=1.0)`
 
 A concentric cone from the inlet spec to `outlet`; a larger outlet makes it an
-expander. The outlet must equal the inlet in everything except its radii (core
-radius and shell thicknesses). That covers the layer names and order, `nrad`,
-`nang`, gradings, `n_outer` and `rot`. Validation names the first field that
-differs. Wall nodes lie exactly on the cone.
+expander. **It may change radii and radial grading** (`mprg` per layer). The
+outlet must equal the inlet in everything else: the layer names and order,
+`nrad`, `nang`, `mbmp`, `n_outer` and `rot`. Validation names the fields that
+differ. Wall nodes lie exactly on the cone.
+
+Stations interpolate the radii linearly and each layer's `mprg`
+geometrically, `mprg_in^(1−u) · mprg_out^u`, at the same fractions. So a
+wall-resolved pipe can change diameter: give both sides the same absolute
+`first_cell`, and the solved `mprg` differs (decision 0016):
+
+```python
+pipe = lambda r: PipeSpec(nang=8).core("fluid", radius=r, nrad=8, first_cell=1e-3)
+asm = Assembly(pipe(0.1))
+asm.add(Reducer(pipe(0.06), length=0.2, n_layers=6))
+```
 
 ### `SplinePipe(points, n_layers, end_tangent=None, axial_grading=1.0)`
 

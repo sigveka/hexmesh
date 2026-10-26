@@ -59,12 +59,33 @@ class TestClassify:
         (_spec(nang=8), "nang (4 vs 8)"),
         (_spec(nrad=5), "core nrad (3 vs 5)"),
         (_spec(layers=(("wall", 0.02, 4),)), "shell `wall` nrad (2 vs 4)"),
-        (_spec(mprg=1.2), "core mprg (1.0 vs 1.2)"),          # grading kept (decision 0011 Q3)
+        (_spec(mprg=1.2), "core mprg (1.0 vs 1.2)"),          # grading kept (decision 0016)
     ])
     def test_counts_or_grading_is_2(self, b, field):
         c = _cls(_spec(), b)
         assert c.cls == 2
         assert field in [str(d) for d in c.differences]
+
+    def test_grading_only_marked(self):
+        """Only per-layer radial mprg differs: class 2, grading_only (0016)."""
+        c = _cls(_spec(), _spec(r=0.06, mprg=1.2))
+        assert c.cls == 2 and c.grading_only
+        shell = _spec().shell("ins", dR=0.01, nrad=2, mprg=0.8)
+        assert _cls(_spec().shell("ins", dR=0.01, nrad=2), shell).grading_only
+
+    @pytest.mark.parametrize("b", [
+        PipeSpec(nang=4, mbmp=0.6).core("fluid", radius=0.1, nrad=3).shell("wall", dR=0.02, nrad=2),
+        _spec(nrad=5),
+        _spec(nrad=5, mprg=1.2),
+        _spec(nang=8, mprg=1.2),
+    ], ids=["mbmp", "nrad", "nrad+mprg", "nang+mprg"])
+    def test_grading_only_not_marked(self, b):
+        c = _cls(_spec(), b)
+        assert c.cls == 2 and not c.grading_only
+
+    def test_grading_only_only_on_class_2(self):
+        assert not _cls(_spec(), _spec()).grading_only
+        assert not _cls(_spec(), _spec(layers=())).grading_only
 
     def test_renamed_is_3(self):
         c = _cls(_spec(), _spec(names=["fluid", "steel"]))
@@ -94,6 +115,25 @@ def test_reducer_changing_nang_rejected():
     with pytest.raises(AssemblyError, match=r"nang \(4 vs 8\)\. That is switch class 2"):
         asm.validate()
     assert not gmsh.isInitialized()
+
+
+def test_reducer_changing_nrad_and_grading_rejected():
+    """Class 2 with a count change is not bridged, even with a grading change."""
+    asm = Assembly(_spec())
+    asm.add(Reducer(_spec(r=0.06, nrad=5, mprg=1.2), 0.2, n_layers=3))
+    with pytest.raises(AssemblyError, match=r"core nrad \(3 vs 5\).*switch class 2 beyond "
+                                            r"radial grading.*grading-only"):
+        asm.validate()
+    assert not gmsh.isInitialized()
+
+
+def test_straight_changing_grading_rejected():
+    """Only fittings declaring class 2 bridge grading (Straight does not)."""
+    asm = Assembly(_spec())
+    out = asm.add(Straight(0.3, n_layers=2))
+    out.spec = _spec(mprg=1.2)
+    with pytest.raises(AssemblyError, match=r"core mprg"):
+        asm.validate()
 
 
 def test_straight_dropping_a_layer_rejected():
@@ -126,8 +166,10 @@ def test_straight_joined_to_another_stack_rejected():
 
 def test_every_fitting_declares_strategies():
     from hexmesh.assembly import fittings
-    for cls in (fittings.MiterBend, fittings.Elbow, fittings.Reducer,
+    for cls in (fittings.MiterBend, fittings.Elbow,
                 fittings.SplinePipe, fittings.Closure, Tee):
         assert cls.__dict__.get("strategies") == frozenset({0}), cls.__name__
+    # grading-only class 2 (decision 0016)
+    assert fittings.Reducer.__dict__.get("strategies") == frozenset({0, 2})
     for cls in (fittings.Straight, fittings.Bend):          # layer termination (0018)
         assert cls.__dict__.get("strategies") == frozenset({0, 1}), cls.__name__

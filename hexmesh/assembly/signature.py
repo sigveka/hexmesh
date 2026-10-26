@@ -7,20 +7,26 @@ name, the layout kind and the chord-family counts, plus the section-level
 counts and symmetry.  Geometry is left out: radii, shape dimensions and
 ``rot``.  ``rot`` rotates the whole face rigidly, with the same entities
 and nodes (task 0019), so it is placement, not connectivity.  Grading
-(``mprg``, ``mbmp``) is kept for now (decision 0011, question 3).
+(``mprg``, ``mbmp``) is kept: an interface has one node set (decision
+0016).
 
 ``classify(a, b)`` sorts a pair of signatures into a switch class:
 
 * **0**: equal;
 * **1**: they differ only by whole outermost layers present on one side
   (layer termination: the ring's end face is exposed, so it ends on a wall);
-* **2**: same layers and layouts, different counts or grading;
+* **2**: same layers and layouts, different counts or grading.  When
+  the only differences are per-layer radial ``mprg`` (all counts and
+  ``mbmp`` equal), it is marked ``grading_only`` (decision 0016);
 * **3**: anything else.
 
 A fitting declares the classes it can bridge in ``strategies``: one
 frozenset for every port pair (inlet → each outlet), or a tuple with one
 frozenset per outlet.  ``check_port_pairs`` raises for any pair whose
-class is not declared, naming what differs.
+class is not declared, naming what differs.  Declaring class 2 bridges
+grading-only pairs only: a sweep interpolates grading per station, while
+count changes need a refinement template (decision 0003), which no
+fitting has yet.
 """
 
 from __future__ import annotations
@@ -71,6 +77,7 @@ class SwitchClass:
     cls:         int
     differences: tuple[Difference, ...] = ()
     ends:        str | None = None   # class 1: "wall" (termination); see module doc
+    grading_only: bool = False       # class 2: only radial mprg differs (decision 0016)
 
     def __int__(self) -> int:
         return self.cls
@@ -121,7 +128,8 @@ def classify(a: Signature, b: Signature) -> SwitchClass:
         if counts:
             return SwitchClass(3, tuple(counts) + (extra,))
         return SwitchClass(1, (extra,), ends="wall")
-    return SwitchClass(2, tuple(counts))
+    return SwitchClass(2, tuple(counts),
+                       grading_only=all(d.field.endswith(" mprg") for d in counts))
 
 
 def _count_differences(a: Signature, b: Signature, common: int) -> list[Difference]:
@@ -161,10 +169,16 @@ def check_port_pairs(fitting, specs: list[PipeSpec]) -> None:
     for k, spec in enumerate(specs[1:]):
         c = classify(a, signature(spec))
         allowed = strategies_for(fitting, k)
-        if c.cls in allowed:
-            continue
         port = "outlet" if len(specs) == 2 else f"outlet {k}"
         what = "; ".join(str(d) for d in c.differences)
+        if c.cls == 2 and 2 in allowed and not c.grading_only:
+            raise ValueError(
+                f"{name}: {port} spec differs from the inlet in {what}. That is "
+                f"switch class 2 beyond radial grading (counts or mbmp), which "
+                f"needs {BRIDGES[2]}; {name} bridges grading-only class-2 pairs "
+                f"(radial mprg) only")
+        if c.cls in allowed:
+            continue
         raise ValueError(
             f"{name}: {port} spec differs from the inlet in {what}. That is "
             f"switch class {c.cls}, which needs {BRIDGES[c.cls]}; {name} "
