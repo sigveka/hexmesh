@@ -40,6 +40,8 @@ rejected.  Records are written in design sessions, and they are the only way
 | [0023](0023-pcf-branched-networks-insulation-equipment.md) | PCF input: branched networks, junctions, insulation and equipment | accepted |
 | [0024](0024-api-ergonomics.md) | API ergonomics: port names, absolute orientation, angle units, axial cell size | accepted |
 | [0025](0025-study-runner.md) | Study runner: many variants from one template, in parallel jobs | accepted |
+| [0026](0026-layer-outlines.md) | Layer outlines: shells of any shape | accepted |
+| [0027](0027-duct-tees.md) | Tees in rectangular ducts | proposed |
 
 ## Future expansions
 
