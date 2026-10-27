@@ -92,3 +92,29 @@ def test_u_max_observed_order(data):
 def test_nonorthogonality_trend_meshes_ok(data):
     """checkMesh-only sweep; the trend itself is reported in RESULTS.md."""
     assert data["trend"] and all(t["mesh_ok"] for t in data["trend"])
+
+
+# ---------------------------------------------------------------------------
+# Heated rod (docs/tasks/0033): coarsest level of both series
+# ---------------------------------------------------------------------------
+
+ROD_SCRIPT = ROOT / "validation" / "heated_rod" / "run.py"
+
+
+@pytest.fixture(scope="module")
+def rod(tmp_path_factory):
+    work = tmp_path_factory.mktemp("heated_rod")
+    out = work / "results.json"
+    run = subprocess.run([sys.executable, str(ROD_SCRIPT), "--levels", "1", "--work", str(work),
+                          "--json", str(out)], capture_output=True, text=True)
+    assert run.returncode == 0, run.stdout[-3000:] + run.stderr[-3000:]
+    return json.loads(out.read_text())
+
+
+@pytest.mark.parametrize("series", ["uniform", "graded"])
+def test_heated_rod_coarse(rod, series):
+    r, = rod["series"][series]["levels"]
+    assert r["mesh_ok"] and r["cells_foam"] == r["cells"] == 216
+    assert r["fvoptions_read"] and r["converged"]
+    assert r["energy_err"] < 1e-10                     # heat out = q''' · V_mesh
+    assert -0.03 < r["dt0_err_signed"] < 0              # coarse: 1.4–1.7 % low
