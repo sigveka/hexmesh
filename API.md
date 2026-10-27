@@ -345,7 +345,7 @@ A segmented bend: straight pieces joined at `n_cuts` planar cuts.
 - **Measured quality.** min SICN equals the straight-pipe value up to a 60°
   cut, and is about 0.18 at a single 90° cut.
 
-### `Reducer(outlet, length, n_layers, axial_grading=1.0)`
+### `Reducer(outlet, length, n_layers, axial_grading=1.0, profile=None, chord_tol=1e-3)`
 
 A concentric cone from the inlet spec to `outlet`; a larger outlet makes it an
 expander. **It may change radii and radial grading** (`mprg` per layer). The
@@ -363,6 +363,33 @@ pipe = lambda r: PipeSpec(nang=8).core("fluid", radius=r, nrad=8, first_cell=1e-
 asm = Assembly(pipe(0.1))
 asm.add(Reducer(pipe(0.06), length=0.2, n_layers=6))
 ```
+
+**Profiles** (decision 0008).  `profile` replaces the cone by a radius
+ratio `r(s) = R(s)/R_in` along the axis, `s` from 0 to 1.  Every radius of
+the stack scales by `r(s)`, so `outlet` must be the inlet scaled by `r(1)`.
+All forms are plain tuples, so they save and load:
+
+| `profile` | shape |
+|---|---|
+| `("cosine", s0)` | smooth constriction `1 − s0·(1 + cos 2π(s − ½))`, throat `1 − 2·s0` at the middle, back to the inlet radius (RESEARCH §7.3) |
+| `("venturi", beta, divergent)` | classical venturi (ISO 5167-4): 21° convergent to `beta·D`, throat of length `d`, `divergent` 7°–15° back to `D`, then straight.  Lengths follow from `D`; too short a `length` is rejected with the length needed.  Corners are sharp and always land on stations |
+| `((0, 1), (s, r), …, (1, r_out))` | a table, interpolated by a monotone cubic (PCHIP): no overshoot |
+
+There is one station per axial layer, and every wall node at a station is
+exactly on R(s).  Between stations the wall is a straight chord.
+`validate()` rejects a chord further than `chord_tol · R_in` from the
+profile, before GMSH, and names the `n_layers` needed:
+
+```python
+pipe = PipeSpec(nang=6).core("fluid", radius=0.05, nrad=3)
+asm = Assembly(pipe)
+asm.add(Reducer(pipe, length=0.2, n_layers=40, profile=("cosine", 0.25)))
+```
+
+A cosine constriction with `s0 = 0.25` needs 36 layers at the default
+tolerance.  Each layer adds a full cross-section of cells, so a fine
+profile is cheap compared with refining `nang` (doubling `nang` and `nrad`
+quadruples the cells per layer).
 
 ### `Transition(outlet, length, n_layers, axial_grading=1.0)`
 

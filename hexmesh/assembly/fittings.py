@@ -24,6 +24,7 @@ import numpy as np
 from ..core.shape import BlendShape, CircleShape, RectShape
 from ..core.spec import PipeSpec
 from .interface import Frame, half_extent, outer_radius, roll_mismatch, rotate
+from .profile import CHORD_TOL, Profile
 from .sweep import Arc, FillResult, Path, Sweep, _radii
 
 __all__ = ["Straight", "Bend", "MiterBend", "Elbow", "Reducer", "Transition",
@@ -380,6 +381,14 @@ class Reducer(Sweep):
     (``mprg_in^(1-u) · mprg_out^u``), so a wall-resolved pipe (absolute
     ``first_cell``) can change diameter (decision 0016).
     *axial_grading* spaces the stations as for ``Straight``.
+
+    *profile* replaces the cone by a radius profile (decision 0008;
+    ``assembly.profile``): ``("cosine", s0)``, ``("venturi", beta,
+    divergent)`` or a table of ``(s, R/R_in)`` pairs.  Every radius of the
+    stack scales by the profile's ratio, so the outlet must be the inlet
+    scaled by ``r(1)``.  Stations lie exactly on R(s); between them the wall
+    is a straight chord, and ``validate`` rejects a chord more than
+    *chord_tol* · R_in from the profile, naming the layers needed.
     """
 
     # switch classes it bridges (DESIGN A4): 2 for grading-only pairs
@@ -389,6 +398,8 @@ class Reducer(Sweep):
     length:   float
     n_layers: int
     axial_grading: float = 1.0
+    profile:  tuple | None = None
+    chord_tol: float = CHORD_TOL
 
     def ports(self, inlet: Frame, spec: PipeSpec) -> list[tuple[Frame, PipeSpec]]:
         out = Frame(inlet.position + self.length * inlet.normal,
@@ -408,15 +419,54 @@ class Reducer(Sweep):
         if not isinstance(spec.core_shape, CircleShape):
             raise ValueError("Reducer supports circular cross-sections only; for "
                              "a duct, or to or from one, use Transition")
+        if self.profile is not None:
+            self._check_profile(spec)
+
+    def _profile(self, spec: PipeSpec) -> Profile:
+        return Profile(self.profile, self.length, spec.core_shape.radius)
+
+    def _check_profile(self, spec: PipeSpec) -> None:
+        prof = self._profile(spec)
+        r0 = np.array(_radii(spec))
+        for end, s, want in (("inlet", 0.0, r0), ("outlet", 1.0, np.array(_radii(self.outlet)))):
+            got = r0 * float(prof(s))
+            if not np.allclose(got, want, rtol=1e-9, atol=0.0):
+                raise ValueError(
+                    f"profile gives the {end} radii {list(np.round(got, 9))} "
+                    f"(r({s:g}) = {float(prof(s)):.6g} × the inlet's), but the {end} "
+                    f"spec has {list(want)}; every radius scales with the profile")
+        gaps = prof.chord_gaps(prof.stations(self.fractions(self.n_layers)))
+        if gaps.max() > self.chord_tol:
+            k = int(np.argmax(gaps))
+
+            def ok(n):
+                return prof.chord_gaps(prof.stations(self.fractions(n))).max() <= self.chord_tol
+            lo, hi = self.n_layers, 2 * self.n_layers       # fewest layers that pass:
+            while not ok(hi) and hi < 100_000:               # double, then bisect
+                lo, hi = hi, 2 * hi
+            while hi - lo > 1:
+                mid = (lo + hi) // 2
+                lo, hi = (lo, mid) if ok(mid) else (mid, hi)
+            n = hi
+            raise ValueError(
+                f"slab {k} of the profile's wall chords is {gaps[k]:.3g} · R_in "
+                f"from the profile (chord_tol {self.chord_tol:g}); use n_layers "
+                f">= {n}")
 
     def path(self, a: Frame, b: Frame, spec: PipeSpec) -> Path:
         n = self.n_layers
         u = self.fractions(n)
         r0, r1 = np.array(_radii(spec)), np.array(_radii(self.outlet))
         m0, m1 = _mprgs(spec), _mprgs(self.outlet)
+        if self.profile is None:
+            radii = [r0 + (r1 - r0) * uk for uk in u]
+        else:
+            prof = self._profile(spec)
+            u = prof.stations(u)
+            radii = [r0 * float(rk) for rk in prof(u)]
         frames = [a] + [Frame(a.position + (b.position - a.position) * u[k],
                               a.normal, a.up) for k in range(1, n)] + [b]
-        specs = [spec] + [_with_radii(spec, list(r0 + (r1 - r0) * u[k]),
+        specs = [spec] + [_with_radii(spec, list(radii[k]),
                                       list(m0 ** (1 - u[k]) * m1 ** u[k]))
                           for k in range(1, n)] + [self.outlet]
         return Path(frames, [1] * n, specs=specs)

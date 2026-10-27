@@ -191,6 +191,14 @@ CASES = {
                                                      (0.5, 1.2, 0))),
     "square-bend-rolled":  lambda: _between(_square(), Bend(0.3, -60, n_layers=4, roll=45)),
     "square-rolled-90":    lambda: _rolled_outlet(_square(), Straight(0.3, n_layers=3), 90),
+    # profiled reducers (task 0031): stations on R(s), chords within tolerance
+    "profile-cosine":      lambda: _between(_one(), Reducer(_one(), 0.4, n_layers=40,
+                                                            profile=("cosine", 0.25))),
+    "profile-venturi":     lambda: _between(_one(), Reducer(_one(), 0.8, n_layers=12,
+                                                            profile=("venturi", 0.5, 15))),
+    "profile-table-2layer": lambda: _between(_two(), Reducer(
+        _two(0.06, 0.015), 0.4, n_layers=16, axial_grading=1.1,
+        profile=((0, 1), (0.3, 0.8), (0.6, 0.7), (1, 0.6)))),
     # transitions (task 0029): equal counts per side, so class 0
     "transition-circle-square": lambda: _between(_one(), Transition(_flat(0.09, 0.09), 0.3, 4)),
     "transition-circle-2to1": lambda: _between(_one(), Transition(_flat(), 0.3, 4)),
