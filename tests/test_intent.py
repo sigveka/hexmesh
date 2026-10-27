@@ -100,7 +100,7 @@ def test_spec_round_trip_keeps_resolved_grading():
 
 def test_registry_is_explicit():
     assert set(FITTING_TYPES) == {"Straight", "Bend", "MiterBend", "Elbow",
-                                  "Reducer", "SplinePipe", "Closure", "Tee"}
+                                  "Reducer", "SplinePipe", "Closure", "Tee", "Wye"}
     with pytest.raises(ValueError, match="unknown fitting type"):
         fitting_from_dict({"type": "Valve"})
     with pytest.raises(ValueError, match="unknown fields"):

@@ -298,10 +298,10 @@ class Assembly:
         Built from the saved description (:meth:`to_dict`, scaled,
         :meth:`from_dict`); this assembly is unchanged.  ``nang``, every
         ``nrad`` and every axial count (``n_layers``; a tee's ``n_run``,
-        ``n_branch`` and ``n_turn``) are multiplied by *k*, and every
-        grading ratio (radial ``mprg``, ``axial_grading``) becomes its
-        k-th root, so each coarse cell splits into k cells of the same
-        growth.  Geometry, topology and ``mbmp`` are unchanged.
+        ``n_branch`` and ``n_turn``; a wye's ``n_split``) are multiplied
+        by *k*, and every grading ratio (radial ``mprg``,
+        ``axial_grading``) becomes its k-th root, so each coarse cell
+        splits into k cells of the same growth.  Geometry, topology and ``mbmp`` are unchanged.
 
         **Cost:** k³ × the cells (``refined(2)`` has 8×).
 

@@ -79,7 +79,7 @@ An interface-first pipe network ([DESIGN.md](DESIGN.md) §5).
 |---|---|
 | `to_dict()` / `Assembly.from_dict(d)` | The network description as plain JSON-serialisable data, and back |
 | `save(path)` / `Assembly.load(path)` | The same, as a JSON file (indented, sorted keys) |
-| `refined(k)` | A new assembly at k× the resolution (integer k ≥ 1), built from `to_dict()`: `nang`, every `nrad`, every `n_layers` and a tee's `n_run` / `n_branch` / `n_turn` × k, the axial cell index of each `stack_changes` entry × k, and `mprg` and `axial_grading` → their k-th root.  Geometry, topology and `mbmp` stay; `first_cell` specs keep their resolved `mprg`.  **k³× the cells.** |
+| `refined(k)` | A new assembly at k× the resolution (integer k ≥ 1), built from `to_dict()`: `nang`, every `nrad`, every `n_layers`, a tee's `n_run` / `n_branch` / `n_turn` and a wye's `n_split` × k, the axial cell index of each `stack_changes` entry × k, and `mprg` and `axial_grading` → their k-th root.  Geometry, topology and `mbmp` stay; `first_cell` specs keep their resolved `mprg`.  **k³× the cells.** |
 
 The file records how the network was built, not its geometry:
 - the pose and spec of the first interface;
@@ -222,8 +222,8 @@ lengths, inlet → outlet (GMSH's "Progression" law). Above 1 refines toward
 the inlet, below 1 toward the outlet. `Straight` grades its axial curves.
 The other fittings place one station per layer, so they space their
 stations by the same law (for `SplinePipe` and `Closure`, in arc length
-plus turning angle). The cell count is unchanged. `MiterBend` and `Tee` are
-not graded.
+plus turning angle). The cell count is unchanged. `MiterBend`, `Tee` and
+`Wye` are not graded.
 
 Every fitting has three parts:
 - `ports(inlet, spec)`: where its outlets go;
@@ -360,6 +360,28 @@ A perpendicular, centred side-branch tee, built as a block layout.
   runs, the branch, and the turning blocks.
 - **Limits.** A single-layer spec, `rot = 0`, and `branch_radius` below the
   main radius.
+
+### `Wye(angle, run_length, branch_length, n_run=3, n_branch=3, n_split=3)`
+
+A symmetric Y-junction, built as a block layout around a hub (prototype,
+decision 0017).
+
+- **Ports.** It returns `[left, right]`, both with the inlet's spec. The
+  daughters leave the bifurcation point, `run_length` downstream of the
+  inlet, at ±`angle`/2 in the inlet's (normal, `right`) plane; `right`
+  turns toward the inlet's `right`. Each outlet is `branch_length` from the
+  bifurcation point and keeps the inlet's `up`. To split in another plane,
+  roll upstream.
+- **Layers.** `n_run` and `n_branch` are the axial layers of the straight
+  runs (inlet, each daughter); `n_split` those of each daughter's turning
+  block.
+- **Limits.** A single-layer circular spec, `rot = 0`, `n_outer = 4`, and
+  `angle` from 30° to 120°. `run_length` must exceed R·(tan(angle/2) + 0.1)
+  and `branch_length` R·(cot(angle/2) + 1); the messages give the numbers.
+- **Quality.** Measured, not gated (decision 0017). The worst cells, min
+  scaled Jacobian 0.06–0.16 depending on the angle, sit next to the hub's
+  back corners. Junction wall nodes are up to about 20 % of R off the
+  intended surface, and the crotch is rounded. The numbers are in task 0030.
 
 ### `Closure(n_layers, tension=1.0, axial_grading=1.0)`
 

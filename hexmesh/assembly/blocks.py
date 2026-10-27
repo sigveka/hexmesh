@@ -72,6 +72,14 @@ class Spline:
     points: tuple
 
 
+@dataclass(frozen=True)
+class Polyline:
+    """Straight segments through interior points (endpoints excluded): a
+    C0 curve, for an edge that crosses a crease of the wall (a wye's
+    crotch, task 0030), where a spline would overshoot."""
+    points: tuple
+
+
 def _key(*ids) -> frozenset:
     return frozenset(ids)
 
@@ -105,6 +113,10 @@ class BlockLayout:
         self.port_faces: set[frozenset] = set()
         self.blocks:  list[tuple[tuple, str]] = []
         self.counts:  dict[frozenset, int] = {}        # fixed edge divisions
+        # OCC filling for curved faces that are neither planar nor a ruled
+        # cylinder: None for a plate (``addSurfaceFilling``), or a
+        # ``addBSplineFilling`` type ("Stretch", "Curved")
+        self.filling: str | None = None
         self._classes: dict[frozenset, tuple[int, tuple]] | None = None
 
     # -- construction -----------------------------------------------------
@@ -347,6 +359,9 @@ class BlockLayout:
             elif isinstance(e.geom, Spline):
                 mids = [geo.addPoint(*p) for p in e.geom.points]
                 e.tag = geo.addSpline([pa, *mids, pb])
+            elif isinstance(e.geom, Polyline):
+                mids = [geo.addPoint(*p) for p in e.geom.points]
+                e.tag = geo.addBSpline([pa, *mids, pb], degree=1)
             else:
                 e.tag = geo.addLine(pa, pb)
             e.start = e.a
@@ -369,6 +384,8 @@ class BlockLayout:
                 # surface is the exact cylinder (DESIGN §6, task 0025), as
                 # in a sweep's straight slab
                 self.faces[k] = _ruled(loop)
+            elif self.filling is not None:
+                self.faces[k] = geo.addBSplineFilling(loop, type=self.filling)
             else:
                 self.faces[k] = geo.addSurfaceFilling(loop)
         return self.faces[k]

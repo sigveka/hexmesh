@@ -3,7 +3,7 @@
 Structured all-hex meshes for CFD pipe networks, built on [GMSH](https://gmsh.info/).
 
 Describe a network as a graph of fittings: straight runs, bends, elbows, miter
-bends, reducers, spline pipes, tees and loop closures. hexmesh places and checks
+bends, reducers, spline pipes, tees, wyes and loop closures. hexmesh places and checks
 it in pure Python, then builds a conformal hexahedral mesh for OpenFOAM or any
 other finite-volume solver.
 
@@ -100,7 +100,9 @@ ellipse where the two pipes meet. There are two known exceptions:
 - the interior wall nodes of a multi-layer `Straight` lie on a filled surface,
   up to 0.7 % of the radius off. This is an open follow-up
   ([task 0012](docs/tasks/0012-miter-bend-and-elbow.md#outcome));
-- the tee's wall nodes are 2–5 % off, a deviation listed in DESIGN.md §9.
+- the tee's wall nodes are 2–5 % off, a deviation listed in DESIGN.md §9;
+- the wye's junction wall nodes are up to about 20 % of the radius off, and
+  its crotch is rounded (prototype, [task 0030](docs/tasks/0030-wye-prototype.md)).
 
 ---
 
@@ -115,6 +117,7 @@ ellipse where the two pipes meet. There are two known exceptions:
 | `Reducer(outlet, length, n_layers, axial_grading=1)` | Concentric cone to another radius (reducer or expander). Only radii may change |
 | `SplinePipe(points, n_layers, end_tangent=None, axial_grading=1)` | Pipe along a cubic spline; `points[0]` is the inlet position |
 | `Tee(run_length, branch_length, branch_radius, n_run=3, n_branch=3, n_turn=2)` | Perpendicular side-branch tee, block layout; returns `(main, branch)` |
+| `Wye(angle, run_length, branch_length, n_run=3, n_branch=3, n_split=3)` | Symmetric Y-junction, block layout; returns `(left, right)` |
 | `Closure(n_layers, tension=1.0, axial_grading=1)` | Smooth run between two existing interfaces, used with `close()` for loops |
 
 ### Building a network
@@ -423,6 +426,7 @@ python3 -m hexmesh.examples.smooth_bend
 | `distribution_tree` | tee on a tee's branch after a reducer; named outlets, mixed bend kinds |
 | `drum_nozzle` | network starting at a drum nozzle (`Drum`, `Assembly.from_nozzle`), tee, `extend_open_ends` |
 | `graded_bend` | CFD-ready bend: `first_cell`, `axial_grading` toward the bend, extensions, `walls_by_fitting` |
+| `wye` | 60° `Wye` with a straight on each daughter; named outlets |
 
 ---
 
@@ -430,8 +434,9 @@ python3 -m hexmesh.examples.smooth_bend
 
 - **Tee:** single-layer specs, perpendicular and centred branch, branch radius
   below the main radius.
-- **No Y-junction (wye) yet.** The design is still open
-  ([docs/RESEARCH.md](docs/RESEARCH.md) §4).
+- **Wye (prototype):** single-layer specs, equal daughters with the inlet's
+  spec, coplanar and symmetric, angle 30°–120°. Quality is measured, not
+  yet bounded: min scaled Jacobian about 0.1 (decision 0017).
 - **Circular sections only.** Rectangular ducts and circle-to-square
   transitions are planned (decision 0009).
 - **Layer changes:** insulation can't start or stop inside a fitting yet

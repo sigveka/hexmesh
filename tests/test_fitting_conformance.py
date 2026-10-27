@@ -31,7 +31,7 @@ import numpy as np
 import pytest
 
 from hexmesh.assembly import (
-    Assembly, Bend, Closure, Elbow, MiterBend, Reducer, SplinePipe, Straight, Tee,
+    Assembly, Bend, Closure, Elbow, MiterBend, Reducer, SplinePipe, Straight, Tee, Wye,
 )
 from hexmesh.core.shape import CircleShape
 from hexmesh.core.spec import PipeSpec
@@ -110,6 +110,17 @@ def _tee(ratio, direction=(0, 1, 0)):
     return asm
 
 
+def _wye(angle, direction=(0, 1, 0)):
+    """Straight → Wye → Straight on both outlets."""
+    asm = Assembly(_one(), direction=list(direction), up=[0, 0, 1], lc=0.1)
+    asm.add(Straight(0.2, n_layers=2))
+    left, right = asm.add(Wye(angle, run_length=0.25, branch_length=0.4),
+                          names=["left", "right"])
+    asm.add(left, Straight(0.2, n_layers=2))
+    asm.add(right, Straight(0.2, n_layers=2))
+    return asm
+
+
 CASES = {
     "straight":            lambda: _between(_one(), Straight(0.3, n_layers=3)),
     "straight-2layer":     lambda: _between(_two(), Straight(0.3, n_layers=3)),
@@ -125,6 +136,9 @@ CASES = {
     "bend-rolled-180":     lambda: _rolled_outlet(_one(), Bend(0.3, 90, n_layers=4), 180),
     "tee-0.5":             lambda: _tee(0.5),
     "tee-0.9-oblique":     lambda: _tee(0.9, direction=(1, 1, 0.2)),
+    "wye-60":              lambda: _wye(60),
+    "wye-90":              lambda: _wye(90),
+    "wye-60-oblique":      lambda: _wye(60, direction=(1, 1, 0.2)),
     "miter-1cut":          lambda: _between(_one(), MiterBend(0.3, 90, n_cuts=1)),
     "miter-3cut-2layer":   lambda: _between(_two(), MiterBend(0.3, 90, n_cuts=3)),
     "miter-rolled":        lambda: _between(_two(), MiterBend(0.3, -60, n_cuts=2, roll=30)),
@@ -373,8 +387,8 @@ class TestConformance:
 
     def test_walls_exact(self, case):
         """Every wall and interface node on its analytic surface (DESIGN §6)."""
-        if case.startswith("tee"):
-            pytest.skip("tee run slabs: DESIGN deviations table")
+        if case.startswith(("tee", "wye")):
+            pytest.skip("junction walls: DESIGN deviations table")
         _session()
         try:
             asm = CASES[case]()

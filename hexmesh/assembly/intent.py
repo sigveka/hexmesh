@@ -34,6 +34,7 @@ from ..core.spec import PipeSpec
 from .fittings import Bend, Closure, Elbow, MiterBend, Reducer, SplinePipe, Straight
 from .interface import Frame
 from .tee import Tee
+from .wye import Wye
 
 if TYPE_CHECKING:
     from .assembler import Assembly
@@ -43,7 +44,7 @@ VERSION = 1
 
 # Explicit registry: no plugins or entry points (DESIGN §6.1).
 FITTING_TYPES = {cls.__name__: cls for cls in (
-    Straight, Bend, MiterBend, Elbow, Reducer, SplinePipe, Closure, Tee,
+    Straight, Bend, MiterBend, Elbow, Reducer, SplinePipe, Closure, Tee, Wye,
 )}
 
 
@@ -186,7 +187,7 @@ def from_dict(cls, d: dict) -> "Assembly":
 
 # Axial cell counts per fitting type.  Everything else in a fitting is
 # geometry or topology (MiterBend.n_cuts included) and stays.
-AXIAL_COUNTS = ("n_layers", "n_run", "n_branch", "n_turn")
+AXIAL_COUNTS = ("n_layers", "n_run", "n_branch", "n_turn", "n_split")
 
 
 def refine_spec_dict(d: dict, k: int) -> dict:
