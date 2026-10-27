@@ -40,7 +40,7 @@ An interface-first pipe network ([DESIGN.md](DESIGN.md) §5).
 
 | Method | Does |
 |---|---|
-| `add(fitting, names=None, label=None)` | Attach *fitting* to the tail and move the tail to its first outlet. Returns the outlet `Interface`, or a list for multi-outlet fittings. *names* names the outlet interfaces; *label* names the fitting (letters, digits, `_`; unique) |
+| `add(fitting, names=None, label=None)` | Attach *fitting* to the tail and move the tail to its first outlet (a tee's `main`, a wye's `left`). Returns the outlet `Interface`, or a list in port order for multi-outlet fittings. *names* names the outlet interfaces; *label* names the fitting (letters, digits, `_`; unique) |
 | `add(interface, fitting, names=None, label=None)` | Attach *fitting* to *interface*; the tail does not move. Use the returned outlet to continue that line |
 | `close(source, target, fitting, label=None)` | Join two existing open interfaces. *source* must be an outlet and *target* an inlet, so flow runs source → target. Use `Closure` for any gap, or a `Straight` / `Bend` that fits exactly |
 | `prepend(straight, label=None)` | Place a `Straight` upstream of the inlet and make its start the new `inlet`; the inlet name moves with it. Returns the new inlet |
@@ -49,8 +49,17 @@ An interface-first pipe network ([DESIGN.md](DESIGN.md) §5).
 | `inlet` | The inlet interface |
 | `open_interfaces()` | Interfaces touched by one fitting only: the network boundary |
 
-`names` gives one name per outlet. A named open end becomes the patch
+`names` is a list with one name per outlet, in port order, or a dict keyed
+by port name, which may name only some: `names={"branch": "tap1"}`. Port
+names are `fitting.port_names`: `Tee` `main`, `branch`; `Wye` `left`,
+`right`; every one-outlet fitting `outlet`. An unknown key is an
+`AssemblyError` listing the valid ones. A named open end becomes the patch
 `<layer>_<name>`.
+
+`add()` also resolves input-only fields from the inlet frame: `toward=`
+becomes `roll`, and only `roll` is stored and saved. A bend angle below
+2π° (6.28°) gives a `UserWarning` ("looks like radians?"): every angle is
+in degrees. The thresholds are data, in `hexmesh.assembly.limits`.
 
 **Validation and size (pure Python)**
 
@@ -95,6 +104,9 @@ exception; it is stored as an override under `frames`.
 
 **Units.** Lengths are in your unit, stored unconverted; angles in
 degrees, as in the fitting.
+
+**Versions.** The format is version 2: `PipeSpec.rot` in degrees.
+Version-1 files stored it in radians; `from_dict` and `load` convert them.
 
 The fitting types are a fixed registry, `hexmesh.assembly.intent.FITTING_TYPES`.
 An unknown type or field raises `ValueError`.
@@ -179,7 +191,7 @@ A builder for a concentric layer stack.
 | `nang` | cells per 90° arc, shared by all layers (circular cores) |
 | `nang_w`, `nang_h` | cells along the width and the height of a rectangular core |
 | `mbmp` | angular bump factor (1 = uniform) |
-| `rot` | rotation of the O-H corners, in radians; for a rectangle, of the whole rectangle |
+| `rot` | rotation of the O-H corners, in degrees; for a rectangle, of the whole rectangle |
 | `n_outer` | structural corners; the assembly supports 4 |
 
 #### `.core(name, radius=..., nrad=..., mprg=1.0, first_cell=None)`
@@ -318,7 +330,7 @@ fitting, the field and the class, for example:
 
 A straight run with `n_layers` axial cells.
 
-### `Bend(radius, angle, n_layers, roll=0.0, axial_grading=1.0)`
+### `Bend(radius, angle, n_layers, roll=0.0, axial_grading=1.0, toward=None)`
 
 A circular-arc bend with centreline `radius` and `angle` in (0°, 360°). It
 places one station per axial layer, joined by exact arcs. `roll` rotates the
@@ -326,12 +338,19 @@ bend plane about the pipe axis: 0 bends toward `up`, 90 toward `right`.
 `radius` must exceed the outer radius (for a duct, its half-extent in the
 bend plane).
 
-### `Elbow(angle=90.0, schedule="long", n_layers=8, roll=0.0, axial_grading=1.0)`
+`toward=(x, y, z)` is an absolute direction to turn toward, instead of
+`roll`, which is relative to an `up` that changes after every fitting.
+`add()` turns its component across the inlet into `roll`. It must be at
+least 1° from the inlet axis (`limits.TOWARD_MIN_ANGLE`), and needs a
+positive `angle`; giving both `roll` and `toward` is an error. The same
+holds for `Elbow` and `MiterBend`.
+
+### `Elbow(angle=90.0, schedule="long", n_layers=8, roll=0.0, axial_grading=1.0, toward=None)`
 
 A `Bend` whose radius follows the pipe: 1.5 D for `"long"` and 1 D for
 `"short"` (ASME B16.9), where D is the outer diameter of the inlet spec.
 
-### `MiterBend(radius, angle, n_cuts=1, n_layers=2, roll=0.0)`
+### `MiterBend(radius, angle, n_cuts=1, n_layers=2, roll=0.0, toward=None)`
 
 A segmented bend: straight pieces joined at `n_cuts` planar cuts.
 
@@ -423,29 +442,40 @@ A pipe along a cubic spline through `points`, parametrised by chord length.
 - **Validation.** It rejects curvature tighter than the outer radius, and
   more than 30° of turn per layer.
 
-### `Tee(run_length, branch_length, branch_radius, n_run=3, n_branch=3, n_turn=2)`
+### `Tee(run_length, branch_length, branch_radius, n_run=3, n_branch=3, n_turn=2, roll=0.0, toward=None)`
 
 A perpendicular, centred side-branch tee, built as a block layout.
 
-- **Ports.** It returns `[main, branch]`. The main outlet is `2·run_length`
-  downstream of the inlet. The branch leaves along the inlet's `up` and ends
-  `branch_length` from the main axis.
+- **Ports.** `port_names = ("main", "branch")`; it returns `[main, branch]`.
+  The main outlet is `2·run_length` downstream of the inlet and keeps the
+  inlet's `up`. The branch leaves along the inlet's `up` rolled by `roll`
+  about the main axis (0: `up`; 90: `right`) and ends `branch_length` from
+  the main axis.
+- **Orientation.** `roll` must be a multiple of the section's period (90°
+  for a circle), so the junction's corners land on the inlet face's: 45° is
+  rejected, naming 90°. `toward=(x, y, z)` gives the branch direction
+  instead; `add()` picks the nearest allowed roll and rejects a direction
+  more than 1° off it (`limits.JUNCTION_TOWARD_TOL`), naming the angle.
+  Other branch angles need a twisting fitting (decision 0024).
 - **Layers.** `n_run`, `n_branch` and `n_turn` are the axial layers of the
   runs, the branch, and the turning blocks.
 - **Limits.** A single-layer spec, `rot = 0`, and `branch_radius` below the
   main radius.
 
-### `Wye(angle, run_length, branch_length, n_run=3, n_branch=3, n_split=3)`
+### `Wye(angle, run_length, branch_length, n_run=3, n_branch=3, n_split=3, roll=0.0, toward=None)`
 
 A symmetric Y-junction, built as a block layout around a hub (prototype,
 decision 0017).
 
-- **Ports.** It returns `[left, right]`, both with the inlet's spec. The
-  daughters leave the bifurcation point, `run_length` downstream of the
-  inlet, at ±`angle`/2 in the inlet's (normal, `right`) plane; `right`
-  turns toward the inlet's `right`. Each outlet is `branch_length` from the
-  bifurcation point and keeps the inlet's `up`. To split in another plane,
-  roll upstream.
+- **Ports.** `port_names = ("left", "right")`; it returns `[left, right]`,
+  both with the inlet's spec. The daughters leave the bifurcation point,
+  `run_length` downstream of the inlet, at ±`angle`/2 in the inlet's
+  (normal, `right`) plane rolled by `roll`; `right` turns toward the
+  rolled `right`. Each outlet is `branch_length` from the bifurcation
+  point and keeps the rolled `up`.
+- **Orientation.** `roll` is a multiple of the period, as for `Tee`;
+  `toward` is the direction the `right` daughter turns toward, snapped the
+  same way.
 - **Layers.** `n_run` and `n_branch` are the axial layers of the straight
   runs (inlet, each daughter); `n_split` those of each daughter's turning
   block.

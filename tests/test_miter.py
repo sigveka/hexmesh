@@ -85,7 +85,8 @@ class TestGeometry:
     def test_fine_station_spacing(self, gmsh_session):
         """Stations 0.125° apart: OCC plate filling left holes here."""
         asm = Assembly(_spec(), direction=[1, 0, 0], up=[0, 0, 1], lc=0.05)
-        asm.add(MiterBend(0.3, 5, n_cuts=1, n_layers=20))
+        with pytest.warns(UserWarning, match="looks like radians"):   # 5° is meant
+            asm.add(MiterBend(0.3, 5, n_cuts=1, n_layers=20))
         asm.mesh()
         assert asm.check_quality().ok
 

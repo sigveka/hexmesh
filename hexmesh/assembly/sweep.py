@@ -386,6 +386,12 @@ class Sweep:
 
     places_outlet = True
     axial_grading = 1.0     # fittings that support grading declare a field
+    port_names = ("outlet",)
+
+    def resolve(self, inlet: Frame, spec: PipeSpec):
+        """This fitting with its input-only fields resolved from the inlet
+        it is added at (``Assembly.add``; decision 0024)."""
+        return self
 
     def path(self, a: Frame, b: Frame, spec: PipeSpec) -> Path:
         raise NotImplementedError

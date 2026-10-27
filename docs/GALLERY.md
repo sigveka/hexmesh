@@ -8,7 +8,7 @@ What each example shows, what its mesh looks like, and how good the cells are.  
 - **SICN:** GMSH's signed inverse condition number, per cell: 1 for a cube, 0 or below for an inverted cell.  Examples must have none at or below 0.
 - **SJ:** the minimum scaled Jacobian over a hex's corners (1 for a cube), with the fitting holding the worst cell.  Junctions (tee, wye) are where it is lowest.
 - **Aspect:** the largest ratio of a cell's longest to shortest edge.  Wall grading and long axial cells raise it deliberately.
-- **Build:** wall time of `main()` (build, mesh, write, quality check) on the machine below with 4 examples at once.  Compare within one run only.
+- **Build:** wall time of `main()` (build, mesh, write, quality check) on the machine below.  Compare within one run only.
 - **Images:** the network from outside (walls grey, open ends coloured by material), and the inlet cross-section seen from upstream.
 
 ## Contents
@@ -16,29 +16,29 @@ What each example shows, what its mesh looks like, and how good the cells are.  
 | Example | Shows | Cells | min SICN | min SJ | Build |
 |---|---|---|---|---|---|
 | **Fittings: one building block each** | | | | | |
-| [smooth_bend](#smooth_bend) | Smooth 90° bend between two straight runs. | 6 528 | 0.239 | 0.792 | 10.8 s |
-| [miter_bend](#miter_bend) | Mitred bends: a single 90° miter joint and a 3-cut segmented elbow. | 9 792 | 0.110 | 0.531 | 42.0 s |
-| [spline_pipe](#spline_pipe) | Pipe along a 3-D cubic spline through given points. | 9 360 | 0.146 | 0.792 | 87.7 s |
-| [reducer_network](#reducer_network) | Reducer, bend and expander: a line that narrows, turns and widens again. | 11 832 | 0.221 | 0.788 | 77.7 s |
-| [tee](#tee) | Side-branch tee: straight run, tee, then a bend on the main line. | 7 464 | 0.189 | 0.316 | 11.4 s |
-| [wye](#wye) | Symmetric wye: straight inlet, a 60° Y-junction, a straight on each daughter. | 5 724 | 0.170 | 0.156 | 4.1 s |
-| [loop](#loop) | Closed loop: three bends, a straight, and a `Closure` that joins the end back to the start. | 14 688 | 0.140 | 0.790 | 173.6 s |
+| [smooth_bend](#smooth_bend) | Smooth 90° bend between two straight runs. | 6 528 | 0.239 | 0.792 | 2.4 s |
+| [miter_bend](#miter_bend) | Mitred bends: a single 90° miter joint and a 3-cut segmented elbow. | 9 792 | 0.110 | 0.531 | 3.8 s |
+| [spline_pipe](#spline_pipe) | Pipe along a 3-D cubic spline through given points. | 9 360 | 0.146 | 0.792 | 6.0 s |
+| [reducer_network](#reducer_network) | Reducer, bend and expander: a line that narrows, turns and widens again. | 11 832 | 0.221 | 0.788 | 6.0 s |
+| [tee](#tee) | Side-branch tee: straight run, tee, then a bend on the main line. | 7 464 | 0.189 | 0.316 | 2.4 s |
+| [wye](#wye) | Symmetric wye: straight inlet, a 60° Y-junction, a straight on each daughter. | 5 724 | 0.170 | 0.156 | 1.4 s |
+| [loop](#loop) | Closed loop: three bends, a straight, and a `Closure` that joins the end back to the start. | 14 688 | 0.140 | 0.790 | 8.1 s |
 | **Cross-sections, layers and grading: what runs through the pipe** | | | | | |
-| [insulated_pipe](#insulated_pipe) | Three-layer insulated pipe: fluid, steel wall, insulation. | 10 800 | 0.144 | 0.792 | 26.8 s |
-| [insulated_route](#insulated_route) | Insulated route: a three-layer stack carried through a reducer, a miter, a spline and an elbow. | 15 600 | 0.061 | 0.531 | 169.2 s |
-| [graded_bend](#graded_bend) | CFD-ready bend: wall grading, axial cells clustered at the bend, inlet and outlet extensions, and one wall patch per fitting. | 11 160 | 0.100 | 0.792 | 10.8 s |
-| [rect_duct](#rect_duct) | Rectangular duct: a 2:1 duct with an easy-way and a hard-way bend. | 4 576 | 0.317 | 0.705 | 13.9 s |
-| [duct_transition](#duct_transition) | Duct transition: a circular pipe into a 2:1 duct, a duct bend, and back. | 5 616 | 0.377 | 0.689 | 51.3 s |
+| [insulated_pipe](#insulated_pipe) | Three-layer insulated pipe: fluid, steel wall, insulation. | 10 800 | 0.144 | 0.792 | 3.5 s |
+| [insulated_route](#insulated_route) | Insulated route: a three-layer stack carried through a reducer, a miter, a spline and an elbow. | 15 600 | 0.061 | 0.531 | 6.9 s |
+| [graded_bend](#graded_bend) | CFD-ready bend: wall grading, axial cells clustered at the bend, inlet and outlet extensions, and one wall patch per fitting. | 11 160 | 0.100 | 0.792 | 1.9 s |
+| [rect_duct](#rect_duct) | Rectangular duct: a 2:1 duct with an easy-way and a hard-way bend. | 4 576 | 0.317 | 0.705 | 1.8 s |
+| [duct_transition](#duct_transition) | Duct transition: a circular pipe into a 2:1 duct, a duct bend, and back. | 5 616 | 0.377 | 0.689 | 3.6 s |
 | **Networks: composing fittings into routes, branches and trees** | | | | | |
-| [pipe_network](#pipe_network) | Branched network built as a graph: a header with two tees, each branch continued with its own fittings. | 13 992 | 0.189 | 0.316 | 38.2 s |
-| [pipe_rack](#pipe_rack) | 3-D pipe route mixing every sweep fitting: elbow, riser, segmented miter, spline offset, reducer and a rolled bend. | 14 280 | 0.078 | 0.766 | 176.5 s |
-| [distribution_tree](#distribution_tree) | Two-level distribution tree: a header with two tees, and a second tee on one of the branches after a reducer. | 16 152 | 0.149 | 0.258 | 53.2 s |
-| [bifurcation_tree](#bifurcation_tree) | Two-level bifurcation tree: one inlet, two wyes deep, four parallel outlets. | 14 472 | 0.117 | 0.204 | 70.8 s |
-| [skewed_network](#skewed_network) | Off-axis network: a drum on a skewed axis, a nozzle at 35° from vertical, and fittings at arbitrary angles and rolls. | 9 492 | 0.150 | 0.331 | 34.4 s |
+| [pipe_network](#pipe_network) | Branched network built as a graph: a header with two side taps, each pointing a different way. | 11 496 | 0.189 | 0.316 | 2.9 s |
+| [pipe_rack](#pipe_rack) | 3-D pipe route mixing every sweep fitting: elbow, riser, segmented miter, spline offset, reducer and a rolled bend. | 14 280 | 0.078 | 0.766 | 7.2 s |
+| [distribution_tree](#distribution_tree) | Two-level distribution tree: a header with two tees, and a second tee on one of the branches after a reducer. | 16 152 | 0.149 | 0.258 | 5.5 s |
+| [bifurcation_tree](#bifurcation_tree) | Two-level bifurcation tree: one inlet, two wyes deep, four parallel outlets. | 14 472 | 0.117 | 0.204 | 6.7 s |
+| [skewed_network](#skewed_network) | Off-axis network: a drum on a skewed axis, a nozzle at 35° from vertical, and fittings at arbitrary angles and rolls. | 9 492 | 0.150 | 0.331 | 3.3 s |
 | **Applications: equipment and engineering cases** | | | | | |
-| [drum_nozzle](#drum_nozzle) | Line from a drum nozzle: a horizontal drum with a top nozzle, a riser, an elbow, a tee and CFD extensions on the open ends. | 10 272 | 0.150 | 0.331 | 23.4 s |
-| [hvac_supply](#hvac_supply) | Ventilation supply run: a fan's round outlet, a flat duct through the building, and a square terminal. | 15 360 | 0.121 | 0.627 | 84.7 s |
-| [cooling_channels](#cooling_channels) | Cooling channels: a supply pipe split by a wye into two flat rectangular channels, each returning to a round outlet. | 10 152 | 0.152 | 0.204 | 54.6 s |
+| [drum_nozzle](#drum_nozzle) | Line from a drum nozzle: a horizontal drum with a top nozzle, a riser, an elbow, a tee and CFD extensions on the open ends. | 10 272 | 0.150 | 0.331 | 2.9 s |
+| [hvac_supply](#hvac_supply) | Ventilation supply run: a fan's round outlet, a flat duct through the building, and a square terminal. | 15 360 | 0.121 | 0.627 | 3.8 s |
+| [cooling_channels](#cooling_channels) | Cooling channels: a supply pipe split by a wye into two flat rectangular channels, each returning to a round outlet. | 10 152 | 0.152 | 0.204 | 4.7 s |
 
 ## Fittings: one building block each
 
@@ -62,7 +62,7 @@ python3 -m hexmesh.examples.fittings.smooth_bend
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 3: Straight ×2, Bend | 126 | 6 528 | 0.239 | 0.440 | 0.792 (#1 Bend) | 10.7 | 10.8 s |
+| 3: Straight ×2, Bend | 126 | 6 528 | 0.239 | 0.440 | 0.792 (#1 Bend) | 10.7 | 2.4 s |
 
 - **Open ends:** `fluid_inlet`, `fluid_outlet`, `pipe_wall_inlet`, `pipe_wall_outlet`
 - **Walls:** `pipe_wall_wall`
@@ -85,7 +85,7 @@ python3 -m hexmesh.examples.fittings.miter_bend
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 5: Straight ×3, MiterBend ×2 | 243 | 9 792 | 0.110 | 0.433 | 0.531 (#1 MiterBend) | 22.2 | 42.0 s |
+| 5: Straight ×3, MiterBend ×2 | 243 | 9 792 | 0.110 | 0.433 | 0.531 (#1 MiterBend) | 22.2 | 3.8 s |
 
 - **Open ends:** `fluid_inlet`, `fluid_outlet`, `pipe_wall_inlet`, `pipe_wall_outlet`
 - **Walls:** `pipe_wall_wall`
@@ -107,7 +107,7 @@ python3 -m hexmesh.examples.fittings.spline_pipe
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 3: Straight ×2, SplinePipe | 378 | 9 360 | 0.146 | 0.295 | 0.792 (#1 SplinePipe) | 19.0 | 87.7 s |
+| 3: Straight ×2, SplinePipe | 378 | 9 360 | 0.146 | 0.295 | 0.792 (#1 SplinePipe) | 19.0 | 6.0 s |
 
 - **Open ends:** `fluid_inlet`, `fluid_outlet`, `pipe_wall_inlet`, `pipe_wall_outlet`
 - **Walls:** `pipe_wall_wall`
@@ -129,7 +129,7 @@ python3 -m hexmesh.examples.fittings.reducer_network
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 6: Straight ×3, Reducer ×2, Bend | 351 | 11 832 | 0.221 | 0.442 | 0.788 (#4 Reducer) | 10.4 | 77.7 s |
+| 6: Straight ×3, Reducer ×2, Bend | 351 | 11 832 | 0.221 | 0.442 | 0.788 (#4 Reducer) | 10.4 | 6.0 s |
 
 - **Open ends:** `fluid_inlet`, `fluid_outlet`, `pipe_wall_inlet`, `pipe_wall_outlet`
 - **Walls:** `pipe_wall_wall`
@@ -154,7 +154,7 @@ python3 -m hexmesh.examples.fittings.tee
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 5: Straight ×3, Tee, Bend | 99 | 7 464 | 0.189 | 0.478 | 0.316 (#1 Tee) | 10.4 | 11.4 s |
+| 5: Straight ×3, Tee, Bend | 99 | 7 464 | 0.189 | 0.478 | 0.316 (#1 Tee) | 10.4 | 2.4 s |
 
 - **Open ends:** `fluid_branch_end`, `fluid_inlet`, `fluid_main_end`
 - **Walls:** `fluid_wall`
@@ -179,7 +179,7 @@ python3 -m hexmesh.examples.fittings.wye
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 4: Straight ×3, Wye | 44 | 5 724 | 0.170 | 0.560 | 0.156 (#1 Wye) | 5.0 | 4.1 s |
+| 4: Straight ×3, Wye | 44 | 5 724 | 0.170 | 0.560 | 0.156 (#1 Wye) | 5.0 | 1.4 s |
 
 - **Open ends:** `fluid_inlet`, `fluid_left_end`, `fluid_right_end`
 - **Walls:** `fluid_wall`
@@ -201,7 +201,7 @@ python3 -m hexmesh.examples.fittings.loop
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 8: Straight ×4, Bend ×3, Closure | 468 | 14 688 | 0.140 | 0.411 | 0.790 (#5 Bend) | 20.0 | 173.6 s |
+| 8: Straight ×4, Bend ×3, Closure | 468 | 14 688 | 0.140 | 0.411 | 0.790 (#5 Bend) | 20.0 | 8.1 s |
 
 - **Open ends:** 
 - **Walls:** `pipe_wall_wall`
@@ -230,7 +230,7 @@ python3 -m hexmesh.examples.sections.insulated_pipe
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 3: Straight ×2, Elbow | 182 | 10 800 | 0.144 | 0.362 | 0.792 (#1 Elbow) | 19.0 | 26.8 s |
+| 3: Straight ×2, Elbow | 182 | 10 800 | 0.144 | 0.362 | 0.792 (#1 Elbow) | 19.0 | 3.5 s |
 
 - **Open ends:** `fluid_inlet`, `fluid_outlet`, `insulation_inlet`, `insulation_outlet`, `steel_inlet`, `steel_outlet`
 - **Walls:** `insulation_wall`
@@ -256,7 +256,7 @@ python3 -m hexmesh.examples.sections.insulated_route
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 8: Straight ×4, Reducer, MiterBend, SplinePipe, Elbow | 442 | 15 600 | 0.061 | 0.289 | 0.531 (#3 MiterBend) | 47.5 | 169.2 s |
+| 8: Straight ×4, Reducer, MiterBend, SplinePipe, Elbow | 442 | 15 600 | 0.061 | 0.289 | 0.531 (#3 MiterBend) | 47.5 | 6.9 s |
 
 - **Open ends:** `fluid_inlet`, `fluid_outlet`, `insulation_inlet`, `insulation_outlet`, `steel_inlet`, `steel_outlet`
 - **Walls:** `insulation_wall`
@@ -285,7 +285,7 @@ python3 -m hexmesh.examples.sections.graded_bend
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 5: Straight ×4, Bend | 100 | 11 160 | 0.100 | 0.363 | 0.792 (#1 Bend) | 28.5 | 10.8 s |
+| 5: Straight ×4, Bend | 100 | 11 160 | 0.100 | 0.363 | 0.792 (#1 Bend) | 28.5 | 1.9 s |
 
 - **Open ends:** `fluid_inlet`, `fluid_outlet`
 - **Walls:** `fluid_wall_Straight3`, `fluid_wall_Straight4`, `fluid_wall_bend`, `fluid_wall_downstream`, `fluid_wall_upstream`
@@ -311,7 +311,7 @@ python3 -m hexmesh.examples.sections.rect_duct
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 5: Straight ×3, Bend ×2 | 125 | 4 576 | 0.317 | 0.513 | 0.705 (#1 Bend) | 7.5 | 13.9 s |
+| 5: Straight ×3, Bend ×2 | 125 | 4 576 | 0.317 | 0.513 | 0.705 (#1 Bend) | 7.5 | 1.8 s |
 
 - **Open ends:** `air_inlet`, `air_outlet`
 - **Walls:** `air_wall`
@@ -336,7 +336,7 @@ python3 -m hexmesh.examples.sections.duct_transition
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 7: Straight ×4, Transition ×2, Bend | 160 | 5 616 | 0.377 | 0.579 | 0.689 (#5 Transition) | 5.4 | 51.3 s |
+| 7: Straight ×4, Transition ×2, Bend | 160 | 5 616 | 0.377 | 0.579 | 0.689 (#5 Transition) | 5.4 | 3.6 s |
 
 - **Open ends:** `air_inlet`, `air_outlet`
 - **Walls:** `air_wall`
@@ -350,13 +350,15 @@ to the coordinate axes.
 
 ### pipe_network
 
-**Branched network built as a graph: a header with two tees, each branch continued with its own fittings.**
+**Branched network built as a graph: a header with two side taps, each pointing a different way.**
 
 <p><img src="gallery/img/pipe_network.png" width="68%" alt="pipe_network"> <img src="gallery/img/pipe_network_section.png" width="29%" alt="pipe_network, inlet section"></p>
 
 `add(fitting)` continues from the tail; `add(interface, fitting)`
-branches from any interface.  Fittings are placed and validated in pure
-Python first, then filled in any order (DESIGN.md A6).
+branches from any interface.  `toward=` gives absolute directions, so a
+tee's branch can leave sideways without an extra elbow.  Fittings are
+placed and validated in pure Python first, then filled in any order
+(DESIGN.md A6).
 
 ```bash
 python3 -m hexmesh.examples.networks.pipe_network
@@ -364,7 +366,7 @@ python3 -m hexmesh.examples.networks.pipe_network
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 10: Straight ×5, Tee ×2, Elbow ×3 | 203 | 13 992 | 0.189 | 0.454 | 0.316 (#3 Tee) | 10.4 | 38.2 s |
+| 8: Straight ×5, Tee ×2, Elbow | 123 | 11 496 | 0.189 | 0.433 | 0.316 (#4 Tee) | 10.4 | 2.9 s |
 
 - **Open ends:** `water_header_end`, `water_inlet`, `water_tap0`, `water_tap1`
 - **Walls:** `water_wall`
@@ -388,7 +390,7 @@ python3 -m hexmesh.examples.networks.pipe_rack
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 9: Straight ×4, Elbow, MiterBend, SplinePipe, Reducer, Bend | 432 | 14 280 | 0.078 | 0.295 | 0.766 (#3 MiterBend) | 36.9 | 176.5 s |
+| 9: Straight ×4, Elbow, MiterBend, SplinePipe, Reducer, Bend | 432 | 14 280 | 0.078 | 0.295 | 0.766 (#3 MiterBend) | 36.9 | 7.2 s |
 
 - **Open ends:** `fluid_inlet`, `fluid_outlet`, `pipe_wall_inlet`, `pipe_wall_outlet`
 - **Walls:** `pipe_wall_wall`
@@ -413,7 +415,7 @@ python3 -m hexmesh.examples.networks.distribution_tree
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 13: Straight ×6, Tee ×3, MiterBend ×2, Elbow, Reducer | 232 | 16 152 | 0.149 | 0.412 | 0.258 (#7 Tee) | 15.6 | 53.2 s |
+| 13: Straight ×6, Tee ×3, MiterBend ×2, Elbow, Reducer | 232 | 16 152 | 0.149 | 0.412 | 0.258 (#7 Tee) | 15.6 | 5.5 s |
 
 - **Open ends:** `water_branch_a`, `water_branch_a_tap`, `water_branch_b`, `water_header_end`, `water_inlet`
 - **Walls:** `water_wall`
@@ -446,7 +448,7 @@ python3 -m hexmesh.examples.networks.bifurcation_tree
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 16: Straight ×7, Wye ×3, Bend ×6 | 242 | 14 472 | 0.117 | 0.470 | 0.204 (#9 Wye) | 13.1 | 70.8 s |
+| 16: Straight ×7, Wye ×3, Bend ×6 | 242 | 14 472 | 0.117 | 0.470 | 0.204 (#9 Wye) | 13.1 | 6.7 s |
 
 - **Open ends:** `fluid_a`, `fluid_b`, `fluid_c`, `fluid_d`, `fluid_inlet`
 - **Walls:** `fluid_wall`
@@ -469,7 +471,7 @@ python3 -m hexmesh.examples.networks.skewed_network
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 8: Straight ×4, Bend, Tee, MiterBend, Elbow | 164 | 9 492 | 0.150 | 0.412 | 0.331 (#2 Tee) | 15.0 | 34.4 s |
+| 8: Straight ×4, Bend, Tee, MiterBend, Elbow | 164 | 9 492 | 0.150 | 0.412 | 0.331 (#2 Tee) | 15.0 | 3.3 s |
 
 - **Open ends:** `water_D201_N1`, `water_branch`, `water_outlet`
 - **Walls:** `water_wall`
@@ -498,7 +500,7 @@ python3 -m hexmesh.examples.applications.drum_nozzle
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 7: Straight ×4, Elbow ×2, Tee | 134 | 10 272 | 0.150 | 0.381 | 0.331 (#2 Tee) | 12.5 | 23.4 s |
+| 7: Straight ×4, Elbow ×2, Tee | 134 | 10 272 | 0.150 | 0.381 | 0.331 (#2 Tee) | 12.5 | 2.9 s |
 
 - **Open ends:** `water_D101_N1`, `water_outlet`, `water_vent`
 - **Walls:** `water_wall`
@@ -528,7 +530,7 @@ python3 -m hexmesh.examples.applications.hvac_supply
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 10: Straight ×5, Transition ×2, Bend, MiterBend, SplinePipe | 235 | 15 360 | 0.121 | 0.363 | 0.627 (#5 MiterBend) | 18.0 | 84.7 s |
+| 10: Straight ×5, Transition ×2, Bend, MiterBend, SplinePipe | 235 | 15 360 | 0.121 | 0.363 | 0.627 (#5 MiterBend) | 18.0 | 3.8 s |
 
 - **Open ends:** `air_inlet`, `air_terminal`
 - **Walls:** `air_wall`
@@ -553,7 +555,7 @@ python3 -m hexmesh.examples.applications.cooling_channels
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 14: Straight ×7, Wye, Bend ×2, Transition ×4 | 184 | 10 152 | 0.152 | 0.380 | 0.204 (#1 Wye) | 9.4 | 54.6 s |
+| 14: Straight ×7, Wye, Bend ×2, Transition ×4 | 184 | 10 152 | 0.152 | 0.380 | 0.204 (#1 Wye) | 9.4 | 4.7 s |
 
 - **Open ends:** `fluid_inlet`, `fluid_left_out`, `fluid_right_out`
 - **Walls:** `fluid_wall`
@@ -582,10 +584,10 @@ Case: [validation/poiseuille/README.md](../validation/poiseuille/README.md); res
 | Task | Status |
 |---|---|
 | [0032 — Validation: smooth cosine constriction (Varghese et al.), Re = 500](tasks/0032-validation-stenosis.md) | ready (after 0031 and 0020's re-run) |
-| [0033 — Validation: solid rod with uniform heat generation (O-H core, pure diffusion)](tasks/0033-validation-heated-rod.md) | in progress |
+| [0033 — Validation: solid rod with uniform heat generation (O-H core, pure diffusion)](tasks/0033-validation-heated-rod.md) | done |
 | [0034 — Validation: conduction through a heated, multi-layer cylinder (CHT, solids only)](tasks/0034-validation-layered-conduction.md) | ready (after 0025 and 0033) |
 | [0035 — Validation: heated multi-layer pipe with laminar flow (full CHT)](tasks/0035-validation-heated-pipe-cht.md) | ready (after 0034) |
 
 ---
 
-Generated 2026-10-27 from hexmesh d71d0d8 + uncommitted changes, gmsh 4.12.1, Python 3.12.3, 8 CPUs, 4 job(s).
+Generated 2026-10-27 from hexmesh 6c27306 + uncommitted changes, gmsh 4.12.1, Python 3.12.3, 8 CPUs, 1 job(s).

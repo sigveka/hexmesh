@@ -119,8 +119,8 @@ def corner0_angle(spec: PipeSpec) -> float:
     """Angle of corner 0 (NE) from ``frame.right`` for faces built from *spec*."""
     shape = spec.core_shape
     if isinstance(shape, RectShape):
-        return math.atan2(shape.half_h, shape.half_w) + spec.rot
-    return math.pi / 4 + spec.rot
+        return math.atan2(shape.half_h, shape.half_w) + spec.rot_rad
+    return math.pi / 4 + spec.rot_rad
 
 
 def side_counts(cs: CrossSection) -> tuple[int, ...]:

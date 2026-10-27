@@ -17,18 +17,44 @@ its ``Path`` and inherits ``validate`` / ``fill`` from ``Sweep``.
 
 from __future__ import annotations
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 
 import numpy as np
 
 from ..core.shape import BlendShape, CircleShape, RectShape
 from ..core.spec import PipeSpec
-from .interface import Frame, half_extent, outer_radius, roll_mismatch, rotate
+from .interface import Frame, half_extent, outer_radius, roll_mismatch, rotate, toward_roll
 from .profile import CHORD_TOL, Profile
 from .sweep import Arc, FillResult, Path, Sweep, _radii
 
 __all__ = ["Straight", "Bend", "MiterBend", "Elbow", "Reducer", "Transition",
            "SplinePipe", "Closure", "FillResult"]
+
+
+# Input-only field: resolved by Assembly.add() and never saved (intent.py).
+def _input_field():
+    return field(default=None, metadata={"input": True})
+
+
+class _Toward:
+    """``toward=``: an absolute direction to turn toward, resolved to
+    ``roll`` from the inlet frame by :meth:`resolve` (decision 0024)."""
+
+    def resolve(self, inlet: Frame, spec: PipeSpec):
+        if self.toward is None:
+            return self
+        name = type(self).__name__
+        if self.roll != 0:
+            raise ValueError(f"{name}: give roll or toward, not both")
+        if self.angle < 0:
+            raise ValueError(f"{name}: toward needs a positive angle (a negative "
+                             f"angle turns away from it), got {self.angle!r}")
+        return replace(self, roll=toward_roll(inlet, self.toward), toward=None)
+
+    def check_resolved(self) -> None:
+        if self.toward is not None:
+            raise ValueError(f"{type(self).__name__}: toward is resolved by "
+                             "Assembly.add(); add the fitting to an assembly")
 
 
 # ---------------------------------------------------------------------------
@@ -84,7 +110,7 @@ class Straight(Sweep):
 # ---------------------------------------------------------------------------
 
 @dataclass(frozen=True)
-class Bend(Sweep):
+class Bend(_Toward, Sweep):
     """Circular-arc bend whose mesh nodes lie exactly on the true geometry.
 
     A station is placed at every axial layer and stations are joined by
@@ -106,6 +132,10 @@ class Bend(Sweep):
     roll : float
         Bend-plane rotation about the pipe axis in degrees
         (0 = bend toward ``up``).
+    toward : 3-vector, optional
+        Absolute direction to turn toward, instead of *roll*: its
+        component across the inlet sets ``roll`` when the bend is added
+        (only ``roll`` is saved).
     axial_grading : float
         Ratio of consecutive axial cell lengths, inlet → outlet (1 =
         uniform; > 1 refines toward the inlet).  Stations are spaced accordingly.
@@ -122,6 +152,7 @@ class Bend(Sweep):
     roll:     float = 0.0
     axial_grading: float = 1.0
     stack_changes: tuple = ()
+    toward:   tuple | None = _input_field()
 
     def _axis_centre(self, inlet: Frame) -> tuple[np.ndarray, np.ndarray]:
         phi = math.radians(self.roll)
@@ -154,6 +185,7 @@ class Bend(Sweep):
 
     def check(self, spec: PipeSpec) -> None:
         super().check(spec)
+        self.check_resolved()
         if not 0 < abs(self.angle) < 360:
             raise ValueError(f"angle must be in (0, 360) degrees, got {self.angle!r}")
 
@@ -178,7 +210,7 @@ MIN_MITER_CUT = 1.0    # degrees
 
 
 @dataclass(frozen=True)
-class MiterBend(Sweep):
+class MiterBend(_Toward, Sweep):
     """Segmented (mitred) bend: straight pipe pieces joined at planar cuts.
 
     The centreline is the tangent polygon of the smooth bend with the same
@@ -203,6 +235,8 @@ class MiterBend(Sweep):
         ``2 * n_layers``.  Every layer is its own station (see ``path``).
     roll : float
         Bend-plane rotation about the pipe axis in degrees, as for ``Bend``.
+    toward : 3-vector, optional
+        Absolute direction to turn toward, instead of *roll*, as for ``Bend``.
     """
 
     strategies = frozenset({0})   # switch classes it bridges (DESIGN A4)
@@ -212,6 +246,7 @@ class MiterBend(Sweep):
     n_cuts:   int = 1
     n_layers: int = 2
     roll:     float = 0.0
+    toward:   tuple | None = _input_field()
 
     @property
     def _arc(self) -> Bend:
@@ -231,6 +266,7 @@ class MiterBend(Sweep):
 
     def check(self, spec: PipeSpec) -> None:
         super().check(spec)
+        self.check_resolved()
         if self.n_cuts < 1:
             raise ValueError(f"n_cuts must be >= 1, got {self.n_cuts!r}")
         if not 0 < abs(self.angle) < 360:
@@ -298,13 +334,13 @@ class MiterBend(Sweep):
 # ---------------------------------------------------------------------------
 
 @dataclass(frozen=True)
-class Elbow(Sweep):
+class Elbow(_Toward, Sweep):
     """Standard butt-weld elbow: a ``Bend`` whose radius follows the pipe.
 
     ``schedule="long"`` gives a centreline radius of 1.5 D, ``"short"`` 1 D
     (ASME B16.9 long- and short-radius elbows), with D the outer diameter
     of the inlet spec.  The radius therefore needs the spec and is resolved
-    in ``ports`` / ``validate``.
+    in ``ports`` / ``validate``.  *roll* and *toward* are as for ``Bend``.
     """
 
     strategies = frozenset({0})   # switch classes it bridges (DESIGN A4)
@@ -314,6 +350,7 @@ class Elbow(Sweep):
     n_layers: int = 8
     roll:     float = 0.0
     axial_grading: float = 1.0
+    toward:   tuple | None = _input_field()
 
     FACTORS = {"long": 1.5, "short": 1.0}
 
@@ -328,6 +365,7 @@ class Elbow(Sweep):
         return self.bend(spec).ports(inlet, spec)
 
     def check(self, spec: PipeSpec) -> None:
+        self.check_resolved()
         if isinstance(spec.core_shape, RectShape):
             raise ValueError("Elbow schedules are ASME pipe fittings, for circular "
                              "pipes; use Bend(radius, angle, …) for a duct")

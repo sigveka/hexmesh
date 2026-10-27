@@ -172,9 +172,9 @@ class TestRejections:
 
 
 def test_rot_turns_the_duct(gmsh_session):
-    """``rot`` rotates the rectangle in its frame: a 2:1 duct at rot = π/2
+    """``rot`` rotates the rectangle in its frame: a 2:1 duct at rot = 90°
     stands on its short side, and its outer nodes lie on that rectangle."""
-    spec = _duct(rot=math.pi / 2)
+    spec = _duct(rot=90)
     asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Straight(0.3, n_layers=2))
     asm.mesh()

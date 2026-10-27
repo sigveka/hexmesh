@@ -24,6 +24,7 @@ from __future__ import annotations
 import json
 import math
 import re
+import warnings
 from dataclasses import dataclass
 from typing import Iterable
 
@@ -38,7 +39,8 @@ from . import intent
 from ..io.writers.openfoam_boundary import roles_path, write_roles
 from .signature import check_port_pairs, classify, signature
 from .corners import transfinite_surface_corners, transfinite_volume_corners
-from .fittings import FillResult, Straight
+from .fittings import Bend, Elbow, FillResult, MiterBend, Straight
+from .limits import RADIANS_WARNING_BELOW
 from .quality import QualityReport, RegionQuality
 from .interface import (
     Frame, Interface, build_face, check_supported, hydraulic_diameter, outer_radius,
@@ -150,15 +152,25 @@ class Assembly:
     # 1–2. Intent and placement (pure Python)
     # ------------------------------------------------------------------
 
-    def add(self, source, fitting=None, names: Iterable[str] | None = None,
+    def add(self, source, fitting=None, names: Iterable[str] | dict | None = None,
             label: str | None = None):
         """Append a fitting.
 
         ``add(fitting)`` continues from the tail; ``add(interface, fitting)``
         branches from a given interface.  Returns the outlet Interface (or a
-        list for multi-outlet fittings).  *names* names the outlet
-        interfaces; *label* names the fitting itself (its wall patch with
+        list for multi-outlet fittings, in ``fitting.port_names`` order).
+        After a multi-outlet fitting the tail continues on its first port
+        (a tee's ``main``, a wye's ``left``).
+
+        *names* names the outlet interfaces: a list in port order, or a dict
+        keyed by port name (``{"branch": "tap1"}``; ``Tee``: ``main``,
+        ``branch``; ``Wye``: ``left``, ``right``; one-outlet fittings:
+        ``outlet``).  *label* names the fitting itself (its wall patch with
         ``walls_by_fitting``; default ``<Type><index>``).
+
+        Input-only fields such as ``toward=`` are resolved here from the
+        inlet frame (``fitting.resolve``), so the stored fitting holds only
+        ``roll`` (decision 0024).
         """
         if self._faces_built:
             raise AssemblyError("cannot add fittings after the assembly is built")
@@ -171,9 +183,10 @@ class Assembly:
         if not isinstance(source, Interface):
             raise TypeError(f"source must be an Interface, got {type(source).__name__}")
         self._check_degree(source, "inlet", fitting)
+        fitting = self._resolved(fitting, source)
 
         port_list = fitting.ports(source.frame, source.spec)
-        names = list(names) if names is not None else [None] * len(port_list)
+        names = self._port_names(fitting, names, len(port_list))
         outlets = [
             self._new_interface(frame, spec, name)
             for (frame, spec), name in zip(port_list, names)
@@ -213,6 +226,7 @@ class Assembly:
             raise AssemblyError(f"target {target} is a downstream end, not an inlet")
         self._check_degree(source, "inlet", fitting)
         self._check_degree(target, "outlet", fitting)
+        fitting = self._resolved(fitting, source)
 
         self._check_label(label)
         edge = Edge(len(self._edges), fitting, [source, target], kind="close", label=label)
@@ -357,6 +371,45 @@ class Assembly:
                 "(it becomes part of a patch name)")
         if any(e.name == label for e in self._edges):
             raise AssemblyError(f"fitting label {label!r} is already used")
+
+    @staticmethod
+    def _resolved(fitting, source: Interface):
+        """*fitting* with input-only fields resolved at *source*; warns on a
+        bend angle that looks like radians (decision 0024)."""
+        resolve = getattr(fitting, "resolve", None)
+        if resolve is not None:
+            try:
+                fitting = resolve(source.frame, source.spec)
+            except ValueError as e:
+                raise AssemblyError(f"{fitting!r} at {source}: {e}") from None
+        if (isinstance(fitting, (Bend, Elbow, MiterBend))
+                and 0 < abs(fitting.angle) < RADIANS_WARNING_BELOW):
+            warnings.warn(
+                f"{type(fitting).__name__} angle {fitting.angle:g}° is below "
+                f"{RADIANS_WARNING_BELOW:.3g}°: angles are in degrees "
+                f"(looks like radians?)", UserWarning, stacklevel=3)
+        return fitting
+
+    @staticmethod
+    def _port_names(fitting, names, n: int) -> list:
+        """Outlet names as a list in port order, from a list or a dict keyed
+        by ``fitting.port_names``."""
+        if names is None:
+            return [None] * n
+        ports = tuple(getattr(fitting, "port_names", ()))
+        if isinstance(names, dict):
+            unknown = sorted(set(names) - set(ports))
+            if unknown or len(ports) != n:
+                raise AssemblyError(
+                    f"{type(fitting).__name__} has ports {', '.join(ports)}; "
+                    f"unknown port name(s) {', '.join(map(repr, unknown))}")
+            return [names.get(k) for k in ports]
+        names = list(names)
+        if len(names) != n:
+            raise AssemblyError(
+                f"{type(fitting).__name__} has {n} outlet(s) "
+                f"({', '.join(ports)}); got {len(names)} names")
+        return names
 
     @staticmethod
     def _attached(iface: Interface, role: str) -> list[Edge]:

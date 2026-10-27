@@ -36,7 +36,7 @@ Scope of this prototype: single-layer circular specs, ``rot = 0``,
 
 from __future__ import annotations
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 
@@ -44,9 +44,9 @@ from ..core.shape import CircleShape
 from ..core.spec import PipeSpec
 from .blocks import (
     ArcAbout, BlockLayout, LayoutError, OH_RATIO, Polyline, Spline, bind_face,
-    face_patches, face_vertices,
+    corner_shift, face_patches, face_vertices,
 )
-from .interface import Frame
+from .interface import Frame, junction_roll, junction_toward, rolled
 from .signature import check_port_pairs
 
 _SAMPLES = 9            # interior points per spline edge
@@ -143,11 +143,23 @@ class Wye:
     n_split : int
         Layers of each daughter's turning block (hub → daughter station).
 
-    Ports are ``[left, right]``; ``right`` turns toward the inlet's
-    ``right``.  Outlet frames keep the inlet's ``up``.
+    roll : float
+        Rotation of the daughters' plane about the inlet axis in degrees,
+        from the inlet's (normal, right) plane.  A multiple of the
+        section's period (90° for a circle), so the junction's corners land
+        on the inlet face's (decision 0024).
+    toward : 3-vector, optional
+        Absolute direction the ``right`` daughter turns toward, instead of
+        *roll*: resolved to the nearest allowed roll when the wye is added;
+        more than ``limits.JUNCTION_TOWARD_TOL`` off it is an error.
+
+    Ports are ``left`` and ``right``; ``right`` turns toward the (rolled)
+    inlet's ``right``.  Outlet frames keep the (rolled) inlet's ``up``.
+    ``add(…, names={"left": …, "right": …})``.
     """
 
     strategies = frozenset({0})   # both port pairs: inlet → each daughter
+    port_names = ("left", "right")
 
     angle:         float
     run_length:    float
@@ -155,10 +167,18 @@ class Wye:
     n_run:    int = 3
     n_branch: int = 3
     n_split:  int = 3
+    roll:     float = 0.0
+    toward:   tuple | None = field(default=None, metadata={"input": True})
+
+    def resolve(self, inlet: Frame, spec: PipeSpec) -> "Wye":
+        # toward names the right daughter's side: the rolled frame's right,
+        # 90° from its up.
+        return junction_toward(self, inlet, spec, offset=90.0)
 
     # -- geometry (pure) ----------------------------------------------
 
     def _axes(self, inlet: Frame):
+        inlet = rolled(inlet, self.roll)
         n, u, r = inlet.normal, inlet.up, inlet.right
         h = math.radians(self.angle) / 2
         o = inlet.position + self.run_length * n
@@ -198,6 +218,10 @@ class Wye:
             raise ValueError("Wye prototype supports circular cores only")
         if spec.rot != 0 or spec.n_outer != 4:
             raise ValueError("Wye prototype requires rot = 0 and n_outer = 4")
+        if self.toward is not None:
+            raise ValueError("Wye: toward is resolved by Assembly.add(); add the "
+                             "fitting to an assembly")
+        junction_roll(self, spec)
         lo, hi = ANGLE_RANGE
         if not lo <= self.angle <= hi:
             raise ValueError(
@@ -219,11 +243,13 @@ class Wye:
                 raise ValueError("layer counts must be >= 1")
 
     def layout(self, frames: list[Frame], spec: PipeSpec) -> BlockLayout:
-        A, L, Rp = frames
+        # Declared in the rolled inlet frame; fill() binds the inlet face
+        # (built unrolled) with the corner shift.  Outlets are rolled already.
+        A, L, Rp = rolled(frames[0], self.roll), frames[1], frames[2]
         R = spec.core_shape.radius
-        o, n, u, dl, dr = self._axes(A)
+        o, n, u, dl, dr = self._axes(frames[0])
         g = self.placement(R)
-        sk = self.skeleton(A, spec)
+        sk = self.skeleton(frames[0], spec)
         right_l, right_r = np.cross(dl, u), np.cross(dr, u)   # crotch side of d_L, outer side of d_R
         sa = Frame(o - g["s_in"] * n, n, u)
         sl = Frame(o + g["s_out"] * dl, dl, u)
@@ -369,6 +395,7 @@ class Wye:
 
     def fill(self, faces, frames, spec, lc):
         lay = self.layout(frames, spec)
+        shift = corner_shift(rolled(frames[0], self.roll), frames[0], spec)
         for prefix, face in zip("ALR", faces):
-            bind_face(lay, prefix, face)
+            bind_face(lay, prefix, face, shift if prefix == "A" else 0)
         return lay.realise(spec.layer_names)

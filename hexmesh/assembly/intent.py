@@ -19,13 +19,19 @@ interface indices are stable.  Outlet frames follow from the fittings;
 only a frame set by hand after ``add()`` is stored, under ``frames``, as an
 override.
 
-Lengths are in the user's unit and are stored unconverted.
+Lengths are in the user's unit and are stored unconverted.  Angles are in
+degrees.  Version 1 stored ``PipeSpec.rot`` in radians; :func:`from_dict`
+converts it (decision 0024).
+
+Input-only fitting fields (``toward``) are resolved by ``Assembly.add()``
+and never saved.
 """
 
 from __future__ import annotations
 
 import dataclasses
 import json
+import math
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -42,7 +48,7 @@ if TYPE_CHECKING:
     from .assembler import Assembly
 
 FORMAT = "hexmesh.assembly"
-VERSION = 1
+VERSION = 2          # 2: PipeSpec.rot in degrees (1: radians)
 
 # Explicit registry: no plugins or entry points (DESIGN §6.1).
 FITTING_TYPES = {cls.__name__: cls for cls in (
@@ -92,6 +98,8 @@ def fitting_to_dict(fitting) -> dict:
     d = {"type": name}
     for f in dataclasses.fields(fitting):
         v = getattr(fitting, f.name)
+        if f.metadata.get("input") and v is None:
+            continue
         d[f.name] = v.to_dict() if isinstance(v, PipeSpec) else _plain(v)
     return d
 
@@ -150,11 +158,31 @@ def to_dict(asm: "Assembly") -> dict:
     return d
 
 
-def from_dict(cls, d: dict) -> "Assembly":
+def _rot_to_degrees(v):
+    """Every spec dict inside *v* with ``rot`` converted radians → degrees."""
+    if isinstance(v, dict):
+        out = {k: _rot_to_degrees(x) for k, x in v.items()}
+        if "core" in out and "shells" in out and "rot" in out:
+            out["rot"] = math.degrees(out["rot"])
+        return out
+    if isinstance(v, list):
+        return [_rot_to_degrees(x) for x in v]
+    return v
+
+
+def upgrade(d: dict) -> dict:
+    """A saved description at the current :data:`VERSION`."""
     if d.get("format") != FORMAT:
         raise ValueError(f"not a {FORMAT} description (format={d.get('format')!r})")
+    if d.get("version") == 1:
+        d = {**_rot_to_degrees(d), "version": VERSION}
     if d.get("version") != VERSION:
         raise ValueError(f"unsupported {FORMAT} version {d.get('version')!r}")
+    return d
+
+
+def from_dict(cls, d: dict) -> "Assembly":
+    d = upgrade(d)
     inlet = d["inlet"]
     if "nozzle" in inlet:
         from .equipment import Drum
@@ -227,7 +255,7 @@ def _refine_fitting_dict(d: dict, k: int) -> dict:
 
 def refined_dict(d: dict, k: int) -> dict:
     """:func:`to_dict` output at k× the density in every direction."""
-    d = json.loads(json.dumps(d))
+    d = upgrade(json.loads(json.dumps(d)))
     inlet = d["inlet"]
     inlet["spec"] = refine_spec_dict(inlet["spec"], k)
     if "nozzle" in inlet:

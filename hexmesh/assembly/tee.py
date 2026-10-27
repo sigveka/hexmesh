@@ -28,17 +28,17 @@ branch radius ``r < R``.
 
 from __future__ import annotations
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 
 from ..core.shape import CircleShape
 from ..core.spec import PipeSpec
 from .blocks import (
-    ArcAbout, BlockLayout, LayoutError, OH_RATIO, Spline, bind_face, face_patches,
-    face_vertices,
+    ArcAbout, BlockLayout, LayoutError, OH_RATIO, Spline, bind_face, corner_shift,
+    face_patches, face_vertices,
 )
-from .interface import Frame, outer_radius
+from .interface import Frame, junction_roll, junction_toward, outer_radius, rolled
 from .signature import check_port_pairs
 
 _SAMPLES = 9   # interior points per spline edge
@@ -74,9 +74,22 @@ class Tee:
         Axial layers of the approach/departure runs and of the branch run.
     n_turn : int
         Layers of the junction's turning blocks (into the branch).
+    roll : float
+        Branch direction about the main axis in degrees, from the inlet's
+        ``up`` (0: the branch points along ``up``; 90: along ``right``).
+        A multiple of the section's period (90° for a circle), so the
+        junction's corners land on the inlet face's (decision 0024).
+    toward : 3-vector, optional
+        Absolute branch direction, instead of *roll*: resolved to the
+        nearest allowed roll when the tee is added; more than
+        ``limits.JUNCTION_TOWARD_TOL`` off it is an error.
+
+    Ports are ``main`` (the run outlet, keeping the inlet's ``up``) and
+    ``branch``: ``add(…, names={"main": …, "branch": …})``.
     """
 
     strategies = frozenset({0})   # both port pairs: main in → main out, → branch
+    port_names = ("main", "branch")
 
     run_length:    float
     branch_length: float
@@ -84,10 +97,16 @@ class Tee:
     n_run:    int = 3
     n_branch: int = 3
     n_turn:   int = 2
+    roll:     float = 0.0
+    toward:   tuple | None = field(default=None, metadata={"input": True})
+
+    def resolve(self, inlet: Frame, spec: PipeSpec) -> "Tee":
+        return junction_toward(self, inlet, spec)
 
     # -- ports --------------------------------------------------------
 
     def _origin_basis(self, inlet: Frame):
+        inlet = rolled(inlet, self.roll)        # the branch points along this up
         ex, ez = inlet.normal, inlet.up
         ey = np.cross(ez, ex)
         o = inlet.position + self.run_length * ex
@@ -96,7 +115,7 @@ class Tee:
     def ports(self, inlet: Frame, spec: PipeSpec):
         _check_circle(spec)       # the branch spec needs a radius
         o, ex, ey, ez = self._origin_basis(inlet)
-        main = Frame(o + self.run_length * ex, ex, ez)
+        main = Frame(o + self.run_length * ex, ex, inlet.up)
         branch = Frame(o + self.branch_length * ez, ez, ex)
         return [(main, spec), (branch, branch_spec(spec, self.branch_radius))]
 
@@ -109,6 +128,10 @@ class Tee:
             raise ValueError("Tee prototype supports single-layer specs only")
         if spec.rot != 0 or spec.n_outer != 4:
             raise ValueError("Tee prototype requires rot = 0 and n_outer = 4")
+        if self.toward is not None:
+            raise ValueError("Tee: toward is resolved by Assembly.add(); add the "
+                             "fitting to an assembly")
+        junction_roll(self, spec)
         if not 0 < r < R:
             raise ValueError(f"branch radius {r} must be in (0, main radius {R})")
         if self.run_length <= r:
@@ -123,10 +146,12 @@ class Tee:
                 raise ValueError("layer counts must be >= 1")
 
     def layout(self, frames: list[Frame], spec: PipeSpec) -> BlockLayout:
-        A, B, E = frames
+        # Declared in the rolled frame; fill() binds the main ports' faces
+        # (built in the unrolled one) with the corner shift between them.
+        A, B, E = rolled(frames[0], self.roll), rolled(frames[1], self.roll), frames[2]
         R, r = spec.core_shape.radius, self.branch_radius
         bspec = branch_spec(spec, r)
-        o, ex, ey, ez = self._origin_basis(A)
+        o, ex, ey, ez = self._origin_basis(frames[0])
 
         def P(x, y, z):
             return o + x * ex + y * ey + z * ez
@@ -251,6 +276,8 @@ class Tee:
 
     def fill(self, faces, frames, spec, lc):
         lay = self.layout(frames, spec)
-        for prefix, face in zip("ABE", faces):
-            bind_face(lay, prefix, face)
+        for prefix, face, frame in zip("AB", faces, frames):
+            bind_face(lay, prefix, face,
+                      corner_shift(rolled(frame, self.roll), frame, spec))
+        bind_face(lay, "E", faces[2])
         return lay.realise(spec.layer_names)

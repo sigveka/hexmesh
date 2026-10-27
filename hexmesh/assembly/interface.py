@@ -94,6 +94,72 @@ def port_type(spec: PipeSpec) -> tuple:
     )
 
 
+def toward_roll(frame: Frame, toward) -> float:
+    """Roll in degrees, about ``frame.normal`` from ``frame.up``, of the
+    absolute direction *toward* (its component across the pipe):
+    ``rotate(up, normal, roll)`` points that way (decision 0024).
+
+    *toward* within ``TOWARD_MIN_ANGLE`` of the normal (either sense) sets
+    no direction and raises ``ValueError`` naming the angle.
+    """
+    from .limits import TOWARD_MIN_ANGLE
+    t = np.asarray(toward, dtype=float)
+    if t.shape != (3,) or not np.linalg.norm(t) > 0:
+        raise ValueError(f"toward must be a nonzero 3-vector, got {toward!r}")
+    t = t / np.linalg.norm(t)
+    along = float(np.dot(t, frame.normal))
+    off = math.degrees(math.acos(min(1.0, abs(along))))
+    if off < TOWARD_MIN_ANGLE:
+        raise ValueError(
+            f"toward {tuple(np.round(t, 6))} is {off:.3g}° from the inlet normal "
+            f"(minimum {TOWARD_MIN_ANGLE:g}°): it sets no direction across the pipe")
+    p = t - along * frame.normal
+    return math.degrees(math.atan2(np.dot(p, frame.right), np.dot(p, frame.up)))
+
+
+def rolled(frame: Frame, roll: float) -> Frame:
+    """*frame* rolled about its normal by *roll* degrees."""
+    return Frame(frame.position, frame.normal,
+                 rotate(frame.up, frame.normal, math.radians(roll)))
+
+
+def junction_roll(fitting, spec: PipeSpec) -> None:
+    """A junction's ``roll`` must be a multiple of the section's period:
+    only then do its corners land on the inlet face's (decision 0024)."""
+    P = math.degrees(spec.period)
+    m = fitting.roll / P
+    if abs(m - round(m)) > 1e-9:
+        raise ValueError(
+            f"{type(fitting).__name__} roll {fitting.roll:g}° is not a multiple of "
+            f"the section's period {P:g}°")
+
+
+def junction_toward(fitting, inlet: Frame, spec: PipeSpec, offset: float = 0.0):
+    """*fitting* with ``toward`` resolved to the nearest allowed roll.
+
+    *offset* is the roll (degrees) of the direction ``toward`` names,
+    relative to the junction's ``up``.  A miss above
+    ``JUNCTION_TOWARD_TOL`` raises, naming it.
+    """
+    from dataclasses import replace
+    from .limits import JUNCTION_TOWARD_TOL
+    if fitting.toward is None:
+        return fitting
+    name = type(fitting).__name__
+    if fitting.roll != 0:
+        raise ValueError(f"{name}: give roll or toward, not both")
+    want = toward_roll(inlet, fitting.toward) - offset
+    P = math.degrees(spec.period)
+    roll = round(want / P) * P
+    miss = abs(math.remainder(want - roll, 360.0))
+    if miss > JUNCTION_TOWARD_TOL:
+        raise ValueError(
+            f"{name}: toward is {miss:.3g}° from the nearest allowed direction "
+            f"(roll {math.remainder(roll, 360.0):g}°; rolls are multiples of "
+            f"{P:g}°, tolerance {JUNCTION_TOWARD_TOL:g}°)")
+    return replace(fitting, roll=math.remainder(roll, 360.0) + 0.0, toward=None)
+
+
 def roll_mismatch(up_from: np.ndarray, up_to: np.ndarray, normal: np.ndarray,
                   period: float) -> float:
     """Signed roll (radians, about *normal*) taking *up_from* to *up_to*.
@@ -127,7 +193,7 @@ def half_extent(spec: PipeSpec, angle: float) -> float:
     shape = spec.core_shape
     if not isinstance(shape, RectShape):
         return outer_radius(spec)
-    a = angle - spec.rot
+    a = angle - spec.rot_rad
     return shape.half_w * abs(math.cos(a)) + shape.half_h * abs(math.sin(a))
 
 
@@ -188,14 +254,14 @@ def build_face(spec: PipeSpec, frame: Frame, lc: float,
         cx=cx, cy=cy, cz=cz,
         shape=core_shape, h_axis=h_axis, v_axis=v_axis, lc=lc,
         nrad=spec._core_nrad, mprg=spec._core_mprg,
-        mbmp=spec.mbmp, rot=spec.rot,
+        mbmp=spec.mbmp, rot=spec.rot_rad,
         **({'stretch': stretch} if stretch is not None else {}),
     )
     layers = [(core_name, cs)]
     for shell in spec.shells:
         cs = build_annulus(
             inner=cs, dR=shell.dR, lc=lc,
-            nrad=shell.nrad, mprg=shell.mprg, mbmp=spec.mbmp, rot=spec.rot,
+            nrad=shell.nrad, mprg=shell.mprg, mbmp=spec.mbmp, rot=spec.rot_rad,
             stretch=stretch,
         )
         layers.append((shell.name, cs))

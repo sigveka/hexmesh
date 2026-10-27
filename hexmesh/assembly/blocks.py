@@ -520,21 +520,44 @@ def face_patches(prefix, spec) -> list[tuple[str, tuple]]:
     return out
 
 
-def bind_face(layout: BlockLayout, prefix, face) -> None:
-    """Bind the realised port *face* (LayeredCrossSection) into *layout*."""
+def corner_shift(layout_frame, frame, spec) -> int:
+    """Index shift *s* between two frames of one face rolled by a multiple
+    of the section's period: corner *k* declared at *layout_frame* is
+    corner ``(k + s) % n_outer`` of the face built at *frame* (pure)."""
+    from .corners import corner0_angle
+    n = spec.n_outer
+    a0 = corner0_angle(spec)
+    w = np.cos(a0) * layout_frame.right + np.sin(a0) * layout_frame.up
+    a = math.atan2(np.dot(w, frame.up), np.dot(w, frame.right))
+    steps = (a - a0) / (2 * math.pi / n)
+    s = round(steps)
+    if abs(steps - s) > 1e-9:
+        raise LayoutError(f"frames differ by a roll of {math.degrees(a - a0):.6g}°, "
+                          f"not a multiple of {360 / n:g}°")
+    return s % n
+
+
+def bind_face(layout: BlockLayout, prefix, face, shift: int = 0) -> None:
+    """Bind the realised port *face* (LayeredCrossSection) into *layout*.
+
+    Declared corner *k* binds the face's corner ``(k + shift) % n``: a
+    layout declared in a frame rolled by a multiple of the period
+    (:func:`corner_shift`).
+    """
     from .corners import canonical_geom
     for lvl, (_, cs) in enumerate(face.layers):
         n = cs.n_outer
         g = canonical_geom(cs)
+        at = lambda k: (k + shift) % n
         for k in range(n):
-            layout.bind_point((prefix, lvl, k), g['ip'][k])
-            layout.bind_point((prefix, lvl + 1, k), g['op'][k])
+            layout.bind_point((prefix, lvl, k), g['ip'][at(k)])
+            layout.bind_point((prefix, lvl + 1, k), g['op'][at(k)])
         for k in range(n):
             j = (k + 1) % n
             if lvl == 0:
-                layout.bind_edge((prefix, 0, k), (prefix, 0, j), g['ic'][k])
-            layout.bind_edge((prefix, lvl + 1, k), (prefix, lvl + 1, j), g['oc'][k])
-            layout.bind_edge((prefix, lvl, k), (prefix, lvl + 1, k), g['rc'][k])
+                layout.bind_edge((prefix, 0, k), (prefix, 0, j), g['ic'][at(k)])
+            layout.bind_edge((prefix, lvl + 1, k), (prefix, lvl + 1, j), g['oc'][at(k)])
+            layout.bind_edge((prefix, lvl, k), (prefix, lvl + 1, k), g['rc'][at(k)])
         off = 1 if len(cs.surfaces) == n + 1 else 0
         if off:
             layout.port_face(tuple((prefix, 0, k) for k in range(n)), cs.surfaces[0])
@@ -542,4 +565,4 @@ def bind_face(layout: BlockLayout, prefix, face) -> None:
             j = (k + 1) % n
             layout.port_face(((prefix, lvl, k), (prefix, lvl, j),
                               (prefix, lvl + 1, j), (prefix, lvl + 1, k)),
-                             cs.surfaces[off + k])
+                             cs.surfaces[off + at(k)])

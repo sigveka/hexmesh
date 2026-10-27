@@ -111,14 +111,14 @@ ellipse where the two pipes meet. There are two known exceptions:
 | Fitting | Use |
 |---|---|
 | `Straight(length, n_layers, axial_grading=1, stack_changes=())` | Straight run. `stack_changes` ends or starts outer layers inside it (see *Insulation gaps*) |
-| `Bend(radius, angle, n_layers, roll=0, axial_grading=1, stack_changes=())` | Circular-arc bend. `roll` (degrees) turns the bend plane about the pipe axis; 0 bends toward `up` |
-| `Elbow(angle=90, schedule="long", n_layers=8, roll=0, axial_grading=1)` | Butt-weld elbow: a `Bend` with radius 1.5 D (`"long"`) or 1 D (`"short"`), D = outer diameter |
-| `MiterBend(radius, angle, n_cuts=1, n_layers=2, roll=0)` | Segmented bend of straight pieces. Same ports as `Bend(radius, angle)`; each cut turns ≤ 90° |
+| `Bend(radius, angle, n_layers, roll=0, axial_grading=1, stack_changes=(), toward=None)` | Circular-arc bend. `roll` (degrees) turns the bend plane about the pipe axis; 0 bends toward `up`. Or `toward=(x, y, z)`: the absolute direction to turn toward |
+| `Elbow(angle=90, schedule="long", n_layers=8, roll=0, axial_grading=1, toward=None)` | Butt-weld elbow: a `Bend` with radius 1.5 D (`"long"`) or 1 D (`"short"`), D = outer diameter |
+| `MiterBend(radius, angle, n_cuts=1, n_layers=2, roll=0, toward=None)` | Segmented bend of straight pieces. Same ports as `Bend(radius, angle)`; each cut turns ≤ 90° |
 | `Reducer(outlet, length, n_layers, axial_grading=1)` | Concentric cone to another radius (reducer or expander). Only radii may change |
 | `Transition(outlet, length, n_layers, axial_grading=1)` | Circle ↔ rectangle, or rectangle ↔ rectangle; equal counts per side |
 | `SplinePipe(points, n_layers, end_tangent=None, axial_grading=1)` | Pipe along a cubic spline; `points[0]` is the inlet position |
-| `Tee(run_length, branch_length, branch_radius, n_run=3, n_branch=3, n_turn=2)` | Perpendicular side-branch tee, block layout; returns `(main, branch)` |
-| `Wye(angle, run_length, branch_length, n_run=3, n_branch=3, n_split=3)` | Symmetric Y-junction, block layout; returns `(left, right)` |
+| `Tee(run_length, branch_length, branch_radius, n_run=3, n_branch=3, n_turn=2, roll=0, toward=None)` | Perpendicular side-branch tee, block layout; returns `(main, branch)`. The branch points along `up`, rolled by a multiple of 90°, or `toward` a direction |
+| `Wye(angle, run_length, branch_length, n_run=3, n_branch=3, n_split=3, roll=0, toward=None)` | Symmetric Y-junction, block layout; returns `(left, right)`. `roll` (a multiple of 90°) turns its plane |
 | `Closure(n_layers, tension=1.0, axial_grading=1)` | Smooth run between two existing interfaces, used with `close()` for loops |
 
 ### Building a network
@@ -129,15 +129,20 @@ asm = Assembly(pipe, direction=[1, 0, 0], up=[0, 0, 1])
 # add(fitting) continues from the tail
 asm.add(Straight(0.4, n_layers=8))
 
-# multi-outlet fittings return one interface per outlet
-main, branch = asm.add(Tee(run_length=0.2, branch_length=0.25, branch_radius=0.06))
+# multi-outlet fittings return one interface per outlet; toward= points
+# the branch in an absolute direction (here sideways, +y)
+main, branch = asm.add(Tee(run_length=0.2, branch_length=0.25, branch_radius=0.06,
+                           toward=(0, 1, 0)))
 
 # add(interface, fitting) branches from any interface and returns its outlet
-bend = asm.add(main, Bend(radius=0.3, angle=90, n_layers=12, roll=90))
+bend = asm.add(main, Bend(radius=0.3, angle=90, n_layers=12, toward=(0, -1, 0)))
 
-# names= names the outlet; open ends become patches such as "fluid_main_end"
+# names= names the outlets (a list, or a dict by port name: a tee has
+# "main" and "branch"); open ends become patches such as "fluid_main_end"
 asm.add(bend, Straight(0.3, n_layers=6), names=["main_end"])
-asm.add(branch, Straight(0.3, n_layers=6), names=["branch_end"])
+asm.add(branch, Straight(0.3, n_layers=6), names={"outlet": "branch_end"})
+
+# every angle is in degrees, including PipeSpec(rot=...)
 
 # close(source, target, fitting) joins two open interfaces, e.g. a loop:
 # asm.close(asm.interfaces[-1], asm.inlet, Closure(n_layers=24))

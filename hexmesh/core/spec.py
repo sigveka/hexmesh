@@ -137,9 +137,10 @@ class PipeSpec:
     mbmp : float
         Angular bump factor for Transfinite Line.  Default 1.0 (uniform).
     rot : float
-        Rotation offset (radians) applied to the OH grid corner angles.
-        Use ``rot=-π/4`` to align patch boundaries with horizontal/vertical
-        axes (e.g. for half-buried pipes).  Default 0.0.
+        Rotation offset in degrees applied to the OH grid corner angles,
+        like every other angle (decision 0024).  Use ``rot=-45`` to align
+        patch boundaries with horizontal/vertical axes (e.g. for
+        half-buried pipes).  Default 0.0.
 
     Examples
     --------
@@ -188,7 +189,7 @@ class PipeSpec:
         self._nang_w = nang_w
         self._nang_h = nang_h
         self._mbmp   = mbmp
-        self._rot    = rot
+        self._rot    = float(rot)    # degrees
         self._core:   tuple[str, Shape] | None = None
         self._shells: list[LayerSpec | SquareShellSpec] = []
         # Validate nang / n_outer constraint if nang is already known at init time.
@@ -459,7 +460,13 @@ class PipeSpec:
 
     @property
     def rot(self) -> float:
+        """Corner-frame rotation in degrees."""
         return self._rot
+
+    @property
+    def rot_rad(self) -> float:
+        """``rot`` in radians, for the face builders."""
+        return math.radians(self._rot)
 
     @property
     def side_counts(self) -> tuple[int, ...]:

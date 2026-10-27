@@ -49,8 +49,8 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0037](0037-pcf-branched-networks.md) | PCF reader: branched networks and junctions | ready | 0023 |
 | [0038](0038-pcf-insulation-and-equipment.md) | PCF reader: insulation and equipment connections | ready (after 0037) | 0023 |
 | [0039](0039-interface-degree-and-session-guard.md) | Two validation bugs: overlapping fittings on one interface, GMSH calls outside a session | done | 0024 |
-| [0040](0040-port-names-orientation-angle-units.md) | Named ports, absolute orientation (`toward=`, junction roll), `rot` in degrees | ready (after 0039) | 0024 |
-| [0041](0041-assembly-axial-cell.md) | `Assembly(axial_cell=…)`: `n_layers` from a target cell size | ready (after 0039) | 0024 |
+| [0040](0040-port-names-orientation-angle-units.md) | Named ports, absolute orientation (`toward=`, junction roll), `rot` in degrees | done | 0024 |
+| [0041](0041-assembly-axial-cell.md) | `Assembly(axial_cell=…)`: `n_layers` from a target cell size | in progress | 0024 |
 
 Decision 0004 (retire legacy) comes first: 0011 → 0012 / 0013 / 0014 →
 0015 → 0016 → 0017.  0017 waits for all the others.  Then the rest of

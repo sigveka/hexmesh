@@ -80,7 +80,7 @@ class TestCurveEndpoints:
 
 
 class TestCanonicalGeom:
-    @pytest.mark.parametrize("rot", [0.0, 0.3])
+    @pytest.mark.parametrize("rot", [0.0, 17.0])   # degrees
     def test_builder_convention(self, gmsh_session, rot):
         """Corner k at corner0 + k·90° from right; curves run k → k+1."""
         spec = _spec(rot=rot)
