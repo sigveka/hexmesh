@@ -33,7 +33,7 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0021](0021-pcf-reader-spec-conformance.md) | PCF reader: conform to the PCF reference guide (bug fixes) | done | 0004 |
 | [0022](0022-rename-interface-groups.md) | Rename material-interface groups to `interface_<inner>_<outer>` | done | 0013 |
 | [0023](0023-boundary-role-manifest-and-retyping.md) | Boundary-role manifest and OpenFOAM patch retyping | done | 0013 |
-| [0024](0024-parallel-test-suite.md) | Parallel test suite (pytest-xdist) and registered markers | in progress | 0014 |
+| [0024](0024-parallel-test-suite.md) | Parallel test suite (pytest-xdist) and registered markers | done | 0014 |
 | [0025](0025-ruled-straight-slabs.md) | Ruled side surfaces for straight slabs, and a wall-exactness check | done | 0015 |
 | [0026](0026-assembly-refined.md) | `Assembly.refined(k)`: uniform refinement for convergence studies | done | 0015 |
 | [0027](0027-grading-change-across-sweeps.md) | Grading-only changes across a sweep (wall-resolved reducers) | done | 0016 |
@@ -92,6 +92,8 @@ These apply to every task.
   - Follow `CLAUDE.md`, "Both sessions, shared machine", before long
     runs.
 - Keep each task a separate, reviewable change.  Match the surrounding code
+    Expected time (8 cores, 2026-10-27): about 4 min in parallel,
+    12 min serial.
   style: dataclasses, numpy, short docstrings that cite DESIGN rules.
 
 ### Not part of any task
