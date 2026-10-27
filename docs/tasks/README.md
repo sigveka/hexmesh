@@ -51,6 +51,9 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0039](0039-interface-degree-and-session-guard.md) | Two validation bugs: overlapping fittings on one interface, GMSH calls outside a session | done | 0024 |
 | [0040](0040-port-names-orientation-angle-units.md) | Named ports, absolute orientation (`toward=`, junction roll), `rot` in degrees | done | 0024 |
 | [0041](0041-assembly-axial-cell.md) | `Assembly(axial_cell=…)`: `n_layers` from a target cell size | done | 0024 |
+| [0042](0042-study-runner-core.md) | Study runner: study file, sampling, preflight, mesh stage, manifest | ready | 0025 |
+| [0043](0043-study-openfoam-stages.md) | Study runner: OpenFOAM case and run stages, shared OpenFOAM helpers | ready (after 0042) | 0025 |
+| [0044](0044-demo-study-laminar-bend.md) | Demonstration study: laminar 90° bend, loss chart and aligned dataset | ready (after 0043) | 0025 |
 
 Decision 0004 (retire legacy) comes first: 0011 → 0012 / 0013 / 0014 →
 0015 → 0016 → 0017.  0017 waits for all the others.  Then the rest of

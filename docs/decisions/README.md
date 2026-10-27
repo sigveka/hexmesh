@@ -39,6 +39,7 @@ rejected.  Records are written in design sessions, and they are the only way
 | [0022](0022-oh-core-convergence-order.md) | Convergence order of the O-H section, and a self-similar core square | proposed |
 | [0023](0023-pcf-branched-networks-insulation-equipment.md) | PCF input: branched networks, junctions, insulation and equipment | accepted |
 | [0024](0024-api-ergonomics.md) | API ergonomics: port names, absolute orientation, angle units, axial cell size | accepted |
+| [0025](0025-study-runner.md) | Study runner: many variants from one template, in parallel jobs | accepted |
 
 ## Future expansions
 
