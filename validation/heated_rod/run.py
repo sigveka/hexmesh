@@ -9,13 +9,13 @@ convection, so it tests the O-H cross-section on its own:
     hexmesh Assembly → write_openfoam → gmshToFoam → checkMesh
     → laplacianFoam (scalarSemiImplicitSource) → post-processing in Python
 
-Two series of four levels (``nang`` 6 → 48, ``nrad`` = ``nang`` / 2):
+Two series of five levels (``nang`` 6 → 96, ``nrad`` = ``nang`` / 2):
 uniform, and radially graded (``first_cell`` = 0.05 R at the coarsest
 level, refined by ``Assembly.refined``, so each coarse cell splits into
 cells of the same growth).  The axial count stays at 2: the problem is
 axially uniform.  Usage::
 
-    python3 validation/heated_rod/run.py [--levels 1 2 4 8] [--series uniform graded]
+    python3 validation/heated_rod/run.py [--levels 1 2 4 8 16] [--series uniform graded]
                                          [--work DIR] [--json FILE]
 """
 
@@ -43,6 +43,7 @@ import gmsh                                                    # noqa: E402
 
 from hexmesh import Assembly, PipeSpec, Session, Straight      # noqa: E402
 from hexmesh.assembly import intent                            # noqa: E402
+from hexmesh.core.shape import OH_RATIO                        # noqa: E402
 
 # The Poiseuille case's OpenFOAM runner, readers and Richardson analysis.
 _spec = importlib.util.spec_from_file_location("poiseuille_run",
@@ -66,7 +67,7 @@ def t_exact(r):
 
 BASE = dict(nang=6, nrad=3, n_layers=2)
 FIRST_CELL = 0.05 * R      # graded series, coarsest level
-LEVELS = (1, 2, 4, 8)
+LEVELS = (1, 2, 4, 8, 16)
 SERIES = ("uniform", "graded")
 
 
@@ -223,6 +224,16 @@ def results(case: Path) -> dict:
     c0, _ = np.linalg.lstsq(np.column_stack([np.ones(fit.sum()), r[fit] ** 2]),
                             T[fit], rcond=None)[0]
     worst = int(np.argmax(np.abs(err)))
+
+    # Error by region: the O-H core square (half-side OH_RATIO·R/√2), the
+    # ring within 10° of a diagonal (the core corners' sector), and the
+    # rest of the ring; L2 over the region, normalised by the whole volume.
+    half = OH_RATIO * R / math.sqrt(2)
+    core = (np.abs(cc[:, 1]) < half) & (np.abs(cc[:, 2]) < half)
+    diag = np.abs(np.degrees(np.arctan2(np.abs(cc[:, 2]), np.abs(cc[:, 1]))) - 45) < 10
+    regions = {"core": core, "ring_diagonal": ~core & diag, "ring_other": ~core & ~diag}
+    region_l2 = {k: float(math.sqrt(np.sum(vol[m] * err[m] ** 2) / V)) / DT0_EXACT
+                 for k, m in regions.items()}
     return {
         "volume": V, "volume_err_signed": (V - math.pi * R**2 * LENGTH) / (math.pi * R**2 * LENGTH),
         "q_gen": q_gen, "q_wall": q_wall, "energy_err": abs(q_wall - q_gen) / q_gen,
@@ -233,6 +244,7 @@ def results(case: Path) -> dict:
         "mean_err_signed": float(np.sum(vol * err) / V) / DT0_EXACT,
         "max_err_r": float(r[worst] / R),
         "max_err_angle": float(math.degrees(math.atan2(cc[worst, 2], cc[worst, 1])) % 90),
+        "region_l2": region_l2,
     }
 
 
@@ -281,6 +293,9 @@ def orders(rows: list[dict], key: str) -> list[float]:
 
 def analyse(rows: list[dict]) -> dict:
     out = {"order_l2": orders(rows, "l2_err"), "order_max": orders(rows, "max_err"),
+           "order_region_l2": {k: [math.log2(a["region_l2"][k] / b["region_l2"][k])
+                                   for a, b in zip(rows, rows[1:])]
+                               for k in rows[0]["region_l2"]},
            "order_dt0": orders(rows, "dt0_err_signed") if all(
                r["dt0_err_signed"] for r in rows) else None}
     if len(rows) >= 3:
@@ -320,6 +335,8 @@ def main(argv=None) -> dict:
         if a:
             print("observed order, L2: " + ", ".join(f"{o:.2f}" for o in a["order_l2"]))
             print("observed order, max: " + ", ".join(f"{o:.2f}" for o in a["order_max"]))
+            for k, o in a["order_region_l2"].items():
+                print(f"observed order, L2 {k}: " + ", ".join(f"{v:.2f}" for v in o))
             if "richardson_dt0" in a:
                 rd = a["richardson_dt0"]
                 print(f"ΔT₀ Richardson (last three): order {rd['order']:.2f}, extrapolated "

@@ -1,6 +1,6 @@
 # 0033 — Validation: solid rod with uniform heat generation (O-H core, pure diffusion)
 
-- **Status:** ready (design answered 2026-10-27: one more level, then *Outcome*)
+- **Status:** done
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md)
 - **Depends on:** 0025 (exact straight walls).  Uses task 0020's
   pipeline pieces (case writing, Python post-processing).
@@ -131,20 +131,28 @@ wall temperature T_w:
 
 ## Outcome
 
-**Blocked on question 1; everything else done.**  Run 2026-10-27,
-hexmesh `d71d0d8`, gmsh 4.12.1, OpenFOAM v1912.
+**Done** (design answer to question 1: order reported, not gated; one
+more level).  Final run 2026-10-27, hexmesh `faddea0`, gmsh 4.12.1,
+OpenFOAM v1912; five levels per series (`validation/heated_rod/RESULTS.md`).
 
-- **Mesh OK at all 8 levels** (both series; cells 216 / 864 / 3456 /
-  13 824, predicted = converted).  Max non-orthogonality 23.5 / 33.2 /
-  38.9 / 41.9°, max skewness 0.42–0.53 (uniform), 0.56–0.75 (graded);
-  `nang` 48 included (task 0020's trend question: still rising at 48).
-- **Energy balance** to solver tolerance at every level (≤ 2.7e-13).
-- **ΔT₀:** Richardson on the three finest levels extrapolates to
-  0.999802 (uniform, −0.020 %) and 0.999736 (graded, −0.026 %): within
-  0.1 % of exact.  ✔
-- **L2 order:** below the expected ≈ 2 and below 1.5 at the finest pair
-  (question 1).  ✘
-- Default `pytest` unchanged (the new tests are `-m openfoam`; 2 pass).
+- **Mesh OK at all 10 levels** (cells 216 / 864 / 3 456 / 13 824 /
+  55 296, predicted = converted).  Max non-orthogonality 23.5 / 33.2 /
+  38.9 / 41.9 / 43.4° (task 0020's trend question: still rising at
+  `nang` 96, toward 45°); max skewness levels off at 0.53 (uniform),
+  0.76 (graded).
+- **Energy balance** to solver tolerance at every level (≤ 5.7e-13).  ✔
+- **ΔT₀ gate:** Richardson on k = 4, 8, 16 extrapolates to −0.007 %
+  (uniform) and −0.010 % (graded) of exact, GCI 0.035 % / 0.037 %;
+  gate 0.1 %.  ✔
+- **Order (reported):** L2 1.77, 1.57, 1.34, **1.17** (uniform) and
+  1.70, 1.61, 1.31, **1.09** (graded).  **It does not level off near 1.3;
+  it keeps falling toward 1.**  ΔT₀ order 1.12 at k = 8 → 16.
+- **Regions, k = 8 → 16:** core 1.13, ring near the diagonals 1.01 /
+  0.91, rest of the ring 1.24 / 1.04: every region is about first order
+  now, the corner sector slowest, and the largest error sits at the
+  core-square corner (r/R 0.60).
+- Default `pytest` unchanged; `-m openfoam -k heated` (coarsest level)
+  passes.
 
 RESEARCH-ready table (uniform series; graded in RESULTS.md):
 
@@ -154,7 +162,14 @@ RESEARCH-ready table (uniform series; graded in RESULTS.md):
 | 12 | 864 | 33.2° | −0.459 % | 3.87e-03 | 1.77 |
 | 24 | 3 456 | 38.9° | −0.176 % | 1.31e-03 | 1.57 |
 | 48 | 13 824 | 41.9° | −0.076 % | 5.16e-04 | 1.34 |
-| extrapolated | | | −0.020 % | | Richardson order 1.49 |
+| 96 | 55 296 | 43.4° | −0.035 % | 2.29e-04 | 1.17 |
+| extrapolated (k = 4, 8, 16) | | | −0.007 % | | Richardson 1.30, GCI 0.035 % |
 
-Proposed follow-ups: the corner-free control in question 1 (b); task 0034
-(layered rod) reuses this pipeline as is.
+**For decision 0022:** its open point ("does the order level off near
+1.3, or fall toward 1?") is answered: it falls toward 1 in every region,
+consistent with a corner error that does not shrink with the cells.  The
+gate still passes comfortably, so option A holds for this case; B (a
+corner-free control) would show whether the corners are the cause.
+
+Proposed follow-ups: decision 0022 option B if a validation case needs
+second order; task 0034 reuses this pipeline as is.
