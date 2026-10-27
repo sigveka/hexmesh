@@ -467,9 +467,9 @@ class PipeSpec:
         (NE→NW first): ``nang // (n_outer // 4)`` per arc of a circle;
         ``(nang_w, nang_h, nang_w, nang_h)`` for a rectangle."""
         shape = self.core_shape
-        if isinstance(shape, RectShape):
-            return (shape.nang_w, shape.nang_h) * 2
-        return (shape.nang // (self._n_outer // 4),) * self._n_outer
+        if isinstance(shape, CircleShape):
+            return (shape.nang // (self._n_outer // 4),) * self._n_outer
+        return (shape.nang_w, shape.nang_h) * 2
 
     @property
     def period(self) -> float:
@@ -478,9 +478,9 @@ class PipeSpec:
         ``2π / n_outer`` for a circle, π/2 for a square, π for any other
         rectangle."""
         shape = self.core_shape
-        if isinstance(shape, RectShape):
-            return math.pi / 2 if shape.is_square else math.pi
-        return 2 * math.pi / self._n_outer
+        if isinstance(shape, CircleShape):
+            return 2 * math.pi / self._n_outer
+        return math.pi / 2 if shape.is_square else math.pi
 
     @property
     def graph(self) -> MaterialGraph:

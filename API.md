@@ -225,9 +225,9 @@ supported (`TypeError`).
   duct's half-extent in the bend plane (`half_h` for roll 0, `half_w` for
   roll 90). Splines and closures, whose bend plane varies, are checked
   against the half-diagonal.
-- **Fittings.** `Straight`, `Bend`, `MiterBend`, `SplinePipe` and
-  `Closure`. `Elbow` (ASME pipe schedules), `Reducer`, `Tee` and `Wye`
-  reject ducts; a duct size change is a `Transition` (task 0029).
+- **Fittings.** `Straight`, `Bend`, `MiterBend`, `SplinePipe`,
+  `Closure` and `Transition` (to a circle, or to another rectangle).
+  `Elbow` (ASME pipe schedules), `Reducer`, `Tee` and `Wye` reject ducts.
 - **Diameters.** `extend_open_ends` measures a duct in hydraulic
   diameters, 4A / P_w = `4·half_w·half_h / (half_w + half_h)`.
 - **Cells.** `nang_w·nang_h + 2·(nang_w + nang_h)·nrad` per section.
@@ -251,7 +251,7 @@ the inlet, below 1 toward the outlet. `Straight` grades its axial curves.
 The other fittings place one station per layer, so they space their
 stations by the same law (for `SplinePipe` and `Closure`, in arc length
 plus turning angle). The cell count is unchanged. `MiterBend`, `Tee` and
-`Wye` are not graded.
+`Wye` are not graded; `Transition` spaces its stations like `Reducer`.
 
 Every fitting has three parts:
 - `ports(inlet, spec)`: where its outlets go;
@@ -363,6 +363,24 @@ pipe = lambda r: PipeSpec(nang=8).core("fluid", radius=r, nrad=8, first_cell=1e-
 asm = Assembly(pipe(0.1))
 asm.add(Reducer(pipe(0.06), length=0.2, n_layers=6))
 ```
+
+### `Transition(outlet, length, n_layers, axial_grading=1.0)`
+
+A straight transition between a circle and a rectangle (either way), or
+between two rectangles of different size or aspect (decision 0009, task
+0029). `outlet` is the outlet spec.
+
+- **Specs.** Both are single-layer and equal in everything but shape and
+  size: the same counts per side (a circle's `nang` equals the
+  rectangle's `nang_w` and `nang_h`), `nrad`, `mprg`, layer name, `mbmp`
+  and `rot`. Then the two faces have the same mesh connectivity (switch
+  class 0). Circle → circle is a `Reducer`.
+- **Stations.** One per axial layer, spaced by `axial_grading` as for
+  `Straight`. Each station's outline is the point-by-point blend of the
+  two end outlines at equal arc-length fractions, so wall nodes lie on the
+  station curves. The end faces are the exact circle and rectangle.
+- **Corners.** Corner k meets corner k: a circle's corners at 45° + k·90°
+  go to the rectangle's corners, with no twist.
 
 ### `SplinePipe(points, n_layers, end_tangent=None, axial_grading=1.0)`
 

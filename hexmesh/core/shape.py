@@ -21,6 +21,8 @@ import math
 from dataclasses import dataclass
 from typing import Union
 
+import numpy as np
+
 
 @dataclass(frozen=True)
 class CircleShape:
@@ -112,3 +114,89 @@ def oh_core_wall_span(radius: float, ratio: float = OH_RATIO) -> float:
     """
     rho = ratio * radius
     return radius - (math.hypot(rho + rho / math.sqrt(2), rho / math.sqrt(2)) - rho)
+
+
+# ---------------------------------------------------------------------------
+# Outlines: the O-H face of each shape as pure 2-D curves (task 0029)
+# ---------------------------------------------------------------------------
+# In-plane (u, v) coordinates, u along ``frame.right``, v along ``up``,
+# before ``rot``.  Curve k runs from corner k to k + 1 (NE, NW, SW, SE), and
+# *s* in [0, 1] is the fraction of its arc length.  These must match the
+# face builders (``faces.oh_circle``, ``faces.oh_rect``): a transition's
+# stations blend them, and its end stations are those builders' faces.
+
+def _circle_outline(shape: CircleShape, k: int, s, inner: bool):
+    s = np.asarray(s, dtype=float)
+    r = shape.radius
+    if not inner:
+        a = math.pi / 4 + math.pi / 2 * (k + s)
+        return np.stack([r * np.cos(a), r * np.sin(a)], axis=-1)
+    # inner arc k is centred on the inner-square point opposite its middle
+    rho = OH_RATIO * r
+    mid = math.pi / 2 * (k + 1)
+    c = -rho * np.array([math.cos(mid), math.sin(mid)])
+    ends = [rho * np.array([math.cos(math.pi / 4 + math.pi / 2 * j),
+                            math.sin(math.pi / 4 + math.pi / 2 * j)]) for j in (k, k + 1)]
+    a0, a1 = (math.atan2(*(e - c)[::-1]) for e in ends)
+    a1 = a0 + math.remainder(a1 - a0, 2 * math.pi)    # the short way (k = 1 crosses ±π)
+    a = a0 + (a1 - a0) * s
+    R = np.linalg.norm(ends[0] - c)
+    return c + R * np.stack([np.cos(a), np.sin(a)], axis=-1)
+
+
+def _rect_outline(shape: RectShape, k: int, s, inner: bool):
+    s = np.asarray(s, dtype=float)[..., None]
+    hw, hh = shape.half_w, shape.half_h
+    if inner:                       # uniform ring, as faces.oh_rect
+        t = (1.0 - OH_RATIO) * min(hw, hh)
+        hw, hh = hw - t, hh - t
+    corners = np.array([[hw, hh], [-hw, hh], [-hw, -hh], [hw, -hh]])
+    return corners[k % 4] + (corners[(k + 1) % 4] - corners[k % 4]) * s
+
+
+def outline(shape, k: int, s, inner: bool = False) -> np.ndarray:
+    """Point(s) at arc-length fraction *s* along outer (or *inner*) curve
+    *k* of *shape*'s O-H face, in unrotated in-plane coordinates."""
+    if isinstance(shape, CircleShape):
+        return _circle_outline(shape, k, s, inner)
+    if isinstance(shape, RectShape):
+        return _rect_outline(shape, k, s, inner)
+    raise TypeError(f"no outline for {type(shape).__name__}")
+
+
+@dataclass(frozen=True)
+class BlendShape:
+    """Station shape of a ``Transition`` (task 0029): the fraction *u* of
+    the way from *inlet* to *outlet* (circle or rectangle, equal counts per
+    side).  Every point is the linear blend of the two outlines' points at
+    the same arc-length fraction (a "node blend").  A superellipse
+    |x/a|^p + |y/b|^p = 1 with interpolated a, b, p was measured against it
+    and gave the same min SICN and lower scaled Jacobians (task 0029).
+    """
+
+    inlet:  object
+    outlet: object
+    u:      float
+
+    @property
+    def nang_w(self) -> int:
+        return getattr(self.inlet, "nang_w", None) or self.inlet.nang
+
+    @property
+    def nang_h(self) -> int:
+        return getattr(self.inlet, "nang_h", None) or self.inlet.nang
+
+    @property
+    def max_extent(self) -> float:
+        return max(self.inlet.max_extent, self.outlet.max_extent)
+
+    @property
+    def is_square(self) -> bool:
+        def sq(s):
+            return isinstance(s, CircleShape) or s.half_w == s.half_h
+        return sq(self.inlet) and sq(self.outlet) and self.nang_w == self.nang_h
+
+    def outline(self, k: int, s, inner: bool = False) -> np.ndarray:
+        a = outline(self.inlet, k, s, inner)
+        b = outline(self.outlet, k, s, inner)
+        return (1.0 - self.u) * a + self.u * b

@@ -31,7 +31,9 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from ..core.spec import PipeSpec
-from .fittings import Bend, Closure, Elbow, MiterBend, Reducer, SplinePipe, Straight
+from .fittings import (
+    Bend, Closure, Elbow, MiterBend, Reducer, SplinePipe, Straight, Transition,
+)
 from .interface import Frame
 from .tee import Tee
 from .wye import Wye
@@ -44,7 +46,7 @@ VERSION = 1
 
 # Explicit registry: no plugins or entry points (DESIGN §6.1).
 FITTING_TYPES = {cls.__name__: cls for cls in (
-    Straight, Bend, MiterBend, Elbow, Reducer, SplinePipe, Closure, Tee, Wye,
+    Straight, Bend, MiterBend, Elbow, Reducer, Transition, SplinePipe, Closure, Tee, Wye,
 )}
 
 

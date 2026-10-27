@@ -3,9 +3,9 @@
 Structured all-hex meshes for CFD pipe networks, built on [GMSH](https://gmsh.info/).
 
 Describe a network as a graph of fittings: straight runs, bends, elbows, miter
-bends, reducers, spline pipes, tees, wyes and loop closures. hexmesh places and checks
-it in pure Python, then builds a conformal hexahedral mesh for OpenFOAM or any
-other finite-volume solver.
+bends, reducers, duct transitions, spline pipes, tees, wyes and loop closures.
+hexmesh places and checks it in pure Python, then builds a conformal
+hexahedral mesh for OpenFOAM or any other finite-volume solver.
 
 ```
 Straight → Bend → Straight → Tee → Straight
@@ -115,6 +115,7 @@ ellipse where the two pipes meet. There are two known exceptions:
 | `Elbow(angle=90, schedule="long", n_layers=8, roll=0, axial_grading=1)` | Butt-weld elbow: a `Bend` with radius 1.5 D (`"long"`) or 1 D (`"short"`), D = outer diameter |
 | `MiterBend(radius, angle, n_cuts=1, n_layers=2, roll=0)` | Segmented bend of straight pieces. Same ports as `Bend(radius, angle)`; each cut turns ≤ 90° |
 | `Reducer(outlet, length, n_layers, axial_grading=1)` | Concentric cone to another radius (reducer or expander). Only radii may change |
+| `Transition(outlet, length, n_layers, axial_grading=1)` | Circle ↔ rectangle, or rectangle ↔ rectangle; equal counts per side |
 | `SplinePipe(points, n_layers, end_tangent=None, axial_grading=1)` | Pipe along a cubic spline; `points[0]` is the inlet position |
 | `Tee(run_length, branch_length, branch_radius, n_run=3, n_branch=3, n_turn=2)` | Perpendicular side-branch tee, block layout; returns `(main, branch)` |
 | `Wye(angle, run_length, branch_length, n_run=3, n_branch=3, n_split=3)` | Symmetric Y-junction, block layout; returns `(left, right)` |
@@ -216,6 +217,9 @@ A duct uses the same O-H layout with straight sides: a centre rectangle and
 a ring of uniform thickness, with `nang_w` cells along the width and
 `nang_h` along the height. Ducts are single-layer for now, and run through
 `Straight`, `Bend`, `MiterBend`, `SplinePipe` and `Closure`.
+`Transition` joins a duct to a circular pipe, or to a duct of another size,
+when the counts per side match: a circle's `nang` equals the duct's
+`nang_w` and `nang_h`.
 
 `up` decides which side is the height, and a bend's `roll` decides its
 plane. `Bend(..., roll=0)` turns toward `up`, across the height: the
@@ -448,6 +452,7 @@ python3 -m hexmesh.examples.smooth_bend
 | `graded_bend` | CFD-ready bend: `first_cell`, `axial_grading` toward the bend, extensions, `walls_by_fitting` |
 | `wye` | 60° `Wye` with a straight on each daughter; named outlets |
 | `rect_duct` | 2:1 rectangular duct with an easy-way and a hard-way bend |
+| `duct_transition` | circular pipe → 2:1 duct (`Transition`), a duct bend, and back |
 
 ---
 
@@ -459,8 +464,8 @@ python3 -m hexmesh.examples.smooth_bend
   spec, coplanar and symmetric, angle 30°–120°. Quality is measured, not
   yet bounded: min scaled Jacobian about 0.1 (decision 0017).
 - **Rectangular ducts:** single-layer only (no duct wall or insulation
-  shells yet); no reducer, tee or elbow for ducts. Circle ↔ rectangle
-  transitions are planned (task 0029).
+  shells yet); no tee or elbow for ducts. `Transition` needs equal
+  counts per side and single-layer specs.
 - **Layer changes:** insulation can't start or stop inside a fitting yet
   (decision 0006).
 

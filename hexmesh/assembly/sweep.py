@@ -163,6 +163,10 @@ class Path:
         ``None`` for straight axial lines, or an ``Arc``.
     specs
         Spec per station, or ``None`` for a constant cross-section.
+    blend
+        Station shapes change along the path (``Transition``): the
+        radial side faces are not planar, so they are filled.  Needs one
+        axial layer per slab.
     fill
         Layers filled per slab, innermost first, or ``None`` for all of
         them.  A slab with fewer layers than a station face leaves the
@@ -193,6 +197,7 @@ class Path:
     prism:      bool = False
     axial_grading: float = 1.0
     fill:       list[int] | None = None
+    blend:      bool = False
 
     def __post_init__(self) -> None:
         if len(self.layers) != len(self.frames) - 1:
@@ -203,6 +208,8 @@ class Path:
             raise ValueError("prism slabs need one axial layer each (no interior wall nodes)")
         if any(n < 1 for n in self.layers):
             raise ValueError("every slab needs at least one axial layer")
+        if self.blend and any(n != 1 for n in self.layers):
+            raise ValueError("blend slabs need one axial layer each (no interior wall nodes)")
 
     def spec_at(self, k: int, default: PipeSpec) -> PipeSpec:
         return default if self.specs is None else self.specs[k]
@@ -342,7 +349,9 @@ def sweep_fill(path: Path, faces: list[LayeredCrossSection],
     result = FillResult()
     for k, n in enumerate(path.layers):
         result.merge(_fill_slab(stations[k], stations[k + 1], n, offsets[k],
-                                axial_curve=axial_curve, planar_radial=planar,
+                                axial_curve=axial_curve,
+                                # blend stations: radial faces may twist
+                                planar_radial=planar and not path.blend,
                                 grading=grading,
                                 # exact surfaces wherever slabs are straight
                                 # (DESIGN §6); plate filling elsewhere

@@ -31,7 +31,8 @@ import numpy as np
 import pytest
 
 from hexmesh.assembly import (
-    Assembly, Bend, Closure, Elbow, MiterBend, Reducer, SplinePipe, Straight, Tee, Wye,
+    Assembly, Bend, Closure, Elbow, MiterBend, Reducer, SplinePipe, Straight, Tee,
+    Transition, Wye,
 )
 from hexmesh.core.shape import CircleShape, RectShape
 from hexmesh.core.spec import PipeSpec
@@ -53,10 +54,15 @@ def _three(radius=0.1):
     return _two(radius).shell("insulation", dR=0.03, nrad=2)
 
 
-def _duct(half_w=0.1, half_h=0.05, nang_w=4, nang_h=2):
+def _duct(half_w=0.1, half_h=0.05, nang_w=4, nang_h=2, name="air", nrad=2):
     """Single-layer rectangular duct, 2:1 by default (task 0028)."""
     return PipeSpec(nang_w=nang_w, nang_h=nang_h).core(
-        "air", half_w=half_w, half_h=half_h, nrad=2)
+        name, half_w=half_w, half_h=half_h, nrad=nrad)
+
+
+def _flat(half_w=0.14, half_h=0.07):
+    """A duct with ``_one()``'s counts, name and nrad: a transition's partner."""
+    return _duct(half_w, half_h, 4, 4, "fluid", 3)
 
 
 def _square():
@@ -185,6 +191,12 @@ CASES = {
                                                      (0.5, 1.2, 0))),
     "square-bend-rolled":  lambda: _between(_square(), Bend(0.3, -60, n_layers=4, roll=45)),
     "square-rolled-90":    lambda: _rolled_outlet(_square(), Straight(0.3, n_layers=3), 90),
+    # transitions (task 0029): equal counts per side, so class 0
+    "transition-circle-square": lambda: _between(_one(), Transition(_flat(0.09, 0.09), 0.3, 4)),
+    "transition-circle-2to1": lambda: _between(_one(), Transition(_flat(), 0.3, 4)),
+    "transition-2to1-circle": lambda: _between(_flat(), Transition(_one(), 0.3, 4)),
+    "transition-2to1-1to1": lambda: _between(_flat(), Transition(_flat(0.1, 0.1), 0.2, 3,
+                                                                axial_grading=1.2)),
 }
 
 
@@ -246,8 +258,9 @@ def _grouped_quads():
 
 def _layer_radii(spec):
     """Radii of every cylindrical boundary of *spec*: core, then each shell.
-    A duct's (single layer) is its half-diagonal, for scale only."""
-    if isinstance(spec.core_shape, RectShape):
+    A duct's or transition station's (single layer) is its half-diagonal,
+    for scale only."""
+    if not isinstance(spec.core_shape, CircleShape):
         return np.array([spec.core_shape.max_extent])
     return np.cumsum([spec.core_shape.radius] + [sh.dR for sh in spec.shells])
 
@@ -276,7 +289,8 @@ def wall_deviations(asm) -> dict[str, float]:
       legs' cylinders;
     * a duct (rectangular core): the same, with the rectangle in the
       section frame (``_rect_dev``) in place of the circles;
-    * other paths (``SplinePipe``, ``Closure``): no closed form; they must
+    * other paths (``SplinePipe``, ``Closure``, and ``Transition``, whose
+      stations blend two shapes): no closed form; they must
       have one axial layer per slab, so no surface carries interior nodes
       (asserted), and they are not measured.
     """
@@ -317,7 +331,7 @@ def wall_deviations(asm) -> dict[str, float]:
             else:
                 radii = _layer_radii(spec)
                 dev = np.min(np.abs(d[:, None] - radii[None, :]), axis=1)
-        elif path.is_straight or path.prism:           # per-slab axis lines
+        elif (path.is_straight or path.prism) and not path.blend:   # per-slab axis lines
             seg = np.full(len(x), np.inf)               # distance to the nearest axis segment
             dev = np.full(len(x), np.inf)
             for k in range(len(path.layers)):

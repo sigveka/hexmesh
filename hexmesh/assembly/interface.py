@@ -23,10 +23,11 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from ..core.cross_section import CrossSection, LayeredCrossSection
-from ..core.shape import CircleShape, RectShape
+from ..core.shape import BlendShape, CircleShape, RectShape
 from ..core.spec import PipeSpec, SquareShellSpec
 from ..faces.oh_circle import build_oh_circle, build_oh_circle8
 from ..faces.oh_rect import build_oh_rect
+from ..faces.oh_blend import build_oh_blend
 from ..faces.annulus import build_annulus
 
 
@@ -179,6 +180,8 @@ def build_face(spec: PipeSpec, frame: Frame, lc: float,
     core_name, core_shape = spec._core
     if isinstance(core_shape, RectShape):
         builder = build_oh_rect
+    elif isinstance(core_shape, BlendShape):    # a Transition's stations
+        builder = build_oh_blend
     else:
         builder = build_oh_circle8 if spec.n_outer == 8 else build_oh_circle
     cs: CrossSection = builder(

@@ -21,7 +21,7 @@ import gmsh
 import numpy as np
 
 from ..core.cross_section import CrossSection
-from ..core.shape import RectShape
+from ..core.shape import CircleShape, RectShape
 from ..core.spec import PipeSpec
 from .interface import Frame
 
@@ -135,9 +135,9 @@ def side_counts(cs: CrossSection) -> tuple[int, ...]:
     """Divisions of outer (and inner) curve *k* of a face, as
     ``PipeSpec.side_counts``."""
     n, shape = cs.n_outer, cs.shape
-    if isinstance(shape, RectShape):
-        return (shape.nang_w, shape.nang_h) * 2
-    return (shape.nang // (n // 4),) * n
+    if isinstance(shape, CircleShape):
+        return (shape.nang // (n // 4),) * n
+    return (shape.nang_w, shape.nang_h) * 2
 
 
 def frame_offset(a: Frame, b: Frame, spec: PipeSpec) -> int:
