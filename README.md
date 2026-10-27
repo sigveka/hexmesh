@@ -427,6 +427,7 @@ asm = net.to_assembly(pipe)                      # or pipe=lambda bore: PipeSpec
 
 net = read_pcf(["unit-a.pcf", "unit-b.pcf"])     # several files, one network
 asm = net.to_assembly(pipe, inlet="A_100_end1")  # an open end by name or point
+asm = net.to_assembly(pipe, insulation=True)     # insulation where the PCF says
 ```
 
 The reader follows the PCF reference guide.  Units come from
@@ -452,6 +453,13 @@ component's `COMPONENT-IDENTIFIER`) and open ends from the pipeline
 isometric.  Junctions the fittings can't build (crosses, equal, angled,
 offset or tangential tees, asymmetric Y pieces) are rejected naming the
 component.
+
+With `insulation=True`, components marked `INSULATION ON` get an
+`insulation` shell of the pipeline's `INSULATION-THICKNESS`.  Where it
+stops or starts (a bare valve or flange), the change sits one cell inside
+the neighbouring straight component, which gives `insulation_end` wall
+patches.  Ends at `END-CONNECTION-EQUIPMENT` records are named after the
+nozzle (`V_101_N1`) and are never extended by `extend_open_ends`.
 
 It checks every component against its PCF end points and raises
 `AssemblyError` naming the component on any gap; nothing is snapped.  The

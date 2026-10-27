@@ -91,7 +91,8 @@ TOL_FLOOR = 0.11 * INCH
 TOL_RELATIVE = 1e-4
 
 _NON_COMPONENTS = {"PIPELINE-REFERENCE", "END-CONNECTION-PIPELINE",
-                   "END-CONNECTION-EQUIPMENT", "EQUIPMENT-REFERENCE", "MATERIALS"}
+                   "END-CONNECTION-EQUIPMENT", "EQUIPMENT-REFERENCE", "MATERIALS",
+                   "NOZZLE"}       # column-1 NOZZLE: the guide's equipment connection form
 
 
 # ---------------------------------------------------------------------------
@@ -129,6 +130,13 @@ class ComponentSpec:
         Their nominal sizes, metres.
     skey : str
         The component's ``SKEY`` ("" if none).
+    insulation : str or None
+        ``"ON"`` / ``"OFF"`` from the component's ``INSULATION``; None if
+        absent (read as off).
+    end_insulation, branch_insulation : tuple
+        Per-keypoint overrides (``INSULATION-ON`` / ``-SINGLE`` → ``"ON"``,
+        ``INSULATION-OFF`` → ``"OFF"``, else None) on the two END-POINTs and
+        on BRANCH1-POINT / BRANCH2-POINT.
     source : str
         The file it was read from.
     """
@@ -150,6 +158,11 @@ class ComponentSpec:
     skey:     str = ""
     source:   str = ""
     index:    int = -1          # position in NetworkSpec.components (to_assembly)
+    insulation: str | None = None           # INSULATION ON / OFF, None if absent
+    end_insulation: tuple = (None, None)    # INSULATION-ON/-SINGLE → "ON", -OFF → "OFF"
+    branch_insulation: tuple = (None, None) # on BRANCH1-POINT / BRANCH2-POINT
+    ins: tuple = (0.0, 0.0)     # insulation thickness at (start, end), m (to_assembly)
+    ins_junction: bool = False  # a junction with any insulated leg (to_assembly)
 
 
 @dataclass
@@ -170,7 +183,12 @@ class NetworkSpec:
     pipelines : dict[str, dict]
         ``PIPELINE-REFERENCE`` name → its attributes.
     connections : list[tuple[str, dict]]
-        ``END-CONNECTION-*`` and ``EQUIPMENT-REFERENCE`` blocks.
+        ``END-CONNECTION-*``, ``EQUIPMENT-REFERENCE`` and column-1
+        ``NOZZLE`` blocks.  Repeated nozzle entries are a list under
+        ``"NOZZLES"``; a block's (or nozzle's) position, in metres, is
+        under ``"_point"``.
+    insulation_thickness : dict[str, float]
+        Pipeline → ``INSULATION-THICKNESS`` in metres.
     coord_scale : float
         Metres per coordinate unit used.
     report : dict
@@ -184,12 +202,14 @@ class NetworkSpec:
     header:     dict = field(default_factory=dict)
     pipelines:  dict = field(default_factory=dict)
     connections: list = field(default_factory=list)
+    insulation_thickness: dict = field(default_factory=dict)
     coord_scale: float = 1e-3
     report:     dict = field(default_factory=dict)
 
     def to_assembly(self, spec, *, axial_cell: float | None = None,
                     kinks: str = "error", tol: float | None = None,
-                    lc: float | None = None, inlet=None):
+                    lc: float | None = None, inlet=None, insulation: bool = False,
+                    insulation_nrad: int = 2):
         """Build an ``hexmesh.assembly.Assembly`` from the components.
 
         The components form a graph, joined where their end points meet
@@ -257,12 +277,33 @@ class NetworkSpec:
             Passed to ``Assembly``.
         inlet : str or 3-vector, optional
             The root: an open end's name or its point (metres).
+        insulation : bool
+            Add a shell named ``insulation`` (the pipeline's
+            ``INSULATION-THICKNESS``, ``insulation_nrad`` cells) to the
+            spec of insulated components (``INSULATION ON``, or an
+            ``INSULATION-ON`` / ``-SINGLE`` keypoint).  Where it starts or
+            stops, the change is placed one cell inside the neighbouring
+            straight component, the bare one if both are straight (a bare
+            valve or flange: insulation stops one cell into it).  No
+            straight neighbour, a junction that is insulated, or an
+            insulated pipeline without ``INSULATION-THICKNESS`` raises
+            ``AssemblyError``.  Off (the default), the spec alone decides.
+        insulation_nrad : int
+            Radial cells across the insulation shell.
+
+        Equipment: an open end at an ``END-CONNECTION-EQUIPMENT`` (or
+        column-1 ``NOZZLE``) is named ``<equipment>_<nozzle>`` and marked
+        as an equipment end (``Interface.equipment``), which
+        ``extend_open_ends`` never extends.  A nozzle whose ``CO-ORDS``
+        disagree with the connection, or a connection with no open end
+        within *tol*, raises ``AssemblyError``.
 
         Returns
         -------
         Assembly
         """
-        return _build_assembly(self, spec, axial_cell, kinks, tol, lc, inlet)
+        return _build_assembly(self, spec, axial_cell, kinks, tol, lc, inlet,
+                               insulation, insulation_nrad)
 
 
 # ---------------------------------------------------------------------------
@@ -308,6 +349,7 @@ def read_pcf(
             net.components += n.components
             net.skipped += n.skipped
             net.pipelines.update(n.pipelines)
+            net.insulation_thickness.update(n.insulation_thickness)
             net.connections += n.connections
         return net
     path = Path(path)
@@ -334,12 +376,15 @@ def read_pcf(
             continue
 
         endpoints = list(attrs.get("END-POINT", []))
+        epwords = list(attrs.get("END-POINT-WORDS", [[]] * len(endpoints)))
+        bwords = [attrs.get(k + "-WORDS", []) for k in ("BRANCH1-POINT", "BRANCH2-POINT")]
         centre = None
         if "CENTRE-POINT" in attrs:
             centre = np.array(attrs["CENTRE-POINT"][:3], dtype=float) * scale
         branches = [attrs.get(k) for k in ("BRANCH1-POINT", "BRANCH2-POINT")]
         if kind == "tee" and len(endpoints) >= 3 and branches[0] is None:
             branches[0] = endpoints.pop(2)    # real-file dialect: branch as END-POINT 3
+            bwords[0] = epwords.pop(2)
         if kind in ("seton", "ypiece", "junction?"):
             first = endpoints[0] if endpoints else (attrs.get("CENTRE-POINT") or
                                                     branches[0] or [0, 0, 0])
@@ -373,9 +418,39 @@ def read_pcf(
             branch=point(branches[0]), branch_bore=size(branches[0]),
             branch2=point(branches[1]), branch2_bore=size(branches[1]),
             skey=str(attrs.get("SKEY", "")).strip().upper(), source=str(path),
+            insulation=_on_off(attrs.get("INSULATION")),
+            end_insulation=tuple(_keypoint_insulation(w) for w in (epwords + [[], []])[:2]),
+            branch_insulation=tuple(_keypoint_insulation(w) for w in bwords),
         ))
 
+    for name, a in spec.pipelines.items():   # INSULATION-THICKNESS in coordinate units
+        nums = _NUMBER.findall(str(a.get("INSULATION-THICKNESS", "")))
+        if nums:
+            spec.insulation_thickness[name] = float(nums[0]) * scale
+    for _, a in spec.connections:       # positions in metres, this file's units
+        for n in [a] + a.get("NOZZLES", []):
+            pt = n.get("CO-ORDS")
+            nums = ([float(x) for x in _NUMBER.findall(pt)] if isinstance(pt, str)
+                    else (n.get("END-POINT") or [None])[0])
+            if nums and len(nums) >= 3:
+                n["_point"] = np.array(nums[:3], dtype=float) * scale
     return spec
+
+
+def _on_off(value) -> str | None:
+    v = str(value or "").strip().upper()
+    return v if v in ("ON", "OFF") else None
+
+
+def _keypoint_insulation(words: list[str]) -> str | None:
+    """A keypoint's insulation override from the words on its line."""
+    for w in words:
+        w = w.upper()
+        if w in ("INSULATION-ON", "INSULATION-SINGLE"):
+            return "ON"
+        if w == "INSULATION-OFF":
+            return "OFF"
+    return None
 
 
 def _coord_scale(header: dict, unit_scale: float | None) -> float:
@@ -460,6 +535,7 @@ def _iter_records(path: Path, net: NetworkSpec) -> Iterator[tuple[str, dict, str
     block: tuple[str, str] | None = None   # (kind, name): "component" | "pipeline" | "other"
     attrs: dict = {}
     endpoints: list[list[float]] = []
+    epwords: list[list[str]] = []           # the words on each END-POINT line
     pipeline = ""
     in_header = True
 
@@ -467,15 +543,16 @@ def _iter_records(path: Path, net: NetworkSpec) -> Iterator[tuple[str, dict, str
         if block is None:
             return
         kind, name = block
+        a = dict(attrs)
+        if endpoints:
+            a["END-POINT"] = list(endpoints)
+            a["END-POINT-WORDS"] = list(epwords)
         if kind == "component":
-            a = dict(attrs)
-            if endpoints:
-                a["END-POINT"] = list(endpoints)
             yield name, a, pipeline
         elif kind == "pipeline":
-            net.pipelines[name] = dict(attrs)
+            net.pipelines[name] = a
         elif kind == "other":
-            net.connections.append((name, dict(attrs)))
+            net.connections.append((name, a))
 
     with path.open() as fh:
         for raw_line in fh:
@@ -495,19 +572,31 @@ def _iter_records(path: Path, net: NetworkSpec) -> Iterator[tuple[str, dict, str
                     pipeline = value
                     block, attrs, endpoints = ("pipeline", value), {}, []
                     continue
-                if in_header and key not in _COMPONENT_MAP:
+                if in_header and key not in _COMPONENT_MAP and key not in _NON_COMPONENTS:
                     net.header[key] = value
                     continue
                 yield from flush()
                 in_header = False
                 kind = "other" if key in _NON_COMPONENTS else "component"
-                block, attrs, endpoints = (kind, words[0]), {}, []
+                block, attrs, endpoints, epwords = (kind, words[0]), {}, [], []
+                if kind == "other" and value:
+                    attrs[key] = value                 # EQUIPMENT-REFERENCE <name>
             elif "END-POINT" in line.split(None, 1)[0]:
                 endpoints.append([float(x) for x in _NUMBER.findall(line)])
+                epwords.append(line.split()[1:])
             elif line.split(None, 1)[0] in ("CENTRE-POINT", "BRANCH1-POINT",
                                             "BRANCH2-POINT"):
                 key, *rest = line.split(None, 1)      # "BRANCH1" holds a digit
                 attrs[key] = [float(x) for x in _NUMBER.findall(rest[0] if rest else "")]
+                attrs[key + "-WORDS"] = rest[0].split() if rest else []
+            elif block is not None and block[1].upper() == "EQUIPMENT-REFERENCE" \
+                    and (line.split()[0] == "NOZZLE" or "NOZZLES" in attrs):
+                # repeated NOZZLE entries, each with its own attributes
+                parts = line.split(None, 1)
+                if parts[0] == "NOZZLE":
+                    attrs.setdefault("NOZZLES", []).append({})
+                else:
+                    attrs["NOZZLES"][-1][parts[0]] = parts[1].strip() if len(parts) == 2 else ""
             else:
                 parts = line.split(None, 1)
                 attrs[parts[0].strip()] = parts[1].strip() if len(parts) == 2 else ""
@@ -741,10 +830,13 @@ def _split_hosts(comps, labels, tol):
                     f"the tee needs {run:.4g} m on each side of CENTRE-POINT")
             a, b = c - run * axis, c + run * axis
             tee = ComponentSpec(**{**j_c.__dict__, "kind": "tee", "start": a, "end": b,
-                                   "bore": host.bore})
-            pieces = [ComponentSpec(**{**host.__dict__, "start": host.start.copy(), "end": a}),
+                                   "bore": host.bore,
+                                   "ins_junction": j_c.ins_junction or max(host.ins) > 0})
+            pieces = [ComponentSpec(**{**host.__dict__, "start": host.start.copy(), "end": a,
+                                       "ins": (host.ins[0],) * 2}),
                       tee,
-                      ComponentSpec(**{**host.__dict__, "start": b, "end": host.end.copy()})]
+                      ComponentSpec(**{**host.__dict__, "start": b, "end": host.end.copy(),
+                                       "ins": (host.ins[1],) * 2})]
             names = [f"{labels[h]}_1", labels[i], f"{labels[h]}_2"]
         else:
             ends = [x for x in hosts if x[1] <= tol or x[1] >= x[2] - tol]
@@ -765,7 +857,8 @@ def _split_hosts(comps, labels, tol):
                     f"{run:.4g} m the Wye's inlet run needs")
             a = c - run * n
             wye = ComponentSpec(**{**j_c.__dict__, "kind": "wye", "start": a, "end": a,
-                                   "bore": host.bore})
+                                   "bore": host.bore,
+                                   "ins_junction": j_c.ins_junction or max(host.ins) > 0})
             stem = ComponentSpec(**{**host.__dict__, "start": far.copy(), "end": a})
             pieces, names = [stem, wye], [labels[h], labels[i]]
         # the pieces take the host's place in file order; the junction's
@@ -945,6 +1038,7 @@ def _orient(c: ComponentSpec, port: int) -> ComponentSpec:
     c = ComponentSpec(**{**c.__dict__, "start": c.start.copy(), "end": c.end.copy()})
     if port == 1 and c.kind not in ("tee", "wye"):
         c.start, c.end = c.end, c.start
+        c.ins = c.ins[::-1]
         if c.kind == "reducer":
             c.bore, c.end_bore = c.end_bore, c.bore
     elif port == 1 and c.kind == "tee":
@@ -952,7 +1046,186 @@ def _orient(c: ComponentSpec, port: int) -> ComponentSpec:
     return c
 
 
-def _build_assembly(net: NetworkSpec, spec, axial_cell, kinks, tol, lc, inlet=None):
+# --- insulation (decision 0023, task 0038) -----------------------------------
+
+#: Name of the shell ``to_assembly(insulation=True)`` adds.
+INSULATION = "insulation"
+
+
+def _resolve_insulation(net: NetworkSpec, labels: list[str]) -> None:
+    """Set ``ins`` (thickness at each end, 0 = bare) and ``ins_junction`` on
+    every component.  Insulated only with ``INSULATION ON``; a keypoint's
+    ``INSULATION-ON/-SINGLE/-OFF`` overrides that end."""
+    from ...assembly import AssemblyError
+    for c, label in zip(net.components, labels):
+        def thick(status):
+            if status != "ON":
+                return 0.0
+            t = net.insulation_thickness.get(c.pipeline)
+            if not t:
+                raise AssemblyError(
+                    f"pipeline {c.pipeline or '(none)'!r}: {_describe(c, label)} is "
+                    f"insulated but the pipeline has no INSULATION-THICKNESS")
+            return t
+        own = c.insulation
+        c.ins = tuple(thick(e or own) for e in c.end_insulation)
+        legs = [own] + [b or own for b in c.branch_insulation]
+        c.ins_junction = c.kind in ("tee", "seton", "ypiece") and any(
+            thick(x) > 0 for x in legs + [e or own for e in c.end_insulation])
+
+
+def _dressed(spec, t: float, nrad: int):
+    """*spec* without its ``insulation`` shell, plus one of thickness *t*
+    (none if ``t`` is 0)."""
+    from ...assembly.fittings import _with_radii
+    shells = spec.shells
+    if shells and shells[-1].name == INSULATION:
+        shells = shells[:-1]
+    bare = _with_radii(spec, [spec.core_shape.radius] + [sh.dR for sh in shells])
+    return bare.shell(INSULATION, dR=t, nrad=nrad) if t > 0 else bare
+
+
+def _thickness(spec) -> float:
+    sh = spec.shells
+    return sh[-1].dR if sh and sh[-1].name == INSULATION else 0.0
+
+
+def _straight_like(c: ComponentSpec, tol: float) -> bool:
+    return c.kind in ("pipe", "fitting") and float(np.linalg.norm(c.end - c.start)) > tol
+
+
+def _plan_insulation(comps, labels, t_in, to_junction, tol):
+    """Insulation switches along a run of oriented two-port components.
+
+    *t_in* is the thickness of the interface the run starts from;
+    *to_junction* says the run ends at a (bare) junction.  Returns, per
+    component, ``(t_inlet, t_outlet, cell_pattern)``: the thickness at its
+    ports and, for a straight that hosts a switch, the per-cell thickness
+    as ``(first, middle_in, middle_out, last)``.  A switch sits one cell
+    inside a straight neighbour, the bare one if both are straight."""
+    from ...assembly import AssemblyError
+    n = len(comps)
+    a = [c.ins[0] for c in comps]
+    b = [c.ins[1] for c in comps]
+    straight = [_straight_like(c, tol) for c in comps]
+    port_in, port_out = list(a), list(b)     # thickness at each port
+    for k, c in enumerate(comps):
+        if a[k] != b[k] and not straight[k]:
+            raise AssemblyError(f"{labels[k]}: insulation changes inside it, and only "
+                                f"a straight component can hold the change")
+        if a[k] > 0 and b[k] > 0 and a[k] != b[k]:
+            raise AssemblyError(f"{labels[k]}: insulation thickness changes inside it")
+
+    def host(k_left, k_right, t_left, t_right, where):
+        """Boundary between *k_left* (outlet) and *k_right* (inlet); either
+        may be None (fixed: the interface or a junction)."""
+        if t_left == t_right:
+            return
+        if t_left > 0 and t_right > 0:
+            name = labels[k_left if k_left is not None else k_right]
+            raise AssemblyError(f"{name}: insulation thickness changes from "
+                                f"{t_left:.4g} m to {t_right:.4g} m at {where}; only "
+                                f"a layer that ends or starts is supported")
+        options = [k for k in (k_left, k_right) if k is not None and straight[k]]
+        options.sort(key=lambda k: (t_left if k == k_left else t_right) > 0)  # bare first
+        if not options:
+            name = labels[k_left if k_left is not None else k_right]
+            raise AssemblyError(f"{name}: insulation starts or stops at {where}, and "
+                                f"no straight component next to it can hold the change")
+        k = options[0]
+        if k == k_left:                       # the left one takes the right's status
+            port_out[k] = t_right
+        else:
+            port_in[k] = t_left
+
+    host(None, 0, t_in, a[0], "its inlet")
+    for k in range(n - 1):
+        host(k, k + 1, b[k], a[k + 1], f"its joint with {labels[k + 1]}")
+    if to_junction:
+        host(n - 1, None, b[-1], 0.0, "the junction after it")
+    return [(port_in[k], port_out[k], (port_in[k], a[k], b[k], port_out[k]))
+            for k in range(n)]
+
+
+def _stack_changes(pattern, length, axial_cell, base, nrad):
+    """``(n_layers, stack_changes)`` for a straight with per-cell pattern
+    ``(first, middle_in, middle_out, last)`` (thickness, m); None if
+    uniform."""
+    first, mid_a, mid_b, last = pattern
+    if first == mid_a == mid_b == last:
+        return None
+    n = max(1, math.ceil(length / axial_cell - 1e-9))
+    need = 1 + (first != mid_a) + (last != mid_b) + (mid_a != mid_b)
+    n = max(n, need, 4 if mid_a != mid_b and need > 2 else 0)
+    cells = [mid_a] * (n // 2) + [mid_b] * (n - n // 2)
+    cells[0], cells[-1] = first, last
+    changes, cur = [], cells[0]
+    for i, t in enumerate(cells):
+        if i and t != cur:
+            changes.append((i, _dressed(base, t, nrad)))
+            cur = t
+    return n, tuple(changes)
+
+
+def _equipment_ends(net, parts, nodes, names, tol, describe) -> set[int]:
+    """Name the open ends attached to equipment ``<equipment>_<nozzle>``
+    and return their nodes.  ``END-CONNECTION-EQUIPMENT`` (and column-1
+    ``NOZZLE``) records attach by position; their ``CONNECTION-REFERENCE``
+    is a nozzle ``REFERENCE`` of an ``EQUIPMENT-REFERENCE`` block (whose
+    ``CO-ORDS`` must then agree), or ``<equipment>/<nozzle>``."""
+    from ...assembly import AssemblyError
+    nozzles = {}
+    for kind, a in net.connections:
+        if kind.upper() == "EQUIPMENT-REFERENCE":
+            for nz in a.get("NOZZLES", []):
+                if nz.get("REFERENCE"):
+                    nozzles[nz["REFERENCE"].strip()] = (a.get("EQUIPMENT-REFERENCE", ""), nz)
+    ends = [(k, q, n) for n, at in enumerate(nodes) if len(at) == 1 for k, q in at]
+    marked: dict[int, str] = {}
+    for kind, a in net.connections:
+        if kind.upper() not in ("END-CONNECTION-EQUIPMENT", "NOZZLE"):
+            continue
+        ref = str(a.get("CONNECTION-REFERENCE", "")).strip()
+        what = f"{kind.upper()} {ref or '(no CONNECTION-REFERENCE)'}"
+        nz_point = None
+        if ref in nozzles:
+            eq, nz = nozzles[ref]
+            label = f"{_name(eq)}_{_name(ref)}" if _name(eq) else _name(ref)
+            nz_point = nz.get("_point")
+        elif "/" in ref:
+            eq, nzr = ref.split("/", 1)
+            label = f"{_name(eq)}_{_name(nzr)}"
+        else:
+            label = _name(ref) or "equipment"
+        point = a.get("_point")
+        if point is not None and nz_point is not None \
+                and np.linalg.norm(point - nz_point) > tol:
+            raise AssemblyError(
+                f"{what}: nozzle {ref} is at {np.round(nz_point, 4)} but the connection "
+                f"is at {np.round(point, 4)}, "
+                f"{np.linalg.norm(point - nz_point):.3g} m apart")
+        at = point if point is not None else nz_point
+        if at is None:
+            raise AssemblyError(f"{what}: no CO-ORDS or END-POINT to attach it by")
+        if not ends:
+            raise AssemblyError(f"{what}: the network has no open end")
+        d, k, q, n = min((float(np.linalg.norm(parts[k].ports[q] - at)), k, q, n)
+                         for k, q, n in ends)
+        if d > tol:
+            raise AssemblyError(
+                f"{what} at {np.round(at, 4)}: no open pipe end there; the nearest, "
+                f"{describe(parts[k])}, is {d:.3g} m away")
+        if n in marked:
+            raise AssemblyError(f"{what}: that end is already attached to {marked[n]}")
+        if label in marked.values():
+            raise AssemblyError(f"{what}: two ends would be named {label!r}")
+        marked[n] = label
+        names[n] = label
+    return set(marked)
+
+
+def _build_assembly(net: NetworkSpec, spec, axial_cell, kinks, tol, lc, inlet=None,
+                    insulation=False, insulation_nrad=2):
     from ...assembly import AssemblyError
 
     if kinks not in ("error", "spline"):
@@ -969,6 +1242,15 @@ def _build_assembly(net: NetworkSpec, spec, axial_cell, kinks, tol, lc, inlet=No
             raise AssemblyError(
                 f"{_describe(c, l)}: crosses and Y-PIECE-FITTING are not supported "
                 f"(decision 0023)")
+    if insulation:
+        sample = spec(net.components[0].bore or 0.1) if callable(spec) else spec
+        if any(sh.name == INSULATION for sh in sample.shells):
+            raise ValueError(f"insulation=True adds a shell named {INSULATION!r}; the "
+                             f"spec already has one")
+        _resolve_insulation(net, labels)
+    else:
+        for c in net.components:
+            c.ins, c.ins_junction = (0.0, 0.0), False
 
     comps, labels = _split_hosts(
         [ComponentSpec(**{**c.__dict__, "start": c.start.copy(), "end": c.end.copy()})
@@ -980,13 +1262,16 @@ def _build_assembly(net: NetworkSpec, spec, axial_cell, kinks, tol, lc, inlet=No
     nodes, at_node = _graph(parts, joints, tol)
     _check_tree(parts, nodes)
     names = _end_names(parts, nodes)
+    equipment = _equipment_ends(net, parts, nodes, names, tol,
+                                lambda p: _describe(p.comp, p.label))
     root = _choose_root(parts, nodes, names, inlet, tol)
+    ins = {"on": bool(insulation), "nrad": insulation_nrad, "equipment": equipment}
 
     roll = 0.0
     for _ in range(2):
         try:
             asm = _place(net, parts, nodes, at_node, names, root, spec, axial_cell,
-                         kinks, tol, lc, roll, reroll=(roll == 0.0))
+                         kinks, tol, lc, roll, reroll=(roll == 0.0), ins=ins)
             return asm
         except _Reroll as r:
             roll = r.miss
@@ -994,7 +1279,7 @@ def _build_assembly(net: NetworkSpec, spec, axial_cell, kinks, tol, lc, inlet=No
 
 
 def _place(net, parts, nodes, at_node, names, root, spec, axial_cell, kinks, tol, lc,
-           roll, reroll):
+           roll, reroll, ins):
     """Place the network from *root* (part, port, node), depth first."""
     from ...assembly import Assembly, AssemblyError, Tee, Wye
     from ...assembly.interface import outer_radius, rotate, toward_roll
@@ -1002,14 +1287,18 @@ def _place(net, parts, nodes, at_node, names, root, spec, axial_cell, kinks, tol
     report = net.report = {"tolerance": tol, "joints": [], "max_offset": 0.0}
     k0, q0, n0 = root
     first = _orient(parts[k0].comp, q0)
-    current = spec(first.bore) if callable(spec) else spec
+    current = base = spec(first.bore) if callable(spec) else spec
+    if ins["on"]:
+        t0 = 0.0 if first.kind in ("tee", "wye") else first.ins[0]
+        current = _dressed(current, t0, ins["nrad"])
     d0 = (_unit(first.end - first.start) if first.kind == "tee"
           else _unit(first.centre - first.start) if first.kind == "wye"
           else _start_direction(first))
     up0 = rotate(_perpendicular(d0), d0, math.radians(roll))
     asm = Assembly(current, position=first.start, direction=d0, up=up0, lc=lc,
-                   axial_cell=axial_cell or outer_radius(current),
+                   axial_cell=axial_cell or outer_radius(base),
                    **({"inlet_name": names[n0]} if names.get(n0) else {}))
+    asm.inlet.equipment = n0 in ins["equipment"]
     state = {"junctions": 0, "tail": None}
 
     def check(what, frame, end):
@@ -1043,6 +1332,9 @@ def _place(net, parts, nodes, at_node, names, root, spec, axial_cell, kinks, tol
         c = _orient(p.comp, q)
         what = _describe(p.comp, p.label)
         frame = iface.frame
+        if c.ins_junction:
+            raise AssemblyError(f"{what}: insulated junction; Tee and Wye are "
+                                f"single-layer, so insulation must stop before it")
         check(what, frame, c.start)
         centre = c.centre
         axis = _unit(centre - c.start)
@@ -1108,6 +1400,7 @@ def _place(net, parts, nodes, at_node, names, root, spec, axial_cell, kinks, tol
     def end_of(iface, n):
         if names.get(n):
             iface.name = names[n]
+        iface.equipment = n in ins["equipment"]
         if state["tail"] is None:
             state["tail"] = iface
 
@@ -1117,7 +1410,7 @@ def _place(net, parts, nodes, at_node, names, root, spec, axial_cell, kinks, tol
         if jn is not None:
             jc = _orient(parts[jn[0]].comp, jn[1])
             end_dir = _unit(jc.centre - jc.start)
-        iface = _place_chain(asm, iface, chain, end_dir, spec, kinks, tol,
+        iface = _place_chain(asm, iface, chain, end_dir, spec, kinks, tol, ins, jn is not None,
                              report, net.coord_scale)
         if jn is None:
             end_of(iface, end_node)
@@ -1150,7 +1443,7 @@ def _place(net, parts, nodes, at_node, names, root, spec, axial_cell, kinks, tol
     return asm
 
 
-def _place_chain(asm, iface, chain, end_dir, spec, kinks, tol, report,
+def _place_chain(asm, iface, chain, end_dir, spec, kinks, tol, ins, to_junction, report,
                  coord_scale):
     """Place a run of two-port components (oriented, with labels) from
     *iface*; return the last interface.  *end_dir* is the direction of the
@@ -1167,6 +1460,13 @@ def _place_chain(asm, iface, chain, end_dir, spec, kinks, tol, report,
     def label(k):
         c = comps[k]
         return _describe(c, labels.get(id(c), c.kind))
+
+    plan = (_plan_insulation(comps, [label(k) for k in range(len(comps))],
+                             _thickness(iface.spec), to_junction, tol)
+            if ins["on"] else None)
+
+    def uniform(k):
+        return plan is None or len(set(plan[k][2])) == 1
 
     def check(k, frame, end):
         if np.linalg.norm(frame.position - end) > tol:
@@ -1210,6 +1510,9 @@ def _place_chain(asm, iface, chain, end_dir, spec, kinks, tol, report,
                 j = k
                 while j + 1 < len(comps) and comps[j + 1].kind == "pipe":
                     j += 1
+                if not all(uniform(i) for i in range(k, j + 1)):
+                    raise AssemblyError(f"{label(k)}: insulation starts or stops inside a "
+                                        f"spline run; it needs a straight component")
                 pts = [frame.position] + [comps[i].end for i in range(k, j + 1)]
                 nxt = comps[j + 1] if j + 1 < len(comps) else None
                 end_t = (tuple(_start_direction(nxt)) if nxt is not None
@@ -1222,7 +1525,13 @@ def _place_chain(asm, iface, chain, end_dir, spec, kinks, tol, report,
             # from the placed outlet to the PCF end point: gaps never accumulate
             ax, lat = along(frame, c.end)
             report["max_offset"] = max(report["max_offset"], lat)
-            iface = asm.add(iface, Straight(ax), label=lab)
+            switch = None if uniform(k) else _stack_changes(
+                plan[k][2], ax, asm.axial_cell, iface.spec, ins["nrad"])
+            if switch is None:
+                iface = asm.add(iface, Straight(ax), label=lab)
+            else:
+                n, changes = switch
+                iface = asm.add(iface, Straight(ax, n, stack_changes=changes), label=lab)
             check(k, iface.frame, c.end)
         elif c.kind == "elbow":
             try:
@@ -1247,6 +1556,8 @@ def _place_chain(asm, iface, chain, end_dir, spec, kinks, tol, report,
                 raise AssemblyError(f"{label(k)}: reducer needs both bores")
             if callable(spec):
                 outlet = spec(c.end_bore)
+                if ins["on"]:
+                    outlet = _dressed(outlet, _thickness(iface.spec), ins["nrad"])
             else:
                 cur = iface.spec
                 radii = [cur.core_shape.radius * c.end_bore / c.bore] + [sh.dR for sh in cur.shells]

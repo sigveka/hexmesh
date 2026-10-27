@@ -45,7 +45,7 @@ An interface-first pipe network ([DESIGN.md](DESIGN.md) §5).
 | `add(interface, fitting, names=None, label=None)` | Attach *fitting* to *interface*; the tail does not move. Use the returned outlet to continue that line |
 | `close(source, target, fitting, label=None)` | Join two existing open interfaces. *source* must be an outlet and *target* an inlet, so flow runs source → target. Use `Closure` for any gap, or a `Straight` / `Bend` that fits exactly |
 | `prepend(straight, label=None)` | Place a `Straight` upstream of the inlet and make its start the new `inlet`; the inlet name moves with it. Returns the new inlet |
-| `extend_open_ends(upstream=5.0, downstream=10.0, cells_per_diameter=4.0)` | Straight runs before the inlet and after every open outlet, in diameters of each end's core (hydraulic diameters for a duct); 0 skips a side. Each run gets `round(diameters × cells_per_diameter)` axial cells. Patch names are unchanged. Call before building |
+| `extend_open_ends(upstream=5.0, downstream=10.0, cells_per_diameter=4.0)` | Straight runs before the inlet and after every open outlet, in diameters of each end's core (hydraulic diameters for a duct); 0 skips a side. Each run gets `round(diameters × cells_per_diameter)` axial cells. Patch names are unchanged. Ends marked `equipment` are skipped. Call before building |
 | `interfaces`, `edges` | All interfaces and fitting edges, in creation order |
 | `inlet` | The inlet interface |
 | `open_interfaces()` | Interfaces touched by one fitting only: the network boundary |
@@ -120,7 +120,10 @@ message names the fitting (`fitting #3 Bend(...)`) or interface.
 ### `Interface`
 
 A node of the graph: `frame` (a `Frame`), `spec` (a `PipeSpec`), `name`,
-`index`, `is_open`. Its `face` is set once the assembly is built.
+`index`, `is_open`, `equipment`. Its `face` is set once the assembly is built.
+`equipment` marks an end attached to equipment (`from_nozzle`'s inlet, a PCF
+equipment connection): nothing is prepended to it and `extend_open_ends`
+skips it.  Saved files list the marked interfaces under `"equipment"`.
 
 ### `Frame(position, normal, up)`
 
@@ -175,8 +178,8 @@ Pure Python: a drum gives nozzle poses and builds no geometry
 
 Starts a network at the nozzle face.  The drum is validated first, and
 the inlet is named `"{drum.name}_{nozzle}"` (patch `fluid_D101_N1`).
-Nothing can be prepended upstream of a nozzle; `extend_open_ends` skips
-it.  Saved files keep the drum, which sets the pose on load.
+The inlet is marked `equipment`: nothing can be prepended upstream of
+it, and `extend_open_ends` skips it.  Saved files keep the drum, which sets the pose on load.
 
 A network cannot yet *end* at a nozzle: `close()` needs the target to be
 the inlet of a fitting (task 0010, question for design).
@@ -598,6 +601,12 @@ one network: components in list order, each file with its own units.
 - **Joints.**  `GAP`, and `WELD`, `COUPLING` or `GASKET` no longer than
   `joint_max` (just above the 1/16" weld gap), become `kind="joint"`.
   Longer ones are fittings.
+- **Insulation and equipment.**  `INSULATION` and keypoint
+  `INSULATION-*` words are read per component (`insulation`,
+  `end_insulation`, `branch_insulation`); `INSULATION-THICKNESS` per
+  pipeline, in metres, goes to `NetworkSpec.insulation_thickness`.
+  `EQUIPMENT-REFERENCE` blocks (also before the first pipeline) keep their
+  repeated `NOZZLE` entries as a list under `"NOZZLES"`.
 - **Junctions.**  `TEE` (`kind="tee"`; the branch may also be a third
   `END-POINT`), `TEE-SET-ON` / `TEE-STUB` / `OLET` (`"seton"`) and
   `Y-PIECE-FABRICATED` (`"ypiece"`) are read with `branch`, `branch2`,
@@ -606,7 +615,7 @@ one network: components in list order, each file with its own units.
 - Other unsupported types are listed in `NetworkSpec.skipped`, with one
   warning each.
 
-### `NetworkSpec.to_assembly(spec, *, axial_cell=None, kinks="error", tol=None, lc=None, inlet=None) -> Assembly`
+### `NetworkSpec.to_assembly(spec, *, axial_cell=None, kinks="error", tol=None, lc=None, inlet=None, insulation=False, insulation_nrad=2) -> Assembly`
 
 **Mapping**
 
@@ -631,6 +640,33 @@ one network: components in list order, each file with its own units.
 | `kinks` | `"error"` raises on pipes that change direction without a fitting; `"spline"` joins such runs into one `SplinePipe` (bathymetry routes) |
 | `tol` | position tolerance in metres.  Default: 1e-4 × the model diagonal, at least 0.11" (2.79 mm), just above the weld gap |
 | `inlet` | the root: an open end's name or a point (metres).  Default below |
+| `insulation` | add a shell named `insulation` to insulated components (below).  Off: the spec alone decides the layers |
+| `insulation_nrad` | radial cells across that shell |
+
+**Insulation** (`insulation=True`)
+
+A component is insulated when it says `INSULATION ON` (absent counts as
+off); an `INSULATION-ON` / `-SINGLE` / `-OFF` word on an `END-POINT` or
+branch point overrides that end.  The shell is the pipeline's
+`INSULATION-THICKNESS` (coordinate units).  Where the insulation starts or
+stops, the change sits one cell inside the straight component next to it,
+the bare one when both are straight: a bare valve between insulated pipes
+gets insulation one cell in at each side.  A straight whose two ends
+differ switches at its middle.  Each switch is an `insulation_end` wall.
+Rejected, naming the component or pipeline: an insulated junction
+(`Tee` / `Wye` are single-layer), a switch with no straight neighbour, a
+thickness change between two insulated components, an insulated pipeline
+without `INSULATION-THICKNESS`, and a spec that already has an
+`insulation` shell.
+
+**Equipment**
+
+An open end at an `END-CONNECTION-EQUIPMENT` (or column-1 `NOZZLE`)
+record is named `<equipment>_<nozzle>` and marked `equipment`.  The
+`CONNECTION-REFERENCE` is a nozzle `REFERENCE` from an
+`EQUIPMENT-REFERENCE` block, whose `CO-ORDS` must agree with the
+connection, or `<equipment>/<nozzle>`.  A connection with no open end
+within `tol` raises `AssemblyError`.  No equipment geometry is built.
 
 **Graph, root and names**
 

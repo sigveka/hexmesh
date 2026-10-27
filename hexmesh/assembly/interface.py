@@ -211,7 +211,9 @@ def hydraulic_diameter(spec: PipeSpec) -> float:
 class Interface:
     """Node of the assembly graph: a typed, posed, shared face.
 
-    ``face`` is ``None`` until the assembler realises it.
+    ``face`` is ``None`` until the assembler realises it.  ``equipment``
+    marks an end attached to equipment (a nozzle; decisions 0002, 0023):
+    ``extend_open_ends`` never extends it and nothing is prepended to it.
     """
 
     index: int
@@ -220,6 +222,7 @@ class Interface:
     name:  str | None = None
     edges: list = field(default_factory=list)
     face:  LayeredCrossSection | None = None
+    equipment: bool = False
 
     @property
     def is_open(self) -> bool:

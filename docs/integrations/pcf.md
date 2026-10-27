@@ -101,6 +101,13 @@ Intent layer (`NetworkSpec.to_assembly()` → `Assembly`).
 - Per keypoint: `INSULATION-ON/-OFF/-SINGLE` on an `END-POINT` line
   overrides the component (e.g. a tee's branch leg).
 - These map directly to layer termination (decision 0006, task 0018).
+- Checked 2026-10-28 (task 0038): `INSULATION` takes only `OFF` / `ON`, and
+  the guide says insulation is drawn when it is `ON`.  It gives no
+  default, so the reader treats an absent `INSULATION` as off.  The
+  keypoint words are `INSULATION-SINGLE`, `-ON` and `-OFF`; they may
+  appear in any order with the connection type and gender.  The guide
+  also uses `INSULATION-SPEC` per component (e.g. `01400`, `THICK`,
+  `NONE`) as a spec code.  The reader does **not** read it as a status.
 
 **Equipment (§10).**
 - `EQUIPMENT-REFERENCE` blocks with `LOCATION`, `CENTRE-POINT`,
@@ -111,6 +118,17 @@ Intent layer (`NetworkSpec.to_assembly()` → `Assembly`).
 - Pipelines attach through `END-CONNECTION-EQUIPMENT` /
   `CONNECTION-REFERENCE`.  This is the data decision 0002 (equipment
   nozzles) needs.
+- Checked 2026-10-28 (task 0038):
+  - `END-CONNECTION-EQUIPMENT` gives its position as `CO-ORDS` or as an
+    `END-POINT`, and `CONNECTION-REFERENCE` as either `E100/N1` or a
+    nozzle `REFERENCE` (the guide's equipment example).
+  - A column-1 `NOZZLE` with `CO-ORDS` and `CONNECTION-REFERENCE` is
+    "the direct equivalent".
+  - The guide's example puts `EQUIPMENT-REFERENCE` blocks **before** the
+    first `PIPELINE-REFERENCE`, which the reader had swallowed into the
+    header (fixed).
+  - A connection can also be attached to a component (column 5, no
+    coordinates).  The reader does not use that form.
 
 **Jacketed pipe (§5).**  Core and jacket are separate pipelines bridged
 by 3-port jacket flanges (`JACKET-POINT`).  An annular jacket flow
@@ -131,7 +149,7 @@ guide's BEND example with a full header (`PIPE` → `BEND` → `PIPE`,
 | 5 | `ANGLE`, `BEND-RADIUS` ignored | Present on bends | No cross-check of geometry **Fixed 2026-10-26 (task 0021).** |
 | 6 | One greedy chain (`_sort_by_connectivity`); disconnected parts appended | Several pipelines and branches per file | Branched files mis-ordered **Fixed 2026-10-27 (task 0037):** a graph of end points across pipelines and files; a disconnected part, a loop or three components at one point is an error naming a component. |
 | 7 | `TEE`, `OLET`, `TEE-SET-ON`, `CROSS`, `Y-PIECE-FABRICATED` skipped | Defined (above) | Junctions dropped, although the assembly now has `Tee` **Fixed 2026-10-27 (task 0037):** `TEE` → `Tee` (also with the branch as a third `END-POINT`); `TEE-SET-ON` / `TEE-STUB` / `OLET` → host pipe split into straight + `Tee` + straight; `Y-PIECE-FABRICATED` → `Wye`.  **Rejected by design**, naming the component: crosses, `Y-PIECE-FITTING`, tangential and offset SKEYs, equal or angled tees, asymmetric Y pieces, layered specs (prototype limits). |
-| 8 | Insulation, equipment, nozzles ignored | Defined (above) | Lost information that decisions 0002 and 0006 can use |
+| 8 | Insulation, equipment, nozzles ignored | Defined (above) | Lost information that decisions 0002 and 0006 can use **Fixed 2026-10-28 (task 0038):** `to_assembly(insulation=True)` adds an `insulation` shell from `INSULATION-THICKNESS` where `INSULATION ON` (or a keypoint override) says, with switches one cell inside a straight neighbour.  Equipment connections name and mark their ends.  **Rejected by design:** insulated junctions, and a switch with no straight neighbour.  Not read: `INSULATION-SPEC`, tracing, component-attached connections. |
 
 **Rows 1–5, 9 and 10 fixed 2026-10-26 (task 0021).**  Rows 1–5 were bugs against the spec, and rows 9–10 (below) are robustness
 against real-file dialects: both are task 0021.  Rows 6–8 are features

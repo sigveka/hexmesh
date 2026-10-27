@@ -12,6 +12,8 @@ An assembly is saved as the record of how it was built, not as geometry:
   ``prepend: true`` (placed upstream of the inlet), and its ``label`` if
   set;
 * ``names``: interface index → name, for every named interface;
+* ``equipment``: indices of the interfaces marked as equipment ends
+  (omitted when none);
 * ``tail``: the interface index ``add(fitting)`` continues from;
 * ``lc`` and ``axial_cell`` if set.  Every saved fitting holds its
   resolved ``n_layers``, so ``axial_cell`` only matters for fittings added
@@ -156,6 +158,9 @@ def to_dict(asm: "Assembly") -> dict:
         "names": {str(i.index): i.name for i in asm.interfaces if i.name is not None},
         "tail": None if asm._tail is None else asm._tail.index,
     }
+    marked = [i.index for i in asm.interfaces if i.equipment]
+    if marked:
+        d["equipment"] = marked
     if asm._lc is not None:
         d["lc"] = asm._lc
     if asm.axial_cell is not None:
@@ -213,8 +218,10 @@ def from_dict(cls, d: dict) -> "Assembly":
         for k, fr in e.get("frames", {}).items():
             outs[int(k)].frame = _frame_from_dict(fr)
     names = d.get("names", {})
+    marked = set(d.get("equipment", []))
     for iface in asm.interfaces:
         iface.name = names.get(str(iface.index))
+        iface.equipment = iface.equipment or iface.index in marked
     tail = d.get("tail")
     asm._tail = None if tail is None else asm.interfaces[tail]
     return asm

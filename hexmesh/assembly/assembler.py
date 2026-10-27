@@ -156,6 +156,7 @@ class Assembly:
         asm = cls(drum.nozzle(nozzle).spec, lc=lc, inlet_name=f"{drum.name}_{nozzle}",
                   axial_cell=axial_cell)
         asm.inlet.frame = frame
+        asm.inlet.equipment = True
         asm._nozzle = (drum, nozzle)
         return asm
 
@@ -264,9 +265,10 @@ class Assembly:
         old = self.inlet
         if not old.is_open:
             raise AssemblyError(f"the inlet {old} is not an open end")
-        if self._nozzle is not None and old is self._interfaces[0]:
-            raise AssemblyError(f"the inlet {old} is a drum nozzle; nothing can be "
-                                "placed upstream of it")
+        if old.equipment:
+            raise AssemblyError(f"the inlet {old} is an equipment end (a drum nozzle or "
+                                "a PCF equipment connection); "
+                                "nothing can be placed upstream of it")
         self._check_degree(old, "outlet", fitting)
         fitting = self._resolved(fitting, old)    # the length does not depend on the frame
         f = old.frame
@@ -288,7 +290,8 @@ class Assembly:
         Lengths are in diameters of the end's core (the flow passage; the
         hydraulic diameter 4A / P_w of a duct):
         *upstream* before the inlet, *downstream* after each outlet; 0
-        skips that side.  An inlet at a drum nozzle is never extended.  Each run gets ``round(length / D ×
+        skips that side.  An end marked as equipment (a drum nozzle, or a
+        PCF equipment connection) is never extended.  Each run gets ``round(length / D ×
         cells_per_diameter)`` axial cells (at least 1).  Extended ends keep
         their patch names.  Must be called before ``build()``.
         """
@@ -303,7 +306,8 @@ class Assembly:
             n = max(1, round(diameters * cells_per_diameter))
             return Straight(diameters * d, n_layers=n)
 
-        outlets = [i for i in self.open_interfaces() if i is not self.inlet]
+        outlets = [i for i in self.open_interfaces()
+                   if i is not self.inlet and not i.equipment]
         names = {i.index: self.patch_name(i) for i in outlets}
         if downstream > 0:
             for iface in outlets:
@@ -311,8 +315,7 @@ class Assembly:
                 out.name, iface.name = names[iface.index], None
                 if self._tail is iface:
                     self._tail = out
-        at_nozzle = self._nozzle is not None and self.inlet is self._interfaces[0]
-        if upstream > 0 and self.inlet.is_open and not at_nozzle:
+        if upstream > 0 and self.inlet.is_open and not self.inlet.equipment:
             self.prepend(run(self.inlet, upstream))
 
     # ------------------------------------------------------------------
