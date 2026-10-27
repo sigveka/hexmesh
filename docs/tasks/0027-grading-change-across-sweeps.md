@@ -1,6 +1,6 @@
 # 0027 — Grading-only changes across a sweep (wall-resolved reducers)
 
-- **Status:** ready (design answered 2026-10-27: write *Outcome*)
+- **Status:** done
 - **Decision:** [0016 — Class-1 granularity, and grading changes across a sweep](../decisions/0016-class-1-granularity-and-grading-changes.md)
 - **Depends on:** —  (touches `Reducer.path`, like 0025 touches straight
   slabs; coordinate if both are in progress)
@@ -158,22 +158,42 @@ ports always share one spec.
 
 ## Outcome
 
-- **Implementation complete**; blocked only on the quality-target
-  question above.
+- **Done** (code in commit 4b27a72; Outcome written 2026-10-27 after
+  the design answer).  The revised quality target is met.
 - **Files:**
-  - `hexmesh/assembly/signature.py`: `grading_only`, the
+  - `hexmesh/assembly/signature.py`: `SwitchClass.grading_only`, the
     `check_port_pairs` rule and the module doc;
-  - `hexmesh/assembly/fittings.py`: `Reducer` strategies, docstring and
-    path; `_with_radii(…, mprgs)`, `_mprgs`;
+  - `hexmesh/assembly/fittings.py`: `Reducer.strategies = {0, 2}`, its
+    docstring and `path` (geometric `mprg` interpolation at the radii's
+    fractions); `_with_radii(…, mprgs)`, `_mprgs`;
   - tests: `tests/test_signature.py` (+9) and `tests/test_reducer.py`
     (+4);
   - `API.md`: the class table and note, the example message, and the
     `Reducer` entry.
 - **Accept:**
-  - **use case:** validates, all-hex, meshed = predicted, quality ok;
+  - **use case** (pipe(0.1) → pipe(0.06), `first_cell` 1 mm, `nrad`
+    8 + 3, `nang` 8; `mprg` 0.667 → 0.737): validates, all-hex, meshed
+    = predicted, quality check passes.  Min SICN 0.061 at 6 layers and
+    0.092 at 12; the ends as plain `Straight`s give 0.063 / 0.069 and
+    0.094 / 0.119.  The transition costs about 3 % against its worse
+    end, inside the revised 10 % target;
+  - **table cases:** every row's interpolated min SICN is within 6 % of
+    the outlet-end `Straight` (the table under *Questions for design*;
+    worst 0.468 vs. 0.496 at 1.0 → 1.0, 12 layers).  The worse end is at
+    or below that column, so the 10 % target holds in every row;
   - **count difference:** still rejected with the class named (nang,
     nrad, nrad + mprg);
   - **`mbmp`:** rejected;
-  - **classifier units:** pass;
-  - **quality:** see *Questions for design*.
-- **Tests:** full suite 863 passed, 2 skipped (tee exactness), 0 failed.
+  - **classifier units:** pass.
+- **Tests:** full suite 863 passed, 2 skipped (tee exactness), 0 failed
+  at the implementing commit.  Re-checked 2026-10-27 on 8dac5b8:
+  `test_signature.py` + `test_reducer.py`, 59 passed.
+- **Measurements:** setup core + shell, `nrad` 6 / 4, `nang` 8,
+  R 0.1 → 0.06, `dR` 0.02, length 0.2 (0019's exact setup was not
+  recorded; baseline 0.266 here vs. 0.193 there).
+- **Surprises:** the worst cell sits in the graded end section, not the
+  transition, so interpolating per station barely changes min SICN
+  (it helps slightly at 12 layers: 0.261 → 0.268, 0.052 → 0.057).
+- **Follow-ups:** none proposed.  `Closure` stays at `{0}` (see *Agent
+  notes*); per-station grading for it would need the target spec passed
+  through `Sweep.path`, to do only if a case asks for it.

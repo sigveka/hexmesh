@@ -36,7 +36,7 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0024](0024-parallel-test-suite.md) | Parallel test suite (pytest-xdist) and registered markers | in progress | 0014 |
 | [0025](0025-ruled-straight-slabs.md) | Ruled side surfaces for straight slabs, and a wall-exactness check | done | 0015 |
 | [0026](0026-assembly-refined.md) | `Assembly.refined(k)`: uniform refinement for convergence studies | done | 0015 |
-| [0027](0027-grading-change-across-sweeps.md) | Grading-only changes across a sweep (wall-resolved reducers) | ready (write Outcome) | 0016 |
+| [0027](0027-grading-change-across-sweeps.md) | Grading-only changes across a sweep (wall-resolved reducers) | done | 0016 |
 | [0028](0028-rectangular-cores.md) | Rectangular cores in the assembly (single-layer ducts) | done | 0009, 0010 |
 | [0029](0029-transition-circle-rectangle.md) | `Transition`: circle ↔ rectangle and rectangle ↔ rectangle sweeps | done | 0009 |
 | [0030](0030-wye-prototype.md) | Wye prototype: symmetric Y-junction as a block layout | done | 0017 |
