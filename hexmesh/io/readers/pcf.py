@@ -44,9 +44,23 @@ WELD, COUPLING, GASKET        → "joint" when no longer than ``joint_max``
                                 couplings of the weld root gap, 1/16", as a
                                 documented exporter dialect), else "fitting"
 
+TEE                           → "tee": run END-POINTs, CENTRE-POINT,
+                                BRANCH1-POINT (or a third END-POINT, a
+                                real-file dialect)
+TEE-SET-ON, TEE-STUB, OLET    → "seton": CENTRE-POINT on a PIPE that the PCF
+                                does not split, and BRANCH1-POINT
+Y-PIECE-FABRICATED            → "ypiece": CENTRE-POINT at the end of its
+                                stem PIPE, BRANCH1-POINT, BRANCH2-POINT
+CROSS, CROSS-SET-ON, CROSS-STUB, Y-PIECE-FITTING
+                              → "junction?": read, and rejected by
+                                ``to_assembly`` naming the component
+
 Joints are absorbed into the adjacent straight runs by ``to_assembly``,
-never meshed (they would be sliver cells).  Other types (TEE, OLET, …) are
-collected in ``NetworkSpec.skipped`` with one warning each.
+never meshed (they would be sliver cells).  Other types are collected in
+``NetworkSpec.skipped`` with one warning each.
+
+Several files can be read into one network: ``read_pcf([a, b])``
+(decision 0023).
 """
 
 from __future__ import annotations
@@ -109,6 +123,14 @@ class ComponentSpec:
         PCF component keyword (e.g. ``"REDUCER-ECCENTRIC"``).
     pipeline : str
         The ``PIPELINE-REFERENCE`` it belongs to ("" before any).
+    branch, branch2 : ndarray or None
+        ``BRANCH1-POINT`` / ``BRANCH2-POINT`` in metres (junctions).
+    branch_bore, branch2_bore : float or None
+        Their nominal sizes, metres.
+    skey : str
+        The component's ``SKEY`` ("" if none).
+    source : str
+        The file it was read from.
     """
 
     kind:     str
@@ -121,6 +143,13 @@ class ComponentSpec:
     raw:      dict = field(default_factory=dict)
     record_type: str = ""
     pipeline: str = ""
+    branch:   np.ndarray | None = None
+    branch_bore: float | None = None
+    branch2:  np.ndarray | None = None
+    branch2_bore: float | None = None
+    skey:     str = ""
+    source:   str = ""
+    index:    int = -1          # position in NetworkSpec.components (to_assembly)
 
 
 @dataclass
@@ -130,8 +159,8 @@ class NetworkSpec:
     Attributes
     ----------
     components : list[ComponentSpec]
-        Components in file order (``to_assembly`` orders them by
-        connectivity).
+        Components in file order (``to_assembly`` joins them into a
+        graph by their end points).
     skipped : list[tuple[str, dict]]
         Component records that could not be mapped to a supported type.
     source : str
@@ -160,18 +189,43 @@ class NetworkSpec:
 
     def to_assembly(self, spec, *, axial_cell: float | None = None,
                     kinks: str = "error", tol: float | None = None,
-                    lc: float | None = None):
+                    lc: float | None = None, inlet=None):
         """Build an ``hexmesh.assembly.Assembly`` from the components.
 
-        Each component is placed from the previous outlet and its PCF end
-        point is then checked against the placed outlet; a gap or a change of
+        The components form a graph, joined where their end points meet
+        (within *tol*), across every pipeline and file.  It must be one
+        tree: three components at one point, a disconnected part or a loop
+        raises ``AssemblyError`` naming a component.  The network is placed
+        from a root open end, depth first.  Each component is placed from
+        the previous outlet, and its PCF end points (and branch points) are
+        then checked against the placed ports; a gap or a change of
         direction larger than *tol* raises ``AssemblyError`` naming the
         component (nothing is snapped).
 
         Mapping: ``pipe`` and ``fitting`` (flange, valve, …) → ``Straight``;
         ``elbow`` → ``Bend``, from its corner point (radius and angle are
         cross-checked against ``BEND-RADIUS`` and ``ANGLE`` when given);
-        ``reducer`` (concentric) → ``Reducer``.
+        ``reducer`` (concentric) → ``Reducer``; ``TEE`` → ``Tee``;
+        ``TEE-SET-ON`` / ``TEE-STUB`` / ``OLET`` → the host pipe split into
+        straight + ``Tee`` (run length = the branch diameter) + straight;
+        ``Y-PIECE-FABRICATED`` → the end of its stem pipe + ``Wye``.  A
+        junction outside its fitting's limits (equal, angled, offset or
+        tangential tees, crosses, asymmetric Y pieces, layered specs) raises
+        ``AssemblyError`` naming the component and the limit.
+
+        Root: every junction must be entered through its inlet (a tee's
+        run end, a Y piece's stem).  By default the root is the first open
+        end, in file order, from which that holds; ends that a component's
+        ``FLOW`` attribute marks as upstream are tried first.  The root's
+        ``up`` is chosen so the first junction's branch lands on an allowed
+        roll (a multiple of 90°).
+
+        Names: each fitting is labelled ``<TYPE>_<n>`` (``n`` counts that
+        type in file order) or ``<TYPE>_<COMPONENT-IDENTIFIER>``; open ends
+        are ``<pipeline>_end<k>`` (``k`` counts the pipeline's open ends in
+        file order), so the same file gives the same assembly.  Without a
+        pipeline reference the inlet keeps ``inlet`` and other ends the
+        assembly's defaults.
 
         Joints (couplings, gaskets, welds up to ``joint_max``; ``GAP``) are
         absorbed: the preceding straight run is extended over them, or else
@@ -201,12 +255,14 @@ class NetworkSpec:
             ``TOL_FLOOR`` (0.11").
         lc : float, optional
             Passed to ``Assembly``.
+        inlet : str or 3-vector, optional
+            The root: an open end's name or its point (metres).
 
         Returns
         -------
         Assembly
         """
-        return _build_assembly(self, spec, axial_cell, kinks, tol, lc)
+        return _build_assembly(self, spec, axial_cell, kinks, tol, lc, inlet)
 
 
 # ---------------------------------------------------------------------------
@@ -214,17 +270,20 @@ class NetworkSpec:
 # ---------------------------------------------------------------------------
 
 def read_pcf(
-    path:          str | Path,
+    path:          str | Path | list,
     unit_scale:    float | None = None,
     ignore_types:  set[str] | None = None,
     joint_max:     float = JOINT_MAX,
 ) -> NetworkSpec:
-    """Parse a PCF file and return a NetworkSpec.
+    """Parse a PCF file, or several into one network, and return a
+    NetworkSpec.
 
     Parameters
     ----------
-    path : str or Path
-        Path to the ``.pcf`` file.
+    path : str, Path or list of them
+        Path to the ``.pcf`` file, or a list of files read into one
+        network (components in list, then file, order; each file keeps
+        its own units).
     unit_scale : float, optional
         Metres per coordinate unit.  Default: from ``UNITS-CO-ORDS``.  If
         given it wins, and a mismatch with the header warns.  A file with
@@ -239,6 +298,18 @@ def read_pcf(
     -------
     NetworkSpec
     """
+    if isinstance(path, (list, tuple)):
+        if not path:
+            raise ValueError("read_pcf: empty list of files")
+        parts = [read_pcf(p, unit_scale, ignore_types, joint_max) for p in path]
+        net = NetworkSpec(source=", ".join(n.source for n in parts),
+                          header=dict(parts[0].header), coord_scale=parts[0].coord_scale)
+        for n in parts:
+            net.components += n.components
+            net.skipped += n.skipped
+            net.pipelines.update(n.pipelines)
+            net.connections += n.connections
+        return net
     path = Path(path)
     if not path.exists():
         raise FileNotFoundError(f"PCF file not found: {path}")
@@ -262,18 +333,33 @@ def read_pcf(
                           stacklevel=2)
             continue
 
-        endpoints = attrs.get("END-POINT", [])
-        if len(endpoints) < 2:
+        endpoints = list(attrs.get("END-POINT", []))
+        centre = None
+        if "CENTRE-POINT" in attrs:
+            centre = np.array(attrs["CENTRE-POINT"][:3], dtype=float) * scale
+        branches = [attrs.get(k) for k in ("BRANCH1-POINT", "BRANCH2-POINT")]
+        if kind == "tee" and len(endpoints) >= 3 and branches[0] is None:
+            branches[0] = endpoints.pop(2)    # real-file dialect: branch as END-POINT 3
+        if kind in ("seton", "ypiece", "junction?"):
+            first = endpoints[0] if endpoints else (attrs.get("CENTRE-POINT") or
+                                                    branches[0] or [0, 0, 0])
+            endpoints = [first, first]
+        elif len(endpoints) < 2:
             warnings.warn(f"Component {record_type} has < 2 END-POINTs — skipped.",
                           stacklevel=2)
             continue
 
-        start = np.array(endpoints[0][:3], dtype=float) * scale
-        end   = np.array(endpoints[1][:3], dtype=float) * scale
-        bore  = float(endpoints[0][3]) * bore_scale if len(endpoints[0]) > 3 else 0.0
-        centre = None
-        if "CENTRE-POINT" in attrs:
-            centre = np.array(attrs["CENTRE-POINT"][:3], dtype=float) * scale
+        def point(v):
+            return None if v is None else np.array(v[:3], dtype=float) * scale
+
+        def size(v):
+            return float(v[3]) * bore_scale if v is not None and len(v) > 3 else None
+
+        start = point(endpoints[0])
+        end   = point(endpoints[1])
+        bore  = size(endpoints[0]) or 0.0
+        if kind in ("seton", "ypiece"):
+            bore = 0.0                         # the host pipe's
         end_bore = None
         if kind == "reducer" and len(endpoints[1]) > 3:
             end_bore = float(endpoints[1][3]) * bore_scale
@@ -284,6 +370,9 @@ def read_pcf(
             kind=kind, start=start, end=end, centre=centre, bore=bore,
             end_bore=end_bore, ignored=kind == "fitting", raw=attrs,
             record_type=rtype, pipeline=pipeline,
+            branch=point(branches[0]), branch_bore=size(branches[0]),
+            branch2=point(branches[1]), branch2_bore=size(branches[1]),
+            skey=str(attrs.get("SKEY", "")).strip().upper(), source=str(path),
         ))
 
     return spec
@@ -337,10 +426,19 @@ _COMPONENT_MAP = {
     "WELD":                  "joint?",     # joint up to joint_max, else fitting
     "COUPLING":              "joint?",
     "GASKET":                "joint?",
-    "TEE":                   None,    # not yet supported
-    "CROSS":                 None,
-    "OLET":                  None,
+    "TEE":                   "tee",
+    "TEE-SET-ON":            "seton",
+    "TEE-STUB":              "seton",
+    "OLET":                  "seton",
+    "Y-PIECE-FABRICATED":    "ypiece",
+    "CROSS":                 "junction?",   # read, rejected by to_assembly
+    "CROSS-SET-ON":          "junction?",
+    "CROSS-STUB":            "junction?",
+    "Y-PIECE-FITTING":       "junction?",
 }
+
+#: Set-on SKEYs whose branch is tangential or offset (RESEARCH §3.1): rejected.
+OFFSET_SKEYS = {"TTSO", "TTRF", "TOSO", "TORF"}
 
 
 def _classify(record_type: str) -> str | None:
@@ -406,42 +504,15 @@ def _iter_records(path: Path, net: NetworkSpec) -> Iterator[tuple[str, dict, str
                 block, attrs, endpoints = (kind, words[0]), {}, []
             elif "END-POINT" in line.split(None, 1)[0]:
                 endpoints.append([float(x) for x in _NUMBER.findall(line)])
-            elif line.split(None, 1)[0] == "CENTRE-POINT":
-                attrs["CENTRE-POINT"] = [float(x) for x in _NUMBER.findall(line)]
+            elif line.split(None, 1)[0] in ("CENTRE-POINT", "BRANCH1-POINT",
+                                            "BRANCH2-POINT"):
+                key, *rest = line.split(None, 1)      # "BRANCH1" holds a digit
+                attrs[key] = [float(x) for x in _NUMBER.findall(rest[0] if rest else "")]
             else:
                 parts = line.split(None, 1)
                 attrs[parts[0].strip()] = parts[1].strip() if len(parts) == 2 else ""
 
     yield from flush()
-
-
-def _sort_by_connectivity(comps: list[ComponentSpec], tol: float = 1e-4) -> list[ComponentSpec]:
-    """Topological sort: order components by endpoint connectivity."""
-    if not comps:
-        return []
-    # Simple greedy chain: start from the first component, follow end-points
-    result = [comps[0]]
-    remaining = list(comps[1:])
-
-    while remaining:
-        tail = result[-1].end
-        found = False
-        for i, c in enumerate(remaining):
-            if np.linalg.norm(c.start - tail) < tol:
-                result.append(remaining.pop(i))
-                found = True
-                break
-            elif np.linalg.norm(c.end - tail) < tol:
-                # Reversed orientation — flip
-                c.start, c.end = c.end.copy(), c.start.copy()
-                result.append(remaining.pop(i))
-                found = True
-                break
-        if not found:
-            # Disconnected component — append as-is
-            result.append(remaining.pop(0))
-
-    return result
 
 
 def _unit(v: np.ndarray) -> np.ndarray:
@@ -553,10 +624,336 @@ def _absorb_joints(comps: list[ComponentSpec], report: dict) -> list[ComponentSp
     return out
 
 
-def _build_assembly(net: NetworkSpec, spec, axial_cell, kinks, tol, lc):
-    from ...assembly import Assembly, AssemblyError, Bend, Reducer, SplinePipe, Straight
-    from ...assembly.fittings import _with_radii
-    from ...assembly.interface import outer_radius
+# --- graph (decision 0023) ---------------------------------------------------
+
+class _Reroll(Exception):
+    """Raised at the first junction: rebuild with the root rolled by *miss*."""
+
+    def __init__(self, miss: float):
+        self.miss = miss
+
+
+def _name(text: str) -> str:
+    """*text* as a patch-name / label fragment: letters, digits and ``_``."""
+    return re.sub(r"[^A-Za-z0-9_]+", "_", text).strip("_")
+
+
+def _labels(comps: list[ComponentSpec]) -> list[str]:
+    """``<TYPE>_<n>`` per component (n counts its type in file order), or
+    ``<TYPE>_<COMPONENT-IDENTIFIER>``; unique."""
+    seen: dict[str, int] = {}
+    used: set[str] = set()
+    out = []
+    for c in comps:
+        t = _name(c.record_type or c.kind).upper() or "COMPONENT"
+        seen[t] = seen.get(t, 0) + 1
+        ident = _name(str(c.raw.get("COMPONENT-IDENTIFIER", "")))
+        label = f"{t}_{ident}" if ident else f"{t}_{seen[t]}"
+        base, k = label, 2
+        while label in used:
+            label, k = f"{base}_{k}", k + 1
+        used.add(label)
+        out.append(label)
+    return out
+
+
+@dataclass
+class _Part:
+    """A component in the graph: its ports' points (entry candidates)."""
+
+    comp:  ComponentSpec
+    label: str
+    ports: list                              # points, metres
+    nodes: list = field(default_factory=list)
+
+    @property
+    def kind(self) -> str:
+        return self.comp.kind
+
+
+def _ports(c: ComponentSpec) -> list:
+    if c.kind == "tee":
+        return [c.start, c.end, c.branch]
+    if c.kind == "wye":
+        return [c.start, c.branch, c.branch2]
+    return [c.start, c.end]
+
+
+def _describe(c: ComponentSpec, label: str) -> str:
+    """``component <index> (<TYPE> <label>[, SKEY …] at <point>)``."""
+    skey = f", SKEY {c.skey}" if c.skey else ""
+    at = c.centre if c.kind in ("seton", "ypiece", "tee", "wye") else c.start
+    return (f"component {c.index} ({c.record_type or c.kind} {label}{skey} "
+            f"at {np.round(at, 4)})")
+
+
+def _radius(spec) -> float:
+    return spec.core_shape.radius
+
+
+def _split_hosts(comps, labels, tol):
+    """Replace each set-on and Y piece by a ``tee`` / ``wye`` with explicit
+    ports, splitting its host pipe (pure).  The split is set from nominal
+    sizes, not the spec, so it is the same for every spec: a set-on's run
+    is its branch's nominal bore (a diameter) each side of CENTRE-POINT; a
+    Y piece's inlet run is ``r·(tan h + margin + 0.5)``, ``r`` the stem's
+    nominal radius and ``h`` half the daughters' angle."""
+    from ...assembly import AssemblyError
+    from ...assembly.wye import _IN_MARGIN
+    comps, labels = list(comps), list(labels)
+    while True:
+        todo = [i for i, c in enumerate(comps) if c.kind in ("seton", "ypiece")]
+        if not todo:
+            return comps, labels
+        i = todo[0]
+        j_c = comps[i]
+        what = _describe(j_c, labels[i])
+        if j_c.kind == "seton" and j_c.skey in OFFSET_SKEYS:
+            raise AssemblyError(f"{what}: tangential and offset set-ons are not "
+                                f"supported; a Tee branch is perpendicular and centred")
+        if j_c.centre is None or j_c.branch is None:
+            raise AssemblyError(f"{what}: needs CENTRE-POINT and BRANCH1-POINT")
+        c = j_c.centre
+        hosts = []
+        for h, hc in enumerate(comps):
+            if hc.kind != "pipe":
+                continue
+            d = hc.end - hc.start
+            L = float(np.linalg.norm(d))
+            t = float(np.dot(c - hc.start, d)) / L
+            off = float(np.linalg.norm(hc.start + t * d / L - c))
+            if off <= tol and -tol <= t <= L + tol:
+                hosts.append((h, t, L))
+        if j_c.kind == "seton":
+            inside = [x for x in hosts if tol < x[1] < x[2] - tol]
+            if not inside:
+                raise AssemblyError(f"{what}: no PIPE passes through its CENTRE-POINT "
+                                    f"(the branch must be centred on a straight pipe)")
+            h, t, L = inside[0]
+            host = comps[h]
+            axis = (host.end - host.start) / L
+            if not j_c.branch_bore:
+                raise AssemblyError(f"{what}: needs a size on BRANCH1-POINT")
+            run = j_c.branch_bore              # the branch diameter
+            if t - run <= tol or t + run >= L - tol:
+                raise AssemblyError(
+                    f"{what}: host pipe {labels[h]} is too short around the branch; "
+                    f"the tee needs {run:.4g} m on each side of CENTRE-POINT")
+            a, b = c - run * axis, c + run * axis
+            tee = ComponentSpec(**{**j_c.__dict__, "kind": "tee", "start": a, "end": b,
+                                   "bore": host.bore})
+            pieces = [ComponentSpec(**{**host.__dict__, "start": host.start.copy(), "end": a}),
+                      tee,
+                      ComponentSpec(**{**host.__dict__, "start": b, "end": host.end.copy()})]
+            names = [f"{labels[h]}_1", labels[i], f"{labels[h]}_2"]
+        else:
+            ends = [x for x in hosts if x[1] <= tol or x[1] >= x[2] - tol]
+            if not ends or j_c.branch2 is None:
+                raise AssemblyError(f"{what}: needs a stem PIPE ending at its "
+                                    f"CENTRE-POINT, BRANCH1-POINT and BRANCH2-POINT")
+            h, t, L = ends[0]
+            host = comps[h]
+            far = host.start if t >= L - tol else host.end
+            n = _unit(c - far)
+            d1, d2 = _unit(j_c.branch - c), _unit(j_c.branch2 - c)
+            half = math.acos(float(np.clip(np.dot(d1, n), -1, 1)))
+            R = 0.5 * host.bore
+            run = R * (math.tan(half) + _IN_MARGIN + 0.5)
+            if run >= L - tol:
+                raise AssemblyError(
+                    f"{what}: stem pipe {labels[h]} ({L:.4g} m) is shorter than the "
+                    f"{run:.4g} m the Wye's inlet run needs")
+            a = c - run * n
+            wye = ComponentSpec(**{**j_c.__dict__, "kind": "wye", "start": a, "end": a,
+                                   "bore": host.bore})
+            stem = ComponentSpec(**{**host.__dict__, "start": far.copy(), "end": a})
+            pieces, names = [stem, wye], [labels[h], labels[i]]
+        # the pieces take the host's place in file order; the junction's
+        # own record goes
+        comps[h:h + 1], labels[h:h + 1] = pieces, names
+        k = next(m for m, c in enumerate(comps) if c is j_c)
+        del comps[k], labels[k]
+
+
+def _graph(parts: list[_Part], joints: list[ComponentSpec], tol: float):
+    """Cluster port points into nodes: node → [(part, port)], and node →
+    the joints at it.  A joint's two ends are one node (it is absorbed,
+    never a part), so a zero-length weld does not count as a component."""
+    from ...assembly import AssemblyError
+    pts = [x for p in parts for x in p.ports] + [x for j in joints for x in (j.start, j.end)]
+    root = list(range(len(pts)))
+
+    def find(i):
+        while root[i] != i:
+            root[i] = root[root[i]]
+            i = root[i]
+        return i
+    for i in range(len(pts)):
+        for j in range(i):
+            if np.linalg.norm(pts[i] - pts[j]) <= tol:
+                root[find(i)] = find(j)
+    base = sum(len(p.ports) for p in parts)
+    for m in range(len(joints)):
+        root[find(base + 2 * m + 1)] = find(base + 2 * m)
+    ids: dict[int, int] = {}
+    nodes: list[list[tuple[int, int]]] = []
+    i = 0
+    for k, p in enumerate(parts):
+        p.nodes = []
+        for q in range(len(p.ports)):
+            n = ids.setdefault(find(i), len(ids))
+            if n == len(nodes):
+                nodes.append([])
+            nodes[n].append((k, q))
+            p.nodes.append(n)
+            i += 1
+    at_node: dict[int, list] = {}
+    for m, j in enumerate(joints):
+        n = ids.get(find(base + 2 * m))
+        if n is not None:
+            at_node.setdefault(n, []).append(j)
+    points = {p.nodes[q]: p.ports[q] for p in parts for q in range(len(p.ports))}
+    for n, at in enumerate(nodes):
+        if len(at) > 2:
+            raise AssemblyError(
+                f"{len(at)} components meet at {np.round(points[n], 4)} "
+                f"({', '.join(parts[k].label for k, _ in at)}); a junction must be "
+                f"a TEE, set-on or Y piece")
+    return nodes, at_node
+
+
+def _joints_from(joints: list[ComponentSpec], x: np.ndarray) -> list[ComponentSpec]:
+    """*joints* (at one node) in order away from point *x*, each oriented so
+    it starts at the end nearer the previous one."""
+    left, out = list(joints), []
+    while left:
+        j = min(left, key=lambda j: min(np.linalg.norm(j.start - x), np.linalg.norm(j.end - x)))
+        left.remove(j)
+        j = ComponentSpec(**{**j.__dict__, "start": j.start.copy(), "end": j.end.copy()})
+        if np.linalg.norm(j.end - x) < np.linalg.norm(j.start - x):
+            j.start, j.end = j.end, j.start
+        out.append(j)
+        x = j.end
+    return out
+
+
+def _check_tree(parts, nodes) -> None:
+    from ...assembly import AssemblyError
+    seen, stack = {0}, [(0, None)]
+    while stack:
+        k, via = stack.pop()
+        for n in parts[k].nodes:
+            if n == via:
+                continue
+            for j, _ in nodes[n]:
+                if j == k:
+                    continue
+                if j in seen:
+                    raise AssemblyError(f"{parts[j].label} is on a loop; loops are not "
+                                        f"read from PCF (decision 0023)")
+                seen.add(j)
+                stack.append((j, n))
+    missing = [k for k in range(len(parts)) if k not in seen]
+    if missing:
+        # name the gap: the unreached port nearest to an open end of the rest
+        ends = [(k, q) for k in seen for q, n in enumerate(parts[k].nodes)
+                if len(nodes[n]) == 1]
+        gap, j, k = min((float(np.linalg.norm(parts[j].ports[r] - parts[k].ports[q])), j, k)
+                        for j in missing for r in range(len(parts[j].ports))
+                        for k, q in ends) if ends else (math.inf, missing[0], 0)
+        raise AssemblyError(
+            f"{_describe(parts[j].comp, parts[j].label)}: starts {gap:.3g} m from the "
+            f"open end of {_describe(parts[k].comp, parts[k].label)}; the network "
+            f"must be one connected piece")
+
+
+def _entries(parts, nodes, root: tuple[int, int]) -> str | None:
+    """Walk from *root* (part, port); the first junction entered other than
+    through its inlet, described, or None."""
+    stack = [root]
+    seen = set()
+    while stack:
+        k, q = stack.pop()
+        if k in seen:
+            continue
+        seen.add(k)
+        p = parts[k]
+        if p.kind == "tee" and q == 2:
+            return f"{_describe(p.comp, p.label)} would be entered from its branch"
+        if p.kind == "wye" and q != 0:
+            return f"{_describe(p.comp, p.label)} would be entered from a daughter"
+        for r, n in enumerate(p.nodes):
+            if r != q:
+                stack += [(j, s) for j, s in nodes[n] if j != k]
+    return None
+
+
+def _end_names(parts, nodes) -> dict[int, str | None]:
+    """Open-end node → ``<pipeline>_end<k>`` (file order), None without a
+    pipeline reference."""
+    ends = sorted((k, q, n) for n, at in enumerate(nodes) if len(at) == 1
+                  for k, q in at)
+    count: dict[str, int] = {}
+    out = {}
+    for k, q, n in ends:
+        pipe = _name(parts[k].comp.pipeline)
+        if not pipe:
+            out[n] = None
+            continue
+        count[pipe] = count.get(pipe, 0) + 1
+        out[n] = f"{pipe}_end{count[pipe]}"
+    return out
+
+
+def _choose_root(parts, nodes, names, inlet, tol):
+    from ...assembly import AssemblyError
+    ends = sorted((k, q, n) for n, at in enumerate(nodes) if len(at) == 1
+                  for k, q in at)
+    if not ends:
+        raise AssemblyError("the network has no open end to start from")
+    if inlet is not None:
+        if isinstance(inlet, str):
+            pick = [e for e in ends if names.get(e[2]) == inlet]
+        else:
+            x = np.asarray(inlet, dtype=float)
+            pick = [e for e in ends
+                    if np.linalg.norm(parts[e[0]].ports[e[1]] - x) <= tol]
+        if not pick:
+            known = ", ".join(str(names[e[2]]) for e in ends if names.get(e[2]))
+            raise AssemblyError(f"inlet {inlet!r} is not an open end"
+                                + (f" (open ends: {known})" if known else ""))
+        bad = _entries(parts, nodes, pick[0][:2])
+        if bad:
+            raise AssemblyError(f"from inlet {inlet!r}, {bad}")
+        return pick[0]
+
+    def upstream(e):
+        flow = str(parts[e[0]].comp.raw.get("FLOW", "")).strip()
+        return (flow == "1" and e[1] == 0) or (flow == "2" and e[1] == 1)
+    first_bad = None
+    for e in sorted(ends, key=lambda e: not upstream(e)):
+        bad = _entries(parts, nodes, e[:2])
+        if bad is None:
+            return e
+        first_bad = first_bad or bad
+    raise AssemblyError(f"no open end enters every junction through its inlet: "
+                        f"{first_bad}")
+
+
+def _orient(c: ComponentSpec, port: int) -> ComponentSpec:
+    """*c* entered at *port*: start is the entry (2-port parts)."""
+    c = ComponentSpec(**{**c.__dict__, "start": c.start.copy(), "end": c.end.copy()})
+    if port == 1 and c.kind not in ("tee", "wye"):
+        c.start, c.end = c.end, c.start
+        if c.kind == "reducer":
+            c.bore, c.end_bore = c.end_bore, c.bore
+    elif port == 1 and c.kind == "tee":
+        c.start, c.end = c.end, c.start
+    return c
+
+
+def _build_assembly(net: NetworkSpec, spec, axial_cell, kinks, tol, lc, inlet=None):
+    from ...assembly import AssemblyError
 
     if kinks not in ("error", "spline"):
         raise ValueError(f"kinks must be 'error' or 'spline', got {kinks!r}")
@@ -564,35 +961,219 @@ def _build_assembly(net: NetworkSpec, spec, axial_cell, kinks, tol, lc):
         raise ValueError("NetworkSpec has no components to build.")
     if tol is None:
         tol = _model_tolerance(net.components)
-    report = net.report = {"tolerance": tol, "joints": [], "max_offset": 0.0}
-    comps = _sort_by_connectivity(
+    labels = _labels(net.components)
+    for i, c in enumerate(net.components):
+        c.index = i
+    for c, l in zip(net.components, labels):
+        if c.kind == "junction?":
+            raise AssemblyError(
+                f"{_describe(c, l)}: crosses and Y-PIECE-FITTING are not supported "
+                f"(decision 0023)")
+
+    comps, labels = _split_hosts(
         [ComponentSpec(**{**c.__dict__, "start": c.start.copy(), "end": c.end.copy()})
-         for c in net.components], tol)
+         for c in net.components], labels, tol)
+    joints = [c for c in comps if c.kind == "joint"]
+    parts = [_Part(c, l, _ports(c)) for c, l in zip(comps, labels) if c.kind != "joint"]
+    if not parts:
+        raise ValueError("NetworkSpec has only joints.")
+    nodes, at_node = _graph(parts, joints, tol)
+    _check_tree(parts, nodes)
+    names = _end_names(parts, nodes)
+    root = _choose_root(parts, nodes, names, inlet, tol)
+
+    roll = 0.0
+    for _ in range(2):
+        try:
+            asm = _place(net, parts, nodes, at_node, names, root, spec, axial_cell,
+                         kinks, tol, lc, roll, reroll=(roll == 0.0))
+            return asm
+        except _Reroll as r:
+            roll = r.miss
+    raise AssertionError("unreachable")
+
+
+def _place(net, parts, nodes, at_node, names, root, spec, axial_cell, kinks, tol, lc,
+           roll, reroll):
+    """Place the network from *root* (part, port, node), depth first."""
+    from ...assembly import Assembly, AssemblyError, Tee, Wye
+    from ...assembly.interface import outer_radius, rotate, toward_roll
+
+    report = net.report = {"tolerance": tol, "joints": [], "max_offset": 0.0}
+    k0, q0, n0 = root
+    first = _orient(parts[k0].comp, q0)
+    current = spec(first.bore) if callable(spec) else spec
+    d0 = (_unit(first.end - first.start) if first.kind == "tee"
+          else _unit(first.centre - first.start) if first.kind == "wye"
+          else _start_direction(first))
+    up0 = rotate(_perpendicular(d0), d0, math.radians(roll))
+    asm = Assembly(current, position=first.start, direction=d0, up=up0, lc=lc,
+                   axial_cell=axial_cell or outer_radius(current),
+                   **({"inlet_name": names[n0]} if names.get(n0) else {}))
+    state = {"junctions": 0, "tail": None}
+
+    def check(what, frame, end):
+        if np.linalg.norm(frame.position - end) > tol:
+            raise AssemblyError(
+                f"{what}: placed port {np.round(frame.position, 6)} misses its "
+                f"PCF point {np.round(end, 6)} by {np.linalg.norm(frame.position - end):.3g} m")
+
+    def joints_at(n, x):
+        return [(j, None) for j in _joints_from(at_node.get(n, []), x)]
+
+    def walk(iface, k, q, start_node):
+        """From *iface*, entering part *k* at port *q*: the run of two-port
+        parts, with the joints at the nodes it crosses, up to a junction or
+        an open end."""
+        chain = joints_at(start_node, iface.frame.position)
+        while parts[k].kind not in ("tee", "wye"):
+            p = parts[k]
+            c = _orient(p.comp, q)
+            chain.append((c, p.label))
+            n = p.nodes[1 - q]
+            chain += joints_at(n, c.end)
+            nxt = [(j, s) for j, s in nodes[n] if j != k]
+            if not nxt:
+                return chain, None, n
+            k, q = nxt[0]
+        return chain, (k, q), None
+
+    def junction(iface, k, q):
+        p = parts[k]
+        c = _orient(p.comp, q)
+        what = _describe(p.comp, p.label)
+        frame = iface.frame
+        check(what, frame, c.start)
+        centre = c.centre
+        axis = _unit(centre - c.start)
+        if np.linalg.norm(np.cross(axis, frame.normal)) > 1e-3 or np.dot(axis, frame.normal) < 0:
+            raise AssemblyError(f"{what}: its inlet run is not along the incoming pipe")
+        run = float(np.linalg.norm(centre - c.start))
+        main_bore = c.bore
+        if p.kind == "tee":
+            b = c.branch - centre
+            blen = float(np.linalg.norm(b))
+            tilt = math.degrees(math.asin(min(1.0, abs(float(np.dot(_unit(b), axis))))))
+            if tilt > 1.0:
+                raise AssemblyError(f"{what}: branch at {90 - tilt:.4g}° to the run; a Tee "
+                                    f"branch is perpendicular (angled tees are not supported)")
+            if abs(float(np.linalg.norm(c.end - centre)) - run) > tol:
+                raise AssemblyError(f"{what}: run END-POINTs are not symmetric about "
+                                    f"CENTRE-POINT")
+            if not (c.branch_bore and main_bore):
+                raise AssemblyError(f"{what}: needs sizes on its run and branch points")
+            R = _radius(iface.spec)
+            rb = (_radius(spec(c.branch_bore)) if callable(spec)
+                  else R * c.branch_bore / main_bore)        # scaled like a Reducer
+            if not rb < R:
+                raise AssemblyError(f"{what}: equal tees are not supported (branch "
+                                    f"radius {rb:.4g} must be below the main radius "
+                                    f"{R:.4g})")
+            fitting = Tee(run, blen, rb, toward=tuple(_unit(b)))
+            outs_at = [c.end, c.branch]
+        else:
+            d1, d2 = _unit(c.branch - centre), _unit(c.branch2 - centre)
+            h1 = math.degrees(math.acos(float(np.clip(np.dot(d1, axis), -1, 1))))
+            h2 = math.degrees(math.acos(float(np.clip(np.dot(d2, axis), -1, 1))))
+            l1 = float(np.linalg.norm(c.branch - centre))
+            l2 = float(np.linalg.norm(c.branch2 - centre))
+            coplanar = abs(float(np.dot(axis, np.cross(d1, d2))))
+            if abs(h1 - h2) > 0.1 or abs(l1 - l2) > tol or coplanar > 1e-3:
+                raise AssemblyError(f"{what}: asymmetric Y piece (daughters at {h1:.4g}° "
+                                    f"and {h2:.4g}°, {l1:.4g} and {l2:.4g} m); a Wye "
+                                    f"is symmetric and coplanar")
+            for bb in (c.branch_bore, c.branch2_bore):
+                if bb is not None and main_bore and abs(bb - main_bore) > 1e-9:
+                    raise AssemblyError(f"{what}: daughters must have the stem's size "
+                                        f"(Wye daughters keep the inlet's spec)")
+            side = d1 - np.dot(d1, axis) * axis            # BRANCH1 is the "right" daughter
+            fitting = Wye(h1 + h2, run, l1, toward=tuple(_unit(side)))
+            outs_at = [c.branch2, c.branch]                # [left, right]
+        if reroll and state["junctions"] == 0:
+            offset = 0.0 if p.kind == "tee" else 90.0
+            want = toward_roll(frame, fitting.toward) - offset
+            miss = math.remainder(want, 90.0)
+            if abs(miss) > 1e-9:
+                raise _Reroll(miss)
+        state["junctions"] += 1
+        try:
+            fitting.resolve(frame, iface.spec).check(iface.spec)
+        except ValueError as e:
+            raise AssemblyError(f"{what}: {e}") from None
+        outs = asm.add(iface, fitting, label=p.label)
+        for o, x in zip(outs, outs_at):
+            check(what, o.frame, x)
+        return outs, outs_at
+
+    def end_of(iface, n):
+        if names.get(n):
+            iface.name = names[n]
+        if state["tail"] is None:
+            state["tail"] = iface
+
+    def run_from(iface, k, q, start_node):
+        chain, jn, end_node = walk(iface, k, q, start_node)
+        end_dir = None
+        if jn is not None:
+            jc = _orient(parts[jn[0]].comp, jn[1])
+            end_dir = _unit(jc.centre - jc.start)
+        iface = _place_chain(asm, iface, chain, end_dir, spec, kinks, tol,
+                             report, net.coord_scale)
+        if jn is None:
+            end_of(iface, end_node)
+            return
+        outs, _ = junction(iface, *jn)
+        p = parts[jn[0]]
+        out_ports = [1, 2] if p.kind == "tee" else [2, 1]
+        if p.kind == "tee" and jn[1] == 1:
+            out_ports = [0, 2]
+        for o, r in zip(outs, out_ports):
+            n = p.nodes[r]
+            nxt = [(j, s) for j, s in nodes[n] if j != jn[0]]
+            if nxt:
+                run_from(o, *nxt[0], n)
+            else:
+                end_of(o, n)
+
+    if parts[k0].kind in ("tee", "wye"):
+        outs, _ = junction(asm.inlet, k0, q0)
+        p = parts[k0]
+        out_ports = ([1, 2] if q0 == 0 else [0, 2]) if p.kind == "tee" else [2, 1]
+        for o, r in zip(outs, out_ports):
+            n = p.nodes[r]
+            nxt = [(j, s) for j, s in nodes[n] if j != k0]
+            run_from(o, *nxt[0], n) if nxt else end_of(o, n)
+    else:
+        run_from(asm.inlet, k0, q0, n0)
+    if state["tail"] is not None:
+        asm._tail = state["tail"]
+    return asm
+
+
+def _place_chain(asm, iface, chain, end_dir, spec, kinks, tol, report,
+                 coord_scale):
+    """Place a run of two-port components (oriented, with labels) from
+    *iface*; return the last interface.  *end_dir* is the direction of the
+    junction that follows, if any (a spline's end tangent)."""
+    from ...assembly import AssemblyError, Bend, Reducer, SplinePipe, Straight
+    from ...assembly.fittings import _with_radii
+
+    comps = [c for c, _ in chain]
+    labels = {id(c): l for c, l in chain if l is not None}
     comps = _absorb_joints(comps, report)
     if not comps:
-        raise ValueError("NetworkSpec has only joints.")
-    spec_for = spec if callable(spec) else None
-    first = comps[0]
-    current = spec_for(first.bore) if spec_for else spec
-    # Layer counts come from the assembly's axial cell (n_layers=None,
-    # decision 0024): ceil(centreline length / cell).
-    d0 = _start_direction(first)
-    asm = Assembly(current, position=first.start, direction=d0,
-                   up=_perpendicular(d0), lc=lc,
-                   axial_cell=axial_cell or outer_radius(current))
+        return iface
 
     def label(k):
         c = comps[k]
-        return f"component {k} ({c.record_type or c.kind} at {np.round(c.start, 4)})"
+        return _describe(c, labels.get(id(c), c.kind))
 
-    def check(k, frame, end, direction=None):
+    def check(k, frame, end):
         if np.linalg.norm(frame.position - end) > tol:
             raise AssemblyError(
                 f"{label(k)}: placed outlet {np.round(frame.position, 6)} misses its "
                 f"end point {np.round(end, 6)} by {np.linalg.norm(frame.position - end):.3g} m"
             )
-        if direction is not None and np.linalg.norm(frame.normal - direction) > tol:
-            raise AssemblyError(f"{label(k)}: outlet direction does not match")
 
     def along(frame, end):
         """(axial length, lateral offset) of *end* from the outlet *frame*."""
@@ -607,7 +1188,8 @@ def _build_assembly(net: NetworkSpec, spec, axial_cell, kinks, tol, lc):
     k = 0
     while k < len(comps):
         c = comps[k]
-        frame = asm.interfaces[-1].frame
+        frame = iface.frame
+        lab = labels.get(id(c))
         if np.linalg.norm(c.start - frame.position) > tol:
             raise AssemblyError(
                 f"{label(k)}: starts {np.linalg.norm(c.start - frame.position):.3g} m "
@@ -630,16 +1212,18 @@ def _build_assembly(net: NetworkSpec, spec, axial_cell, kinks, tol, lc):
                     j += 1
                 pts = [frame.position] + [comps[i].end for i in range(k, j + 1)]
                 nxt = comps[j + 1] if j + 1 < len(comps) else None
-                end_t = None if nxt is None else tuple(_start_direction(nxt))
-                out = asm.add(SplinePipe(tuple(map(tuple, pts)), end_tangent=end_t))
-                check(j, out.frame, comps[j].end)
+                end_t = (tuple(_start_direction(nxt)) if nxt is not None
+                         else None if end_dir is None else tuple(end_dir))
+                iface = asm.add(iface, SplinePipe(tuple(map(tuple, pts)), end_tangent=end_t),
+                                label=lab)
+                check(j, iface.frame, comps[j].end)
                 k = j + 1
                 continue
             # from the placed outlet to the PCF end point: gaps never accumulate
             ax, lat = along(frame, c.end)
             report["max_offset"] = max(report["max_offset"], lat)
-            out = asm.add(Straight(ax))
-            check(k, out.frame, c.end)
+            iface = asm.add(iface, Straight(ax), label=lab)
+            check(k, iface.frame, c.end)
         elif c.kind == "elbow":
             try:
                 g = _elbow_params(c)
@@ -651,32 +1235,32 @@ def _build_assembly(net: NetworkSpec, spec, axial_cell, kinks, tol, lc):
                 raise AssemblyError(
                     f"{label(k)}: elbow's incoming leg (start → CENTRE-POINT) is not "
                     f"along the incoming pipe")
-            _cross_check_elbow(c, g, net.coord_scale, label(k))
+            _cross_check_elbow(c, g, coord_scale, label(k))
             roll = math.degrees(math.atan2(np.dot(g.turn, frame.right),
                                            np.dot(g.turn, frame.up)))
-            out = asm.add(Bend(g.radius, g.angle, roll=roll))
-            check(k, out.frame, c.end)
+            iface = asm.add(iface, Bend(g.radius, g.angle, roll=roll), label=lab)
+            check(k, iface.frame, c.end)
         elif c.kind == "reducer":
             if c.record_type == "REDUCER-ECCENTRIC":
                 raise AssemblyError(f"{label(k)}: eccentric reducers are not supported")
             if not c.end_bore or not c.bore:
                 raise AssemblyError(f"{label(k)}: reducer needs both bores")
-            if spec_for:
-                outlet = spec_for(c.end_bore)
+            if callable(spec):
+                outlet = spec(c.end_bore)
             else:
-                cur = asm.interfaces[-1].spec
+                cur = iface.spec
                 radii = [cur.core_shape.radius * c.end_bore / c.bore] + [sh.dR for sh in cur.shells]
                 outlet = _with_radii(cur, radii)
             if not straight_on(k, frame):
                 raise AssemblyError(f"{label(k)}: reducer axis is not the incoming direction")
             ax, lat = along(frame, c.end)
             report["max_offset"] = max(report["max_offset"], lat)
-            out = asm.add(Reducer(outlet, ax))
-            check(k, out.frame, c.end)
+            iface = asm.add(iface, Reducer(outlet, ax), label=lab)
+            check(k, iface.frame, c.end)
         else:
             raise AssemblyError(f"{label(k)}: unsupported kind {c.kind!r}")
         k += 1
-    return asm
+    return iface
 
 
 # Cross-check tolerances: ANGLE is given in hundredths of a degree; radii

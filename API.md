@@ -579,7 +579,8 @@ The manifest, `<stem>.roles.json`, looks like this:
 ### `pcf.read_pcf(path, unit_scale=None, ignore_types=None, joint_max=1.6e-3) -> NetworkSpec`
 
 Parses an Isogen PCF file, following the *PCF Reference Guide*
-(`docs/integrations/pcf.md`).
+(`docs/integrations/pcf.md`).  `path` may be a list of files, read into
+one network: components in list order, each file with its own units.
 
 - **Header and units.**  Header keywords go to `NetworkSpec.header`.
   - Coordinates scale from `UNITS-CO-ORDS` (`MM`, `MM-HUNDREDTHS`, `INCH`).
@@ -597,10 +598,15 @@ Parses an Isogen PCF file, following the *PCF Reference Guide*
 - **Joints.**  `GAP`, and `WELD`, `COUPLING` or `GASKET` no longer than
   `joint_max` (just above the 1/16" weld gap), become `kind="joint"`.
   Longer ones are fittings.
-- Unsupported types such as `TEE` are listed in `NetworkSpec.skipped`, with
-  one warning each.
+- **Junctions.**  `TEE` (`kind="tee"`; the branch may also be a third
+  `END-POINT`), `TEE-SET-ON` / `TEE-STUB` / `OLET` (`"seton"`) and
+  `Y-PIECE-FABRICATED` (`"ypiece"`) are read with `branch`, `branch2`,
+  their bores and `skey`.  Crosses and `Y-PIECE-FITTING` are read as
+  `"junction?"` and rejected by `to_assembly`.
+- Other unsupported types are listed in `NetworkSpec.skipped`, with one
+  warning each.
 
-### `NetworkSpec.to_assembly(spec, *, axial_cell=None, kinks="error", tol=None, lc=None) -> Assembly`
+### `NetworkSpec.to_assembly(spec, *, axial_cell=None, kinks="error", tol=None, lc=None, inlet=None) -> Assembly`
 
 **Mapping**
 
@@ -610,6 +616,10 @@ Parses an Isogen PCF file, following the *PCF Reference Guide*
 | elbow, bend | `Bend`.  `CENTRE-POINT` is the corner where the tangent legs meet: θ = 180° − ∠(start − C, end − C), R = \|start − C\| / tan(θ/2).  Checked against `ANGLE` (hundredths of a degree) and `BEND-RADIUS` (`nD` × nominal size, or absolute) when present |
 | concentric reducer | `Reducer` |
 | eccentric reducer | rejected |
+| `TEE` | `Tee`: run from the two `END-POINT`s, branch `CENTRE-POINT` → `BRANCH1-POINT`, its radius from the branch bore (`spec(bore)`, or the main radius × bore ratio) |
+| `TEE-SET-ON`, `TEE-STUB`, `OLET` | the host `PIPE` through `CENTRE-POINT` is split: straight + `Tee` + straight.  The tee's run is the branch's nominal bore on each side of `CENTRE-POINT`; a host too short for it is rejected |
+| `Y-PIECE-FABRICATED` | its stem `PIPE` (ending at `CENTRE-POINT`) is cut back by the `Wye`'s inlet run, r·(tan h + 0.6) with r the nominal radius, h half the angle; then `Wye`, `BRANCH1-POINT` as the right daughter |
+| rejected, naming the component and the limit | crosses, `Y-PIECE-FITTING`, tangential / offset set-ons (`TTSO`, `TTRF`, `TOSO`, `TORF`), equal tees, branches not perpendicular, asymmetric or non-coplanar Y pieces, daughters of another size, layered specs (the junction prototypes' limits) |
 | joint | absorbed: the preceding straight run is extended over it, or else the following one starts at it; dropped at an open end next to a non-straight fitting; rejected between two non-straight fittings |
 
 **Parameters**
@@ -620,8 +630,29 @@ Parses an Isogen PCF file, following the *PCF Reference Guide*
 | `axial_cell` | target axial cell length; defaults to the outer radius. Passed to the `Assembly` (`Assembly(axial_cell=…)`), which sets every component's `n_layers` from it |
 | `kinks` | `"error"` raises on pipes that change direction without a fitting; `"spline"` joins such runs into one `SplinePipe` (bathymetry routes) |
 | `tol` | position tolerance in metres.  Default: 1e-4 × the model diagonal, at least 0.11" (2.79 mm), just above the weld gap |
+| `inlet` | the root: an open end's name or a point (metres).  Default below |
 
-Every component is checked against its PCF end points, and a mismatch raises
+**Graph, root and names**
+
+Components join where their end points meet within `tol`, across
+pipelines and files (`END-CONNECTION-PIPELINE` is informational).  The
+network must be one tree: three components at one point, a loop or a
+disconnected part raises `AssemblyError` naming a component.  Joints are
+absorbed on the run they sit on.
+
+Every junction must be entered through its inlet (a tee's run end, a Y
+piece's stem).  The default root is the first open end in file order from
+which that holds, trying first the ends a `FLOW` attribute marks as
+upstream; if none qualifies, the error names a junction.  The root's `up`
+is rolled so the first junction's branch lands on a multiple of 90°.
+
+Fittings are labelled `<TYPE>_<n>` (`n` counts that PCF type in file
+order, e.g. `TEE_SET_ON_1`), or `<TYPE>_<COMPONENT-IDENTIFIER>`.  A split
+host keeps its label with `_1` / `_2`.  Open ends are named
+`<pipeline>_end<k>` (`k` in file order).  The same files give the same
+`to_dict()`.
+
+Every component is checked against its PCF end points (and branch points), and a mismatch raises
 `AssemblyError` naming the component.  Lateral offsets within `tol` are
 accepted, a documented deviation: exporters offset components by up to the
 weld gap.  `NetworkSpec.report` records the tolerance, the joints absorbed or

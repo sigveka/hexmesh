@@ -13,6 +13,7 @@ import gmsh
 import numpy as np
 import pytest
 
+from hexmesh import Session
 from hexmesh.assembly import AssemblyError
 from hexmesh.core.shape import CircleShape
 from hexmesh.core.spec import PipeSpec
@@ -395,18 +396,52 @@ ITEM-CODE 2
 """
 
 
-def _read_with_one_skip(tmp_path, text, name="spool.pcf"):
+SPOOL_NO_SETON = SPOOL.replace("""TEE-SET-ON
+    CENTRE-POINT 0 46.0625 70
+    BRANCH1-POINT 3 46.0625 70 1 PL
+    SKEY TESO
+""", "")
+
+
+def test_spool_set_on_meshes_on_single_layer_spec(tmp_path):
+    """The demo spool's set-on (task 0037): its host pipe is split, the gap
+    couplings are still absorbed, and the branch lands on BRANCH1-POINT."""
+    from hexmesh.assembly import Tee
+    net = _read_spool(tmp_path, SPOOL)
+    single = PipeSpec(nang=4).core("fluid", CircleShape(radius=0.05, nang=4), nrad=3)
+    asm = net.to_assembly(single)
+    tee, = [e for e in asm.edges if isinstance(e.fitting, Tee)]
+    assert tee.fitting.run_length == pytest.approx(1 * INCH)     # the branch bore
+    np.testing.assert_allclose(tee.ports[2].frame.position,
+                               np.array([3, 46.0625, 70]) * INCH, atol=1e-9)
+    assert [a for _, a in net.report["joints"]] == ["absorbed"] * 4
+    predicted = asm.cell_count()
+    with Session("spool"):
+        asm.mesh()
+        assert sum(len(t) for t in gmsh.model.mesh.getElements(3)[1]) == predicted
+
+
+def test_spool_set_on_rejected_on_layered_spec(tmp_path):
+    net = _read_spool(tmp_path, SPOOL)
+    with pytest.raises(AssemblyError, match=r"component 7 \(TEE-SET-ON .*SKEY TESO"
+                                            r".*single-layer"):
+        net.to_assembly(_spec(0.05))
+
+
+def _read_spool(tmp_path, text, name="spool.pcf"):
+    """The set-on tee is read (task 0037): no warnings."""
     path = tmp_path / name
     path.write_text(text)
-    with pytest.warns(UserWarning, match="TEE-SET-ON") as rec:
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
         net = read_pcf(path)
-    assert len(rec) == 1                                   # only the set-on tee
+    assert net.skipped == []
     return net
 
 
 def test_spool_with_gap_couplings(tmp_path, gmsh_session):
     from hexmesh.assembly import Straight
-    net = _read_with_one_skip(tmp_path, SPOOL)
+    net = _read_spool(tmp_path, SPOOL_NO_SETON)
     asm = net.to_assembly(_spec(0.05))
     bend = _bend(asm)
     assert bend.radius == pytest.approx(6 * INCH) and bend.angle == pytest.approx(90)
@@ -472,7 +507,7 @@ def test_lateral_offset_within_tolerance_is_absorbed(tmp_path):
 def test_joint_between_two_elbows_rejected(tmp_path):
     """The coupling after the elbow is followed by a second elbow: no straight
     run on either side to absorb it."""
-    text = SPOOL.replace("""PIPE
+    text = SPOOL_NO_SETON.replace("""PIPE
     END-POINT 0 46.0625 56.0625 4 PL
     END-POINT 0 46.0625 90 4 PL
 """, """ELBOW
@@ -480,6 +515,7 @@ def test_joint_between_two_elbows_rejected(tmp_path):
     END-POINT 0 52.0625 62.0625 4 PL
     CENTRE-POINT 0 46.0625 62.0625
 """)
-    net = _read_with_one_skip(tmp_path, text)
+    text = text[:text.index("COUPLING\n    END-POINT 0 46.0625 90 ")] + "MATERIALS\n"
+    net = _read_spool(tmp_path, text)
     with pytest.raises(AssemblyError, match="COUPLING .* between two non-straight fittings"):
         net.to_assembly(_spec(0.05))

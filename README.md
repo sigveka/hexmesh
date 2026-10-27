@@ -424,6 +424,9 @@ from hexmesh.io.readers.pcf import read_pcf
 
 net = read_pcf("line.pcf")                       # Isogen PCF; units from its header
 asm = net.to_assembly(pipe)                      # or pipe=lambda bore: PipeSpec(...)
+
+net = read_pcf(["unit-a.pcf", "unit-b.pcf"])     # several files, one network
+asm = net.to_assembly(pipe, inlet="A_100_end1")  # an open end by name or point
 ```
 
 The reader follows the PCF reference guide.  Units come from
@@ -435,8 +438,20 @@ metres (4" → 0.1016 m), not an inside diameter.
 - elbows and bends become `Bend`, from their corner point, checked against
   `ANGLE` and `BEND-RADIUS`;
 - concentric reducers become `Reducer`;
+- `TEE` becomes `Tee`; a set-on, stub-in or olet splits its host pipe
+  around a `Tee`; a fabricated Y piece becomes `Wye`;
 - welds, couplings and gaskets up to 1/16" long are absorbed into the
   neighbouring straight runs instead of being meshed as slivers.
+
+Branched files are read as a tree, joined by end points across pipelines
+and files.  The root is the first open end (preferring a `FLOW`
+upstream end) from which every junction is entered through its inlet.
+Fittings are labelled from the file (`TEE_1`, `OLET_2`, or the
+component's `COMPONENT-IDENTIFIER`) and open ends from the pipeline
+(`A_100_end3`), so wall and port patches can be traced back to the
+isometric.  Junctions the fittings can't build (crosses, equal, angled,
+offset or tangential tees, asymmetric Y pieces) are rejected naming the
+component.
 
 It checks every component against its PCF end points and raises
 `AssemblyError` naming the component on any gap; nothing is snapped.  The

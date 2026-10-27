@@ -75,8 +75,21 @@ Intent layer (`NetworkSpec.to_assembly()` → `Assembly`).
   (TTSO/TTRF) and offset (TOSO/TORF)**.  These map to RESEARCH §3.1's
   offset h and angle α.
 - `Y-PIECE-FABRICATED` (SKEY TYSO): Y-tee, with `BRANCH1-POINT` and
-  `BRANCH2-POINT`.
+  `BRANCH2-POINT`.  Its mandatory keypoints are `CENTRE-POINT` and the two
+  branch points (with sizes): **no END-POINTs**, so the stem joins it at
+  `CENTRE-POINT` (checked 2026-10-27).
 - `CROSS`, `CROSS-SET-ON`: `BRANCH1-POINT` and `BRANCH2-POINT`.
+
+**Flow direction and identifiers** (checked 2026-10-27, task 0037).
+- `FLOW` is a per-component attribute: `1` = from end 1 to end 2, `2` =
+  from end 2 to end 1, `3` = bidirectional.  The reader prefers an open
+  end that a `FLOW` marks as upstream when it picks the default root.
+- `COMPONENT-IDENTIFIER` (a string) distinguishes an item uniquely within
+  the PCF; `MASTER-COMPONENT-IDENTIFIER` points a child (gasket, bolt) at
+  its parent.  `UNIQUE-COMPONENT-IDENTIFIER` carries the 3D system's
+  database id.  The reader labels a fitting
+  `<TYPE>_<COMPONENT-IDENTIFIER>` when present (sanitised to
+  `[A-Za-z0-9_]`).
 
 **Reducers.**  `REDUCER-CONCENTRIC`, and `REDUCER-ECCENTRIC` with
 `FLAT-DIRECTION`.
@@ -116,8 +129,8 @@ guide's BEND example with a full header (`PIPE` → `BEND` → `PIPE`,
 | 3 | Header ignored; `unit_scale=1e-3` assumed | `UNITS-CO-ORDS` decides | `INCH` or `MM-HUNDREDTHS` files are silently mis-scaled **Fixed 2026-10-26 (task 0021).** |
 | 4 | Every column-1 line is treated as a component | Header, `PIPELINE-REFERENCE`, `END-CONNECTION-*`, `MATERIALS` and `MATERIAL-IDENTIFIER` are column-1 non-components | 9 spurious "unsupported component" warnings on a minimal valid file **Fixed 2026-10-26 (task 0021).** |
 | 5 | `ANGLE`, `BEND-RADIUS` ignored | Present on bends | No cross-check of geometry **Fixed 2026-10-26 (task 0021).** |
-| 6 | One greedy chain (`_sort_by_connectivity`); disconnected parts appended | Several pipelines and branches per file | Branched files mis-ordered |
-| 7 | `TEE`, `OLET`, `TEE-SET-ON`, `CROSS`, `Y-PIECE-FABRICATED` skipped | Defined (above) | Junctions dropped, although the assembly now has `Tee` |
+| 6 | One greedy chain (`_sort_by_connectivity`); disconnected parts appended | Several pipelines and branches per file | Branched files mis-ordered **Fixed 2026-10-27 (task 0037):** a graph of end points across pipelines and files; a disconnected part, a loop or three components at one point is an error naming a component. |
+| 7 | `TEE`, `OLET`, `TEE-SET-ON`, `CROSS`, `Y-PIECE-FABRICATED` skipped | Defined (above) | Junctions dropped, although the assembly now has `Tee` **Fixed 2026-10-27 (task 0037):** `TEE` → `Tee` (also with the branch as a third `END-POINT`); `TEE-SET-ON` / `TEE-STUB` / `OLET` → host pipe split into straight + `Tee` + straight; `Y-PIECE-FABRICATED` → `Wye`.  **Rejected by design**, naming the component: crosses, `Y-PIECE-FITTING`, tangential and offset SKEYs, equal or angled tees, asymmetric Y pieces, layered specs (prototype limits). |
 | 8 | Insulation, equipment, nozzles ignored | Defined (above) | Lost information that decisions 0002 and 0006 can use |
 
 **Rows 1–5, 9 and 10 fixed 2026-10-26 (task 0021).**  Rows 1–5 were bugs against the spec, and rows 9–10 (below) are robustness
