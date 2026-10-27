@@ -25,7 +25,7 @@ from ..core.shape import BlendShape, CircleShape, RectShape
 from ..core.spec import PipeSpec
 from .interface import Frame, half_extent, outer_radius, roll_mismatch, rotate, toward_roll
 from .profile import CHORD_TOL, Profile
-from .sweep import Arc, FillResult, Path, Sweep, _radii
+from .sweep import MAX_CHORD_TURN, Arc, FillResult, Path, Sweep, _check_n_layers, _radii
 
 __all__ = ["Straight", "Bend", "MiterBend", "Elbow", "Reducer", "Transition",
            "SplinePipe", "Closure", "FillResult"]
@@ -40,16 +40,18 @@ class _Toward:
     """``toward=``: an absolute direction to turn toward, resolved to
     ``roll`` from the inlet frame by :meth:`resolve` (decision 0024)."""
 
-    def resolve(self, inlet: Frame, spec: PipeSpec):
-        if self.toward is None:
-            return self
-        name = type(self).__name__
-        if self.roll != 0:
-            raise ValueError(f"{name}: give roll or toward, not both")
-        if self.angle < 0:
-            raise ValueError(f"{name}: toward needs a positive angle (a negative "
-                             f"angle turns away from it), got {self.angle!r}")
-        return replace(self, roll=toward_roll(inlet, self.toward), toward=None)
+    def resolve(self, inlet: Frame, spec: PipeSpec, axial_cell: float | None = None,
+                outlet: Frame | None = None):
+        fitting = self
+        if self.toward is not None:
+            name = type(self).__name__
+            if self.roll != 0:
+                raise ValueError(f"{name}: give roll or toward, not both")
+            if self.angle < 0:
+                raise ValueError(f"{name}: toward needs a positive angle (a negative "
+                                 f"angle turns away from it), got {self.angle!r}")
+            fitting = replace(self, roll=toward_roll(inlet, self.toward), toward=None)
+        return super(_Toward, fitting).resolve(inlet, spec, axial_cell, outlet)
 
     def check_resolved(self) -> None:
         if self.toward is not None:
@@ -78,7 +80,7 @@ class Straight(Sweep):
     strategies = frozenset({0, 1})   # switch classes it bridges (DESIGN A4)
 
     length:   float
-    n_layers: int
+    n_layers: int | None = None
     axial_grading: float = 1.0
     stack_changes: tuple = ()
 
@@ -148,11 +150,18 @@ class Bend(_Toward, Sweep):
 
     radius:   float
     angle:    float
-    n_layers: int
+    n_layers: int | None = None
     roll:     float = 0.0
     axial_grading: float = 1.0
     stack_changes: tuple = ()
     toward:   tuple | None = _input_field()
+
+    def centreline_length(self, inlet, spec, outlet=None) -> float:
+        return self.radius * math.radians(abs(self.angle))
+
+    def layers_ok(self, n, inlet, spec, outlet=None) -> bool:
+        # a slab turning 180° has antiparallel faces (corners.frame_offset)
+        return abs(self.angle) / n < 180.0 - 1e-9
 
     def _axis_centre(self, inlet: Frame) -> tuple[np.ndarray, np.ndarray]:
         phi = math.radians(self.roll)
@@ -244,9 +253,13 @@ class MiterBend(_Toward, Sweep):
     radius:   float
     angle:    float
     n_cuts:   int = 1
-    n_layers: int = 2
+    n_layers: int | None = 2
     roll:     float = 0.0
     toward:   tuple | None = _input_field()
+
+    def centreline_length(self, inlet, spec, outlet=None) -> float:
+        # n_layers counts the cells of one end leg (inner segments get 2×)
+        return self.radius * math.tan(math.radians(abs(self.cut_angle)) / 2)
 
     @property
     def _arc(self) -> Bend:
@@ -347,12 +360,18 @@ class Elbow(_Toward, Sweep):
 
     angle:    float = 90.0
     schedule: str = "long"
-    n_layers: int = 8
+    n_layers: int | None = 8
     roll:     float = 0.0
     axial_grading: float = 1.0
     toward:   tuple | None = _input_field()
 
     FACTORS = {"long": 1.5, "short": 1.0}
+
+    def centreline_length(self, inlet, spec, outlet=None) -> float:
+        return self.radius(spec) * math.radians(abs(self.angle))
+
+    def layers_ok(self, n, inlet, spec, outlet=None) -> bool:
+        return self.bend(spec).layers_ok(n, inlet, spec)
 
     def radius(self, spec: PipeSpec) -> float:
         return self.FACTORS[self.schedule] * 2 * outer_radius(spec)
@@ -434,10 +453,16 @@ class Reducer(Sweep):
 
     outlet:   PipeSpec
     length:   float
-    n_layers: int
+    n_layers: int | None = None
     axial_grading: float = 1.0
     profile:  tuple | None = None
     chord_tol: float = CHORD_TOL
+
+    def layers_ok(self, n, inlet, spec, outlet=None) -> bool:
+        if self.profile is None:
+            return True
+        prof = self._profile(spec)
+        return prof.chord_gaps(prof.stations(self.fractions(n))).max() <= self.chord_tol
 
     def ports(self, inlet: Frame, spec: PipeSpec) -> list[tuple[Frame, PipeSpec]]:
         out = Frame(inlet.position + self.length * inlet.normal,
@@ -537,7 +562,7 @@ class Transition(Sweep):
 
     outlet:   PipeSpec
     length:   float
-    n_layers: int
+    n_layers: int | None = None
     axial_grading: float = 1.0
 
     def ports(self, inlet: Frame, spec: PipeSpec) -> list[tuple[Frame, PipeSpec]]:
@@ -606,6 +631,17 @@ def _min_radius(curve) -> float:
         return 0.0
     kappa = np.linalg.norm(np.cross(d1, d2), axis=1) / speed**3
     return float(1.0 / kappa.max()) if kappa.max() > 0 else math.inf
+
+
+def _arc_length(curve) -> float:
+    pos, _, _ = curve(np.linspace(0.0, 1.0, _SAMPLES))
+    return float(np.linalg.norm(np.diff(pos, axis=0), axis=1).sum())
+
+
+def _max_turn(frames: list[Frame]) -> float:
+    """Largest normal turn between consecutive station frames, degrees."""
+    return max(math.degrees(math.acos(np.clip(np.dot(a.normal, b.normal), -1, 1)))
+               for a, b in zip(frames, frames[1:]))
 
 
 def _transported_stations(curve, n_layers: int, start: Frame,
@@ -735,7 +771,7 @@ class SplinePipe(Sweep):
     strategies = frozenset({0})   # switch classes it bridges (DESIGN A4)
 
     points:      tuple
-    n_layers:    int
+    n_layers:    int | None = None
     end_tangent: tuple | None = None
     axial_grading: float = 1.0
 
@@ -751,9 +787,18 @@ class SplinePipe(Sweep):
             d1 = np.asarray(self.end_tangent) / np.linalg.norm(self.end_tangent)
         return _cubic_spline(P, inlet.normal, d1)
 
-    def _check_points(self, inlet: Frame) -> None:
-        if self.n_layers < 1:
-            raise ValueError(f"n_layers must be >= 1, got {self.n_layers!r}")
+    def centreline_length(self, inlet, spec, outlet=None) -> float:
+        self._check_points(inlet, layers=False)
+        return _arc_length(self._curve(inlet))
+
+    def layers_ok(self, n, inlet, spec, outlet=None) -> bool:
+        frames, _ = _transported_stations(self._curve(inlet), n, inlet,
+                                          fractions=self.fractions(n))
+        return _max_turn(frames) <= MAX_CHORD_TURN
+
+    def _check_points(self, inlet: Frame, layers: bool = True) -> None:
+        if layers:
+            _check_n_layers(self.n_layers)
         if not self.axial_grading > 0:
             raise ValueError(f"axial_grading must be positive, got {self.axial_grading!r}")
         P = np.asarray(self.points)
@@ -817,11 +862,20 @@ class Closure(Sweep):
 
     strategies = frozenset({0})   # switch classes it bridges (DESIGN A4)
 
-    n_layers: int
+    n_layers: int | None = None
     tension:  float = 1.0
     axial_grading: float = 1.0
 
     places_outlet = False
+
+    def centreline_length(self, inlet, spec, outlet=None) -> float:
+        return _arc_length(self._curve(inlet, outlet))
+
+    def layers_ok(self, n, inlet, spec, outlet=None) -> bool:
+        frames, _ = _transported_stations(self._curve(inlet, outlet), n, inlet,
+                                          end=outlet, period=spec.period,
+                                          fractions=self.fractions(n))
+        return _max_turn(frames) <= MAX_CHORD_TURN
 
     def ports(self, inlet: Frame, spec: PipeSpec):
         raise TypeError("Closure joins two existing interfaces; use Assembly.close()")

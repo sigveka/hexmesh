@@ -241,7 +241,7 @@ so loops close modulo 180°.
 |---|---|---|
 | `nang` | cells per 90° arc (around the pipe) | `PipeSpec` |
 | `nrad` | cells across each layer | `.core()` / `.shell()` |
-| `n_layers` | cells along the axis, per fitting | each fitting |
+| `n_layers` | cells along the axis, per fitting | each fitting, or from `Assembly(axial_cell=…)` |
 
 The mesh is structured, so its size is known exactly before meshing. A
 cross-section has `nang² + 4·nang·Σnrad` cells, multiplied by each fitting's
@@ -251,6 +251,22 @@ axial layers:
 asm.validate(max_cells=2_000_000)   # raises AssemblyError over budget
 asm.cell_count()                    # total, without GMSH
 asm.cell_counts()                   # per fitting
+```
+
+**Axial cell size.** Instead of `n_layers` on every fitting, give the
+assembly a target axial cell length and leave `n_layers` out: each sweep
+fitting gets `ceil(L / axial_cell)` layers, `L` its centreline length, or
+more if it needs more to be valid (a spline's 30° turn per layer, a
+profiled reducer's chord tolerance, a bend's < 180° per layer). The
+resolved count is stored in the fitting and in the saved file. An
+explicit `n_layers` always wins; `Elbow` and `MiterBend` have defaults
+(8 and 2), so pass `n_layers=None` to them. `Tee` and `Wye` keep their own
+counts.
+
+```python
+asm = Assembly(pipe, direction=[1, 0, 0], up=[0, 0, 1], axial_cell=0.05)
+asm.add(Straight(0.5))                         # 10 layers
+asm.add(Bend(radius=0.3, angle=90))            # 0.471 / 0.05 → 10 layers
 ```
 
 **Axial grading.** `axial_grading` is the ratio of consecutive axial cell

@@ -25,7 +25,7 @@ GMSH output to errors.
 
 ## Assembly
 
-### `Assembly(spec, position=None, direction=None, up=None, lc=None, inlet_name="inlet")`
+### `Assembly(spec, position=None, direction=None, up=None, lc=None, inlet_name="inlet", axial_cell=None)`
 
 An interface-first pipe network ([DESIGN.md](DESIGN.md) §5).
 
@@ -35,6 +35,7 @@ An interface-first pipe network ([DESIGN.md](DESIGN.md) §5).
 | `position`, `direction`, `up` | inlet pose; defaults are the origin, +x and +z. `up` fixes the roll of the cross-section and is made orthogonal to `direction` |
 | `lc` | GMSH characteristic length; defaults to outer radius / 4 (it doesn't affect the structured mesh) |
 | `inlet_name` | patch name of the inlet |
+| `axial_cell` | target axial cell length. A sweep fitting added with `n_layers=None` (`Straight`, `Bend`, `Elbow`, `MiterBend`, `Reducer`, `Transition`, `SplinePipe`, `Closure`) gets `ceil(L / axial_cell)` layers, `L` its centreline length (for `MiterBend`, one end leg, since `n_layers` counts those), or the fewest above that which pass its own checks: a bend's turn below 180° per layer, a spline's or closure's 30° per layer, a profiled reducer's `chord_tol`. Resolved in `add()` (in `close()` for `Closure`) and stored in the fitting, so `to_dict()`, `cell_count()` and `refined(k)` see an ordinary count. `n_layers=None` without `axial_cell` is an `AssemblyError` naming the fitting, and so are `stack_changes` with `n_layers=None` (their indices need the count). Saved in the file; `refined(k)` divides it by k |
 
 **Building the graph (pure Python, no GMSH)**
 
@@ -95,7 +96,7 @@ The file records how the network was built, not its geometry:
 - every `add`, `close` and `prepend` in order, each with its fitting's
   type and fields, and the index of the interface it starts from
   (`source`) or joins (`close: [source, target]`), or `prepend: true`;
-- the interface names, the tail and `lc`.
+- the interface names, the tail, `lc` and `axial_cell`.
 
 Replaying it recreates the interfaces in the same order, so interface
 indices are stable, and editing a fitting in the file moves everything
@@ -326,11 +327,11 @@ fitting, the field and the class, for example:
 > density switch (decision 0003); Reducer bridges grading-only class-2
 > pairs (radial mprg) only
 
-### `Straight(length, n_layers, axial_grading=1.0)`
+### `Straight(length, n_layers=None, axial_grading=1.0)`
 
 A straight run with `n_layers` axial cells.
 
-### `Bend(radius, angle, n_layers, roll=0.0, axial_grading=1.0, toward=None)`
+### `Bend(radius, angle, n_layers=None, roll=0.0, axial_grading=1.0, toward=None)`
 
 A circular-arc bend with centreline `radius` and `angle` in (0°, 360°). It
 places one station per axial layer, joined by exact arcs. `roll` rotates the
@@ -364,7 +365,7 @@ A segmented bend: straight pieces joined at `n_cuts` planar cuts.
 - **Measured quality.** min SICN equals the straight-pipe value up to a 60°
   cut, and is about 0.18 at a single 90° cut.
 
-### `Reducer(outlet, length, n_layers, axial_grading=1.0, profile=None, chord_tol=1e-3)`
+### `Reducer(outlet, length, n_layers=None, axial_grading=1.0, profile=None, chord_tol=1e-3)`
 
 A concentric cone from the inlet spec to `outlet`; a larger outlet makes it an
 expander. **It may change radii and radial grading** (`mprg` per layer). The
@@ -410,7 +411,7 @@ tolerance.  Each layer adds a full cross-section of cells, so a fine
 profile is cheap compared with refining `nang` (doubling `nang` and `nrad`
 quadruples the cells per layer).
 
-### `Transition(outlet, length, n_layers, axial_grading=1.0)`
+### `Transition(outlet, length, n_layers=None, axial_grading=1.0)`
 
 A straight transition between a circle and a rectangle (either way), or
 between two rectangles of different size or aspect (decision 0009, task
@@ -428,7 +429,7 @@ between two rectangles of different size or aspect (decision 0009, task
 - **Corners.** Corner k meets corner k: a circle's corners at 45° + k·90°
   go to the rectangle's corners, with no twist.
 
-### `SplinePipe(points, n_layers, end_tangent=None, axial_grading=1.0)`
+### `SplinePipe(points, n_layers=None, end_tangent=None, axial_grading=1.0)`
 
 A pipe along a cubic spline through `points`, parametrised by chord length.
 
@@ -487,7 +488,7 @@ decision 0017).
   back corners. Junction wall nodes are up to about 20 % of R off the
   intended surface, and the crotch is rounded. The numbers are in task 0030.
 
-### `Closure(n_layers, tension=1.0, axial_grading=1.0)`
+### `Closure(n_layers=None, tension=1.0, axial_grading=1.0)`
 
 For `close()` only. It runs a cubic Hermite centreline between two existing
 interfaces, leaving and arriving along their normals. The roll mismatch is
@@ -616,7 +617,7 @@ Parses an Isogen PCF file, following the *PCF Reference Guide*
 | Parameter | Meaning |
 |---|---|
 | `spec` | a `PipeSpec`, or a callable `bore → PipeSpec` (nominal size in metres). With a single spec, a reducer outlet scales the core radius by the bore ratio |
-| `axial_cell` | target axial cell length; defaults to the outer radius |
+| `axial_cell` | target axial cell length; defaults to the outer radius. Passed to the `Assembly` (`Assembly(axial_cell=…)`), which sets every component's `n_layers` from it |
 | `kinks` | `"error"` raises on pipes that change direction without a fitting; `"spline"` joins such runs into one `SplinePipe` (bathymetry routes) |
 | `tol` | position tolerance in metres.  Default: 1e-4 × the model diagonal, at least 0.11" (2.79 mm), just above the weld gap |
 

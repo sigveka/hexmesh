@@ -11,7 +11,7 @@ optionally the spec at each station.  ``Sweep`` provides ``validate`` and
 from __future__ import annotations
 import copy
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 import numpy as np
 import gmsh
@@ -254,6 +254,17 @@ class Path:
 # Largest normal turn per slab when axial curves are straight chords.
 MAX_CHORD_TURN = 30.0   # degrees
 
+# Search limit when resolving n_layers=None from an axial cell size.
+MAX_RESOLVED_LAYERS = 100_000
+
+
+def _check_n_layers(n) -> None:
+    if n is None:
+        raise ValueError("n_layers=None is resolved by Assembly.add() with "
+                         "Assembly(axial_cell=...)")
+    if n < 1:
+        raise ValueError(f"n_layers must be >= 1, got {n!r}")
+
 
 def _ruled(loop: int) -> int:
     """Ruled side face of a straight or prism slab.
@@ -388,10 +399,41 @@ class Sweep:
     axial_grading = 1.0     # fittings that support grading declare a field
     port_names = ("outlet",)
 
-    def resolve(self, inlet: Frame, spec: PipeSpec):
+    def resolve(self, inlet: Frame, spec: PipeSpec, axial_cell: float | None = None,
+                outlet: Frame | None = None):
         """This fitting with its input-only fields resolved from the inlet
-        it is added at (``Assembly.add``; decision 0024)."""
-        return self
+        it is added at (``Assembly.add``; decision 0024).
+
+        ``n_layers=None`` becomes the smallest count, at least
+        ``ceil(L / axial_cell)`` with ``L`` the centreline length, that
+        passes the fitting's own layer checks (:meth:`layers_ok`).
+        *outlet* is the target frame of a fitting that joins two existing
+        interfaces (``Closure``).
+        """
+        if self.n_layers is not None:
+            return self
+        if axial_cell is None:
+            raise ValueError("n_layers=None needs Assembly(axial_cell=...)")
+        if self.stack_changes:
+            raise ValueError("stack_changes indices need an explicit n_layers")
+        L = self.centreline_length(inlet, spec, outlet)
+        n = max(1, math.ceil(L / axial_cell - 1e-9))
+        while not self.layers_ok(n, inlet, spec, outlet):
+            n += 1
+            if n > MAX_RESOLVED_LAYERS:
+                raise ValueError(f"no layer count up to {MAX_RESOLVED_LAYERS} passes")
+        return replace(self, n_layers=n)
+
+    def centreline_length(self, inlet: Frame, spec: PipeSpec,
+                          outlet: Frame | None = None) -> float:
+        """Length that ``n_layers`` divides, for ``axial_cell``."""
+        return self.length
+
+    def layers_ok(self, n: int, inlet: Frame, spec: PipeSpec,
+                  outlet: Frame | None = None) -> bool:
+        """Whether *n* axial layers pass this fitting's layer checks
+        (the validation floor of ``n_layers=None``)."""
+        return True
 
     def path(self, a: Frame, b: Frame, spec: PipeSpec) -> Path:
         raise NotImplementedError
@@ -401,8 +443,7 @@ class Sweep:
         return station_fractions(n, self.axial_grading)
 
     def check(self, spec: PipeSpec) -> None:
-        if self.n_layers < 1:
-            raise ValueError(f"n_layers must be >= 1, got {self.n_layers!r}")
+        _check_n_layers(self.n_layers)
         if not self.axial_grading > 0:
             raise ValueError(f"axial_grading must be positive, got {self.axial_grading!r}")
         if self.stack_changes:

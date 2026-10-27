@@ -170,7 +170,7 @@ class Wye:
     roll:     float = 0.0
     toward:   tuple | None = field(default=None, metadata={"input": True})
 
-    def resolve(self, inlet: Frame, spec: PipeSpec) -> "Wye":
+    def resolve(self, inlet: Frame, spec: PipeSpec, axial_cell=None, outlet=None) -> "Wye":
         # toward names the right daughter's side: the rolled frame's right,
         # 90° from its up.
         return junction_toward(self, inlet, spec, offset=90.0)

@@ -574,14 +574,12 @@ def _build_assembly(net: NetworkSpec, spec, axial_cell, kinks, tol, lc):
     spec_for = spec if callable(spec) else None
     first = comps[0]
     current = spec_for(first.bore) if spec_for else spec
-    cell = axial_cell or outer_radius(current)
-
-    def layers(length: float) -> int:
-        return max(1, math.ceil(length / cell - 1e-9))
-
+    # Layer counts come from the assembly's axial cell (n_layers=None,
+    # decision 0024): ceil(centreline length / cell).
     d0 = _start_direction(first)
     asm = Assembly(current, position=first.start, direction=d0,
-                   up=_perpendicular(d0), lc=lc)
+                   up=_perpendicular(d0), lc=lc,
+                   axial_cell=axial_cell or outer_radius(current))
 
     def label(k):
         c = comps[k]
@@ -633,17 +631,14 @@ def _build_assembly(net: NetworkSpec, spec, axial_cell, kinks, tol, lc):
                 pts = [frame.position] + [comps[i].end for i in range(k, j + 1)]
                 nxt = comps[j + 1] if j + 1 < len(comps) else None
                 end_t = None if nxt is None else tuple(_start_direction(nxt))
-                run = sum(float(np.linalg.norm(comps[i].end - comps[i].start))
-                          for i in range(k, j + 1))
-                out = asm.add(SplinePipe(tuple(map(tuple, pts)), layers(run),
-                                         end_tangent=end_t))
+                out = asm.add(SplinePipe(tuple(map(tuple, pts)), end_tangent=end_t))
                 check(j, out.frame, comps[j].end)
                 k = j + 1
                 continue
             # from the placed outlet to the PCF end point: gaps never accumulate
             ax, lat = along(frame, c.end)
             report["max_offset"] = max(report["max_offset"], lat)
-            out = asm.add(Straight(ax, layers(ax)))
+            out = asm.add(Straight(ax))
             check(k, out.frame, c.end)
         elif c.kind == "elbow":
             try:
@@ -659,8 +654,7 @@ def _build_assembly(net: NetworkSpec, spec, axial_cell, kinks, tol, lc):
             _cross_check_elbow(c, g, net.coord_scale, label(k))
             roll = math.degrees(math.atan2(np.dot(g.turn, frame.right),
                                            np.dot(g.turn, frame.up)))
-            out = asm.add(Bend(g.radius, g.angle,
-                               layers(g.radius * math.radians(g.angle)), roll))
+            out = asm.add(Bend(g.radius, g.angle, roll=roll))
             check(k, out.frame, c.end)
         elif c.kind == "reducer":
             if c.record_type == "REDUCER-ECCENTRIC":
@@ -677,7 +671,7 @@ def _build_assembly(net: NetworkSpec, spec, axial_cell, kinks, tol, lc):
                 raise AssemblyError(f"{label(k)}: reducer axis is not the incoming direction")
             ax, lat = along(frame, c.end)
             report["max_offset"] = max(report["max_offset"], lat)
-            out = asm.add(Reducer(outlet, ax, layers(ax)))
+            out = asm.add(Reducer(outlet, ax))
             check(k, out.frame, c.end)
         else:
             raise AssemblyError(f"{label(k)}: unsupported kind {c.kind!r}")

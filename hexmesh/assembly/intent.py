@@ -12,7 +12,10 @@ An assembly is saved as the record of how it was built, not as geometry:
   ``prepend: true`` (placed upstream of the inlet), and its ``label`` if
   set;
 * ``names``: interface index → name, for every named interface;
-* ``tail``: the interface index ``add(fitting)`` continues from.
+* ``tail``: the interface index ``add(fitting)`` continues from;
+* ``lc`` and ``axial_cell`` if set.  Every saved fitting holds its
+  resolved ``n_layers``, so ``axial_cell`` only matters for fittings added
+  after loading.
 
 Replaying the edges recreates the interfaces in the same order, so
 interface indices are stable.  Outlet frames follow from the fittings;
@@ -155,6 +158,8 @@ def to_dict(asm: "Assembly") -> dict:
     }
     if asm._lc is not None:
         d["lc"] = asm._lc
+    if asm.axial_cell is not None:
+        d["axial_cell"] = asm.axial_cell
     return d
 
 
@@ -187,9 +192,11 @@ def from_dict(cls, d: dict) -> "Assembly":
     if "nozzle" in inlet:
         from .equipment import Drum
         asm = cls.from_nozzle(Drum.from_dict(inlet["nozzle"]["drum"]),
-                              inlet["nozzle"]["name"], lc=d.get("lc"))
+                              inlet["nozzle"]["name"], lc=d.get("lc"),
+                              axial_cell=d.get("axial_cell"))
     else:
-        asm = cls(PipeSpec.from_dict(inlet["spec"]), lc=d.get("lc"))
+        asm = cls(PipeSpec.from_dict(inlet["spec"]), lc=d.get("lc"),
+                  axial_cell=d.get("axial_cell"))
         asm.inlet.frame = _frame_from_dict(inlet)
     for e in d["edges"]:
         fitting = fitting_from_dict(e["fitting"])
@@ -263,6 +270,8 @@ def refined_dict(d: dict, k: int) -> dict:
             n["spec"] = refine_spec_dict(n["spec"], k)
     for e in d["edges"]:
         e["fitting"] = _refine_fitting_dict(e["fitting"], k)
+    if d.get("axial_cell") is not None:   # for fittings added later
+        d["axial_cell"] /= k
     return d
 
 

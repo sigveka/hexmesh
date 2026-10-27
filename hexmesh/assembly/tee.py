@@ -100,8 +100,8 @@ class Tee:
     roll:     float = 0.0
     toward:   tuple | None = field(default=None, metadata={"input": True})
 
-    def resolve(self, inlet: Frame, spec: PipeSpec) -> "Tee":
-        return junction_toward(self, inlet, spec)
+    def resolve(self, inlet: Frame, spec: PipeSpec, axial_cell=None, outlet=None) -> "Tee":
+        return junction_toward(self, inlet, spec)     # counts keep their defaults
 
     # -- ports --------------------------------------------------------
 

@@ -31,7 +31,7 @@ What each example shows, what its mesh looks like, and how good the cells are.  
 | [duct_transition](#duct_transition) | Duct transition: a circular pipe into a 2:1 duct, a duct bend, and back. | 5 616 | 0.377 | 0.689 | 3.6 s |
 | **Networks: composing fittings into routes, branches and trees** | | | | | |
 | [pipe_network](#pipe_network) | Branched network built as a graph: a header with two side taps, each pointing a different way. | 11 496 | 0.189 | 0.316 | 2.9 s |
-| [pipe_rack](#pipe_rack) | 3-D pipe route mixing every sweep fitting: elbow, riser, segmented miter, spline offset, reducer and a rolled bend. | 14 280 | 0.078 | 0.766 | 7.2 s |
+| [pipe_rack](#pipe_rack) | 3-D pipe route mixing every sweep fitting: elbow, riser, segmented miter, spline offset, reducer and a rolled bend. | 13 872 | 0.100 | 0.766 | 6.4 s |
 | [distribution_tree](#distribution_tree) | Two-level distribution tree: a header with two tees, and a second tee on one of the branches after a reducer. | 16 152 | 0.149 | 0.258 | 5.5 s |
 | [bifurcation_tree](#bifurcation_tree) | Two-level bifurcation tree: one inlet, two wyes deep, four parallel outlets. | 14 472 | 0.117 | 0.204 | 6.7 s |
 | [skewed_network](#skewed_network) | Off-axis network: a drum on a skewed axis, a nozzle at 35° from vertical, and fittings at arbitrary angles and rolls. | 9 492 | 0.150 | 0.331 | 3.3 s |
@@ -379,10 +379,13 @@ python3 -m hexmesh.examples.networks.pipe_network
 <p><img src="gallery/img/pipe_rack.png" width="68%" alt="pipe_rack"> <img src="gallery/img/pipe_rack_section.png" width="29%" alt="pipe_rack, inlet section"></p>
 
 Every fitting starts where the previous one ended, so the route is just a
-sequence of `add` calls.  `roll` turns a bend about the pipe axis
-(0 toward `up`, 90 toward `right`), which is how a planar fitting
-leaves the plane.  Fittings of different kinds share one cross-section,
-so they join conformally whatever their order (DESIGN.md P1).
+sequence of `add` calls.  `toward=` turns a bend toward an absolute
+direction, which is how a planar fitting leaves the plane.  The assembly's
+`axial_cell` sets every fitting's axial layers from its length, so no
+fitting gives `n_layers` (`Elbow` and `MiterBend` have their own
+default, so they say `n_layers=None`).  Fittings of different kinds
+share one cross-section, so they join conformally whatever their order
+(DESIGN.md P1).
 
 ```bash
 python3 -m hexmesh.examples.networks.pipe_rack
@@ -390,7 +393,7 @@ python3 -m hexmesh.examples.networks.pipe_rack
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 9: Straight ×4, Elbow, MiterBend, SplinePipe, Reducer, Bend | 432 | 14 280 | 0.078 | 0.295 | 0.766 (#3 MiterBend) | 36.9 | 7.2 s |
+| 9: Straight ×4, Elbow, MiterBend, SplinePipe, Reducer, Bend | 396 | 13 872 | 0.100 | 0.282 | 0.766 (#3 MiterBend) | 28.8 | 6.4 s |
 
 - **Open ends:** `fluid_inlet`, `fluid_outlet`, `pipe_wall_inlet`, `pipe_wall_outlet`
 - **Walls:** `pipe_wall_wall`
@@ -590,4 +593,4 @@ Case: [validation/poiseuille/README.md](../validation/poiseuille/README.md); res
 
 ---
 
-Generated 2026-10-27 from hexmesh 6c27306 + uncommitted changes, gmsh 4.12.1, Python 3.12.3, 8 CPUs, 1 job(s).
+Generated 2026-10-27 from hexmesh bef78ed + uncommitted changes, gmsh 4.12.1, Python 3.12.3, 8 CPUs, 1 job(s).

@@ -107,6 +107,11 @@ class Assembly:
         GMSH characteristic length; defaults to outer radius / 4.
     inlet_name : str
         Name of the inlet interface (used for its boundary patch).
+    axial_cell : float, optional
+        Target axial cell length.  A sweep fitting added with
+        ``n_layers=None`` gets ``ceil(L / axial_cell)`` layers (``L`` its
+        centreline length), or more if its own checks need more; the
+        resolved count is stored in the fitting (decision 0024).
     """
 
     def __init__(
@@ -117,7 +122,11 @@ class Assembly:
         up=None,
         lc:         float | None = None,
         inlet_name: str = "inlet",
+        axial_cell: float | None = None,
     ) -> None:
+        if axial_cell is not None and not axial_cell > 0:
+            raise ValueError(f"axial_cell must be positive, got {axial_cell!r}")
+        self.axial_cell = axial_cell
         self._interfaces: list[Interface] = []
         self._edges:      list[Edge]      = []
         self._lc = lc
@@ -134,7 +143,8 @@ class Assembly:
         self._tail = self.inlet
 
     @classmethod
-    def from_nozzle(cls, drum, nozzle: str, lc: float | None = None) -> "Assembly":
+    def from_nozzle(cls, drum, nozzle: str, lc: float | None = None,
+                    axial_cell: float | None = None) -> "Assembly":
         """Start a network at a drum nozzle (decision 0002).
 
         The drum is validated first.  The inlet is the nozzle face
@@ -143,7 +153,8 @@ class Assembly:
         """
         drum.validate()
         frame = drum.frame(nozzle)
-        asm = cls(drum.nozzle(nozzle).spec, lc=lc, inlet_name=f"{drum.name}_{nozzle}")
+        asm = cls(drum.nozzle(nozzle).spec, lc=lc, inlet_name=f"{drum.name}_{nozzle}",
+                  axial_cell=axial_cell)
         asm.inlet.frame = frame
         asm._nozzle = (drum, nozzle)
         return asm
@@ -168,9 +179,10 @@ class Assembly:
         ``outlet``).  *label* names the fitting itself (its wall patch with
         ``walls_by_fitting``; default ``<Type><index>``).
 
-        Input-only fields such as ``toward=`` are resolved here from the
-        inlet frame (``fitting.resolve``), so the stored fitting holds only
-        ``roll`` (decision 0024).
+        Input-only fields are resolved here from the inlet frame
+        (``fitting.resolve``): ``toward=`` becomes ``roll``, and
+        ``n_layers=None`` a count from ``axial_cell``.  The stored fitting
+        holds only the resolved values (decision 0024).
         """
         if self._faces_built:
             raise AssemblyError("cannot add fittings after the assembly is built")
@@ -226,7 +238,7 @@ class Assembly:
             raise AssemblyError(f"target {target} is a downstream end, not an inlet")
         self._check_degree(source, "inlet", fitting)
         self._check_degree(target, "outlet", fitting)
-        fitting = self._resolved(fitting, source)
+        fitting = self._resolved(fitting, source, target)
 
         self._check_label(label)
         edge = Edge(len(self._edges), fitting, [source, target], kind="close", label=label)
@@ -256,6 +268,7 @@ class Assembly:
             raise AssemblyError(f"the inlet {old} is a drum nozzle; nothing can be "
                                 "placed upstream of it")
         self._check_degree(old, "outlet", fitting)
+        fitting = self._resolved(fitting, old)    # the length does not depend on the frame
         f = old.frame
         frame = Frame(f.position - fitting.length * f.normal, f.normal, f.up)
         new = self._new_interface(frame, old.spec, old.name)
@@ -372,14 +385,15 @@ class Assembly:
         if any(e.name == label for e in self._edges):
             raise AssemblyError(f"fitting label {label!r} is already used")
 
-    @staticmethod
-    def _resolved(fitting, source: Interface):
-        """*fitting* with input-only fields resolved at *source*; warns on a
-        bend angle that looks like radians (decision 0024)."""
+    def _resolved(self, fitting, source: Interface, target: Interface | None = None):
+        """*fitting* with input-only fields resolved at *source* (and
+        *target*, for ``close``); warns on a bend angle that looks like
+        radians (decision 0024)."""
         resolve = getattr(fitting, "resolve", None)
         if resolve is not None:
             try:
-                fitting = resolve(source.frame, source.spec)
+                fitting = resolve(source.frame, source.spec, self.axial_cell,
+                                  None if target is None else target.frame)
             except ValueError as e:
                 raise AssemblyError(f"{fitting!r} at {source}: {e}") from None
         if (isinstance(fitting, (Bend, Elbow, MiterBend))
