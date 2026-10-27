@@ -37,6 +37,8 @@ rejected.  Records are written in design sessions, and they are the only way
 | [0020](0020-build-time-scaling-and-parallelism.md) | Build time grows linearly with the model; parallelism only across jobs | accepted |
 | [0021](0021-future-flow-restrictions.md) | Future expansion: flow restrictions (orifices, nozzles, venturis, and beyond) | proposed (future) |
 | [0022](0022-oh-core-convergence-order.md) | Convergence order of the O-H section, and a self-similar core square | proposed |
+| [0023](0023-pcf-branched-networks-insulation-equipment.md) | PCF input: branched networks, junctions, insulation and equipment | accepted |
+| [0024](0024-api-ergonomics.md) | API ergonomics: port names, absolute orientation, angle units, axial cell size | accepted |
 
 ## Future expansions
 

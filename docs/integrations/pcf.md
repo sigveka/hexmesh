@@ -124,6 +124,12 @@ guide's BEND example with a full header (`PIPE` → `BEND` → `PIPE`,
 against real-file dialects: both are task 0021.  Rows 6–8 are features
 needing decisions (branched networks from PCF; tees and olets mapped to
 `Tee`; insulation mapped to layer termination; equipment nozzles).
+**Rows 6–8 decided 2026-10-27 (decision 0023): tasks 0037 (graph,
+junctions) and 0038 (insulation, equipment).**  ISOGEN's older IDF
+format (Isogen Data File, PDS/PDMS/Tribon era) is not read: most
+systems export PCF, and no public IDF specification was found.  Not to
+be confused with the PCB "Intermediate Data Format" (`.emn`/`.emp`)
+that Inventor's IDF translator reads.
 
 ## Other readers and sample files (surveyed 2026-10-25)
 

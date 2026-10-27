@@ -46,6 +46,11 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0034](0034-validation-layered-conduction.md) | Validation: conduction through a heated multi-layer cylinder (CHT, solids) | ready (after 0025, 0033) | 0012 |
 | [0035](0035-validation-heated-pipe-cht.md) | Validation: heated multi-layer pipe with laminar flow (full CHT) | ready (after 0034) | 0012 |
 | [0036](0036-linear-build-time.md) | Linear build time: fewer `synchronize` calls, and a build benchmark | done | 0020 |
+| [0037](0037-pcf-branched-networks.md) | PCF reader: branched networks and junctions | ready | 0023 |
+| [0038](0038-pcf-insulation-and-equipment.md) | PCF reader: insulation and equipment connections | ready (after 0037) | 0023 |
+| [0039](0039-interface-degree-and-session-guard.md) | Two validation bugs: overlapping fittings on one interface, GMSH calls outside a session | ready | 0024 |
+| [0040](0040-port-names-orientation-angle-units.md) | Named ports, absolute orientation (`toward=`, junction roll), `rot` in degrees | ready (after 0039) | 0024 |
+| [0041](0041-assembly-axial-cell.md) | `Assembly(axial_cell=…)`: `n_layers` from a target cell size | ready (after 0039) | 0024 |
 
 Decision 0004 (retire legacy) comes first: 0011 → 0012 / 0013 / 0014 →
 0015 → 0016 → 0017.  0017 waits for all the others.  Then the rest of
@@ -87,13 +92,13 @@ These apply to every task.
   - Since task 0024 (2026-10-25), this runs **in parallel** (`-n auto`,
     from `pyproject.toml`) and **skips OpenFOAM tests**.  Serial for
     debugging: `-n 0`.
+    Expected time (8 cores, 2026-10-27): about 4 min in parallel,
+    12 min serial.
   - OpenFOAM tests are opt-in: `python3 -m pytest -m openfoam`.  Run
     them too when a task touches OpenFOAM output (e.g. 0009, 0022, 0023).
   - Follow `CLAUDE.md`, "Both sessions, shared machine", before long
     runs.
 - Keep each task a separate, reviewable change.  Match the surrounding code
-    Expected time (8 cores, 2026-10-27): about 4 min in parallel,
-    12 min serial.
   style: dataclasses, numpy, short docstrings that cite DESIGN rules.
 
 ### Not part of any task
