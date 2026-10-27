@@ -48,7 +48,7 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0036](0036-linear-build-time.md) | Linear build time: fewer `synchronize` calls, and a build benchmark | done | 0020 |
 | [0037](0037-pcf-branched-networks.md) | PCF reader: branched networks and junctions | ready | 0023 |
 | [0038](0038-pcf-insulation-and-equipment.md) | PCF reader: insulation and equipment connections | ready (after 0037) | 0023 |
-| [0039](0039-interface-degree-and-session-guard.md) | Two validation bugs: overlapping fittings on one interface, GMSH calls outside a session | ready | 0024 |
+| [0039](0039-interface-degree-and-session-guard.md) | Two validation bugs: overlapping fittings on one interface, GMSH calls outside a session | done | 0024 |
 | [0040](0040-port-names-orientation-angle-units.md) | Named ports, absolute orientation (`toward=`, junction roll), `rot` in degrees | ready (after 0039) | 0024 |
 | [0041](0041-assembly-axial-cell.md) | `Assembly(axial_cell=…)`: `n_layers` from a target cell size | ready (after 0039) | 0024 |
 

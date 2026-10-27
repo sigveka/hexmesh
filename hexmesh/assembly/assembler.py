@@ -50,6 +50,12 @@ class AssemblyError(ValueError):
     """Raised during validation; names the offending fitting or interface."""
 
 
+def _require_session() -> None:
+    """Raise before any GMSH call when no GMSH session is open (task 0039)."""
+    if not gmsh.isInitialized():
+        raise AssemblyError("needs a GMSH session: use `with Session(...):`")
+
+
 def curve_constraints(records) -> dict:
     """One transfinite constraint per curve tag; disagreeing records raise.
 
@@ -119,6 +125,7 @@ class Assembly:
         self._faces_built = False
         self._nozzle = None          # (drum, nozzle name) for from_nozzle()
         self._group_roles: dict[str, str] = {}
+        self._meshed = False
         self.inlet = self._new_interface(
             Frame.from_vectors(position, direction, up), spec, inlet_name,
         )
@@ -163,6 +170,7 @@ class Assembly:
             raise AssemblyError("the tail was closed; pass the interface to add from")
         if not isinstance(source, Interface):
             raise TypeError(f"source must be an Interface, got {type(source).__name__}")
+        self._check_degree(source, "inlet", fitting)
 
         port_list = fitting.ports(source.frame, source.spec)
         names = list(names) if names is not None else [None] * len(port_list)
@@ -203,6 +211,8 @@ class Assembly:
             raise AssemblyError(f"source {source} is an upstream end, not an outlet")
         if target.edges[0].ports[0] is not target:
             raise AssemblyError(f"target {target} is a downstream end, not an inlet")
+        self._check_degree(source, "inlet", fitting)
+        self._check_degree(target, "outlet", fitting)
 
         self._check_label(label)
         edge = Edge(len(self._edges), fitting, [source, target], kind="close", label=label)
@@ -231,6 +241,7 @@ class Assembly:
         if self._nozzle is not None and old is self._interfaces[0]:
             raise AssemblyError(f"the inlet {old} is a drum nozzle; nothing can be "
                                 "placed upstream of it")
+        self._check_degree(old, "outlet", fitting)
         f = old.frame
         frame = Frame(f.position - fitting.length * f.normal, f.normal, f.up)
         new = self._new_interface(frame, old.spec, old.name)
@@ -347,6 +358,22 @@ class Assembly:
         if any(e.name == label for e in self._edges):
             raise AssemblyError(f"fitting label {label!r} is already used")
 
+    @staticmethod
+    def _attached(iface: Interface, role: str) -> list[Edge]:
+        """Fittings having *iface* as their inlet, or as one of their outlets."""
+        if role == "inlet":
+            return [e for e in iface.edges if e.ports[0] is iface]
+        return [e for e in iface.edges if any(p is iface for p in e.ports[1:])]
+
+    def _check_degree(self, iface: Interface, role: str, fitting) -> None:
+        """An interface is the inlet of at most one fitting and the outlet of
+        at most one (DESIGN §5: a face shared by two fittings at most)."""
+        attached = self._attached(iface, role)
+        if attached:
+            raise AssemblyError(
+                f"{iface} (interface #{iface.index}) is already the {role} of "
+                f"{attached[0]}; it cannot also be the {role} of {fitting!r}")
+
     def _new_interface(self, frame: Frame, spec: PipeSpec, name: str | None) -> Interface:
         iface = Interface(len(self._interfaces), frame, spec, name)
         self._interfaces.append(iface)
@@ -365,6 +392,13 @@ class Assembly:
         if not self._edges:
             raise AssemblyError("assembly has no fittings")
         for iface in self._interfaces:
+            for role in ("inlet", "outlet"):
+                attached = self._attached(iface, role)
+                if len(attached) > 1:
+                    raise AssemblyError(
+                        f"{iface} (interface #{iface.index}) is the {role} of "
+                        f"{len(attached)} fittings: "
+                        + ", ".join(map(repr, attached)))
             try:
                 check_supported(iface.spec)
             except NotImplementedError as e:
@@ -435,6 +469,7 @@ class Assembly:
             Fitting fill order (edge indices).  Any permutation must give
             the same mesh (rule A6).  Default: insertion order.
         """
+        _require_session()
         if self._fill is not None:
             return
         self.build_faces()
@@ -442,6 +477,7 @@ class Assembly:
 
     def build_faces(self) -> None:
         """Pipeline steps 3–4: validate, then build every interface face once."""
+        _require_session()
         if self._faces_built:
             return
         self.validate()
@@ -458,6 +494,7 @@ class Assembly:
 
     def fill(self, order: Iterable[int] | None = None) -> None:
         """Pipeline step 5: fill every fitting between its existing faces."""
+        _require_session()
         if self._fill is not None:
             return
         self.build_faces()
@@ -580,6 +617,7 @@ class Assembly:
         with _occ.building():       # the build's records are still valid
             self._set_constraints()
         gmsh.model.mesh.generate(dim)
+        self._meshed = True
 
     def _set_constraints(self) -> None:
         msh = gmsh.model.mesh
@@ -625,6 +663,7 @@ class Assembly:
         """
         if not str(path).endswith(".msh"):
             raise ValueError(f"write_openfoam writes a .msh file, got {path!r}")
+        _require_session()
         self.mesh(walls_by_fitting=walls_by_fitting)
         dropped = []
         if not interfaces:
@@ -678,6 +717,9 @@ class Assembly:
         and to the metric's own limit otherwise; an element is bad when it
         is at or beyond it, on the metric's worse side.
         """
+        _require_session()
+        if not self._meshed:
+            raise AssemblyError("no mesh yet; call mesh() or write() first")
         if by == "material":
             groups = [(name, None, vols) for name, vols in self.volumes.items()]
         elif by == "fitting":
