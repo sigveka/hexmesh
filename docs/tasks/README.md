@@ -27,9 +27,25 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0015](0015-io-on-assembly.md) | PCF and bathymetry readers build an Assembly | done | 0004 |
 | [0016](0016-public-api-and-examples.md) | Public API, examples and docs on the assembly | done | 0004 |
 | [0017](0017-delete-legacy.md) | Delete the legacy code | done | 0004 |
-| [0018](0018-layer-termination-in-sweep.md) | Layer termination in `Sweep` (insulation stops and starts) | ready | 0006 |
-| [0019](0019-port-face-signatures-and-classifier.md) | Port-face signatures and the topology-switch classifier | ready | 0011 |
-| [0020](0020-validation-poiseuille.md) | Validation: laminar Hagen–Poiseuille pipe, three refinement levels | ready | 0012 |
+| [0018](0018-layer-termination-in-sweep.md) | Layer termination in `Sweep` (insulation stops and starts) | done | 0006 |
+| [0019](0019-port-face-signatures-and-classifier.md) | Port-face signatures and the topology-switch classifier | done | 0011 |
+| [0020](0020-validation-poiseuille.md) | Validation: laminar Hagen–Poiseuille pipe, three refinement levels | done | 0012, 0015 |
+| [0021](0021-pcf-reader-spec-conformance.md) | PCF reader: conform to the PCF reference guide (bug fixes) | done | 0004 |
+| [0022](0022-rename-interface-groups.md) | Rename material-interface groups to `interface_<inner>_<outer>` | done | 0013 |
+| [0023](0023-boundary-role-manifest-and-retyping.md) | Boundary-role manifest and OpenFOAM patch retyping | done | 0013 |
+| [0024](0024-parallel-test-suite.md) | Parallel test suite (pytest-xdist) and registered markers | in progress | 0014 |
+| [0025](0025-ruled-straight-slabs.md) | Ruled side surfaces for straight slabs, and a wall-exactness check | done | 0015 |
+| [0026](0026-assembly-refined.md) | `Assembly.refined(k)`: uniform refinement for convergence studies | done | 0015 |
+| [0027](0027-grading-change-across-sweeps.md) | Grading-only changes across a sweep (wall-resolved reducers) | ready (write Outcome) | 0016 |
+| [0028](0028-rectangular-cores.md) | Rectangular cores in the assembly (single-layer ducts) | done | 0009, 0010 |
+| [0029](0029-transition-circle-rectangle.md) | `Transition`: circle ↔ rectangle and rectangle ↔ rectangle sweeps | done | 0009 |
+| [0030](0030-wye-prototype.md) | Wye prototype: symmetric Y-junction as a block layout | done | 0017 |
+| [0031](0031-profiled-reducer.md) | Profiled `Reducer`: constrictions, venturis and nozzles | done | 0008 |
+| [0032](0032-validation-stenosis.md) | Validation: smooth cosine constriction (Varghese et al.), Re = 500 | ready (after 0031, 0020) | 0008, 0012 |
+| [0033](0033-validation-heated-rod.md) | Validation: solid rod with uniform heat generation | ready (k = 16 level, then Outcome) | 0012, 0015 |
+| [0034](0034-validation-layered-conduction.md) | Validation: conduction through a heated multi-layer cylinder (CHT, solids) | ready (after 0025, 0033) | 0012 |
+| [0035](0035-validation-heated-pipe-cht.md) | Validation: heated multi-layer pipe with laminar flow (full CHT) | ready (after 0034) | 0012 |
+| [0036](0036-linear-build-time.md) | Linear build time: fewer `synchronize` calls, and a build benchmark | done | 0020 |
 
 Decision 0004 (retire legacy) comes first: 0011 → 0012 / 0013 / 0014 →
 0015 → 0016 → 0017.  0017 waits for all the others.  Then the rest of
@@ -43,6 +59,10 @@ Suggested order for decision 0001: 0000 → 0003 → 0001 → 0002 → 0004 → 
 same sweep spec handling.  Prefer **0019 before 0018**: 0019 adds the
 port-pair classifier, and 0018 then declares class 1 for layer
 termination instead of adding its own check.
+
+**0025 first**: it changes node positions in every mesh with a
+multi-layer `Straight`, and 0020's re-run depends on it.  0026 is
+independent; do it before 0020's re-run if convenient.
 
 The multi-layer tee (needed for CHT networks with junctions) is not
 low-hanging fruit and has no task yet.  It needs a design decision first;
@@ -64,12 +84,20 @@ These apply to every task.
 - Run tests with `python3 -m pytest` (never `python`).  Gate: no new
   failures before and after each task.  The full suite has no known
   failures.
+  - Since task 0024 (2026-10-25), this runs **in parallel** (`-n auto`,
+    from `pyproject.toml`) and **skips OpenFOAM tests**.  Serial for
+    debugging: `-n 0`.
+  - OpenFOAM tests are opt-in: `python3 -m pytest -m openfoam`.  Run
+    them too when a task touches OpenFOAM output (e.g. 0009, 0022, 0023).
+  - Follow `CLAUDE.md`, "Both sessions, shared machine", before long
+    runs.
 - Keep each task a separate, reviewable change.  Match the surrounding code
   style: dataclasses, numpy, short docstrings that cite DESIGN rules.
 
 ### Not part of any task
 
-Don't fold these into a task: Y-junction/Stage 6 work, tee generalisation (multi-layer, laterals, offset taps, exact tee
+Don't fold these into a task: wye work beyond task 0030's symmetric
+prototype (decision 0017), tee generalisation (multi-layer, laterals, offset taps, exact tee
 walls), `n_outer = 8` core filling, or anything in `docs/RESEARCH.md` §8.
 They are design decisions, not low-hanging fruit.  (The tee side-corner
 arc split is no longer needed: the block-layout tee places its saddle

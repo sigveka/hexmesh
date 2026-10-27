@@ -1,6 +1,6 @@
 # 0013 — Reducer, expander and transition
 
-- **Status:** blocked
+- **Status:** done
 - **Decision:** [0004 — Retire the legacy API](../decisions/0004-retire-legacy-api.md)
 - **Depends on:** 0011
 
@@ -75,6 +75,11 @@ n_layers)`, `Expander`, `Transition`; `_taper_connect` at `:164`).  New:
 
   Recommendation: 1 now, and 2 if ducts are a target.  Everything else
   in this task is done.  Only this question keeps it `blocked`.
+
+  **Design answer (2026-10-24): option 2.**  `Transition` moves to
+  [decision 0009](../decisions/0009-rectangular-sections-and-transitions.md)
+  (rectangular sections and circle ↔ rectangle transitions, proposed),
+  where it will get its own task.  This task is done without it.
 
 ## Outcome
 

@@ -103,9 +103,29 @@ An interface type consists of:
 - `n_outer` and `rot`
 - `nang` (or `nang_w`, `nang_h`) and per-layer `nrad`
 
-Every port that touches an interface must match its type exactly.  Type
-changes (diameter, layer stack, boundary kind) happen *inside* a fitting
-(Reducer, Transition), never across an interface.
+Every port that touches an interface must match its type exactly.
+Between a fitting's own ports, the **mesh signatures** may differ only in
+ways covered by a strategy the fitting declares (§6,
+[decision 0011](docs/decisions/0011-port-face-signatures-and-switch-strategies.md)):
+
+| Class | Signatures differ by | Strategy |
+|---|---|---|
+| 0 | nothing (only geometry or block boundaries) | sweep: every sheet continues |
+| 1 | closed rings of cells (O-rings, outermost layers) | pillow / unpillow |
+| 2 | counts or grading within the same layout | grading only: a sweep, grading interpolated per station ([decision 0016](docs/decisions/0016-class-1-granularity-and-grading-changes.md)); counts: refinement template (fixed ×2 or ×3) |
+| 3 | anything else | declared non-conformal joint |
+
+A section's shape is geometry: circular and rectangular O-H cores share
+one layout, and the signature's symmetry period is the combinatorial one
+(from the counts).  Roll handling uses the geometric P of §6.1.  So a
+circle ↔ rectangle transition with equal counts is class 0
+([decision 0009](docs/decisions/0009-rectangular-sections-and-transitions.md)).
+
+So type changes (diameter, layer stack, boundary kind) still happen
+*inside* a fitting, never across an interface.  Outermost layers
+(insulation, cladding) may stop or start at a station inside any sweep;
+the end annulus becomes a wall
+([decision 0006](docs/decisions/0006-layer-stack-changes-in-sweeps.md)).
 
 ### Rule A5 — Density is solved globally; axial resolution is local
 
@@ -128,7 +148,14 @@ Physical groups are derived from the graph, not from geometric search:
 - open interfaces (ports with no neighbour) — one patch per node, named
   after the node
 - outer walls and material interfaces — from the fittings' declared
-  wall and interface surfaces
+  wall and interface surfaces.  Material-interface groups are named
+  `interface_<inner>_<outer>` (hexmesh-owned names, `[A-Za-z0-9_]`, so
+  they never collide with names that solvers' tools invent)
+
+Every group's **role** (`wall`, `open_end`, `interface`, `volume`) comes
+from the graph as well, and is exported with the mesh, so downstream
+tools apply boundary types without guessing from names
+([decision 0013](docs/decisions/0013-openfoam-group-names-and-boundary-roles.md)).
 
 ---
 
@@ -157,6 +184,7 @@ Every fitting type provides:
 | `ports(...)` | Topology | Given the incoming interface (or graph context), return the pose and type of every port |
 | `validate(ports)` | Topology | Check that the fitting can be built between these ports (length, radius, angle, clearance); raise naming the fitting |
 | `template` | Topology | The fixed block topology of the fitting for a given `n_outer` |
+| `strategies` | Topology | The port-pair classes (A4) the fitting can bridge; `validate` rejects any other pair before GMSH, naming the difference and the strategy that would bridge it |
 | `fill(port_faces)` | Realisation | Build internal entities between existing port faces; return volumes, walls and material interfaces |
 
 The block template of a fitting is fixed for a given fitting type and
@@ -180,6 +208,15 @@ between exact nodes.  Interior nodes follow from transfinite
 interpolation of those exact boundaries
 ([RESEARCH §5](docs/RESEARCH.md#5-filling-blocks-between-fixed-boundaries)).
 
+A filled surface may carry interior mesh nodes only where it is the
+exact surface.  A slab with several axial layers therefore needs exact
+side surfaces: straight slabs use ruled surfaces (a ruled surface
+between two identical parallel arcs is the cylinder).  Where no exact
+surface is available, use one axial layer per slab.  The conformance
+kit checks every wall and interface node against its analytic surface.
+(Decision 0015; plate-filled sides sagged up to 1.08 % of R and biased
+Poiseuille Δp by 2.6 %, [RESEARCH §7.4](docs/RESEARCH.md#74-laminar-hagenpoiseuille-verification-task-0020).)
+
 The prototype in `hexmesh/assembly/` implements this pipeline for
 `Straight`, `Bend` and `Closure` (`tests/test_assembly.py`).
 
@@ -199,8 +236,12 @@ creates the internal station faces and fills the slabs between them.
 | Straight | two frames | line | constant |
 | Bend | frames rotated about the bend axis | arc | constant |
 | Closure | Hermite centreline, Bishop frames, distributed twist | line | constant |
-| Reducer / Expander | two frames | line | interpolated |
+| Reducer / Expander / profiled pipe | two frames + profile R(s) ([decision 0008](docs/decisions/0008-profiled-sweep.md)) | line (chords between exact stations, error bounded in `validate()`) | interpolated |
 | Spline pipe | spline centreline, Bishop frames | line | constant |
+
+Any sweep may also drop or add **outermost** layers at an internal
+station ("Spec along path" then varies only in its outer layers); the
+remaining layers must be identical on both sides (decision 0006).
 
 Path geometry for each row (frames, torus bend, reducers) is in
 [RESEARCH §1–2](docs/RESEARCH.md#1-frames-along-a-centreline).  Miter
@@ -215,13 +256,26 @@ outer radius, corner correspondence defined, and — where axial edges are
 straight chords — a normal turn of at most 30° per slab.
 
 **Corner identity — corners are named by the frame, never found by distance.**
-Corner *k* of a face lies at angle `π/4 + rot + k · 2π / n_outer` from
-`frame.right`.  The correspondence between two faces is the index offset
-given by their frames alone (modulo the `2π / n_outer` symmetry), computed
-in pure numpy so it is checked in validation and reused unchanged in
-`fill`; curve directions are resolved by endpoint tags.  Nearest-distance matching is forbidden: it
-fails for faces that are far apart or at large angles to each other, such
-as a junction branch.
+Every section shape has numbered structural corners and a **symmetry
+period P**: the smallest roll that maps the section's mesh onto itself.
+
+| Section | Corner *k* | P |
+|---|---|---|
+| Circular O-H | at angle `π/4 + rot + k · 2π / n_outer` from `frame.right` | `2π / n_outer` |
+| Square | *k*-th corner (NE, NW, SW, SE), rotated by `rot` | π/2 |
+| Rectangle, w ≠ h | *k*-th corner (NE, NW, SW, SE), rotated by `rot` | π |
+
+The correspondence between two faces is the index offset given by their
+frames alone.  Carry one frame onto the other face's plane by the minimal
+rotation, take the roll between them, round it to a multiple of P, and
+convert that to corner steps.  A roll within 10⁻⁹ of P/2 is ambiguous and
+an error.  It is computed in pure numpy, so it is checked in validation
+and reused unchanged in `fill`; curve directions are resolved by endpoint
+tags.  Nearest-distance matching is forbidden: it fails for faces that
+are far apart or at large angles to each other, such as a junction
+branch.  ([Decision 0010](docs/decisions/0010-section-symmetry-period.md).
+Rectangular sections: decision 0009, accepted; if decision 0005 makes
+`n_outer = 8` a sub-partition, its P becomes π/2.)
 
 **Blocks — every multi-port fitting is a layout of hex blocks.**
 A junction is built from hex blocks (8 corners, 12 edges with a curve
@@ -243,6 +297,8 @@ A parametrised suite checks the design rules for any fitting:
   exactly two fittings (P2)
 - every permutation of the fill order gives the same mesh (A6)
 - each surface belongs to exactly one physical group (A7)
+- every port pair falls within the fitting's declared `strategies`, and
+  undeclared pairs are rejected before GMSH (A4)
 
 A fitting is not finished until it passes the kit.
 
@@ -325,9 +381,9 @@ Implementation (`Assembly.close(source, target, fitting)`):
   roll is distributed linearly by arc length.  Frame theory and a
   higher-order transport (double reflection) are in
   [RESEARCH §1](docs/RESEARCH.md#1-frames-along-a-centreline).
-- Roll only matters modulo the cross-section symmetry `2π / n_outer`
-  (90° for `n_outer = 4`), so the absorbed twist never exceeds
-  `π / n_outer`.
+- Roll only matters modulo the section's symmetry period P (§6.1): 90°
+  for circular sections with `n_outer = 4` and for squares, 180° for
+  rectangles.  The absorbed twist never exceeds P/2.
 - Validation computes the minimum centreline bend radius before any GMSH
   call and rejects paths tighter than the pipe outer radius.
 

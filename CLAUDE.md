@@ -28,10 +28,30 @@ questions, or proposed DESIGN wording, write under *Questions for design*,
 set the task to `blocked`, and stop or switch task.  Finish with *Outcome*:
 files, test counts, measurements, surprises, proposed follow-ups.
 
+**Both sessions:** record version-specific tool behaviour (gmsh/OCC,
+OpenFOAM) in `docs/integrations/<tool>.md` as soon as it is found, with
+version, evidence and date.  Check those files, and the installed
+`help(gmsh…)` docstrings, before the vendor manuals in `docs/manuals/`.
+The gmsh 3.0 PDF there is outdated.
+
+**Both sessions, shared machine:** the design and coding sessions may run
+at the same time on this machine.
+- Stop only processes you started, by their task or process ID.
+  **Never kill by name pattern** (`pkill -f pytest`, `killall python3`):
+  it hits the other session's test runs.
+- Before a long or CPU-heavy run (the full suite, OpenFOAM cases,
+  benchmarks), check for another session's run (`pgrep -af pytest`).
+  Don't start timing measurements while one is active.
+- Write scratch output to your own session's scratchpad or a
+  `tmp_path`, never to shared fixed paths.
+
 **Design session:** start by reading tasks that are `blocked` or newly
 `done`.  Move measurements into `RESEARCH.md` and answer questions.
 Record settled questions as decisions, then write tasks; unsettled ones
-stay `proposed`, with no tasks.
+stay `proposed`, with no tasks.  Check every new decision against the
+constraints of the future expansions listed in
+`docs/decisions/README.md` (vascular networks, decision 0018; agent SDK, decision 0019; flow
+restrictions, decision 0021).
 
 ---
 

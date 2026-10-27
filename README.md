@@ -429,33 +429,23 @@ their vertices without fittings, so build them with
 
 ## Examples
 
-Each example writes `<name>.msh` to the current directory:
+The examples are grouped by what they illustrate.  Each writes
+`<name>.msh` to the current directory:
 
 ```bash
-python3 -m hexmesh.examples.smooth_bend
+python3 -m hexmesh.examples.fittings.smooth_bend
 ```
 
-| Example | Shows |
-|---|---|
-| `smooth_bend` | `Straight` + `Bend` |
-| `miter_bend` | single 90° miter joint and a 3-cut segmented elbow |
-| `insulated_pipe` | three material layers, long-radius `Elbow` |
-| `reducer_network` | reducer, 180° hairpin, expander |
-| `tee` | `Tee` with a bend on the main run; named outlets |
-| `loop` | closed, non-planar loop with `Closure` |
-| `spline_pipe` | 3-D spline |
-| `pipe_network` | header with two tees, branches built from interfaces |
-| `pipe_rack` | 3-D route with every sweep fitting: elbow, segmented miter, spline offset, reducer, rolled bend |
-| `insulated_route` | three-layer stack through a reducer, miter, spline and elbow; `first_cell` wall grading |
-| `distribution_tree` | tee on a tee's branch after a reducer; named outlets, mixed bend kinds |
-| `drum_nozzle` | network starting at a drum nozzle (`Drum`, `Assembly.from_nozzle`), tee, `extend_open_ends` |
-| `graded_bend` | CFD-ready bend: `first_cell`, `axial_grading` toward the bend, extensions, `walls_by_fitting` |
-| `wye` | 60° `Wye` with a straight on each daughter; named outlets |
-| `rect_duct` | 2:1 rectangular duct with an easy-way and a hard-way bend |
-| `duct_transition` | circular pipe → 2:1 duct (`Transition`), a duct bend, and back |
-| `hvac_supply` | ventilation run: round fan outlet → flat duct, easy-way bend, mitred hard-way bend, spline jog, square terminal |
-| `bifurcation_tree` | two levels of wyes, daughters bent parallel: one inlet, four side-by-side outlets |
-| `cooling_channels` | a wye feeding two flat 3:1 channels through transitions, each rounded off again |
+**[docs/GALLERY.md](docs/GALLERY.md)** shows every example with images,
+cell counts and quality metrics, and the validation cases.  Regenerate it
+with `python3 docs/gallery/build.py` (needs `vtk`).
+
+| Category | Examples | Shows |
+|---|---|---|
+| `fittings` | `smooth_bend`, `miter_bend`, `spline_pipe`, `reducer_network`, `tee`, `wye`, `loop` | one building block each: bends, reducer, junctions, `Closure` |
+| `sections` | `insulated_pipe`, `insulated_route`, `graded_bend`, `rect_duct`, `duct_transition` | what runs through the pipe: layer stacks, wall and axial grading, rectangular ducts, `Transition` |
+| `networks` | `pipe_network`, `pipe_rack`, `distribution_tree`, `bifurcation_tree`, `skewed_network` | composing fittings: routes, branches, trees, any orientation |
+| `applications` | `drum_nozzle`, `hvac_supply`, `cooling_channels` | equipment nozzles, ventilation ducting, cooling channels |
 
 ---
 

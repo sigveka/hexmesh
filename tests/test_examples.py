@@ -4,27 +4,27 @@ Every example runs, writes its mesh, and meshes exactly as predicted
 """
 
 import importlib
+from pathlib import Path
 
 import pytest
 
-EXAMPLES = ["smooth_bend", "miter_bend", "insulated_pipe", "reducer_network",
-            "tee", "loop", "spline_pipe", "pipe_network", "wye", "rect_duct", "duct_transition",
-            "hvac_supply", "bifurcation_tree", "cooling_channels"]
+from hexmesh.examples import ALL
 
 
-@pytest.mark.parametrize("name", EXAMPLES)
+@pytest.mark.parametrize("name", ALL)
 def test_example(name, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     module = importlib.import_module(f"hexmesh.examples.{name}")
     result = module.main()
-    assert (tmp_path / f"{name}.msh").stat().st_size > 0
+    assert (tmp_path / f"{name.split('.')[-1]}.msh").stat().st_size > 0
     assert result.meshed == result.predicted
     assert result.quality.ok, str(result.quality)
 
 
-def test_every_example_is_tested():
-    from pathlib import Path
+def test_every_example_is_listed():
     import hexmesh.examples as pkg
-    found = {p.stem for p in Path(pkg.__path__[0]).glob("*.py")
+    root = Path(pkg.__path__[0])
+    found = {f"{p.parent.name}.{p.stem}" for p in root.glob("*/*.py")
              if not p.stem.startswith("_")}
-    assert found == set(EXAMPLES)
+    assert found == set(ALL)
+    assert not [p for p in root.glob("*.py") if not p.stem.startswith("_")]

@@ -55,6 +55,10 @@ every task implements an existing rule.
   radial cell ratio of 1.000 for `mprg = 1.3`).  `Assembly.mesh()` set
   transfinite curves without progression.  `check_quality` grouped by
   material only.  `quality_hex` was unused by `Assembly`.
-- Assumed, to be verified in task 0005: `gmshToFoam` reads MSH 2.2
+- **Verified in task 0005 (2026-10-25), correcting the assumption below:**
+  `gmshToFoam` v1912 reads MSH **2.2 and 4.1**.  Internal physical
+  surfaces become an empty patch plus a faceZone, and their `<a>_to_<b>`
+  names clash with `splitMeshRegions` (see `docs/integrations/openfoam.md`).
+- *Original assumption:* `gmshToFoam` reads MSH 2.2
   ASCII.  Also: how `gmshToFoam` treats internal physical surfaces (task
   0009 avoids depending on it).

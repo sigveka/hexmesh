@@ -20,8 +20,19 @@ io = [
 dev = [
     "pytest>=7",
     "pytest-cov",
+    "pytest-xdist>=3",
 ]
 
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["hexmesh*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Parallel by default (pytest-xdist, one process per core; each test has its
+# own gmsh session, see tests/conftest.py).  Serial: -n 0.
+# OpenFOAM tests are opt-in: -m openfoam.
+addopts = "-n auto -m 'not openfoam'"
+markers = [
+    "openfoam: needs an OpenFOAM installation (gmshToFoam, splitMeshRegions, ...); opt-in with -m openfoam",
+]

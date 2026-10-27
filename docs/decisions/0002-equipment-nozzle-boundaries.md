@@ -48,5 +48,10 @@ interfaces (A1, A3, A7), and nothing new is built in GMSH.
   standard proportions.  Check the torispherical crown and knuckle radii
   against the code the user works to (e.g. ASME VIII or EN 13445)
   before relying on them.
-- That PCF gives nozzle positions and directions: assumed from general
-  knowledge of the format, not checked.
+- PCF nozzle data: **verified 2026-10-25** against the PCF Reference
+  Guide §10 (`docs/integrations/pcf.md`).  `EQUIPMENT-REFERENCE` blocks
+  list `NOZZLE` entries with `REFERENCE`, `CO-ORDS` (x y z, size,
+  connection) and `DIRECTION`.  `DIRECTION` is a compass/elevation word
+  (`EAST`, `UP`, …), not a vector, so oblique nozzles need another
+  source.  Pipelines attach via `END-CONNECTION-EQUIPMENT` /
+  `CONNECTION-REFERENCE`.

@@ -17,8 +17,42 @@ rejected.  Records are written in design sessions, and they are the only way
 |---|---|---|
 | [0001](0001-complete-assembly-prototype.md) | Complete A5/A7 in the assembly prototype | accepted |
 | [0002](0002-equipment-nozzle-boundaries.md) | Equipment nozzles as network boundaries | accepted |
-| [0003](0003-drum-body-and-shell-nozzles.md) | Meshing drum bodies and shell nozzles | proposed |
+| [0003](0003-drum-body-and-shell-nozzles.md) | Drum bodies, shell nozzles and density changes | proposed |
 | [0004](0004-retire-legacy-api.md) | Retire the legacy API | accepted |
+| [0005](0005-n-outer-as-sub-partition.md) | `n_outer = 8` as a sub-partition of the 4-corner grid | proposed |
+| [0006](0006-layer-stack-changes-in-sweeps.md) | Layer-stack changes inside sweep fittings | accepted |
+| [0007](0007-alternative-realisation-backends.md) | Alternative realisation backends (Cubit rejected) | proposed |
+| [0008](0008-profiled-sweep.md) | Profiled sweep: a varying-radius fitting | accepted |
+| [0009](0009-rectangular-sections-and-transitions.md) | Rectangular sections and circle ↔ rectangle transitions | accepted |
+| [0010](0010-section-symmetry-period.md) | Corner identity by index and the section symmetry period P | accepted |
+| [0011](0011-port-face-signatures-and-switch-strategies.md) | Port-face signatures and topology-switch strategies | accepted |
+| [0012](0012-openfoam-validation-cases.md) | OpenFOAM verification and validation cases | accepted |
+| [0013](0013-openfoam-group-names-and-boundary-roles.md) | OpenFOAM output: group names and boundary roles | accepted |
+| [0014](0014-test-infrastructure.md) | Test infrastructure: parallel runs and shared-machine rules | accepted |
+| [0015](0015-exact-straight-slabs-and-convergence-studies.md) | Exact walls in straight slabs, and how convergence is judged | accepted |
+| [0016](0016-class-1-granularity-and-grading-changes.md) | Class-1 granularity, and grading changes across a sweep | accepted |
+| [0017](0017-wye-junction-prototype.md) | Y-junction (wye): prototype first, quality limit after measurement | accepted |
+| [0018](0018-future-vascular-networks.md) | Future expansion: idealised vascular networks | proposed (future) |
+| [0019](0019-future-agent-sdk.md) | Future expansion: an agent SDK (hexmesh driven by AI tool calls) | proposed (future) |
+| [0020](0020-build-time-scaling-and-parallelism.md) | Build time grows linearly with the model; parallelism only across jobs | accepted |
+| [0021](0021-future-flow-restrictions.md) | Future expansion: flow restrictions (orifices, nozzles, venturis, and beyond) | proposed (future) |
+| [0022](0022-oh-core-convergence-order.md) | Convergence order of the O-H section, and a self-similar core square | proposed |
+
+## Future expansions
+
+Directions the user wants kept open, recorded as `proposed` decisions
+with no tasks.  Each lists constraints that new decisions are checked
+against (template, *Consequences*).
+
+| Decision | Expansion |
+|---|---|
+| [0018](0018-future-vascular-networks.md) | Idealised vascular networks (centrelines + radius, bifurcations, VMTK input) |
+| [0019](0019-future-agent-sdk.md) | Agent SDK: tool interface over the network JSON (schema, structured errors, preview, build jobs) |
+| [0021](0021-future-flow-restrictions.md) | Flow restrictions, staged: profiles (stage 0) → orifice plates → bevels and rounded entries → eccentric, segmental, cone meters → non-swept devices |
+
+On hold, not yet recorded (discussed 2026-10-26): drum heads and closed
+vessels (a `Head` fitting as half a cubed-sphere O-grid; spheres as two
+heads), split from decision 0003 option A.
 
 ## The loop
 
@@ -75,6 +109,8 @@ must be settled first.
 ## Consequences
 
 DESIGN.md changes (exact sections), new tasks, what becomes harder.
+Effect on future expansions (see "Future expansions"): none, or which
+constraint is affected and how.
 
 ## Verified vs. assumed
 

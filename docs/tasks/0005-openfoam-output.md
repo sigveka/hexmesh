@@ -12,15 +12,19 @@ with no format options, and nothing in the repo sets
 
 **Do.**
 1. **Verify first:** check which MSH versions the target OpenFOAM's
-   `gmshToFoam` reads (expected MSH 2.2 ASCII, but confirm).  Record the
-   result in the docstring.
+   `gmshToFoam` reads (expected MSH 2.2 ASCII, but confirm).  OpenFOAM
+   v1912 is installed locally: `source /usr/share/openfoam/etc/bashrc`
+   first.  Record the result in the docstring **and** in
+   `docs/integrations/openfoam.md`, and settle as many of its open
+   questions as this task reaches: MSH version, cellZones, orientation
+   (`checkMesh`).
 2. Add `Assembly.write(path, format=None)`, or a `write_openfoam(path)`
    helper, that sets `Mesh.MshFileVersion` (and `Mesh.Binary = 0`) for
    `.msh` output, restoring the previous option values afterwards.
-3. Add `docs/OPENFOAM.md` with the CHT recipe: `gmshToFoam` →
-   `splitMeshRegions -cellZones -overwrite` for multi-material meshes.
-   Physical volumes are already per material.  Mark any step you could not
-   run as unverified.
+3. Add the CHT recipe to `docs/integrations/openfoam.md` ("Features
+   used"): `gmshToFoam` → `splitMeshRegions -cellZones -overwrite` for
+   multi-material meshes.  Physical volumes are already per material.
+   Mark any step you could not run as unverified.
 
 **Accept.**
 - Test: the written `.msh` header has the expected version.  Parse the
@@ -77,6 +81,11 @@ Measured on OpenFOAM v1912 (Debian 1912.200626) and gmsh 4.12.1,
    `write_openfoam_case` successor; see the "Gaps" section of
    `openfoam.md`), or leave that to the user?
 
+**Design answers (2026-10-25):** both questions are answered by
+[decision 0013](../decisions/0013-openfoam-group-names-and-boundary-roles.md):
+Q1, rename to `interface_<inner>_<outer>` (task 0022); Q2, hexmesh
+exports a role manifest and retypes walls (task 0023).
+
 ## Outcome
 
 - **Files:**
@@ -103,5 +112,4 @@ Measured on OpenFOAM v1912 (Debian 1912.200626) and gmsh 4.12.1,
   meshes, because `removePhysicalGroups([])` removes all groups.  The
   tee figures above came from a plain `gmsh.write` of MSH 2.2, not from
   `write_openfoam`.  Fixed in 0009, with a regression test.
-
 - **Tests:** 440 passed, 0 failed (the OpenFOAM test ran, not skipped).

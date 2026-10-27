@@ -443,6 +443,195 @@ topology or mesh-construction details.
 - Its worst skewness of 0.51 shows an industrial all-hex equal-diameter
   tee lands right at the NES < 0.5 target of §4.2.
 
+### 7.3 Smooth axisymmetric constriction (stenosis) benchmark [`varghese_and_frankel_etal_2007`]
+
+**Geometry.**  A straight pipe of diameter $D$ with a cosine-shaped
+constriction centred at $x_0$:
+
+$$
+R(x) = \frac{D}{2}\left[1 - s_0\left(1 + \cos\frac{2\pi(x - x_0)}{L}\right)\right],
+\qquad |x - x_0| \le L/2
+$$
+
+With $s_0 = 0.25$ the throat radius is $D/4$: 50 % radius and 75 % area
+reduction.  The Purdue database page gives $L = 2D$; check against the
+paper.
+
+**Reference data.**
+- DNS of steady inlet flow (Part 1) at Re = 500, 750 and 1000.
+- The [Purdue CFD Lab database](https://engineering.purdue.edu/CFDLAB/DNS_stenoticflow_database/main.html)
+  covers the axisymmetric and an eccentric model.
+- Part 2 (JFM 582:281–318) covers pulsatile flow.
+- [`griffith_and_leweke_etal_2008`] studies the same geometry: it finds
+  the post-stenotic jet stays laminar at Re 500 and 1000 in simulation,
+  unlike experiments, and analyses convective and absolute instabilities.
+- Background: experiments with the same smooth cosine stenosis (Cassanova
+  & Giddens 1978, cited by Griffith et al.; not checked).
+
+**Local prior work.**  `../geometry_valve/` (a 2018 gmsh `.geo` model)
+builds this profile as $R(x) = R\,[1 - \tfrac{f_0}{2}(1 + \cos(2\pi(x -
+x_0)/L))]$, with $f_0 = 0.5$ (same as $s_0 = 0.25$).  But it uses
+$L = D$, not $2D$.  Its old `mesh.msh`, checked 2026-10-24:
+16,653 hexes, 17,856 nodes, no duplicated node positions.  It is
+conformal, but only because the old `.geo` kernel merges coincident
+points, which DESIGN P2 rules out for hexmesh.  Its topology keeps a
+**constant-radius core square** (radius half the throat radius) and lets
+only the ring follow $R(x)$.
+
+**For hexmesh.**
+- A good **first OpenFOAM validation case**: one axisymmetric fitting,
+  laminar to transitional, with public high-fidelity data.  It is
+  simpler than the tee benchmark (§7.2).  Natural after task 0005
+  (OpenFOAM-readable output).
+- It needs a varying-radius sweep (decision 0008, proposed).  The
+  current `Reducer` handles only a linear $R(s)$.
+
+### 7.4 Laminar Hagen–Poiseuille verification (task 0020)
+
+Measured 2026-10-26: hexmesh `82147f4`, gmsh 4.12.1, OpenFOAM v1912.
+D = 0.02 m, Re = 100, 30 D long, Δp measured from 15 D to 25 D.  Three
+levels: `nang` 6/12/24, `nrad` 3/6/12, 48/96/192 axial cells (5 184 /
+41 472 / 331 776 cells).  Full tables: `validation/poiseuille/RESULTS.md`.
+
+**Finding 1: plate-filled straight walls are not exact.**
+- Δp error stuck at **+2.59 / +2.63 / +2.60 %**: it doesn't converge.
+- Cause: a multi-layer `Straight` slab has OCC plate side surfaces, and
+  gmsh puts the interior nodes on them.
+  - Single-layer pipe: up to **1.08 % of R** inside the circle.
+  - Two-layer pipe, 16 layers (design session check): −0.15 % to
+    +0.69 % of R, on the outer wall and on the fluid/steel interface
+    alike, the same at `nang` 6 and 24.
+- The sagged cross-section's area predicts the measured Δp within 0.1 %
+  (Δp ∝ 1/A² at fixed Q).
+- Ruled side surfaces (`addBSplineFilling(type="Stretch")`) put the
+  nodes on the cylinder to 4e-16 R.  Decision 0015 makes them the rule
+  (DESIGN §6).
+
+**Finding 2: with exact walls, the remaining error is two errors of
+opposite sign.**  Diagnostic run, ruled walls patched in:
+
+| Level | Δp error | inlet-flow deficit | polygon area deficit | Δp geometric part | remainder |
+|---|---|---|---|---|---|
+| coarse | +0.451 % | 1.138 % | 1.138 % | +1.151 % | −0.692 % |
+| medium | +0.207 % | 0.285 % | 0.285 % | +0.286 % | −0.079 % |
+| fine | +0.104 % | 0.071 % | 0.071 % | +0.071 % | +0.033 % |
+
+- The mesh's cross-section is the inscribed $N$-gon, $N = 4\,$`nang`, with
+  area deficit $1 - \frac{N}{2\pi}\sin\frac{2\pi}{N} \approx
+  \frac{(2\pi/N)^2}{6}$.  The measured inlet-flow deficit (uniform
+  inlet U) equals it to four digits.  Every finite-volume mesh with flat
+  faces between wall nodes has this second-order error.
+- At fixed inlet velocity, Δp ∝ 1/A, which gives the "geometric part"
+  column.  The remainder is the discretisation error; it shrinks fast
+  and changes sign between medium and fine.
+- So the order from |e| against the circle (1.12, 0.99) means nothing.
+  Richardson extrapolation of the three levels
+  [`celik_and_ghia_etal_2008`]:
+
+  | Quantity | observed order | extrapolated error |
+  |---|---|---|
+  | Δp | 1.25 | +0.030 % |
+  | u_max (fitted centreline) | 1.91 | −0.007 % |
+
+- Both converge to the exact solution.  u_max, which no competing
+  geometric error affects, converges at about second order.
+
+**Mesh metrics.**  min scaled Jacobian 0.79 / 0.75 / 0.73.  Max
+non-orthogonality 23 / 33 / 38°, max skewness 0.43 / 0.48 / 0.51.  At an
+inner-square corner of the O-H section the angles are 90° / 135° / 135°,
+and refinement resolves that kink more sharply.  The maxima are expected
+to level off near the kink's limit (about 45° non-orthogonality); not
+yet measured.  If they don't, inner-square sizing (`OH_RATIO` = 0.6) and
+bulged inner-square sides are the levers.
+
+**For hexmesh.**
+- Judge verification cases by signed errors against a reference for the
+  meshed geometry, plus Richardson extrapolation (decision 0015).
+- A uniform inlet into a polygonal section delivers less flow than
+  Ū·πR².  Compare against the flow actually delivered.
+
+### 7.5 Analytic validation cases: planned and tasked
+
+Exact solutions that each test a specific part of hexmesh.  Judged by
+signed errors and Richardson extrapolation (decision 0015,
+[`celik_and_ghia_etal_2008`]); post-processing in Python, since function
+objects abort on the local OpenFOAM build (`docs/integrations/openfoam.md`).
+
+| Case | Exact result | Tests in hexmesh | Status |
+|---|---|---|---|
+| Hagen–Poiseuille | $\Delta p = 32\nu\bar U L/D^2$, $u_\max = 2\bar U$ | straight pipe, O-H core | task 0020 (§7.4) |
+| Rod with uniform heat generation | $T = T_w + q'''(R^2 - r^2)/4k$ | O-H core, pure diffusion (no p–U coupling) | task 0033 |
+| Heated rod with cladding (solids) | series resistances $\sum \ln(r_{i+1}/r_i)/2\pi k_i$, log profiles | layer stack, interfaces, `mappedWall` coupling | task 0034 |
+| Heated multi-layer pipe, laminar | $dT_b/dx = q'/\dot m c_p$; Nu = 48/11 (uniform flux); log profiles | full CHT | task 0035 |
+| Smooth cosine constriction | DNS data (§7.3) | profiled reducer | task 0032 |
+| Uniform wall temperature | Nu = 3.66 | as 0035, wall BC variant | planned |
+| Graetz problem | series solution for local Nu(x) | axial resolution and grading near an inlet | planned |
+| Annular Poiseuille (solid core, fluid shell) | $u = \frac{G}{4\mu}\left[R_2^2 - r^2 + (R_2^2 - R_1^2)\frac{\ln(r/R_2)}{\ln(R_1/R_2)}\right]$ | a fluid region in a shell layer | planned |
+| Taylor–Couette | $u_\theta = Ar + B/r$ | circumferential resolution in shells | planned |
+| Rectangular duct | Fourier series; $f\,Re \approx 56.9$ for a square ($D_h$) | rectangular sections (task 0028) | planned, after 0028 |
+| Dean flow, weak curvature | Dean's perturbation for the flow reduction at small Dean number (check coefficients against the source) | `Bend` | planned |
+| Womersley flow | Bessel-function velocity profile | transient runs; vascular direction (decision 0018) | planned |
+
+Order: 0033 → 0034 → 0035 (each reuses the previous one's setup).  The
+planned cases get tasks when their fitting exists or the area is in
+focus.
+
+### 7.6 Heated rod: convergence order of the O-H section (task 0033)
+
+Measured 2026-10-27: hexmesh `d71d0d8`, gmsh 4.12.1, OpenFOAM v1912.
+Steady conduction with uniform generation, $T = T_w + q'''(R^2 -
+r^2)/4k$; the same Poisson problem as Poiseuille, without p–U coupling.
+Two series (uniform, wall-graded), `nang`/`nrad` 6/3 → 48/24.  Full
+tables: `validation/heated_rod/RESULTS.md`.
+
+| Series | L2 order per refinement | ΔT₀ order | extrapolated ΔT₀ − exact | GCI fine |
+|---|---|---|---|---|
+| uniform | 1.77, 1.57, 1.34 | 1.58, 1.38, 1.22 | −0.020 % | 0.070 % |
+| graded | 1.70, 1.61, 1.31 | 1.62, 1.45, 1.25 | −0.026 % | 0.075 % |
+
+- Values converge to the exact solution; the **order falls** with
+  refinement instead of approaching 2.
+- Slowest in the **core square** (order 1.23 at k = 4 → 8; ring 1.41,
+  ring near the diagonals 1.73).  The error is a near-uniform negative
+  bias.
+- Max non-orthogonality 23.5 / 33.2 / 38.9 / 41.9°, the worst faces
+  moving onto the core-square corners (r/R 0.50 → 0.59), so the §7.4
+  expectation that it levels off near 45° holds; the mesh family is not
+  self-similar at those corners.
+- Together with Poiseuille's Δp order 1.25 (§7.4), this suggests the O-H
+  family converges at about 1.3–1.5 for `Gauss linear corrected`
+  (correlation, cause unproven).
+
+**For hexmesh.**  Order reported, not gated, on O-H sections; GCI with
+the observed order (decision 0015, amended).  Whether the order levels
+off: the k = 16 level (task 0033).  Corner-free control and a
+self-similar core square: decision 0022 (proposed).
+
+### 7.7 Build time (task 0036)
+
+Measured 2026-10-27 on an idle machine (`benchmarks/build_time.py`,
+serpentine of `Straight` + `Bend(180)` pairs, `nang` 4, one layer).
+
+| volumes | cells | `synchronize` calls before → after | total s before → after | speed-up |
+|---|---|---|---|---|
+| 70 | 1 280 | 136 → 4 | 3.28 → 1.27 | 2.6× |
+| 280 | 5 120 | 520 → 4 | 29.4 → 4.79 | 6.1× |
+| 1 050 | 19 200 | 1 928 → 4 | 340.0 → 19.8 | 17.2× |
+| 2 100 | 38 400 | — → 4 | — → 50.0 | — |
+
+- Growth exponent of total time vs volumes: 1.73 before, **1.03** after
+  (70–1050 volumes); 1.07 including 2100.
+- `synchronize` is now called 4 times per assembly, 0 per fitting;
+  hexmesh records the end points and kinds of the curves it creates
+  instead of reading the model back.
+- Remaining super-linear term: `occ.remove` of construction points,
+  whose cost per point grows with the model (19.7 s for 2900 points at
+  2100 volumes).
+- B-spline "Stretch" side faces cost 1.6 ms against 6.4 ms for a plate
+  filling, with identical meshes on one-layer slabs.
+- `pipe_rack`: 61.7 s → 6.2 s.  Test suite: 687 s → 328 s.
+- Facts about OCC/gmsh synchronization: `docs/integrations/gmsh.md`.
+
 ---
 
 ## 8. Proposed hexmesh actions
@@ -457,6 +646,473 @@ topology or mesh-construction details.
 | `n_outer` choice | Test whether `n_outer = 4` + π/4 interface roll suffices at the wye | §4.4 |
 | Quality gates | Report min scaled Jacobian and NES next to SICN; set limits per fitting | §4.2, §4.4, §7.1 |
 | Flow validation | OpenFOAM loss-coefficient runs for laterals (30–90°) against the Štigler data; acceptance test for equal-diameter tee | §7.2 |
+| `n_outer` | Define `n_outer = 8` as a sub-partition of the 4-corner grid; check node connectivity is unchanged | §9.2 |
+| Density change | Refinement-transition fitting (×2 per direction) or declared non-conformal break; design decision first | §9.3–9.4 |
+| Local refinement | Single-sheet (pillow) insertion inside a fitting, ending on the outermost wall; ports unchanged | §9.5 |
+| Port-face compatibility | Classify port-face pairs (classes 0–3) by mesh signature in `validate()`; decision 0011 (proposed) | §9.6 |
+| Stenosis benchmark | Varying-radius sweep (decision 0008); OpenFOAM validation against the Varghese/Purdue data | §7.3 |
+
+---
+
+## 9. Changing topology along a network
+
+What can change between two interfaces of a network, and at what cost.
+Organized by the dual view of a hex mesh from
+[`harris_and_benzley_etal_2004`].
+
+### 9.1 The dual view: twist planes and hex sheets
+
+Every hex is the intersection of three **twist planes**, the surfaces of
+the mesh's dual (the "spatial twist continuum").  The cells cut by one
+twist plane form a **hex sheet**.  In 2-D the planes reduce to **chords**,
+each running through one row or column of quads.  A twist plane either
+ends on the domain boundary or closes on itself.  It cannot end inside
+the mesh.
+
+Two consequences matter for hexmesh:
+
+- **Changing block boundaries changes nothing in the mesh** if the new
+  boundaries lie along existing grid lines.  No twist plane is added or
+  removed.
+- **Changing a node count changes the twist planes.**  New planes have to
+  start somewhere inside the domain.  The only way to do that is to turn
+  a plane back 180°, which creates *transition* cells with irregular
+  vertices.
+
+### 9.2 `n_outer` as a sub-partition (no mesh change)
+
+With `nang` even, the `n_outer = 4` face already has grid lines through
+0°/90°/180°/270°: the middle line of each ring patch, and the two centre
+lines of the core.  Cutting along them gives 8 ring patches and a 2×2
+core, with **the same twist planes**, so the same node connectivity.
+Node positions on the new cut lines may move slightly once they become
+explicit curves.
+
+This differs from the current `build_oh_circle8`.  It builds an 8-arc
+inner boundary and one 8-sided centre patch (`faces/oh_circle.py:34–36`).
+That's a different mesh, and it's the DESIGN §9 deviation.
+
+If `n_outer = 8` is defined as the sub-partition:
+
+- `n_outer` stops being a mesh-topology parameter and becomes a block
+  partition, chosen per fitting as the finest any of its ports needs;
+- the DESIGN §10 question "`n_outer` per network or per interface"
+  becomes moot;
+- tee tips and wye split planes land on block corners without a
+  π/4 roll.
+
+Status: reasoning, not tested.  The test is to mesh both partitions of
+one face and compare node counts and connectivity.
+
+### 9.3 Node-count changes: twist-plane insertion [`harris_and_benzley_etal_2004`]
+
+The paper refines all-hex meshes conformally by inserting twist planes
+that close on themselves (3-D "spheroids") or end on the boundary.  Each
+refinement direction is a separate step inside one sheet or a pair of
+sheets:
+
+| Operation | Edge split | Hexes per target hex | Templates |
+|---|---|---|---|
+| Single sheet | 1 → 3 | 27 | main (8 marked nodes), face transition (4), edge transition (2) |
+| Parallel sheets | 1 → 2 | 8 | main (4 marked nodes on a face), edge (2), corner (1) |
+| Combination | parallel, then single | — | parallel templates split at ⅓ edge length, then single-sheet |
+
+Transition cells sit where the inserted plane turns back.  They always
+have lower quality than the original cells.  Quality is worst where two
+transition zones overlap.
+
+**Restrictions** in the paper:
+
+- the target region must be **convex**, because a concave region forces
+  the inserted plane to self-intersect;
+- parallel-sheet refinement needs the two sheets to stay **parallel**.
+  Sheets that cross or diverge, common in unstructured meshes, force
+  early turn-backs.
+
+**Quality** (shape metric: 1 ideal, 0 degenerate; min before → after,
+then after Mesquite mean-ratio smoothing):
+
+| Case | Original min | Refined min | Smoothed min |
+|---|---|---|---|
+| Single sheet, element group (Fig. 7b) | 0.726 | 0.294 | 0.312 |
+| Combination, along a curve (Fig. 17b) | 0.612 | 0.306 | 0.447 |
+| Parallel sheets, along a curve (Fig. 17c) | 0.612 | 0.417 | 0.416 |
+| Single sheet, along a curve (Fig. 17d) | 0.612 | 0.166 | 0.257 |
+
+The base meshes in the paper are unstructured, and the authors rely on
+smoothing.
+
+### 9.4 What this means for a density change in a pipe
+
+- **Axial count** (`n_layers`) is already per fitting (A5).  Axial twist
+  planes are cross-sections, and they can end at any slab.  No
+  transition is needed.
+- **Angular count (`nang`)** and **radial count (`nrad`)** form sheet
+  families that run along the whole pipe:
+  - angular sheets cross the core and end on the wall at both sides;
+  - radial sheets are the concentric O-rings.
+  Doubling one of them means inserting new planes that come in through
+  the downstream interface and turn back inside a **transition slab**.
+  That is the paper's parallel-sheet case (×2), and the single-sheet
+  case gives ×3.
+- **The paper's restrictions largely vanish in hexmesh.**  In a
+  structured O-grid pipe, every sheet family is regular and parallel,
+  and the transition region (a full cross-section slab) is convex.  The
+  paper's difficulties come from unstructured base meshes.  This is
+  reasoning, not tested.
+- **Quality without smoothing** is the open risk.  Smoothing is ruled out
+  (§5, DESIGN A2).  The paper's best unsmoothed transition minimum was
+  0.417, from an unstructured base.  A structured base with analytically
+  placed template nodes might do better, but that is unmeasured.
+- **Realisation in GMSH** needs one of:
+  - each transition cell as its own one-cell transfinite block, built
+    through the §6.1 block registry (could mean thousands of OCC volumes
+    per slab);
+  - or the slab's elements written directly into a discrete GMSH volume,
+    with nodes shared with the neighbouring interfaces.
+  Either is a new fitting kind.
+- **DESIGN A5** says density is "solved globally".  A transition fitting
+  would change that to "solved per zone".  Zones would be separated by
+  declared refinement fittings, with fixed ratios (×2 or ×3) between
+  them.
+- **The alternative** is a declared non-conformal break, coupled with
+  OpenFOAM AMI.  That is the same scope question as decision 0003,
+  option C.
+
+### 9.5 Single-sheet insertion in swept meshes: cleave and fill [`borden_and_benzley_etal_2000`]
+
+**Method.**  Refinement aimed specifically at **swept** meshes:
+
+1. Choose a path of nodes across the source or target mesh.  The paper
+   uses a weighted Dijkstra search that prefers few nodes, few turns, and
+   paths away from the surface.
+2. Project the path along the sweep over a chosen range of sweep layers.
+   This gives the "cleaved plane".
+3. Split ("cleave") the mesh along that plane, and fill the gap with a
+   **pillow**: one new layer of hexes with the same connectivity as the
+   cleaved surface.
+
+In dual terms (§9.1), each operation inserts **one** new sheet (+1 cell
+across it), not a ×2 or ×3 multiplication as in §9.3.  The sheet ends
+where it emerges on a surface, or closes on itself.  Variants:
+
+- cleaving along the sweep or across it;
+- *internal* cleaving: a closed loop of nodes at a fixed number of
+  intervals from the linking surfaces, projected through the volume, so
+  the linking (side-wall) surfaces stay untouched;
+- *totally contained*: the cleaved volume and pillow sit inside the mesh,
+  so no boundary changes at all.
+
+**Motivating case.**  Tapered sweeps.  With the same intervals at both
+ends of a sweep whose cross-section changes size, cells on one side get
+poor aspect ratios.  Inserting sheets where the section is large fixes
+that.  The paper reports, for a wedge model, average aspect ratio 1.956
+before and 1.441 after cleave, fill and smoothing; maximum 2.683 before
+and 1.857 after.  The table is garbled in the text extraction, so check
+these against the PDF.  Smoothing is part of the method throughout.
+
+**What it means for hexmesh.**
+
+- **Local refinement without touching interfaces.**  A sheet that runs
+  over only part of a sweep must end somewhere.  If it ends on the
+  **outermost wall** (a true boundary), or closes on itself, the fitting's
+  port faces are unchanged.  A fitting could then add resolution inside
+  itself, e.g. near a tee or bend exit, while A5's global `nang`/`nrad`
+  stays intact at every interface.  In a multi-layer (CHT) pipe the sheet
+  must cross *all* layers out to the outermost wall.  Ending on the
+  fluid/wall interface would make that interface non-conformal.
+- **Extra O-rings locally.**  In an O-grid, the paper's internal loop at k
+  intervals from the wall is an O-ring.  Pillowing it over a few slabs
+  adds a ring layer there.  This adds +1 radial cell per radius inside
+  the segment, and +1 axial cell at each segment end where the pillow
+  closes.  Grading (tasks 0000–0002) covers most near-wall needs more
+  cheaply.
+- **High-ratio reducers and head nozzles** (decision 0003, cases 1–2) are
+  tapered sweeps, the paper's motivating case.  Sheets that start inside
+  the large end and end on the wall would reduce the circumferential size
+  jump without changing either port.
+- **Path search is not needed.**  In a structured O-grid every candidate
+  path is a known grid line or ring.  The Dijkstra step, which is most of
+  the paper, doesn't transfer.
+- **Same open risk as §9.3.**  Pillow corners are irregular vertices, and
+  the paper smooths afterwards.  Quality with analytic node placement and
+  no smoothing is unmeasured.
+- **Limits** (stated by the authors):
+  - internal cleaving must lie in one sweep layer, i.e. along the sweep;
+  - it doesn't handle holes;
+  - coarsening is future work.
+  The 2004 paper (§9.3) calls pillow-based refinement limited in "control
+  and scale".
+
+**Compared with §9.3.**  Twist-plane templates multiply a region's counts
+(×2 or ×3), which suits *density breaks* between zones.  Cleave and fill
+adds single sheets along sweeps, which suits *local refinement inside a
+fitting* with unchanged ports.  The two are complementary.  Both put
+irregular vertices where a sheet turns or ends.
+
+### 9.6 Connecting two faces of different topology
+
+**Question.**  Can a fitting have port faces whose quad meshes differ,
+and still fill the volume between them with conformal hexes?  On a
+single interface the answer is always no: under A1 both sides share one
+face mesh.  The question is only about fittings.
+
+**Existence: settled, but not practical.**
+- **Ball-shaped volumes** [`mitchell_1996`]: a quad mesh of a sphere
+  admits a compatible all-hex fill **iff it has an even number of
+  quads**.  The proof is not constructive.
+- **Size** [`eppstein_1999`]: a fill with O(n) hexes always exists.  Its
+  buffer-layer construction gives unusable cell quality.
+- **Non-ball volumes** [`erickson_2014`]: a fill exists iff the quad
+  count is even **and no odd cycle of the boundary mesh bounds a surface
+  inside the domain**.  It can be built in polynomial time.  This matters
+  for hexmesh: every shell layer of a pipe (wall, insulation) is a
+  **solid torus** (annulus × length), not a ball, so Erickson's
+  condition, not Mitchell's, is the right check per layer.  For hexmesh's
+  annuli the loop around the pipe has 4·`nang` quads, which is even.
+- **Small cases** [`verhetsel_and_pellerin_etal_2019`,
+  `verhetsel_2024`]: computer search for minimal fills.
+  - All 54,943 even quadrangulations of the sphere with up to 20 quads
+    were filled with at most 72 hexes.
+  - The general bound improves to 78n hexes (from 5396n).
+  - The thesis builds the first geometric meshes with planar faces for
+    Schneiders' pyramid and the tetragonal trapezohedron.
+  The technique (quad flips ≙ hexes glued to the boundary, plus shelling)
+  is a way to **find** small transition templates by machine instead of
+  designing them by hand.
+
+**Practice: matching two existing meshes** [`staten_and_shepherd_etal_2008`,
+`staten_and_shepherd_etal_2010`, `chen_and_gao_etal_2016`].
+- "Mesh matching" makes a non-conforming hex-to-hex interface conforming
+  by locally changing one or both meshes.  Chords of the two interface
+  meshes are paired.  Sheets whose chords lie on the interface are then
+  inserted or extracted recursively until every chord has a partner.
+- The operations used:
+  - pillowing;
+  - **sheet inflation**, an extension of pillowing for sheets that
+    intersect or touch themselves;
+  - sheet extraction, dicing and column collapse.
+- Chen et al. extend it to interfaces with internal loops and
+  self-intersecting sheets.
+- **Difference from hexmesh:** chords are paired by a geometric
+  **distance threshold**, because the two meshes were built
+  independently.  DESIGN P2 forbids that.  In hexmesh both port faces are
+  generated from known specs, so chords can be paired **combinatorially**,
+  by layer, family and index (§9.1).
+
+**Transition templates for count changes** [`pitzalis_and_livesu_etal_2021`,
+`livesu_and_pitzalis_etal_2022`].
+- Grid-based hex meshing converts adaptively refined (2:1) grids into
+  conforming hexes with dual transition schemes.
+- Livesu et al. 2022 list every transition configuration, show that
+  earlier schemes miss some and are asymmetric, and choose a minimal set
+  that always gives edge valence 3–6.  Edge valence bounds the achievable
+  scaled Jacobian (their Fig. 2).
+- Pitzalis et al. 2021 (read in full) define the two conditions an
+  adaptive grid must meet before dual transition schemes can turn it
+  into conforming hexes:
+  - **balancing:** adjacent cells differ by at most one refinement
+    level (×2).  It is local and enforced by iterative splitting.
+  - **pairing:** every cluster of face-adjacent cells of equal size has
+    an **even number of cells along all its sides**.  It is non-local.
+    Octree methods enforce it with tree rules that over-refine.
+  - Their method assigns refinement to grid **vertices** (each controls
+    its 2×2×2 incident cells, so clusters are even by construction) and
+    resolves conflicts with linear constraints.  This gives a binary
+    integer program, solved locally and interleaved with balancing
+    (Gurobi).
+  - Result: never more refinement than octree pairing, and about half
+    the extra cells on average.
+  - **Stated limitation, relevant to pipes:** a **closed ring** of
+    refined cells may be thickened unnecessarily.  A ring exposes no
+    side with an odd count, but the local vertex formulation can't see
+    the global cycle.  The authors conjecture an edge-based formulation
+    might fix it, and leave that open.
+  - Input grids are Cartesian (regular, adaptive, or polycube-sampled).
+    Whether the schemes carry over to irregular vertices, such as an
+    O-grid's core corners, is not addressed.
+- Code is public (`gen-adapt-ref-for-hexmeshing`).  These are the modern
+  successors of Schneiders- and Harris-style templates (§9.3), for
+  Cartesian grids.  Inside one block of a structured pipe, the local
+  structure is Cartesian, so the schemes should apply per block.  This is
+  unverified at block corners (valence 3/5).
+
+**Classification of a port-face pair** (my framework, built on the dual
+view of §9.1 and the operations above):
+
+| Class | Chords of A vs B | Fitting must | Examples |
+|---|---|---|---|
+| 0 | identical (only geometry or block boundaries differ) | sweep; every sheet continues | Reducer; circle ↔ rectangle (0009); `n_outer` sub-partition (0005) |
+| 1 | differ by closed loops | insert or remove a capped sheet (pillow / sheet inflation) | O-H face ↔ single-patch square; layer termination (0006, sheets end on the end-annulus wall) |
+| 2 | same pattern, different counts | sheets start inside by turning back: refinement templates, fixed ratios | `nang`/`nrad` density breaks (0003) |
+| 3 | no acceptable conformal fill | declared non-conformal joint | equipment, 0003 option C |
+
+**For hexmesh.**
+- The class is pure combinatorics on the two port faces' chords, so
+  `validate()` could compute it **before GMSH**.  It would then either
+  pick the required transition (class 0: any sweep; 1/2: a named template
+  or a rejection) or demand a declared joint (class 3).  This would
+  replace "port types must match exactly" with a check that explains
+  *what* is missing.
+- **Existence is never the blocker** for pipe sections: even counts hold
+  by construction (4·`nang` around, `nang`² core).  The blockers are
+  template availability and cell quality without smoothing.
+- **Machine-searched templates** (Verhetsel) are a route to class 1/2
+  transition templates with known minimal hex counts.  Geometric quality
+  would still need checking.
+- A **density solve over the whole network as an integer program**
+  (Pitzalis) is a natural formulation if A5 ever moves to
+  density-per-zone with fixed transition ratios (decision 0003).
+- **Pairing gives checkable parity rules for a ×2 density break**
+  (derived here, untested).  Refining everything downstream of a
+  transition slab makes the refined cluster a full cross-section:
+  - around the pipe, every ring is a **closed ring**, so it exposes no
+    side and the angular direction is free.  This is the case Pitzalis's
+    local solver handles poorly, so don't reuse their solver for it;
+  - across the section, the cluster's sides are each layer's radial span
+    and the core's sides, so **`nrad` (per refined layer) and `nang` must
+    be even** on the coarse side;
+  - along the pipe, the refined zone must be an even number of coarse
+    cells long, or reach the network boundary.
+  All three can be checked in `validate()` before GMSH.  The irregular
+  core corners (valence 3/5) are not covered by the paper.
+
+**Status:** the classification and its use in `validate()` are my
+proposal and are untested.  The cited results come from abstracts and
+the downloaded papers.  The Staten papers were read only through their
+abstracts and patent text: no open copy was found (OSTI refused the
+connection).
+
+---
+
+## 10. Flow restrictions: how the literature handles them
+
+Context: decision 0021 (staged plan for orifices, nozzles, venturis and
+beyond).  Searched 2026-10-27.  Most sources were read through
+abstracts and repository records, not full text; the claims below are
+marked where they rest on snippets.
+
+### 10.1 Standards and the reference text
+
+- **ISO 5167** (parts 1–4: general, orifice plates, nozzles and Venturi
+  nozzles, Venturi tubes) and **ISO/TR 15377** (non-standard devices:
+  quarter-circle, conical-entrance, eccentric orifices) set geometry,
+  installation and discharge coefficients.
+- The orifice discharge coefficient is the **Reader–Harris/Gallagher
+  equation**, a function of β, Re_D and tapping positions; background
+  in NEL's 1996 paper
+  ([NFOGM copy](https://nfogm.no/wp-content/uploads/2019/02/1996-24-The-Orifice-Plate-Discharge-Coefficient-Equation-Reader-Harris-NEL.pdf)).
+- [`reader_harris_2015`] (Springer) explains the reasoning behind the
+  ISO 5167 rules, which the standard itself rarely gives.
+- **Validity limits:** orifice correlations hold for turbulent flow
+  (Re_D ≳ 5 000).  For ISO 5167-4 Venturi tubes two summaries give
+  different lower limits (2 × 10⁴ and 2 × 10⁵); check the edition before
+  relying on either.  The standard also notes machined-convergent
+  Venturis outside its predicted coefficients by 2 % or more.
+
+### 10.2 How devices are simulated
+
+- **Concentric devices are usually 2-D axisymmetric.**  OpenFOAM users
+  build wedge meshes with `blockMesh`; commercial studies use 2-D
+  axisymmetric RANS.  Full 3-D is used when symmetry is broken:
+  installation effects, eccentric plates, V-cone supports, valves.
+- **Turbulence models (RANS):**
+  - SST k-ω tracks the ISO coefficients better than realizable k-ε,
+    whose deviation reached about 4.9 % in one study; mesh uncertainty
+    there was assessed by GCI (up to about 4 %)
+    ([report hosted at Unicamp](https://sites.fem.unicamp.br/~phoenics/EM974/PROJETOS/Temas%20Projetos/ORIFICE%20PLATE%20FLOW%20METER/402%20orifice%20plates%20Balino.pdf);
+    snippet).
+  - [`shah_and_joshi_etal_2012`] used OpenFOAM 1.6 with standard k-ε,
+    validated against the LDA measurements of Nail (1991) and Morrison
+    et al. (1993) from Texas A&M, plus their own pressure-drop data.
+  - Other RANS studies report the discharge coefficient within about
+    4–6 % of experiment, usually under-predicted (snippets).
+- **What is reported:** discharge coefficient against Re and β; vena
+  contracta position; the downstream jet, recirculation and reattachment;
+  pressure-loss coefficients.
+
+### 10.3 Low Reynolds numbers and laminar flow
+
+- [`johansen_1930`]: the classic measurements of pipe-orifice
+  discharge coefficients at low Reynolds numbers.
+- [`hollingshead_and_johnson_etal_2011`]: RANS plus experiments for
+  Venturi, standard concentric orifice, V-cone and wedge meters at low
+  Re.  Venturi, V-cone and wedge coefficients fall quickly with
+  decreasing Re; the orifice's coefficient first **rises to a maximum,
+  then drops sharply**.
+- A 2023 study tests cylindrical orifices in laminar flow at β = 0.5,
+  Re about 450–1 400, noting the coefficient varies strongly with Re
+  below about 10 000
+  ([Scientific Reports](https://www.nature.com/articles/s41598-023-42451-0)).
+- Plate thickness matters more at low Re (thin plates show a stronger
+  Re dependence; snippet).
+
+### 10.4 Installation effects: the upstream network matters
+
+- Bends upstream of a meter distort the profile and create swirl.  Two
+  close-coupled out-of-plane 90° elbows give a single-direction swirl
+  that persists far downstream; a single elbow gives a counter-rotating
+  pair.  Errors of several per cent are reported for high-β orifices,
+  and straight-length recommendations reach 40–60 D (industry and vendor
+  sources; to check against ISO 5167-2 tables and AGA-3).
+- Headers produce similar 3-D disturbances
+  ([IMEKO TC9 2003](https://www.imeko.org/publications/tc9-2003/IMEKO-TC9-2003-042.pdf)).
+- CFD is used to quantify these errors, including uncertainty
+  quantification over elbow distance and meter orientation (polynomial
+  chaos; [PTB-related study](https://www.researchgate.net/publication/305820958_Simulation-based_determination_of_systematic_errors_of_flow_meters_due_to_uncertain_inflow_conditions)):
+  the sickle-shaped profile behind elbows rotates with the inflow.
+
+### 10.5 Perforated plates, flow conditioners, valves, eccentric plates
+
+- **Perforated plates:** [`malavasi_and_messa_etal_2012`] measured
+  pressure-loss coefficients against equivalent diameter ratio, hole
+  thickness and number of holes, compared with ISO 5167-2 single-hole
+  values.
+- **Flow conditioners** (19-tube bundle in ISO 5167, Zanker, NOVA, NEL,
+  others): judged by the ISO criteria (axial velocity within ±5 % of
+  fully developed, swirl below 2°).  Tube bundles kill swirl but leave a
+  flatter profile; Zanker plates have a loss coefficient above 5.
+  Experimental LDA profiles behind five perforated plates
+  ([PTB, IMEKO 2000](https://imeko.org/publications/tc9-2000/IMEKO-TC9-2000-008.pdf));
+  a numerical comparison of NOVA, NEL and Zanker plates at Re 2.5 × 10⁵
+  ([Metrologie 2015](https://cfmetrologie.edpsciences.org/fr/articles/metrology/pdf/2015/01/metrology_metr2015_03005.pdf)).
+- **Valves:** butterfly-valve CFD predicts flow coefficients well at
+  mid openings (30–60°) and poorly at small openings; meshes are
+  hex-dominant unstructured, refined at the disc; convergence checked by
+  Richardson extrapolation in some studies (snippets; vendor validation
+  cases follow Song and Park's butterfly-valve study).
+- **Eccentric and segmental plates:** mostly experimental.  ISO/TR 15377
+  gives C = 0.629 for a fully eccentric plate at β = 0.6
+  ([NEL 2005](https://nfogm.no/wp-content/uploads/2019/02/2005-04-Estimation-of-the-Measurement-Error-of-Eccentrically-Installed-Orifice-Plates-Barton-National-Engineering-Laboratory.pdf));
+  about 600 tests on eccentric and segmental plates in a
+  [Surrey thesis](https://openresearch.surrey.ac.uk/esploro/outputs/doctoral/Flow-measurement-with-eccentric-and-segmental/99512020602346).
+  No CFD study of them was found.
+
+### 10.6 What this means for hexmesh
+
+1. **The niche is the network, not the device.**  For a concentric
+   device alone, a 2-D axisymmetric wedge mesh is the academic baseline,
+   and hexmesh's 3-D mesh adds cost, not accuracy.  hexmesh's value is
+   the device *in its piping*: elbows, headers and the meter in one
+   conformal all-hex mesh, which is exactly what installation-effect
+   studies need (10.4).
+2. **A laminar orifice case is possible before any turbulence model.**
+   Johansen (1930), Hollingshead et al. (2011) and the 2023 laminar
+   study give low-Re data, so stage 1 of decision 0021 can be validated
+   with the laminar pipeline of tasks 0020/0033–0035.
+3. **Turbulent accuracy is limited by RANS, not the mesh.**  Typical
+   discharge-coefficient errors are 2–6 % with SST k-ω doing best, so
+   turbulent gates should be set from that, and judged with GCI
+   (decision 0015).
+4. **A showcase case:** two out-of-plane elbows upstream of an orifice,
+   compared against the ISO straight-length requirements and published
+   installation-effect data.  It uses only bends, straights and the
+   stage-1 orifice.
+5. **Stage 4 is confirmed as outside the swept model:** perforated
+   plates, conditioners and valves are meshed unstructured in the
+   literature, and judged by loss coefficients and profile criteria.
+6. **Eccentric and segmental plates** have experimental data but no
+   CFD literature found: an opportunity, but low priority.
 
 ---
 
@@ -470,7 +1126,15 @@ Downloaded to `papers/`: `bennett_2025`, `decroocq_and_frindel_etal_2023`
 `stockie_2015`, `wang_and_juttler_etal_2007` (tech report of the 2008 TOG
 paper), and `zhang_and_bazilevs_etal_2007` (author preprint).
 `sorgente_and_biasotti_etal_2023` and `stigler_and_klas_etal_2014` were
-already in the repository root and have been moved here.
+already in the repository root and have been moved here, and so were
+`harris_and_benzley_etal_2004` and `borden_and_benzley_etal_2000` (from
+`docs/`).  Added later: `mitchell_1996` and `eppstein_1999` (supplied by
+the user; the latter is the arXiv preprint), and `erickson_2014` (author
+copy), `verhetsel_and_pellerin_etal_2019` (arXiv), `verhetsel_2024`
+(thesis) and `livesu_and_pitzalis_etal_2022` (arXiv), all downloaded.
+`pitzalis_and_livesu_etal_2021` was supplied by the user (publisher PDF).
+Not downloaded: `staten_and_shepherd_etal_2008`/`2010` and
+`chen_and_gao_etal_2016` (paywalled; OSTI unreachable).
 
 Not downloaded:
 

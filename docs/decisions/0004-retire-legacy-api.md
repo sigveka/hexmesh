@@ -34,7 +34,7 @@ Legacy features the assembly does not have yet:
 | `Straight`, `Bend` | done |
 | `TJunction` (side tap) | `Tee`: single-layer, `rot = 0`, perpendicular, centred |
 | `MiterBend`, `Elbow` | missing; a sweep |
-| `Reducer`, `Expander`, `Transition` | missing; a sweep whose port specs differ |
+| `Reducer`, `Expander`, `Transition` | missing; a sweep whose port specs differ.  `Transition` moved to decision 0009 (2026-10-24) |
 | `SplinePipe` | missing; a sweep along Bishop frames |
 | `YJunction` | missing; design open (CLAUDE.md Stage 6, RESEARCH §4) |
 | multi-layer / general tee | missing; design open (tasks README) |
