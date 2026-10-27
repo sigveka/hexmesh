@@ -14,6 +14,7 @@ import math
 import gmsh
 import numpy as np
 
+from .. import _occ
 from ..core.cross_section import CrossSection, BoundaryType
 from ._gmsh_helpers import (
     add_point, add_line, add_line_loop, add_surface, stretched,
@@ -64,7 +65,7 @@ def build_oh_blend(
 
     def spline(k, a, b, inner):
         pts = [geo.addPoint(*xyz(p)) for p in shape.outline(k, mid, inner)]
-        return geo.addSpline([a, *pts, b])
+        return _occ.spline([a, *pts, b])
 
     oc = [spline(k, o[k], o[(k + 1) % 4], False) for k in range(4)]   # NE→NW, …
     ic = [spline(k, i[k], i[(k + 1) % 4], True) for k in range(4)]

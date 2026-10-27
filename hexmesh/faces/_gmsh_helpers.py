@@ -11,6 +11,8 @@ import math
 import gmsh
 import numpy as np
 
+from .. import _occ
+
 
 geo  = gmsh.model.occ
 mesh = gmsh.model.mesh
@@ -28,11 +30,11 @@ def add_point(x: float, y: float, z: float, lc: float) -> int:
 
 
 def add_line(start: int, end: int) -> int:
-    return geo.addLine(start, end)
+    return _occ.line(start, end)
 
 
 def add_arc(start: int, center: int, end: int) -> int:
-    return geo.addCircleArc(start, center, end)
+    return _occ.circle_arc(start, center, end)
 
 
 def add_conic_arc(start: int, center: int, end: int, center_xyz,
@@ -48,7 +50,7 @@ def add_conic_arc(start: int, center: int, end: int, center_xyz,
     symmetric about the major axis.
     """
     if stretch is None or stretch[1] == 1.0:
-        return geo.addCircleArc(start, center, end)
+        return _occ.circle_arc(start, center, end)
     b, s = np.asarray(stretch[0], dtype=float), float(stretch[1])
 
     def unstretch(p):
@@ -65,10 +67,10 @@ def add_conic_arc(start: int, center: int, end: int, center_xyz,
     m = c + (u0 + u2) / (1.0 + cos_d)                 # tangent intersection
     m = m + (s - 1.0) * b * float((m - c) @ b)        # stretch it back
     mid = geo.addPoint(*m)
-    tag = geo.addBSpline([start, mid, end], degree=2,
+    tag = _occ.bspline([start, mid, end], degree=2,
                          weights=[1.0, math.sqrt((1.0 + cos_d) / 2.0), 1.0],
                          knots=[0.0, 1.0], multiplicities=[3, 3])
-    geo.remove([(0, mid)])
+    _occ.discard(mid)
     return tag
 
 
@@ -89,7 +91,12 @@ def add_surface(loop: int) -> int:
 
 
 def set_transfinite_line(tags: list[int], n: int, progression: float = 1.0) -> None:
-    """Apply Transfinite Line with Progression to a list of curve tags."""
+    """Apply Transfinite Line with Progression to a list of curve tags.
+
+    These four helpers do nothing inside ``_occ.building()``.
+    """
+    if _occ.in_build:
+        return
     geo.synchronize()   # OCC: entities must exist before mesh constraints
     for t in tags:
         mesh.setTransfiniteCurve(t, n + 1, "Progression", progression)
@@ -97,18 +104,24 @@ def set_transfinite_line(tags: list[int], n: int, progression: float = 1.0) -> N
 
 def set_transfinite_line_bump(tags: list[int], n: int, bump: float = 1.0) -> None:
     """Apply Transfinite Line with Bump to a list of curve tags."""
+    if _occ.in_build:
+        return
     geo.synchronize()
     for t in tags:
         mesh.setTransfiniteCurve(t, n + 1, "Bump", bump)
 
 
 def set_transfinite_surface(tags: list[int]) -> None:
+    if _occ.in_build:
+        return
     geo.synchronize()
     for t in tags:
         mesh.setTransfiniteSurface(t)
 
 
 def set_recombine_surface(tags: list[int]) -> None:
+    if _occ.in_build:
+        return
     geo.synchronize()
     for t in tags:
         mesh.setRecombine(2, t)

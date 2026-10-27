@@ -30,6 +30,7 @@ from typing import Iterable
 import numpy as np
 import gmsh
 
+from .. import _occ
 from ..core.spec import PipeSpec
 from ..faces._gmsh_helpers import add_physical_group
 from ..quality_hex import METRICS, hex_vertices
@@ -444,8 +445,14 @@ class Assembly:
         if self._faces_built:
             return
         self.validate()
-        for iface in self._interfaces:
-            iface.face = build_face(iface.spec, iface.frame, self.lc)
+        # Fittings read back nothing from the model: hexmesh records what it
+        # needs as it creates curves (hexmesh._occ), and mesh() sets every
+        # face constraint.  So there is one synchronize here, so the faces
+        # can be inspected, and none per fitting (decision 0020, task 0036).
+        _occ.reset()
+        with _occ.building():
+            for iface in self._interfaces:
+                iface.face = build_face(iface.spec, iface.frame, self.lc)
         gmsh.model.occ.synchronize()
         self._faces_built = True
 
@@ -461,11 +468,12 @@ class Assembly:
 
         fill = FillResult()
         for edge in edges:
-            part = edge.fitting.fill(
-                [p.face for p in edge.ports],
-                [p.frame for p in edge.ports],
-                edge.ports[0].spec, self.lc,
-            )
+            with _occ.building():
+                part = edge.fitting.fill(
+                    [p.face for p in edge.ports],
+                    [p.frame for p in edge.ports],
+                    edge.ports[0].spec, self.lc,
+                )
             self._fitting_volumes[edge.index] = [v for vs in part.volumes.values() for v in vs]
             # Wall group per surface; a fill that names none has its
             # inlet's stack throughout (DESIGN A7, decision 0006).
@@ -475,6 +483,7 @@ class Assembly:
                 walls.setdefault(part.wall_groups.get(w, default), []).append(w)
             self._fitting_walls[edge.index] = walls
             fill.merge(part)
+        _occ.remove_discarded()
         gmsh.model.occ.synchronize()
 
         # Face builders leave construction points (arc centres, helpers)
@@ -568,6 +577,11 @@ class Assembly:
         self.build()
         gmsh.model.occ.synchronize()
         self.write_physical_groups(walls_by_fitting)
+        with _occ.building():       # the build's records are still valid
+            self._set_constraints()
+        gmsh.model.mesh.generate(dim)
+
+    def _set_constraints(self) -> None:
         msh = gmsh.model.mesh
         for c in curve_constraints(self._fill.curves).values():
             msh.setTransfiniteCurve(c.tag, c.nodes, c.kind, c.coef)
@@ -579,7 +593,6 @@ class Assembly:
         for tag in self._fill.mesh_vols:
             msh.setTransfiniteVolume(tag, cornerTags=transfinite_volume_corners(tag))
             msh.setRecombine(3, tag)
-        msh.generate(dim)
 
     def write(self, path: str, dim: int = 3, *, walls_by_fitting: bool = False) -> None:
         self.mesh(dim, walls_by_fitting=walls_by_fitting)

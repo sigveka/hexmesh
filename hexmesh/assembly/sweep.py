@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 import numpy as np
 import gmsh
 
+from .. import _occ
 from ..core.cross_section import LayeredCrossSection
 from ..core.shape import CircleShape
 from ..core.spec import PipeSpec
@@ -137,14 +138,19 @@ class Arc:
 
     def builder(self):
         geo = gmsh.model.occ
+        # One centre point per height along the axis: a corner's arcs in
+        # every slab of the sweep share it, so few construction points are
+        # made (each costs an occ.remove later; task 0036).
+        centres: dict[float, int] = {}
 
         def arc(pt_in: int, pt_out: int) -> int:
-            p = np.asarray(gmsh.model.getValue(0, pt_in, []))
-            c = self.centre + self.axis * np.dot(p - self.centre, self.axis)
-            ct = geo.addPoint(*c)
-            tag = geo.addCircleArc(pt_in, ct, pt_out)
-            geo.remove([(0, ct)])
-            return tag
+            p = _occ.coords(pt_in)
+            h = float(np.dot(p - self.centre, self.axis))
+            key = round(h / max(float(np.linalg.norm(p - self.centre)), 1e-300), 9)
+            if key not in centres:
+                centres[key] = geo.addPoint(*(self.centre + self.axis * h))
+                _occ.discard(centres[key])
+            return _occ.circle_arc(pt_in, centres[key], pt_out)
 
         return arc
 
@@ -337,8 +343,6 @@ def sweep_fill(path: Path, faces: list[LayeredCrossSection],
     for k, fr in enumerate(path.frames[1:-1], start=1):
         stations.append(build_face(path.spec_at(k, spec), fr, lc, path.stretch_at(k)))
     stations.append(faces[1])
-    if len(stations) > 2:
-        gmsh.model.occ.synchronize()
 
     axial_curve = path.axial.builder() if path.axial is not None else None
     planar = path.is_straight or path.prism
@@ -354,8 +358,9 @@ def sweep_fill(path: Path, faces: list[LayeredCrossSection],
                                 planar_radial=planar and not path.blend,
                                 grading=grading,
                                 # exact surfaces wherever slabs are straight
-                                # (DESIGN §6); plate filling elsewhere
-                                side_surface=_ruled if path.prism or planar else None,
+                                # (DESIGN §6); elsewhere one-layer slabs whose
+                                # side faces carry no nodes (task 0036)
+                                side_surface=_ruled,
                                 axial_grading=path.axial_grading,
                                 n_fill=None if path.fill is None else path.fill[k]))
     if path.fill is not None:

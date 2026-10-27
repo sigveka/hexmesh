@@ -32,6 +32,7 @@ from dataclasses import dataclass, field
 import numpy as np
 import gmsh
 
+from .. import _occ
 from ..core.shape import OH_RATIO   # re-exported: inner-square scale of the OH face
 from ..core.cross_section import interface_group_name
 from ..quality_hex import corner_scaled_jacobians
@@ -354,16 +355,16 @@ class BlockLayout:
             pa, pb = self._point(e.a), self._point(e.b)
             if isinstance(e.geom, ArcAbout):
                 c = geo.addPoint(*e.geom.centre)
-                e.tag = geo.addCircleArc(pa, c, pb)
-                geo.remove([(0, c)])
+                e.tag = _occ.circle_arc(pa, c, pb)
+                _occ.discard(c)
             elif isinstance(e.geom, Spline):
                 mids = [geo.addPoint(*p) for p in e.geom.points]
-                e.tag = geo.addSpline([pa, *mids, pb])
+                e.tag = _occ.spline([pa, *mids, pb])
             elif isinstance(e.geom, Polyline):
                 mids = [geo.addPoint(*p) for p in e.geom.points]
-                e.tag = geo.addBSpline([pa, *mids, pb], degree=1)
+                e.tag = _occ.bspline([pa, *mids, pb], degree=1)
             else:
-                e.tag = geo.addLine(pa, pb)
+                e.tag = _occ.line(pa, pb)
             e.start = e.a
         return e.tag if e.start == a else -e.tag
 
@@ -374,8 +375,7 @@ class BlockLayout:
             geo = gmsh.model.occ
             curves = [self._curve(cyc[i], cyc[(i + 1) % 4]) for i in range(4)]
             loop = geo.addCurveLoop(curves)
-            # Curves are synchronised before any surface is built.
-            types = [gmsh.model.getType(1, abs(c)) for c in curves]
+            types = [_occ.kind(c) for c in curves]
             straight = all(t == "Line" for t in types)
             if straight and self._coplanar(cyc):
                 self.faces[k] = geo.addPlaneSurface([loop])
@@ -421,7 +421,6 @@ class BlockLayout:
             for group in _EDGES.values():
                 for a, b in group:
                     self._curve(ids[a], ids[b])
-        geo.synchronize()
 
         unbound = [set(k) for k in self.port_faces if k not in self.faces]
         if unbound:
@@ -430,14 +429,12 @@ class BlockLayout:
         surf_of: dict[frozenset, int] = {}
         for k, users in use.items():
             surf_of[k] = self._surface(users[0][1])
-        geo.synchronize()
 
         for ids, material in self.blocks:
             sl = geo.addSurfaceLoop([surf_of[_key(*(ids[i] for i in f))] for f in _FACES])
             vol = geo.addVolume([sl])
             result.volumes.setdefault(material, []).append(vol)
             result.mesh_vols.append(vol)
-        geo.synchronize()
 
         for k, (n, (kind, coef)) in self._classes.items():
             e = self.edges[k]

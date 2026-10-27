@@ -388,8 +388,10 @@ def build_oh_circle8(
     # Centre patch: must specify the 4 diagonal corners explicitly because
     # the loop has 8 curves and GMSH cannot auto-detect 4 corners.
     import gmsh as _gmsh
-    _gmsh.model.occ.synchronize()
-    _gmsh.model.mesh.setTransfiniteSurface(s_c, "Left", [I[0], I[2], I[4], I[6]])
+    from .. import _occ
+    if not _occ.in_build:
+        _gmsh.model.occ.synchronize()
+        _gmsh.model.mesh.setTransfiniteSurface(s_c, "Left", [I[0], I[2], I[4], I[6]])
 
     # Outer ring patches: each has exactly 4 curves → GMSH detects corners.
     set_transfinite_surface(s_ring)

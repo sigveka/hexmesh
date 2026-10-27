@@ -20,6 +20,7 @@ from typing import Callable
 import gmsh
 import numpy as np
 
+from .. import _occ
 from ..core.cross_section import CrossSection
 from ..core.shape import CircleShape, RectShape
 from ..core.spec import PipeSpec
@@ -29,21 +30,12 @@ from .interface import Frame
 def curve_endpoints(curve: int) -> tuple[int, int]:
     """(start, end) point tags of *curve* in its parametric direction.
 
-    With the OCC kernel ``getBoundary`` returns a curve's two end points in
-    ascending tag order, not start/end, so the start is read from the
-    curve's own parametrisation: the end point at the lower parameter bound.
-    This only distinguishes the curve's own two end points; it never
-    matches entities of different faces by distance (DESIGN §6.1).
-    OCC's ``getBoundary`` lists the two end points in ascending tag order,
-    not start → end, so the boundary order alone cannot be trusted.
+    Recorded when hexmesh created the curve (``hexmesh._occ``), so no
+    synchronize is needed; a curve hexmesh did not create is read from the
+    model.  It never matches entities of different faces by distance
+    (DESIGN §6.1).
     """
-    pts = [t for _, t in gmsh.model.getBoundary([(1, abs(curve))], oriented=False)]
-    if len(pts) != 2:
-        raise RuntimeError(f"curve {abs(curve)} has {len(pts)} end points")
-    lo = gmsh.model.getParametrizationBounds(1, abs(curve))[0][0]
-    x0 = np.asarray(gmsh.model.getValue(1, abs(curve), [lo]))
-    d = [np.linalg.norm(np.asarray(gmsh.model.getValue(0, p, [])) - x0) for p in pts]
-    return (pts[0], pts[1]) if d[0] <= d[1] else (pts[1], pts[0])
+    return _occ.endpoints(curve)
 
 
 def _point_graph(dim: int, tag: int) -> dict[int, set[int]]:
@@ -218,7 +210,7 @@ def connect_aligned(
     geo  = gmsh.model.occ
     mesh = gmsh.model.mesh
     if axial_curve is None:
-        axial_curve = geo.addLine
+        axial_curve = _occ.line
     if side_surface is None:
         side_surface = geo.addSurfaceFilling
     ip_in, op_in, ic_in, oc_in, rc_in = (g_in[k] for k in ('ip', 'op', 'ic', 'oc', 'rc'))
@@ -236,10 +228,8 @@ def connect_aligned(
             L = axial_curve(pt_in, pt_out)
             inner_axial.append(L)
             new_inner_axial.append(L)
-        geo.synchronize()   # needed before addCurveLoop references these lines
     else:
         inner_axial = prev_outer_axial
-        geo.synchronize()   # still needed so OCC buffer is clean
 
     # ------------------------------------------------------------------
     # Axial lines for outer corners
@@ -248,7 +238,6 @@ def connect_aligned(
     for pt_in, pt_out in zip(op_in, op_out):
         outer_axial_lines.append(axial_curve(pt_in, pt_out))
     outer_axial = outer_axial_lines
-    geo.synchronize()   # needed before addCurveLoop references these lines
     # outer_axial = [NE, NW, SW, SE]
 
     # ------------------------------------------------------------------
@@ -265,7 +254,6 @@ def connect_aligned(
         loop = geo.addCurveLoop([oc_in[i], outer_axial[j], -oc_out[i], -outer_axial[i]])
         surf = side_surface(loop)
         outer_side_surfs.append(surf)
-    geo.synchronize()
 
     # ------------------------------------------------------------------
     # Inner arc side-surfaces
@@ -283,7 +271,6 @@ def connect_aligned(
             surf = side_surface(loop)
             inner_side_surfs.append(surf)
             new_inner_side_surfs.append(surf)
-        geo.synchronize()
     else:
         inner_side_surfs = prev_outer_side_surfs
 
@@ -304,7 +291,6 @@ def connect_aligned(
         else:
             surf = side_surface(loop)
         radial_side_surfs.append(surf)
-    geo.synchronize()
 
     # ------------------------------------------------------------------
     # Volumes
@@ -339,9 +325,9 @@ def connect_aligned(
 
     # ------------------------------------------------------------------
     # Collect deferred mesh constraints.
-    # Do NOT apply them here — the caller accumulates constraints from all
-    # concentric layers and applies them in a single final synchronize pass
-    # so that no subsequent geo.synchronize() can reset them.
+    # Do NOT apply them here: mesh constraints need a synchronized model,
+    # and the assembly synchronizes once, after the last fitting (task
+    # 0036), then applies every layer's constraints.
     #
     # Arc and radial curves need matching node counts on the inlet and
     # outlet faces so that the taper side-surfaces are transfinite-
