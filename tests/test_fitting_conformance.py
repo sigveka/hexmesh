@@ -33,7 +33,7 @@ import pytest
 from hexmesh.assembly import (
     Assembly, Bend, Closure, Elbow, MiterBend, Reducer, SplinePipe, Straight, Tee, Wye,
 )
-from hexmesh.core.shape import CircleShape
+from hexmesh.core.shape import CircleShape, RectShape
 from hexmesh.core.spec import PipeSpec
 
 
@@ -51,6 +51,16 @@ def _two(radius=0.1, dR=0.025):
 
 def _three(radius=0.1):
     return _two(radius).shell("insulation", dR=0.03, nrad=2)
+
+
+def _duct(half_w=0.1, half_h=0.05, nang_w=4, nang_h=2):
+    """Single-layer rectangular duct, 2:1 by default (task 0028)."""
+    return PipeSpec(nang_w=nang_w, nang_h=nang_h).core(
+        "air", half_w=half_w, half_h=half_h, nrad=2)
+
+
+def _square():
+    return _duct(0.07, 0.07, 3, 3)
 
 
 def _between(spec, fitting, **kw):
@@ -163,6 +173,18 @@ CASES = {
         0.3, 90, n_layers=6, axial_grading=1.2, stack_changes=((3, _two()),))),
     "spline-graded":       lambda: _spline(_one(), ((0, 0, 0), (0.1, 0.4, 0), (0.4, 0.8, 0),
                                                     (0.5, 1.2, 0)), axial_grading=1.05),
+    # rectangular ducts (task 0028): P = π for 2:1, π/2 for a square
+    "duct-straight":       lambda: _between(_duct(), Straight(0.3, n_layers=3)),
+    "duct-bend-easy":      lambda: _between(_duct(), Bend(0.3, 90, n_layers=6)),
+    "duct-bend-hard":      lambda: _between(_duct(), Bend(0.3, 90, n_layers=6, roll=90)),
+    "duct-rolled-180":     lambda: _rolled_outlet(_duct(), Bend(0.3, 90, n_layers=4), 180),
+    "duct-miter":          lambda: _between(_duct(), MiterBend(0.3, 90, n_cuts=2, roll=30)),
+    # absorbs 49.9° of twist: modulo π, where a circle would take −40.1°
+    "duct-closure":        lambda: _ring(_duct(), [60, 0, 120], Closure(n_layers=12)),
+    "duct-spline":         lambda: _spline(_duct(), ((0, 0, 0), (0.1, 0.4, 0), (0.4, 0.8, 0),
+                                                     (0.5, 1.2, 0))),
+    "square-bend-rolled":  lambda: _between(_square(), Bend(0.3, -60, n_layers=4, roll=45)),
+    "square-rolled-90":    lambda: _rolled_outlet(_square(), Straight(0.3, n_layers=3), 90),
 }
 
 
@@ -223,8 +245,20 @@ def _grouped_quads():
 
 
 def _layer_radii(spec):
-    """Radii of every cylindrical boundary of *spec*: core, then each shell."""
+    """Radii of every cylindrical boundary of *spec*: core, then each shell.
+    A duct's (single layer) is its half-diagonal, for scale only."""
+    if isinstance(spec.core_shape, RectShape):
+        return np.array([spec.core_shape.max_extent])
     return np.cumsum([spec.core_shape.radius] + [sh.dR for sh in spec.shells])
+
+
+def _rect_dev(u, v, spec):
+    """Distance-like deviation of in-section points (*u* along the frame's
+    right, *v* along up) from a duct's wall: 0 on the rectangle."""
+    s = spec.core_shape
+    c, d = math.cos(spec.rot), math.sin(spec.rot)
+    u, v = c * u + d * v, -d * u + c * v
+    return np.abs(np.maximum(np.abs(u) - s.half_w, np.abs(v) - s.half_h))
 
 
 def wall_deviations(asm) -> dict[str, float]:
@@ -240,6 +274,8 @@ def wall_deviations(asm) -> dict[str, float]:
       nearest, with layer radii interpolated linearly between its two
       stations (a cone for a reducer).  A node on a miter cut lies on both
       legs' cylinders;
+    * a duct (rectangular core): the same, with the rectangle in the
+      section frame (``_rect_dev``) in place of the circles;
     * other paths (``SplinePipe``, ``Closure``): no closed form; they must
       have one axial layer per slab, so no surface carries interior nodes
       (asserted), and they are not measured.
@@ -270,8 +306,17 @@ def wall_deviations(asm) -> dict[str, float]:
             h = v @ a
             rho = np.linalg.norm(v - np.outer(h, a), axis=1)
             d = np.hypot(rho - rb, h)
-            radii = _layer_radii(spec)
-            dev = np.min(np.abs(d[:, None] - radii[None, :]), axis=1)
+            if isinstance(spec.core_shape, RectShape):
+                # the meridian plane's (outward, axis) directions are fixed
+                # in the section frame, whatever the angle about the axis
+                f0 = path.frames[0]
+                er = (f0.position - c) / rb
+                u = (rho - rb) * (f0.right @ er) + h * (f0.right @ a)
+                v = (rho - rb) * (f0.up @ er) + h * (f0.up @ a)
+                dev = _rect_dev(u, v, spec)
+            else:
+                radii = _layer_radii(spec)
+                dev = np.min(np.abs(d[:, None] - radii[None, :]), axis=1)
         elif path.is_straight or path.prism:           # per-slab axis lines
             seg = np.full(len(x), np.inf)               # distance to the nearest axis segment
             dev = np.full(len(x), np.inf)
@@ -283,10 +328,17 @@ def wall_deviations(asm) -> dict[str, float]:
                 d = np.linalg.norm((x - p0) - np.outer(t, ax), axis=1)
                 u = np.clip(t / L, 0, 1)
                 to_seg = np.linalg.norm(x - (p0 + np.outer(u * L, ax)), axis=1)
-                r0 = _layer_radii(path.slab_spec(k, spec))
-                r1 = _layer_radii(path.spec_at(k + 1, spec))[:len(r0)]
-                r = r0[None, :] + (r1 - r0)[None, :] * u[:, None]
-                dk = np.min(np.abs(d[:, None] - r), axis=1)
+                if isinstance(spec.core_shape, RectShape):
+                    # section frame of this leg: an untilted station on it
+                    f = next(f for j, f in enumerate(path.frames)
+                             if path.stretch_at(j) is None and f.normal @ ax > 1 - 1e-12)
+                    w = (x - p0) - np.outer(t, ax)
+                    dk = _rect_dev(w @ f.right, w @ f.up, spec)
+                else:
+                    r0 = _layer_radii(path.slab_spec(k, spec))
+                    r1 = _layer_radii(path.spec_at(k + 1, spec))[:len(r0)]
+                    r = r0[None, :] + (r1 - r0)[None, :] * u[:, None]
+                    dk = np.min(np.abs(d[:, None] - r), axis=1)
                 nearer = to_seg < seg - 1e-12 * scale
                 tie = np.abs(to_seg - seg) <= 1e-12 * scale     # on a cut: either leg
                 dev = np.where(nearer, dk, np.where(tie, np.minimum(dev, dk), dev))

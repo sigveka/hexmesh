@@ -36,7 +36,7 @@ class TestSignature:
 
     def test_contents(self):
         sig = signature(_spec())
-        assert (sig.n_outer, sig.period, sig.nang) == (4, 90.0, 4)
+        assert (sig.n_outer, sig.period, sig.nang_w, sig.nang_h) == (4, 90.0, 4, 4)
         assert [(l.name, l.kind, l.nrad) for l in sig.layers] == [
             ("fluid", "oh_core", 3), ("wall", "annulus", 2)]
 

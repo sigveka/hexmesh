@@ -40,7 +40,8 @@ from .corners import transfinite_surface_corners, transfinite_volume_corners
 from .fittings import FillResult, Straight
 from .quality import QualityReport, RegionQuality
 from .interface import (
-    Frame, Interface, build_face, check_supported, outer_radius, port_type,
+    Frame, Interface, build_face, check_supported, hydraulic_diameter, outer_radius,
+    port_type,
 )
 
 
@@ -245,7 +246,8 @@ class Assembly:
                          cells_per_diameter: float = 4.0) -> None:
         """Add straight runs at the inlet and at every open outlet.
 
-        Lengths are in diameters of the end's core (the flow passage):
+        Lengths are in diameters of the end's core (the flow passage; the
+        hydraulic diameter 4A / P_w of a duct):
         *upstream* before the inlet, *downstream* after each outlet; 0
         skips that side.  An inlet at a drum nozzle is never extended.  Each run gets ``round(length / D ×
         cells_per_diameter)`` axial cells (at least 1).  Extended ends keep
@@ -258,7 +260,7 @@ class Assembly:
                              "and cells_per_diameter > 0")
 
         def run(iface, diameters):
-            d = 2.0 * iface.spec.core_shape.radius
+            d = hydraulic_diameter(iface.spec)
             n = max(1, round(diameters * cells_per_diameter))
             return Straight(diameters * d, n_layers=n)
 

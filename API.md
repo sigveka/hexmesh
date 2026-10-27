@@ -44,7 +44,7 @@ An interface-first pipe network ([DESIGN.md](DESIGN.md) §5).
 | `add(interface, fitting, names=None, label=None)` | Attach *fitting* to *interface*; the tail does not move. Use the returned outlet to continue that line |
 | `close(source, target, fitting, label=None)` | Join two existing open interfaces. *source* must be an outlet and *target* an inlet, so flow runs source → target. Use `Closure` for any gap, or a `Straight` / `Bend` that fits exactly |
 | `prepend(straight, label=None)` | Place a `Straight` upstream of the inlet and make its start the new `inlet`; the inlet name moves with it. Returns the new inlet |
-| `extend_open_ends(upstream=5.0, downstream=10.0, cells_per_diameter=4.0)` | Straight runs before the inlet and after every open outlet, in diameters of each end's core; 0 skips a side. Each run gets `round(diameters × cells_per_diameter)` axial cells. Patch names are unchanged. Call before building |
+| `extend_open_ends(upstream=5.0, downstream=10.0, cells_per_diameter=4.0)` | Straight runs before the inlet and after every open outlet, in diameters of each end's core (hydraulic diameters for a duct); 0 skips a side. Each run gets `round(diameters × cells_per_diameter)` axial cells. Patch names are unchanged. Call before building |
 | `interfaces`, `edges` | All interfaces and fitting edges, in creation order |
 | `inlet` | The inlet interface |
 | `open_interfaces()` | Interfaces touched by one fitting only: the network boundary |
@@ -170,15 +170,16 @@ the inlet of a fitting (task 0010, question for design).
 
 ## Cross-section specification
 
-### `PipeSpec(nang, mbmp=1.0, rot=0.0, n_outer=4)`
+### `PipeSpec(nang=None, nang_w=None, nang_h=None, mbmp=1.0, rot=0.0, n_outer=4)`
 
 A builder for a concentric layer stack.
 
 | Parameter | Meaning |
 |---|---|
-| `nang` | cells per 90° arc, shared by all layers |
+| `nang` | cells per 90° arc, shared by all layers (circular cores) |
+| `nang_w`, `nang_h` | cells along the width and the height of a rectangular core |
 | `mbmp` | angular bump factor (1 = uniform) |
-| `rot` | rotation of the O-H corners, in radians |
+| `rot` | rotation of the O-H corners, in radians; for a rectangle, of the whole rectangle |
 | `n_outer` | structural corners; the assembly supports 4 |
 
 #### `.core(name, radius=..., nrad=..., mprg=1.0, first_cell=None)`
@@ -204,13 +205,40 @@ A concentric layer of thickness `dR` on top of the previous one.
 boundary in place of `mprg`. It is exact all round. The solver is
 `hexmesh.core.grading.progression_for_first_cell(thickness, n_cells, h)`.
 
+#### `.core(name, half_w=..., half_h=..., nrad=..., mprg=1.0)` — rectangular duct
+
+A rectangular core of width `2·half_w` along the frame's `right` and height
+`2·half_h` along `up` (needs `PipeSpec(nang_w=…, nang_h=…)`). It has the
+same five-patch O-H layout as the circle: a centre rectangle and a ring of
+uniform thickness, `0.4·min(half_w, half_h)`, so every corner radial runs at
+45° to the walls. `nrad` is the cells across the ring. `first_cell` is not
+supported (`TypeError`).
+
+- **Symmetry period** (DESIGN §6.1, `spec.period`): 90° for a square
+  (`half_w == half_h` and `nang_w == nang_h`), 180° for any other
+  rectangle. Corners match, and loop twist is absorbed, modulo that
+  period; a mismatch of exactly half of it is ambiguous and rejected.
+- **"Easy way" and "hard way" bends.** `up` sets which side is the
+  height; a bend's `roll` sets its plane. `roll=0` bends toward `up`,
+  across the height: the easy way for a wide, flat duct. `roll=90` bends
+  across the width: the hard way. The centreline radius must exceed the
+  duct's half-extent in the bend plane (`half_h` for roll 0, `half_w` for
+  roll 90). Splines and closures, whose bend plane varies, are checked
+  against the half-diagonal.
+- **Fittings.** `Straight`, `Bend`, `MiterBend`, `SplinePipe` and
+  `Closure`. `Elbow` (ASME pipe schedules), `Reducer`, `Tee` and `Wye`
+  reject ducts; a duct size change is a `Transition` (task 0029).
+- **Diameters.** `extend_open_ends` measures a duct in hydraulic
+  diameters, 4A / P_w = `4·half_w·half_h / (half_w + half_h)`.
+- **Cells.** `nang_w·nang_h + 2·(nang_w + nang_h)·nrad` per section.
+
 `spec.to_dict()` / `PipeSpec.from_dict(d)` serialise a spec.  `mprg` is
 stored as resolved, so a spec built with `first_cell=` reloads with the
 same grading.
 
-The assembly supports circular cores and circular shells. Rectangular cores
-(`half_w`, `half_h`) and `.square_shell()` exist in `PipeSpec` but are
-rejected by validation until decision 0009 is implemented.
+The assembly supports circular cores with circular shells, and
+single-layer rectangular cores. Shells around a rectangle and
+`.square_shell()` exist in `PipeSpec` but are rejected by validation.
 
 ---
 
@@ -295,7 +323,8 @@ A straight run with `n_layers` axial cells.
 A circular-arc bend with centreline `radius` and `angle` in (0°, 360°). It
 places one station per axial layer, joined by exact arcs. `roll` rotates the
 bend plane about the pipe axis: 0 bends toward `up`, 90 toward `right`.
-`radius` must exceed the outer radius.
+`radius` must exceed the outer radius (for a duct, its half-extent in the
+bend plane).
 
 ### `Elbow(angle=90.0, schedule="long", n_layers=8, roll=0.0, axial_grading=1.0)`
 
@@ -387,7 +416,9 @@ decision 0017).
 
 For `close()` only. It runs a cubic Hermite centreline between two existing
 interfaces, leaving and arriving along their normals. The roll mismatch is
-taken modulo the cross-section symmetry and spread along the run.
+taken modulo the cross-section's symmetry period (90° for a circle or a
+square, 180° for a rectangle) and spread along the run; exactly half the
+period is ambiguous and rejected.
 `tension` scales the end tangents. It is rejected if the curve is tighter
 than the outer radius, or turns more than 30° per layer.
 

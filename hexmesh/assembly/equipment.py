@@ -42,6 +42,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from ..core.shape import CircleShape
 from ..core.spec import PipeSpec
 from .interface import Frame, outer_radius
 
@@ -237,6 +238,9 @@ class Drum:
         R = self.radius
         for n in self.nozzles:
             where = f"drum {self.name}, nozzle {n.name}"
+            if not isinstance(n.spec.core_shape, CircleShape):
+                raise EquipmentError(f"{where}: drum nozzles are circular pipes, "
+                                     f"got a {type(n.spec.core_shape).__name__} core")
             r = outer_radius(n.spec)
             if r >= R:
                 raise EquipmentError(f"{where}: outer radius {r} is not below the "

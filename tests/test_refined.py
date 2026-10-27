@@ -47,7 +47,7 @@ def test_signatures_differ_in_density_only(case):
         c = classify(signature(a.spec), signature(b.spec))
         assert int(c) == 2, (a.index, c)
         # fields are named per layer ("core nrad", "shell `wall` mprg")
-        assert {d.field.split()[-1] for d in c.differences} <= {"nang", "nrad", "mprg"}, c
+        assert {d.field.split()[-1] for d in c.differences} <= {"nang", "nang_w", "nang_h", "nrad", "mprg"}, c
 
 
 @pytest.mark.parametrize("case", sorted(set(kit.CASES) - SLOW))

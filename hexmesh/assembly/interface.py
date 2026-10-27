@@ -23,9 +23,10 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from ..core.cross_section import CrossSection, LayeredCrossSection
-from ..core.shape import CircleShape
+from ..core.shape import CircleShape, RectShape
 from ..core.spec import PipeSpec, SquareShellSpec
 from ..faces.oh_circle import build_oh_circle, build_oh_circle8
+from ..faces.oh_rect import build_oh_rect
 from ..faces.annulus import build_annulus
 
 
@@ -93,23 +94,50 @@ def port_type(spec: PipeSpec) -> tuple:
 
 
 def roll_mismatch(up_from: np.ndarray, up_to: np.ndarray, normal: np.ndarray,
-                  n_outer: int) -> float:
+                  period: float) -> float:
     """Signed roll (radians, about *normal*) taking *up_from* to *up_to*.
 
-    The OH cross-section repeats every ``2π / n_outer``, so the result is
-    wrapped into ``(-π/n_outer, π/n_outer]``: only this residual twist has
-    to be absorbed by a fitting.
+    The section repeats every *period* (``PipeSpec.period``: P of DESIGN
+    §6.1), so the result is wrapped into ``(-P/2, P/2]``: only this
+    residual twist has to be absorbed by a fitting.
     """
     theta = math.atan2(np.dot(np.cross(up_from, up_to), normal),
                        np.dot(up_from, up_to))
-    period = 2 * math.pi / n_outer
     theta = math.remainder(theta, period)
     return period / 2 if math.isclose(theta, -period / 2) else theta
 
 
 def outer_radius(spec: PipeSpec) -> float:
-    """Outer radius of a circular layer stack."""
-    return spec.core_shape.radius + sum(s.dR for s in spec.shells)
+    """Outer radius of a circular layer stack; for a rectangle, the radius
+    of the smallest circle about the axis that holds it (the half-diagonal),
+    which is what clearance checks need when no direction is given."""
+    shape = spec.core_shape
+    if isinstance(shape, RectShape):
+        return shape.max_extent
+    return shape.radius + sum(s.dR for s in spec.shells)
+
+
+def half_extent(spec: PipeSpec, angle: float) -> float:
+    """Distance from the axis to the outer wall's supporting line in the
+    in-plane direction at *angle* (radians from ``frame.right`` toward
+    ``frame.up``): the outer radius of a circle; for a rectangle (rotated
+    by ``rot``) ``half_w·|cos| + half_h·|sin|``, so the half-height toward
+    ``up`` and the half-width toward ``right``."""
+    shape = spec.core_shape
+    if not isinstance(shape, RectShape):
+        return outer_radius(spec)
+    a = angle - spec.rot
+    return shape.half_w * abs(math.cos(a)) + shape.half_h * abs(math.sin(a))
+
+
+def hydraulic_diameter(spec: PipeSpec) -> float:
+    """Hydraulic diameter 4A / P_w of the core (the flow passage): a
+    circle's diameter; ``4·hw·hh / (hw + hh)`` for a rectangle of
+    half-extents hw, hh."""
+    shape = spec.core_shape
+    if isinstance(shape, RectShape):
+        return 4 * shape.half_w * shape.half_h / (shape.half_w + shape.half_h)
+    return 2.0 * shape.radius
 
 
 @dataclass(eq=False)
@@ -149,7 +177,10 @@ def build_face(spec: PipeSpec, frame: Frame, lc: float,
     h_axis, v_axis = frame.right, frame.up
 
     core_name, core_shape = spec._core
-    builder = build_oh_circle8 if spec.n_outer == 8 else build_oh_circle
+    if isinstance(core_shape, RectShape):
+        builder = build_oh_rect
+    else:
+        builder = build_oh_circle8 if spec.n_outer == 8 else build_oh_circle
     cs: CrossSection = builder(
         cx=cx, cy=cy, cz=cz,
         shape=core_shape, h_axis=h_axis, v_axis=v_axis, lc=lc,
@@ -170,10 +201,16 @@ def build_face(spec: PipeSpec, frame: Frame, lc: float,
 
 def check_supported(spec: PipeSpec) -> None:
     """Raise if *spec* uses a cross-section the prototype cannot fill."""
-    if not isinstance(spec.core_shape, CircleShape):
+    shape = spec.core_shape
+    if isinstance(shape, RectShape):
+        if spec.shells:
+            raise NotImplementedError(
+                "rectangular cores are single-layer only for now: no shells "
+                "around a rectangle yet (decision 0009, task 0028)")
+    elif not isinstance(shape, CircleShape):
         raise NotImplementedError(
-            f"assembly prototype supports circular cores only, "
-            f"got {type(spec.core_shape).__name__}."
+            f"assembly supports circular and rectangular cores, "
+            f"got {type(shape).__name__}."
         )
     if spec.n_outer != 4:
         raise NotImplementedError(

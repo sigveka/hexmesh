@@ -25,6 +25,7 @@ BundleSpec
 """
 
 from __future__ import annotations
+import math
 import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
@@ -459,6 +460,27 @@ class PipeSpec:
     @property
     def rot(self) -> float:
         return self._rot
+
+    @property
+    def side_counts(self) -> tuple[int, ...]:
+        """Divisions of each outer curve of the core, corner *k* → *k* + 1
+        (NE→NW first): ``nang // (n_outer // 4)`` per arc of a circle;
+        ``(nang_w, nang_h, nang_w, nang_h)`` for a rectangle."""
+        shape = self.core_shape
+        if isinstance(shape, RectShape):
+            return (shape.nang_w, shape.nang_h) * 2
+        return (shape.nang // (self._n_outer // 4),) * self._n_outer
+
+    @property
+    def period(self) -> float:
+        """Geometric symmetry period P in radians: the smallest roll that
+        maps the section onto itself (DESIGN §6.1, decision 0010).
+        ``2π / n_outer`` for a circle, π/2 for a square, π for any other
+        rectangle."""
+        shape = self.core_shape
+        if isinstance(shape, RectShape):
+            return math.pi / 2 if shape.is_square else math.pi
+        return 2 * math.pi / self._n_outer
 
     @property
     def graph(self) -> MaterialGraph:

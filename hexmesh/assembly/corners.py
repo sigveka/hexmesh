@@ -21,7 +21,7 @@ import gmsh
 import numpy as np
 
 from ..core.cross_section import CrossSection
-from ..core.shape import CircleShape
+from ..core.shape import RectShape
 from ..core.spec import PipeSpec
 from .interface import Frame
 
@@ -124,20 +124,34 @@ def canonical_geom(cs: CrossSection) -> dict:
 
 
 def corner0_angle(spec: PipeSpec) -> float:
-    """Angle of corner 0 from ``frame.right`` for faces built from *spec*."""
+    """Angle of corner 0 (NE) from ``frame.right`` for faces built from *spec*."""
+    shape = spec.core_shape
+    if isinstance(shape, RectShape):
+        return math.atan2(shape.half_h, shape.half_w) + spec.rot
     return math.pi / 4 + spec.rot
+
+
+def side_counts(cs: CrossSection) -> tuple[int, ...]:
+    """Divisions of outer (and inner) curve *k* of a face, as
+    ``PipeSpec.side_counts``."""
+    n, shape = cs.n_outer, cs.shape
+    if isinstance(shape, RectShape):
+        return (shape.nang_w, shape.nang_h) * 2
+    return (shape.nang // (n // 4),) * n
 
 
 def frame_offset(a: Frame, b: Frame, spec: PipeSpec) -> int:
     """Index *j* such that corner 0 of the face at *a* is corner *j* at *b*.
 
-    Pure numpy (runs in validation).  Corner 0's direction is carried from
-    plane *a* to plane *b* by the minimal rotation between the normals; its
-    angle in frame *b* names the matching corner.
+    Pure numpy (runs in validation).  Frame *a* is carried onto plane *b*
+    by the minimal rotation between the normals; the roll between the
+    carried frame and *b*, rounded to a multiple of the section period P
+    (``PipeSpec.period``, decision 0010), gives the corner steps.  P is
+    π for a rectangle, so a 2:1 duct only ever matches itself turned by
+    half a turn, never a quarter.
     """
-    n = spec.n_outer
-    a0 = corner0_angle(spec)
-    d = math.cos(a0) * a.right + math.sin(a0) * a.up
+    n, P = spec.n_outer, spec.period
+    d = a.right
 
     axis = np.cross(a.normal, b.normal)
     s, c = float(np.linalg.norm(axis)), float(np.dot(a.normal, b.normal))
@@ -147,15 +161,15 @@ def frame_offset(a: Frame, b: Frame, spec: PipeSpec) -> int:
         k = axis / s
         d = d * c + np.cross(k, d) * s + k * np.dot(k, d) * (1 - c)
 
-    phi = math.atan2(np.dot(d, b.up), np.dot(d, b.right))
-    steps = (phi - a0) / (2 * math.pi / n)
-    j = round(steps)
-    if abs(steps - j) > 0.5 - 1e-9:
+    roll = math.atan2(np.dot(d, b.up), np.dot(d, b.right))
+    steps = roll / P
+    m = round(steps)
+    if abs(steps - m) > 0.5 - 1e-9:
         raise ValueError(
             "corner correspondence is ambiguous: the slab twists by half the "
             "cross-section symmetry angle; use more axial layers"
         )
-    return j % n
+    return (m * round(P * n / (2 * math.pi))) % n
 
 
 def connect_layer(in_cs: CrossSection, out_cs: CrossSection, n_layers: int,
@@ -337,11 +351,11 @@ def connect_aligned(
     # curves carry their own node counts stored as (tag, n_nodes) pairs in
     # "arc_curves".
     # ------------------------------------------------------------------
-    nang = in_cs.shape.nang if isinstance(in_cs.shape, CircleShape) else 5
+    # Divisions of curve k (corner k → k+1): nang per 90° arc of a circle,
+    # nang_w / nang_h alternating on a rectangle.  The offset maps sides
+    # onto sides of the same count (a rectangle only turns by P = π).
+    counts = side_counts(in_cs)
     nrad = in_cs.nrad
-    # Divisions per arc: for n_outer=4 each arc spans 90° (nang divisions);
-    # for n_outer=8 each arc spans 45° (nang//2 divisions), etc.
-    nang_per_arc = nang // (n // 4)
 
     # Deduplicated (tag, n_nodes) pairs for arc and radial curves.
     _arc_seen: set[int] = set()
@@ -354,12 +368,11 @@ def connect_aligned(
                 _arc_seen.add(tag)
                 arc_curve_constraints.append((tag, n_nodes))
 
-    # Angular arcs: nang_per_arc+1 nodes on both inlet and outlet faces so that
-    # the outer/inner arc side-surfaces have matching opposing edge counts.
-    _add_arcs(oc_in,  nang_per_arc + 1)
-    _add_arcs(oc_out, nang_per_arc + 1)
-    _add_arcs(ic_in,  nang_per_arc + 1)
-    _add_arcs(ic_out, nang_per_arc + 1)
+    # Angular curves: count+1 nodes on both inlet and outlet faces so that
+    # the outer/inner side-surfaces have matching opposing edge counts.
+    for k in range(n):
+        for tags in (oc_in, oc_out, ic_in, ic_out):
+            _add_arcs([tags[k]], counts[k] + 1)
 
     # Radial curves: nrad+1 nodes on both faces so the radial side-
     # surfaces have matching opposing edge counts.

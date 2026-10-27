@@ -21,9 +21,9 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from ..core.shape import CircleShape
+from ..core.shape import CircleShape, RectShape
 from ..core.spec import PipeSpec
-from .interface import Frame, outer_radius, roll_mismatch, rotate
+from .interface import Frame, half_extent, outer_radius, roll_mismatch, rotate
 from .sweep import Arc, FillResult, Path, Sweep, _radii
 
 __all__ = ["Straight", "Bend", "MiterBend", "Elbow", "Reducer", "SplinePipe",
@@ -142,6 +142,15 @@ class Bend(Sweep):
     def ports(self, inlet: Frame, spec: PipeSpec) -> list[tuple[Frame, PipeSpec]]:
         return [(self._rotated(inlet, self.angle), self.outlet_spec(spec))]
 
+    clearance_note = "in the bend plane"
+
+    def clearance(self, spec: PipeSpec) -> float:
+        # The centre of curvature lies toward cos(roll)·up + sin(roll)·right,
+        # so a duct is checked on its extent that way: the half-height for
+        # roll 0 (the "easy way" for a wide duct), the half-width for 90.
+        phi = math.radians(self.roll)
+        return half_extent(spec, math.atan2(math.cos(phi), math.sin(phi)))
+
     def check(self, spec: PipeSpec) -> None:
         super().check(spec)
         if not 0 < abs(self.angle) < 360:
@@ -213,6 +222,11 @@ class MiterBend(Sweep):
 
     def ports(self, inlet: Frame, spec: PipeSpec) -> list[tuple[Frame, PipeSpec]]:
         return self._arc.ports(inlet, spec)
+
+    clearance_note = Bend.clearance_note
+
+    def clearance(self, spec: PipeSpec) -> float:
+        return self._arc.clearance(spec)
 
     def check(self, spec: PipeSpec) -> None:
         super().check(spec)
@@ -313,6 +327,9 @@ class Elbow(Sweep):
         return self.bend(spec).ports(inlet, spec)
 
     def check(self, spec: PipeSpec) -> None:
+        if isinstance(spec.core_shape, RectShape):
+            raise ValueError("Elbow schedules are ASME pipe fittings, for circular "
+                             "pipes; use Bend(radius, angle, …) for a duct")
         if self.schedule not in self.FACTORS:
             raise ValueError(
                 f"schedule must be one of {sorted(self.FACTORS)}, got {self.schedule!r}"
@@ -389,7 +406,9 @@ class Reducer(Sweep):
                 f"outlet spec differs from the inlet in rot ({spec.rot!r} vs "
                 f"{self.outlet.rot!r}); a reducer may change radii only")
         if not isinstance(spec.core_shape, CircleShape):
-            raise ValueError("Reducer supports circular cross-sections only")
+            raise ValueError("Reducer supports circular cross-sections only; a "
+                             "duct size change is a Transition (task 0029, not "
+                             "built yet)")
 
     def path(self, a: Frame, b: Frame, spec: PipeSpec) -> Path:
         n = self.n_layers
@@ -423,7 +442,7 @@ def _min_radius(curve) -> float:
 
 def _transported_stations(curve, n_layers: int, start: Frame,
                           end: Frame | None = None,
-                          n_outer: int = 4,
+                          period: float = math.pi / 2,
                           fractions: np.ndarray | None = None,
                           ) -> tuple[list[Frame], float]:
     """Station frames along *curve* for ``t`` in [0, 1], both ends included.
@@ -434,7 +453,8 @@ def _transported_stations(curve, n_layers: int, start: Frame,
     evenly.  ``up`` is parallel
     transported from *start* (Bishop frame, no spurious twist).  With *end*
     given, the last frame is *end* and the residual roll mismatch, modulo
-    the ``2π / n_outer`` symmetry, is distributed linearly by arc length;
+    the section period *period* (P, ``PipeSpec.period``), is distributed
+    linearly by arc length;
     it is returned as the absorbed twist.  Without *end* the last frame is
     the transported one and the twist is 0.
     """
@@ -466,7 +486,7 @@ def _transported_stations(curve, n_layers: int, start: Frame,
         u = u - np.dot(u, T[k]) * T[k]
         ups.append(u / np.linalg.norm(u))
 
-    twist = 0.0 if end is None else roll_mismatch(ups[-1], end.up, end.normal, n_outer)
+    twist = 0.0 if end is None else roll_mismatch(ups[-1], end.up, end.normal, period)
     frames = [Frame(P[k], T[k], rotate(ups[k], T[k], twist * targets[k] / targets[-1]))
               for k in range(len(T))]
     frames[0] = start
@@ -610,8 +630,10 @@ class Closure(Sweep):
     normal.  Stations equidistribute arc length plus turning angle, so
     sharp turns get more stations.  Cross-section frames are
     parallel-transported (no spurious twist) and the residual roll mismatch
-    — modulo the ``2π / n_outer`` symmetry of the cross-section — is
-    distributed linearly by arc length.
+    — modulo the symmetry period P of the cross-section (90° for a circle
+    or a square, 180° for a rectangle) — is distributed linearly by arc
+    length.  A mismatch of exactly P/2 could be absorbed either way and is
+    rejected as ambiguous (DESIGN §8).
 
     Parameters
     ----------
@@ -665,15 +687,21 @@ class Closure(Sweep):
     def _min_bend_radius(self, a: Frame, b: Frame) -> float:
         return _min_radius(self._curve(a, b))
 
-    def stations(self, a: Frame, b: Frame, n_outer: int) -> tuple[list[Frame], float]:
-        """Station frames (inclusive of both ends) and the absorbed twist."""
+    def stations(self, a: Frame, b: Frame, period: float) -> tuple[list[Frame], float]:
+        """Station frames (inclusive of both ends) and the absorbed twist,
+        for a section of symmetry period *period* (radians)."""
         return _transported_stations(self._curve(a, b), self.n_layers, a,
-                                     end=b, n_outer=n_outer,
+                                     end=b, period=period,
                                      fractions=self.fractions(self.n_layers))
 
     def path(self, a: Frame, b: Frame, spec: PipeSpec) -> Path:
         if np.linalg.norm(b.position - a.position) < 1e-12:
             raise ValueError("source and target interfaces coincide")
-        frames, _ = self.stations(a, b, spec.n_outer)
+        frames, twist = self.stations(a, b, spec.period)
+        if abs(abs(twist) - spec.period / 2) < 1e-9:
+            raise ValueError(
+                f"roll mismatch of {math.degrees(twist):.4g}° is half the section's "
+                f"symmetry period ({math.degrees(spec.period):.4g}°), so it is "
+                f"ambiguous which way to twist; roll one end")
         return Path(frames, [1] * self.n_layers,
                     min_radius=self._min_bend_radius(a, b))

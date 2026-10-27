@@ -10,17 +10,21 @@ Interface-compatible with build_oh_circle:
     outer_curves = [a1(top), a3(left), a5(bottom), a7(right)]
 
 The special case half_w == half_h, nang_w == nang_h is a square.
+
+The returned CrossSection carries the same corner exports as the circle
+(inner points and curves, radials, corner angles), so the assembly's
+sweeps join rectangular faces as they join circular ones (task 0028).
 """
 
 from __future__ import annotations
+import math
 
-import gmsh
 import numpy as np
 
 from ..core.cross_section import CrossSection, BoundaryType
 from ..core.shape import RectShape
 from ._gmsh_helpers import (
-    add_point, add_line, add_line_loop, add_surface,
+    add_point, add_line, add_line_loop, add_surface, stretched,
     set_transfinite_line, set_transfinite_line_bump,
     set_transfinite_surface, set_recombine_surface,
 )
@@ -38,6 +42,8 @@ def build_oh_rect(
     mprg:   float = 1.0,
     mbmp:   float = 1.0,
     ratio:  float = 0.6,
+    rot:    float = 0.0,
+    stretch: tuple | None = None,
 ) -> CrossSection:
     """Build a 5-patch OH-rectangle cross-section in GMSH.
 
@@ -60,7 +66,18 @@ def build_oh_rect(
     mbmp : float
         Edge bump factor (applied to all edges uniformly).
     ratio : float
-        Inner-rectangle scale factor (default 0.6).
+        Sets the ring thickness: ``(1 - ratio) · min(half_w, half_h)`` on
+        every side (default 0.6).  A uniform ring puts each corner radial
+        at 45° to both walls, so the corner cells keep a scaled Jacobian of
+        about 0.71 at any aspect ratio; scaling the inner rectangle instead
+        gives sin(atan(h/w)), 0.45 for a 2:1 duct (task 0028).
+    rot : float
+        Rotation of the whole rectangle about the centre (radians), from
+        ``h_axis`` toward ``v_axis``.
+    stretch : (ndarray, float), optional
+        ``(b, s)``: scale the face by ``s`` along the in-plane unit vector
+        ``b`` about the centre (miter cut faces, as ``build_oh_circle``).
+        An affine map, so the edges stay straight lines.
 
     Returns
     -------
@@ -71,10 +88,12 @@ def build_oh_rect(
     _centre = np.array([cx, cy, cz])
     _h = np.asarray(h_axis, dtype=float)
     _v = np.asarray(v_axis, dtype=float)
+    c, s = math.cos(rot), math.sin(rot)
 
     def _coords(du: float, dv: float):
         """Map in-plane (u, v) offsets to 3-D (x, y, z) via cursor frame."""
-        p = _centre + du * _h + dv * _v
+        u, v = c * du - s * dv, s * du + c * dv
+        p = stretched(_centre + u * _h + v * _v, _centre, stretch)
         return float(p[0]), float(p[1]), float(p[2])
 
     # ------------------------------------------------------------------ #
@@ -86,13 +105,18 @@ def build_oh_rect(
     o3 = add_point(*_coords(-hw, -hh), lc)   # SW
     o4 = add_point(*_coords( hw, -hh), lc)   # SE
 
-    # Inner corners (scaled by ratio)
-    i1 = add_point(*_coords( ratio * hw,  ratio * hh), lc)   # NE
-    i2 = add_point(*_coords(-ratio * hw,  ratio * hh), lc)   # NW
-    i3 = add_point(*_coords(-ratio * hw, -ratio * hh), lc)   # SW
-    i4 = add_point(*_coords( ratio * hw, -ratio * hh), lc)   # SE
+    # Inner corners: inset by a uniform ring thickness
+    t = (1.0 - ratio) * min(hw, hh)
+    iw, ih = hw - t, hh - t
+    i1 = add_point(*_coords( iw,  ih), lc)   # NE
+    i2 = add_point(*_coords(-iw,  ih), lc)   # NW
+    i3 = add_point(*_coords(-iw, -ih), lc)   # SW
+    i4 = add_point(*_coords( iw, -ih), lc)   # SE
 
     center = add_point(cx, cy, cz, lc)
+    a0 = math.atan2(hh, hw) + rot
+    corner_angles = [a0, math.pi - 2 * math.atan2(hh, hw) + a0,
+                     math.pi + a0, 2 * math.pi - 2 * math.atan2(hh, hw) + a0]
 
     # ------------------------------------------------------------------ #
     # Outer edges (CCW)                                                   #
@@ -152,5 +176,10 @@ def build_oh_rect(
         h_axis       = _h,
         v_axis       = _v,
         cx=cx, cy=cy, cz=cz,
-        lc           = lc,
+        inner_points  = [i1, i2, i3, i4],
+        inner_curves  = [-a2, -a4, -a6, -a8],   # NE→NW, NW→SW, SW→SE, SE→NE
+        radial_curves = [r2, r1, r3, r4],        # NE, NW, SW, SE (inner→outer)
+        nrad          = nrad,
+        lc            = lc,
+        corner_angles = corner_angles,
     )

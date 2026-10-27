@@ -287,7 +287,7 @@ class TestLoopClosure:
         asm = _chain([60, 0])
         asm.add(Straight(0.6, n_layers=3))
         tail = _tail(asm)
-        _, twist = Closure(12).stations(tail.frame, asm.inlet.frame, 4)
+        _, twist = Closure(12).stations(tail.frame, asm.inlet.frame, math.pi / 2)
         assert abs(math.degrees(twist)) > 10
         asm.close(tail, asm.inlet, Closure(n_layers=12))
         _full_check(asm)
@@ -297,12 +297,12 @@ class TestLoopClosure:
         asm = _chain([60, 0])
         asm.add(Straight(0.6, n_layers=3))
         a, b = _tail(asm).frame, asm.inlet.frame
-        frames, _ = Closure(12).stations(a, b, 4)
+        frames, _ = Closure(12).stations(a, b, math.pi / 2)
         assert len(frames) == 13
         for f in frames:
             assert abs(np.dot(f.normal, f.up)) < 1e-12
         # Arrives on the target with zero residual roll (mod 90°)
-        assert abs(roll_mismatch(frames[-1].up, b.up, b.normal, 4)) < 1e-9
+        assert abs(roll_mismatch(frames[-1].up, b.up, b.normal, math.pi / 2)) < 1e-9
 
 
 class TestLoopValidation:

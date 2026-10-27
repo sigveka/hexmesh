@@ -52,6 +52,12 @@ def branch_spec(spec: PipeSpec, radius: float) -> PipeSpec:
                   nrad=spec._core_nrad, mprg=spec._core_mprg))
 
 
+def _check_circle(spec: PipeSpec) -> None:
+    if not isinstance(spec.core_shape, CircleShape):
+        raise ValueError("Tee supports circular pipes only; no rectangular "
+                         "tees yet (decision 0009)")
+
+
 @dataclass(frozen=True)
 class Tee:
     """Perpendicular side-branch tee.
@@ -88,6 +94,7 @@ class Tee:
         return o, ex, ey, ez
 
     def ports(self, inlet: Frame, spec: PipeSpec):
+        _check_circle(spec)       # the branch spec needs a radius
         o, ex, ey, ez = self._origin_basis(inlet)
         main = Frame(o + self.run_length * ex, ex, ez)
         branch = Frame(o + self.branch_length * ez, ez, ex)
@@ -96,6 +103,7 @@ class Tee:
     # -- topology -----------------------------------------------------
 
     def check(self, spec: PipeSpec) -> None:
+        _check_circle(spec)
         R, r = spec.core_shape.radius, self.branch_radius
         if spec.shells:
             raise ValueError("Tee prototype supports single-layer specs only")

@@ -8,7 +8,7 @@ import importlib
 import pytest
 
 EXAMPLES = ["smooth_bend", "miter_bend", "insulated_pipe", "reducer_network",
-            "tee", "loop", "spline_pipe", "pipe_network", "wye"]
+            "tee", "loop", "spline_pipe", "pipe_network", "wye", "rect_duct"]
 
 
 @pytest.mark.parametrize("name", EXAMPLES)

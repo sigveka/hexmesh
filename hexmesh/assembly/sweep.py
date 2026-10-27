@@ -17,6 +17,7 @@ import numpy as np
 import gmsh
 
 from ..core.cross_section import LayeredCrossSection
+from ..core.shape import CircleShape
 from ..core.spec import PipeSpec
 from .corners import canonical_geom, connect_layer, curve_endpoints, frame_offset
 from .interface import Frame, build_face, outer_radius, roll_mismatch
@@ -77,13 +78,15 @@ def face_grading(face: LayeredCrossSection, spec: PipeSpec) -> dict[int, tuple[s
 def section_cells(spec: PipeSpec) -> int:
     """Quads in one OH cross-section of *spec* (pure; DESIGN P4).
 
-    The core is an ``a × a`` centre patch plus ``n_outer`` ring patches of
-    ``a × nrad``, with ``a`` divisions per outer arc; every shell adds
-    ``n_outer`` patches of ``a × nrad``.
+    With ``c = spec.side_counts`` (divisions per outer curve), the core is
+    a ``c[0] × c[1]`` centre patch plus one ring patch of ``c[k] × nrad``
+    per side; every shell adds the same ring again with its own ``nrad``.
+    A circle has ``c[k] = nang // (n_outer // 4)``; a rectangle
+    ``nang_w, nang_h, nang_w, nang_h``.
     """
-    a = spec.nang // (spec.n_outer // 4)
+    c = spec.side_counts
     nrads = [spec._core_nrad] + [sh.nrad for sh in spec.shells]
-    return a * a + spec.n_outer * a * sum(nrads)
+    return c[0] * c[1] + sum(c) * sum(nrads)
 
 
 def trim_spec(spec: PipeSpec, n: int) -> PipeSpec:
@@ -397,16 +400,18 @@ class Sweep:
             if (np.linalg.norm(expected.position - b.position) > 1e-9 * scale
                     or np.dot(expected.normal, b.normal) < 1 - 1e-9
                     or abs(roll_mismatch(expected.up, b.up, b.normal,
-                                         spec.n_outer)) > 1e-9):
+                                         spec.period)) > 1e-9):
                 raise ValueError(
                     f"outlet interface does not match {type(self).__name__} geometry"
                 )
         path = self.path(a, b, spec)
-        R = outer_radius(spec)
+        R = self.clearance(spec)
         if path.min_radius <= R:
+            what = ("the pipe outer radius" if isinstance(spec.core_shape, CircleShape)
+                    else f"the duct's half-extent {self.clearance_note}")
             raise ValueError(
                 f"path bends with radius {path.min_radius:.4g}, tighter than "
-                f"the pipe outer radius {R}"
+                f"{what} {R:.4g}"
             )
         if path.axial is None and not path.prism:
             for k, turn in enumerate(path.turns()):
@@ -416,6 +421,14 @@ class Sweep:
                         f"with straight axial edges); use more axial layers"
                     )
         path.offsets(spec)   # raises if any correspondence is undefined
+
+    # Smallest centreline radius a path may have: the section's extent
+    # toward the centre of curvature.  Where the bend plane is not fixed
+    # (splines, closures) a rectangle is checked on its half-diagonal.
+    clearance_note = "(half-diagonal: the bend plane varies)"
+
+    def clearance(self, spec: PipeSpec) -> float:
+        return outer_radius(spec)
 
     def cell_count(self, frames: list[Frame], spec: PipeSpec) -> int:
         """Exact hex count, from topology and density alone (DESIGN P4)."""

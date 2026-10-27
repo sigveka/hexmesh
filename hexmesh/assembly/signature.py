@@ -5,7 +5,11 @@ decision 0011, docs/tasks/0019).
 A face's **signature** is what fixes its mesh connectivity: per layer the
 name, the layout kind and the chord-family counts, plus the section-level
 counts and symmetry.  Geometry is left out: radii, shape dimensions and
-``rot``.  ``rot`` rotates the whole face rigidly, with the same entities
+``rot``.  Shape is geometry too (decision 0009): a circular and a
+rectangular O-H core share the ``oh_core`` layout, the counts are per side
+(``nang_w``, ``nang_h``; a circle has both equal to ``nang``), and the
+period is the combinatorial one, from the counts: 90° when they are equal,
+180° when not (roll handling uses the geometric ``PipeSpec.period``).  ``rot`` rotates the whole face rigidly, with the same entities
 and nodes (task 0019), so it is placement, not connectivity.  Grading
 (``mprg``, ``mbmp``) is kept: an interface has one node set (decision
 0016).
@@ -33,7 +37,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from ..core.shape import CircleShape
 from ..core.spec import LayerSpec, PipeSpec
 
 # What a class needs, for error messages.
@@ -55,8 +58,9 @@ class LayerSig:
 @dataclass(frozen=True)
 class Signature:
     n_outer: int
-    period:  float  # section symmetry period P, degrees (decision 0010)
-    nang:    int
+    period:  float  # combinatorial symmetry period, degrees (decisions 0009, 0010)
+    nang_w:  int    # divisions per side: width (corner 0 → 1) …
+    nang_h:  int    # … and height (corner 1 → 2); equal on a circle
     mbmp:    float
     layers:  tuple[LayerSig, ...]
 
@@ -85,17 +89,15 @@ class SwitchClass:
 
 def signature(spec: PipeSpec) -> Signature:
     """Connectivity signature of *spec* (pure Python, hashable)."""
-    name, shape = spec._core
-    if not isinstance(shape, CircleShape):
-        raise ValueError(f"no signature for a {type(shape).__name__} core: the "
-                         "assembly builds circular O-H cores only")
+    name, _ = spec._core
     layers = [LayerSig(name, "oh_core", spec._core_nrad, spec._core_mprg)]
     for sh in spec.shells:
         if not isinstance(sh, LayerSpec):
             raise ValueError(f"no signature for a {type(sh).__name__} layer")
         layers.append(LayerSig(sh.name, "annulus", sh.nrad, sh.mprg))
-    return Signature(spec.n_outer, 360.0 / spec.n_outer, spec.nang, spec.mbmp,
-                     tuple(layers))
+    c = spec.side_counts
+    period = 360.0 / spec.n_outer if c[0] == c[1] else 180.0
+    return Signature(spec.n_outer, period, c[0], c[1], spec.mbmp, tuple(layers))
 
 
 def classify(a: Signature, b: Signature) -> SwitchClass:
@@ -134,7 +136,13 @@ def classify(a: Signature, b: Signature) -> SwitchClass:
 
 def _count_differences(a: Signature, b: Signature, common: int) -> list[Difference]:
     out = []
-    for f in ("nang", "mbmp"):
+    if a.nang_w == a.nang_h and b.nang_w == b.nang_h:
+        fields = ("mbmp",)           # one count per side on both: say ``nang``
+        if a.nang_w != b.nang_w:
+            out.append(Difference("nang", a.nang_w, b.nang_w))
+    else:
+        fields = ("nang_w", "nang_h", "mbmp")
+    for f in fields:
         if getattr(a, f) != getattr(b, f):
             out.append(Difference(f, getattr(a, f), getattr(b, f)))
     for i in range(common):

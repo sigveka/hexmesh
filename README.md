@@ -205,6 +205,25 @@ Every layer is built from a 5-patch O-H cross-section:
 
 The centre square avoids the singular pole a pure O-grid would have.
 
+### Rectangular ducts
+
+```python
+# 2:1 duct, 0.2 wide (along the frame's right) by 0.1 high (along up)
+PipeSpec(nang_w=8, nang_h=4).core("air", half_w=0.1, half_h=0.05, nrad=3)
+```
+
+A duct uses the same O-H layout with straight sides: a centre rectangle and
+a ring of uniform thickness, with `nang_w` cells along the width and
+`nang_h` along the height. Ducts are single-layer for now, and run through
+`Straight`, `Bend`, `MiterBend`, `SplinePipe` and `Closure`.
+
+`up` decides which side is the height, and a bend's `roll` decides its
+plane. `Bend(..., roll=0)` turns toward `up`, across the height: the
+**easy way** for a wide, flat duct. `roll=90` turns across the width: the
+**hard way**. Its radius is checked against the half-width instead of
+the half-height. A 2:1 duct only matches itself turned by 180°, not 90°,
+so loops close modulo 180°.
+
 ---
 
 ## Resolution and cell count
@@ -337,7 +356,8 @@ interest.  Add it in diameters, before building:
 asm.extend_open_ends(upstream=5, downstream=10)   # 5 D before, 10 D after each outlet
 ```
 
-The diameter is that of each end's flow core.  The patch names
+The diameter is that of each end's flow core (for a duct, the hydraulic
+diameter 4A / P).  The patch names
 (`fluid_inlet`, `fluid_outlet`, named ends) stay the same.
 
 ## Starting at a drum nozzle
@@ -427,6 +447,7 @@ python3 -m hexmesh.examples.smooth_bend
 | `drum_nozzle` | network starting at a drum nozzle (`Drum`, `Assembly.from_nozzle`), tee, `extend_open_ends` |
 | `graded_bend` | CFD-ready bend: `first_cell`, `axial_grading` toward the bend, extensions, `walls_by_fitting` |
 | `wye` | 60° `Wye` with a straight on each daughter; named outlets |
+| `rect_duct` | 2:1 rectangular duct with an easy-way and a hard-way bend |
 
 ---
 
@@ -437,8 +458,9 @@ python3 -m hexmesh.examples.smooth_bend
 - **Wye (prototype):** single-layer specs, equal daughters with the inlet's
   spec, coplanar and symmetric, angle 30°–120°. Quality is measured, not
   yet bounded: min scaled Jacobian about 0.1 (decision 0017).
-- **Circular sections only.** Rectangular ducts and circle-to-square
-  transitions are planned (decision 0009).
+- **Rectangular ducts:** single-layer only (no duct wall or insulation
+  shells yet); no reducer, tee or elbow for ducts. Circle ↔ rectangle
+  transitions are planned (task 0029).
 - **Layer changes:** insulation can't start or stop inside a fitting yet
   (decision 0006).
 
