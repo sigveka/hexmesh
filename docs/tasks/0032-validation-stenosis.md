@@ -59,6 +59,51 @@ turbulence, Re = 750 and 1000 (follow-ups if Re = 500 passes).
 
 _None yet._
 
+**Note from design (2026-10-28): the paper is now in `docs/papers/`**
+(`direct-numerical-simulation-of-stenotic-flows-part-1-steady-7cuwid0vj4.pdf`).
+It is the 2005 preprint ("Under consideration for publication in J.
+Fluid Mech.", received 28 January 2005), not the published 2007 version:
+cite the published one, but check any number you take against the
+Purdue database if you can.  What it settles (page numbers of the
+preprint):
+- **L = 2D** (eq. 2.1, p. 5; fig. 1).  `../geometry_valve/`'s L = D
+  does not match the reference.  s₀ = 0.25, x₀ the stenosis centre.
+- **Domain:** 3 D upstream and 16 D downstream of the throat (p. 5).
+- **Inlet:** parabolic Poiseuille profile u/u_m = 2(1 − r²) (eq. 2.3);
+  **Re = 500 and 1000** on D and the mean inlet velocity (p. 6).  Not
+  750 (RESEARCH §7.3 had it wrong; corrected).
+- **Outlet:** they add an outflow "nozzle" divergence for stability
+  (§2.2.1); a steady laminar `simpleFoam` run at Re 500 shouldn't need
+  it, but say if the outlet misbehaves.
+- **Reference results, axisymmetric, Re = 500** (§3.1): steady,
+  laminar, axisymmetric; peak velocity just downstream of the throat
+  **more than 4 u_m**; **reattachment at x ≈ 10 D** from the throat;
+  at 15 D the peak is still **more than 3 u_m**.  Axial profiles at
+  x/D = −2 … 15 (fig. 4); comparison with Ahmed & Giddens (1983a) at 1,
+  2.5, 4, 5, 6 D (fig. 6).  Re = 1000 axisymmetric is "qualitatively
+  similar" (not shown).
+- **Compare with the DNS, not the experiment.**  The experiment
+  reattaches between 4 D and 6 D, which the authors attribute to the
+  flow not being fully laminar (p. 9).
+- **The paper gives figures, not tables.**  "≈ 10 D" can't carry a 5 %
+  gate.
+  - **Revised gates:** use numbers from the Purdue database where it
+    has them (centreline velocity, wall shear stress), with the 5 % /
+    2 % gates as written.
+  - Otherwise digitise fig. 4 (profiles at each x/D) and fig. 5(a), and
+    state the digitising uncertainty.  Gate on the profile RMS
+    difference within 5 % of u_m at x = 1–6 D, and report reattachment
+    against "≈ 10 D" without a gate.
+- **Eccentric model** (eq. 2.2): the stenosis centre is offset by
+  E(x) = (s₀/10)(1 + cos(2π(x − x₀)/L)), so 0.05 D at the throat.
+  - At Re 500 it stays laminar but asymmetric, reattaching at about
+    14 D (§3.2).
+  - At Re 1000 it transitions: the jet breaks down after 6 D and
+    reattaches by about 10 D.
+  - Out of scope here.  It is the validation case for an eccentric core
+    (decision 0021, stage 3) and for non-centred outlines (decision
+    0026).
+
 ## Questions for design
 
 _None._

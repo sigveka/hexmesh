@@ -454,11 +454,27 @@ R(x) = \frac{D}{2}\left[1 - s_0\left(1 + \cos\frac{2\pi(x - x_0)}{L}\right)\righ
 $$
 
 With $s_0 = 0.25$ the throat radius is $D/4$: 50 % radius and 75 % area
-reduction.  The Purdue database page gives $L = 2D$; check against the
-paper.
+reduction.  **$L = 2D$** (paper eq. 2.1; preprint in `docs/papers/`,
+read 2026-10-28).  Domain: 3 D upstream and 16 D downstream of the
+throat; parabolic inlet profile.
+
+**Eccentric model** (eq. 2.2): the stenosis axis is offset by
+$E(x) = \frac{s_0}{10}\left(1 + \cos\frac{2\pi(x - x_0)}{L}\right)$,
+i.e. 0.05 D at the throat, in one plane.
 
 **Reference data.**
-- DNS of steady inlet flow (Part 1) at Re = 500, 750 and 1000.
+- DNS of steady inlet flow (Part 1) at **Re = 500 and 1000** (not 750).
+  - **Axisymmetric, Re 500:** laminar and steady; the peak velocity just
+    after the throat exceeds 4 u_m, the flow reattaches at about
+    x ≈ 10 D, and the peak is still above 3 u_m at 15 D.  Results are
+    given as figures only: profiles at x/D = −2…15 (fig. 4).
+  - The Ahmed & Giddens (1983a) experiment reattaches earlier (4–6 D);
+    the authors attribute this to incomplete laminarity.
+  - **Eccentric, Re 500:** laminar but asymmetric; the jet deflects
+    toward the eccentric side and reattaches at about 14 D.
+  - **Eccentric, Re 1000:** transitions to turbulence after about
+    4–6 D and reattaches by about 10 D.
+  - The local copy is the 2005 preprint; cite the 2007 article.
 - The [Purdue CFD Lab database](https://engineering.purdue.edu/CFDLAB/DNS_stenoticflow_database/main.html)
   covers the axisymmetric and an eccentric model.
 - Part 2 (JFM 582:281–318) covers pulsatile flow.
@@ -564,6 +580,8 @@ objects abort on the local OpenFOAM build (`docs/integrations/openfoam.md`).
 | Heated rod with cladding (solids) | series resistances $\sum \ln(r_{i+1}/r_i)/2\pi k_i$, log profiles | layer stack, interfaces, `mappedWall` coupling | task 0034 |
 | Heated multi-layer pipe, laminar | $dT_b/dx = q'/\dot m c_p$; Nu = 48/11 (uniform flux); log profiles | full CHT | task 0035 |
 | Smooth cosine constriction | DNS data (§7.3) | profiled reducer | task 0032 |
+| Fully developed turbulent pipe | friction factor [`mckeon_and_zagarola_etal_2005`]; DNS profiles [`el_khoury_and_schlatter_etal_2013`] (Re_τ 180–1000) | wall grading for RANS (y⁺), k-ω SST | task 0049 |
+| Turbulent 90° bend | hot-wire profiles, Re 6 × 10⁴ [`sudo_and_sumida_etal_1998`] | `Bend` in turbulent flow; basis for loss-coefficient studies | task 0050 |
 | Uniform wall temperature | Nu = 3.66 | as 0035, wall BC variant | planned |
 | Graetz problem | series solution for local Nu(x) | axial resolution and grading near an inlet | planned |
 | Annular Poiseuille (solid core, fluid shell) | $u = \frac{G}{4\mu}\left[R_2^2 - r^2 + (R_2^2 - R_1^2)\frac{\ln(r/R_2)}{\ln(R_1/R_2)}\right]$ | a fluid region in a shell layer | planned |

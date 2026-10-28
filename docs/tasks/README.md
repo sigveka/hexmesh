@@ -58,6 +58,19 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0046](0046-multi-layer-transition.md) | Multi-layer `Transition`: every outline blends along the axis | done | 0026 |
 | [0047](0047-skewed-rectangle-quality-limit.md) | Quality limit for rings with skewed corner lines (aspect-ratio sweep) | done | 0026 |
 | [0048](0048-layer-outline-examples.md) | Examples for layer outlines and multi-layer transitions | done | 0026 |
+| [0049](0049-validation-turbulent-pipe.md) | Validation: fully developed turbulent pipe flow (RANS, k-ω SST) | ready (after 0043) | 0012, 0015 |
+| [0050](0050-validation-turbulent-bend.md) | Validation: turbulent flow in a 90° bend (Sudo et al. 1998) | ready (after 0049) | 0012, 0015 |
+
+**Current order (2026-10-28, design):** 0042 → 0043 → 0034 → 0035 →
+0049 → 0044 → 0050 → 0032.
+- 0042 (study runner core) first: pure Python, unblocks the
+  high-throughput use cases.
+- 0043 before any new validation case: it moves the OpenFOAM case
+  writing, running and reading into `hexmesh.study.openfoam`, so 0034,
+  0035, 0049 and 0050 are built on it instead of copying it again.
+- Then the heat-transfer chain (0034 → 0035), the turbulent pipe (0049),
+  the demonstration study (0044), the turbulent bend (0050), and the
+  stenosis (0032).
 
 Decision 0004 (retire legacy) comes first: 0011 → 0012 / 0013 / 0014 →
 0015 → 0016 → 0017.  0017 waits for all the others.  Then the rest of

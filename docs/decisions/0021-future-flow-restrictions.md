@@ -77,6 +77,9 @@ long straight runs on both sides of a meter anyway.
 Literature survey: RESEARCH §10 (2026-10-27).
 
 - Stage 0: Varghese et al. stenosis DNS (task 0032).
+- Stage 3 (eccentric core): the same paper's **eccentric** stenosis
+  (core offset 0.05 D at the throat; laminar asymmetric at Re 500,
+  transitional at Re 1000), RESEARCH §7.3.
 - **Stage 1, laminar first:** low-Re orifice data from
   [`johansen_1930`], [`hollingshead_and_johnson_etal_2011`] (the
   orifice coefficient rises to a maximum, then drops, as Re falls) and a

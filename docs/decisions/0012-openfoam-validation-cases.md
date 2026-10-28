@@ -59,6 +59,11 @@ Cheaper, but not repeatable, and results go stale as the code changes.
 - Analytic cases tasked 2026-10-26: 0033 (heated rod), 0034 (layered
   conduction, solids), 0035 (heated multi-layer pipe, CHT).  More are
   planned in RESEARCH §7.5.
+- Turbulent cases tasked 2026-10-28: 0049 (fully developed pipe, k-ω
+  SST, against [`mckeon_and_zagarola_etal_2005`] and
+  [`el_khoury_and_schlatter_etal_2013`]) and 0050 (90° bend, against
+  [`sudo_and_sumida_etal_1998`]).  Gates follow the RANS literature
+  (RESEARCH §10.2): per cent level, not the 0.1 % of the laminar cases.
 - Validation cases use only existing fittings and APIs.  A missing
   capability (for example a global refinement factor) is reported as a
   finding, not built inside the validation task.
