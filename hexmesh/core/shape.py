@@ -6,7 +6,7 @@ the *mesh* parameters that must be consistent across the entire layer stack.
 
 CircleShape
     Circular boundary.  One angular division count (nang) shared by all
-    quadrant arcs.  Used by OHCircle, build_annulus, build_square_shell.
+    quadrant arcs.  Used by OHCircle, build_annulus, build_ring.
 
 RectShape
     Rectangular boundary with independent width (nang_w) and height (nang_h)
@@ -14,6 +14,39 @@ RectShape
     nang_w == nang_h reduces to a square.
 
 The union type Shape is used wherever a cross-section builder accepts either.
+
+Outline protocol (decision 0026)
+--------------------------------
+Every layer of a stack has an outline, and every outline answers the same
+questions, so the ring builder and the checks never ask which shape it is
+(a contour shape would be one more class):
+
+``corner(k)``            corner *k* (NE, NW, SW, SE) of the shape's own
+                         O-H face, in-plane ``(u, v)`` before ``rot``;
+``ring_corner(d)``       the corner a ring's corner line ends on, coming
+                         from an inner corner in direction *d* (radians):
+                         a circle meets it radially, a rectangle at its
+                         corner in that quadrant;
+``side(p0, p1, s)``      point(s) at fraction *s* along the side between
+                         two of its corners (an arc about the centre, or a
+                         line);
+``side_curve``           ``"arc"`` or ``"line"``: what the face builders
+                         draw between two corners;
+``side_count(k, n)``     divisions of side *k* when there are *n* corners;
+``extent(a)``            support function: distance from the centre to the
+                         supporting line in direction *a*;
+``max_extent``           the largest distance from the centre;
+``distance(u, v)``       distance-like deviation of points from the
+                         outline (0 on it);
+``grown(dR)``            the outline offset outward by *dR* (a rectangle
+                         keeps sharp corners);
+``scaled(f)``            all lengths times *f*;
+``lerp(other, u)``       the outline *u* of the way to *other* (same
+                         class);
+``counts``               divisions per side ``(width, height)``;
+``period(n)``            smallest roll (radians) mapping it onto itself
+                         with *n* corners;
+``to_dict()``            JSON form, read back by ``shape_from_dict``.
 """
 
 from __future__ import annotations
@@ -50,6 +83,53 @@ class CircleShape:
     def max_extent(self) -> float:
         """Maximum radial extent from centre (radius)."""
         return self.radius
+
+    # -- outline protocol (decision 0026) ---------------------------------
+
+    side_curve = "arc"
+
+    @property
+    def counts(self) -> tuple[int, int]:
+        return (self.nang, self.nang)
+
+    def corner(self, k: int) -> np.ndarray:
+        a = math.pi / 4 + math.pi / 2 * k
+        return self.radius * np.array([math.cos(a), math.sin(a)])
+
+    def ring_corner(self, d: float) -> np.ndarray:
+        return self.radius * np.array([math.cos(d), math.sin(d)])
+
+    def side(self, p0, p1, s) -> np.ndarray:
+        s = np.asarray(s, dtype=float)
+        a0 = math.atan2(p0[1], p0[0])
+        a1 = a0 + (math.atan2(p1[1], p1[0]) - a0) % (2 * math.pi)   # counter-clockwise
+        a = a0 + (a1 - a0) * s
+        return self.radius * np.stack([np.cos(a), np.sin(a)], axis=-1)
+
+    def side_count(self, k: int, n_corners: int) -> int:
+        return self.nang // (n_corners // 4)
+
+    def extent(self, angle: float) -> float:
+        return self.radius
+
+    def period(self, n_corners: int) -> float:
+        return 2 * math.pi / n_corners
+
+    def distance(self, u, v):
+        return np.abs(np.hypot(u, v) - self.radius)
+
+    def grown(self, dR: float) -> "CircleShape":
+        return CircleShape(radius=self.radius + dR, nang=self.nang)
+
+    def scaled(self, f: float) -> "CircleShape":
+        return CircleShape(radius=self.radius * f, nang=self.nang)
+
+    def lerp(self, other: "CircleShape", u: float) -> "CircleShape":
+        return CircleShape(radius=self.radius + (other.radius - self.radius) * u,
+                           nang=self.nang)
+
+    def to_dict(self) -> dict:
+        return {"type": "circle", "radius": self.radius, "nang": self.nang}
 
 
 @dataclass(frozen=True)
@@ -93,8 +173,87 @@ class RectShape:
         """True when half_w == half_h and nang_w == nang_h."""
         return self.half_w == self.half_h and self.nang_w == self.nang_h
 
+    # -- outline protocol (decision 0026) ---------------------------------
+
+    side_curve = "line"
+
+    @property
+    def counts(self) -> tuple[int, int]:
+        return (self.nang_w, self.nang_h)
+
+    def corner(self, k: int) -> np.ndarray:
+        su, sv = ((1, 1), (-1, 1), (-1, -1), (1, -1))[k % 4]
+        return np.array([su * self.half_w, sv * self.half_h])
+
+    def ring_corner(self, d: float) -> np.ndarray:
+        return np.array([math.copysign(self.half_w, math.cos(d)),
+                         math.copysign(self.half_h, math.sin(d))])
+
+    def side(self, p0, p1, s) -> np.ndarray:
+        s = np.asarray(s, dtype=float)[..., None]
+        return np.asarray(p0) + (np.asarray(p1) - np.asarray(p0)) * s
+
+    def side_count(self, k: int, n_corners: int) -> int:
+        return self.nang_w if k % 2 == 0 else self.nang_h
+
+    def extent(self, angle: float) -> float:
+        return self.half_w * abs(math.cos(angle)) + self.half_h * abs(math.sin(angle))
+
+    def period(self, n_corners: int) -> float:
+        return math.pi / 2 if self.is_square else math.pi
+
+    def distance(self, u, v):
+        return np.abs(np.maximum(np.abs(u) - self.half_w, np.abs(v) - self.half_h))
+
+    def grown(self, dR: float) -> "RectShape":
+        return RectShape(self.half_w + dR, self.half_h + dR, self.nang_w, self.nang_h)
+
+    def scaled(self, f: float) -> "RectShape":
+        return RectShape(self.half_w * f, self.half_h * f, self.nang_w, self.nang_h)
+
+    def lerp(self, other: "RectShape", u: float) -> "RectShape":
+        return RectShape(self.half_w + (other.half_w - self.half_w) * u,
+                         self.half_h + (other.half_h - self.half_h) * u,
+                         self.nang_w, self.nang_h)
+
+    def to_dict(self) -> dict:
+        return {"type": "rect", "half_w": self.half_w, "half_h": self.half_h,
+                "nang_w": self.nang_w, "nang_h": self.nang_h}
+
 
 Shape = Union[CircleShape, RectShape]
+
+#: ``to_dict()`` type tag → outline class.
+SHAPES = {"circle": CircleShape, "rect": RectShape}
+
+
+def ring_corners(inner_corners, outline) -> list[np.ndarray]:
+    """Corners of a ring's outer boundary *outline*: where the corner lines
+    from *inner_corners* (``(u, v)``, before ``rot``) end, each leaving its
+    inner corner along the direction from the centre (decision 0026)."""
+    return [outline.ring_corner(math.atan2(p[1], p[0])) for p in inner_corners]
+
+
+def longest_radial(inner, inner_corners, outer, outer_corners, samples: int = 65) -> float:
+    """Longest line between corresponding points of a ring's two
+    boundaries, at equal fractions along each side: where the ring is
+    thickest, so where a ``first_cell`` grading is solved (decision 0026,
+    item 7)."""
+    n = len(inner_corners)
+    s = np.linspace(0.0, 1.0, samples)
+    return max(float(np.linalg.norm(
+        outer.side(outer_corners[k], outer_corners[(k + 1) % n], s)
+        - inner.side(inner_corners[k], inner_corners[(k + 1) % n], s), axis=-1).max())
+        for k in range(n))
+
+
+def shape_from_dict(d: dict) -> Shape:
+    """Read back ``Shape.to_dict()``."""
+    d = dict(d)
+    kind = d.pop("type")
+    if kind not in SHAPES:
+        raise ValueError(f"unknown shape type {kind!r}; known: {', '.join(SHAPES)}")
+    return SHAPES[kind](**d)
 
 # Inner-square corner radius of the circular OH face, as a fraction of the
 # core radius (``faces.oh_circle.build_oh_circle``).  The core's radial
@@ -195,6 +354,19 @@ class BlendShape:
         def sq(s):
             return isinstance(s, CircleShape) or s.half_w == s.half_h
         return sq(self.inlet) and sq(self.outlet) and self.nang_w == self.nang_h
+
+    # -- outline protocol, as far as a station needs it -------------------
+
+    @property
+    def counts(self) -> tuple[int, int]:
+        return (self.nang_w, self.nang_h)
+
+    def extent(self, angle: float) -> float:
+        """At most the larger end's (the blend is a convex combination)."""
+        return max(self.inlet.extent(angle), self.outlet.extent(angle))
+
+    def period(self, n_corners: int) -> float:
+        return math.pi / 2 if self.is_square else math.pi
 
     def outline(self, k: int, s, inner: bool = False) -> np.ndarray:
         a = outline(self.inlet, k, s, inner)

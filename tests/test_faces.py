@@ -1,6 +1,6 @@
 """
 Tests for 2-D face builders:
-  build_oh_circle, build_oh_rect, build_annulus, build_square_shell.
+  build_oh_circle, build_oh_rect, build_annulus, build_ring.
 
 Each test verifies the returned CrossSection's structure (surface count,
 boundary type, h_axis/v_axis, outer-boundary entity counts) and the
@@ -11,16 +11,18 @@ functions to add points, curves and surfaces.
 """
 
 import pytest
+import math
+
+import gmsh
 import numpy as np
 
 from hexmesh.core.cross_section import BoundaryType
 from hexmesh.assembly.interface import Frame
 from hexmesh.core.shape import CircleShape, RectShape
-from hexmesh.core.spec import SquareShellSpec
 from hexmesh.faces.oh_circle import build_oh_circle, build_oh_circle8
 from hexmesh.faces.oh_rect import build_oh_rect
 from hexmesh.faces.annulus import build_annulus
-from hexmesh.faces.square_shell import build_square_shell
+from hexmesh.faces.annulus import build_ring
 
 
 # ---------------------------------------------------------------------------
@@ -378,8 +380,8 @@ class TestBuildAnnulus:
         assert outer.inner_points == mid.outer_points
         assert list(outer.inner_curves) == list(mid.outer_curves)
 
-    def test_non_circular_inner_rejected(self, gmsh_session):
-        """Annulus requires a CIRCULAR inner boundary."""
+    def test_rectangular_inner_grows_a_rectangle(self, gmsh_session):
+        """On a rectangle, dR grows the rectangle (decision 0026)."""
         c = _cursor_xz()
         rect_cs = build_oh_rect(
             cx=0., cy=0., cz=0.,
@@ -387,8 +389,9 @@ class TestBuildAnnulus:
             h_axis=c.right, v_axis=c.up,
             lc=0.1, nrad=3,
         )
-        with pytest.raises(TypeError):
-            build_annulus(inner=rect_cs, dR=0.02, lc=0.1, nrad=2)
+        ann = build_annulus(inner=rect_cs, dR=0.02, lc=0.1, nrad=2)
+        assert ann.boundary_type is BoundaryType.SQUARE
+        assert (ann.shape.half_w, ann.shape.half_h) == pytest.approx((0.12, 0.07))
 
 
 # ===========================================================================
@@ -472,61 +475,55 @@ class TestBuildAnnulus8:
 
 
 # ===========================================================================
-# build_square_shell
+# build_ring (decision 0026)
 # ===========================================================================
 
-class TestBuildSquareShell:
-    def _core(self, gmsh_session):
+def _boundary_xy(cs):
+    """In-plane coordinates of a layer's outer corner points (xz cursor)."""
+    return np.array([gmsh.model.getValue(0, p, [])[[0, 2]] for p in cs.outer_points])
+
+
+class TestBuildRing:
+    def _core(self, gmsh_session, shape=None):
         c = _cursor_xz()
-        return build_oh_circle(
-            cx=0., cy=0., cz=0.,
-            shape=CircleShape(radius=0.1, nang=4),
-            h_axis=c.right, v_axis=c.up,
-            lc=0.1, nrad=3,
-        )
+        shape = shape or CircleShape(radius=0.1, nang=4)
+        build = build_oh_circle if isinstance(shape, CircleShape) else build_oh_rect
+        return build(cx=0., cy=0., cz=0., shape=shape,
+                     h_axis=c.right, v_axis=c.up, lc=0.1, nrad=3)
 
-    def test_returns_four_surfaces(self, gmsh_session):
+    def test_circle_in_square(self, gmsh_session):
         inner = self._core(gmsh_session)
-        spec  = SquareShellSpec(name="sq", half_w=0.18, half_h=0.18, nrad=2)
-        sq    = build_square_shell(inner=inner, spec=spec, lc=0.1)
+        sq = build_ring(inner, RectShape(0.18, 0.18, 4, 4), lc=0.1, nrad=2)
         assert len(sq.surfaces) == 4
-
-    def test_boundary_type_square(self, gmsh_session):
-        inner = self._core(gmsh_session)
-        spec  = SquareShellSpec(name="sq", half_w=0.18, half_h=0.18, nrad=2)
-        sq    = build_square_shell(inner=inner, spec=spec, lc=0.1)
         assert sq.boundary_type is BoundaryType.SQUARE
-
-    def test_four_outer_points(self, gmsh_session):
-        inner = self._core(gmsh_session)
-        spec  = SquareShellSpec(name="sq", half_w=0.18, half_h=0.18, nrad=2)
-        sq    = build_square_shell(inner=inner, spec=spec, lc=0.1)
-        assert len(sq.outer_points) == 4
-
-    def test_axes_inherited_from_inner(self, gmsh_session):
-        inner = self._core(gmsh_session)
-        spec  = SquareShellSpec(name="sq", half_w=0.18, half_h=0.18, nrad=2)
-        sq    = build_square_shell(inner=inner, spec=spec, lc=0.1)
+        assert sq.inner_points == inner.outer_points
+        np.testing.assert_allclose(np.abs(_boundary_xy(sq)), 0.18, atol=1e-12)
         np.testing.assert_allclose(sq.h_axis, inner.h_axis, atol=1e-12)
         np.testing.assert_allclose(sq.v_axis, inner.v_axis, atol=1e-12)
 
-    def test_stacking_on_annulus(self, gmsh_session):
-        """Square shell can terminate a core + annulus stack."""
+    def test_corner_lines_go_to_the_rectangle_corners(self, gmsh_session):
+        """A circle in a 2:1 rectangle: skewed corner lines, ending at the
+        rectangle's corners; the recorded corner angles are theirs."""
         inner = self._core(gmsh_session)
-        ann   = build_annulus(inner=inner, dR=0.02, lc=0.1, nrad=2)
-        spec  = SquareShellSpec(name="sq", half_w=0.2, half_h=0.2, nrad=2)
-        sq    = build_square_shell(inner=ann, spec=spec, lc=0.1)
-        assert len(sq.surfaces) == 4
-        assert sq.boundary_type is BoundaryType.SQUARE
+        r = build_ring(inner, RectShape(0.3, 0.15, 4, 4), lc=0.1, nrad=2)
+        np.testing.assert_allclose(_boundary_xy(r), [[0.3, 0.15], [-0.3, 0.15],
+                                                     [-0.3, -0.15], [0.3, -0.15]], atol=1e-12)
+        assert r.corner_angles[0] == pytest.approx(math.atan2(0.15, 0.3))
 
-    def test_non_circular_inner_rejected(self, gmsh_session):
-        c = _cursor_xz()
-        rect_cs = build_oh_rect(
-            cx=0., cy=0., cz=0.,
-            shape=RectShape(0.1, 0.05, 3, 2),
-            h_axis=c.right, v_axis=c.up,
-            lc=0.1, nrad=3,
-        )
-        spec = SquareShellSpec(name="sq", half_w=0.2, half_h=0.2, nrad=2)
-        with pytest.raises(TypeError):
-            build_square_shell(inner=rect_cs, spec=spec, lc=0.1)
+    def test_rectangle_in_circle(self, gmsh_session):
+        """A 2:1 rectangle in a circle: corner lines run radially, so the
+        circle's arcs are unequal; the outer sides are arcs."""
+        inner = self._core(gmsh_session, RectShape(0.1, 0.05, 4, 4))
+        r = build_ring(inner, CircleShape(0.2, 4), lc=0.1, nrad=2)
+        assert r.boundary_type is BoundaryType.CIRCULAR
+        xy = _boundary_xy(r)
+        np.testing.assert_allclose(np.hypot(*xy.T), 0.2, atol=1e-12)
+        np.testing.assert_allclose(np.arctan2(xy[0, 1], xy[0, 0]), math.atan2(0.05, 0.1))
+
+    def test_build_annulus_is_a_grown_ring(self, gmsh_session):
+        inner = self._core(gmsh_session)
+        ann = build_annulus(inner=inner, dR=0.02, lc=0.1, nrad=2)
+        assert ann.shape.radius == pytest.approx(0.12)
+        sq = build_annulus(inner=build_ring(ann, RectShape(0.2, 0.2, 4, 4), lc=0.1, nrad=2),
+                           dR=0.01, lc=0.1, nrad=2)
+        np.testing.assert_allclose(np.abs(_boundary_xy(sq)), 0.21, atol=1e-12)

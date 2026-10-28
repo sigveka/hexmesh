@@ -64,11 +64,11 @@ def rect_pipe():
 
 
 @pytest.fixture
-def square_shell_pipe():
+def rect_shell_pipe():
     """Circular core + circular shell + square outer shell (bundle cell)."""
     return (
         PipeSpec(nang=4)
         .core("fluid",  shape=CircleShape(radius=0.08, nang=4), nrad=3)
         .shell("wall",  dR=0.02, nrad=2)
-        .square_shell("shell", half_w=0.15, half_h=0.15, nrad=2)
+        .shell("shell", outer=RectShape(0.15, 0.15, 4, 4), nrad=2)
     )

@@ -2,7 +2,7 @@
 CrossSection — the result of building a 2-D face in GMSH.
 
 A CrossSection is the output of every face builder (build_oh_circle,
-build_oh_rect, build_annulus, build_square_shell).  It captures the GMSH
+build_oh_rect, build_annulus, build_ring).  It captures the GMSH
 entity tags that subsequent layers and fittings must reuse for conformality.
 
 Stacking protocol
@@ -23,7 +23,7 @@ BoundaryType
 Determines the curve type of the outer boundary and what may stack on top:
 
     CIRCULAR  outer_curves are Circle arcs.
-              Can be extended with build_annulus or build_square_shell.
+              Can be extended with build_annulus or build_ring.
 
     SQUARE    outer_curves are Lines.
               Can tile with adjacent cells in a bundle.

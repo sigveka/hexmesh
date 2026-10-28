@@ -1,6 +1,6 @@
 # 0045 — Layer outlines: circle and rectangle in either order, and rectangle in rectangle
 
-- **Status:** ready
+- **Status:** done
 - **Decision:** [0026 — Layer outlines: shells of any shape](../decisions/0026-layer-outlines.md)
 - **Depends on:** —  (0046 and 0047 build on it)
 
@@ -85,7 +85,41 @@ counts per side; junctions with shells; tube bundles.
 
 ## Agent notes
 
-_None yet._
+- **Outline protocol** (`core/shape.py`): `CircleShape` and `RectShape`
+  answer `corner`, `ring_corner(direction)`, `side(p0, p1, s)`,
+  `side_curve`, `side_count`, `extent(angle)`, `max_extent`,
+  `distance(u, v)`, `grown(dR)`, `scaled`, `lerp`, `counts`, `period`,
+  `to_dict` (+ `shape_from_dict`).  Callers dispatch on `side_curve`
+  ("arc"/"line") or call the protocol; no new `isinstance` chains.  A
+  contour shape would be one more class with these members.
+  `BlendShape` (Transition stations) has the subset a spec asks of it.
+- **Spec**: `LayerSpec(name, dR, nrad, mprg, outer)` with exactly one of
+  `dR`/`outer`; `PipeSpec.outlines`, `PipeSpec.corners()`.  `shell()`'s
+  signature keeps `dR` second, so existing positional calls work.
+  `square_shell`, `SquareShellSpec`, `faces/square_shell.py` and
+  `build_square_shell` removed; a saved `"square_shell"` dict loads as the
+  same ring (square `outer` with the stack's `nang`).  `BundleSpec` now
+  requires the outermost outline to be a `RectShape` (it was untested and
+  is still unused).
+- **Ring**: `build_ring(inner, outer, …)` in `faces/annulus.py`, same
+  entity creation order as the old `build_annulus`, which is now a
+  wrapper (`inner.shape.grown(dR)`).  Corner lines leave the inner
+  corners in the direction from the centre (`ring_corner`), so a
+  rectangle core's corner lines run along its diagonals and a circle
+  outside it is split there.  `rot` and `stretch` handled as before.
+- **Containment** (`interface.check_outlines`, from `check_supported`):
+  support functions compared over 720 angles plus every corner direction;
+  `limits.OUTLINE_MIN_GAP = 1e-3` of the outer outline's max extent.
+  Valid because the outlines are convex and concentric.
+- **Reducer**: interpolates each layer as given (`dR` linearly, an
+  `outer` outline by `lerp`), so circular reducers are unchanged; a
+  rectangle's sides interpolate linearly, so its walls are planes and the
+  exactness check holds.  Profiled reducers scale every size.
+- **`refined(k)`** also scales the counts of `outer` outlines.
+- **Drum nozzles**: every outline must be circular (was: the core).
+- **Kit helper fix**: `_rect_dev` in the conformance kit rotated by
+  `spec.rot` (degrees) as if radians.  Harmless (every kit duct has
+  rot 0); the new `_outline_dev` uses `rot_rad`.
 
 ## Questions for design
 
@@ -93,4 +127,63 @@ _None._
 
 ## Outcome
 
-_Not done._
+**Files.**  `core/shape.py` (outline protocol, `ring_corners`,
+`longest_radial`, `shape_from_dict`), `core/spec.py`, `faces/annulus.py`
+(`build_ring`), `faces/__init__.py`, `faces/square_shell.py` (removed),
+`assembly/interface.py` (`outer_radius`, `half_extent`, `build_face`,
+`check_outlines`), `assembly/limits.py` (`OUTLINE_MIN_GAP`),
+`assembly/fittings.py` (Reducer, Elbow rule), `assembly/sweep.py`
+(termination compares outlines; clearance message), `assembly/intent.py`
+(refinement), `assembly/equipment.py`; docs `API.md`, `README.md`.
+
+**Tests.**  New `tests/test_layer_outlines.py` (24): spec, period,
+extents, counts, `n_outer`, round trip, old `square_shell` dicts,
+`BundleSpec`, `first_cell` spans, class 0, containment (3), fitting
+rejections (Elbow, Tee, Wye, Transition, Reducer shape change),
+termination, drum nozzles.  Conformance kit: 18 new cases (5 stacks ×
+straight / easy / hard, plus rolled c-r-c bend, lagging stop/restart via
+`stack_changes`, duct-stack reducer, miter); `wall_deviations` measures
+every layer's outline (`_outline_dev`).  The kit cases also run through
+`test_intent` round trips and `test_refined`.  Square-shell tests ported
+to `build_ring` / `outer=`.  Full suite: 1693 passed, 5 skipped (was 1368 + 5).
+
+**Signature (item 7).**  A circle-in-square and a circle-in-2:1-rectangle
+ring have *the same* signature as a circle-in-circle ring with equal
+counts (`LayerSig` kind `annulus`; combinatorial period 90° from the
+counts), so class 0.  Roll handling uses the geometric `PipeSpec.period`,
+now the largest over the outlines (180° for a 2:1 rectangle anywhere in
+the stack).
+
+**Existing meshes unchanged.**  All 46 pre-existing kit cases meshed in a
+worktree at HEAD (2373ca6) and in this tree: node coordinates identical
+(max |Δx| = 0).
+
+**Quality** (straight 0.2 → fitting → straight 0.2; bends R = 0.5; core
+r = 0.1 / 2:1 0.1 × 0.05; `nang` 4, core nrad 3):
+
+| case | hexes = predicted | min SICN | min SJ |
+|---|---|---|---|
+| straight-2layer (reference) | 672 | 0.290 | 0.754 |
+| duct-straight (reference) | 224 | 0.255 | 0.857 |
+| circle-square straight / easy / hard | 784 / 1120 / 1120 | 0.290 / 0.207 / 0.207 | 0.710 / 0.677 / 0.677 |
+| circle-2:1 straight / easy / hard | 784 / 1120 / 1120 | 0.155 / 0.120 / 0.138 | 0.533 / 0.532 / 0.507 |
+| 2:1-circle straight / easy / hard | 784 / 1120 / 1120 | 0.166 / 0.121 / 0.110 | 0.338 / 0.333 / 0.323 |
+| rect+rect+rect (dR) straight / easy / hard | 896 / 1280 / 1280 | 0.130 / 0.094 / 0.088 | 0.889 / 0.856 / 0.878 |
+| c-r-c straight / easy / hard | 896 / 1280 / 1280 | 0.149 / 0.109 / 0.109 | 0.494 / 0.476 / 0.476 |
+| c-r-c rolled bend (−60°, roll 45) | 1024 | 0.108 | 0.478 |
+| lagging gap (stack_changes) | 1216 | 0.130 | 0.889 |
+| duct-stack reducer | 896 | 0.130 | 0.829 |
+| circle-2:1 miter | 1344 | 0.138 | 0.530 |
+
+**Surprises / for task 0047.**
+- The scaled Jacobian falls with skew, as decision 0026 expects: 0.71 for
+  a circle in a square, 0.53 in a 2:1 rectangle (radius 0.1 in
+  0.25 × 0.125), 0.34 for a 2:1 rectangle in a circle (radius 0.16;
+  the casing's arcs split at the rectangle's diagonals, 53° / 127°).
+  Task 0047's sweep should vary both the aspect ratio and the gap.
+- Min SICN for the rectangle-in-rectangle stack (0.09) is below the
+  single-layer duct's (0.24) while its SJ is the best of all: SICN
+  penalises the thin, long cells of a 0.01 wall along a 0.2 side.
+  Quality limits should say which metric they bound.
+
+**Proposed follow-ups.**  None beyond 0046 and 0047.

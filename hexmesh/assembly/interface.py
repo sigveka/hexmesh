@@ -24,11 +24,12 @@ import numpy as np
 
 from ..core.cross_section import CrossSection, LayeredCrossSection
 from ..core.shape import BlendShape, CircleShape, RectShape
-from ..core.spec import PipeSpec, SquareShellSpec
+from ..core.spec import PipeSpec
 from ..faces.oh_circle import build_oh_circle, build_oh_circle8
 from ..faces.oh_rect import build_oh_rect
 from ..faces.oh_blend import build_oh_blend
-from ..faces.annulus import build_annulus
+from ..faces.annulus import build_ring
+from .limits import OUTLINE_MIN_GAP
 
 
 
@@ -175,26 +176,21 @@ def roll_mismatch(up_from: np.ndarray, up_to: np.ndarray, normal: np.ndarray,
 
 
 def outer_radius(spec: PipeSpec) -> float:
-    """Outer radius of a circular layer stack; for a rectangle, the radius
-    of the smallest circle about the axis that holds it (the half-diagonal),
-    which is what clearance checks need when no direction is given."""
-    shape = spec.core_shape
-    if isinstance(shape, RectShape):
-        return shape.max_extent
-    return shape.radius + sum(s.dR for s in spec.shells)
+    """Radius of the smallest circle about the axis that holds the
+    outermost outline: a circular stack's outer radius; a rectangle's
+    half-diagonal, which is what clearance checks need when no direction
+    is given."""
+    return spec.outlines[-1].max_extent
 
 
 def half_extent(spec: PipeSpec, angle: float) -> float:
     """Distance from the axis to the outer wall's supporting line in the
     in-plane direction at *angle* (radians from ``frame.right`` toward
-    ``frame.up``): the outer radius of a circle; for a rectangle (rotated
-    by ``rot``) ``half_w·|cos| + half_h·|sin|``, so the half-height toward
-    ``up`` and the half-width toward ``right``."""
-    shape = spec.core_shape
-    if not isinstance(shape, RectShape):
-        return outer_radius(spec)
-    a = angle - spec.rot_rad
-    return shape.half_w * abs(math.cos(a)) + shape.half_h * abs(math.sin(a))
+    ``frame.up``), for the outermost outline (rotated by ``rot``): the
+    outer radius of a circle; ``half_w·|cos| + half_h·|sin|`` for a
+    rectangle, so the half-height toward ``up`` and the half-width toward
+    ``right``."""
+    return spec.outlines[-1].extent(angle - spec.rot_rad)
 
 
 def hydraulic_diameter(spec: PipeSpec) -> float:
@@ -261,9 +257,9 @@ def build_face(spec: PipeSpec, frame: Frame, lc: float,
         **({'stretch': stretch} if stretch is not None else {}),
     )
     layers = [(core_name, cs)]
-    for shell in spec.shells:
-        cs = build_annulus(
-            inner=cs, dR=shell.dR, lc=lc,
+    for shell, outline in zip(spec.shells, spec.outlines[1:]):
+        cs = build_ring(
+            inner=cs, outer=outline, lc=lc,
             nrad=shell.nrad, mprg=shell.mprg, mbmp=spec.mbmp, rot=spec.rot_rad,
             stretch=stretch,
         )
@@ -274,12 +270,7 @@ def build_face(spec: PipeSpec, frame: Frame, lc: float,
 def check_supported(spec: PipeSpec) -> None:
     """Raise if *spec* uses a cross-section the prototype cannot fill."""
     shape = spec.core_shape
-    if isinstance(shape, RectShape):
-        if spec.shells:
-            raise NotImplementedError(
-                "rectangular cores are single-layer only for now: no shells "
-                "around a rectangle yet (decision 0009, task 0028)")
-    elif not isinstance(shape, CircleShape):
+    if not isinstance(shape, (CircleShape, RectShape)):
         raise NotImplementedError(
             f"assembly supports circular and rectangular cores, "
             f"got {type(shape).__name__}."
@@ -290,7 +281,29 @@ def check_supported(spec: PipeSpec) -> None:
             f"the n_outer=8 core centre patch has 8 sides and cannot bound a "
             f"transfinite hex block"
         )
-    if any(isinstance(s, SquareShellSpec) for s in spec.shells):
-        raise NotImplementedError(
-            "assembly prototype does not support square_shell layers."
-        )
+    check_outlines(spec)
+
+
+def check_outlines(spec: PipeSpec, samples: int = 720) -> None:
+    """Each layer's outline strictly inside the next all round, with a gap
+    of at least ``OUTLINE_MIN_GAP`` of the outer one's extent (decision
+    0026, item 5).  The outlines are convex and share a centre (a rule
+    checked here, not assumed by the data model), so containment is the
+    support function of the inner one below the outer one's in every
+    direction; the corner directions are sampled exactly."""
+    outlines = spec.outlines
+    names = spec.layer_names
+    angles = np.linspace(0.0, 2 * math.pi, samples, endpoint=False)
+    for inner, outer, iname, oname in zip(outlines, outlines[1:], names, names[1:]):
+        extra = [math.atan2(p[1], p[0]) for o in (inner, outer)
+                 for p in (o.corner(k) for k in range(4))]
+        gaps = [(outer.extent(a) - inner.extent(a), a)
+                for a in np.concatenate([angles, extra])]
+        gap, at = min(gaps)
+        need = OUTLINE_MIN_GAP * outer.max_extent
+        if gap < need:
+            raise ValueError(
+                f"layer `{oname}`: its outline must enclose `{iname}`'s with a gap "
+                f"of at least {need:.3g} (OUTLINE_MIN_GAP {OUTLINE_MIN_GAP:g} of its "
+                f"extent); the gap is {gap:.3g} at {math.degrees(at):.1f}° "
+                f"(before rot)")

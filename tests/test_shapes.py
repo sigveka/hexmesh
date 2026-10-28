@@ -124,13 +124,14 @@ class TestPipeSpec:
         assert pipe.layer_names == ["fluid", "wall", "outer"]
         assert len(pipe.shells) == 2
 
-    def test_core_with_square_shell(self):
+    def test_core_with_rect_shell(self):
         pipe = (
             PipeSpec(nang=4)
             .core("fluid", CircleShape(0.1, 4), nrad=3)
-            .square_shell("sq", half_w=0.2, half_h=0.2, nrad=2)
+            .shell("sq", outer=RectShape(0.2, 0.2, 4, 4), nrad=2)
         )
         assert pipe.layer_names == ["fluid", "sq"]
+        assert pipe.outlines[-1] == RectShape(0.2, 0.2, 4, 4)
 
     def test_core_called_twice_raises(self):
         with pytest.raises(RuntimeError, match="once"):
@@ -144,21 +145,30 @@ class TestPipeSpec:
         with pytest.raises(RuntimeError, match="core"):
             PipeSpec(nang=4).shell("wall", dR=0.02, nrad=2)
 
-    def test_shell_after_square_shell_raises(self):
-        with pytest.raises(RuntimeError, match="square_shell"):
-            (
-                PipeSpec(nang=4)
-                .core("fluid", CircleShape(0.1, 4), nrad=3)
-                .square_shell("sq", half_w=0.2, half_h=0.2, nrad=2)
-                .shell("extra", dR=0.01, nrad=2)
-            )
+    def test_dR_shell_after_rect_grows_the_rectangle(self):
+        pipe = (
+            PipeSpec(nang=4)
+            .core("fluid", CircleShape(0.1, 4), nrad=3)
+            .shell("sq", outer=RectShape(0.2, 0.1, 4, 4), nrad=2)
+            .shell("extra", dR=0.01, nrad=2)
+        )
+        o = pipe.outlines[-1]
+        assert (o.half_w, o.half_h) == pytest.approx((0.21, 0.11))
+        assert o.counts == (4, 4)
 
-    def test_square_shell_requires_circle_core(self):
-        with pytest.raises(TypeError, match="circular"):
+    def test_shell_needs_exactly_one_of_dR_and_outer(self):
+        base = PipeSpec(nang=4).core("fluid", CircleShape(0.1, 4), nrad=3)
+        with pytest.raises(ValueError, match="exactly one of dR and outer"):
+            base.shell("w", nrad=2)
+        with pytest.raises(ValueError, match="exactly one of dR and outer"):
+            base.shell("w", dR=0.1, outer=CircleShape(0.2, 4), nrad=2)
+
+    def test_rect_stack_needs_equal_counts(self):
+        with pytest.raises(ValueError, match="equal counts per side"):
             (
                 PipeSpec(nang_w=3, nang_h=2)
                 .core("air", RectShape(0.1, 0.08, 3, 2), nrad=3)
-                .square_shell("sq", half_w=0.2, half_h=0.2, nrad=2)
+                .shell("sq", outer=RectShape(0.2, 0.2, 3, 2), nrad=2)
             )
 
     def test_nang_mismatch_raises(self):

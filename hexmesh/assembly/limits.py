@@ -3,7 +3,7 @@ Input limits and tolerances, as data (decision 0019, constraint 6;
 decision 0024).
 
 Plain module constants, so a schema or an agent can read them without
-building anything.  Each is in degrees.
+building anything.  Angles are in degrees.
 """
 
 from __future__ import annotations
@@ -20,3 +20,8 @@ TOWARD_MIN_ANGLE = 1.0
 # A junction's ``toward=`` may miss the nearest allowed roll (a multiple of
 # the section's period) by at most this much.
 JUNCTION_TOWARD_TOL = 1.0
+
+#: Smallest gap between consecutive layer outlines, as a fraction of the
+#: outer one's largest extent (decision 0026, item 5): each outline must lie
+#: strictly inside the next all round, or the ring has cells of no height.
+OUTLINE_MIN_GAP = 1e-3

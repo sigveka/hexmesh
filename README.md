@@ -220,8 +220,11 @@ PipeSpec(nang_w=8, nang_h=4).core("air", half_w=0.1, half_h=0.05, nrad=3)
 
 A duct uses the same O-H layout with straight sides: a centre rectangle and
 a ring of uniform thickness, with `nang_w` cells along the width and
-`nang_h` along the height. Ducts are single-layer for now, and run through
-`Straight`, `Bend`, `MiterBend`, `SplinePipe` and `Closure`.
+`nang_h` along the height. Ducts run through `Straight`, `Bend`,
+`MiterBend`, `SplinePipe`, `Closure` and `Reducer`.  Shells may have any
+outline, so a duct can carry a wall and lagging, and a pipe can sit in a
+rectangular block (`.shell(name, outer=RectShape(...))`, API.md); a stack
+with a rectangle has the same count on every side.
 `Transition` joins a duct to a circular pipe, or to a duct of another size,
 when the counts per side match: a circle's `nang` equals the duct's
 `nang_w` and `nang_h`.
@@ -500,9 +503,9 @@ with `python3 docs/gallery/build.py` (needs `vtk`).
 - **Wye (prototype):** single-layer specs, equal daughters with the inlet's
   spec, coplanar and symmetric, angle 30°–120°. Quality is measured, not
   yet bounded: min scaled Jacobian about 0.1 (decision 0017).
-- **Rectangular ducts:** single-layer only (no duct wall or insulation
-  shells yet); no tee or elbow for ducts. `Transition` needs equal
-  counts per side and single-layer specs.
+- **Rectangular ducts and outlines:** no tee or elbow for ducts.  A
+  stack with a rectangle needs equal counts per side.  `Transition`
+  needs equal counts per side and single-layer specs.
 - **Layer changes:** insulation can't start or stop inside a fitting yet
   (decision 0006).
 

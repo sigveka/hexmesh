@@ -214,12 +214,56 @@ corners (span 0.4 R) are about 0.81× it. It needs `n_outer = 4`. It raises
 `ValueError` if no progression fits (for example `first_cell` ≥ the span),
 and `TypeError` together with `mprg`.
 
-#### `.shell(name, dR, nrad, mprg=1.0, first_cell=None)`
+#### `.shell(name, dR=None, nrad, mprg=1.0, *, outer=None, first_cell=None)`
 
-A concentric layer of thickness `dR` on top of the previous one.
-`first_cell` sets the radial height of the cell at the layer's outer
-boundary in place of `mprg`. It is exact all round. The solver is
-`hexmesh.core.grading.progression_for_first_cell(thickness, n_cells, h)`.
+A layer on top of the previous one, from that layer's outline to its own
+(decision 0026). Give exactly one of:
+
+- `dR`: the previous outline grown by `dR` (a circle's radius + `dR`; a
+  rectangle's `half_w` and `half_h` + `dR`, sharp corners kept);
+- `outer`: a new outline, `CircleShape(radius, nang)` or
+  `RectShape(half_w, half_h, nang_w, nang_h)`.
+
+So a circle can sit in a rectangle, a rectangle in a circle, and a
+rectangle in a rectangle, in any order and number of layers:
+
+```python
+from hexmesh.core.shape import CircleShape, RectShape
+
+# cable in a square filler in a round sheath
+(PipeSpec(nang=4).core("copper", radius=0.01, nrad=3)
+ .shell("filler", outer=RectShape(0.016, 0.016, 4, 4), nrad=2)
+ .shell("sheath", outer=CircleShape(0.028, 4), nrad=2))
+
+# a duct with a wall and lagging
+(PipeSpec(nang=4).core("air", RectShape(0.1, 0.05, 4, 4), nrad=3)
+ .shell("wall", dR=0.002, nrad=2).shell("lagging", dR=0.03, nrad=3))
+```
+
+- **Ring.** Each shell is four blocks, one per side. Its corner lines
+  leave the previous layer's corners away from the centre and end at the
+  new outline: radially on a circle, at the corner in that quadrant on a
+  rectangle. A circle in a flat rectangle has skewed corner lines; a
+  rectangle in a circle splits it into unequal arcs.
+- **Counts.** Every outline in a stack with a rectangle has the same count
+  on every side (`nang = nang_w = nang_h`), and `n_outer = 4`.
+  `ValueError` names the layer.
+- **Containment.** Each outline lies inside the next all round, by at
+  least `limits.OUTLINE_MIN_GAP` (10⁻³) of the outer one's largest
+  extent. `validate()` names the layer, the gap and its direction.
+- **Symmetry period.** That of the least symmetric outline: a circle in a
+  2:1 rectangle has period 180°.
+- **`first_cell`** sets the radial height of the cell at the layer's outer
+  boundary in place of `mprg`. For a circle grown by `dR` it is exact all
+  round. Otherwise it is solved on the ring's longest radial, so no wall
+  cell is larger: the corner lines (`√2·dR` for a rectangle grown by `dR`),
+  or, for a shell that changes shape, the longest line between
+  corresponding points of the two outlines
+  (`hexmesh.core.shape.longest_radial`). The solver is
+  `hexmesh.core.grading.progression_for_first_cell(thickness, n_cells, h)`.
+
+`.square_shell()` is gone: use `.shell(name, outer=RectShape(...))`.
+Spec files that contain one still load, as that ring.
 
 #### `.core(name, half_w=..., half_h=..., nrad=..., mprg=1.0)` — rectangular duct
 
@@ -242,8 +286,9 @@ supported (`TypeError`).
   roll 90). Splines and closures, whose bend plane varies, are checked
   against the half-diagonal.
 - **Fittings.** `Straight`, `Bend`, `MiterBend`, `SplinePipe`,
-  `Closure` and `Transition` (to a circle, or to another rectangle).
-  `Elbow` (ASME pipe schedules), `Reducer`, `Tee` and `Wye` reject ducts.
+  `Closure`, `Reducer` (to another size) and `Transition` (to a circle,
+  or to another rectangle). `Elbow` (ASME pipe schedules), `Tee` and
+  `Wye` reject ducts.
 - **Diameters.** `extend_open_ends` measures a duct in hydraulic
   diameters, 4A / P_w = `4·half_w·half_h / (half_w + half_h)`.
 - **Cells.** `nang_w·nang_h + 2·(nang_w + nang_h)·nrad` per section.
@@ -252,9 +297,11 @@ supported (`TypeError`).
 stored as resolved, so a spec built with `first_cell=` reloads with the
 same grading.
 
-The assembly supports circular cores with circular shells, and
-single-layer rectangular cores. Shells around a rectangle and
-`.square_shell()` exist in `PipeSpec` but are rejected by validation.
+The assembly supports any stack of circle and rectangle outlines through
+the sweep fittings (`Straight`, `Bend`, `MiterBend`, `SplinePipe`,
+`Closure`, `Reducer`); bend radii are checked against the outermost
+outline. `Elbow` and drum nozzles need every outline circular; `Tee`,
+`Wye` and `Transition` are single-layer.
 
 ---
 
@@ -371,12 +418,14 @@ A segmented bend: straight pieces joined at `n_cuts` planar cuts.
 ### `Reducer(outlet, length, n_layers=None, axial_grading=1.0, profile=None, chord_tol=1e-3)`
 
 A concentric cone from the inlet spec to `outlet`; a larger outlet makes it an
-expander. **It may change radii and radial grading** (`mprg` per layer). The
-outlet must equal the inlet in everything else: the layer names and order,
-`nrad`, `nang`, `mbmp`, `n_outer` and `rot`. Validation names the fields that
-differ. Wall nodes lie exactly on the cone.
+expander. **It may change sizes and radial grading** (radii, half-widths,
+`dR`, and `mprg` per layer). The outlet must equal the inlet in everything
+else: the layer names and order, each layer's outline shape (a circle stays
+a circle; use `Transition` to change shape), `nrad`, counts, `mbmp`,
+`n_outer` and `rot`. Validation names the fields that differ. Wall nodes
+lie exactly on the cone, or on the planes of a rectangle's sides.
 
-Stations interpolate the radii linearly and each layer's `mprg`
+Stations interpolate the sizes linearly and each layer's `mprg`
 geometrically, `mprg_in^(1−u) · mprg_out^u`, at the same fractions. So a
 wall-resolved pipe can change diameter: give both sides the same absolute
 `first_cell`, and the solved `mprg` differs (decision 0016):

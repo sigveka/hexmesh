@@ -25,7 +25,7 @@ from ..core.shape import BlendShape, CircleShape, RectShape
 from ..core.spec import PipeSpec
 from .interface import Frame, half_extent, outer_radius, roll_mismatch, rotate, toward_roll
 from .profile import CHORD_TOL, Profile
-from .sweep import MAX_CHORD_TURN, Arc, FillResult, Path, Sweep, _check_n_layers, _radii
+from .sweep import MAX_CHORD_TURN, Arc, FillResult, Path, Sweep, _check_n_layers
 
 __all__ = ["Straight", "Bend", "MiterBend", "Elbow", "Reducer", "Transition",
            "SplinePipe", "Closure", "FillResult"]
@@ -385,9 +385,10 @@ class Elbow(_Toward, Sweep):
 
     def check(self, spec: PipeSpec) -> None:
         self.check_resolved()
-        if isinstance(spec.core_shape, RectShape):
+        if any(type(o).side_curve != "arc" for o in spec.outlines):
             raise ValueError("Elbow schedules are ASME pipe fittings, for circular "
-                             "pipes; use Bend(radius, angle, …) for a duct")
+                             "pipes; use Bend(radius, angle, …) for a section with "
+                             "a rectangle")
         if self.schedule not in self.FACTORS:
             raise ValueError(
                 f"schedule must be one of {sorted(self.FACTORS)}, got {self.schedule!r}"
@@ -405,8 +406,11 @@ class Elbow(_Toward, Sweep):
 def _with_radii(spec: PipeSpec, radii: list[float],
                 mprgs: list[float] | None = None) -> PipeSpec:
     """*spec* with core radius ``radii[0]`` and shell thicknesses ``radii[1:]``,
-    and, if given, radial gradings *mprgs* (core first)."""
+    and, if given, radial gradings *mprgs* (core first).  Circular stacks
+    of ``dR`` shells only; ``_with_layers`` takes any."""
     name, shape = spec._core
+    if any(sh.dR is None for sh in spec.shells):
+        raise ValueError("_with_radii needs dR shells; use _with_layers")
     if mprgs is None:
         mprgs = [spec._core_mprg] + [sh.mprg for sh in spec.shells]
     out = (PipeSpec(nang=spec.nang, n_outer=spec.n_outer, rot=spec.rot, mbmp=spec.mbmp)
@@ -415,6 +419,51 @@ def _with_radii(spec: PipeSpec, radii: list[float],
     for sh, dR, m in zip(spec.shells, radii[1:], mprgs[1:]):
         out = out.shell(sh.name, dR=dR, nrad=sh.nrad, mprg=m)
     return out
+
+
+def _layers(spec: PipeSpec) -> list:
+    """Each layer's size as the user gave it: the core shape, then each
+    shell's ``dR`` or ``outer`` outline."""
+    return [spec.core_shape] + [sh.outer if sh.dR is None else sh.dR for sh in spec.shells]
+
+
+def _blend_layers(a: PipeSpec, b: PipeSpec, u: float) -> list:
+    """Layer sizes *u* of the way from *a* to *b*: shapes ``lerp``, ``dR``
+    linearly; a shell given by ``dR`` on one side and ``outer`` on the
+    other blends its outlines."""
+    out = [a.core_shape.lerp(b.core_shape, u)]
+    oa, ob = a.outlines, b.outlines
+    for i, (x, y) in enumerate(zip(a.shells, b.shells), start=1):
+        if x.dR is not None and y.dR is not None:
+            out.append(x.dR + (y.dR - x.dR) * u)
+        else:
+            out.append(oa[i].lerp(ob[i], u))
+    return out
+
+
+def _scale_layers(spec: PipeSpec, f: float) -> list:
+    return [x * f if isinstance(x, (int, float)) else x.scaled(f) for x in _layers(spec)]
+
+
+def _with_layers(spec: PipeSpec, layers: list, mprgs: list[float]) -> PipeSpec:
+    """*spec* with every layer's size replaced (``_layers`` form, core
+    first) and radial gradings *mprgs*: a station of a ``Reducer``."""
+    name, _ = spec._core
+    out = (PipeSpec(nang=spec.nang, nang_w=spec.nang_w, nang_h=spec.nang_h,
+                    n_outer=spec.n_outer, rot=spec.rot, mbmp=spec.mbmp)
+           .core(name, layers[0], nrad=spec._core_nrad, mprg=mprgs[0]))
+    for sh, x, m in zip(spec.shells, layers[1:], mprgs[1:]):
+        if isinstance(x, (int, float)):
+            out = out.shell(sh.name, dR=x, nrad=sh.nrad, mprg=m)
+        else:
+            out = out.shell(sh.name, nrad=sh.nrad, mprg=m, outer=x)
+    return out
+
+
+def _sizes(outline) -> np.ndarray:
+    """An outline's lengths (radius; half_w, half_h), for comparisons."""
+    return np.array([v for k, v in outline.to_dict().items()
+                     if k != "type" and not k.startswith("nang")], dtype=float)
 
 
 def _mprgs(spec: PipeSpec) -> np.ndarray:
@@ -426,10 +475,12 @@ class Reducer(Sweep):
     """Concentric reducer (or expander): a straight cone between two radii.
 
     *outlet* is the outlet spec.  It must equal the inlet spec in everything
-    except its radii (core radius and shell thicknesses) and radial
-    gradings (``mprg`` per layer): the same layers, ``nrad``, ``nang``,
-    ``mbmp``, ``n_outer`` and ``rot``, so that every axial edge joins
-    matching nodes (rule A4).  A larger outlet makes it an expander.
+    except its sizes (every layer's outline: radii, half-widths) and radial
+    gradings (``mprg`` per layer): the same layers, outline shapes,
+    ``nrad``, counts, ``mbmp``, ``n_outer`` and ``rot``, so that every axial
+    edge joins matching nodes (rule A4; decision 0026).  A larger outlet
+    makes it an expander.  A rectangle's sides stay planar (the station
+    outlines interpolate linearly), so a duct reducer is exact too.
 
     Every axial layer is a station whose radii interpolate linearly, and
     corresponding corners are joined by straight lines, which are generators
@@ -479,19 +530,23 @@ class Reducer(Sweep):
             raise ValueError(
                 f"outlet spec differs from the inlet in rot ({spec.rot!r} vs "
                 f"{self.outlet.rot!r}); a reducer may change radii only")
-        if not isinstance(spec.core_shape, CircleShape):
-            raise ValueError("Reducer supports circular cross-sections only; for "
-                             "a duct, or to or from one, use Transition")
+        for name, a, b in zip(spec.layer_names, spec.outlines, self.outlet.outlines):
+            if type(a) is not type(b):
+                raise ValueError(
+                    f"Reducer changes outline sizes, not shapes: layer `{name}` is a "
+                    f"{type(a).__name__} at the inlet and a {type(b).__name__} at the "
+                    f"outlet; use Transition")
         if self.profile is not None:
             self._check_profile(spec)
 
     def _profile(self, spec: PipeSpec) -> Profile:
-        return Profile(self.profile, self.length, spec.core_shape.radius)
+        return Profile(self.profile, self.length, spec.core_shape.max_extent)
 
     def _check_profile(self, spec: PipeSpec) -> None:
         prof = self._profile(spec)
-        r0 = np.array(_radii(spec))
-        for end, s, want in (("inlet", 0.0, r0), ("outlet", 1.0, np.array(_radii(self.outlet)))):
+        r0 = np.concatenate([_sizes(o) for o in spec.outlines])
+        for end, s, want in (("inlet", 0.0, r0), ("outlet", 1.0, np.concatenate(
+                [_sizes(o) for o in self.outlet.outlines]))):
             got = r0 * float(prof(s))
             if not np.allclose(got, want, rtol=1e-9, atol=0.0):
                 raise ValueError(
@@ -519,18 +574,17 @@ class Reducer(Sweep):
     def path(self, a: Frame, b: Frame, spec: PipeSpec) -> Path:
         n = self.n_layers
         u = self.fractions(n)
-        r0, r1 = np.array(_radii(spec)), np.array(_radii(self.outlet))
         m0, m1 = _mprgs(spec), _mprgs(self.outlet)
         if self.profile is None:
-            radii = [r0 + (r1 - r0) * uk for uk in u]
+            layers = [_blend_layers(spec, self.outlet, float(uk)) for uk in u]
         else:
             prof = self._profile(spec)
             u = prof.stations(u)
-            radii = [r0 * float(rk) for rk in prof(u)]
+            layers = [_scale_layers(spec, float(rk)) for rk in prof(u)]
         frames = [a] + [Frame(a.position + (b.position - a.position) * u[k],
                               a.normal, a.up) for k in range(1, n)] + [b]
-        specs = [spec] + [_with_radii(spec, list(radii[k]),
-                                      list(m0 ** (1 - u[k]) * m1 ** u[k]))
+        specs = [spec] + [_with_layers(spec, layers[k],
+                                       list(m0 ** (1 - u[k]) * m1 ** u[k]))
                           for k in range(1, n)] + [self.outlet]
         return Path(frames, [1] * n, specs=specs)
 

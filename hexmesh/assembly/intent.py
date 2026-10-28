@@ -243,9 +243,11 @@ def refine_spec_dict(d: dict, k: int) -> dict:
     for key in ("nang", "nang_w", "nang_h"):
         if d.get(key) is not None:
             d[key] *= k
-    for key in ("nang", "nang_w", "nang_h"):
-        if key in d["core"]["shape"]:
-            d["core"]["shape"][key] *= k
+    shapes = [d["core"]["shape"]] + [sh["outer"] for sh in d["shells"] if "outer" in sh]
+    for shape in shapes:
+        for key in ("nang", "nang_w", "nang_h"):
+            if key in shape:
+                shape[key] *= k
     for layer in (d["core"], *d["shells"]):
         layer["nrad"] *= k
         layer["mprg"] = layer.get("mprg", 1.0) ** (1.0 / k)

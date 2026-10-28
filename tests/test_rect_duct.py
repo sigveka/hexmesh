@@ -146,7 +146,8 @@ class TestSizes:
 class TestRejections:
     @pytest.mark.parametrize("fitting, message", [
         (Elbow(90), "use Bend"),
-        (Reducer(_duct(0.05, 0.05), 0.2, n_layers=2), "Transition"),
+        # sizes may change (decision 0026), shapes may not
+        (Reducer(_circle(), 0.2, n_layers=2), "Transition"),
         (Tee(0.2, 0.2, 0.03), "rectangular tees"),
         (Wye(60, 0.3, 0.5), "circular cores only"),
     ])
@@ -163,12 +164,12 @@ class TestRejections:
             PipeSpec(nang_w=4, nang_h=2).core("air", half_w=0.1, half_h=0.05, nrad=3,
                                                first_cell=0.001)
 
-    def test_shells(self):
-        spec = _duct().shell("wall", dR=0.01, nrad=2)
-        asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1])
-        asm.add(Straight(0.3, n_layers=2))
-        with pytest.raises((AssemblyError, NotImplementedError), match="single-layer"):
-            asm.validate()
+    def test_shells_need_equal_counts(self):
+        """Shells around a rectangle exist (decision 0026), with one count
+        per side; the 2:1 duct has 4 × 2."""
+        with pytest.raises(ValueError, match=r"shell `wall`: .*equal counts per side; "
+                                             r"layer `air` has \(4, 2\)"):
+            _duct().shell("wall", dR=0.01, nrad=2)
 
 
 def test_rot_turns_the_duct(gmsh_session):

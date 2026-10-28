@@ -69,6 +69,31 @@ def _square():
     return _duct(0.07, 0.07, 3, 3)
 
 
+def _in_rect(half_w=0.25, half_h=0.125):
+    """Circular pipe in a rectangular block (decision 0026): skewed corner
+    lines when the block is not square."""
+    return _one().shell("block", outer=RectShape(half_w, half_h, 4, 4), nrad=3)
+
+
+def _rect_in_circle():
+    """2:1 duct in a circular casing: the casing's arcs are unequal."""
+    return PipeSpec(nang=4).core("fluid", RectShape(0.1, 0.05, 4, 4), nrad=3).shell(
+        "casing", outer=CircleShape(0.16, 4), nrad=3)
+
+
+def _rect3(half_w=0.1, half_h=0.05, lagging=True):
+    """A duct with a wall and lagging, each grown by dR."""
+    spec = (PipeSpec(nang=4).core("fluid", RectShape(half_w, half_h, 4, 4), nrad=3)
+            .shell("wall", dR=0.01, nrad=2))
+    return spec.shell("lagging", dR=0.03, nrad=2) if lagging else spec
+
+
+def _cyl_box_cyl():
+    """Circle, square, circle: a cable in a square filler in a sheath."""
+    return (_one(0.05).shell("filler", outer=RectShape(0.08, 0.08, 4, 4), nrad=2)
+            .shell("sheath", outer=CircleShape(0.14, 4), nrad=2))
+
+
 def _between(spec, fitting, **kw):
     """Straight → fitting → Straight."""
     asm = Assembly(spec, direction=[0, 1, 0], up=[0, 0, 1], lc=0.1, **kw)
@@ -199,6 +224,15 @@ CASES = {
     "profile-table-2layer": lambda: _between(_two(), Reducer(
         _two(0.06, 0.015), 0.4, n_layers=16, axial_grading=1.1,
         profile=((0, 1), (0.3, 0.8), (0.6, 0.7), (1, 0.6)))),
+    # layer outlines (decision 0026, task 0045); the stacks × straight,
+    # easy-way and hard-way bend are added below the dict
+    "outline-c-r-c-rolled": lambda: _between(_cyl_box_cyl(), Bend(0.5, -60, n_layers=4,
+                                                                  roll=45)),
+    "outline-lagging-gap":  lambda: _between(_rect3(), Straight(
+        0.6, n_layers=6, stack_changes=((2, _rect3(lagging=False)), (4, _rect3())))),
+    "outline-reducer":      lambda: _between(_rect3(), Reducer(_rect3(0.08, 0.04), 0.2,
+                                                               n_layers=3)),
+    "outline-miter":        lambda: _between(_in_rect(), MiterBend(0.5, 90, n_cuts=2)),
     # transitions (task 0029): equal counts per side, so class 0
     "transition-circle-square": lambda: _between(_one(), Transition(_flat(0.09, 0.09), 0.3, 4)),
     "transition-circle-2to1": lambda: _between(_one(), Transition(_flat(), 0.3, 4)),
@@ -206,6 +240,24 @@ CASES = {
     "transition-2to1-1to1": lambda: _between(_flat(), Transition(_flat(0.1, 0.1), 0.2, 3,
                                                                 axial_grading=1.2)),
 }
+
+
+OUTLINE_STACKS = {
+    "circle-square": lambda: _in_rect(0.15, 0.15),
+    "circle-2to1":   _in_rect,
+    "2to1-circle":   _rect_in_circle,
+    "rrr":           _rect3,
+    "c-r-c":         _cyl_box_cyl,
+}
+OUTLINE_FITTINGS = {
+    "straight": lambda: Straight(0.3, n_layers=3),
+    "easy":     lambda: Bend(0.5, 90, n_layers=6),            # turns about the long side
+    "hard":     lambda: Bend(0.5, 90, n_layers=6, roll=90),   # turns about the short side
+}
+CASES.update({
+    f"outline-{s}-{f}": (lambda s=s, f=f: _between(OUTLINE_STACKS[s](), OUTLINE_FITTINGS[f]()))
+    for s in OUTLINE_STACKS for f in OUTLINE_FITTINGS
+})
 
 
 # ---------------------------------------------------------------------------
@@ -264,22 +316,33 @@ def _grouped_quads():
     return quads, owners
 
 
-def _layer_radii(spec):
-    """Radii of every cylindrical boundary of *spec*: core, then each shell.
-    A duct's or transition station's (single layer) is its half-diagonal,
-    for scale only."""
-    if not isinstance(spec.core_shape, CircleShape):
-        return np.array([spec.core_shape.max_extent])
-    return np.cumsum([spec.core_shape.radius] + [sh.dR for sh in spec.shells])
+def _extent(spec):
+    """Largest distance of *spec*'s outermost outline from the axis: the
+    scale of the deviations."""
+    return spec.core_shape.max_extent if not spec.shells else spec.outlines[-1].max_extent
 
 
-def _rect_dev(u, v, spec):
+def _outline_dev(u, v, spec0, spec1=None, t=None):
     """Distance-like deviation of in-section points (*u* along the frame's
-    right, *v* along up) from a duct's wall: 0 on the rectangle."""
-    s = spec.core_shape
-    c, d = math.cos(spec.rot), math.sin(spec.rot)
+    right, *v* along up) from the nearest layer boundary of *spec0*: 0 on an
+    outline (decision 0026).  With *spec1* and per-point fractions *t*, the
+    outlines are interpolated linearly between the two (a reducer's slab:
+    its walls are cones and planes)."""
+    c, d = math.cos(spec0.rot_rad), math.sin(spec0.rot_rad)
     u, v = c * u + d * v, -d * u + c * v
-    return np.abs(np.maximum(np.abs(u) - s.half_w, np.abs(v) - s.half_h))
+    o0 = spec0.outlines
+    o1 = o0 if spec1 is None else spec1.outlines[:len(o0)]
+    t = np.zeros(len(u)) if t is None else t
+    devs = []
+    for a, b in zip(o0, o1):
+        if isinstance(a, CircleShape):
+            r = a.radius + (b.radius - a.radius) * t
+            devs.append(np.abs(np.hypot(u, v) - r))
+        else:
+            hw = a.half_w + (b.half_w - a.half_w) * t
+            hh = a.half_h + (b.half_h - a.half_h) * t
+            devs.append(np.abs(np.maximum(np.abs(u) - hw, np.abs(v) - hh)))
+    return np.min(devs, axis=0)
 
 
 def wall_deviations(asm) -> dict[str, float]:
@@ -295,8 +358,9 @@ def wall_deviations(asm) -> dict[str, float]:
       nearest, with layer radii interpolated linearly between its two
       stations (a cone for a reducer).  A node on a miter cut lies on both
       legs' cylinders;
-    * a duct (rectangular core): the same, with the rectangle in the
-      section frame (``_rect_dev``) in place of the circles;
+    * any layer outline (decision 0026): distances are taken to every
+      layer's outline in the section frame (``_outline_dev``), so circles
+      and rectangles alike;
     * other paths (``SplinePipe``, ``Closure``, and ``Transition``, whose
       stations blend two shapes): no closed form; they must
       have one axial layer per slab, so no surface carries interior nodes
@@ -319,7 +383,7 @@ def wall_deviations(asm) -> dict[str, float]:
         surfs = sorted(bnd & sides)
         x = np.vstack([gmsh.model.mesh.getNodes(2, t, includeBoundary=True)[1].reshape(-1, 3)
                        for t in surfs])
-        scale = max(_layer_radii(path.spec_at(k, spec))[-1] for k in range(len(path.frames)))
+        scale = max(_extent(path.spec_at(k, spec)) for k in range(len(path.frames)))
         if path.axial is not None:                     # torus about the arc
             a, c = path.axial.axis, path.axial.centre
             rb = np.linalg.norm((path.frames[0].position - c)
@@ -327,18 +391,13 @@ def wall_deviations(asm) -> dict[str, float]:
             v = x - c
             h = v @ a
             rho = np.linalg.norm(v - np.outer(h, a), axis=1)
-            d = np.hypot(rho - rb, h)
-            if isinstance(spec.core_shape, RectShape):
-                # the meridian plane's (outward, axis) directions are fixed
-                # in the section frame, whatever the angle about the axis
-                f0 = path.frames[0]
-                er = (f0.position - c) / rb
-                u = (rho - rb) * (f0.right @ er) + h * (f0.right @ a)
-                v = (rho - rb) * (f0.up @ er) + h * (f0.up @ a)
-                dev = _rect_dev(u, v, spec)
-            else:
-                radii = _layer_radii(spec)
-                dev = np.min(np.abs(d[:, None] - radii[None, :]), axis=1)
+            # the meridian plane's (outward, axis) directions are fixed in
+            # the section frame, whatever the angle about the axis
+            f0 = path.frames[0]
+            er = (f0.position - c) / rb
+            u = (rho - rb) * (f0.right @ er) + h * (f0.right @ a)
+            v = (rho - rb) * (f0.up @ er) + h * (f0.up @ a)
+            dev = _outline_dev(u, v, spec)
         elif (path.is_straight or path.prism) and not path.blend:   # per-slab axis lines
             seg = np.full(len(x), np.inf)               # distance to the nearest axis segment
             dev = np.full(len(x), np.inf)
@@ -347,20 +406,18 @@ def wall_deviations(asm) -> dict[str, float]:
                 L = np.linalg.norm(p1 - p0)
                 ax = (p1 - p0) / L
                 t = (x - p0) @ ax
-                d = np.linalg.norm((x - p0) - np.outer(t, ax), axis=1)
                 u = np.clip(t / L, 0, 1)
                 to_seg = np.linalg.norm(x - (p0 + np.outer(u * L, ax)), axis=1)
-                if isinstance(spec.core_shape, RectShape):
+                w = (x - p0) - np.outer(t, ax)
+                if all(isinstance(o, CircleShape) for o in spec.outlines):
+                    wu, wv = np.linalg.norm(w, axis=1), np.zeros(len(w))   # any frame
+                else:
                     # section frame of this leg: an untilted station on it
                     f = next(f for j, f in enumerate(path.frames)
                              if path.stretch_at(j) is None and f.normal @ ax > 1 - 1e-12)
-                    w = (x - p0) - np.outer(t, ax)
-                    dk = _rect_dev(w @ f.right, w @ f.up, spec)
-                else:
-                    r0 = _layer_radii(path.slab_spec(k, spec))
-                    r1 = _layer_radii(path.spec_at(k + 1, spec))[:len(r0)]
-                    r = r0[None, :] + (r1 - r0)[None, :] * u[:, None]
-                    dk = np.min(np.abs(d[:, None] - r), axis=1)
+                    wu, wv = w @ f.right, w @ f.up
+                dk = _outline_dev(wu, wv, path.slab_spec(k, spec),
+                                  path.spec_at(k + 1, spec), u)
                 nearer = to_seg < seg - 1e-12 * scale
                 tie = np.abs(to_seg - seg) <= 1e-12 * scale     # on a cut: either leg
                 dev = np.where(nearer, dk, np.where(tie, np.minimum(dev, dk), dev))

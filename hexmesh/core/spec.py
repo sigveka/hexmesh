@@ -2,9 +2,9 @@
 Declarative pipe and bundle specifications.
 
 LayerSpec
-    Parameters for one concentric material layer (shell or annulus).
-    Does NOT include the innermost core; that is described by the Shape
-    passed to PipeSpec.core().
+    Parameters for one shell: the region between the previous layer's
+    outline and its own (decision 0026).  The innermost core is described
+    by the Shape passed to PipeSpec.core().
 
 PipeSpec
     Builder for a single-pipe cross-section stack.  Fluent API::
@@ -21,7 +21,7 @@ PipeSpec
 
 BundleSpec
     Tiled array of identical pipes on a rectangular grid.  Each pipe
-    must end in a square_shell layer so adjacent cells share flat faces.
+    must end in a rectangular shell so adjacent cells share flat faces.
 """
 
 from __future__ import annotations
@@ -31,7 +31,8 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from .grading import progression_for_first_cell
-from .shape import CircleShape, RectShape, Shape, oh_core_wall_span
+from .shape import (CircleShape, RectShape, Shape, longest_radial, oh_core_wall_span,
+                    ring_corners, shape_from_dict)
 from .region import MaterialGraph
 
 if TYPE_CHECKING:
@@ -62,64 +63,42 @@ def _wall_progression(mprg: float | None, thickness: float, nrad: int,
 class LayerSpec:
     """One shell layer in a pipe cross-section stack.
 
+    The shell fills the region between the previous layer's outline and
+    its own (decision 0026), given by exactly one of *dR* and *outer*.
+
     Attributes
     ----------
     name : str
         Material label used for Physical groups and MaterialGraph nodes.
-    dR : float
-        Radial thickness of this layer.
+    dR : float or None
+        Thickness: the previous outline grown by *dR* (a circle's radius +
+        dR; a rectangle's half_w and half_h + dR).
     nrad : int
         Number of mesh node layers across the thickness.
     mprg : float
         Transfinite progression factor for the radial lines (>1 refines
         toward the inner boundary, <1 toward the outer).
+    outer : Shape or None
+        The layer's own outline (``CircleShape`` or ``RectShape``).
     """
 
     name: str
-    dR:   float
+    dR:   float | None
     nrad: int
     mprg: float = 1.0
+    outer: Shape | None = None
 
     def __post_init__(self) -> None:
-        if self.dR <= 0:
+        if (self.dR is None) == (self.outer is None):
+            raise ValueError(f"shell `{self.name}`: give exactly one of dR and outer")
+        if self.dR is not None and self.dR <= 0:
             raise ValueError(f"LayerSpec.dR must be positive, got {self.dR!r}")
-        if self.nrad < 1:
+        if self.nrad is None or self.nrad < 1:
             raise ValueError(f"LayerSpec.nrad must be >= 1, got {self.nrad!r}")
 
-
-@dataclass(frozen=True)
-class SquareShellSpec:
-    """Square outer shell terminating a circular pipe stack.
-
-    The square outer boundary allows adjacent pipe cells to share flat
-    faces, enabling structured tiling in bundles.
-
-    Attributes
-    ----------
-    name : str
-        Material label.
-    half_w : float
-        Half-width  of the outer square (first  in-plane axis).
-    half_h : float
-        Half-height of the outer square (second in-plane axis).
-        For a true square set half_h == half_w.
-    nrad : int
-        Radial mesh divisions from circle boundary to square boundary.
-    mprg : float
-        Radial progression factor.
-    """
-
-    name:   str
-    half_w: float
-    half_h: float
-    nrad:   int
-    mprg:   float = 1.0
-
-    def __post_init__(self) -> None:
-        if self.half_w <= 0 or self.half_h <= 0:
-            raise ValueError("half_w and half_h must be positive.")
-        if self.nrad < 1:
-            raise ValueError(f"SquareShellSpec.nrad must be >= 1, got {self.nrad!r}")
+    def outline(self, inner: Shape) -> Shape:
+        """This layer's outline, around *inner* (the previous one)."""
+        return self.outer if self.outer is not None else inner.grown(self.dR)
 
 
 class PipeSpec:
@@ -161,13 +140,12 @@ class PipeSpec:
             .shell("duct_wall", dR=0.01, nrad=3)
         )
 
-    Bundle cell (circular pipe ending in a square outer shell)::
+    Circular conductor in a square insulation block (decision 0026)::
 
-        cell = (
-            PipeSpec(nang=5)
-            .core("fluid",      radius=0.3, nrad=5)
-            .shell("pipe_wall", dR=0.05, nrad=3)
-            .square_shell("shell_fluid", half_w=0.5, half_h=0.5, nrad=4)
+        bar = (
+            PipeSpec(nang=4)
+            .core("copper", radius=0.01, nrad=4)
+            .shell("insulation", outer=RectShape(0.02, 0.02, 4, 4), nrad=3)
         )
     """
 
@@ -191,7 +169,7 @@ class PipeSpec:
         self._mbmp   = mbmp
         self._rot    = float(rot)    # degrees
         self._core:   tuple[str, Shape] | None = None
-        self._shells: list[LayerSpec | SquareShellSpec] = []
+        self._shells: list[LayerSpec] = []
         # Validate nang / n_outer constraint if nang is already known at init time.
         if nang is not None:
             divisor = n_outer // 4
@@ -335,87 +313,83 @@ class PipeSpec:
     def shell(
         self,
         name: str,
-        dR:   float,
-        nrad: int,
+        dR:   float | None = None,
+        nrad: int | None = None,
         mprg: float | None = None,
         *,
+        outer: Shape | None = None,
         first_cell: float | None = None,
     ) -> "PipeSpec":
-        """Add a concentric circular shell layer.
+        """Add a shell: the region between the previous outline and this
+        layer's (decision 0026).
 
-        Only valid after a circular ``core()``.  The radial thickness is
-        measured from the previous layer's outer boundary.
+        Give exactly one of *dR* (the previous outline grown by *dR*) and
+        *outer* (a new outline, ``CircleShape`` or ``RectShape``).  A stack
+        with any rectangle has equal counts on every side of every outline
+        (``nang = nang_w = nang_h``) and ``n_outer = 4``, checked here.
+        That each outline lies inside the next is checked by the
+        assembly's validation.
 
         Parameters
         ----------
         name : str
             Material label.
-        dR : float
-            Radial thickness of this layer.
+        dR : float, optional
+            Thickness of this layer.
         nrad : int
-            Radial mesh divisions across the layer thickness.
+            Radial mesh divisions across the layer.
         mprg : float
             Radial progression factor (default 1, uniform; > 1 refines
             toward the inner boundary, < 1 toward the outer).
+        outer : CircleShape or RectShape, optional
+            This layer's outline.
         first_cell : float, optional
-            Radial height of the cell at the layer's outer boundary; sets
-            ``mprg`` (< 1).  Exact all round, since every radial is ``dR``
-            long.  Mutually exclusive with ``mprg``.
+            Largest radial height of a cell at the layer's outer boundary;
+            sets ``mprg`` (< 1).  Solved on the ring's longest radial, so no
+            wall cell exceeds it: every radial of a circle grown by ``dR``
+            (exact all round); the corner lines of a rectangle grown by
+            ``dR`` (``√2·dR``); for a shell that changes shape, the longest
+            line between corresponding points of the two outlines.
+            Mutually exclusive with ``mprg``.
         """
         if self._core is None:
             raise RuntimeError("Call PipeSpec.core() before .shell().")
-        _, core_shape = self._core
-        if self._shells and isinstance(self._shells[-1], SquareShellSpec):
-            raise RuntimeError(
-                "Cannot add a circular shell after a square_shell layer."
-            )
+        if nrad is None:
+            raise TypeError(f"shell `{name}`: nrad is required")
+        _check_layer_name(name)
+        layer = LayerSpec(name=name, dR=dR, nrad=nrad, mprg=1.0, outer=outer)
+        inner = self.outlines[-1]
+        outline = layer.outline(inner)
+        self._check_counts(name, outline)
         if first_cell is not None:
-            mprg = _wall_progression(mprg, dR, nrad, first_cell)
-        _check_layer_name(name)
+            if outer is None and type(inner).side_curve == "arc":
+                span = dR                       # every radial is dR long
+            else:
+                corners = self.corners()[-1]
+                span = longest_radial(inner, corners, outline,
+                                      ring_corners(corners, outline))
+            mprg = _wall_progression(mprg, span, nrad, first_cell)
         self._shells.append(LayerSpec(name=name, dR=dR, nrad=nrad,
-                                      mprg=1.0 if mprg is None else mprg))
+                                      mprg=1.0 if mprg is None else mprg, outer=outer))
         return self
 
-    def square_shell(
-        self,
-        name:   str,
-        half_w: float,
-        half_h: float,
-        nrad:   int,
-        mprg:   float = 1.0,
-    ) -> "PipeSpec":
-        """Add a square outer shell, terminating the concentric stack.
-
-        The square shell transitions the circular outer boundary to a flat
-        square, enabling tiling in bundles.  No further ``.shell()`` calls
-        are permitted after this.
-
-        Parameters
-        ----------
-        name : str
-            Material label for the square shell region.
-        half_w, half_h : float
-            Half-dimensions of the outer square.  For a square pitch
-            bundle set half_w == half_h == pitch / 2.
-        nrad : int
-            Radial mesh divisions from circle to square boundary.
-        mprg : float
-            Radial progression factor.
-        """
-        if self._core is None:
-            raise RuntimeError("Call PipeSpec.core() before .square_shell().")
-        _, core_shape = self._core
-        if not isinstance(core_shape, CircleShape):
-            raise TypeError(
-                "square_shell() requires a circular core (CircleShape)."
-            )
-        _check_layer_name(name)
-        self._shells.append(
-            SquareShellSpec(
-                name=name, half_w=half_w, half_h=half_h, nrad=nrad, mprg=mprg
-            )
-        )
-        return self
+    def _check_counts(self, name: str, outline: Shape) -> None:
+        """Equal counts per side through a stack with a rectangle
+        (decision 0026, item 3)."""
+        outlines = self.outlines + [outline]
+        if all(type(o).side_curve == "arc" for o in outlines):
+            return                              # circles: nang already shared
+        if self._n_outer != 4:
+            raise ValueError(f"shell `{name}`: a stack with a rectangular outline "
+                             f"needs n_outer = 4, got {self._n_outer}")
+        names = self.layer_names + [name]
+        want = outlines[0].counts[0]
+        for lname, o in zip(names, outlines):
+            if o.counts != (want, want):
+                raise ValueError(
+                    f"shell `{name}`: every outline in a stack with a rectangle needs "
+                    f"equal counts per side; layer `{lname}` has {o.counts} "
+                    f"(nang_w, nang_h), the core {want} per side")
 
     # ------------------------------------------------------------------
     # Derived properties
@@ -435,8 +409,31 @@ class PipeSpec:
         return self._core[1]
 
     @property
-    def shells(self) -> list[LayerSpec | SquareShellSpec]:
+    def shells(self) -> list[LayerSpec]:
         return list(self._shells)
+
+    @property
+    def outlines(self) -> list[Shape]:
+        """Every layer's outline, core first (decision 0026)."""
+        if self._core is None:
+            raise RuntimeError("PipeSpec has no core defined.")
+        out = [self._core[1]]
+        for sh in self._shells:
+            out.append(sh.outline(out[-1]))
+        return out
+
+    def corners(self) -> list[list]:
+        """Corner points ``(u, v)`` of every layer's outer boundary, before
+        ``rot``: the core's O-H corners, then each ring's (its corner lines
+        run from the previous layer's corners; ``ring_corners``)."""
+        outlines = self.outlines
+        n = self._n_outer if type(outlines[0]).side_curve == "arc" else 4
+        out = [[outlines[0].corner(k * 4 // n) if n == 4 else
+                outlines[0].ring_corner(math.pi / 4 + 2 * math.pi * k / n)
+                for k in range(n)]]
+        for o in outlines[1:]:
+            out.append(ring_corners(out[-1], o))
+        return out
 
     @property
     def n_outer(self) -> int:
@@ -483,11 +480,9 @@ class PipeSpec:
         """Geometric symmetry period P in radians: the smallest roll that
         maps the section onto itself (DESIGN §6.1, decision 0010).
         ``2π / n_outer`` for a circle, π/2 for a square, π for any other
-        rectangle."""
-        shape = self.core_shape
-        if isinstance(shape, CircleShape):
-            return 2 * math.pi / self._n_outer
-        return math.pi / 2 if shape.is_square else math.pi
+        rectangle; for a stack, the largest over its outlines (they are
+        all of the form 2π/m with m dividing 4)."""
+        return max(o.period(self._n_outer) for o in self.outlines)
 
     @property
     def graph(self) -> MaterialGraph:
@@ -551,21 +546,17 @@ class PipeSpec:
         if self._core is None:
             raise RuntimeError("PipeSpec has no core defined.")
         name, shape = self._core
-        if isinstance(shape, CircleShape):
-            shape_d = {"type": "circle", "radius": shape.radius, "nang": shape.nang}
-        elif isinstance(shape, RectShape):
-            shape_d = {"type": "rect", "half_w": shape.half_w, "half_h": shape.half_h,
-                       "nang_w": shape.nang_w, "nang_h": shape.nang_h}
-        else:
+        if not hasattr(shape, "to_dict"):
             raise TypeError(f"cannot serialise core shape {type(shape).__name__}")
+        shape_d = shape.to_dict()
         shells = []
         for sh in self._shells:
-            if isinstance(sh, SquareShellSpec):
-                shells.append({"type": "square_shell", "name": sh.name,
-                               "half_w": sh.half_w, "half_h": sh.half_h,
+            if sh.outer is None:
+                shells.append({"type": "shell", "name": sh.name, "dR": sh.dR,
                                "nrad": sh.nrad, "mprg": sh.mprg})
             else:
-                shells.append({"type": "shell", "name": sh.name, "dR": sh.dR,
+                shells.append({"type": "shell", "name": sh.name,
+                               "outer": sh.outer.to_dict(),
                                "nrad": sh.nrad, "mprg": sh.mprg})
         return {
             "nang": self._nang, "nang_w": self._nang_w, "nang_h": self._nang_h,
@@ -582,24 +573,21 @@ class PipeSpec:
                    mbmp=d.get("mbmp", 1.0), rot=d.get("rot", 0.0),
                    n_outer=d.get("n_outer", 4))
         core = d["core"]
-        sd = dict(core["shape"])
-        kind = sd.pop("type")
-        if kind == "circle":
-            shape = CircleShape(**sd)
-        elif kind == "rect":
-            shape = RectShape(**sd)
-        else:
-            raise ValueError(f"unknown core shape type {kind!r}")
+        shape = shape_from_dict(core["shape"])
         spec.core(core["name"], shape, nrad=core["nrad"], mprg=core.get("mprg", 1.0))
         for sh in d.get("shells", []):
             sh = dict(sh)
             kind = sh.pop("type")
-            if kind == "shell":
-                spec.shell(**sh)
-            elif kind == "square_shell":
-                spec.square_shell(**sh)
-            else:
+            if kind == "square_shell":          # removed (decision 0026): same ring
+                n = spec.nang
+                sh = {"name": sh["name"], "nrad": sh["nrad"], "mprg": sh.get("mprg", 1.0),
+                      "outer": {"type": "rect", "half_w": sh["half_w"],
+                                "half_h": sh["half_h"], "nang_w": n, "nang_h": n}}
+            elif kind != "shell":
                 raise ValueError(f"unknown shell type {kind!r}")
+            if "outer" in sh:
+                sh["outer"] = shape_from_dict(sh["outer"])
+            spec.shell(**sh)
         return spec
 
     def __repr__(self) -> str:
@@ -613,20 +601,20 @@ class PipeSpec:
 class BundleSpec:
     """Rectangular tiled array of identical pipe cells.
 
-    Each pipe cell must end in a ``SquareShellSpec`` so adjacent cells
-    share flat faces, giving a conformal interface between cells without
-    any inter-tube meshing.
+    Each pipe cell must end in a rectangular shell (``outer=RectShape``) so
+    adjacent cells share flat faces, giving a conformal interface between
+    cells without any inter-tube meshing.
 
     Attributes
     ----------
     pipe : PipeSpec
-        Specification for one pipe cell.  Must end in a square_shell.
+        Specification for one pipe cell.  Must end in a rectangular shell.
     nx : int
         Number of cells along the first  in-plane axis.
     ny : int
         Number of cells along the second in-plane axis.
     shell_name : str
-        The square_shell material label is used as the shared "shell side"
+        The outer shell's material label is used as the shared "shell side"
         Physical Volume name across the whole bundle.
     """
 
@@ -638,28 +626,24 @@ class BundleSpec:
     def __post_init__(self) -> None:
         if not self.pipe.shells:
             raise ValueError("BundleSpec.pipe has no shell layers defined.")
-        outermost = self.pipe.shells[-1]
-        if not isinstance(outermost, SquareShellSpec):
+        outermost = self.pipe.outlines[-1]
+        if not isinstance(outermost, RectShape):
             raise TypeError(
-                "BundleSpec.pipe must end with a square_shell() layer; "
-                f"got {type(outermost).__name__}."
+                "BundleSpec.pipe must end with a rectangular shell "
+                f"(outer=RectShape); got {type(outermost).__name__}."
             )
         if self.nx < 1 or self.ny < 1:
             raise ValueError("nx and ny must be >= 1.")
 
     @property
     def pitch_w(self) -> float:
-        """Cell width  (2 × square shell half_w)."""
-        outer = self.pipe.shells[-1]
-        assert isinstance(outer, SquareShellSpec)
-        return 2 * outer.half_w
+        """Cell width  (2 × the outer shell's half_w)."""
+        return 2 * self.pipe.outlines[-1].half_w
 
     @property
     def pitch_h(self) -> float:
-        """Cell height (2 × square shell half_h)."""
-        outer = self.pipe.shells[-1]
-        assert isinstance(outer, SquareShellSpec)
-        return 2 * outer.half_h
+        """Cell height (2 × the outer shell's half_h)."""
+        return 2 * self.pipe.outlines[-1].half_h
 
     @property
     def graph(self) -> MaterialGraph:

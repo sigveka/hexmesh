@@ -238,9 +238,10 @@ class Drum:
         R = self.radius
         for n in self.nozzles:
             where = f"drum {self.name}, nozzle {n.name}"
-            if not isinstance(n.spec.core_shape, CircleShape):
-                raise EquipmentError(f"{where}: drum nozzles are circular pipes, "
-                                     f"got a {type(n.spec.core_shape).__name__} core")
+            for lname, o in zip(n.spec.layer_names, n.spec.outlines):
+                if not isinstance(o, CircleShape):
+                    raise EquipmentError(f"{where}: drum nozzles are circular pipes, "
+                                         f"layer `{lname}` is a {type(o).__name__}")
             r = outer_radius(n.spec)
             if r >= R:
                 raise EquipmentError(f"{where}: outer radius {r} is not below the "

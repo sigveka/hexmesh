@@ -18,7 +18,6 @@ import gmsh
 
 from .. import _occ
 from ..core.cross_section import LayeredCrossSection
-from ..core.shape import CircleShape
 from ..core.spec import PipeSpec
 from .corners import canonical_geom, connect_layer, curve_endpoints, frame_offset
 from .interface import Frame, build_face, outer_radius, roll_mismatch
@@ -468,8 +467,8 @@ class Sweep:
         path = self.path(a, b, spec)
         R = self.clearance(spec)
         if path.min_radius <= R:
-            what = ("the pipe outer radius" if isinstance(spec.core_shape, CircleShape)
-                    else f"the duct's half-extent {self.clearance_note}")
+            what = ("the pipe outer radius" if type(spec.outlines[-1]).side_curve == "arc"
+                    else f"the section's half-extent {self.clearance_note}")
             raise ValueError(
                 f"path bends with radius {path.min_radius:.4g}, tighter than "
                 f"{what} {R:.4g}"
@@ -558,8 +557,21 @@ class Sweep:
         return sweep_fill(self.path(frames[0], frames[1], spec), faces, spec, lc)
 
 
-def _radii(spec: PipeSpec) -> list[float]:
-    return [spec.core_shape.radius] + [sh.dR for sh in spec.shells]
+def _layer_difference(spec_a: PipeSpec, spec_b: PipeSpec, i: int) -> str | None:
+    """How layer *i*'s outline differs between two specs, or None.  Sizes
+    as the user gave them: a circle's radius, a ``dR`` shell's thickness,
+    otherwise the outline."""
+    oa, ob = spec_a.outlines[i], spec_b.outlines[i]
+    if oa == ob:
+        return None
+    name = spec_a.layer_names[i]
+    if i == 0 and hasattr(oa, "radius") and hasattr(ob, "radius"):
+        return f"`{name}` radius {oa.radius} vs {ob.radius}"
+    if i > 0:
+        sa, sb = spec_a.shells[i - 1], spec_b.shells[i - 1]
+        if sa.dR is not None and sb.dR is not None and sa.dR != sb.dR:
+            return f"`{name}` radius {sa.dR} vs {sb.dR}"
+    return f"`{name}` outline {oa} vs {ob}"
 
 
 def _check_termination(fitting: str, i: int, a: PipeSpec, b: PipeSpec) -> None:
@@ -583,11 +595,11 @@ def _check_termination(fitting: str, i: int, a: PipeSpec, b: PipeSpec) -> None:
         what = "; ".join(str(d) for d in c.differences if d.field != "shells")
         raise ValueError(f"{where}: the remaining layers must match ({what}); "
                          f"use a Reducer to change them")
-    n = len(short)
-    for lname, ra, rb in zip(short, _radii(a)[:n], _radii(b)[:n]):
-        if ra != rb:
+    for i in range(len(short)):
+        diff = _layer_difference(a, b, i)
+        if diff:
             raise ValueError(f"{where}: the remaining layers must match "
-                             f"(`{lname}` radius {ra} vs {rb}); use a Reducer")
+                             f"({diff}); use a Reducer")
     if a.rot != b.rot:
         raise ValueError(f"{where}: the remaining layers must match "
                          f"(rot {a.rot} vs {b.rot})")
