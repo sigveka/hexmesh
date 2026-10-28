@@ -44,8 +44,10 @@ import gmsh                                                    # noqa: E402
 from hexmesh import Assembly, PipeSpec, Session, Straight      # noqa: E402
 from hexmesh.assembly import intent                            # noqa: E402
 from hexmesh.core.shape import OH_RATIO                        # noqa: E402
+from hexmesh.study.openfoam import cell_geometry, face_geometry   # noqa: E402
 
-# The Poiseuille case's OpenFOAM runner, readers and Richardson analysis.
+# The Poiseuille case's Richardson analysis and versions, and (through it)
+# the shared OpenFOAM runner and readers of hexmesh.study.openfoam.
 _spec = importlib.util.spec_from_file_location("poiseuille_run",
                                                ROOT / "validation/poiseuille/run.py")
 pois = importlib.util.module_from_spec(_spec)
@@ -159,40 +161,6 @@ def write_case(case: Path, end_time: int) -> None:
     }
     for name, text in files.items():
         (case / name).write_text(text)
-
-
-# --- geometry of the polyMesh, as OpenFOAM computes it ----------------------
-
-def face_geometry(pts: np.ndarray, faces: list[list[int]]):
-    """Face centres and area vectors (``primitiveMeshFaceCentresAndAreas``:
-    triangles about the point average, centroids weighted by area)."""
-    q = pts[np.array(faces)]                       # (F, 4, 3): all quads
-    est = q.mean(axis=1)
-    a, b = q, np.roll(q, -1, axis=1)
-    n = np.cross(b - a, est[:, None] - a)          # 2 × triangle area vectors
-    mag = np.linalg.norm(n, axis=2)
-    c = (a + b + est[:, None]) / 3
-    centres = (mag[..., None] * c).sum(1) / mag.sum(1)[:, None]
-    return centres, 0.5 * n.sum(1)
-
-
-def cell_geometry(fc, sf, owner, neigh, n_cells):
-    """Cell centres and volumes (``primitiveMeshCellCentresAndVols``:
-    pyramids from each face to the face-centre average)."""
-    nf = len(neigh)
-    cnt = np.bincount(owner, minlength=n_cells) + np.bincount(neigh, minlength=n_cells)
-    est = np.zeros((n_cells, 3))
-    np.add.at(est, owner, fc)
-    np.add.at(est, neigh, fc[:nf])
-    est /= cnt[:, None]
-    vol = np.zeros(n_cells)
-    ctr = np.zeros((n_cells, 3))
-    for cells, faces, sign in ((owner, slice(None), 1.0), (neigh, slice(0, nf), -1.0)):
-        f = fc[faces]
-        pyr = sign * np.einsum("ij,ij->i", sf[faces], f - est[cells])
-        np.add.at(vol, cells, pyr)
-        np.add.at(ctr, cells, pyr[:, None] * (0.75 * f + 0.25 * est[cells]))
-    return ctr / vol[:, None], vol / 3
 
 
 def results(case: Path) -> dict:

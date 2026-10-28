@@ -30,7 +30,8 @@ from pathlib import Path
 from .definition import Study, StudyError, canonical, variant_hash
 from .sampling import variants
 
-STATUS = ("checked", "preflight_failed", "meshed", "mesh_failed")
+STATUS = ("checked", "preflight_failed", "meshed", "mesh_failed", "case_ready", "case_failed",
+          "done", "run_failed")
 
 
 # --- topology key ------------------------------------------------------------
@@ -226,3 +227,175 @@ def mesh_worker(d: Path, fmt: str, walls_by_fitting: bool) -> int:
     out["mesh_time"] = time.perf_counter() - t0
     (d / "result.json").write_text(json.dumps(out, indent=1))
     return 0 if out["status"] == "meshed" else 1
+
+
+# --- case and run (task 0043) --------------------------------------------------
+
+def _digest(*parts) -> str:
+    h = hashlib.sha256()
+    for part in parts:
+        h.update(part if isinstance(part, bytes) else str(part).encode())
+        h.update(b"\0")
+    return h.hexdigest()[:16]
+
+
+def _tree_digest(root: Path) -> str:
+    files = sorted(p for p in root.rglob("*") if p.is_file())
+    return _digest(*[x for p in files for x in (str(p.relative_to(root)), p.read_bytes())])
+
+
+def case_fingerprint(study: Study, row: dict) -> str:
+    return _digest(_network_text(row["network"]), _tree_digest(study.resolve(study.case["template"])),
+                   json.dumps(canonical(row["params"]), sort_keys=True),
+                   bool(study.case.get("split_regions")))
+
+
+def run_fingerprint(study: Study, row: dict) -> str:
+    return _digest(case_fingerprint(study, row), study.run["command"], study.run.get("post"))
+
+
+def _read_json(path: Path) -> dict | None:
+    try:
+        return json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def load_case_run(study: Study, rows: list[dict]) -> None:
+    """Fill meshed rows from ``case.json`` and ``run.json`` when they are
+    for the variant's current mesh, case template and command."""
+    for r in rows:
+        d = variant_dir(study, r["hash"])
+        if study.case and r["status"] == "meshed":
+            c = _read_json(d / "case.json")
+            if c and c.get("fingerprint") == case_fingerprint(study, r):
+                r.update({k: v for k, v in c.items() if k != "fingerprint"})
+        if study.run and r["status"] == "case_ready":
+            c = _read_json(d / "run.json")
+            if c and c.get("fingerprint") == run_fingerprint(study, r):
+                r.update({k: v for k, v in c.items() if k != "fingerprint"})
+
+
+def case_stage(study: Study, rows: list[dict], jobs: int | None = None) -> list[str]:
+    """Make the OpenFOAM case of every meshed variant whose case is missing
+    or out of date.  Returns the hashes done (ready or failed)."""
+    import shutil
+    from .openfoam import convert, substitute_case
+    load_case_run(study, rows)
+    todo = [r for r in rows if r["status"] == "meshed"]
+    template = study.resolve(study.case["template"])
+    if todo and not template.is_dir():
+        raise StudyError(f"case template {template} is not a directory")
+
+    def make(row):
+        d = variant_dir(study, row["hash"])
+        case = d / "case"
+        (d / "run.json").unlink(missing_ok=True)
+        out = {"fingerprint": case_fingerprint(study, row), "case": str(case)}
+        try:
+            if case.exists():
+                shutil.rmtree(case)
+            shutil.copytree(template, case)
+            out["substituted"] = substitute_case(case, row["params"])
+            out["retyped"] = convert(case, d / study.mesh_name,
+                                     bool(study.case.get("split_regions")))
+            out["status"] = "case_ready"
+        except Exception as e:                               # recorded, not raised
+            out["status"], out["error"] = "case_failed", f"{type(e).__name__}: {e}"
+        (d / "case.json").write_text(json.dumps(out, indent=1))
+        row.update({k: v for k, v in out.items() if k != "fingerprint"})
+
+    with ThreadPoolExecutor(max_workers=jobs or study.jobs) as pool:
+        list(pool.map(make, todo))
+    return [r["hash"] for r in todo]
+
+
+def other_runs() -> list[str]:
+    """Command lines of pytest, OpenFOAM solver or mpirun processes that
+    aren't this process, its ancestors or its children (CLAUDE.md:
+    another session's runs on a shared machine)."""
+    mine = {os.getpid()}
+    pid = os.getpid()
+    while pid > 1:                                   # ancestors
+        try:
+            stat = Path(f"/proc/{pid}/stat").read_text()
+        except OSError:
+            break
+        pid = int(stat.rsplit(")", 1)[1].split()[1])
+        mine.add(pid)
+    found = []
+    for p in Path("/proc").iterdir():
+        if not p.name.isdigit() or int(p.name) in mine:
+            continue
+        try:
+            cmd = (p / "cmdline").read_bytes().replace(b"\0", b" ").decode().strip()
+            parent = int((p / "stat").read_text().rsplit(")", 1)[1].split()[1])
+        except (OSError, ValueError, IndexError):
+            continue
+        if parent == os.getpid():
+            continue                                 # our own children
+        words = cmd.split()
+        if not words:
+            continue
+        exe = Path(words[0]).name
+        if "pytest" in cmd or exe.endswith("Foam") or exe in ("mpirun", "mpiexec"):
+            found.append(f"{p.name}: {cmd[:120]}")
+    return found
+
+
+def run_stage(study: Study, rows: list[dict], jobs: int | None = None,
+              force: bool = False) -> list[str]:
+    """Run the command in every ready case whose run is missing or out of
+    date, then the post-processing function.  Returns the hashes run."""
+    from .openfoam import OPENFOAM_RC
+    load_case_run(study, rows)
+    todo = [r for r in rows if r["status"] == "case_ready"]
+    if not todo:
+        return []
+    jobs = jobs or study.jobs
+    cores = study.run.get("cores_per_job", 1)
+    if jobs * cores > (os.cpu_count() or 1):
+        raise StudyError(f"jobs × cores_per_job = {jobs} × {cores} exceeds the "
+                         f"{os.cpu_count()} cores of this machine")
+    if not force:
+        busy = other_runs()
+        if busy:
+            raise StudyError("other pytest or OpenFOAM runs are active (shared machine; "
+                             "--force runs anyway):\n" + "\n".join(busy))
+    post = study.function(study.run["post"], "run.post") if study.run.get("post") else None
+    timeout = study.run.get("timeout")
+
+    def execute(row):
+        d = variant_dir(study, row["hash"])
+        case = d / "case"
+        log = case / "log.run"
+        out = {"fingerprint": run_fingerprint(study, row), "run_log": str(log)}
+        t0 = time.perf_counter()
+        try:
+            with open(log, "w") as f:
+                proc = subprocess.run(
+                    ["bash", "-c", f"source {OPENFOAM_RC} >/dev/null 2>&1; {study.run['command']}"],
+                    cwd=case, stdout=f, stderr=subprocess.STDOUT, timeout=timeout)
+            out["run_exit"] = proc.returncode
+        except subprocess.TimeoutExpired:
+            out["run_exit"] = None
+            out["error"] = f"timed out after {timeout} s"
+        out["run_time"] = time.perf_counter() - t0
+        if out["run_exit"] == 0:
+            try:
+                result = post(case, dict(row["params"])) if post else {}
+                if not isinstance(result, dict):
+                    raise TypeError(f"post-processing returned {type(result).__name__}, "
+                                    f"not a dict")
+                out["result"], out["status"] = canonical(result), "done"
+            except Exception as e:                           # recorded, not raised
+                out["status"], out["error"] = "run_failed", f"post: {type(e).__name__}: {e}"
+        else:
+            out["status"] = "run_failed"
+            out.setdefault("error", f"command exited {out['run_exit']} (see {log})")
+        (d / "run.json").write_text(json.dumps(out, indent=1))
+        row.update({k: v for k, v in out.items() if k != "fingerprint"})
+
+    with ThreadPoolExecutor(max_workers=jobs) as pool:
+        list(pool.map(execute, todo))
+    return [r["hash"] for r in todo]

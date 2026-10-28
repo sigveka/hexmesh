@@ -14,7 +14,10 @@ A study file is JSON::
       "output":     "out",                             # default "study"
       "jobs":       1,                                 # mesh processes at once
       "format":     "msh" | "openfoam",                # default "msh"
-      "walls_by_fitting": false
+      "walls_by_fitting": false,
+      "case": {"template": "case", "split_regions": false},
+      "run":  {"command": "./Allrun", "cores_per_job": 1,
+               "post": "module:function", "timeout": 3600}
     }
 
 Every key but ``template`` is optional; paths are relative to the study
@@ -29,6 +32,20 @@ value may be the string ``"$name"``: the whole value is replaced by the
 parameter ``name``.  There are no expressions; ``"$$x"`` is the literal
 string ``"$x"``.  A placeholder without a parameter, or a parameter no
 placeholder uses, is an error.
+
+**case** (task 0043; needs ``"format": "openfoam"``): ``template`` is an
+OpenFOAM case directory without a mesh.  Each meshed variant gets a copy
+in ``variants/<hash>/case``: the mesh converted (``gmshToFoam``, and
+``splitMeshRegions -cellZones`` with ``split_regions``), its patches
+retyped from the role manifest, and ``$name`` tokens in its dictionaries
+replaced by the variant's parameters
+(``hexmesh.study.openfoam.substitute_case``).
+
+**run**: ``command`` runs in each case directory (with the OpenFOAM
+environment), at most ``jobs`` at once, and ``jobs × cores_per_job``
+must not exceed the machine's cores.  Then ``post`` (``module:function``,
+imported like a Python template) is called as ``post(case_path,
+params)`` and returns a dict: the variant's result.
 """
 
 from __future__ import annotations
@@ -43,7 +60,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 KEYS = {"template", "parameters", "sampling", "budget", "output", "jobs", "format",
-        "walls_by_fitting"}
+        "walls_by_fitting", "case", "run"}
+CASE_KEYS = {"template", "split_regions"}
+RUN_KEYS = {"command", "cores_per_job", "post", "timeout"}
 BUDGET_KEYS = {"max_cells_variant", "max_cells_total"}
 FORMATS = ("msh", "openfoam")
 _PLACEHOLDER = re.compile(r"^\$([A-Za-z_]\w*)$")
@@ -64,6 +83,8 @@ class Study:
     jobs:       int = 1
     format:     str = "msh"
     walls_by_fitting: bool = False
+    case:       dict | None = None
+    run:        dict | None = None
     raw:        dict = field(default_factory=dict)
 
     @property
@@ -80,21 +101,24 @@ class Study:
 
     # -- templates -----------------------------------------------------------
 
+    def function(self, target: str, what: str):
+        """Import ``module:function``, the study file's directory first on
+        ``sys.path``."""
+        if not isinstance(target, str) or target.count(":") != 1:
+            raise StudyError(f"{what} must be 'module:function', got {target!r}")
+        mod, fn = target.split(":")
+        root = str(self.root)
+        if root not in sys.path:
+            sys.path.insert(0, root)
+        try:
+            return getattr(importlib.import_module(mod), fn)
+        except (ImportError, AttributeError) as e:
+            raise StudyError(f"{what} {target!r}: {e}") from None
+
     def builder(self):
         """``params -> Assembly`` for this study's template."""
         if "python" in self.template:
-            target = self.template["python"]
-            if not isinstance(target, str) or target.count(":") != 1:
-                raise StudyError(f"template.python must be 'module:function', got {target!r}")
-            mod, fn = target.split(":")
-            root = str(self.root)
-            if root not in sys.path:
-                sys.path.insert(0, root)
-            try:
-                func = getattr(importlib.import_module(mod), fn)
-            except (ImportError, AttributeError) as e:
-                raise StudyError(f"template.python {target!r}: {e}") from None
-            return func
+            return self.function(self.template["python"], "template.python")
         from ..assembly import Assembly
         text = self.resolve(self.template["json"]).read_text()
         network = json.loads(text)
@@ -138,9 +162,27 @@ def load_study(path) -> Study:
     jobs = raw.get("jobs", 1)
     if not isinstance(jobs, int) or jobs < 1:
         raise StudyError(f"jobs must be a positive integer, got {jobs!r}")
+    case, run = raw.get("case"), raw.get("run")
+    for name, block, keys, required in (("case", case, CASE_KEYS, "template"),
+                                        ("run", run, RUN_KEYS, "command")):
+        if block is None:
+            continue
+        if not isinstance(block, dict) or required not in block:
+            raise StudyError(f"{name} must be an object with {required!r}")
+        if set(block) - keys:
+            raise StudyError(f"unknown {name} key(s): {', '.join(sorted(set(block) - keys))}")
+    if case is not None and fmt != "openfoam":
+        raise StudyError('a case stage needs "format": "openfoam" (the role manifest)')
+    if run is not None and case is None:
+        raise StudyError("a run stage needs a case stage")
+    if run is not None:
+        cores = run.get("cores_per_job", 1)
+        if not isinstance(cores, int) or cores < 1:
+            raise StudyError(f"run.cores_per_job must be a positive integer, got {cores!r}")
     study = Study(path=path, template=tpl, parameters=dict(raw.get("parameters", {})),
                   sampling=raw.get("sampling"), budget=budget, jobs=jobs, format=fmt,
-                  walls_by_fitting=bool(raw.get("walls_by_fitting", False)), raw=raw)
+                  walls_by_fitting=bool(raw.get("walls_by_fitting", False)),
+                  case=case, run=run, raw=raw)
     study.output = study.resolve(raw.get("output", "study"))
     return study
 

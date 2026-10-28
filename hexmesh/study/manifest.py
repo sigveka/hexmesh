@@ -26,7 +26,8 @@ from .definition import Study, StudyError, canonical
 from .stages import variant_dir
 
 COLUMNS = ["hash", "status", "cells", "cells_meshed", "min_sicn", "min_sj",
-           "min_sj_fitting", "preflight_time", "mesh_time", "topology", "warnings", "error"]
+           "min_sj_fitting", "preflight_time", "mesh_time", "run_exit", "run_time", "run_log",
+           "topology", "warnings", "error"]
 
 
 def versions() -> dict:
@@ -50,14 +51,17 @@ def _public(row: dict) -> dict:
 def write_manifest(study: Study, rows: list[dict]) -> None:
     study.output.mkdir(parents=True, exist_ok=True)
     names = list(dict.fromkeys(k for r in rows for k in r["params"]))
+    results = list(dict.fromkeys(k for r in rows for k in (r.get("result") or {})))
     with open(study.output / "study.csv", "w", newline="") as f:
         w = csv.writer(f)
-        w.writerow(COLUMNS[:2] + names + COLUMNS[2:])
+        w.writerow(COLUMNS[:2] + names + [f"result.{k}" for k in results] + COLUMNS[2:])
         for r in rows:
             vals = {k: r.get(k) for k in COLUMNS}
             vals["warnings"] = "; ".join(r.get("warnings") or [])
+            res = r.get("result") or {}
             w.writerow([vals["hash"], vals["status"]]
                        + [canonical(r["params"].get(n)) for n in names]
+                       + ["" if res.get(k) is None else res[k] for k in results]
                        + ["" if vals[k] is None else vals[k] for k in COLUMNS[2:]])
     (study.output / "study.json").write_text(json.dumps({
         "study": study.raw, "versions": versions(),
@@ -90,7 +94,8 @@ def read_mesh(path: Path) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
 
 
 def export(study: Study) -> dict[str, Path]:
-    rows = [r for r in read_manifest(study)["variants"] if r["status"] == "meshed"]
+    meshed = {"meshed", "case_ready", "case_failed", "done", "run_failed"}
+    rows = [r for r in read_manifest(study)["variants"] if r["status"] in meshed]
     groups: dict[str, list[dict]] = {}
     for r in rows:
         groups.setdefault(r["topology"], []).append(r)

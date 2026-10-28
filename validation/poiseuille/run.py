@@ -41,8 +41,12 @@ from hexmesh import Assembly, PipeSpec, Session, Straight      # noqa: E402
 from hexmesh.io.writers.openfoam_boundary import (             # noqa: E402
     apply_boundary_roles, roles_path,
 )
-
-OPENFOAM_RC = Path("/usr/share/openfoam/etc/bashrc")
+# Shared OpenFOAM helpers (task 0043), moved from this script.
+from hexmesh.study.openfoam import (                           # noqa: E402
+    OPENFOAM_RC, foam, header as _header, latest_time as _latest_time,
+    read_faces, read_internal, read_labels, read_patch_faces, read_patch_values,
+    read_points, read_zone,
+)
 
 # --- physics -----------------------------------------------------------------
 D = 0.02                  # pipe diameter [m]
@@ -72,12 +76,6 @@ def assembly(factor: int) -> Assembly:
 
 
 # --- OpenFOAM dictionaries ---------------------------------------------------
-
-def _header(cls: str, obj: str, location: str = "") -> str:
-    loc = f'    location    "{location}";\n' if location else ""
-    return ("FoamFile\n{\n    version     2.0;\n    format      ascii;\n"
-            f"    class       {cls};\n{loc}    object      {obj};\n}}\n\n")
-
 
 CONTROL = """application     simpleFoam;
 startFrom       startTime;
@@ -201,100 +199,11 @@ def write_case(case: Path, end_time: int) -> None:
         (case / name).write_text(text)
 
 
-def foam(cmd: str, case: Path, log: str) -> str:
-    run = subprocess.run(["bash", "-c", f"source {OPENFOAM_RC} >/dev/null 2>&1; {cmd}"],
-                         cwd=case, capture_output=True, text=True)
-    (case / log).write_text(run.stdout + run.stderr)
-    if run.returncode != 0:
-        raise RuntimeError(f"{cmd} failed in {case} (see {log}):\n{run.stdout[-3000:]}"
-                           f"{run.stderr[-2000:]}")
-    return run.stdout
-
-
 # --- post-processing ---------------------------------------------------------
 #
-# In Python, from the ASCII case files: function objects (controlDict
-# ``functions`` and ``postProcess -func``) abort on this OpenFOAM build
+# In Python, from the ASCII case files with hexmesh.study.openfoam's
+# readers: function objects abort on this OpenFOAM build
 # (docs/integrations/openfoam.md, "function objects").
-
-_NUM = r"[-+0-9.eE]+"
-
-
-def _list_body(text: str, start: int = 0) -> tuple[int, str]:
-    """``N ( … )`` at or after *start*: (N, body between the parentheses)."""
-    m = re.compile(r"(\d+)\s*\(").search(text, start)
-    n, i, depth = int(m.group(1)), m.end(), 1
-    j = i
-    while depth:
-        depth += {"(": 1, ")": -1}.get(text[j], 0)
-        j += 1
-    return n, text[i:j - 1]
-
-
-def _strip_header(text: str) -> str:
-    text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
-    text = re.sub(r"//.*", "", text)
-    return text[text.index("}", text.index("FoamFile")) + 1:]
-
-
-def read_points(path: Path):
-    import numpy as np
-    n, body = _list_body(_strip_header(path.read_text()))
-    return np.array(re.findall(_NUM, body), float).reshape(n, 3)
-
-
-def read_faces(path: Path) -> list[list[int]]:
-    n, body = _list_body(_strip_header(path.read_text()))
-    faces = [[int(v) for v in f.split()] for f in re.findall(r"\d+\(([^)]*)\)", body)]
-    assert len(faces) == n
-    return faces
-
-
-def read_labels(path: Path):
-    import numpy as np
-    n, body = _list_body(_strip_header(path.read_text()))
-    return np.array(body.split(), int)
-
-
-def read_zone(path: Path, name: str):
-    import numpy as np
-    text = _strip_header(path.read_text())
-    i = re.search(rf"^{name}\s*\{{", text, re.M).end()
-    _, body = _list_body(text, text.index("faceLabels", i))
-    return np.array(body.split(), int)
-
-
-def read_internal(path: Path, ncomp: int):
-    import numpy as np
-    text = _strip_header(path.read_text())
-    i = text.index("internalField")
-    n, body = _list_body(text, i)
-    return np.array(re.findall(_NUM, body), float).reshape(n, ncomp) if ncomp > 1 \
-        else np.array(body.split(), float)
-
-
-def read_patch_faces(path: Path, patch: str):
-    """Face labels of *patch*, from ``constant/polyMesh/boundary``."""
-    import numpy as np
-    text = _strip_header(path.read_text())
-    i = re.search(rf"^\s*{patch}\s*\{{", text, re.M).end()
-    body = text[i:text.index("}", i)]
-    n = int(re.search(r"nFaces\s+(\d+)", body).group(1))
-    start = int(re.search(r"startFace\s+(\d+)", body).group(1))
-    return np.arange(start, start + n)
-
-
-def read_patch_values(path: Path, patch: str):
-    import numpy as np
-    text = _strip_header(path.read_text())
-    i = re.search(rf"^\s*{patch}\s*\{{", text[text.index("boundaryField"):], re.M)
-    j = text.index("boundaryField") + i.end()
-    k = text.index("value", j)
-    if text[k:].split(None, 2)[1] == "uniform":
-        raise ValueError(f"{patch}: uniform value, expected a list")
-    _, body = _list_body(text, k)
-    return np.array(body.split(), float)
-
 
 def results(case: Path) -> dict:
     import numpy as np
@@ -368,11 +277,6 @@ def results(case: Path) -> dict:
         "profile_err": float(np.max(np.abs(u - exact)) / U_MAX_EXACT),
         "profile": sorted(zip(r.tolist(), u.tolist())),
     }
-
-
-def _latest_time(case: Path) -> Path:
-    times = [d for d in case.iterdir() if d.is_dir() and re.fullmatch(r"[\d.e+-]+", d.name)]
-    return max(times, key=lambda d: float(d.name))
 
 
 def run_level(name: str, factor: int, work: Path, end_time: int) -> dict:

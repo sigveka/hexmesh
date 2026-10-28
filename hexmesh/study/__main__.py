@@ -20,11 +20,13 @@ def main(argv=None) -> int:
     sub = ap.add_subparsers(dest="command", required=True)
     r = sub.add_parser("run", help="preflight, then mesh, every variant")
     r.add_argument("study", type=Path)
-    r.add_argument("--stage", choices=STAGES, default="mesh",
-                   help="the last stage to run (default: mesh)")
+    r.add_argument("--stage", choices=STAGES,
+                   help="the last stage to run (default: the study file's last)")
     r.add_argument("--jobs", type=int, help="mesh processes at once (default: the study's, 1)")
     r.add_argument("--keep-going", action="store_true",
                    help="mesh the variants that pass preflight even if some fail")
+    r.add_argument("--force", action="store_true",
+                   help="run cases even while other pytest or OpenFOAM runs are active")
     s = sub.add_parser("status", help="count the variants per status")
     s.add_argument("study", type=Path)
     e = sub.add_parser("export", help="write aligned arrays per topology key")
@@ -35,7 +37,8 @@ def main(argv=None) -> int:
         if args.command == "run":
             if args.jobs is not None and args.jobs < 1:
                 ap.error("--jobs must be >= 1")
-            rows = run(study, args.stage, args.jobs, args.keep_going, log=print)
+            rows = run(study, args.stage, args.jobs, args.keep_going, log=print,
+                       force=args.force)
             print(f"manifest: {study.output / 'study.csv'} ({len(rows)} variants)")
         elif args.command == "status":
             for k, n in sorted(status(study).items()):

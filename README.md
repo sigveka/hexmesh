@@ -460,7 +460,16 @@ python3 -m hexmesh.study export study.json                  # aligned arrays
     connectivity: geometry-only variants line up node for node.
   - `export` writes one `out/aligned/<key>.npz` per key (coordinates per
     variant, shared connectivity), for surrogate models.
-- `--jobs` defaults to 1.  On a shared machine, mind the other runs.
+- **Case and run** (optional, `"format": "openfoam"`):
+  - a `case` block names an OpenFOAM case template without a mesh;
+    each variant gets a copy, with the mesh converted, patches retyped
+    and `$name` tokens replaced by its parameters;
+  - a `run` block gives a command (e.g. `./Allrun`), `cores_per_job`,
+    and a `post(case, params) -> dict` function whose result goes in the
+    manifest.
+- `--jobs` defaults to 1.  On a shared machine, mind the other runs: the
+  run stage refuses while other pytest or OpenFOAM runs are active,
+  unless `--force`.
 
 Schema and options: [API.md](API.md#study-runner-hexmeshstudy).
 

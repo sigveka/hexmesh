@@ -52,7 +52,7 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0040](0040-port-names-orientation-angle-units.md) | Named ports, absolute orientation (`toward=`, junction roll), `rot` in degrees | done | 0024 |
 | [0041](0041-assembly-axial-cell.md) | `Assembly(axial_cell=…)`: `n_layers` from a target cell size | done | 0024 |
 | [0042](0042-study-runner-core.md) | Study runner: study file, sampling, preflight, mesh stage, manifest | done | 0025 |
-| [0043](0043-study-openfoam-stages.md) | Study runner: OpenFOAM case and run stages, shared OpenFOAM helpers | ready (after 0042) | 0025 |
+| [0043](0043-study-openfoam-stages.md) | Study runner: OpenFOAM case and run stages, shared OpenFOAM helpers | done | 0025 |
 | [0044](0044-demo-study-laminar-bend.md) | Demonstration study: laminar 90° bend, loss chart and aligned dataset | ready (after 0043) | 0025 |
 | [0045](0045-layer-outlines.md) | Layer outlines: circle and rectangle in either order, and rectangle in rectangle | done | 0026 |
 | [0046](0046-multi-layer-transition.md) | Multi-layer `Transition`: every outline blends along the axis | done | 0026 |

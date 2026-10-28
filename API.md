@@ -778,6 +778,8 @@ optional):
 | `jobs` | mesh processes at once (default 1; `--jobs` overrides) |
 | `format` | `"msh"` (`Assembly.write`) or `"openfoam"` (`write_openfoam`, with its `.roles.json`) |
 | `walls_by_fitting` | passed to the mesh writer |
+| `case` | `{"template": "dir", "split_regions": false}`: an OpenFOAM case without a mesh, copied per variant (needs `"format": "openfoam"`) |
+| `run` | `{"command": "./Allrun", "cores_per_job": 1, "post": "module:function", "timeout": 3600}` (needs `case`) |
 
 - A variant's parameters are `parameters` updated by one sample.  Its
   directory is `output/variants/<hash>/`, where the hash is taken over
@@ -798,8 +800,49 @@ optional):
     `network.json` is unchanged.
   - A crash is recorded as `mesh_failed`, with the error.
 
-**Statuses:** `checked` (preflight passed, not meshed), `preflight_failed`,
-`meshed`, `mesh_failed`.
+- **case**: for every meshed variant, `variants/<hash>/case`.
+  - A copy of the template, with its `$name` tokens replaced by the
+    variant's parameters.
+  - The mesh converted (`gmshToFoam`, then `splitMeshRegions -cellZones`
+    with `split_regions`) and its patches retyped from the role manifest.
+  - Whole tokens only: `$D` is a placeholder, `$Dmax` another name, and
+    `$$` a literal `$`.
+  - OpenFOAM's own references are left alone: a keyword defined on
+    another line of the same file (`$internalField`), or `$FOAM_…` /
+    `$WM_…`.
+  - Any other unknown `$name` fails the case with an error naming the
+    file.
+  - Redone when the network, the template's files or the parameters
+    change.
+- **run**: `command` runs in each ready case with the OpenFOAM
+  environment, at most `jobs` at once.
+  - `jobs × cores_per_job` must not exceed the machine's cores.
+  - Output goes to `case/log.run`.
+  - Then `post(case_path, params) -> dict` gives the variant's `result`;
+    in `study.csv` its keys become `result.<key>` columns.
+  - A non-zero exit, a timeout or a failing `post` is recorded as
+    `run_failed`, not raised.
+  - Redone only when the case or the command changes.
+  - It refuses while another session's pytest, `*Foam` or `mpirun`
+    processes run (`hexmesh.study.other_runs`), unless `--force`.
+
+**Statuses:**
+- `checked`: preflight passed, not meshed.
+- `preflight_failed`, `meshed`, `mesh_failed`.
+- `case_ready`, `case_failed`.
+- `done`, `run_failed`.
+
+**OpenFOAM helpers** (`hexmesh.study.openfoam`, shared with the
+validation scripts):
+- `header`, `foam(cmd, case, log)`, `convert(case, msh, split_regions)`
+  and `check_mesh`;
+- readers: `read_points`, `read_faces`, `read_labels`, `read_zone`,
+  `read_internal`, `read_patch_faces`, `read_patch_values`;
+- `latest_time`, `face_geometry` / `cell_geometry` (OpenFOAM's own
+  constructions) and `substitute_case`.
+
+Post-processing works from ASCII case files.  Function objects abort on
+v1912 here (`docs/integrations/openfoam.md`).
 
 **Topology key**: a hash, in creation order, over:
 - every interface's connectivity: its port signature without the grading
@@ -828,7 +871,7 @@ connectivity.  `export` checks this when it reads the meshes back.
 ```python
 from hexmesh.study import load_study, run, status, export
 study = load_study("study.json")
-rows = run(study, stage="mesh", jobs=2, keep_going=False)   # PreflightFailed on failures
+rows = run(study, jobs=2)        # stages up to the study's last; PreflightFailed on failures
 ```
 
 ---

@@ -288,3 +288,183 @@ class TestCli:
         _study(tmp_path, sampling={"table": {"rows": [{"radius": 0.04, "angle": 90}]}})
         assert main(["run", str(tmp_path / "study.json")]) == 2
         assert "fitting #1 Bend" in capsys.readouterr().err
+
+
+# ---------------------------------------------------------------------------
+# Case and run stages (task 0043)
+# ---------------------------------------------------------------------------
+
+PIPE = '''
+from hexmesh import Assembly, PipeSpec, Straight
+
+def build(p):
+    spec = PipeSpec(nang=4).core("fluid", radius=0.01, nrad=2)
+    asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1])
+    asm.add(Straight(0.2, n_layers=p.get("n", 20)))
+    return asm
+'''
+
+POST = '''
+import numpy as np
+from hexmesh.study import openfoam as of
+
+def dp(case, params):
+    """Mean p of the first axial cell layer minus that of the last."""
+    mesh = case / "constant/polyMesh"
+    pts, faces = of.read_points(mesh / "points"), of.read_faces(mesh / "faces")
+    owner, neigh = of.read_labels(mesh / "owner"), of.read_labels(mesh / "neighbour")
+    p = of.read_internal(of.latest_time(case) / "p", 1)
+    fc, sf = of.face_geometry(pts, faces)
+    cc, vol = of.cell_geometry(fc, sf, owner, neigh, len(p))
+    x = cc[:, 0]
+    first, last = x < x.min() + 1e-9, x > x.max() - 1e-9
+    mean = lambda m: float((p[m] * vol[m]).sum() / vol[m].sum())
+    return {"dp": mean(first) - mean(last), "dx": float(x.max() - x.min())}
+'''
+
+
+def _template(root, header):
+    """A laminar simpleFoam case with $U and $nu placeholders, no mesh."""
+    files = {
+        "system/controlDict": header("dictionary", "controlDict", "system") + (
+            "application simpleFoam; startFrom startTime; startTime 0; stopAt endTime;\n"
+            "endTime 3000; deltaT 1; writeControl timeStep; writeInterval 3000;\n"
+            "writeFormat ascii; writePrecision 12; writeCompression off;\n"
+            "timeFormat general; runTimeModifiable false;\n"),
+        "system/fvSchemes": header("dictionary", "fvSchemes", "system") + (
+            "ddtSchemes { default steadyState; }\ngradSchemes { default Gauss linear; }\n"
+            "divSchemes { default none; div(phi,U) bounded Gauss linear;\n"
+            "  div((nuEff*dev2(T(grad(U))))) Gauss linear; }\n"
+            "laplacianSchemes { default Gauss linear corrected; }\n"
+            "interpolationSchemes { default linear; }\nsnGradSchemes { default corrected; }\n"),
+        "system/fvSolution": header("dictionary", "fvSolution", "system") + (
+            "solvers { p { solver GAMG; smoother GaussSeidel; tolerance 1e-9; relTol 0.05; }\n"
+            "  U { solver smoothSolver; smoother symGaussSeidel; tolerance 1e-10; relTol 0.1; } }\n"
+            "SIMPLE { nNonOrthogonalCorrectors 0; residualControl { p 1e-6; U 1e-7; } }\n"
+            "relaxationFactors { fields { p 0.3; } equations { U 0.7; } }\n"),
+        "constant/transportProperties": header("dictionary", "transportProperties", "constant")
+        + "transportModel Newtonian;\nnu $nu;\n",
+        "constant/turbulenceProperties": header("dictionary", "turbulenceProperties",
+                                                "constant") + "simulationType laminar;\n",
+        "0/U": header("volVectorField", "U", "0") + (
+            "dimensions [0 1 -1 0 0 0 0];\ninternalField uniform (0 0 0);\n"
+            "inletValue uniform ($U 0 0);\n"
+            "boundaryField {\n fluid_inlet { type fixedValue; value $inletValue; }\n"
+            " fluid_outlet { type zeroGradient; }\n fluid_wall { type noSlip; } }\n"),
+        "0/p": header("volScalarField", "p", "0") + (
+            "dimensions [0 2 -2 0 0 0 0];\ninternalField uniform 0;\n"
+            "boundaryField {\n fluid_inlet { type zeroGradient; }\n"
+            " fluid_outlet { type fixedValue; value uniform 0; }\n"
+            " fluid_wall { type zeroGradient; } }\n"),
+    }
+    for name, text in files.items():
+        (root / name).parent.mkdir(parents=True, exist_ok=True)
+        (root / name).write_text(text)
+
+
+def _pipe_study(tmp_path, rows, **fields):
+    from hexmesh.study.openfoam import header
+    (tmp_path / "pipe.py").write_text(PIPE)
+    (tmp_path / "post.py").write_text(POST)
+    _template(tmp_path / "case", header)
+    body = {"template": {"python": "pipe:build"}, "output": "out", "format": "openfoam",
+            "sampling": {"table": {"rows": rows}},
+            "case": {"template": "case"},
+            "run": {"command": "simpleFoam > log.simpleFoam 2>&1", "post": "post:dp",
+                    "cores_per_job": 1}}
+    body.update(fields)
+    (tmp_path / "study.json").write_text(json.dumps(body))
+    return load_study(tmp_path / "study.json")
+
+
+class TestCaseTemplates:
+    def test_substitution_rules(self, tmp_path):
+        from hexmesh.study.openfoam import substitute_case
+        (tmp_path / "0").mkdir()
+        (tmp_path / "0/U").write_text(
+            "inletValue uniform ($U 0 0);\nin { value $inletValue; }\n"
+            "a $Umax; cost $$5; path $FOAM_CASE;\n")
+        with pytest.raises(ValueError, match=r"0/U: unknown placeholder\(s\) \$Umax"):
+            substitute_case(tmp_path, {"U": 0.5})
+        assert substitute_case(tmp_path, {"U": 0.5, "Umax": 2}) == ["0/U"]
+        assert (tmp_path / "0/U").read_text() == (
+            "inletValue uniform (0.5 0 0);\nin { value $inletValue; }\n"
+            "a 2; cost $5; path $FOAM_CASE;\n")
+
+    def test_unknown_placeholder_fails_the_case_naming_the_file(self, tmp_path):
+        study = _pipe_study(tmp_path, [{"U": 0.005}], run=None)   # $nu missing
+        rows = run(study, "case")
+        assert rows[0]["status"] == "case_failed"
+        assert "constant/transportProperties: unknown placeholder(s) $nu" in rows[0]["error"]
+
+    @pytest.mark.parametrize("fields, message", [
+        ({"format": "msh"}, 'a case stage needs "format": "openfoam"'),
+        ({"case": None}, "a run stage needs a case stage"),
+        ({"run": {"command": "x", "cores": 2}}, "unknown run key"),
+        ({"run": {"command": "x", "cores_per_job": 0}}, "cores_per_job must be"),
+    ])
+    def test_bad_blocks(self, tmp_path, fields, message):
+        with pytest.raises(StudyError, match=message):
+            _pipe_study(tmp_path, [{"U": 1, "nu": 1}], **fields)
+
+    def test_jobs_times_cores_within_the_machine(self, tmp_path):
+        import os
+        from hexmesh.study import run_stage
+        study = _pipe_study(tmp_path, [{"U": 1, "nu": 1}])
+        study.run["cores_per_job"] = (os.cpu_count() or 1) + 1
+        rows = [{"hash": "x", "status": "case_ready", "params": {}, "network": {}}]
+        with pytest.raises(StudyError, match="exceeds the"):
+            run_stage(study, rows, jobs=1, force=True)
+
+
+def test_other_runs_sees_a_detached_process():
+    """A process that isn't ours (reparented) and looks like pytest."""
+    import os
+    import signal
+    import subprocess
+    import sys
+    from hexmesh.study import other_runs
+    out = subprocess.run(
+        ["bash", "-c", f"{sys.executable} -c 'import time; time.sleep(30)' "
+                       f"pytest-marker-0043 >/dev/null 2>&1 & echo $!"],
+        capture_output=True, text=True)
+    pid = int(out.stdout.strip())
+    try:
+        for _ in range(50):
+            if any("pytest-marker-0043" in line for line in other_runs()):
+                break
+            time.sleep(0.05)
+        assert any(line.startswith(f"{pid}:") for line in other_runs())
+        assert not any(line.startswith(f"{os.getpid()}:") for line in other_runs())
+    finally:
+        os.kill(pid, signal.SIGTERM)
+
+
+@pytest.mark.openfoam
+def test_pipe_study_case_and_run(tmp_path):
+    """Two laminar pipes and a broken one through case and run: Δp from the
+    post-processing function, failures recorded, re-run skips."""
+    from hexmesh.study.openfoam import have_openfoam
+    if not have_openfoam():
+        pytest.skip("OpenFOAM not available")
+    nu = 1e-6
+    # Re 10 and 20: the entrance length (≈ 0.06 Re D ≈ 1 cm) is short
+    rows = [{"U": 0.0005, "nu": nu}, {"U": 0.001, "nu": nu}, {"U": 0.001, "nu": "broken"}]
+    study = _pipe_study(tmp_path, rows, jobs=2)
+    out = run(study, force=True)
+    assert [r["status"] for r in out] == ["done", "done", "run_failed"]
+    for r in out[:2]:
+        U = r["params"]["U"]
+        exact = 32 * nu * U * r["result"]["dx"] / 0.02 ** 2
+        assert r["result"]["dp"] == pytest.approx(exact, rel=0.1)
+        assert r["run_exit"] == 0 and r["run_time"] > 0
+    assert out[1]["result"]["dp"] == pytest.approx(2 * out[0]["result"]["dp"], rel=0.02)
+    assert out[2]["run_exit"] != 0
+    with open(study.output / "study.csv") as f:
+        table = list(csv.DictReader(f))
+    assert float(table[0]["result.dp"]) == pytest.approx(out[0]["result"]["dp"])
+    logs = [(variant_dir(study, r["hash"]) / "run.json").stat().st_mtime_ns for r in out]
+    again = run(study, force=True)
+    assert [r["status"] for r in again] == ["done", "done", "run_failed"]
+    assert [(variant_dir(study, r["hash"]) / "run.json").stat().st_mtime_ns
+            for r in again] == logs
