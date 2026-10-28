@@ -60,17 +60,29 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0048](0048-layer-outline-examples.md) | Examples for layer outlines and multi-layer transitions | done | 0026 |
 | [0049](0049-validation-turbulent-pipe.md) | Validation: fully developed turbulent pipe flow (RANS, k-ω SST) | ready (after 0043) | 0012, 0015 |
 | [0050](0050-validation-turbulent-bend.md) | Validation: turbulent flow in a 90° bend (Sudo et al. 1998) | ready (after 0049) | 0012, 0015 |
+| [0051](0051-exact-junction-walls.md) | Exact junction walls (tee and wye) | ready | 0028 |
+| [0052](0052-multi-layer-tee.md) | Multi-layer tee: shells as offset levels of the junction | ready (after 0051) | 0028 |
+| [0053](0053-multi-layer-wye.md) | Multi-layer wye: shells as offset level sets | ready (after 0051) | 0028 |
+| [0054](0054-insulated-junctions-end-to-end.md) | Insulated junctions end to end: PCF, example, docs | ready (after 0052, 0053) | 0028, 0023 |
+| [0055](0055-cosine-bulge.md) | Cosine profile bulges: `("cosine", s0)` with s0 ≤ 0 | ready | 0008 |
 
-**Current order (2026-10-28, design):** 0042 → 0043 → 0034 → 0035 →
-0049 → 0044 → 0050 → 0032.
-- 0042 (study runner core) first: pure Python, unblocks the
-  high-throughput use cases.
-- 0043 before any new validation case: it moves the OpenFOAM case
-  writing, running and reading into `hexmesh.study.openfoam`, so 0034,
-  0035, 0049 and 0050 are built on it instead of copying it again.
-- Then the heat-transfer chain (0034 → 0035), the turbulent pipe (0049),
-  the demonstration study (0044), the turbulent bend (0050), and the
-  stenosis (0032).
+**Current order (2026-10-28, design, revised):** finish the task in
+progress (0034), then **multi-layer junctions: 0051 → 0052 → 0053 →
+0054**, then 0055 → 0032 → 0035 → 0049 → 0044 → 0050.
+- 0042 and 0043 are done; validation cases build on
+  `hexmesh.study.openfoam`.
+- Junctions come first at the user's request (decision 0028): insulation
+  and pipe walls through tees and wyes, before the agent SDK (decision
+  0019) is promoted.  0051 (exact junction walls) is a prerequisite:
+  shells can't sit on wall faces that are 2–5 % of R off.
+- 0055 (cosine bulges) is small; do it before 0032 so the stenosis
+  example covers the full range when the validation lands.
+- Then the stenosis (0032): the draft exists (paused during 0043), the
+  paper is in `docs/papers/` and the task's design note settles L, the
+  domain and the gates; it is laminar, validates the profiled reducer,
+  and anchors the `stenosis` example and a surrogate demo.
+- Then the heat-transfer chain (0035), the turbulent pipe (0049), the
+  demonstration study (0044), and the turbulent bend (0050).
 
 Decision 0004 (retire legacy) comes first: 0011 → 0012 / 0013 / 0014 →
 0015 → 0016 → 0017.  0017 waits for all the others.  Then the rest of
@@ -118,6 +130,15 @@ These apply to every task.
     them too when a task touches OpenFOAM output (e.g. 0009, 0022, 0023).
   - Follow `CLAUDE.md`, "Both sessions, shared machine", before long
     runs.
+- **Validation cases show their meshes** (since 2026-10-28).
+  `validation/<case>/run.py` defines `meshes()`, returning
+  `(label, caption, build)` per mesh to show; the first gets an overview
+  image.  Pick a few that tell the story (e.g. the refinement levels, or
+  each series).  Then `python3 docs/gallery/build.py --validation <case>`
+  renders `validation/<case>/img/` and writes the README's "Mesh" section
+  between `<!-- mesh:start -->` / `<!-- mesh:end -->`.  It is inserted
+  after "## Case" the first time; don't edit inside the markers.  Re-run
+  it when the meshes change.  See `poiseuille` and `heated_rod`.
 - Keep each task a separate, reviewable change.  Match the surrounding code
   style: dataclasses, numpy, short docstrings that cite DESIGN rules.
 
