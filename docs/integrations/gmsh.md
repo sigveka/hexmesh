@@ -153,6 +153,38 @@ Consequence: a mesh and its `refined(k)` agree at the coarse nodes only to
   at nang 6) and is what the wye uses.  Neither follows a curved wall
   closely: about ±20 % of R on the wye's patches.
 
+### Wall surfaces through analytic points — *verified*
+
+gmsh 4.12.1 / OCC 7.6.3, 2026-10-29, task 0051 (tee and wye wall faces).
+The goal: a face bounded by the layout's existing curves whose interior
+lies on an analytic wall.
+
+- **`addBSplineSurface(…, wireTags=[loop], wire3D=True)`** (and
+  `addTrimmedSurface`) is exact, but **not conformal**.
+  - The surface interpolated a projected 17 × 17 grid.  Interior nodes
+    were within 1e-7 R of a cylinder on an isolated patch, against 3e-3
+    for Stretch filling.
+  - OCC projects the wire onto the surface and bounds the face by **new
+    curves**: in the tee, surface 117 had curves 157–160, not the
+    layout's.  Its neighbours don't share them, they get no transfinite
+    constraint, and the volume fails ("Incompatible surface 117 in
+    transfinite volume 7").
+  - With the patch ending exactly on the wire: "Could not fix wire in
+    surface N" or "Could not create wire".
+- **Plate with `pointTags`** (Coons grid between the edges, interior 7 × 7
+  points projected onto the wall, `tol3d` 1e-6 × face size,
+  `maxDegree` 8, `maxSegments` 9) keeps the loop's curves.
+  - **Tee:** reliable.  Wall nodes within 3.0e-4 R (r/R 0.5) and
+    1.3e-4 R (r/R 0.9) at `nang` 4 and 8, including the oblique kit
+    case, against 2.6–3.2 % before.  Cell quality unchanged; build +0.3 s
+    per tee.  `BlockLayout._wall_surface`, used by `Tee`.
+  - **Wye:** erratic, as in task 0030.  The best setting left 1–3 % of R
+    on the hub's top and bottom and 5–9 % on the crotch face, which
+    contains the crease.  Mirror-image faces differed: 0.0006 R vs
+    0.46 R.  Other settings: 13 × 13 points, `numIter` 6, and
+    `numPointsOnCurves` 40 failed to build; `degree` 2 and `anisotropic`
+    didn't help.  Not used for the wye.
+
 ### Non-uniform `affineTransform` renumbers points and curves — *verified*
 4.12.1 / OCC 7.6.3.  `occ.affineTransform` with a non-uniform scale keeps
 the surface tags but gives the transformed surface's points and curves

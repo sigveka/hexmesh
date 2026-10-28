@@ -354,6 +354,18 @@ def _outline_dev(u, v, spec0, spec1=None, t=None):
     return np.min(devs, axis=0)
 
 
+def _tee_deviation(tee, inlet, spec, x) -> float:
+    """Largest distance of the points *x* from a tee's wall, the union of its
+    main cylinder and its branch cylinder (z ≥ 0 along the branch axis),
+    relative to the main radius."""
+    o, ex, _, ez = tee._origin_basis(inlet)
+    R, r = spec.core_shape.radius, tee.branch_radius
+    v = x - o
+    dm = np.linalg.norm(v - np.outer(v @ ex, ex), axis=1) - R
+    db = np.linalg.norm(v - np.outer(np.clip(v @ ez, 0, None), ez), axis=1) - r
+    return float(np.abs(np.minimum(dm, db)).max() / R)
+
+
 def wall_deviations(asm) -> dict[str, float]:
     """Largest distance, relative to the outer radius, of any node on a
     fitting's wall or material-interface surfaces from its analytic surface
@@ -373,7 +385,9 @@ def wall_deviations(asm) -> dict[str, float]:
     * other paths (``SplinePipe``, ``Closure``, and ``Transition``, whose
       stations blend two shapes): no closed form; they must
       have one axial layer per slab, so no surface carries interior nodes
-      (asserted), and they are not measured.
+      (asserted), and they are not measured;
+    * ``Tee``: the union of the main and branch cylinders (task 0051);
+      ``Wye``: not measured yet (task 0051, *Questions for design*).
     """
     fill = asm._fill
     # end annuli of a terminated layer lie on station planes, not cylinders
@@ -383,15 +397,18 @@ def wall_deviations(asm) -> dict[str, float]:
     for e in asm.edges:
         frames = [p.frame for p in e.ports]
         spec = e.ports[0].spec
-        if len(frames) != 2:
-            continue                                   # junctions: DESIGN deviations table
-        path = e.fitting.path(frames[0], frames[1], spec)
+        if isinstance(e.fitting, Wye):
+            continue                                   # task 0051
         vols = asm.fitting_volumes()[e.index]
         bnd = {abs(t) for _, t in gmsh.model.getBoundary([(3, v) for v in vols],
                                                        combined=False, oriented=False)}
         surfs = sorted(bnd & sides)
         x = np.vstack([gmsh.model.mesh.getNodes(2, t, includeBoundary=True)[1].reshape(-1, 3)
                        for t in surfs])
+        if isinstance(e.fitting, Tee):
+            out[e.name] = _tee_deviation(e.fitting, frames[0], spec, x)
+            continue
+        path = e.fitting.path(frames[0], frames[1], spec)
         scale = max(_extent(path.spec_at(k, spec)) for k in range(len(path.frames)))
         if path.axial is not None:                     # torus about the arc
             a, c = path.axial.axis, path.axial.centre
@@ -526,15 +543,18 @@ class TestConformance:
             gmsh.finalize()
 
     def test_walls_exact(self, case):
-        """Every wall and interface node on its analytic surface (DESIGN §6)."""
-        if case.startswith(("tee", "wye")):
-            pytest.skip("junction walls: DESIGN deviations table")
+        """Every wall and interface node on its analytic surface (DESIGN §6).
+        A tee's curved wall faces are plates through wall points, exact to
+        1e-3 R (task 0051)."""
+        if case.startswith("wye"):
+            pytest.skip("wye walls: task 0051, Questions for design")
         _session()
         try:
             asm = CASES[case]()
             asm.mesh()
             dev = wall_deviations(asm)
-            bad = {k: v for k, v in dev.items() if v > 1e-9}
+            tol = 1e-3 if case.startswith("tee") else 1e-9
+            bad = {k: v for k, v in dev.items() if v > tol}
             assert not bad, f"wall nodes off the analytic surface (× R): {bad}"
         finally:
             gmsh.finalize()

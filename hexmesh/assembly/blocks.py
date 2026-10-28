@@ -31,6 +31,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 import gmsh
+from scipy.interpolate import CubicSpline
 
 from .. import _occ
 from ..core.shape import OH_RATIO   # re-exported: inner-square scale of the OH face
@@ -44,6 +45,15 @@ _EDGES = {  # direction → the four parallel edges
     'j': [(0, 3), (1, 2), (4, 7), (5, 6)],
     'k': [(0, 4), (1, 5), (2, 6), (3, 7)],
 }
+# Wall surfaces (``BlockLayout._wall_surface``): grid points per direction
+# (boundary included), plate tolerance relative to the face size, and the
+# plate's polynomial limits.
+_WALL_SAMPLES = 9
+_WALL_TOL = 1e-6
+_WALL_DEGREE = 8
+_WALL_SEGMENTS = 9
+
+
 _FACES = [(0, 3, 2, 1), (4, 5, 6, 7), (0, 1, 5, 4),
           (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7)]
 
@@ -118,6 +128,11 @@ class BlockLayout:
         # cylinder: None for a plate (``addSurfaceFilling``), or a
         # ``addBSplineFilling`` type ("Stretch", "Curved")
         self.filling: str | None = None
+        # Projection of a point onto the fitting's intended wall.  Set, every
+        # curved wall face is a plate through points on the wall
+        # (``_wall_surface``), so its interior mesh nodes lie on the wall to
+        # the plate's accuracy (DESIGN §6, task 0051).
+        self.wall = None
         self._classes: dict[frozenset, tuple[int, tuple]] | None = None
 
     # -- construction -----------------------------------------------------
@@ -368,7 +383,7 @@ class BlockLayout:
             e.start = e.a
         return e.tag if e.start == a else -e.tag
 
-    def _surface(self, cyc) -> int:
+    def _surface(self, cyc, wall: bool = False) -> int:
         """Bound surface, or a new one (plane if straight and coplanar)."""
         k = _key(*cyc)
         if k not in self.faces:
@@ -384,11 +399,61 @@ class BlockLayout:
                 # surface is the exact cylinder (DESIGN §6, task 0025), as
                 # in a sweep's straight slab
                 self.faces[k] = _ruled(loop)
+            elif wall and self.wall is not None:
+                self.faces[k] = self._wall_surface(cyc, loop)
             elif self.filling is not None:
                 self.faces[k] = geo.addBSplineFilling(loop, type=self.filling)
             else:
                 self.faces[k] = geo.addSurfaceFilling(loop)
         return self.faces[k]
+
+    def _edge_points(self, a, b, n: int) -> np.ndarray:
+        """*n* points along edge a → b, from its declared geometry."""
+        e = self.edges[_key(a, b)]
+        pa, pb = self.coords[e.a], self.coords[e.b]
+        t = np.linspace(0.0, 1.0, n)
+        if isinstance(e.geom, ArcAbout):
+            c = np.asarray(e.geom.centre, dtype=float)
+            va, vb = pa - c, pb - c
+            th = math.acos(np.clip(va @ vb / (np.linalg.norm(va) * np.linalg.norm(vb)), -1, 1))
+            pts = c + (np.outer(np.sin((1 - t) * th), va)
+                       + np.outer(np.sin(t * th), vb)) / math.sin(th)
+        elif isinstance(e.geom, (Spline, Polyline)):
+            ctl = np.vstack([pa, np.asarray(e.geom.points, dtype=float), pb])
+            s = np.concatenate([[0.0], np.cumsum(np.linalg.norm(np.diff(ctl, axis=0), axis=1))])
+            if isinstance(e.geom, Spline):
+                pts = CubicSpline(s / s[-1], ctl, axis=0)(t)
+            else:
+                pts = np.column_stack([np.interp(t, s / s[-1], ctl[:, i]) for i in range(3)])
+        else:
+            pts = pa + np.outer(t, pb - pa)
+        return pts if e.a == a else pts[::-1]
+
+    def _wall_surface(self, cyc, loop: int) -> int:
+        """A wall surface bounded by *loop* that passes through the wall
+        (task 0051): a plate filling of the loop's own curves, constrained
+        to a Coons grid between them projected onto the wall by
+        ``self.wall``.  Without the points a plate or B-spline filling only
+        knows the boundary and sags 0.4–16 % of R off a junction wall.
+        """
+        n = _WALL_SAMPLES
+        v0, v1, v2, v3 = cyc
+        bottom, right = self._edge_points(v0, v1, n), self._edge_points(v1, v2, n)
+        top, left = self._edge_points(v3, v2, n), self._edge_points(v0, v3, n)
+        u = np.linspace(0.0, 1.0, n)[:, None, None]
+        v = np.linspace(0.0, 1.0, n)[None, :, None]
+        grid = ((1 - v) * bottom[:, None] + v * top[:, None]
+                + (1 - u) * left[None, :] + u * right[None, :]
+                - ((1 - u) * (1 - v) * bottom[0] + u * (1 - v) * bottom[-1]
+                   + (1 - u) * v * top[0] + u * v * top[-1]))
+        geo = gmsh.model.occ
+        scale = max(np.ptp(grid.reshape(-1, 3), axis=0))
+        tags = [geo.addPoint(*self.wall(q)) for q in grid[1:-1, 1:-1].reshape(-1, 3)]
+        tag = geo.addSurfaceFilling(loop, pointTags=tags, tol3d=_WALL_TOL * scale,
+                                    maxDegree=_WALL_DEGREE, maxSegments=_WALL_SEGMENTS)
+        for t_ in tags:
+            _occ.discard(t_)
+        return tag
 
     @staticmethod
     def _ruled_cylinder(types) -> bool:
@@ -428,7 +493,8 @@ class BlockLayout:
         result = FillResult()
         surf_of: dict[frozenset, int] = {}
         for k, users in use.items():
-            surf_of[k] = self._surface(users[0][1])
+            surf_of[k] = self._surface(users[0][1],
+                                       wall=len(users) == 1 and k not in self.port_faces)
 
         for ids, material in self.blocks:
             sl = geo.addSurfaceLoop([surf_of[_key(*(ids[i] for i in f))] for f in _FACES])

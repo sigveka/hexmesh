@@ -52,6 +52,39 @@ def branch_spec(spec: PipeSpec, radius: float) -> PipeSpec:
                   nrad=spec._core_nrad, mprg=spec._core_mprg))
 
 
+def tee_wall(o, ex, ez, R: float, r: float):
+    """Projection onto the tee wall: the main cylinder (axis ``o + x ex``,
+    radius *R*) united with the branch cylinder (axis ``o + z ez``, z ≥ 0,
+    radius *r*).  The nearer cylinder's radial projection that is not
+    inside the other cylinder."""
+    def main(p):
+        a = (p - o) @ ex
+        w = p - o - a * ex
+        return o + a * ex + R * w / np.linalg.norm(w)
+
+    def branch(p):
+        h = max((p - o) @ ez, 0.0)
+        w = p - o - h * ez
+        return o + h * ez + r * w / np.linalg.norm(w)
+
+    def d_main(q):
+        v = q - o
+        return np.linalg.norm(v - (v @ ex) * ex)
+
+    def d_branch(q):
+        v = q - o
+        return np.linalg.norm(v - max(v @ ez, 0.0) * ez)
+
+    def to_wall(p):
+        p = np.asarray(p, dtype=float)
+        pm, pb = main(p), branch(p)
+        tol = 1e-12 * R
+        ok = [q for q, outside in ((pm, d_branch(pm) >= r - tol),
+                                   (pb, d_main(pb) >= R - tol)) if outside]
+        return min(ok or [pm, pb], key=lambda q: np.linalg.norm(q - p))
+    return to_wall
+
+
 def _check_circle(spec: PipeSpec) -> None:
     if not isinstance(spec.core_shape, CircleShape):
         raise ValueError("Tee supports circular pipes only; no rectangular "
@@ -252,6 +285,7 @@ class Tee:
         # Branch run Z → E.
         for _, cyc in face_patches("E", bspec):
             lay.block([("Z", l, k) for (_, l, k) in cyc] + list(cyc), fluid)
+        lay.wall = tee_wall(o, ex, ez, R, r)    # wall faces on the cylinders (task 0051)
         return lay
 
     # -- contract -----------------------------------------------------

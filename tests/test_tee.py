@@ -7,7 +7,7 @@ import gmsh
 import numpy as np
 import pytest
 
-from hexmesh.assembly import Assembly, AssemblyError, Tee
+from hexmesh.assembly import Assembly, AssemblyError, Straight, Tee
 from hexmesh.core.shape import CircleShape
 from hexmesh.core.spec import PipeSpec
 
@@ -71,3 +71,35 @@ def test_all_hex_valid_mesh(gmsh_session, ratio):
     assert report.ok and report.min_quality > 0.1, str(report)
     names = {gmsh.model.getPhysicalName(d, t) for d, t in gmsh.model.getPhysicalGroups()}
     assert names == {"fluid", "fluid_inlet", "fluid_main", "fluid_branch", "fluid_wall"}
+
+
+# ---------------------------------------------------------------------------
+# Exact wall faces (task 0051)
+# ---------------------------------------------------------------------------
+
+def _tee_wall_deviation(nang, ratio):
+    """Largest distance of the tee's wall nodes from its cylinders (× R)."""
+    from test_fitting_conformance import wall_deviations
+    asm = Assembly(_spec(nang), direction=[0, 1, 0], up=[0, 0, 1], lc=0.1)
+    asm.add(Straight(0.2, n_layers=2))
+    main, branch = asm.add(Tee(run_length=2 * R, branch_length=2.5 * R,
+                               branch_radius=ratio * R), names=["main", "branch"])
+    asm.add(main, Straight(0.2, n_layers=2))
+    asm.add(branch, Straight(0.2, n_layers=2))
+    asm.mesh()
+    tee = asm.edges[1]
+    assert isinstance(tee.fitting, Tee)
+    return wall_deviations(asm)[tee.name]
+
+
+def test_tee_wall_nodes_on_cylinders(gmsh_session):
+    """Every tee wall node within 1e-3 R of the two cylinders (task 0051)."""
+    assert _tee_wall_deviation(8, 0.5) < 1e-3
+
+
+def test_tee_wall_check_catches_filled_faces(gmsh_session, monkeypatch):
+    """Without the wall projection the faces are plain fillings, 2–3 % of R
+    off: the check must see it."""
+    from hexmesh.assembly import tee as tee_mod
+    monkeypatch.setattr(tee_mod, "tee_wall", lambda *a: None)
+    assert _tee_wall_deviation(4, 0.5) > 0.02
