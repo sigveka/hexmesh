@@ -118,3 +118,28 @@ def test_heated_rod_coarse(rod, series):
     assert r["fvoptions_read"] and r["converged"]
     assert r["energy_err"] < 1e-10                     # heat out = q''' · V_mesh
     assert -0.03 < r["dt0_err_signed"] < 0              # coarse: 1.4–1.7 % low
+
+
+LAYERS_SCRIPT = ROOT / "validation" / "layered_conduction" / "run.py"
+
+
+@pytest.fixture(scope="module")
+def layers(tmp_path_factory):
+    work = tmp_path_factory.mktemp("layered_conduction")
+    out = work / "results.json"
+    run = subprocess.run([sys.executable, str(LAYERS_SCRIPT), "--levels", "1", "--work",
+                          str(work), "--json", str(out)], capture_output=True, text=True)
+    assert run.returncode == 0, run.stdout[-3000:] + run.stderr[-3000:]
+    return json.loads(out.read_text())
+
+
+@pytest.mark.parametrize("variant", ["fixed", "convection"])
+def test_layered_conduction_coarse(layers, variant):
+    """Task 0034: three solid regions coupled by chtMultiRegionSimpleFoam."""
+    r, = layers["variants"][variant]["levels"]
+    assert r["mesh_ok"] and r["cells_foam"] == r["cells"] == 456
+    assert r["mapped_pairs_equal"] and r["converged"]
+    for key in ("balance_rod", "balance_steel", "balance_outer"):
+        assert abs(r[key]) < 1e-9, key                  # heat through each interface
+    for key in ("t0_err", "t1_err", "t2_err"):
+        assert -0.02 < r[key] < 0, key                  # coarse: about −1 % of the rise

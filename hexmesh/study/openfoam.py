@@ -77,9 +77,11 @@ def convert(case: Path, msh: Path, split_regions: bool = False) -> list[str]:
     return apply_boundary_roles(case, roles_path(msh))
 
 
-def check_mesh(case: Path) -> dict:
-    """``checkMesh``: Mesh OK, cells, max non-orthogonality and skewness."""
-    out = foam("checkMesh", case, "log.checkMesh")
+def check_mesh(case: Path, region: str | None = None) -> dict:
+    """``checkMesh`` (of *region*): Mesh OK, cells, max non-orthogonality
+    and skewness."""
+    out = (foam(f"checkMesh -region {region}", case, f"log.checkMesh.{region}") if region
+           else foam("checkMesh", case, "log.checkMesh"))
     return {
         "mesh_ok": "Mesh OK." in out,
         "cells_foam": int(re.search(r"cells:\s+(\d+)", out).group(1)),
@@ -150,13 +152,18 @@ def read_patch_faces(path: Path, patch: str):
     return np.arange(start, start + n)
 
 
-def read_patch_values(path: Path, patch: str):
+def read_patch_values(path: Path, patch: str, n: int | None = None):
+    """A patch's ``value`` list (scalars).  A ``uniform`` value is returned
+    as *n* copies, or raises ``ValueError`` without *n*."""
     text = _strip_header(path.read_text())
     i = re.search(rf"^\s*{patch}\s*\{{", text[text.index("boundaryField"):], re.M)
     j = text.index("boundaryField") + i.end()
-    k = text.index("value", j)
-    if text[k:].split(None, 2)[1] == "uniform":
-        raise ValueError(f"{patch}: uniform value, expected a list")
+    k = re.compile(r"(?<!\w)value\s").search(text, j).start()   # not valueFraction
+    words = text[k:].split(None, 3)
+    if words[1] == "uniform":
+        if n is None:
+            raise ValueError(f"{patch}: uniform value, expected a list")
+        return np.full(n, float(words[2].rstrip(";")))
     _, body = _list_body(text, k)
     return np.array(body.split(), float)
 

@@ -374,7 +374,8 @@ def nonorth_trend(work: Path, nangs=TREND_NANG) -> list[dict]:
 def versions() -> dict:
     git = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=HERE,
                          capture_output=True, text=True).stdout.strip()
-    dirty = subprocess.run(["git", "status", "--porcelain", "--", "hexmesh"], cwd=HERE,
+    dirty = subprocess.run(["git", "status", "--porcelain", "--", str(HERE.parents[1] / "hexmesh")],
+                           cwd=HERE,
                            capture_output=True, text=True).stdout.strip()
     foam_v = subprocess.run(["bash", "-c", f"source {OPENFOAM_RC} >/dev/null 2>&1; "
                              "echo $WM_PROJECT_VERSION"],

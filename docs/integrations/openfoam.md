@@ -186,6 +186,47 @@ All v1912, gmsh 4.12.1, 2026-10-25.
   a 24° non-orthogonal O-H rod; 10 correctors and up to 3 steps reach
   1e-15.  *Verified* 2026-10-27 (task 0033), `openfoam`
   1912.200626-2build3.
+- **`chtMultiRegionSimpleFoam` with solid regions only runs; the recipe**
+  (task 0034, *verified* 2026-10-28, `openfoam` 1912.200626-2build3).
+  `validation/layered_conduction/run.py` is the working case.
+  - **Mesh:** `gmshToFoam`, then `splitMeshRegions -cellZones -overwrite`
+    (it needs `system/fvSchemes` with a `divSchemes` entry, else "Entry
+    'divSchemes' not found"), then `apply_boundary_roles_to_regions`.
+    The interfaces come out as `mappedWall` pairs `<a>_to_<b>` /
+    `<b>_to_<a>` with equal face counts.
+  - **`constant/regionProperties`:** `regions ( fluid () solid (rod steel
+    insulation) );`.
+  - **`constant/g`** must exist even with no fluid region ("cannot find
+    file …/constant/g").  `value (0 0 0);` is enough.
+  - **Per region:**
+    - `constant/<r>/thermophysicalProperties`: `heSolidThermo`,
+      `pureMixture`, `constIso`, `hConst`, `rhoConst`,
+      `sensibleEnthalpy`.
+    - `system/<r>/fvSchemes`, and `system/<r>/fvSolution` with a solver
+      for `h` and `SIMPLE { nNonOrthogonalCorrectors …; }`.
+    - `0/<r>/T` and `0/<r>/p` (`calculated`).
+    - The top-level `system/fvSolution` needs only `SIMPLE {}`.
+  - **Heat source:** `system/<r>/fvOptions`, `scalarSemiImplicitSource`
+    on **`h`** (`injectionRateSuSp { h (q‴ 0); }`, `volumeMode
+    specific`, in W/m³).
+  - **Interfaces:** `compressible::turbulentTemperatureCoupledBaffleMixed;
+    Tnbr T; kappaMethod solidThermo;`.
+  - **Outer convection:** `externalWallHeatFluxTemperature; mode
+    coefficient; Ta constant T∞; h uniform h; kappaMethod solidThermo;`.
+  - **`residualControl` is ignored for solid regions**, both in
+    `system/<r>/fvSolution` and in the top-level `SIMPLE`.  The solver
+    runs to `endTime` and never prints "converged", so judge convergence
+    from the log's initial residuals.
+  - **The segregated coupling converges slowly with a large conductivity
+    ratio.**
+    - Rod 20, steel 50, insulation 0.05 W/m K: the largest initial
+      residual of `h` falls about 100× per 10 000 iterations.
+    - It is below 1e-10 at iteration 47 076 (456 cells) and 91 960
+      (1 824 cells): the count doubles per refinement level.
+    - The energy balance then closes to 1e-11.
+  - **Patch values of a mixed condition:** the field file's
+    `valueFraction` comes before `value`, so a reader must match the
+    keyword `value` exactly (`hexmesh.study.openfoam.read_patch_values`).
 
 
 

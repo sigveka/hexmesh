@@ -1,6 +1,6 @@
 # 0034 — Validation: conduction through a heated, multi-layer cylinder (CHT, solids only)
 
-- **Status:** ready (after 0025 and 0033)
+- **Status:** done
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md)
 - **Depends on:** 0025 (exact straight walls **and material
   interfaces**: before it, interfaces sag up to 0.7 % of R, which biases
@@ -69,7 +69,31 @@ temperature-dependent properties.
 
 ## Agent notes
 
-_None yet._
+- **Step 0.**  `chtMultiRegionSimpleFoam` runs with three solid regions
+  and no fluid.  The working recipe is in `docs/integrations/openfoam.md`.
+  Three quirks needed handling:
+  - `constant/g` must exist.
+  - `splitMeshRegions` needs a `divSchemes` entry.
+  - **`residualControl` is ignored for solid regions**, so the solver
+    runs to `endTime`.  The driver judges convergence itself: the
+    largest initial residual of `h` < 1e-10 at the last step.
+- **Iterations.**  The segregated coupling across the 1000:1
+  conductivity ratio converges slowly: about 47 000 / 59 000 iterations
+  at the coarse level (fixed / convection), doubling per level.  Each
+  level runs 75 000 · k iterations.  The full study takes about 45 min,
+  with the two variants in parallel.  No initial guess from the exact
+  solution and no mapping from coarser levels: the converged result
+  doesn't depend on them.
+- **Built on 0043's `hexmesh.study.openfoam`.**  Two fixes there:
+  - `read_patch_values` matched the substring `value` and so read a
+    mixed condition's `valueFraction`; it now matches the keyword.  It
+    also takes a face count, for `uniform` values.
+  - `check_mesh` takes a region.
+- **Fix:** the Poiseuille script's `versions()` ran `git status --
+  hexmesh` from its own directory, so it never reported `+local`.  This
+  task's runs are stamped `91c897a`, clean; `RESULTS.md` says so.
+- Material values: k as suggested; q‴ = 10⁶ W/m³; h = 20 W/(m² K) for
+  the convection variant.
 
 ## Questions for design
 
@@ -77,4 +101,47 @@ _None._
 
 ## Outcome
 
-_Not done._
+**All gates met, both variants** (`validation/layered_conduction/RESULTS.md`):
+- "Mesh OK" in every region at every level (`nang` 6 / 12 / 24; 456 /
+  1 824 / 7 296 cells).  The `mappedWall` pairs have equal face counts.
+- Energy balance through each interface and the outer wall: ≤ 5e-12
+  (fixed) and ≤ 1.2e-9 (convection).
+- Extrapolated T₀, T(r₁), T(r₂) (and T₃, convection) within
+  0.0007 % of the total rise; the gate was 0.1 %.  Observed orders are
+  2.00–2.01.
+- L2 order per region 1.99–2.01.
+- The errors are negative and the same at every radius at a given level
+  (−0.95 % coarse, −0.059 % fine).  They are the insulation's
+  discretisation error: the insulation holds 99.7 % of the rise.
+
+**Files.**
+- New: `validation/layered_conduction/run.py`, `README.md` and
+  `RESULTS.md`.
+- `tests/test_validation.py`: an opt-in coarse-level test, both
+  variants, about 4 min.
+- `hexmesh/study/openfoam.py`: the reader fixes and `check_mesh(region)`.
+- `validation/poiseuille/run.py`: the `versions()` fix.
+- `docs/integrations/openfoam.md`: the CHT recipe and quirks.
+
+**Meshes** (the design session's new convention): `meshes()` returns
+the three levels.  `docs/gallery/build.py --validation
+layered_conduction` rendered `img/` and the README's "Mesh" section.
+- It also updated `docs/gallery/metrics.json` and `docs/GALLERY.md`.
+  Those have the other session's uncommitted edits, so I left them out
+  of this commit.
+- **For design:** the k = 4 section image shows grey patches in the
+  steel ring at 0°/90°/180°/270°.
+  - The mesh is complete: every inlet patch has the expected face count
+    (rod 1 728, steel 768, insulation 1 152) and there is no default
+    patch.
+  - So it looks like a rendering artefact of thin rings in the section
+    view, not missing groups.
+
+**Suite:** 1805 passed, 5 skipped (default; unchanged).  Opt-in: the
+layered tests (2) and the study test (1) passed.
+
+**Follow-ups.**
+- 0035 (heated pipe with flow) can reuse this case's solid side and its
+  convergence criterion.  A fluid region should converge faster, but
+  check it.
+- RESEARCH: move this table in as a §7 entry.
