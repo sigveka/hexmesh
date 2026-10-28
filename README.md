@@ -421,6 +421,49 @@ The file lists the inlet, then every fitting in order with its parameters.
 Edit a parameter there and everything downstream moves with it, which
 suits parametric studies.  Lengths are in your unit, unconverted.
 
+## Running studies
+
+`hexmesh.study` turns one study file into many variants.  It checks them
+all in seconds without GMSH, meshes them in parallel processes, and
+records everything in one manifest.
+
+```json
+{
+  "template": {"python": "bends:build"},
+  "sampling": {"grid": {"radius": [0.15, 0.2, 0.3], "angle": [45, 60, 90]}},
+  "budget":   {"max_cells_variant": 100000},
+  "output":   "out"
+}
+```
+
+`bends.py`, next to the study file, has `build(params) -> Assembly`.  A
+JSON template instead is a saved network with `"$name"` placeholders.
+
+```bash
+python3 -m hexmesh.study run study.json --stage preflight   # check only
+python3 -m hexmesh.study run study.json --jobs 4            # then mesh
+python3 -m hexmesh.study status study.json
+python3 -m hexmesh.study export study.json                  # aligned arrays
+```
+
+- **Preflight** builds and validates every variant and counts its cells.
+  If any variant fails, it reports which one and why, and meshes nothing
+  (`--keep-going` meshes the rest).
+- **Mesh** writes `out/variants/<hash>/`, named by a hash of the
+  parameters.  A variant that is already meshed is skipped, so a re-run
+  after adding rows meshes only the new ones.
+- **Manifest:** `out/study.csv` and `out/study.json`, one row per
+  variant.
+  - Each row records its status, cells, quality, times, errors and a
+    **topology key**.
+  - Variants with the same key have identical node numbering and hex
+    connectivity: geometry-only variants line up node for node.
+  - `export` writes one `out/aligned/<key>.npz` per key (coordinates per
+    variant, shared connectivity), for surrogate models.
+- `--jobs` defaults to 1.  On a shared machine, mind the other runs.
+
+Schema and options: [API.md](API.md#study-runner-hexmeshstudy).
+
 ## Reading plant data
 
 ```python

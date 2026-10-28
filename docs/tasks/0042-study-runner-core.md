@@ -1,6 +1,6 @@
 # 0042 — Study runner: study file, sampling, preflight, mesh stage, manifest
 
-- **Status:** ready
+- **Status:** done
 - **Decision:** [0025 — Study runner](../decisions/0025-study-runner.md)
 - **Depends on:** —  (0043 and 0044 build on it)
 
@@ -77,7 +77,35 @@ JSON templates; distributed (multi-machine) execution.
 
 ## Agent notes
 
-_None yet._
+Refinements of the steps:
+- **Topology key (step 5).**
+  - *Port signatures without the grading floats.*  `mprg` and `mbmp` move
+    nodes but don't renumber them.  With them in, grading-only variants
+    would get different keys although they are node-aligned.
+  - *A fitting's counts are its integer-typed dataclass fields, as
+    resolved*: `n_layers`, `n_cuts`, and a tee's or wye's
+    `n_run`/`n_branch`/`n_turn`/`n_split`.  Integers in the JSON can't be
+    used: a bend's `"angle": 90` is a JSON int.
+  - The key also covers each fitting's type, how it entered the graph
+    (`kind`), its port interface indices, and its stack changes (cell
+    index and spec).
+- **`parameters`** are fixed values present in every variant; each
+  sample updates them.
+- **`--stage`** is the last stage to run.  Preflight always runs: the
+  mesh stage needs its network descriptions.
+- **`max_cells_total`** over budget stops the study even with
+  `--keep-going`; that is the budget's purpose.
+- **The mesh worker** is `python3 -m hexmesh.study _mesh <dir>`.  It
+  rebuilds the variant from the `network.json` that preflight wrote, so a
+  Python template is imported only once, in preflight.
+- **Statuses:** `checked` (passed preflight, not meshed),
+  `preflight_failed`, `meshed`, `mesh_failed`.
+- **Quality warnings** (task 0047) are recorded per variant (`warnings`
+  column).  Preflight doesn't print them.
+- **Two samples with the same parameters** are rejected: they would
+  share a directory.
+- Parallelism follows the gallery's pattern: a thread pool, each thread
+  running one subprocess.
 
 ## Questions for design
 
@@ -85,4 +113,47 @@ _None._
 
 ## Outcome
 
-_Not done._
+**Files.**
+- New package `hexmesh/study/`:
+  - `__init__.py`: `run`, `status`, `PreflightFailed`;
+  - `__main__.py`: the CLI, `run | status | export`, and the `_mesh`
+    worker;
+  - `definition.py`: study file, templates, placeholders, canonical hash;
+  - `sampling.py`: table (rows or CSV), grid, seeded LHS;
+  - `stages.py`: preflight, mesh, topology key;
+  - `manifest.py`: `study.csv` / `study.json`, versions, aligned export.
+- Docs: `README.md` "Running studies"; `API.md` "Study runner".
+- Tests: `tests/test_study.py`, 25 tests, about 17 s with `-n 4`.
+
+**Acceptance.**
+- **3 × 3 grid** over a bend's radius and angle:
+  - preflight takes 0.5 s for the 9 variants (CLI, imports included);
+  - meshed = predicted (432 cells each), all hex;
+  - one topology key;
+  - the exported `hexes` and `node_tags` equal each variant's own mesh
+    read back, and `coords` differ.
+- **Topology key against the meshes:** a mixed study of five variants
+  (geometry, `n_layers` of the straight, `n_layers` of the bend) gives
+  three keys.  Equal keys ⇔ identical node tags and connectivity, checked
+  pairwise on the meshes.  Geometry and `mprg` leave the key unchanged;
+  `nang` changes it.
+- **Re-running** gives the same hashes, keys and rows, and no mesh file
+  is rewritten.  Adding a row meshes only that row.
+- **A failing variant** (a bend tighter than the pipe) makes preflight
+  fail.  The report names the variant hash and `fitting #1 Bend`, and
+  nothing is meshed.  `--keep-going` meshes the rest.  The CLI exits
+  with 2.
+- **Budgets:** `max_cells_variant` fails each variant;
+  `max_cells_total` stops the study.
+- **JSON template:** unknown and unused placeholders are reported by
+  name.
+- `--jobs 2` gives the same rows as `--jobs 1`, apart from times.
+
+**Suite:** 1796 passed, 5 skipped (was 1771; +25).
+
+**Follow-ups.**
+- 0043: case and run stages, and `hexmesh.study.openfoam`.
+- Result fields in the aligned export, once 0043's post-processing
+  gives them.
+- No `cores per job` yet; it belongs with the run stage (decision 0025,
+  item 6).

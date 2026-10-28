@@ -760,6 +760,79 @@ result with `to_assembly(spec, kinks="spline")`. Needs `scipy`
 
 ---
 
+## Study runner (`hexmesh.study`)
+
+One study file gives many variants (decision 0025).  Usage is in
+[README.md](README.md#running-studies).
+
+**Study file** (JSON; paths relative to it; every key but `template` is
+optional):
+
+| key | value |
+|---|---|
+| `template` | `{"python": "module:function"}`: `function(params: dict) -> Assembly`, imported from the study file's directory; or `{"json": "path"}`: a `to_dict()` description with `"$name"` placeholders |
+| `parameters` | fixed values, in every variant |
+| `sampling` | one of `{"table": {"rows": [...]}}`, `{"table": {"csv": "path"}}`, `{"grid": {name: [values]}}` (Cartesian product, first name slowest), `{"lhs": {"ranges": {name: [lo, hi]}, "n": N, "seed": S}}` (Latin hypercube) |
+| `budget` | `max_cells_variant` (each variant's `validate(max_cells=…)`), `max_cells_total` |
+| `output` | output directory (default `study`) |
+| `jobs` | mesh processes at once (default 1; `--jobs` overrides) |
+| `format` | `"msh"` (`Assembly.write`) or `"openfoam"` (`write_openfoam`, with its `.roles.json`) |
+| `walls_by_fitting` | passed to the mesh writer |
+
+- A variant's parameters are `parameters` updated by one sample.  Its
+  directory is `output/variants/<hash>/`, where the hash is taken over
+  the canonical parameters (sorted keys; `90.0` and `90` are the same).
+- **JSON placeholders** replace the whole value; there are no expressions,
+  and `"$$x"` is the literal `"$x"`.  A placeholder with no parameter, or
+  a parameter that no placeholder uses, is a `StudyError`.
+
+**Stages.**
+- **preflight**: in-process, no GMSH.  For every variant: build,
+  `validate()`, `cell_count()`, the topology key, and quality warnings
+  (`Assembly.warnings`).  Then the total budget.
+- **mesh**: one subprocess per variant, at most `jobs` at once.
+  - Writes `mesh.msh`, `network.json`, `params.json` and `result.json`.
+  - `result.json` holds: cells predicted and meshed, `all_hex`, min SICN,
+    min scaled Jacobian and its fitting, mesh time, group roles.
+  - Skips a variant whose mesh and result exist and whose
+    `network.json` is unchanged.
+  - A crash is recorded as `mesh_failed`, with the error.
+
+**Statuses:** `checked` (preflight passed, not meshed), `preflight_failed`,
+`meshed`, `mesh_failed`.
+
+**Topology key**: a hash, in creation order, over:
+- every interface's connectivity: its port signature without the grading
+  floats `mprg` and `mbmp`;
+- every fitting's type, ports and integer counts, as resolved
+  (`n_layers`, `n_cuts`, a tee's `n_run`…), with its stack changes.
+
+Equal keys mean node-aligned meshes: the same node tags and hex
+connectivity.  `export` checks this when it reads the meshes back.
+
+**Manifest**:
+- `output/study.csv`: hash, status, parameters, cells, `cells_meshed`,
+  `min_sicn`, `min_sj`, `min_sj_fitting`, times, topology, warnings,
+  error.
+- `output/study.json`: the same rows, the study file, and the versions
+  of hexmesh, gmsh and Python.
+
+**Aligned export** (`export`): `output/aligned/<key>.npz` holds
+- `coords` (variants × nodes × 3, in node-tag order);
+- `hexes` (node indices);
+- `node_tags`;
+- `variants` (hashes).
+
+**Python:**
+
+```python
+from hexmesh.study import load_study, run, status, export
+study = load_study("study.json")
+rows = run(study, stage="mesh", jobs=2, keep_going=False)   # PreflightFailed on failures
+```
+
+---
+
 ## Physical groups
 
 The naming convention is in [README.md](README.md#physical-groups). It

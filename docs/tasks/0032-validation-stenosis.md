@@ -57,7 +57,37 @@ turbulence, Re = 750 and 1000 (follow-ups if Re = 500 passes).
 
 ## Agent notes
 
-_None yet._
+- **Paused 2026-10-28** for the design order (0032 last, built on
+  0043's `hexmesh.study.openfoam`).  A draft driver,
+  `validation/stenosis/run.py`, is in the working tree, uncommitted.  It
+  reuses the Poiseuille and heated-rod helpers by import, so redo it on
+  0043's module.
+  - Driver: D = 1, U = 1, ν = 1/500, and a parabolic fixed-value inlet
+    written per face and scaled to the discrete flow rate.  The
+    centreline value is a quadratic fit near the axis, per slab.
+    Separation and reattachment are sign changes of the wall shear
+    stress.
+  - It used 22 D downstream, from the database figure's axis; **the
+    paper says 16 D** (design note below).
+- **Purdue database, Re = 500** (`Axi_stdy/Re500/vel.dat`, fetched
+  2026-10-28): radial profiles of (u, v, w) on D = 1 at x/D = −2 … 15
+  (1 D apart, 101 points across), normalised by u_i = 0.5.
+  - Inlet parabolic: centreline 1.000 / 0.5 at −2 D.
+  - Peak centreline 4.596 u_m (at x = 0).  The design note's ">4 u_m"
+    agrees.
+  - **No wall shear stress in the database**, only velocities.  The
+    near-wall axial velocity at r = 0.48 changes sign between 11 D
+    (−0.00015) and 12 D (+0.0041): **reattachment ≈ 11.0 D** by linear
+    interpolation, against the paper's "≈ 10 D".
+- **Coarse level, first run** (11 664 cells, `nang` 6, `nrad` 3,
+  108 layers).
+  - Mesh OK: max non-orthogonality 24.8°, min SJ 0.77.
+  - **Not converged after 20 000 SIMPLE iterations** (430 s).
+  - Reattachment 5.0 D, separation 0.43 D, peak 4.31 u_m.  Max
+    centreline error 18 % of the DNS peak, at 10 D.
+  - Too coarse to judge yet, and not converged: try the medium level,
+    and check convergence (residual history) before reading anything
+    into the 5 D.
 
 **Note from design (2026-10-28): the paper is now in `docs/papers/`**
 (`direct-numerical-simulation-of-stenotic-flows-part-1-steady-7cuwid0vj4.pdf`).
