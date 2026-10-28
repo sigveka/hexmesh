@@ -33,7 +33,7 @@ def build() -> Assembly:
     asm.add(Straight(0.1, n_layers=6))
     asm.add(Bend(radius=0.08, angle=90, n_layers=12))            # turn up
     asm.add(Straight(0.06, n_layers=4))
-    asm.add(Bend(radius=0.08, angle=-90, n_layers=12, roll=90))  # then sideways
+    asm.add(Bend(radius=0.08, angle=90, n_layers=12, roll=-90))  # then sideways, +y
     asm.add(Straight(0.1, n_layers=6))
     return asm
 

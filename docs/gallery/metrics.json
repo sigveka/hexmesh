@@ -1,7 +1,7 @@
 {
  "meta": {
   "date": "2026-10-28",
-  "commit": "60c580b + uncommitted changes",
+  "commit": "1f5ea6d + uncommitted changes",
   "gmsh": "4.12.1",
   "python": "3.12.3",
   "cpus": 8,
@@ -755,11 +755,11 @@
     "filler",
     "sheath"
    ],
-   "min_sicn": 0.13203704438203673,
-   "mean_sicn": 0.3301273520654218,
-   "min_sj": 0.705592811289519,
-   "min_sj_fitting": "#1 Bend",
-   "max_aspect": 16.666666666667,
+   "min_sicn": 0.13203704438203578,
+   "mean_sicn": 0.33012735206542154,
+   "min_sj": 0.7055928112895181,
+   "min_sj_fitting": "#3 Bend",
+   "max_aspect": 16.666666666667076,
    "groups": {
     "open_end": [
      "copper_inlet",
@@ -784,7 +784,7 @@
    },
    "predicted": 11040,
    "meshed": 11040,
-   "build_s": 5.63
+   "build_s": 5.82
   },
   "sections.lagged_duct": {
    "fittings": 7,

@@ -29,7 +29,7 @@ What each example shows, what its mesh looks like, and how good the cells are.  
 | [graded_bend](#graded_bend) | CFD-ready bend: wall grading, axial cells clustered at the bend, inlet and outlet extensions, and one wall patch per fitting. | 11 160 | 0.100 | 0.792 | 1.9 s |
 | [rect_duct](#rect_duct) | Rectangular duct: a 2:1 duct with an easy-way and a hard-way bend. | 4 576 | 0.317 | 0.705 | 1.8 s |
 | [duct_transition](#duct_transition) | Duct transition: a circular pipe into a 2:1 duct, a duct bend, and back. | 5 616 | 0.377 | 0.689 | 3.6 s |
-| [layer_outlines](#layer_outlines) | Layer outlines: a round conductor in a square filler in a round sheath. | 11 040 | 0.132 | 0.706 | 5.6 s |
+| [layer_outlines](#layer_outlines) | Layer outlines: a round conductor in a square filler in a round sheath. | 11 040 | 0.132 | 0.706 | 5.8 s |
 | [lagged_duct](#lagged_duct) | Lagged duct: a rectangular air duct with a steel wall and lagging, through a reducer and bends both ways. | 10 488 | 0.025 | 0.690 | 5.3 s |
 | [insulated_transition](#insulated_transition) | Insulated transition: an insulated round pipe becomes an insulated duct, turns, and the insulation stops. | 9 036 | 0.050 | 0.689 | 6.5 s |
 | **Networks: composing fittings into routes, branches and trees** | | | | | |
@@ -372,7 +372,7 @@ python3 -m hexmesh.examples.sections.layer_outlines
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 5: Straight ×3, Bend ×2 | 351 | 11 040 | 0.132 | 0.330 | 0.706 (#1 Bend) | 16.7 | 5.6 s |
+| 5: Straight ×3, Bend ×2 | 351 | 11 040 | 0.132 | 0.330 | 0.706 (#3 Bend) | 16.7 | 5.8 s |
 
 - **Open ends:** `copper_inlet`, `copper_outlet`, `filler_inlet`, `filler_outlet`, `sheath_inlet`, `sheath_outlet`
 - **Walls:** `sheath_wall`
@@ -688,4 +688,4 @@ Case: [validation/poiseuille/README.md](../validation/poiseuille/README.md); res
 
 ---
 
-Generated 2026-10-28 from hexmesh 60c580b + uncommitted changes, gmsh 4.12.1, Python 3.12.3, 8 CPUs, 1 job(s).
+Generated 2026-10-28 from hexmesh 1f5ea6d + uncommitted changes, gmsh 4.12.1, Python 3.12.3, 8 CPUs, 1 job(s).
