@@ -119,6 +119,15 @@ All v1912, gmsh 4.12.1, 2026-10-25.
   Each region still passed `checkMesh`, so only the patch list shows the
   error.  `write_openfoam` therefore leaves these groups out by default
   (`interfaces=True` keeps them).
+- **`checkMesh` thresholds** (v1912, design session 2026-10-28, task
+  0047).  On a circle-in-3:1-rectangle ring (max non-orthogonality
+  81.3°): "*Number of severely non-orthogonal (> 70 degrees) faces:
+  256", then "Non-orthogonality check OK" and "Mesh OK".  So 70° is a
+  warning count only; the check fails above 90°.  Max skewness 1.39 to
+  2.36 on the task's rings was reported "OK".  Needs the OpenFOAM
+  environment (`source /usr/share/openfoam/etc/bashrc`); without it,
+  every utility fails with "Could not find mandatory etc entry
+  'controlDict'".
 - **Non-orthogonality is reproducible in Python** (2026-10-28, task
   0047).  `checkMesh`'s "Mesh non-orthogonality Max" is the angle
   between an interior face's area vector and the owner → neighbour

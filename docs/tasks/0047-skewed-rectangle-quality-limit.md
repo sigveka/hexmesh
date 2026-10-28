@@ -113,6 +113,125 @@ the builder, which is out of scope):**
 - Rectangle in a circle: ending the corner lines at 45° on the circle
   (equal arcs) instead of radially along the diagonal.
 
+### Design answer (2026-10-28)
+
+**First, a correction: the SJ column measured gmsh's `minSJ`, not
+hexmesh's scaled Jacobian.**  `measure()` calls
+`getElementQualities(tags, "minSJ")`.  The project's metric is the
+corner scaled Jacobian in `hexmesh.quality_hex` (Knupp/Verdict form,
+task 0004, RESEARCH §7.1; `check_quality("scaled_jacobian")`).  That is
+the metric behind the wye's 0.1 and the published 0.49 the question
+compares with.  The two disagree in both directions here: circle in a
+3:1 rectangle, gap 0.1, is 0.327 by gmsh but **0.138** by corner SJ;
+rectangle in a circle, 2:1, gap 0.3, is 0.307 by gmsh but **0.447**.
+gmsh's `minSJ` also penalises taper and thin cells, so it falls with gap
+and rises with `nang`.  Corner SJ doesn't: it is set by the corner
+angles.
+
+**Re-measured** (design session, 2026-10-28, your script's sections and
+fittings, `check_quality("scaled_jacobian").worst`, min over straight /
+easy / hard; non-orthogonality from your function).  Corner SJ is the
+same at `nang` 4 and 8 to 0.001.
+
+| pairing | w/h | corner SJ, gap 0.1 / 0.3 / 1 | max non-orth (°), gap 0.1 / 0.3 / 1 (nang 8) |
+|---|---|---|---|
+| circle-in-rect | 1 | 0.706 / 0.707 / 0.707 | 42.1 / 39.3 / 38.0 |
+| circle-in-rect | 1.5 | 0.366 / 0.430 / 0.491 | 66.9 / 60.9 / 55.4 |
+| circle-in-rect | 2 | 0.238 / 0.299 / 0.365 | 75.1 / 70.1 / 64.5 |
+| circle-in-rect | 3 | 0.138 / 0.182 / 0.237 | 81.3 / 77.9 / 73.6 |
+| circle-in-rect | 4 | 0.096 / 0.131 / 0.174 | 83.9 / 81.3 / 77.9 |
+| circle-in-rect | 6 | 0.060 / 0.083 / 0.114 | 86.2 / 84.5 / 82.1 |
+| rect-in-circle | 1 | 0.707 (any gap) | ≤ 41.2 |
+| rect-in-circle | 1.5 | 0.554 | ≤ 43.4 |
+| rect-in-circle | 2 | 0.447 | ≤ 47.2 |
+| rect-in-circle | 3 | 0.316 | ≤ 51.9 |
+| rect-in-circle | 4 | 0.242 | ≤ 56.0 |
+| rect-in-circle | 6 | 0.164 | ≤ 63.4 |
+
+- **Rectangle in a circle is much better than proposed.**  Its corner SJ
+  is exactly `h / d = 1 / √(1 + (w/h)²)`: the sine of the angle between
+  a rectangle side and the radial corner line.  It doesn't depend on
+  gap or `nang`.  Non-orthogonality stays ≤ 64° even at 6:1.  The thin
+  rings that gmsh's metric flagged pass OpenFOAM's checks: `checkMesh`
+  v1912 gives max skewness 2.07 (2:1, gap 0.1) and 2.36 (1:1, gap 0.1),
+  both "OK".
+- **Circle in a rectangle** is about as proposed: both metrics cross
+  their limits near w/h 2.
+- `checkMesh` v1912 confirms the 70° threshold: it counts faces
+  "severely non-orthogonal (> 70 degrees)", but still says "Mesh OK" at
+  81.3°.  It fails a mesh only above 90°.
+
+**Q1: limits on two named metrics, checked before GMSH from a predicted
+section quality.**
+- **Metrics:** OpenFOAM max non-orthogonality (solver-relevant; your
+  construction matches `checkMesh` to 0.1°) and hexmesh's corner scaled
+  Jacobian.  Not SICN or gmsh `minSJ`: both fall with aspect ratio and
+  taper alone, as you found for SICN.
+- **Predict, don't tabulate.**  A 2-D model of the ring reproduces the
+  measured straight-pipe values: the ring's sides with uniformly spaced
+  nodes, straight corner lines, and interior nodes by linear blend (what
+  the transfinite fill does).  For an orthogonally extruded straight,
+  the hex corner SJ equals the quad's minimum corner sine.
+  - Circle in 3:1 rectangle, gap 0.1: 0.138 / 81.4° (measured
+    0.138 / 81.3°).
+  - Circle in 2:1, gap 0.3: 0.299 / 68.0° (0.299 / 68.1°).
+  - Rectangle in 2:1 circle: 0.447 (0.447).
+
+  Bends change these by ≤ 0.02 (your observation; also in the table).
+  So the check is a pure-Python **section quality prediction**,
+  `section_quality(spec)`, per layer, giving min corner SJ and max
+  non-orthogonality.  Limits are then on the metrics, with no
+  aspect-ratio tables.  This also works for any future outline (contour
+  sections, decision 0018).
+- **Values** (in `limits.py`): **warn** when predicted non-orthogonality
+  > 70° or corner SJ < 0.3; **reject** when > 80° or < 0.1.
+  - 70° is `checkMesh`'s severe threshold.
+  - 80° is a practitioners' rule of thumb, not documented: beyond it,
+    non-orthogonal correction struggles.
+  - 0.3 is about where the proposal put it.
+  - 0.1 matches the wye prototype's floor (decision 0017), so this
+    doesn't reject what is already accepted elsewhere.
+- What these bands mean for the sweep: circle in a rectangle warns from
+  about w/h 1.5–2 (gap-dependent) and is rejected from about 3 (gap 0.1)
+  or 4 (gap 0.3).  Rectangle in a circle warns past about 3:1 and is
+  rejected only past about 10:1.  Rectangle in a `dR` rectangle: never.
+
+**Q2: both, in two tiers.**  Reject below the hard floor
+(`AssemblyError` from `validate()`, naming the layer, the metric, the
+predicted value and the limit).  Warn in the band between the floor and
+the soft limit (`UserWarning`, same content), and record it so callers
+can read it.  This answers DESIGN's "Reject or degrade?" for layer
+outlines only; applying it to the tee and wye needs their own predicted
+or measured values (follow-up).
+
+**Your improvement ideas.**
+- *Rectangle in a circle, corner lines ending at 45°:* **don't.**
+  Modelled in 2-D, it is much worse: corner SJ 0.05 at 2:1 gap 0.3, and
+  folded (negative) at gap 0.1.  The radial rule is right.
+- *Circle in a flat rectangle, corner lines starting at the circle node
+  nearest the rectangle's corner direction:* this is the real fix, and
+  it needs no change to the core.  The ring's long sides then get
+  `nang + 2m` cells and the short sides `nang − 2m`.  Modelled at 2:1:
+  corner SJ 0.24–0.37 → 0.44–0.48, and non-orthogonality 64–75° →
+  56–62°.  At 3:1: SJ about 0.30, non-orthogonality about 70°.
+  - It breaks decision 0026's "equal counts per side" for the outer
+    outline, and so changes port signatures.  **Not in this task.**
+    Design records it as a follow-up option.
+
+**Do now** (replaces step 5):
+1. Fix `benchmarks/outline_quality.py` to report the corner SJ
+   (`quality_hex`), keeping gmsh `minSJ` as a separate, labelled column,
+   and regenerate your table in *Outcome*.
+2. `section_quality(spec)`: a pure-Python prediction per layer (core and
+   rings) of min corner SJ and max non-orthogonality.  Check it against
+   meshed straights for every sweep case: within 0.01 SJ and 1°.
+3. The limits in `limits.py` (`OUTLINE_NONORTH_WARN` 70,
+   `OUTLINE_NONORTH_MAX` 80, `OUTLINE_SJ_WARN` 0.3, `OUTLINE_SJ_MIN`
+   0.1).  `validate()` applies them to every shell whose two outlines
+   differ in shape.  Test on each side of both limits.
+4. Report what the bands mean for each pairing (the aspect ratios where
+   warnings and rejections start), for RESEARCH.
+
 ## Outcome
 
 _Partial: steps 1–4 done; step 5 waits for the answers above._
