@@ -25,3 +25,17 @@ JUNCTION_TOWARD_TOL = 1.0
 #: outer one's largest extent (decision 0026, item 5): each outline must lie
 #: strictly inside the next all round, or the ring has cells of no height.
 OUTLINE_MIN_GAP = 1e-3
+
+# Quality of a shell whose outline changes shape (a circle in a rectangle,
+# a rectangle in a circle; decision 0026 item 4, task 0047), predicted
+# before GMSH by ``section_quality``.  Two tiers: past the soft limit,
+# ``validate()`` warns; past the hard one, it rejects.
+#: Max non-orthogonality, degrees: OpenFOAM ``checkMesh``'s "severely
+#: non-orthogonal" count starts here (it fails a mesh only above 90°).
+OUTLINE_NONORTH_WARN = 70.0
+#: Beyond this, non-orthogonal correction struggles (practitioners' rule).
+OUTLINE_NONORTH_MAX = 80.0
+#: Min corner scaled Jacobian (``quality_hex``): warn below.
+OUTLINE_SJ_WARN = 0.3
+#: Reject below: the wye prototype's floor (decision 0017).
+OUTLINE_SJ_MIN = 0.1

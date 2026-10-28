@@ -56,7 +56,7 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0044](0044-demo-study-laminar-bend.md) | Demonstration study: laminar 90° bend, loss chart and aligned dataset | ready (after 0043) | 0025 |
 | [0045](0045-layer-outlines.md) | Layer outlines: circle and rectangle in either order, and rectangle in rectangle | done | 0026 |
 | [0046](0046-multi-layer-transition.md) | Multi-layer `Transition`: every outline blends along the axis | done | 0026 |
-| [0047](0047-skewed-rectangle-quality-limit.md) | Quality limit for rings with skewed corner lines (aspect-ratio sweep) | blocked | 0026 |
+| [0047](0047-skewed-rectangle-quality-limit.md) | Quality limit for rings with skewed corner lines (aspect-ratio sweep) | done | 0026 |
 | [0048](0048-layer-outline-examples.md) | Examples for layer outlines and multi-layer transitions | done | 0026 |
 
 Decision 0004 (retire legacy) comes first: 0011 → 0012 / 0013 / 0014 →

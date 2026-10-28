@@ -5,8 +5,10 @@ rectangle, in any order.  The conformance kit meshes the stacks
 """
 
 import math
+import warnings
 
 import gmsh
+import numpy as np
 import pytest
 
 from hexmesh.assembly import (
@@ -174,3 +176,120 @@ class TestFittingRules:
         nozzle = Nozzle("N1", _in(RectShape(0.2, 0.2, 4, 4)), OnShell(1.5, 0, 1.4))
         with pytest.raises(EquipmentError, match="layer `block` is a RectShape"):
             Drum("D101", 2.0, 6.0, nozzles=(nozzle,)).validate()
+
+
+# ---------------------------------------------------------------------------
+# Predicted section quality and its limits (task 0047)
+# ---------------------------------------------------------------------------
+
+def _circle_in_rect(aspect, gap, nang=4):
+    """Circle r = 0.1 in a rectangle whose thinnest gap is gap · r."""
+    hh = 0.1 * (1 + gap)
+    return (PipeSpec(nang=nang).core("core", CircleShape(0.1, nang), nrad=4)
+            .shell("ring", outer=RectShape(aspect * hh, hh, nang, nang), nrad=4))
+
+
+def _rect_in_circle(aspect, gap, nang=4):
+    """Rectangle of half-diagonal 0.1 in a circle of radius (1 + gap) · 0.1."""
+    hh = 0.1 / math.hypot(aspect, 1)
+    return (PipeSpec(nang=nang).core("core", RectShape(aspect * hh, hh, nang, nang), nrad=4)
+            .shell("ring", outer=CircleShape(0.1 * (1 + gap), nang), nrad=4))
+
+
+class TestSectionQuality:
+    @pytest.mark.parametrize("kind, coef", [("Bump", 0.6), ("Bump", 1.4), ("Bump", 1.0),
+                                            ("Progression", 1.3), ("Progression", 0.8)])
+    def test_spacing_matches_gmsh(self, gmsh_session, kind, coef):
+        from hexmesh.assembly.section_quality import bump, progression
+        a = gmsh.model.occ.addPoint(0, 0, 0)
+        b = gmsh.model.occ.addPoint(1, 0, 0)
+        line = gmsh.model.occ.addLine(a, b)
+        gmsh.model.occ.synchronize()
+        gmsh.model.mesh.setTransfiniteCurve(line, 9, kind, coef)
+        gmsh.model.mesh.generate(1)
+        x = np.sort(gmsh.model.mesh.getNodes()[1].reshape(-1, 3)[:, 0])
+        want = bump(8, coef) if kind == "Bump" else progression(8, coef)
+        np.testing.assert_allclose(x, want, atol=1e-6)   # GMSH integrates Bump numerically
+
+    @pytest.mark.parametrize("spec", [
+        _circle_in_rect(2.5, 0.3), _circle_in_rect(1.5, 1.0, nang=8),
+        _rect_in_circle(2, 0.3), _rect_in_circle(4, 0.1, nang=8),
+        _core().shell("wall", dR=0.01, nrad=2, first_cell=0.002),
+        PipeSpec(nang=4, mbmp=0.6).core("core", RectShape(0.2, 0.1, 4, 4), nrad=3)
+        .shell("ring", outer=CircleShape(0.3, 4), nrad=3, mprg=1.2),
+    ], ids=["c-in-2.5to1", "c-in-1.5to1-nang8", "2to1-in-c", "4to1-in-c-nang8", "dR-graded",
+            "bumped"])
+    def test_corner_sj_matches_the_mesh(self, gmsh_session, spec):
+        """A straight's per-layer corner scaled Jacobian is the prediction."""
+        from hexmesh.assembly.section_quality import section_quality
+        asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1])
+        asm.add(Straight(0.4, n_layers=4))
+        asm.mesh()
+        got = {r.name: r.min_quality for r in asm.check_quality("scaled_jacobian").regions}
+        for q in section_quality(spec):
+            assert got[q.name] == pytest.approx(q.min_sj, abs=0.01), q
+
+    @pytest.mark.parametrize("spec, checkmesh", [
+        (_circle_in_rect(4, 0.3), 80.2544), (_rect_in_circle(4, 0.3), 54.1026)])
+    def test_non_orthogonality_matches_checkmesh(self, spec, checkmesh):
+        """Max over the section against OpenFOAM v1912 ``checkMesh`` on the
+        meshed straights (task 0047, docs/integrations/openfoam.md)."""
+        from hexmesh.assembly.section_quality import section_quality
+        got = max(q.max_non_ortho for q in section_quality(spec))
+        assert got == pytest.approx(checkmesh, abs=0.1)
+
+
+class TestQualityLimits:
+    @pytest.mark.parametrize("spec, warns", [
+        (_circle_in_rect(1.5, 0.3), []),
+        (_circle_in_rect(1.68, 0.1), ["non-orthogonality"]),              # 70.9°, SJ 0.31
+        (_circle_in_rect(2, 0.3), ["corner scaled Jacobian"]),            # SJ 0.299, 68.0°
+        (_circle_in_rect(2.5, 0.3), ["corner scaled Jacobian", "non-orthogonality"]),
+        (_circle_in_rect(2.5, 0.1), ["corner scaled Jacobian", "non-orthogonality"]),  # 79.0°
+        (_rect_in_circle(3, 0.3), []),                                    # SJ 0.316
+        (_rect_in_circle(8, 0.3), ["corner scaled Jacobian"]),            # SJ 0.124
+    ], ids=["c-1.5", "c-1.68-thin", "c-2", "c-2.5", "c-2.5-thin", "r-3", "r-8"])
+    def test_soft_limits_warn(self, spec, warns):
+        asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1])
+        asm.add(Straight(0.3, n_layers=2))
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            asm.validate()
+        assert [w for m in asm.warnings for w in warns if w in m] == warns
+        assert len(asm.warnings) == len(warns)
+        assert [str(c.message) for c in caught
+                if issubclass(c.category, UserWarning)] == asm.warnings
+        for m in asm.warnings:
+            assert "layer `ring`" in m and ("OUTLINE_SJ_WARN 0.3" in m
+                                            or "OUTLINE_NONORTH_WARN 70°" in m)
+
+    @pytest.mark.parametrize("spec, message", [
+        (_circle_in_rect(3, 0.1), r"layer `ring` \(circle in a 3:1 rectangle\): predicted "
+                                  r"non-orthogonality 81\.3° is above OUTLINE_NONORTH_MAX 80°"),
+        (_rect_in_circle(11, 0.3), r"layer `ring` \(11:1 rectangle in a circle\): predicted "
+                                   r"corner scaled Jacobian 0\.091 is below OUTLINE_SJ_MIN 0\.1"),
+    ], ids=["non-orth", "sj"])
+    def test_hard_limits_reject_before_gmsh(self, spec, message):
+        asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1])
+        asm.add(Straight(0.3, n_layers=2))
+        with pytest.raises(AssemblyError, match=message):
+            asm.validate()
+        assert not gmsh.isInitialized()
+
+    def test_shells_that_keep_their_shape_are_not_checked(self):
+        """dR shells (the inner outline grown) and circles round circles."""
+        from hexmesh.assembly.section_quality import changes_shape
+        duct = (PipeSpec(nang=4).core("air", RectShape(0.6, 0.1, 4, 4), nrad=3)
+                .shell("wall", dR=0.01, nrad=2))
+        assert not changes_shape(duct, 1)
+        assert not changes_shape(_in(CircleShape(0.2, 4)), 1)
+        assert changes_shape(_in(RectShape(0.2, 0.2, 4, 4)), 1)
+
+    def test_warnings_reset_on_each_validate(self):
+        asm = Assembly(_circle_in_rect(2, 0.3), direction=[1, 0, 0], up=[0, 0, 1])
+        asm.add(Straight(0.3, n_layers=2))
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            asm.validate()
+            asm.validate()
+        assert len(asm.warnings) == 1

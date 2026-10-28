@@ -5,6 +5,7 @@ Not part of the test suite.
     python3 benchmarks/outline_quality.py                      # full sweep
     python3 benchmarks/outline_quality.py --json out.json --md out.md
     python3 benchmarks/outline_quality.py --aspects 1 4 --gaps 0.3 --nang 4
+    python3 benchmarks/outline_quality.py --bands            # where the limits start
 
 Three pairings, each a core and one shell:
 
@@ -23,11 +24,20 @@ half-height inside a ``dR`` rectangle.  Each section runs through a
 straight, an easy-way bend (roll 0: turning across the height) and a
 hard-way bend (roll 90), each alone in its assembly.
 
-Per case: min SICN and min scaled Jacobian (gmsh), max non-orthogonality
-(OpenFOAM's: the angle between an interior face's normal and the line
-joining its two cell centres) and where the cell with the lowest scaled
-Jacobian sits: ``core``, ``corner line`` (it has a node on a ring corner
-line), or the ring's ``long side`` / ``short side`` block.
+Per case:
+
+* min corner scaled Jacobian, the project's metric (``quality_hex``,
+  Knupp; task 0004, RESEARCH §7.1);
+* max non-orthogonality (OpenFOAM's construction: the angle between an
+  interior face's area vector and the line joining its two cell centres;
+  matches ``checkMesh``);
+* min SICN and gmsh's ``minSJ``, for reference only: both fall with cell
+  aspect ratio and taper alone (task 0047's design answer);
+* where the cell with the lowest corner SJ sits: ``core``, ``corner
+  line`` (it has a node on a ring corner line), or the ring's ``long
+  side`` / ``short side`` block;
+* on a straight, the ring's (and core's) values against
+  ``section_quality``'s prediction, per layer.
 """
 
 from __future__ import annotations
@@ -41,7 +51,14 @@ import gmsh
 import numpy as np
 
 from hexmesh import Assembly, Bend, PipeSpec, Straight
+from hexmesh.assembly.section_quality import section_quality
 from hexmesh.core.shape import CircleShape, RectShape
+from hexmesh.quality_hex import _JACOBIAN_TRIPLETS
+from hexmesh.assembly import assembler
+
+# The sweep measures past the outline quality limits (task 0047), which
+# ``validate()`` would reject before GMSH; switch them off here only.
+assembler.check_section_quality = lambda spec: []
 
 SIZE = 0.1          # inner outline size (see the module docstring)
 NRAD = 4
@@ -111,10 +128,21 @@ def _faces_and_centres(x: np.ndarray):
     return area, centres
 
 
-def max_non_orthogonality(x: np.ndarray, nodes: np.ndarray) -> float:
-    """Largest angle (degrees) between an interior face's area vector and
-    the line from its owner's centre to its neighbour's (OpenFOAM's
-    ``checkMesh`` definition and construction)."""
+def corner_sj(x: np.ndarray) -> np.ndarray:
+    """``quality_hex.scaled_jacobian`` of every hex (n, 8, 3), vectorised:
+    the smallest det(A_k) / (|e1| |e2| |e3|) over the eight corners."""
+    out = np.full(len(x), np.inf)
+    for k, (j, l, m) in enumerate(_JACOBIAN_TRIPLETS):
+        e = np.stack([x[:, j] - x[:, k], x[:, l] - x[:, k], x[:, m] - x[:, k]], axis=2)
+        out = np.minimum(out, np.linalg.det(e) / np.prod(np.linalg.norm(e, axis=1), axis=1))
+    return out
+
+
+def non_orthogonality(x: np.ndarray, nodes: np.ndarray):
+    """Per interior face: (angle in degrees, owner cell, neighbour cell).
+    The angle is between the face's area vector and the line from its
+    owner's centre to its neighbour's (OpenFOAM's ``checkMesh`` definition
+    and construction)."""
     normal, centres = _faces_and_centres(x)
     keys = np.sort(nodes[:, _FACES], axis=2).reshape(-1, 4)
     cell = np.repeat(np.arange(len(x)), 6)
@@ -127,7 +155,11 @@ def max_non_orthogonality(x: np.ndarray, nodes: np.ndarray) -> float:
     n = normal.reshape(-1, 3)[pairs[:, 0]]
     d = centres[b] - centres[a]
     c = np.abs(np.einsum("ij,ij->i", n, d)) / (np.linalg.norm(n, axis=1) * np.linalg.norm(d, axis=1))
-    return float(np.degrees(np.arccos(np.clip(c, -1, 1))).max())
+    return np.degrees(np.arccos(np.clip(c, -1, 1))), a, b
+
+
+def max_non_orthogonality(x: np.ndarray, nodes: np.ndarray) -> float:
+    return float(non_orthogonality(x, nodes)[0].max())
 
 
 def _in_plane(p: np.ndarray, frames) -> np.ndarray:
@@ -141,12 +173,20 @@ def _in_plane(p: np.ndarray, frames) -> np.ndarray:
     return np.array(out)
 
 
-def locate(asm: Assembly, spec: PipeSpec, x8: np.ndarray, vol: int) -> str:
-    """Where the cell with nodes *x8* in volume *vol* sits."""
-    core_vols = {v for d, t in gmsh.model.getPhysicalGroups(3)
-                 if gmsh.model.getPhysicalName(d, t) == "core"
-                 for v in gmsh.model.getEntitiesForPhysicalGroup(d, t)}
-    if vol in core_vols:
+def _layer_of(vols: np.ndarray, names: list[str]) -> np.ndarray:
+    """Layer index of each cell, from its volume's physical group."""
+    index = {}
+    for d, t in gmsh.model.getPhysicalGroups(3):
+        name = gmsh.model.getPhysicalName(d, t)
+        if name in names:
+            for v in gmsh.model.getEntitiesForPhysicalGroup(d, t):
+                index[v] = names.index(name)
+    return np.array([index[v] for v in vols])
+
+
+def locate(asm: Assembly, spec: PipeSpec, x8: np.ndarray, layer: int) -> str:
+    """Where the cell with nodes *x8* in layer *layer* sits."""
+    if layer == 0:
         return "core"
     e = asm.edges[0]
     frames = e.fitting.path(*[p.frame for p in e.ports], spec).frames
@@ -179,15 +219,58 @@ def measure(pairing: str, aspect: float, gap: float, nang: int, fit: str) -> dic
         asm.mesh()
         tags, x, vols, nodes = _hexes()
         sicn = gmsh.model.mesh.getElementQualities(tags, "minSICN")
-        sj = gmsh.model.mesh.getElementQualities(tags, "minSJ")
+        gmsh_sj = gmsh.model.mesh.getElementQualities(tags, "minSJ")
+        sj = corner_sj(x)
+        angle, owner, neigh = non_orthogonality(x, nodes)
+        layer = _layer_of(vols, spec.layer_names)
         worst = int(np.argmin(sj))
-        return dict(pairing=pairing, aspect=aspect, gap=gap, nang=nang, fitting=fit,
-                    cells=len(tags), predicted=predicted,
-                    min_sicn=float(sicn.min()), min_sj=float(sj.min()),
-                    max_non_ortho=max_non_orthogonality(x, nodes),
-                    worst=locate(asm, spec, x[worst], int(vols[worst])))
+        row = dict(pairing=pairing, aspect=aspect, gap=gap, nang=nang, fitting=fit,
+                   cells=len(tags), predicted=predicted,
+                   min_sj=float(sj.min()), max_non_ortho=float(angle.max()),
+                   min_sicn=float(sicn.min()), min_gmsh_sj=float(gmsh_sj.min()),
+                   worst=locate(asm, spec, x[worst], int(layer[worst])))
+        if fit == "straight":                 # against the prediction, per layer
+            for i, q in enumerate(section_quality(spec)):
+                mine = (layer[owner] == i) | (layer[neigh] == i)
+                row[f"sj_{i}"], row[f"pred_sj_{i}"] = float(sj[layer == i].min()), q.min_sj
+                row[f"no_{i}"], row[f"pred_no_{i}"] = float(angle[mine].max()), q.max_non_ortho
+        return row
     finally:
         gmsh.finalize()
+
+
+def band(pairing: str, gap: float, nang: int, crosses, hi: float = 50.0) -> float | None:
+    """Smallest w/h (to 0.01) at which ``crosses(LayerQuality)`` holds for
+    the ring, from ``section_quality``: quality falls with w/h, so bisect."""
+    def bad(a):
+        return crosses(section_quality(section(pairing, a, gap, nang))[1])
+    if not bad(hi):
+        return None
+    lo = 1.0
+    if bad(lo):
+        return lo
+    while hi - lo > 0.005:
+        mid = 0.5 * (lo + hi)
+        lo, hi = (lo, mid) if bad(mid) else (mid, hi)
+    return hi
+
+
+def bands(pairings, gaps, nangs) -> list[dict]:
+    """Aspect ratios where each limit of ``hexmesh.assembly.limits`` starts."""
+    from hexmesh.assembly.limits import (OUTLINE_NONORTH_MAX, OUTLINE_NONORTH_WARN,
+                                         OUTLINE_SJ_MIN, OUTLINE_SJ_WARN)
+    tests = {
+        "SJ warn": lambda q: q.min_sj < OUTLINE_SJ_WARN,
+        "non-orth warn": lambda q: q.max_non_ortho > OUTLINE_NONORTH_WARN,
+        "SJ reject": lambda q: q.min_sj < OUTLINE_SJ_MIN,
+        "non-orth reject": lambda q: q.max_non_ortho > OUTLINE_NONORTH_MAX,
+    }
+    rows = []
+    for pairing, gap, nang in itertools.product(pairings, gaps, nangs):
+        row = dict(pairing=pairing, gap=gap, nang=nang)
+        row.update({k: band(pairing, gap, nang, t) for k, t in tests.items()})
+        rows.append(row)
+    return rows
 
 
 def main() -> None:
@@ -198,29 +281,46 @@ def main() -> None:
     ap.add_argument("--gaps", nargs="+", type=float, default=[0.1, 0.3, 1.0])
     ap.add_argument("--nang", nargs="+", type=int, default=[4, 8])
     ap.add_argument("--fittings", nargs="+", default=["straight", "easy", "hard"])
+    ap.add_argument("--bands", action="store_true",
+                    help="print the w/h at which each limit starts (no meshing)")
     ap.add_argument("--json")
     ap.add_argument("--md")
     args = ap.parse_args()
+    if args.bands:
+        print("| pairing | gap | nang | SJ warn | non-orth warn | SJ reject | non-orth reject |")
+        print("|---|---|---|---|---|---|---|")
+        for r in bands([p for p in args.pairings if p != "rect-in-rect"], args.gaps, args.nang):
+            cells = [("—" if r[k] is None else f"{r[k]:.2f}") for k in
+                     ("SJ warn", "non-orth warn", "SJ reject", "non-orth reject")]
+            print(f"| {r['pairing']} | {r['gap']:g} | {r['nang']} | " + " | ".join(cells) + " |")
+        return
     rows = []
     for case in itertools.product(args.pairings, args.aspects, args.gaps, args.nang,
                                   args.fittings):
         r = measure(*case)
         assert r["cells"] == r["predicted"], r
         rows.append(r)
-        print(f"{r['pairing']:15s} w/h {r['aspect']:<4g} gap {r['gap']:<4g} nang {r['nang']} "
-              f"{r['fitting']:8s} SICN {r['min_sicn']:.3f}  SJ {r['min_sj']:.3f}  "
-              f"non-orth {r['max_non_ortho']:5.1f}°  worst: {r['worst']}", flush=True)
+        line = (f"{r['pairing']:15s} w/h {r['aspect']:<4g} gap {r['gap']:<4g} nang {r['nang']} "
+                f"{r['fitting']:8s} SJ {r['min_sj']:.3f}  non-orth {r['max_non_ortho']:5.1f}°  "
+                f"(SICN {r['min_sicn']:.3f}, gmsh minSJ {r['min_gmsh_sj']:.3f})  "
+                f"worst: {r['worst']}")
+        if "sj_1" in r:
+            dsj = max(abs(r[f"sj_{i}"] - r[f"pred_sj_{i}"]) for i in (0, 1))
+            dno = max(abs(r[f"no_{i}"] - r[f"pred_no_{i}"]) for i in (0, 1))
+            line += f"  |Δ predicted| SJ {dsj:.4f}, {dno:.2f}°"
+        print(line, flush=True)
     if args.json:
         with open(args.json, "w") as f:
             json.dump(rows, f, indent=1)
     if args.md:
         with open(args.md, "w") as f:
-            f.write("| pairing | w/h | gap | nang | fitting | min SICN | min SJ | "
-                    "max non-orth (°) | worst cell |\n|---|---|---|---|---|---|---|---|---|\n")
+            f.write("| pairing | w/h | gap | nang | fitting | min corner SJ | "
+                    "max non-orth (°) | min SICN | gmsh minSJ | worst cell |\n"
+                    "|---|---|---|---|---|---|---|---|---|---|\n")
             for r in rows:
                 f.write(f"| {r['pairing']} | {r['aspect']:g} | {r['gap']:g} | {r['nang']} | "
-                        f"{r['fitting']} | {r['min_sicn']:.3f} | {r['min_sj']:.3f} | "
-                        f"{r['max_non_ortho']:.1f} | {r['worst']} |\n")
+                        f"{r['fitting']} | {r['min_sj']:.3f} | {r['max_non_ortho']:.1f} | "
+                        f"{r['min_sicn']:.3f} | {r['min_gmsh_sj']:.3f} | {r['worst']} |\n")
 
 
 if __name__ == "__main__":

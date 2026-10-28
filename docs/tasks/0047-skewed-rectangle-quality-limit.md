@@ -1,6 +1,6 @@
 # 0047 — Quality limit for rings with skewed corner lines (aspect-ratio sweep)
 
-- **Status:** blocked (limit proposed; see Questions for design)
+- **Status:** done
 - **Decision:** [0026 — Layer outlines: shells of any shape](../decisions/0026-layer-outlines.md) (item 4)
 - **Depends on:** 0045.  Can run alongside 0046.
 
@@ -67,6 +67,38 @@ after step 4); unequal counts per side.
 - **Worst cell:** the cell with the lowest scaled Jacobian.  It is
   "corner line" when it has a node on a ring corner line; otherwise it
   is placed by the ring block it lies in.
+- **After the design answer (2026-10-28).**
+  - *Benchmark:* the SJ column is now the corner scaled Jacobian
+    (`quality_hex`'s Knupp form, vectorised over the hexes in
+    `corner_sj`).  gmsh `minSJ` and SICN stay as labelled reference
+    columns.  "Worst cell" is now placed by the lowest corner SJ, and a
+    cell's layer comes from its physical group.  The benchmark switches
+    the new check off (`assembler.check_section_quality`), because it
+    measures past the limits.
+  - *`section_quality`*, in `hexmesh/assembly/section_quality.py`,
+    builds the face's quads as GMSH does:
+    - `Bump` / `Progression` node fractions (`bump`, `progression`).
+      Tested against GMSH's own 1-D meshes; Bump agrees to about 2e-8,
+      because GMSH integrates it numerically.
+    - Ring patches as the linear blend of their two boundaries, which is
+      exact: their other two sides are straight corner lines.
+    - The core's centre patch as a Coons patch on chord-length
+      fractions.
+    - Non-orthogonality from the quads' centroids and the shared edge's
+      normal.  On an orthogonal extrusion this is OpenFOAM's 3-D
+      construction exactly.
+
+    A layer's non-orthogonality includes the faces it shares with the
+    layer inside it.
+  - *"Shells whose two outlines differ in shape"* (`changes_shape`):
+    every `outer=` shell, except a circle round a circle.  `dR` shells
+    are skipped: their outline is the inner one grown, so their corner
+    lines are on the diagonals.  A rectangle round a rectangle of
+    another aspect, given by `outer=`, is checked too; its corner lines
+    are skewed in the same way.
+  - *Check placement:* `validate()`, once per distinct spec (keyed by
+    `to_dict()`), next to `check_supported`.  Messages are prefixed with
+    the interface.  `Assembly.warnings` is reset on each `validate()`.
 
 ## Questions for design
 
@@ -234,81 +266,141 @@ or measured values (follow-up).
 
 ## Outcome
 
-_Partial: steps 1–4 done; step 5 waits for the answers above._
+**Files.**
+- New: `hexmesh/assembly/section_quality.py`: `section_quality(spec)`,
+  `LayerQuality`, `check_section_quality`, `changes_shape`, `bump`,
+  `progression`.
+- `hexmesh/assembly/limits.py`: `OUTLINE_NONORTH_WARN` 70,
+  `OUTLINE_NONORTH_MAX` 80, `OUTLINE_SJ_WARN` 0.3, `OUTLINE_SJ_MIN` 0.1.
+- `hexmesh/assembly/assembler.py`: `validate()` applies the limits.
+  Past a hard limit it raises `AssemblyError` before GMSH.  In the band
+  it issues a `UserWarning` and records it in `Assembly.warnings`.
+- `benchmarks/outline_quality.py`: corner SJ; predicted against
+  measured, per layer, on straights; `--bands`.
+- `tests/test_layer_outlines.py`: `TestSectionQuality` and
+  `TestQualityLimits`, 24 tests:
+  - GMSH node spacing;
+  - predicted against meshed corner SJ on six specs, including graded
+    and bumped ones;
+  - non-orthogonality against `checkMesh`'s values;
+  - each soft limit alone and both together, below and above;
+  - both hard limits;
+  - shells that are not checked;
+  - warnings reset on each `validate()`.
+- `docs/integrations/openfoam.md`: the non-orthogonality note (earlier
+  work, plus design's thresholds).
 
-**Measurements.**  324 cases: 3 pairings × w/h {1, 1.5, 2, 3, 4, 6} ×
-gap {0.1, 0.3, 1} × nang {4, 8} × straight / easy / hard.  All are
-all-hex with meshed = predicted.  The table shows, per pairing, aspect
-ratio and gap, the minima over the three fittings (SJ split by nang) and
-the maximum non-orthogonality.  The script (`--md`) writes every case
-as its own row.
+**Prediction against the mesh.**  On all 108 straights of the sweep, per
+layer, the largest differences are 4e-8 in corner SJ and 1e-5° in
+non-orthogonality.  The required tolerance was 0.01 and 1°.  Bends
+change min corner SJ by at most 0.0015 and max non-orthogonality by at
+most 0.3°, so a straight's prediction stands for the fitting.
 
-| pairing | w/h | gap | min SJ nang 4 / 8 | min SICN | max non-orth (°) | worst cell (lowest SJ) |
+**Measurements** (`python3 benchmarks/outline_quality.py --md …`; 324
+cases, all meshed = predicted cell count).  Minima and maxima are taken
+over straight, easy bend and hard bend.
+
+| pairing | w/h | gap | min corner SJ nang 4 / 8 | max non-orth (°) nang 4 / 8 | min gmsh minSJ | min SICN | worst cell (lowest corner SJ) |
+|---|---|---|---|---|---|---|---|
+| circle-in-rect | 1 | 0.1 | 0.706 / 0.706 | 41.5 / 42.1 | 0.583 | 0.080 | short side (easy) |
+| circle-in-rect | 1 | 0.3 | 0.706 / 0.707 | 36.3 / 39.3 | 0.672 | 0.201 | corner line (easy) |
+| circle-in-rect | 1 | 1 | 0.706 / 0.707 | 35.3 / 38.0 | 0.703 | 0.201 | corner line (easy) |
+| circle-in-rect | 1.5 | 0.1 | 0.369 / 0.366 | 66.9 / 66.9 | 0.491 | 0.060 | corner line (easy) |
+| circle-in-rect | 1.5 | 0.3 | 0.430 / 0.430 | 58.5 / 60.9 | 0.639 | 0.153 | corner line (hard) |
+| circle-in-rect | 1.5 | 1 | 0.490 / 0.491 | 52.8 / 55.4 | 0.645 | 0.161 | corner line (easy) |
+| circle-in-rect | 2 | 0.1 | 0.238 / 0.238 | 75.1 / 75.1 | 0.416 | 0.048 | long side (easy) |
+| circle-in-rect | 2 | 0.3 | 0.298 / 0.299 | 68.1 / 70.1 | 0.562 | 0.121 | corner line (easy) |
+| circle-in-rect | 2 | 1 | 0.365 / 0.365 | 62.4 / 64.5 | 0.567 | 0.131 | corner line (easy) |
+| circle-in-rect | 3 | 0.1 | 0.137 / 0.138 | 81.3 / 81.3 | 0.319 | 0.033 | corner line (easy) |
+| circle-in-rect | 3 | 0.3 | 0.182 / 0.182 | 76.5 / 77.9 | 0.453 | 0.085 | corner line (easy) |
+| circle-in-rect | 3 | 1 | 0.237 / 0.237 | 72.1 / 73.6 | 0.456 | 0.094 | corner line (easy) |
+| circle-in-rect | 4 | 0.1 | 0.096 / 0.096 | 83.9 / 83.9 | 0.259 | 0.026 | corner line (easy) |
+| circle-in-rect | 4 | 0.3 | 0.131 / 0.131 | 80.3 / 81.3 | 0.379 | 0.065 | corner line (easy) |
+| circle-in-rect | 4 | 1 | 0.174 / 0.174 | 76.8 / 77.9 | 0.381 | 0.073 | corner line (easy) |
+| circle-in-rect | 6 | 0.1 | 0.060 / 0.060 | 86.2 / 86.2 | 0.188 | 0.017 | long side (easy) |
+| circle-in-rect | 6 | 0.3 | 0.083 / 0.083 | 83.8 / 84.5 | 0.286 | 0.044 | corner line (easy) |
+| circle-in-rect | 6 | 1 | 0.114 / 0.114 | 81.4 / 82.1 | 0.287 | 0.050 | corner line (easy) |
+| rect-in-circle | 1 | 0.1 | 0.706 / 0.707 | 37.1 / 41.2 | 0.339 | 0.083 | corner line (easy) |
+| rect-in-circle | 1 | 0.3 | 0.706 / 0.707 | 37.0 / 41.2 | 0.533 | 0.220 | core (easy) |
+| rect-in-circle | 1 | 1 | 0.706 / 0.707 | 37.0 / 41.2 | 0.627 | 0.214 | core (hard) |
+| rect-in-circle | 1.5 | 0.1 | 0.554 / 0.554 | 37.1 / 41.2 | 0.211 | 0.061 | corner line (easy) |
+| rect-in-circle | 1.5 | 0.3 | 0.554 / 0.554 | 37.1 / 41.2 | 0.380 | 0.164 | corner line (easy) |
+| rect-in-circle | 1.5 | 1 | 0.554 / 0.554 | 37.0 / 43.4 | 0.494 | 0.165 | corner line (easy) |
+| rect-in-circle | 2 | 0.1 | 0.446 / 0.447 | 37.1 / 41.2 | 0.148 | 0.047 | corner line (easy) |
+| rect-in-circle | 2 | 0.3 | 0.446 / 0.447 | 37.1 / 41.2 | 0.289 | 0.128 | corner line (hard) |
+| rect-in-circle | 2 | 1 | 0.446 / 0.447 | 37.0 / 47.2 | 0.401 | 0.132 | corner line (easy) |
+| rect-in-circle | 3 | 0.1 | 0.316 / 0.316 | 48.6 / 47.2 | 0.091 | 0.032 | corner line (easy) |
+| rect-in-circle | 3 | 0.3 | 0.316 / 0.316 | 47.1 / 44.8 | 0.191 | 0.088 | corner line (easy) |
+| rect-in-circle | 3 | 1 | 0.316 / 0.316 | 41.8 / 51.9 | 0.285 | 0.092 | corner line (easy) |
+| rect-in-circle | 4 | 0.1 | 0.242 / 0.242 | 56.0 / 54.4 | 0.065 | 0.025 | corner line (easy) |
+| rect-in-circle | 4 | 0.3 | 0.242 / 0.242 | 54.2 / 51.8 | 0.142 | 0.067 | corner line (easy) |
+| rect-in-circle | 4 | 1 | 0.242 / 0.242 | 48.5 / 54.6 | 0.220 | 0.070 | corner line (easy) |
+| rect-in-circle | 6 | 0.1 | 0.164 / 0.164 | 63.4 / 61.8 | 0.041 | 0.016 | corner line (easy) |
+| rect-in-circle | 6 | 0.3 | 0.164 / 0.164 | 61.5 / 59.0 | 0.093 | 0.045 | corner line (hard) |
+| rect-in-circle | 6 | 1 | 0.164 / 0.164 | 55.3 / 57.6 | 0.150 | 0.047 | corner line (easy) |
+| rect-in-rect | 1 | 0.1 | 0.706 / 0.707 | 37.1 / 41.2 | 0.889 | 0.080 | corner line (easy) |
+| rect-in-rect | 1 | 0.3 | 0.706 / 0.707 | 37.1 / 41.2 | 0.894 | 0.199 | corner line (easy) |
+| rect-in-rect | 1 | 1 | 0.706 / 0.707 | 37.1 / 41.2 | 0.856 | 0.214 | core (easy) |
+| rect-in-rect | 1.5 | 0.1 | 0.706 / 0.707 | 37.1 / 41.2 | 0.896 | 0.060 | corner line (hard) |
+| rect-in-rect | 1.5 | 0.3 | 0.706 / 0.707 | 37.1 / 41.2 | 0.899 | 0.156 | corner line (hard) |
+| rect-in-rect | 1.5 | 1 | 0.706 / 0.707 | 37.1 / 41.2 | 0.860 | 0.179 | core (hard) |
+| rect-in-rect | 2 | 0.1 | 0.706 / 0.707 | 37.1 / 41.2 | 0.899 | 0.047 | corner line (hard) |
+| rect-in-rect | 2 | 0.3 | 0.706 / 0.707 | 37.1 / 41.2 | 0.900 | 0.127 | corner line (hard) |
+| rect-in-rect | 2 | 1 | 0.706 / 0.707 | 37.1 / 41.2 | 0.863 | 0.152 | core (hard) |
+| rect-in-rect | 3 | 0.1 | 0.706 / 0.707 | 37.2 / 41.2 | 0.895 | 0.033 | corner line (hard) |
+| rect-in-rect | 3 | 0.3 | 0.706 / 0.707 | 37.2 / 41.2 | 0.895 | 0.091 | corner line (easy) |
+| rect-in-rect | 3 | 1 | 0.706 / 0.707 | 37.1 / 41.2 | 0.867 | 0.114 | core (easy) |
+| rect-in-rect | 4 | 0.1 | 0.706 / 0.707 | 37.2 / 41.2 | 0.893 | 0.025 | corner line (hard) |
+| rect-in-rect | 4 | 0.3 | 0.706 / 0.707 | 37.2 / 41.2 | 0.892 | 0.071 | corner line (hard) |
+| rect-in-rect | 4 | 1 | 0.706 / 0.707 | 37.1 / 41.2 | 0.871 | 0.090 | core (hard) |
+| rect-in-rect | 6 | 0.1 | 0.706 / 0.707 | 38.6 / 41.2 | 0.891 | 0.017 | corner line (hard) |
+| rect-in-rect | 6 | 0.3 | 0.706 / 0.707 | 38.6 / 41.2 | 0.890 | 0.049 | corner line (hard) |
+| rect-in-rect | 6 | 1 | 0.706 / 0.707 | 38.6 / 41.2 | 0.875 | 0.063 | core (easy) |
+
+- Corner SJ is the same at `nang` 4 and 8 (±0.001), as design found.
+  gmsh `minSJ` is the column the earlier table mislabelled "SJ".
+- Rectangle in a circle: corner SJ is exactly `1/√(1+(w/h)²)` (0.447 at
+  2:1, 0.316 at 3:1), independent of the gap.
+- The 0.707 in every rectangle-in-rectangle row, and in the near-square
+  rows, is the O-H core's 45° corner, not the ring's.
+
+**Where the limits start** (`--bands`; the w/h at which each limit is
+first crossed, to 0.01; "—" means not before w/h 50):
+
+| pairing | gap | nang | SJ warn (< 0.3) | non-orth warn (> 70°) | SJ reject (< 0.1) | non-orth reject (> 80°) |
 |---|---|---|---|---|---|---|
-| circle-in-rect | 1 | 0.1 | 0.583 / 0.742 | 0.080 | 42.1 | corner line (easy) |
-| circle-in-rect | 1 | 0.3 | 0.672 / 0.807 | 0.201 | 39.3 | corner line (hard) |
-| circle-in-rect | 1 | 1 | 0.703 / 0.786 | 0.201 | 38.0 | corner line (hard) |
-| circle-in-rect | 1.5 | 0.1 | 0.491 / 0.704 | 0.060 | 66.9 | long side (hard) |
-| circle-in-rect | 1.5 | 0.3 | 0.639 / 0.748 | 0.153 | 60.9 | long side (hard) |
-| circle-in-rect | 1.5 | 1 | 0.645 / 0.702 | 0.161 | 55.4 | long side (hard) |
-| circle-in-rect | 2 | 0.1 | 0.416 / 0.657 | 0.048 | 75.1 | long side (hard) |
-| circle-in-rect | 2 | 0.3 | 0.562 / 0.704 | 0.121 | 70.1 | long side (hard) |
-| circle-in-rect | 2 | 1 | 0.567 / 0.632 | 0.131 | 64.5 | long side (hard) |
-| circle-in-rect | 3 | 0.1 | 0.319 / 0.545 | 0.033 | 81.3 | long side (hard) |
-| circle-in-rect | 3 | 0.3 | 0.453 / 0.595 | 0.085 | 77.9 | long side (hard) |
-| circle-in-rect | 3 | 1 | 0.456 / 0.519 | 0.094 | 73.6 | long side (hard) |
-| circle-in-rect | 4 | 0.1 | 0.259 / 0.466 | 0.026 | 83.9 | long side (hard) |
-| circle-in-rect | 4 | 0.3 | 0.379 / 0.515 | 0.065 | 81.3 | long side (hard) |
-| circle-in-rect | 4 | 1 | 0.381 / 0.440 | 0.073 | 77.9 | long side (hard) |
-| circle-in-rect | 6 | 0.1 | 0.188 / 0.361 | 0.017 | 86.2 | long side (hard) |
-| circle-in-rect | 6 | 0.3 | 0.286 / 0.406 | 0.044 | 84.5 | long side (hard) |
-| circle-in-rect | 6 | 1 | 0.287 / 0.337 | 0.050 | 82.1 | long side (hard) |
-| rect-in-circle | 1 | 0.1 | 0.339 / 0.472 | 0.083 | 41.2 | corner line (easy) |
-| rect-in-circle | 1 | 0.3 | 0.533 / 0.650 | 0.220 | 41.2 | corner line (easy) |
-| rect-in-circle | 1 | 1 | 0.627 / 0.683 | 0.214 | 41.2 | corner line (hard) |
-| rect-in-circle | 1.5 | 0.1 | 0.211 / 0.321 | 0.061 | 41.2 | corner line (hard) |
-| rect-in-circle | 1.5 | 0.3 | 0.380 / 0.503 | 0.164 | 41.2 | corner line (hard) |
-| rect-in-circle | 1.5 | 1 | 0.494 / 0.568 | 0.165 | 43.4 | corner line (hard) |
-| rect-in-circle | 2 | 0.1 | 0.148 / 0.237 | 0.047 | 41.2 | corner line (hard) |
-| rect-in-circle | 2 | 0.3 | 0.289 / 0.403 | 0.128 | 41.2 | corner line (hard) |
-| rect-in-circle | 2 | 1 | 0.401 / 0.478 | 0.132 | 47.2 | corner line (hard) |
-| rect-in-circle | 3 | 0.1 | 0.091 / 0.154 | 0.032 | 48.6 | corner line (hard) |
-| rect-in-circle | 3 | 0.3 | 0.191 / 0.284 | 0.088 | 47.1 | corner line (hard) |
-| rect-in-circle | 3 | 1 | 0.285 / 0.357 | 0.092 | 51.9 | corner line (hard) |
-| rect-in-circle | 4 | 0.1 | 0.065 / 0.113 | 0.025 | 56.0 | corner line (hard) |
-| rect-in-circle | 4 | 0.3 | 0.142 / 0.217 | 0.067 | 54.2 | corner line (hard) |
-| rect-in-circle | 4 | 1 | 0.220 / 0.282 | 0.070 | 54.6 | corner line (hard) |
-| rect-in-circle | 6 | 0.1 | 0.041 / 0.073 | 0.016 | 63.4 | corner line (hard) |
-| rect-in-circle | 6 | 0.3 | 0.093 / 0.148 | 0.045 | 61.5 | corner line (hard) |
-| rect-in-circle | 6 | 1 | 0.150 / 0.198 | 0.047 | 57.6 | corner line (hard) |
-| rect-in-rect | 1 | 0.1 | 0.889 / 0.902 | 0.080 | 41.2 | core (hard) |
-| rect-in-rect | 1 | 0.3 | 0.894 / 0.905 | 0.199 | 41.2 | core (easy) |
-| rect-in-rect | 1 | 1 | 0.856 / 0.867 | 0.214 | 41.2 | corner line (easy) |
-| rect-in-rect | 1.5 | 0.1 | 0.896 / 0.906 | 0.060 | 41.2 | core (easy) |
-| rect-in-rect | 1.5 | 0.3 | 0.899 / 0.908 | 0.156 | 41.2 | core (easy) |
-| rect-in-rect | 1.5 | 1 | 0.860 / 0.869 | 0.179 | 41.2 | corner line (easy) |
-| rect-in-rect | 2 | 0.1 | 0.899 / 0.909 | 0.047 | 41.2 | core (hard) |
-| rect-in-rect | 2 | 0.3 | 0.900 / 0.910 | 0.127 | 41.2 | corner line (hard) |
-| rect-in-rect | 2 | 1 | 0.863 / 0.871 | 0.152 | 41.2 | corner line (easy) |
-| rect-in-rect | 3 | 0.1 | 0.895 / 0.913 | 0.033 | 41.2 | core (hard) |
-| rect-in-rect | 3 | 0.3 | 0.895 / 0.913 | 0.091 | 41.2 | corner line (hard) |
-| rect-in-rect | 3 | 1 | 0.867 / 0.874 | 0.114 | 41.2 | corner line (easy) |
-| rect-in-rect | 4 | 0.1 | 0.893 / 0.915 | 0.025 | 41.2 | core (hard) |
-| rect-in-rect | 4 | 0.3 | 0.892 / 0.915 | 0.071 | 41.2 | corner line (hard) |
-| rect-in-rect | 4 | 1 | 0.871 / 0.877 | 0.090 | 41.2 | corner line (easy) |
-| rect-in-rect | 6 | 0.1 | 0.891 / 0.917 | 0.017 | 41.2 | corner line (hard) |
-| rect-in-rect | 6 | 0.3 | 0.890 / 0.918 | 0.049 | 41.2 | corner line (hard) |
-| rect-in-rect | 6 | 1 | 0.875 / 0.880 | 0.063 | 41.2 | corner line (easy) |
+| circle-in-rect | 0.1 | 4 | 1.71 | 1.65 | 3.88 | 2.69 |
+| circle-in-rect | 0.1 | 8 | 1.71 | 1.65 | 3.88 | 2.68 |
+| circle-in-rect | 0.3 | 4 | 2.00 | 2.16 | 5.08 | 3.91 |
+| circle-in-rect | 0.3 | 8 | 2.00 | 2.00 | 5.08 | 3.53 |
+| circle-in-rect | 1 | 4 | 2.41 | 2.72 | 6.79 | 5.23 |
+| circle-in-rect | 1 | 8 | 2.41 | 2.50 | 6.79 | 4.79 |
+| rect-in-circle | 0.1 | 4 | 3.18 | 10.78 | 9.95 | — |
+| rect-in-circle | 0.1 | 8 | 3.18 | 13.47 | 9.95 | — |
+| rect-in-circle | 0.3 | 4 | 3.18 | 14.34 | 9.95 | — |
+| rect-in-circle | 0.3 | 8 | 3.18 | 23.97 | 9.95 | — |
+| rect-in-circle | 1 | 4 | 3.18 | — | 9.95 | — |
+| rect-in-circle | 1 | 8 | 3.18 | — | 9.95 | — |
 
-**Observations.**
-- Easy versus hard bend changes min SJ by at most 0.02; the hard way is
-  usually the worse.  The section decides quality, not the bend.
-- nang 8 raises min SJ by 0.05–0.2.  Gap matters most for a rectangle
-  in a circle, and for a circle in a rectangle only below gap 0.3.
-- Max non-orthogonality of 41.2° in every rectangle-in-rectangle case is
-  the O-H core's, not the ring's.
+- **Circle in a rectangle** warns from w/h 1.65–2.7, depending on the
+  gap.  Non-orthogonality binds the rejection: from w/h 2.7 (gap 0.1),
+  3.5–3.9 (gap 0.3) or 4.8–5.2 (gap 1).  `nang` 8 has slightly worse
+  non-orthogonality than 4: its finer cells sit closer to the skewed
+  corner lines.
+- **Rectangle in a circle** warns from w/h 3.18, where
+  `1/√(1+(w/h)²)` = 0.3, at any gap.  SJ binds the rejection, from
+  w/h 9.95, where it is 0.1.
+- **Rectangle in a `dR` rectangle**: not checked; never near a limit.
 
-**Files.**  `benchmarks/outline_quality.py` (new);
-`docs/integrations/openfoam.md` (non-orthogonality reproduction;
-`checkMesh` needs fvSchemes and fvSolution).  No code under `hexmesh/`
-changed, so the full suite was not rerun.
+**Effect on existing work.**  No example warns or is rejected.  Two
+existing tests now warn (circle in a 2.08:1 block, 71.0°) but pass.
+
+**Tests.**  Full suite: 1771 passed, 5 skipped (was 1747; +24).
+
+**Follow-ups (design).**
+- The variable-count corner-line fix (design answer; it changes port
+  signatures).
+- Applying the two-tier rule to the tee and wye (the design answer's
+  follow-up).
+- RESEARCH: the bands table above, and the exact rectangle-in-circle
+  formula.

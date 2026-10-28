@@ -42,6 +42,7 @@ from .corners import transfinite_surface_corners, transfinite_volume_corners
 from .fittings import Bend, Elbow, FillResult, MiterBend, Straight
 from .limits import RADIANS_WARNING_BELOW
 from .quality import QualityReport, RegionQuality
+from .section_quality import check_section_quality
 from .interface import (
     Frame, Interface, build_face, check_supported, hydraulic_diameter, outer_radius,
     port_type,
@@ -137,6 +138,9 @@ class Assembly:
         self._nozzle = None          # (drum, nozzle name) for from_nozzle()
         self._group_roles: dict[str, str] = {}
         self._meshed = False
+        #: Quality warnings from the last ``validate()`` (task 0047):
+        #: ``"<interface>: <message>"``, also issued as ``UserWarning``.
+        self.warnings: list[str] = []
         self.inlet = self._new_interface(
             Frame.from_vectors(position, direction, up), spec, inlet_name,
         )
@@ -461,6 +465,8 @@ class Assembly:
         """
         if not self._edges:
             raise AssemblyError("assembly has no fittings")
+        self.warnings = []
+        checked: set[str] = set()
         for iface in self._interfaces:
             for role in ("inlet", "outlet"):
                 attached = self._attached(iface, role)
@@ -473,6 +479,17 @@ class Assembly:
                 check_supported(iface.spec)
             except NotImplementedError as e:
                 raise AssemblyError(f"{iface}: {e}") from None
+            # outline quality limits (decision 0026 item 4, task 0047), once per spec
+            key = json.dumps(iface.spec.to_dict(), sort_keys=True)
+            if key not in checked:
+                checked.add(key)
+                try:
+                    found = check_section_quality(iface.spec)
+                except ValueError as e:
+                    raise AssemblyError(f"{iface}: {e}") from None
+                for msg in found:
+                    self.warnings.append(f"{iface}: {msg}")
+                    warnings.warn(f"{iface}: {msg}", UserWarning, stacklevel=2)
         for edge in self._edges:
             # The fitting's own checks first: they give the most specific
             # reason (e.g. "Tee prototype supports single-layer specs only").
