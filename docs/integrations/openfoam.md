@@ -119,6 +119,22 @@ All v1912, gmsh 4.12.1, 2026-10-25.
   Each region still passed `checkMesh`, so only the patch list shows the
   error.  `write_openfoam` therefore leaves these groups out by default
   (`interfaces=True` keeps them).
+- **Non-orthogonality is reproducible in Python** (2026-10-28, task
+  0047).  `checkMesh`'s "Mesh non-orthogonality Max" is the angle
+  between an interior face's area vector and the owner → neighbour
+  centre line, with OpenFOAM's `primitiveMesh` construction:
+  - faces: triangle fans about the point average, centre weighted by
+    triangle area;
+  - cells: pyramids from the face-centre average, centre weighted by
+    pyramid volume.
+
+  `benchmarks/outline_quality.py` does this and matched `checkMesh` to
+  four decimals: 80.2544° and 54.1026° on two ring meshes.  Plain vertex
+  averages for the centres gave 52.15° for the second, 2° low on
+  trapezoidal cells.
+  - `checkMesh` also needs `system/fvSchemes` and `system/fvSolution` to
+    exist ("cannot find file …/fvSchemes"), not only `controlDict`.
+    Minimal entries are enough.
 - **Orientation:** `checkMesh` reports "Mesh OK" for hexmesh hexes both
   without and with `gmshToFoam -keepOrientation`, so the option is not
   needed.
