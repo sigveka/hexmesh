@@ -1,7 +1,7 @@
 {
  "meta": {
-  "date": "2026-10-27",
-  "commit": "bef78ed + uncommitted changes",
+  "date": "2026-10-28",
+  "commit": "60c580b + uncommitted changes",
   "gmsh": "4.12.1",
   "python": "3.12.3",
   "cpus": 8,
@@ -742,6 +742,138 @@
    "predicted": 10152,
    "meshed": 10152,
    "build_s": 4.65
+  },
+  "sections.layer_outlines": {
+   "fittings": 5,
+   "fitting_types": {
+    "Straight": 3,
+    "Bend": 2
+   },
+   "volumes": 351,
+   "materials": [
+    "copper",
+    "filler",
+    "sheath"
+   ],
+   "min_sicn": 0.13203704438203673,
+   "mean_sicn": 0.3301273520654218,
+   "min_sj": 0.705592811289519,
+   "min_sj_fitting": "#1 Bend",
+   "max_aspect": 16.666666666667,
+   "groups": {
+    "open_end": [
+     "copper_inlet",
+     "copper_outlet",
+     "filler_inlet",
+     "filler_outlet",
+     "sheath_inlet",
+     "sheath_outlet"
+    ],
+    "wall": [
+     "sheath_wall"
+    ],
+    "interface": [
+     "interface_copper_filler",
+     "interface_filler_sheath"
+    ],
+    "volume": [
+     "copper",
+     "filler",
+     "sheath"
+    ]
+   },
+   "predicted": 11040,
+   "meshed": 11040,
+   "build_s": 5.63
+  },
+  "sections.lagged_duct": {
+   "fittings": 7,
+   "fitting_types": {
+    "Straight": 4,
+    "Bend": 2,
+    "Reducer": 1
+   },
+   "volumes": 416,
+   "materials": [
+    "air",
+    "steel",
+    "lagging"
+   ],
+   "min_sicn": 0.02487623457818117,
+   "mean_sicn": 0.31306471690978355,
+   "min_sj": 0.6900655593423148,
+   "min_sj_fitting": "#3 Reducer",
+   "max_aspect": 100.0000000001661,
+   "groups": {
+    "open_end": [
+     "air_inlet",
+     "air_outlet",
+     "lagging_inlet",
+     "lagging_outlet",
+     "steel_inlet",
+     "steel_outlet"
+    ],
+    "wall": [
+     "lagging_wall"
+    ],
+    "interface": [
+     "interface_air_steel",
+     "interface_steel_lagging"
+    ],
+    "volume": [
+     "air",
+     "lagging",
+     "steel"
+    ]
+   },
+   "predicted": 10488,
+   "meshed": 10488,
+   "build_s": 5.33
+  },
+  "sections.insulated_transition": {
+   "fittings": 5,
+   "fitting_types": {
+    "Straight": 3,
+    "Transition": 1,
+    "Bend": 1
+   },
+   "volumes": 308,
+   "materials": [
+    "air",
+    "steel",
+    "insulation"
+   ],
+   "min_sicn": 0.04954928020342317,
+   "mean_sicn": 0.3624922029631384,
+   "min_sj": 0.6885759114943868,
+   "min_sj_fitting": "#1 Transition",
+   "max_aspect": 50.000000000020265,
+   "groups": {
+    "open_end": [
+     "air_inlet",
+     "air_outlet",
+     "insulation_inlet",
+     "steel_inlet",
+     "steel_outlet"
+    ],
+    "wall": [
+     "insulation_end",
+     "insulation_wall",
+     "steel_wall"
+    ],
+    "interface": [
+     "interface_air_steel",
+     "interface_steel_insulation"
+    ],
+    "volume": [
+     "air",
+     "insulation",
+     "steel"
+    ]
+   },
+   "predicted": 9036,
+   "meshed": 9036,
+   "build_s": 6.51
   }
  }
 }

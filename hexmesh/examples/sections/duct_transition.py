@@ -8,7 +8,8 @@ side: the circle's ``nang`` equals the duct's ``nang_w`` and ``nang_h``.
 Then the two faces have the same mesh connectivity (switch class 0), and
 every station between them blends the two outlines.  The open ends
 become ``air_inlet`` and ``air_outlet``.
-(Limits: single-layer specs; equal counts per side.)
+(Limits: equal counts per side.  A layer stack changes shape the same way:
+``sections.insulated_transition``.)
 """
 
 from hexmesh import Assembly, Bend, PipeSpec, Straight, Transition

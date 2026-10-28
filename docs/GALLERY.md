@@ -29,6 +29,9 @@ What each example shows, what its mesh looks like, and how good the cells are.  
 | [graded_bend](#graded_bend) | CFD-ready bend: wall grading, axial cells clustered at the bend, inlet and outlet extensions, and one wall patch per fitting. | 11 160 | 0.100 | 0.792 | 1.9 s |
 | [rect_duct](#rect_duct) | Rectangular duct: a 2:1 duct with an easy-way and a hard-way bend. | 4 576 | 0.317 | 0.705 | 1.8 s |
 | [duct_transition](#duct_transition) | Duct transition: a circular pipe into a 2:1 duct, a duct bend, and back. | 5 616 | 0.377 | 0.689 | 3.6 s |
+| [layer_outlines](#layer_outlines) | Layer outlines: a round conductor in a square filler in a round sheath. | 11 040 | 0.132 | 0.706 | 5.6 s |
+| [lagged_duct](#lagged_duct) | Lagged duct: a rectangular air duct with a steel wall and lagging, through a reducer and bends both ways. | 10 488 | 0.025 | 0.690 | 5.3 s |
+| [insulated_transition](#insulated_transition) | Insulated transition: an insulated round pipe becomes an insulated duct, turns, and the insulation stops. | 9 036 | 0.050 | 0.689 | 6.5 s |
 | **Networks: composing fittings into routes, branches and trees** | | | | | |
 | [pipe_network](#pipe_network) | Branched network built as a graph: a header with two side taps, each pointing a different way. | 11 496 | 0.189 | 0.316 | 2.9 s |
 | [pipe_rack](#pipe_rack) | 3-D pipe route mixing every sweep fitting: elbow, riser, segmented miter, spline offset, reducer and a rolled bend. | 13 872 | 0.100 | 0.766 | 6.4 s |
@@ -303,7 +306,8 @@ A bend with `roll=0` turns toward `up`, across the short side: the
 long side: the "hard way", which needs the larger bend radius (it is
 checked against the half-width).  The open ends become `air_inlet` and
 `air_outlet`.
-(Limits: single-layer ducts; no reducer, tee or elbow for ducts yet.)
+(Limits: no tee or elbow for ducts yet.  A duct with a wall and lagging:
+`sections.lagged_duct`.)
 
 ```bash
 python3 -m hexmesh.examples.sections.rect_duct
@@ -328,7 +332,8 @@ side: the circle's `nang` equals the duct's `nang_w` and `nang_h`.
 Then the two faces have the same mesh connectivity (switch class 0), and
 every station between them blends the two outlines.  The open ends
 become `air_inlet` and `air_outlet`.
-(Limits: single-layer specs; equal counts per side.)
+(Limits: equal counts per side.  A layer stack changes shape the same way:
+`sections.insulated_transition`.)
 
 ```bash
 python3 -m hexmesh.examples.sections.duct_transition
@@ -341,6 +346,96 @@ python3 -m hexmesh.examples.sections.duct_transition
 - **Open ends:** `air_inlet`, `air_outlet`
 - **Walls:** `air_wall`
 - **Colours:** air blue; walls grey.
+
+### layer_outlines
+
+**Layer outlines: a round conductor in a square filler in a round sheath.**
+
+<p><img src="gallery/img/layer_outlines.png" width="68%" alt="layer_outlines"> <img src="gallery/img/layer_outlines_section.png" width="29%" alt="layer_outlines, inlet section"></p>
+
+A shell's outline need not be a circle (decision 0026).  ``.shell(name,
+outer=…)` gives a layer its own outline, `CircleShape`` or
+`RectShape`; `dR` grows the previous one.  Here the copper's circle
+sits in a square filler, and the filler in a round sheath, so the stack
+has a circle inside a rectangle and a rectangle inside a circle.  Every
+layer goes through the bends as a separate volume, with conformal
+`interface_*` groups between them.
+
+Rules: a stack with a rectangle has one count on every side (`nang`
+equals each rectangle's `nang_w` and `nang_h`), and each outline lies
+inside the next all round.  Quality falls as the rectangles flatten;
+task 0047 measured it.
+
+```bash
+python3 -m hexmesh.examples.sections.layer_outlines
+```
+
+| Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
+|---|---|---|---|---|---|---|---|
+| 5: Straight ×3, Bend ×2 | 351 | 11 040 | 0.132 | 0.330 | 0.706 (#1 Bend) | 16.7 | 5.6 s |
+
+- **Open ends:** `copper_inlet`, `copper_outlet`, `filler_inlet`, `filler_outlet`, `sheath_inlet`, `sheath_outlet`
+- **Walls:** `sheath_wall`
+- **Interfaces:** `interface_copper_filler`, `interface_filler_sheath`
+- **Colours:** copper blue, filler orange, sheath green; walls grey.
+
+### lagged_duct
+
+**Lagged duct: a rectangular air duct with a steel wall and lagging, through a reducer and bends both ways.**
+
+<p><img src="gallery/img/lagged_duct.png" width="68%" alt="lagged_duct"> <img src="gallery/img/lagged_duct_section.png" width="29%" alt="lagged_duct, inlet section"></p>
+
+`dR` around a rectangle grows it: half_w and half_h each by `dR`,
+corners kept sharp (decision 0026).  So the wall and the lagging are
+rectangles too, and every ring's corner lines run along the diagonals.
+The `Reducer` shrinks every layer's outline at once; it changes sizes
+only.  A change of shape is a `Transition`
+(`sections.insulated_transition`).
+
+Rules: a stack with a rectangle has one count on every side, here 6
+(`nang = nang_w = nang_h`).
+
+```bash
+python3 -m hexmesh.examples.sections.lagged_duct
+```
+
+| Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
+|---|---|---|---|---|---|---|---|
+| 7: Straight ×4, Bend ×2, Reducer | 416 | 10 488 | 0.025 | 0.313 | 0.690 (#3 Reducer) | 100.0 | 5.3 s |
+
+- **Open ends:** `air_inlet`, `air_outlet`, `lagging_inlet`, `lagging_outlet`, `steel_inlet`, `steel_outlet`
+- **Walls:** `lagging_wall`
+- **Interfaces:** `interface_air_steel`, `interface_steel_lagging`
+- **Colours:** air blue, steel orange, lagging green; walls grey.
+
+### insulated_transition
+
+**Insulated transition: an insulated round pipe becomes an insulated duct, turns, and the insulation stops.**
+
+<p><img src="gallery/img/insulated_transition.png" width="68%" alt="insulated_transition"> <img src="gallery/img/insulated_transition_section.png" width="29%" alt="insulated_transition, inlet section"></p>
+
+`Transition` changes the shape of every layer together (task 0046):
+each station blends each layer's two end outlines, so the steel and the
+insulation turn from circles into rectangles alongside the air, and stay
+nested.  The two ends have the same layers, counts per side and radial
+gradings.  `Reducer` changes sizes, `Transition` changes shapes.
+
+Past the duct bend, `stack_changes` ends the insulation part-way along
+the last straight.  Its end face becomes the `insulation_end` wall, and
+the bare duct runs on.
+
+```bash
+python3 -m hexmesh.examples.sections.insulated_transition
+```
+
+| Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
+|---|---|---|---|---|---|---|---|
+| 5: Straight ×3, Transition, Bend | 308 | 9 036 | 0.050 | 0.362 | 0.689 (#1 Transition) | 50.0 | 6.5 s |
+
+- **Open ends:** `air_inlet`, `air_outlet`, `insulation_inlet`, `steel_inlet`, `steel_outlet`
+- **Walls:** `insulation_end`, `insulation_wall`, `steel_wall`
+- **Interfaces:** `interface_air_steel`, `interface_steel_insulation`
+- **Colours:** air blue, steel orange, insulation green; walls grey.
 
 ## Networks: composing fittings into routes, branches and trees
 
@@ -593,4 +688,4 @@ Case: [validation/poiseuille/README.md](../validation/poiseuille/README.md); res
 
 ---
 
-Generated 2026-10-27 from hexmesh bef78ed + uncommitted changes, gmsh 4.12.1, Python 3.12.3, 8 CPUs, 1 job(s).
+Generated 2026-10-28 from hexmesh 60c580b + uncommitted changes, gmsh 4.12.1, Python 3.12.3, 8 CPUs, 1 job(s).

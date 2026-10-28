@@ -491,7 +491,7 @@ with `python3 docs/gallery/build.py` (needs `vtk`).
 | Category | Examples | Shows |
 |---|---|---|
 | `fittings` | `smooth_bend`, `miter_bend`, `spline_pipe`, `reducer_network`, `tee`, `wye`, `loop` | one building block each: bends, reducer, junctions, `Closure` |
-| `sections` | `insulated_pipe`, `insulated_route`, `graded_bend`, `rect_duct`, `duct_transition` | what runs through the pipe: layer stacks, wall and axial grading, rectangular ducts, `Transition` |
+| `sections` | `insulated_pipe`, `insulated_route`, `graded_bend`, `rect_duct`, `duct_transition`, `layer_outlines`, `lagged_duct`, `insulated_transition` | what runs through the pipe: layer stacks, wall and axial grading, rectangular ducts, shells of any outline, `Transition` of a whole stack |
 | `networks` | `pipe_network`, `pipe_rack`, `distribution_tree`, `bifurcation_tree`, `skewed_network` | composing fittings: routes, branches, trees, any orientation |
 | `applications` | `drum_nozzle`, `hvac_supply`, `cooling_channels` | equipment nozzles, ventilation ducting, cooling channels |
 

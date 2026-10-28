@@ -64,6 +64,7 @@ def test_ports_and_cell_count_follow_the_stack():
     assert out.spec.layer_names == ["fluid", "pipe_wall"]
     # 5 cells of 3 layers + 3 cells of 2: 4×4 core + 4·4·(3+2[+2]) per section
     assert asm.cell_count() == 5 * (16 + 16 * 7) + 3 * (16 + 16 * 5)
+    assert type(asm.cell_count()) is int        # JSON-serialisable (task 0048)
 
 
 def test_gap_saved_and_loaded():

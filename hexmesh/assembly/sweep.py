@@ -226,8 +226,8 @@ class Path:
 
     def cells(self, spec: PipeSpec) -> int:
         """Exact hex count (DESIGN P4): each layer only where it is filled."""
-        return sum(section_cells(self.slab_spec(k, spec)) * n
-                   for k, n in enumerate(self.layers))
+        return int(sum(section_cells(self.slab_spec(k, spec)) * n   # layers may be numpy ints
+                       for k, n in enumerate(self.layers)))
 
     def stretch_at(self, k: int) -> tuple | None:
         return None if self.stretch is None else self.stretch[k]

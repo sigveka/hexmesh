@@ -9,7 +9,8 @@ A bend with ``roll=0`` turns toward ``up``, across the short side: the
 long side: the "hard way", which needs the larger bend radius (it is
 checked against the half-width).  The open ends become ``air_inlet`` and
 ``air_outlet``.
-(Limits: single-layer ducts; no reducer, tee or elbow for ducts yet.)
+(Limits: no tee or elbow for ducts yet.  A duct with a wall and lagging:
+``sections.lagged_duct``.)
 """
 
 from hexmesh import Assembly, Bend, PipeSpec, Straight
