@@ -300,8 +300,8 @@ same grading.
 The assembly supports any stack of circle and rectangle outlines through
 the sweep fittings (`Straight`, `Bend`, `MiterBend`, `SplinePipe`,
 `Closure`, `Reducer`); bend radii are checked against the outermost
-outline. `Elbow` and drum nozzles need every outline circular; `Tee`,
-`Wye` and `Transition` are single-layer.
+outline. `Elbow` and drum nozzles need every outline circular; `Tee`
+and `Wye` are single-layer.
 
 ---
 
@@ -465,19 +465,28 @@ quadruples the cells per layer).
 
 ### `Transition(outlet, length, n_layers=None, axial_grading=1.0)`
 
-A straight transition between a circle and a rectangle (either way), or
-between two rectangles of different size or aspect (decision 0009, task
-0029). `outlet` is the outlet spec.
+A straight transition that changes outline shapes: a circle to a
+rectangle (either way), or a rectangle to one of another size or aspect
+(decision 0009, task 0029), in every layer of a stack at once (decision
+0026, task 0046): an insulated round pipe into an insulated duct, say.
+`outlet` is the outlet spec.
 
-- **Specs.** Both are single-layer and equal in everything but shape and
-  size: the same counts per side (a circle's `nang` equals the
-  rectangle's `nang_w` and `nang_h`), `nrad`, `mprg`, layer name, `mbmp`
-  and `rot`. Then the two faces have the same mesh connectivity (switch
-  class 0). Circle → circle is a `Reducer`.
+- **Specs.** Equal in everything but each layer's outline: the same
+  layers (names, order, `nrad`, `mprg`), the same counts per side in
+  every layer (a circle's `nang` equals a rectangle's `nang_w` and
+  `nang_h`), `mbmp` and `rot`. Then the two faces have the same mesh
+  connectivity (switch class 0). A layer can't start or end in one (use
+  `stack_changes`). Circles at both ends in every layer is a `Reducer`:
+  **`Reducer` changes sizes, `Transition` shapes.**
 - **Stations.** One per axial layer, spaced by `axial_grading` as for
-  `Straight`. Each station's outline is the point-by-point blend of the
-  two end outlines at equal arc-length fractions, so wall nodes lie on the
-  station curves. The end faces are the exact circle and rectangle.
+  `Straight`. Each layer's station outline is the point-by-point blend of
+  its two end outlines at equal arc-length fractions; a shell's corner
+  lines blend with them. So wall and interface nodes lie on the station
+  curves, and the end faces are the exact end outlines.
+- **Nesting.** Each station's outlines must nest with the containment gap
+  of `.shell()`, checked before GMSH at every station and 33 fractions
+  between; the error names the station and the layer. (Measured: when the
+  ends nest, the blend has kept every station nested.)
 - **Corners.** Corner k meets corner k: a circle's corners at 45° + k·90°
   go to the rectangle's corners, with no twist.
 

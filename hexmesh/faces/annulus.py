@@ -21,7 +21,8 @@ the centre and end where the outer outline says (``ring_corner``): on a
 circle radially, on a rectangle at its corner in that quadrant.  So a
 circle inside a square has straight radial corner lines, inside a flat
 rectangle skewed ones; a rectangle inside a circle splits the circle into
-unequal arcs.
+unequal arcs.  A ``Transition`` station's outline (``BlendShape``, task
+0046) brings its own corners and spline sides.
 """
 
 from __future__ import annotations
@@ -30,6 +31,7 @@ import math
 import gmsh
 import numpy as np
 
+from .. import _occ
 from ..core.cross_section import CrossSection, BoundaryType
 from ._gmsh_helpers import (
     add_point, add_conic_arc, add_line, add_line_loop, add_surface,
@@ -37,6 +39,10 @@ from ._gmsh_helpers import (
     set_transfinite_line, set_transfinite_line_bump,
     set_transfinite_surface, set_recombine_surface,
 )
+
+
+# Interior samples per spline side, as faces.oh_blend.
+_SAMPLES = 24
 
 
 def build_annulus(
@@ -77,7 +83,7 @@ def build_ring(
     ----------
     inner : CrossSection
         The previous layer (any outline).
-    outer : CircleShape or RectShape
+    outer : CircleShape, RectShape or BlendShape
         This layer's outline, centred on the inner one's centre.  Must
         enclose it (checked by the assembly's validation).
     lc : float
@@ -125,7 +131,7 @@ def build_ring(
     else:
         step = 2 * math.pi / n
         angles = [math.pi / 4 + k * step + rot for k in range(n)]
-    corners = [outer.ring_corner(a - rot) for a in angles]
+    corners = outer.corners_from([a - rot for a in angles])
     angles_out = [a if type(outer).side_curve == "arc"    # radial: same angle
                   else rot + math.atan2(p[1], p[0]) for a, p in zip(angles, corners)]
 
@@ -145,6 +151,11 @@ def build_ring(
     if type(outer).side_curve == "arc":
         A_out = [add_conic_arc(O[k], center, O[(k + 1) % n], (cx, cy, cz), stretch)
                  for k in range(n)]
+    elif type(outer).side_curve == "spline":    # a station: through blended samples
+        mid = np.linspace(0.0, 1.0, _SAMPLES + 2)[1:-1]
+        A_out = [_occ.spline([O[k], *(gmsh.model.occ.addPoint(*_coords(q))
+                                      for q in outer.side_samples(k, mid)),
+                              O[(k + 1) % n]]) for k in range(n)]
     else:
         A_out = [add_line(O[k], O[(k + 1) % n]) for k in range(n)]
 
@@ -176,7 +187,7 @@ def build_ring(
         outer_curves  = A_out,
         shape         = outer,
         boundary_type = (BoundaryType.CIRCULAR if type(outer).side_curve == "arc"
-                         else BoundaryType.SQUARE),
+                         else BoundaryType.SQUARE),   # lines or splines
         h_axis        = h_axis,
         v_axis        = v_axis,
         cx=cx, cy=cy, cz=cz,

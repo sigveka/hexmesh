@@ -55,8 +55,8 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0043](0043-study-openfoam-stages.md) | Study runner: OpenFOAM case and run stages, shared OpenFOAM helpers | ready (after 0042) | 0025 |
 | [0044](0044-demo-study-laminar-bend.md) | Demonstration study: laminar 90° bend, loss chart and aligned dataset | ready (after 0043) | 0025 |
 | [0045](0045-layer-outlines.md) | Layer outlines: circle and rectangle in either order, and rectangle in rectangle | done | 0026 |
-| [0046](0046-multi-layer-transition.md) | Multi-layer `Transition`: every outline blends along the axis | ready (after 0045) | 0026 |
-| [0047](0047-skewed-rectangle-quality-limit.md) | Quality limit for rings with skewed corner lines (aspect-ratio sweep) | ready (after 0045) | 0026 |
+| [0046](0046-multi-layer-transition.md) | Multi-layer `Transition`: every outline blends along the axis | done | 0026 |
+| [0047](0047-skewed-rectangle-quality-limit.md) | Quality limit for rings with skewed corner lines (aspect-ratio sweep) | ready | 0026 |
 
 Decision 0004 (retire legacy) comes first: 0011 → 0012 / 0013 / 0014 →
 0015 → 0016 → 0017.  0017 waits for all the others.  Then the rest of

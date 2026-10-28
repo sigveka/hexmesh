@@ -239,6 +239,15 @@ CASES = {
     "transition-2to1-circle": lambda: _between(_flat(), Transition(_one(), 0.3, 4)),
     "transition-2to1-1to1": lambda: _between(_flat(), Transition(_flat(0.1, 0.1), 0.2, 3,
                                                                 axial_grading=1.2)),
+    # multi-layer transitions (task 0046): every outline blends
+    "transition-2layer-circle-rect": lambda: _between(_two(), Transition(
+        _rect3(0.14, 0.07, lagging=False), 0.3, 4)),
+    "transition-square-shell-circle": lambda: _between(_in_rect(0.15, 0.15), Transition(
+        _one().shell("block", dR=0.08, nrad=3), 0.3, 4)),
+    "transition-3layer-circle-2to1": lambda: _between(_three(), Transition(
+        PipeSpec(nang=4).core("fluid", RectShape(0.15, 0.075, 4, 4), nrad=3)
+        .shell("wall", dR=0.025, nrad=2).shell("insulation", dR=0.03, nrad=2), 0.4, 6,
+        axial_grading=1.1)),
 }
 
 

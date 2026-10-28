@@ -23,7 +23,8 @@ import numpy as np
 
 from ..core.shape import BlendShape, CircleShape, RectShape
 from ..core.spec import PipeSpec
-from .interface import Frame, half_extent, outer_radius, roll_mismatch, rotate, toward_roll
+from .interface import (Frame, check_outlines, half_extent, outer_radius, roll_mismatch,
+                        rotate, toward_roll)
 from .profile import CHORD_TOL, Profile
 from .sweep import MAX_CHORD_TURN, Arc, FillResult, Path, Sweep, _check_n_layers
 
@@ -481,6 +482,7 @@ class Reducer(Sweep):
     edge joins matching nodes (rule A4; decision 0026).  A larger outlet
     makes it an expander.  A rectangle's sides stay planar (the station
     outlines interpolate linearly), so a duct reducer is exact too.
+    ``Reducer`` changes sizes; ``Transition`` changes shapes.
 
     Every axial layer is a station whose radii interpolate linearly, and
     corresponding corners are joined by straight lines, which are generators
@@ -595,20 +597,25 @@ class Reducer(Sweep):
 
 @dataclass(frozen=True)
 class Transition(Sweep):
-    """Straight transition between a circle and a rectangle, or between two
-    rectangles (decision 0009, option B; task 0029).
+    """Straight transition that changes outline shapes: a circle to a
+    rectangle, or a rectangle to another (decision 0009, option B; task
+    0029), in every layer of a stack (decision 0026, task 0046).
 
-    *outlet* is the outlet spec.  Both specs are single-layer, and equal in
-    everything but shape and size: the same counts per side (a circle's
-    ``nang`` equals the rectangle's ``nang_w`` and ``nang_h``), ``nrad``,
-    grading, layer name, ``mbmp`` and ``rot``.  So the two faces have equal
-    signatures (switch class 0) and every axial edge joins matching nodes.
-    Circle → circle is a ``Reducer``.
+    *outlet* is the outlet spec.  The two are equal in everything but each
+    layer's outline (shape and size): the same layers (names, order,
+    ``nrad``, grading), equal counts per side throughout (a circle's
+    ``nang`` equals a rectangle's ``nang_w`` and ``nang_h``), ``mbmp`` and
+    ``rot``.  So the two faces have equal signatures (switch class 0) and
+    every axial edge joins matching nodes.  A change of sizes only, every
+    outline keeping its shape, is a ``Reducer``; a stack of circles at both
+    ends always is.
 
-    Every axial layer is a station whose outline blends the two end
+    Every axial layer is a station whose outlines each blend the two end
     outlines, point by point at equal arc-length fractions
-    (``core.shape.BlendShape``), so wall nodes lie exactly on the station
-    curves; the end stations are the exact circle and rectangle.
+    (``core.shape.BlendShape``); a shell's corner lines blend with them, so
+    every layer changes together and the rings stay nested (checked at
+    every station and between them).  Wall nodes lie exactly on the
+    station curves; the end stations are the exact end outlines.
     *axial_grading* spaces the stations as for ``Straight``.
     """
 
@@ -630,41 +637,83 @@ class Transition(Sweep):
             raise ValueError(f"length must be positive, got {self.length!r}")
         a, b = spec, self.outlet
         for end, s in (("inlet", a), ("outlet", b)):
-            if s.shells:
-                raise ValueError(f"Transition supports single-layer specs only; the "
-                                 f"{end} has shells {[sh.name for sh in s.shells]}")
-            if not isinstance(s.core_shape, (CircleShape, RectShape)):
-                raise ValueError(f"Transition joins circles and rectangles, the {end} "
-                                 f"is a {type(s.core_shape).__name__}")
-        if isinstance(a.core_shape, CircleShape) and isinstance(b.core_shape, CircleShape):
-            raise ValueError("Transition joins a circle and a rectangle or two "
-                             "rectangles; for circle → circle use Reducer")
-        if a.side_counts != b.side_counts:
-            raise ValueError(
-                f"Transition needs equal counts per side: inlet {_counts(a)} vs "
-                f"outlet {_counts(b)} (a circle's nang must equal the "
-                f"rectangle's nang_w and nang_h)")
+            for lname, o in zip(s.layer_names, s.outlines):
+                if not isinstance(o, (CircleShape, RectShape)):
+                    raise ValueError(f"Transition joins circles and rectangles; layer "
+                                     f"`{lname}` at the {end} is a {type(o).__name__}")
+        if all(isinstance(o, CircleShape) for o in a.outlines + b.outlines):
+            raise ValueError("Transition changes outline shapes; for circles at both "
+                             "ends (sizes only) use Reducer")
+        # different layers are a class difference, named by the assembly's
+        # switch-class check (DESIGN A4)
+        if a.layer_names != b.layer_names:
+            return
+        for lname, x, y in zip(a.layer_names, a.outlines, b.outlines):
+            if x.counts != y.counts:
+                raise ValueError(
+                    f"Transition needs equal counts per side: layer `{lname}` inlet "
+                    f"{_counts(x)} vs outlet {_counts(y)} (a circle's nang must "
+                    f"equal the rectangle's nang_w and nang_h)")
         # rot is placement, not connectivity (task 0019): check it here
         if a.rot != b.rot:
             raise ValueError(f"outlet spec differs from the inlet in rot ({a.rot!r} "
                              f"vs {b.rot!r})")
+        if spec.shells:
+            self._check_nested(spec)
+
+    def _check_nested(self, spec: PipeSpec) -> None:
+        """Every station's outlines nested (decision 0026, item 5), and
+        between stations: the slabs are ruled, so a crossing between two
+        stations shows at a fraction between them."""
+        u = np.linspace(0.0, 1.0, _NESTING_SAMPLES)
+        stations = []
+        if self.n_layers is not None:
+            stations = list(self.fractions(self.n_layers))
+            u = np.union1d(u, stations)
+        for uk in u[1:-1]:                       # the ends are port specs, checked
+            try:
+                check_outlines(self.station(spec, float(uk)))
+            except ValueError as e:
+                at = (f"station {stations.index(uk)}" if uk in stations
+                      else "between stations")
+                raise ValueError(f"Transition: the layers cross {at}, "
+                                 f"{uk:.3f} of the length along: {e}") from None
+
+    def station(self, spec: PipeSpec, u: float) -> PipeSpec:
+        """The section *u* of the way along: every layer's outline blended
+        (``BlendShape``), the shells' with their end corners."""
+        b = self.outlet
+        ca, cb = spec.corners(), b.corners()
+        oa, ob = spec.outlines, b.outlines
+        name, shape = spec._core
+        out = PipeSpec(rot=spec.rot, mbmp=spec.mbmp).core(
+            name, BlendShape(shape, b.core_shape, u),
+            nrad=spec._core_nrad, mprg=spec._core_mprg)
+        for i, sh in enumerate(spec.shells, start=1):
+            blend = BlendShape(oa[i], ob[i], u, _points(ca[i]), _points(cb[i]))
+            out = out.shell(sh.name, outer=blend, nrad=sh.nrad, mprg=sh.mprg)
+        return out
 
     def path(self, a: Frame, b: Frame, spec: PipeSpec) -> Path:
         n = self.n_layers
         u = self.fractions(n)
         frames = [a] + [Frame(a.position + (b.position - a.position) * u[k],
                               a.normal, a.up) for k in range(1, n)] + [b]
-        name, shape = spec._core
-        stations = [
-            PipeSpec(rot=spec.rot, mbmp=spec.mbmp).core(
-                name, BlendShape(shape, self.outlet.core_shape, float(u[k])),
-                nrad=spec._core_nrad, mprg=spec._core_mprg)
-            for k in range(1, n)]
+        stations = [self.station(spec, float(u[k])) for k in range(1, n)]
         return Path(frames, [1] * n, specs=[spec, *stations, self.outlet], blend=True)
 
 
-def _counts(spec: PipeSpec) -> str:
-    s = spec.core_shape
+# Fractions along a Transition at which nesting is checked, besides its
+# stations.
+_NESTING_SAMPLES = 33
+
+
+def _points(corners) -> tuple:
+    """Corner points as a hashable tuple (``BlendShape`` is frozen)."""
+    return tuple(tuple(float(x) for x in p) for p in corners)
+
+
+def _counts(s) -> str:
     if isinstance(s, CircleShape):
         return f"nang {s.nang}"
     return f"nang_w {s.nang_w}, nang_h {s.nang_h}"

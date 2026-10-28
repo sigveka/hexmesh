@@ -149,7 +149,7 @@ class TestFittingRules:
         (lambda: Elbow(90), "Elbow schedules .* a section with a rectangle"),
         (lambda: Tee(0.2, 0.3, 0.05), "single-layer"),
         (lambda: Wye(60, 0.3, 0.5), "single-layer"),
-        (lambda: Transition(_core(), 0.3, 3), "single-layer"),
+        (lambda: Transition(_core(), 0.3, 3), "layer `block` present only at the inlet"),
         (lambda: Reducer(_in(CircleShape(0.3, 4)), 0.3, n_layers=2),
          r"layer `block` is a RectShape at the inlet and a CircleShape .*Transition"),
     ])

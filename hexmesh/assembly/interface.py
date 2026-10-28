@@ -190,7 +190,7 @@ def half_extent(spec: PipeSpec, angle: float) -> float:
     outer radius of a circle; ``half_w·|cos| + half_h·|sin|`` for a
     rectangle, so the half-height toward ``up`` and the half-width toward
     ``right``."""
-    return spec.outlines[-1].extent(angle - spec.rot_rad)
+    return float(spec.outlines[-1].extent(angle - spec.rot_rad))
 
 
 def hydraulic_diameter(spec: PipeSpec) -> float:
@@ -297,9 +297,9 @@ def check_outlines(spec: PipeSpec, samples: int = 720) -> None:
     for inner, outer, iname, oname in zip(outlines, outlines[1:], names, names[1:]):
         extra = [math.atan2(p[1], p[0]) for o in (inner, outer)
                  for p in (o.corner(k) for k in range(4))]
-        gaps = [(outer.extent(a) - inner.extent(a), a)
-                for a in np.concatenate([angles, extra])]
-        gap, at = min(gaps)
+        a = np.concatenate([angles, extra])
+        gaps = outer.extent(a) - inner.extent(a)
+        gap, at = float(gaps.min()), float(a[gaps.argmin()])
         need = OUTLINE_MIN_GAP * outer.max_extent
         if gap < need:
             raise ValueError(

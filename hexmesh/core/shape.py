@@ -27,14 +27,19 @@ questions, so the ring builder and the checks never ask which shape it is
                          from an inner corner in direction *d* (radians):
                          a circle meets it radially, a rectangle at its
                          corner in that quadrant;
+``corners_from(ds)``     ``ring_corner`` for each direction: a ring's
+                         outer corners (a ``BlendShape`` station has its
+                         own, blended);
 ``side(p0, p1, s)``      point(s) at fraction *s* along the side between
                          two of its corners (an arc about the centre, or a
                          line);
-``side_curve``           ``"arc"`` or ``"line"``: what the face builders
-                         draw between two corners;
+``side_curve``           ``"arc"``, ``"line"`` or ``"spline"`` (a
+                         ``BlendShape`` station, through ``side_samples``):
+                         what the face builders draw between two corners;
 ``side_count(k, n)``     divisions of side *k* when there are *n* corners;
 ``extent(a)``            support function: distance from the centre to the
-                         supporting line in direction *a*;
+                         supporting line in direction *a* (a float, or an
+                         array for an array of angles);
 ``max_extent``           the largest distance from the centre;
 ``distance(u, v)``       distance-like deviation of points from the
                          outline (0 on it);
@@ -50,6 +55,7 @@ questions, so the ring builder and the checks never ask which shape it is
 """
 
 from __future__ import annotations
+import functools
 import math
 from dataclasses import dataclass
 from typing import Union
@@ -99,6 +105,9 @@ class CircleShape:
     def ring_corner(self, d: float) -> np.ndarray:
         return self.radius * np.array([math.cos(d), math.sin(d)])
 
+    def corners_from(self, directions) -> list[np.ndarray]:
+        return [self.ring_corner(d) for d in directions]
+
     def side(self, p0, p1, s) -> np.ndarray:
         s = np.asarray(s, dtype=float)
         a0 = math.atan2(p0[1], p0[0])
@@ -109,8 +118,8 @@ class CircleShape:
     def side_count(self, k: int, n_corners: int) -> int:
         return self.nang // (n_corners // 4)
 
-    def extent(self, angle: float) -> float:
-        return self.radius
+    def extent(self, angle):
+        return self.radius if np.ndim(angle) == 0 else np.full(np.shape(angle), self.radius)
 
     def period(self, n_corners: int) -> float:
         return 2 * math.pi / n_corners
@@ -189,6 +198,9 @@ class RectShape:
         return np.array([math.copysign(self.half_w, math.cos(d)),
                          math.copysign(self.half_h, math.sin(d))])
 
+    def corners_from(self, directions) -> list[np.ndarray]:
+        return [self.ring_corner(d) for d in directions]
+
     def side(self, p0, p1, s) -> np.ndarray:
         s = np.asarray(s, dtype=float)[..., None]
         return np.asarray(p0) + (np.asarray(p1) - np.asarray(p0)) * s
@@ -196,8 +208,8 @@ class RectShape:
     def side_count(self, k: int, n_corners: int) -> int:
         return self.nang_w if k % 2 == 0 else self.nang_h
 
-    def extent(self, angle: float) -> float:
-        return self.half_w * abs(math.cos(angle)) + self.half_h * abs(math.sin(angle))
+    def extent(self, angle):
+        return self.half_w * np.abs(np.cos(angle)) + self.half_h * np.abs(np.sin(angle))
 
     def period(self, n_corners: int) -> float:
         return math.pi / 2 if self.is_square else math.pi
@@ -331,11 +343,21 @@ class BlendShape:
     the same arc-length fraction (a "node blend").  A superellipse
     |x/a|^p + |y/b|^p = 1 with interpolated a, b, p was measured against it
     and gave the same min SICN and lower scaled Jacobians (task 0029).
+
+    A shell's station (task 0046) also carries the corners its ring has at
+    each end (*corners_in*, *corners_out*, ``PipeSpec.corners()``): its
+    sides blend the end rings' sides between those corners, so the corner
+    lines of every station blend too and the layers stay nested.  A core
+    station has none and blends the O-H outlines (``outline``).
     """
 
     inlet:  object
     outlet: object
     u:      float
+    corners_in:  tuple | None = None
+    corners_out: tuple | None = None
+
+    side_curve = "spline"
 
     @property
     def nang_w(self) -> int:
@@ -361,10 +383,6 @@ class BlendShape:
     def counts(self) -> tuple[int, int]:
         return (self.nang_w, self.nang_h)
 
-    def extent(self, angle: float) -> float:
-        """At most the larger end's (the blend is a convex combination)."""
-        return max(self.inlet.extent(angle), self.outlet.extent(angle))
-
     def period(self, n_corners: int) -> float:
         return math.pi / 2 if self.is_square else math.pi
 
@@ -372,3 +390,36 @@ class BlendShape:
         a = outline(self.inlet, k, s, inner)
         b = outline(self.outlet, k, s, inner)
         return (1.0 - self.u) * a + self.u * b
+
+    def side_samples(self, k: int, s) -> np.ndarray:
+        """Point(s) at fraction *s* along outer side *k* (corner k → k+1)."""
+        if self.corners_in is None:
+            return self.outline(k, s)
+        ci, co = self.corners_in, self.corners_out
+        j = (k + 1) % len(ci)
+        a = self.inlet.side(np.asarray(ci[k]), np.asarray(ci[j]), s)
+        b = self.outlet.side(np.asarray(co[k]), np.asarray(co[j]), s)
+        return (1.0 - self.u) * a + self.u * b
+
+    def corner(self, k: int) -> np.ndarray:
+        return self.side_samples(k, 0.0)
+
+    def side_count(self, k: int, n_corners: int) -> int:
+        return self.nang_w if k % 2 == 0 else self.nang_h
+
+    def corners_from(self, directions) -> list[np.ndarray]:
+        """The blended corners; a station's corner lines join the blended
+        corners of its two boundaries, whatever the directions."""
+        return [self.corner(k) for k in range(len(directions))]
+
+    @functools.cached_property
+    def boundary(self) -> np.ndarray:
+        """Points along the whole outline, side 0 first (256 per side: an
+        arc of 150° and radius R is then under-read by about 1e-5·R)."""
+        s = np.linspace(0.0, 1.0, 256, endpoint=False)
+        return np.vstack([self.side_samples(k, s) for k in range(4)])
+
+    def extent(self, angle):
+        """Support function of the sampled outline (exact at the samples)."""
+        d = np.stack([np.cos(angle), np.sin(angle)])
+        return (self.boundary @ d).max(axis=0)

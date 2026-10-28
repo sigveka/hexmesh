@@ -53,9 +53,9 @@ class TestRules:
         assert path.offsets(asm.inlet.spec) == [0] * 4
 
     @pytest.mark.parametrize("outlet, message", [
-        (_rect(nang_w=6, nang_h=4), r"equal counts per side: inlet nang 6 vs outlet "
-                                    r"nang_w 6, nang_h 4"),
-        (_circle(0.06), "for circle → circle use Reducer"),
+        (_rect(nang_w=6, nang_h=4), r"equal counts per side: layer `fluid` inlet nang 6 "
+                                    r"vs outlet nang_w 6, nang_h 4"),
+        (_circle(0.06), r"for circles at both ends \(sizes only\) use Reducer"),
         (_rect(nrad=4), "core nrad"),
         (_rect(name="air"), "core: layer 0 is `fluid`"),
         (_rect(rot=0.3), "rot"),
@@ -65,9 +65,11 @@ class TestRules:
             _asm(_circle(), outlet).validate()
         assert not gmsh.isInitialized()
 
-    def test_multi_layer_rejected(self):
+    def test_layers_must_match(self):
+        """Multi-layer transitions exist (task 0046); a layer may not start
+        or end in one."""
         inlet = _circle().shell("wall", dR=0.01, nrad=2)
-        with pytest.raises(AssemblyError, match="single-layer"):
+        with pytest.raises(AssemblyError, match="shells: layer `wall` present only"):
             _asm(inlet, _rect()).validate()
 
     def test_save_load_round_trip(self, tmp_path):
@@ -128,3 +130,71 @@ class TestStationShape:
         inlet = x[np.isclose(x[:, 0], 0.0)]
         rho = np.hypot(inlet[:, 1], inlet[:, 2])
         assert np.isclose(rho.max(), 0.1) and np.sum(np.isclose(rho, 0.1)) == 4 * 6
+
+
+# ---------------------------------------------------------------------------
+# Multi-layer transitions (task 0046)
+# ---------------------------------------------------------------------------
+
+def _insulated(core, outer, nang=6):
+    return (PipeSpec(nang=nang).core("fluid", core, nrad=3)
+            .shell("insulation", outer=outer, nrad=2))
+
+
+class TestMultiLayer:
+    A = staticmethod(lambda: _insulated(CircleShape(0.1, 6), CircleShape(0.13, 6)))
+    B = staticmethod(lambda: _insulated(RectShape(0.14, 0.07, 6, 6), RectShape(0.17, 0.1, 6, 6)))
+
+    def test_cell_count(self):
+        asm = _asm(self.A(), self.B(), n_layers=5)
+        assert asm.cell_count() == 5 * (6 * 6 + 4 * 6 * 3 + 4 * 6 * 2)
+        assert not gmsh.isInitialized()
+
+    def test_station_blends_every_layer(self):
+        """Each outline is its own node blend; a shell's corners blend the
+        end rings' corners, so the corner lines turn with the core's."""
+        a, b = self.A(), self.B()
+        st = Transition(b, 0.3, 4).station(a, 0.25)
+        assert st.layer_names == ["fluid", "insulation"]
+        core, shell = st.outlines
+        assert isinstance(core, BlendShape) and isinstance(shell, BlendShape)
+        for k in range(4):
+            want = 0.75 * a.corners()[1][k] + 0.25 * b.corners()[1][k]
+            np.testing.assert_allclose(shell.corner(k), want, atol=1e-15)
+            np.testing.assert_allclose(core.corner(k), 0.75 * a.corners()[0][k]
+                                       + 0.25 * b.corners()[0][k], atol=1e-15)
+
+    def test_station_ends_are_the_end_outlines(self):
+        a, b = self.A(), self.B()
+        t = Transition(b, 0.3, 4)
+        s = np.linspace(0, 1, 7)
+        for u, spec in ((0.0, a), (1.0, b)):
+            shell = t.station(a, u).outlines[1]
+            c = spec.corners()[1]
+            for k in range(4):
+                np.testing.assert_allclose(
+                    shell.side_samples(k, s),
+                    spec.outlines[1].side(c[k], c[(k + 1) % 4], s), atol=1e-15)
+
+    def test_counts_name_the_layer(self):
+        b = _insulated(RectShape(0.14, 0.07, 4, 4), RectShape(0.17, 0.1, 4, 4), nang=4)
+        with pytest.raises(AssemblyError, match="nang"):
+            _asm(self.A(), b).validate()
+
+    def test_shell_shape_alone_may_change(self):
+        """Circle core in a square shell → circle core in a circle shell."""
+        a = _insulated(CircleShape(0.1, 6), RectShape(0.13, 0.13, 6, 6))
+        _asm(a, self.A()).validate()
+
+    def test_crossing_station_rejected_before_gmsh(self, monkeypatch):
+        """Measured (task 0046): blending nested ends kept every station
+        nested, so the check is a safety net; a crossing station stands in
+        for one here."""
+        crossing = _insulated(CircleShape(0.1, 6), RectShape(0.3, 0.09, 6, 6))
+        real = Transition.station
+        monkeypatch.setattr(Transition, "station", lambda self, spec, u: (
+            crossing if u == 0.5 else real(self, spec, u)))
+        with pytest.raises(AssemblyError, match=r"the layers cross station 2, 0\.500 of the "
+                                                r"length along: layer `insulation`: .*enclose"):
+            _asm(self.A(), self.B()).validate()
+        assert not gmsh.isInitialized()

@@ -115,7 +115,7 @@ ellipse where the two pipes meet. There are two known exceptions:
 | `Elbow(angle=90, schedule="long", n_layers=8, roll=0, axial_grading=1, toward=None)` | Butt-weld elbow: a `Bend` with radius 1.5 D (`"long"`) or 1 D (`"short"`), D = outer diameter |
 | `MiterBend(radius, angle, n_cuts=1, n_layers=2, roll=0, toward=None)` | Segmented bend of straight pieces. Same ports as `Bend(radius, angle)`; each cut turns ≤ 90° |
 | `Reducer(outlet, length, n_layers, axial_grading=1)` | Concentric cone to another radius (reducer or expander). Only radii may change |
-| `Transition(outlet, length, n_layers, axial_grading=1)` | Circle ↔ rectangle, or rectangle ↔ rectangle; equal counts per side |
+| `Transition(outlet, length, n_layers, axial_grading=1)` | Circle ↔ rectangle, or rectangle ↔ rectangle, in every layer; equal counts per side |
 | `SplinePipe(points, n_layers, end_tangent=None, axial_grading=1)` | Pipe along a cubic spline; `points[0]` is the inlet position |
 | `Tee(run_length, branch_length, branch_radius, n_run=3, n_branch=3, n_turn=2, roll=0, toward=None)` | Perpendicular side-branch tee, block layout; returns `(main, branch)`. The branch points along `up`, rolled by a multiple of 90°, or `toward` a direction |
 | `Wye(angle, run_length, branch_length, n_run=3, n_branch=3, n_split=3, roll=0, toward=None)` | Symmetric Y-junction, block layout; returns `(left, right)`. `roll` (a multiple of 90°) turns its plane |
@@ -227,7 +227,8 @@ rectangular block (`.shell(name, outer=RectShape(...))`, API.md); a stack
 with a rectangle has the same count on every side.
 `Transition` joins a duct to a circular pipe, or to a duct of another size,
 when the counts per side match: a circle's `nang` equals the duct's
-`nang_w` and `nang_h`.
+`nang_w` and `nang_h`.  It changes every layer of a stack together, so an
+insulated pipe can become an insulated duct.
 
 `up` decides which side is the height, and a bend's `roll` decides its
 plane. `Bend(..., roll=0)` turns toward `up`, across the height: the
@@ -504,8 +505,8 @@ with `python3 docs/gallery/build.py` (needs `vtk`).
   spec, coplanar and symmetric, angle 30°–120°. Quality is measured, not
   yet bounded: min scaled Jacobian about 0.1 (decision 0017).
 - **Rectangular ducts and outlines:** no tee or elbow for ducts.  A
-  stack with a rectangle needs equal counts per side.  `Transition`
-  needs equal counts per side and single-layer specs.
+  stack with a rectangle needs equal counts per side, and so does
+  `Transition`.
 - **Layer changes:** insulation can't start or stop inside a fitting yet
   (decision 0006).
 
