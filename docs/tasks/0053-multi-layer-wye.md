@@ -1,6 +1,6 @@
 # 0053 — Multi-layer wye: shells as offset level sets
 
-- **Status:** ready (after 0051; can run alongside 0052)
+- **Status:** ready (after 0056; start with the thin-shell probe, step 0)
 - **Decision:** [0028 — Multi-layer junctions](../decisions/0028-multi-layer-junctions.md)
 - **Depends on:** 0051.
 
@@ -13,6 +13,14 @@ through a bifurcation (decision 0018).
 `blocks.py`, kit, `API.md`, `README.md`.
 
 **Do.**
+0. **Thin-shell probe first** (design, 2026-10-29, after 0056's Q3).
+   Projection moves wall nodes about 0.14 R through the knee, which folds
+   thin cells.  A realistic pipe wall is about 0.04 R thick.  Before
+   anything else, a 90° and a 120° wye with one shell of T/R = 0.04,
+   with the wall and shell boundary projected.  Does it fold, and what
+   is the min corner SJ?  If it folds (or SJ < 0.1), stop and report
+   under *Questions for design*: the wye-layout redesign then comes
+   before this task.
 1. **Level sets:** generalise `Skeleton` to a wall at any distance
    (`to_wall(p, radius)`, `curve(points, radius)`); shell l's outer
    boundary is `dist = R + T_l`.

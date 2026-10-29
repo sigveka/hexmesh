@@ -62,7 +62,7 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0050](0050-validation-turbulent-bend.md) | Validation: turbulent flow in a 90° bend (Sudo et al. 1998) | ready (after 0049) | 0012, 0015 |
 | [0051](0051-exact-junction-walls.md) | Exact junction walls (tee and wye) | done | 0028, 0029 |
 | [0052](0052-multi-layer-tee.md) | Multi-layer tee: shells as offset levels of the junction | done | 0028 |
-| [0053](0053-multi-layer-wye.md) | Multi-layer wye: shells as offset level sets | ready (after 0051) | 0028 |
+| [0053](0053-multi-layer-wye.md) | Multi-layer wye: shells as offset level sets | ready (after 0056; thin-shell probe first) | 0028 |
 | [0054](0054-insulated-junctions-end-to-end.md) | Insulated junctions end to end: PCF, example, docs | ready (after 0052, 0053) | 0028, 0023 |
 | [0055](0055-cosine-bulge.md) | Cosine profile bulges: `("cosine", s0)` with s0 ≤ 0 | done | 0008 |
 | [0056](0056-projection-limits-and-wye-axial-counts.md) | Projection follow-ups: inversion check, move warning, wye axial counts | done | 0029 |
