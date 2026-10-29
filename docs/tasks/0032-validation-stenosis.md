@@ -238,6 +238,14 @@ k = 2, 3, 4.**
 - Scratch: this session's scratchpad, `0032/` (logs, `results.json`,
   re-measured `final.json`); the cases in `validation/stenosis/work/`.
 
+**Check after task 0035 (2026-10-30): SIMPLE on OpenFOAM v2406.**
+Task 0035 found v1912's buoyant solvers fail on any non-orthogonal mesh,
+so SIMPLE's plateau here might have been the same build's fault.  It
+isn't: on v2406 (Docker), k2, the same files, SIMPLE leaves the
+converged state (Ux 1.8e-6 → 1.5e-2 by iteration 200) and plateaus at
+p ≈ 0.4, as on v1912; from rest, p ≈ 0.38.  `pimpleFoam` to steady
+stands.  Details in `docs/integrations/openfoam.md`.
+
 ## Questions for design
 
 **Q1. `simpleFoam` doesn't converge on this case; which solver and

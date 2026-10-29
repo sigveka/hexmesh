@@ -150,6 +150,14 @@ All v1912, gmsh 4.12.1, 2026-10-25.
     `startFrom latestTime`), steady when the quantities of interest
     change < 0.1 % over a chunk.  Steady by t = 10–15 D/U at every
     level; 760 s (123k cells), 5647 s (414k), 17 705 s (982k) on 4 cores.
+  - **Not the v1912 defect (2026-10-30):** on OpenFOAM v2406 (Docker,
+    `opencfd/openfoam-default:2406`), the same k2 case files and
+    SIMPLE settings, 3000 iterations on 4 cores, behave as on v1912.
+    From the converged `pimpleFoam` state the residuals climb from
+    Ux 1.8e-6 to 1.5e-2 by iteration 200 (v1912: 1.2e-8 to 1.5e-2), then
+    plateau at p ≈ 0.4; from rest, plateau at p ≈ 0.38.  So SIMPLE's
+    instability here is algorithmic, as read above, not the build's
+    non-orthogonality defect (task 0035).
   - **`purgeWrite` counts one run's writes only:** with chunked restarts
     each run writes once, so nothing is purged, in the case or in the
     `processor*` directories.  The driver deletes old times itself.
