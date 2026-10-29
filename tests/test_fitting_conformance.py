@@ -222,6 +222,8 @@ CASES = {
     # profiled reducers (task 0031): stations on R(s), chords within tolerance
     "profile-cosine":      lambda: _between(_one(), Reducer(_one(), 0.4, n_layers=40,
                                                             profile=("cosine", 0.25))),
+    "profile-cosine-bulge": lambda: _between(_one(), Reducer(_one(), 0.4, n_layers=50,
+                                                             profile=("cosine", -0.5))),
     "profile-venturi":     lambda: _between(_one(), Reducer(_one(), 0.8, n_layers=12,
                                                             profile=("venturi", 0.5, 15))),
     "profile-table-2layer": lambda: _between(_two(), Reducer(

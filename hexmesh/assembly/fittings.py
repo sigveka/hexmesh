@@ -493,7 +493,8 @@ class Reducer(Sweep):
     *axial_grading* spaces the stations as for ``Straight``.
 
     *profile* replaces the cone by a radius profile (decision 0008;
-    ``assembly.profile``): ``("cosine", s0)``, ``("venturi", beta,
+    ``assembly.profile``): ``("cosine", s0)`` (a constriction for s0 > 0,
+    a bulge for s0 < 0), ``("venturi", beta,
     divergent)`` or a table of ``(s, R/R_in)`` pairs.  Every radius of the
     stack scales by the profile's ratio, so the outlet must be the inlet
     scaled by ``r(1)``.  Stations lie exactly on R(s); between them the wall

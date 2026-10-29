@@ -41,6 +41,14 @@ PREDICTED_SJ_WARN = 0.3
 #: Reject below: the wye prototype's floor (decision 0017).
 PREDICTED_SJ_MIN = 0.1
 
+#: ``("cosine", s0)`` profile severity (decision 0008, amended 2026-10-28;
+#: task 0055): s0 > 0 a constriction with throat ``(1 − 2·s0)·R``, s0 = 0 a
+#: plain pipe, s0 < 0 a bulge of largest radius ``(1 − 2·s0)·R``.  The
+#: minimum is inclusive (a bulge to 3 R); the maximum is exclusive (a
+#: throat of zero radius).
+COSINE_S0_MIN = -1.0
+COSINE_S0_MAX = 0.5
+
 #: Wall projection (decision 0029, task 0056): a node moved further than
 #: this many local wall radii onto its fitting's analytic wall gets a
 #: warning naming the fitting.  Legitimate moves reach 0.77 R (30° wye,

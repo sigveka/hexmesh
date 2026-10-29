@@ -11,8 +11,11 @@ Forms (no callables: they can't be saved):
 
 ``("cosine", s0)``
     ``r(s) = 1 − s0 · (1 + cos(2π(s − ½)))``: a smooth constriction
-    with the throat ``1 − 2·s0`` at the middle and ``r = 1`` at both ends
-    (Varghese et al. 2007, RESEARCH §7.3).
+    (s0 > 0) or bulge (s0 < 0), with ``r = 1 − 2·s0`` at the middle and
+    ``r = 1`` at both ends (Varghese et al. 2007, RESEARCH §7.3).  s0 runs
+    from ``limits.COSINE_S0_MIN`` (−1: a bulge to 3 R) up to, not
+    including, ``limits.COSINE_S0_MAX`` (0.5: a closed throat); s0 = 0 is
+    a plain pipe.
 ``("venturi", beta, divergent)``
     Classical Venturi tube proportions after ISO 5167-4: a convergent cone
     of 21° included angle from D to d = β·D, a cylindrical throat of
@@ -30,6 +33,8 @@ from __future__ import annotations
 import math
 
 import numpy as np
+
+from .limits import COSINE_S0_MAX, COSINE_S0_MIN
 
 # Largest gap between a slab's straight wall chord and the profile, as a
 # fraction of the inlet radius (decision 0008, C1).
@@ -84,8 +89,12 @@ class Profile:
     # -- forms -------------------------------------------------------------
 
     def _cosine(self, s0: float) -> None:
-        if not 0 < s0 < 0.5:
-            raise ValueError(f"cosine constriction s0 must be in (0, 0.5), got {s0!r}")
+        if not COSINE_S0_MIN <= s0 < COSINE_S0_MAX:
+            raise ValueError(
+                f"cosine s0 must be in [{COSINE_S0_MIN:g}, {COSINE_S0_MAX:g}), got {s0!r}: "
+                f"{COSINE_S0_MIN:g} is a bulge to {1 - 2 * COSINE_S0_MIN:g}·R (COSINE_S0_MIN), "
+                f"{COSINE_S0_MAX:g} a throat of zero radius (COSINE_S0_MAX); s0 > 0 "
+                f"constricts, s0 < 0 bulges")
         self._r = lambda s: 1.0 - s0 * (1.0 + np.cos(2 * np.pi * (s - 0.5)))
 
     def _venturi(self, beta: float, divergent: float = 15.0) -> None:

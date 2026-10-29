@@ -443,7 +443,7 @@ All forms are plain tuples, so they save and load:
 
 | `profile` | shape |
 |---|---|
-| `("cosine", s0)` | smooth constriction `1 − s0·(1 + cos 2π(s − ½))`, throat `1 − 2·s0` at the middle, back to the inlet radius (RESEARCH §7.3) |
+| `("cosine", s0)` | smooth constriction (`s0 > 0`) or bulge (`s0 < 0`): `1 − s0·(1 + cos 2π(s − ½))`, `1 − 2·s0` at the middle, back to the inlet radius (RESEARCH §7.3).  `limits.COSINE_S0_MIN ≤ s0 < limits.COSINE_S0_MAX`, i.e. −1 (a bulge to 3 R) up to 0.5 (a closed throat); `s0 = 0` is a plain pipe |
 | `("venturi", beta, divergent)` | classical venturi (ISO 5167-4): 21° convergent to `beta·D`, throat of length `d`, `divergent` 7°–15° back to `D`, then straight.  Lengths follow from `D`; too short a `length` is rejected with the length needed.  Corners are sharp and always land on stations |
 | `((0, 1), (s, r), …, (1, r_out))` | a table, interpolated by a monotone cubic (PCHIP): no overshoot |
 

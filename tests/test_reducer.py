@@ -162,6 +162,30 @@ def test_cosine_shape():
     np.testing.assert_allclose(prof([0, 0.5, 1]), [1, 0.5, 1], atol=1e-15)
 
 
+@pytest.mark.parametrize("s0", [-1.0, -0.5, -0.1, 0.0])
+def test_bulge_wall_nodes_on_profile(gmsh_session, s0):
+    """s0 ≤ 0 (task 0055): a bulge to (1 − 2·s0)·R, or a plain pipe; every
+    wall node at a station is on R(s), as for a constriction."""
+    profile = ("cosine", s0)
+    asm = _profiled(profile, n=72)
+    asm.mesh()
+    x = np.vstack([gmsh.model.mesh.getNodes(2, t, includeBoundary=True)[1].reshape(-1, 3)
+                   for t in asm._fill.walls])
+    prof = Profile(profile, 0.4, 0.1)
+    r = np.hypot(x[:, 1], x[:, 2])
+    np.testing.assert_allclose(r, 0.1 * prof(x[:, 0] / 0.4), rtol=0, atol=1e-9 * 0.1)
+    assert r.max() == pytest.approx(0.1 * (1 - 2 * s0), rel=1e-9)
+
+
+def test_bulge_shape_and_layers():
+    np.testing.assert_allclose(Profile(("cosine", -0.5), 0.4, 0.1)([0, 0.25, 0.5, 1]),
+                               [1, 1.5, 2, 1], atol=1e-15)
+    with pytest.raises(AssemblyError, match=r"use n_layers >= 50"):
+        _profiled(("cosine", -0.5), n=40).validate()
+    _profiled(("cosine", -0.5), n=50).validate()
+    _profiled(("cosine", 0.0), n=1).validate()        # a plain pipe: one layer will do
+
+
 def test_too_coarse_names_layers():
     with pytest.raises(AssemblyError, match=r"use n_layers >= 36"):
         _profiled(COSINE, n=12).validate()
@@ -194,7 +218,9 @@ def test_table_is_monotone_between_points():
     (dict(profile=((0, 0.9), (1, 1))), "the inlet spec has"),
     (dict(profile=VENTURI, length=0.5), r"needs length >= 0\.7"),
     (dict(profile=("venturi", 0.5, 20)), "7°–15°"),
-    (dict(profile=("cosine", 0.6)), r"s0 must be in \(0, 0.5\)"),
+    (dict(profile=("cosine", 0.5)), r"s0 must be in \[-1, 0\.5\), got 0\.5: -1 is a bulge "
+                                    r"to 3·R \(COSINE_S0_MIN\), 0\.5 a throat of zero radius"),
+    (dict(profile=("cosine", -1.01)), r"s0 must be in \[-1, 0\.5\), got -1\.01"),
     (dict(profile=("parabola", 1)), "unknown profile"),
     (dict(profile=((0, 1), (0.5, 1), (0.4, 1), (1, 1))), "increase from 0 to 1"),
 ])
