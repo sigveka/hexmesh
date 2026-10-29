@@ -17,7 +17,7 @@ renders them into ``docs/GALLERY.md``.
 
 CATEGORIES: dict[str, list[str]] = {
     "fittings": ["smooth_bend", "miter_bend", "spline_pipe",
-                 "reducer_network", "tee", "wye", "junction_walls", "loop"],
+                 "reducer_network", "stenosis", "tee", "wye", "junction_walls", "loop"],
     "sections": ["insulated_pipe", "insulated_route", "graded_bend",
                  "rect_duct", "duct_transition", "layer_outlines", "lagged_duct",
                  "insulated_transition", "insulated_tee"],

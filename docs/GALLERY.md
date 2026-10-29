@@ -20,6 +20,7 @@ What each example shows, what its mesh looks like, and how good the cells are.  
 | [miter_bend](#miter_bend) | Mitred bends: a single 90° miter joint and a 3-cut segmented elbow. | 9 792 | 0.110 | 0.531 | 3.8 s |
 | [spline_pipe](#spline_pipe) | Pipe along a 3-D cubic spline through given points. | 9 360 | 0.146 | 0.792 | 6.0 s |
 | [reducer_network](#reducer_network) | Reducer, bend and expander: a line that narrows, turns and widens again. | 11 832 | 0.221 | 0.788 | 6.0 s |
+| [stenosis](#stenosis) | Stenosis: a smooth cosine constriction in a straight pipe, the benchmark geometry of Varghese et al. (RESEARCH §7.3). | 23 220 | 0.101 | 0.772 | 5.5 s |
 | [tee](#tee) | Side-branch tee: straight run, tee, then a bend on the main line. | 7 464 | 0.189 | 0.316 | 2.4 s |
 | [wye](#wye) | Symmetric wye: straight inlet, a 60° Y-junction, a straight on each daughter. | 5 724 | 0.170 | 0.156 | 1.4 s |
 | [junction_walls](#junction_walls) | Exact junction walls: a tee and a narrow 30° wye, their wall nodes moved onto the analytic walls after surface meshing. | 10 176 | 0.041 | 0.065 | 3.2 s |
@@ -47,10 +48,12 @@ What each example shows, what its mesh looks like, and how good the cells are.  
 
 ## Fittings: one building block each
 
-Bends (smooth, mitred, spline), a reducer, the tee and wye junctions, and
-a closure that joins a network back onto itself.  Every example uses the
-same single-layer O-H section, so the differences are the fittings'
-own.
+Bends (smooth, mitred, spline), a reducer, a profiled constriction
+(stenosis), the tee and wye junctions, and a closure that joins a network
+back onto itself.  The bends, the reducer and the loop carry a thin solid
+`pipe_wall` layer around the fluid, to show that every fitting takes the
+whole layer stack conformally (for conjugate heat transfer; drop the
+`.shell(...)` for flow only).  The stenosis, tee and wye are fluid only.
 
 ### smooth_bend
 
@@ -140,6 +143,47 @@ python3 -m hexmesh.examples.fittings.reducer_network
 - **Walls:** `pipe_wall_wall`
 - **Interfaces:** `interface_fluid_pipe_wall`
 - **Colours:** fluid blue, pipe_wall orange; walls grey.
+
+### stenosis
+
+**Stenosis: a smooth cosine constriction in a straight pipe, the benchmark geometry of Varghese et al. (RESEARCH §7.3).**
+
+<p><img src="gallery/img/stenosis.png" width="68%" alt="stenosis"> <img src="gallery/img/stenosis_section.png" width="29%" alt="stenosis, inlet section"></p>
+
+A profiled `Reducer` with `profile=("cosine", s0)` narrows the pipe to
+a throat of radius `(1 − 2·s0)·R` and widens it back over `length`.
+The defaults are the benchmark: `s0 = 0.25` (75 % area reduction),
+`length = 2 D`, 3 D of pipe upstream and 16 D downstream of the throat.
+Every wall node at a station lies on the profile, and `validate` rejects
+a chord further than `chord_tol` from it, naming the layers needed.
+
+`s0 < 0` makes a bulge instead (an aneurysm, an expansion chamber), of
+largest radius `(1 − 2·s0)·R`; `s0 = 0` is a plain pipe.
+
+The counts are fixed, not derived from the geometry, so every
+`build(s0, length_d)` with `−1 ≤ s0 ≤ 0.25` and `length_d ≥ 1` has
+the same mesh connectivity: node *i* is the same point of the network in
+every variant, only moved.  That is what a parameter study or a surrogate
+model over shapes needs, from constriction through plain pipe to bulge.
+The counts are sized for the variant needing the most layers: the bulge
+`s0 = −1` needs 71 to keep every wall chord within `chord_tol` of the
+profile (a constriction of 0.25 needs 36).
+
+Fittings are labelled, so with `walls_by_fitting=True` the constriction's
+wall is its own patch (`fluid_wall_stenosis`), e.g. for wall shear
+stress.  Open ends: `fluid_inlet`, `fluid_outlet`.
+
+```bash
+python3 -m hexmesh.examples.fittings.stenosis
+```
+
+| Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
+|---|---|---|---|---|---|---|---|
+| 3: Straight ×2, Reducer | 365 | 23 220 | 0.101 | 0.515 | 0.772 (#1 Reducer) | 28.3 | 5.5 s |
+
+- **Open ends:** `fluid_inlet`, `fluid_outlet`
+- **Walls:** `fluid_wall_downstream`, `fluid_wall_stenosis`, `fluid_wall_upstream`
+- **Colours:** fluid blue; walls grey.
 
 ### tee
 
@@ -765,4 +809,4 @@ Case: [validation/poiseuille/README.md](../validation/poiseuille/README.md); res
 
 ---
 
-Generated 2026-10-29 from hexmesh 1f5ea6d + uncommitted changes, gmsh 4.12.1, Python 3.12.3, 8 CPUs, 1 job(s).
+Generated 2026-10-29 from hexmesh 5f12e1e + uncommitted changes, gmsh 4.12.1, Python 3.12.3, 8 CPUs, 1 job(s).

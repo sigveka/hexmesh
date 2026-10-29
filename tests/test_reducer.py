@@ -256,3 +256,25 @@ def test_profile_save_load(tmp_path, profile, outlet, length, n):
     assert again.edges[0].fitting.profile == tuple(map(
         lambda v: tuple(v) if isinstance(v, (tuple, list)) else v, profile))
     assert again.cell_count() == asm.cell_count()
+
+
+def _connectivity(asm):
+    asm.mesh()
+    hexes = np.concatenate(gmsh.model.mesh.getElements(3)[2])
+    return gmsh.model.mesh.getNodes()[0].copy(), hexes
+
+
+def test_stenosis_variants_aligned(gmsh_session):
+    """The stenosis example's fixed counts (task 0055): constriction, plain
+    pipe and bulge, short and long, are one cell count and one
+    connectivity, so the variants are node-aligned."""
+    from hexmesh.examples.fittings import stenosis
+    variants = [(s0, L) for s0 in (-1.0, 0.0, 0.25) for L in (1.0, 4.0)]
+    for s0, L in variants:
+        stenosis.build(s0, L).validate()
+    assert len({stenosis.build(s0, L).cell_count() for s0, L in variants}) == 1
+    a = _connectivity(stenosis.build(-1.0, 1.0))
+    gmsh.clear()
+    b = _connectivity(stenosis.build(0.25, 4.0))
+    for x, y in zip(a, b):
+        np.testing.assert_array_equal(x, y)

@@ -1,6 +1,6 @@
 # 0055 — Cosine profile bulges: `("cosine", s0)` with s0 ≤ 0
 
-- **Status:** in progress (steps 1–3 done; step 4 waits for the stenosis example to be committed)
+- **Status:** done
 - **Decision:** [0008 — Profiled sweep](../decisions/0008-profiled-sweep.md), amendment 2026-10-28 (bulges)
 - **Depends on:** —  (small; can run between larger tasks)
 
@@ -76,8 +76,8 @@ case (RESEARCH §7.5, later).
   meshed = predicted, 4864 cells): min SICN 0.29 at s0 = 0.25, 0.19 at
   −0.5, 0.13 at −1.  All valid.
 
-**Step 4, not done: `hexmesh/examples/fittings/stenosis.py` is not
-committed** (it is the paused stenosis work, with its gallery entry and
+**Step 4, done once the example was committed (2026-10-29).  At first
+not done: `hexmesh/examples/fittings/stenosis.py` was not committed** (it is the paused stenosis work, with its gallery entry and
 `validation/stenosis/`), so I left it alone.
 - `build(s0, length_d)` passes s0 through, so it already takes the new
   range.  But `N_STENOSIS = 40` is rejected at s0 = −1 ("use n_layers >=
@@ -98,8 +98,12 @@ _None._
 
 ## Outcome
 
-**Partial (2026-10-29): steps 1–3 done; step 4 waits for the stenosis
-example to be committed** (see *Agent notes*).
+**Done (2026-10-29).**  Steps 1–3 in `5f12e1e`.  Step 4 came with the
+stenosis example's own commit: `N_STENOSIS = 71`, docstring for
+−1 ≤ s0 ≤ 0.25, gallery entry regenerated (23 220 cells, min SICN
+0.101, min SJ 0.772, 5.5 s), and `test_reducer.py::test_stenosis_variants_aligned`
+(six variants validate with one cell count; s0 = −1 at 1 D and 0.25 at
+4 D mesh to identical node tags and hexes).
 - **Files:** `hexmesh/assembly/limits.py` (`COSINE_S0_MIN`,
   `COSINE_S0_MAX`), `profile.py` (range, docstring), `fittings.py`
   (Reducer docstring), `API.md` (profile table).

@@ -1,7 +1,7 @@
 {
  "meta": {
   "date": "2026-10-29",
-  "commit": "1f5ea6d + uncommitted changes",
+  "commit": "5f12e1e + uncommitted changes",
   "gmsh": "4.12.1",
   "python": "3.12.3",
   "cpus": 8,
@@ -874,6 +874,40 @@
    "predicted": 9036,
    "meshed": 9036,
    "build_s": 6.51
+  },
+  "fittings.stenosis": {
+   "fittings": 3,
+   "fitting_types": {
+    "Straight": 2,
+    "Reducer": 1
+   },
+   "volumes": 365,
+   "materials": [
+    "fluid"
+   ],
+   "min_sicn": 0.10092451637065612,
+   "mean_sicn": 0.514809596903417,
+   "min_sj": 0.7722308975524389,
+   "min_sj_fitting": "#1 Reducer",
+   "max_aspect": 28.31988912607503,
+   "groups": {
+    "open_end": [
+     "fluid_inlet",
+     "fluid_outlet"
+    ],
+    "wall": [
+     "fluid_wall_downstream",
+     "fluid_wall_stenosis",
+     "fluid_wall_upstream"
+    ],
+    "interface": [],
+    "volume": [
+     "fluid"
+    ]
+   },
+   "predicted": 23220,
+   "meshed": 23220,
+   "build_s": 5.5
   },
   "fittings.junction_walls": {
    "fittings": 7,
