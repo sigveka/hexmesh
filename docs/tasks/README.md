@@ -44,7 +44,7 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0032](0032-validation-stenosis.md) | Validation: smooth cosine constriction (Varghese et al.), Re = 500 | done | 0008, 0012 |
 | [0033](0033-validation-heated-rod.md) | Validation: solid rod with uniform heat generation | done | 0012, 0015 |
 | [0034](0034-validation-layered-conduction.md) | Validation: conduction through a heated multi-layer cylinder (CHT, solids) | done | 0012 |
-| [0035](0035-validation-heated-pipe-cht.md) | Validation: heated multi-layer pipe with laminar flow (full CHT) | blocked (Q1 fluid solvers diverge on hexmesh meshes) | 0012 |
+| [0035](0035-validation-heated-pipe-cht.md) | Validation: heated multi-layer pipe with laminar flow (full CHT) | ready (Q1 answered: time-boxed diagnosis) | 0012 |
 | [0036](0036-linear-build-time.md) | Linear build time: fewer `synchronize` calls, and a build benchmark | done | 0020 |
 | [0037](0037-pcf-branched-networks.md) | PCF reader: branched networks and junctions | done | 0023 |
 | [0038](0038-pcf-insulation-and-equipment.md) | PCF reader: insulation and equipment connections | done | 0023 |

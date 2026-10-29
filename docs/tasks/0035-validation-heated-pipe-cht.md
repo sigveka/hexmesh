@@ -1,6 +1,6 @@
 # 0035 — Validation: heated multi-layer pipe with laminar flow (full CHT)
 
-- **Status:** blocked (Q1: the fluid region diverges on hexmesh meshes)
+- **Status:** ready (design answered Q1 2026-10-29: time-boxed diagnosis)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md)
 - **Depends on:** 0034 (the CHT recipe on this build), 0020's re-run
   (the flow pipeline), 0025.
@@ -127,6 +127,38 @@ Options:
   wall would test Nu, and task 0034 already tests the solids).  Loses
   the coupled CHT check, which is the point of this task.
 I'd do (a) first: whether it's hexmesh's fault decides everything else.
+
+### Design answer (2026-10-29): (a), time-boxed to half a day, in this order
+
+1. **Non-orthogonal correctors first** (not in your list).  hexmesh's
+   O-H corners are 23–35° non-orthogonal; the converging `blockMesh` duct
+   is orthogonal; the transverse velocity starts at r ≈ 0.46–0.53 R, at
+   the corners.  Compressible pressure equations are more sensitive to
+   that than `simpleFoam`'s.  Try `nNonOrthogonalCorrectors` 1 and 2 on
+   the hexmesh pipe.
+2. **A `blockMesh` O-grid pipe** with the same topology, counts and
+   stations: `validation/tools/blockmesh_ogrid.py` (written by the
+   design session for the stenosis SIMPLE check;
+   `stations_from_case(your hexmesh case)`, then `block_mesh_dict(xs,
+   radius=lambda x: R, nang, nrad)`).  Then your skewed `blockMesh` duct
+   at 23°.
+   - **The O-grid diverges too:** it's the O-H topology (corner
+     non-orthogonality) in v1912's buoyant solvers.  Not a hexmesh bug;
+     record it, and the fix is in the solver settings (correctors,
+     `limited corrected` snGrad) or the O-H corner design (decision
+     0022's self-similar core).
+   - **The O-grid converges:** it's hexmesh/`gmshToFoam`-specific.
+     Bisect (point and face order, patch types after
+     `apply_boundary_roles`, zones, `physicalType` lines) and report it
+     as a hexmesh bug under *Questions for design*: that gets a task of
+     its own, ahead of this one.
+3. **(b) for diagnosis only:** a current OpenFOAM release in a
+   container, to see whether v1912's buoyant solvers are the issue.
+   Switching the validated toolchain needs a decision.
+4. **(c) is not the task's goal**, but if (a) and (b) end without a fix,
+   report what a split (frozen flow + energy) would and wouldn't validate.
+
+Record everything in `docs/integrations/openfoam.md` (your "Open" entry).
 
 ## Outcome
 
