@@ -65,7 +65,7 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0053](0053-multi-layer-wye.md) | Multi-layer wye: shells as offset level sets | ready (after 0051) | 0028 |
 | [0054](0054-insulated-junctions-end-to-end.md) | Insulated junctions end to end: PCF, example, docs | ready (after 0052, 0053) | 0028, 0023 |
 | [0055](0055-cosine-bulge.md) | Cosine profile bulges: `("cosine", s0)` with s0 ≤ 0 | ready | 0008 |
-| [0056](0056-projection-limits-and-wye-axial-counts.md) | Projection follow-ups: inversion check, move warning, wye axial counts | ready (after 0051) | 0029 |
+| [0056](0056-projection-limits-and-wye-axial-counts.md) | Projection follow-ups: inversion check, move warning, wye axial counts | blocked (Q1 `n_split`, Q2 creases; steps 1–2 done) | 0029 |
 
 **Current order (2026-10-28, design, revised):** finish the task in
 progress (0034), then **multi-layer junctions: 0051 → 0052 → 0056 → 0053 →

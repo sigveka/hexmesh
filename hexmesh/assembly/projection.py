@@ -8,7 +8,9 @@ projector for it, and ``Assembly.mesh()`` moves the wall's mesh nodes onto
 it between surface and volume meshing.
 
 A projector is a callable ``points (n, 3) → points (n, 3)`` returning,
-for each point, a nearby point exactly on the surface.  Nearby points must
+for each point, a nearby point exactly on the surface, with
+``local_radius(points)``, the wall's radius there (moves are judged
+against it).  Nearby points must
 stay nearby and in order (no node crosses into another branch, and no two
 collapse onto a crease), or the volume mesh folds.  This module provides
 the one junctions need: the boundary of a union of tubes.
@@ -104,6 +106,12 @@ class TubeUnion:
                 step[good] = -np.einsum("nmk,nm->nk", J[good], y)
             x = x + step
         return x, ok
+
+    def local_radius(self, q) -> np.ndarray:
+        """Radius of the tube whose surface each wall point *q* lies on."""
+        q = np.atleast_2d(np.asarray(q, float))
+        off = np.stack([np.abs(t.distance(q) - t.radius) for t in self.tubes])
+        return np.array([t.radius for t in self.tubes])[np.argmin(off, axis=0)]
 
     def direction(self, p: np.ndarray) -> np.ndarray:
         """Unit gradient of a soft minimum of the tubes' signed distances

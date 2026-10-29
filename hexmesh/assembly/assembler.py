@@ -34,7 +34,7 @@ import gmsh
 from .. import _occ
 from ..core.spec import PipeSpec
 from ..faces._gmsh_helpers import add_physical_group
-from ..quality_hex import METRICS, hex_vertices
+from ..quality_hex import METRICS, hex_vertices, min_scaled_jacobians
 from . import intent
 from ..io.writers.openfoam_boundary import roles_path, write_roles
 from .signature import check_port_pairs, classify, signature
@@ -48,17 +48,6 @@ from .interface import (
     Frame, Interface, build_face, check_supported, hydraulic_diameter, outer_radius,
     port_type,
 )
-
-
-_HEX_EDGES = ((0, 1), (1, 2), (2, 3), (3, 0), (4, 5), (5, 6), (6, 7), (7, 4),
-              (0, 4), (1, 5), (2, 6), (3, 7))
-
-
-def _edges(elements: np.ndarray, pairs) -> np.ndarray:
-    """The distinct edges of *elements* (node tags per row), as sorted
-    (a, b) rows."""
-    e = np.vstack([elements[:, [a, b]] for a, b in pairs]).astype(int)
-    return np.unique(np.sort(e, axis=1), axis=0)
 
 
 class AssemblyError(ValueError):
@@ -730,15 +719,13 @@ class Assembly:
         self._check_projection(moved)
         self._meshed = True
 
-    def _project_walls(self) -> dict[str, tuple[np.ndarray, np.ndarray]]:
+    def _project_walls(self) -> dict[int, tuple[np.ndarray, np.ndarray]]:
         """Move the nodes of every projected surface, its curves and its
         points onto the fitting's analytic surface, between surface and
-        volume meshing (decision 0029).  Returns, per fitting name, the
-        moved nodes' new positions and move lengths, for
-        :meth:`_check_projection` (by position: volume meshing renumbers
-        the nodes)."""
+        volume meshing (decision 0029).  Returns, per fitting index, the
+        move lengths and the local wall radii."""
         msh = gmsh.model.mesh
-        moved: dict[str, list] = {}
+        moved: dict[int, list] = {}
         for e in self._edges:
             for project, surfs in self._fitting_projections.get(e.index, []):
                 ents = [(2, s) for s in surfs]
@@ -754,49 +741,55 @@ class Assembly:
                 tags, first = np.unique(np.concatenate(tags), return_index=True)
                 x = np.vstack(x)[first]
                 y = project(x)
-                moved.setdefault(e.name, []).append((y, np.linalg.norm(y - x, axis=1)))
+                moved.setdefault(e.index, []).append(
+                    (np.linalg.norm(y - x, axis=1), project.local_radius(y)))
                 for t, p in zip(tags, y):
                     msh.setNode(int(t), p.tolist(), [])
-        return {n: (np.vstack([y for y, _ in v]), np.concatenate([m for _, m in v]))
-                for n, v in moved.items()}
+        return {i: (np.concatenate([m for m, _ in v]), np.concatenate([r for _, r in v]))
+                for i, v in moved.items()}
 
-    def _check_projection(self, moved: dict[str, tuple[np.ndarray, np.ndarray]]) -> None:
-        """Record each fitting's largest projection move, absolute and in
-        local cell heights, in ``projection_report``.  A node's cell height
-        is its shortest hex edge to a node on no wall.  A move beyond
-        ``limits.WALL_PROJECTION_MAX_MOVE`` cell heights is an error naming
-        the fitting (decision 0029)."""
-        from scipy.spatial import cKDTree
+    def _check_projection(self, moved: dict[int, tuple[np.ndarray, np.ndarray]]) -> None:
+        """Record each projected fitting's largest move (absolute, and in
+        local wall radii) and, after volume meshing, its cells' min corner
+        scaled Jacobian (its cells and its neighbours'), in
+        ``projection_report``.  A move beyond
+        ``limits.WALL_PROJECTION_WARN_MOVE`` radii warns; a cell with a
+        corner SJ ≤ 0 is an ``AssemblyError`` naming the fitting
+        (decision 0029, task 0056)."""
         self.projection_report = {}
-        if not moved:
-            return
-        ntag, nx, _ = gmsh.model.mesh.getNodes()
-        nx = nx.reshape(-1, 3)
-        pos = np.full(int(ntag.max()) + 1, -1)
-        pos[ntag.astype(int)] = np.arange(len(ntag))
-        on_wall = np.zeros(len(ntag), bool)
-        for s in self._fill.walls:
-            on_wall[pos[gmsh.model.mesh.getNodes(2, s, includeBoundary=True)[0].astype(int)]] = True
-        height = np.full(len(ntag), np.inf)
-        hexes = [n.reshape(-1, 8) for t, _, n in zip(*gmsh.model.mesh.getElements(3)) if t == 5]
-        if hexes:
-            e = pos[_edges(np.vstack(hexes), _HEX_EDGES)]
-            e = e[on_wall[e[:, 0]] != on_wall[e[:, 1]]]                 # wall to off-wall
-            L = np.linalg.norm(nx[e[:, 0]] - nx[e[:, 1]], axis=1)
-            np.minimum.at(height, e[:, 0], L)
-            np.minimum.at(height, e[:, 1], L)
-        tree = cKDTree(nx)
-        for name, (y, move) in moved.items():
-            _, at = tree.query(y)
-            ratio = move / height[at]
-            worst = int(np.argmax(ratio))
-            self.projection_report[name] = {"move": float(move.max()),
-                                            "ratio": float(ratio[worst])}
-            if ratio[worst] > limits.WALL_PROJECTION_MAX_MOVE:
+        meshed = bool(moved) and len(gmsh.model.mesh.getElements(3)[0]) > 0
+        if meshed:
+            ntag, nx, _ = gmsh.model.mesh.getNodes()
+            pos = np.full(int(ntag.max()) + 1, -1)
+            pos[ntag.astype(int)] = np.arange(len(ntag))
+            nx = nx.reshape(-1, 3)
+        for e in self._edges:
+            if e.index not in moved:
+                continue
+            move, radius = moved[e.index]
+            ratio = move / radius
+            rep = self.projection_report[e.name] = {
+                "move": float(move.max()), "ratio": float(ratio.max())}
+            if ratio.max() > limits.WALL_PROJECTION_WARN_MOVE:
+                msg = (f"{e.name}: wall projection moves a node by {move[ratio.argmax()]:.3g}, "
+                       f"{ratio.max():.2f} local wall radii (WALL_PROJECTION_WARN_MOVE "
+                       f"{limits.WALL_PROJECTION_WARN_MOVE:g})")
+                self.warnings.append(msg)
+                warnings.warn(msg, UserWarning, stacklevel=3)
+            if not meshed:
+                continue
+            # the fitting and its neighbours: a projector that moves port
+            # nodes (it must not) folds the swept cells next to them
+            ports = {i.index for i in e.ports}
+            near = [f.index for f in self._edges if ports & {i.index for i in f.ports}]
+            hexes = [n.reshape(-1, 8) for i in near for v in self._fitting_volumes[i]
+                     for t, _, n in zip(*gmsh.model.mesh.getElements(3, v)) if t == 5]
+            sj = min_scaled_jacobians(nx[pos[np.vstack(hexes).astype(int)]])
+            rep["min_sj"] = float(sj.min())
+            if sj.min() <= 0:
                 raise AssemblyError(
-                    f"{name}: wall projection moves a node by {move[worst]:.3g} "
-                    f"({ratio[worst]:.2f} local cell heights, limit "
-                    f"{limits.WALL_PROJECTION_MAX_MOVE:g}), to {np.round(y[worst], 6)}")
+                    f"{e.name}: wall projection folded {int((sj <= 0).sum())} cell(s), "
+                    f"min corner scaled Jacobian {sj.min():.3g} (decision 0029)")
 
     def _set_constraints(self) -> None:
         msh = gmsh.model.mesh

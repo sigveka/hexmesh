@@ -41,12 +41,10 @@ PREDICTED_SJ_WARN = 0.3
 #: Reject below: the wye prototype's floor (decision 0017).
 PREDICTED_SJ_MIN = 0.1
 
-#: Wall projection (decision 0029): the largest move of a mesh node onto
-#: its fitting's analytic wall, in local cell heights (the node's shortest
-#: hex edge to a node on no wall).  Beyond it, ``Assembly.mesh()`` stops:
-#: the projector or the surface it corrects is wrong.  Task 0051 measured
-#: at most 0.86 at ``nrad`` 3 (60° wye), growing as about 0.29 ``nrad``,
-#: so 4 admits uniform ``nrad`` up to about 13; a projector that crosses
-#: into another branch moves nodes by R or more.  Task 0056 revisits the
-#: unit (decision 0029's amendment).
-WALL_PROJECTION_MAX_MOVE = 4.0
+#: Wall projection (decision 0029, task 0056): a node moved further than
+#: this many local wall radii onto its fitting's analytic wall gets a
+#: warning naming the fitting.  Legitimate moves reach 0.77 R (30° wye,
+#: task 0051); a projector sending nodes across a branch moves them about
+#: R or more.  Folds are rejected by ``Assembly.mesh()``'s inversion check,
+#: not by distance.
+WALL_PROJECTION_WARN_MOVE = 1.0

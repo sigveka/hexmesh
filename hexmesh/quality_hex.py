@@ -412,6 +412,21 @@ def corner_scaled_jacobians(verts: np.ndarray) -> np.ndarray:
     return out
 
 
+def min_scaled_jacobians(verts: np.ndarray) -> np.ndarray:
+    """:func:`scaled_jacobian` of many hexes at once: *verts* (n, 8, 3) →
+    (n,), the smallest det(A_k) / (|e1| |e2| |e3|) over the eight corners
+    (0 where an edge has no length)."""
+    verts = np.asarray(verts, float)
+    out = np.full(len(verts), np.inf)
+    for k, (j, l, m) in enumerate(_JACOBIAN_TRIPLETS):
+        e = np.stack([verts[:, j] - verts[:, k], verts[:, l] - verts[:, k],
+                      verts[:, m] - verts[:, k]], axis=2)
+        n = np.prod(np.linalg.norm(e, axis=1), axis=1)
+        sj = np.divide(np.linalg.det(e), n, out=np.zeros(len(verts)), where=n > 0)
+        out = np.minimum(out, sj)
+    return out
+
+
 def scaled_jacobian(verts: np.ndarray) -> float:
     """Minimum corner scaled Jacobian, in [-1, 1]; 1 for a box.
 

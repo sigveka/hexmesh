@@ -103,14 +103,18 @@ def _wye(angle=60, nang=4):
 def test_wye_projected_without_folds(gmsh_session, angle, nang):
     """The 60° wye's crotch folded under nearest-point projection at nang 8,
     and 30–50° wyes with a narrow smoothing (task 0051); along the smoothed
-    direction none do."""
+    direction none do, and none warns (task 0056)."""
+    import warnings
     asm = _wye(angle, nang)
-    asm.mesh()
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        asm.mesh()
     report = asm.check_quality()
     assert report.ok and report.min_quality > 0, str(report)
     rep = asm.projection_report["Wye1"]
     assert 0.05 * R < rep["move"] < R                 # it did move the crotch
-    assert rep["ratio"] <= limits.WALL_PROJECTION_MAX_MOVE
+    assert rep["ratio"] <= limits.WALL_PROJECTION_WARN_MOVE
+    assert rep["min_sj"] > 0
 
 
 def test_shared_nodes_do_not_move(gmsh_session, monkeypatch):
@@ -133,10 +137,59 @@ def test_shared_nodes_do_not_move(gmsh_session, monkeypatch):
     assert np.abs(seen["after"] - seen["before"]).max() < 1e-12 * R
 
 
-def test_move_limit_names_the_fitting(gmsh_session, monkeypatch):
-    monkeypatch.setattr(limits, "WALL_PROJECTION_MAX_MOVE", 0.1)
-    with pytest.raises(AssemblyError, match=r"Wye1: wall projection moves a node .* local cell heights, limit 0\.1"):
+class _Swapped:
+    """Test double: the real projection, then each pair of nodes swapped.
+    Small moves, folded cells."""
+
+    def __init__(self, real):
+        self.real = real
+
+    def local_radius(self, q):
+        return self.real.local_radius(q)
+
+    def __call__(self, p):
+        q = self.real(p)
+        n = len(q) // 2 * 2
+        q[:n] = q[:n].reshape(-1, 2, 3)[:, ::-1].reshape(-1, 3)
+        return q
+
+
+class _Mirrored(_Swapped):
+    """Test double: every node mirrored through the hub, across the
+    branches.  Moves of about 2 R."""
+
+    def __init__(self, real, centre):
+        super().__init__(real)
+        self.centre = np.asarray(centre)
+
+    def __call__(self, p):
+        return 2 * self.centre - self.real(p)
+
+
+def _with_projector(monkeypatch, make):
+    wall = Wye.wall
+
+    def patched(self, inlet, spec, radius=None):
+        real = wall(self, inlet, spec, radius)
+        return make(real, self._axes(inlet)[0])
+    monkeypatch.setattr(Wye, "wall", patched)
+
+
+def test_folding_projector_rejected(gmsh_session, monkeypatch):
+    """Condition 2 of decision 0029: a bad projection fails in mesh(),
+    without a check_quality call (task 0056)."""
+    _with_projector(monkeypatch, lambda real, o: _Swapped(real))
+    with pytest.raises(AssemblyError, match=r"Wye1: wall projection folded \d+ cell\(s\), "
+                                            r"min corner scaled Jacobian -"):
         _wye(60, 4).mesh()
+
+
+def test_projector_across_branches_warns_and_is_rejected(gmsh_session, monkeypatch):
+    _with_projector(monkeypatch, _Mirrored)
+    with pytest.warns(UserWarning, match=r"Wye1: wall projection moves a node by .* local wall "
+                                         r"radii \(WALL_PROJECTION_WARN_MOVE 1\)"):
+        with pytest.raises(AssemblyError, match=r"Wye1: wall projection folded"):
+            _wye(60, 4).mesh()
 
 
 def test_surface_mesh_is_projected_too(gmsh_session):
