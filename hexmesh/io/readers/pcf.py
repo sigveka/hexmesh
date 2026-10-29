@@ -1333,8 +1333,9 @@ def _place(net, parts, nodes, at_node, names, root, spec, axial_cell, kinks, tol
         what = _describe(p.comp, p.label)
         frame = iface.frame
         if c.ins_junction:
-            raise AssemblyError(f"{what}: insulated junction; Tee and Wye are "
-                                f"single-layer, so insulation must stop before it")
+            raise AssemblyError(f"{what}: insulated junction; the reader can't "
+                                f"carry insulation through a junction yet (task 0054), "
+                                f"so insulation must stop before it")
         check(what, frame, c.start)
         centre = c.centre
         axis = _unit(centre - c.start)

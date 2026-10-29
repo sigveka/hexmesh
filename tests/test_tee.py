@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 from hexmesh.assembly import Assembly, AssemblyError, Straight, Tee
-from hexmesh.core.shape import CircleShape
+from hexmesh.core.shape import CircleShape, RectShape
 from hexmesh.core.spec import PipeSpec
 
 R = 0.1
@@ -54,11 +54,29 @@ class TestTopology:
             asm.validate()
         assert not gmsh.isInitialized()
 
-    def test_multilayer_rejected(self):
-        spec = _spec().shell("wall", dR=0.02, nrad=2)
-        asm, _, _ = _tee_asm(0.5, spec=spec)
-        with pytest.raises(AssemblyError, match="single-layer"):
+    @pytest.mark.parametrize("kw, message", [
+        # single-layer these fit; shells of 0.04 need more room (task 0052)
+        (dict(run=0.07), r"run_length must exceed the branch's outer radius 0\.09"),
+        (dict(branch=0.17), r"turning station's height 0\.185"),
+    ])
+    def test_shells_need_room(self, kw, message):
+        spec = _spec().shell("steel", dR=0.01, nrad=2).shell("insulation", dR=0.03, nrad=2)
+        for s in (_spec(), spec):
+            asm, _, _ = _tee_asm(0.5, spec=s, **kw)
+            if s is spec:
+                with pytest.raises(AssemblyError, match=message):
+                    asm.validate()
+            else:
+                asm.validate()
+        assert not gmsh.isInitialized()
+
+    def test_rectangular_shell_rejected(self):
+        spec = _spec().shell("box", outer=RectShape(0.15, 0.15, 4, 4), nrad=2)
+        # the branch spec needs circular shells, so it fails in add()
+        with pytest.raises((AssemblyError, ValueError), match="circular only.*0026"):
+            asm, _, _ = _tee_asm(0.5, spec=spec)
             asm.validate()
+        assert not gmsh.isInitialized()
 
 
 @pytest.mark.parametrize("ratio", [0.3, 0.5, 0.8, 0.95])
@@ -103,3 +121,65 @@ def test_tee_wall_check_catches_filled_faces(gmsh_session, monkeypatch):
     from hexmesh.assembly import tee as tee_mod
     monkeypatch.setattr(tee_mod, "tee_wall", lambda *a: None)
     assert _tee_wall_deviation(4, 0.5) > 0.02
+
+
+# ---------------------------------------------------------------------------
+# Shells through the junction (task 0052)
+# ---------------------------------------------------------------------------
+
+def _layered_tee(ratio=0.5, nang=4):
+    spec = (_spec(nang).shell("steel", dR=0.01, nrad=2)
+            .shell("insulation", dR=0.03, nrad=2))
+    asm = Assembly(spec, direction=[0, 1, 0], up=[0, 0, 1], lc=0.1)
+    asm.add(Straight(0.2, n_layers=2))
+    main, branch = asm.add(Tee(run_length=2 * R, branch_length=3 * R,
+                               branch_radius=ratio * R), names=["main", "branch"])
+    asm.add(main, Straight(0.2, n_layers=2))
+    asm.add(branch, Straight(0.2, n_layers=2))
+    return asm
+
+
+def test_branch_spec_copies_shells():
+    from hexmesh.assembly.tee import branch_spec
+    spec = _spec().shell("steel", dR=0.01, nrad=2, mprg=1.2).shell("insulation", dR=0.03, nrad=3)
+    b = branch_spec(spec, 0.05)
+    assert b.layer_names == spec.layer_names
+    assert [o.radius for o in b.outlines] == pytest.approx([0.05, 0.06, 0.09])
+    assert [(s.nrad, s.mprg) for s in b.shells] == [(2, 1.2), (3, 1.0)]
+
+
+@pytest.mark.parametrize("ratio", [0.5, 0.9])
+def test_interfaces_continuous_through_tee(gmsh_session, ratio):
+    """Each interface group covers all four fittings, main and branch, as one
+    edge-connected sheet of quads (task 0052)."""
+    asm = _layered_tee(ratio)
+    predicted = asm.cell_count()
+    asm.mesh()
+    types, tags, _ = gmsh.model.mesh.getElements(3)
+    assert list(types) == [5] and sum(len(t) for t in tags) == predicted
+    owner = {}
+    for i, vols in asm.fitting_volumes().items():
+        for _, s in gmsh.model.getBoundary([(3, v) for v in vols], combined=False,
+                                           oriented=False):
+            owner.setdefault(abs(s), set()).add(i)
+    groups = {gmsh.model.getPhysicalName(2, t): t for _, t in gmsh.model.getPhysicalGroups(2)}
+    names = sorted(n for n in groups if n.startswith("interface_"))
+    assert names == ["interface_fluid_steel", "interface_steel_insulation"]
+    for name in names:
+        surfs = gmsh.model.getEntitiesForPhysicalGroup(2, groups[name])
+        assert set().union(*(owner[s] for s in surfs)) == {0, 1, 2, 3}, name
+        quads = np.vstack([n.reshape(-1, 4) for s in surfs
+                           for t, n in zip(*gmsh.model.mesh.getElements(2, s)[::2]) if t == 3])
+        by_edge = {}
+        for q, nodes in enumerate(quads):
+            for a, b in zip(nodes, np.roll(nodes, -1)):
+                by_edge.setdefault(frozenset((a, b)), []).append(q)
+        seen, todo = {0}, [0]
+        while todo:
+            q = todo.pop()
+            for a, b in zip(quads[q], np.roll(quads[q], -1)):
+                for n in by_edge[frozenset((a, b))]:
+                    if n not in seen:
+                        seen.add(n)
+                        todo.append(n)
+        assert len(seen) == len(quads), f"{name}: {len(seen)} of {len(quads)} quads connected"

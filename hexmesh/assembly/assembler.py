@@ -492,7 +492,7 @@ class Assembly:
                     warnings.warn(f"{iface}: {msg}", UserWarning, stacklevel=2)
         for edge in self._edges:
             # The fitting's own checks first: they give the most specific
-            # reason (e.g. "Tee prototype supports single-layer specs only").
+            # reason (e.g. "Wye prototype supports single-layer specs only").
             try:
                 edge.fitting.validate(
                     [p.frame for p in edge.ports], edge.ports[0].spec

@@ -95,6 +95,15 @@ def _key(*ids) -> frozenset:
     return frozenset(ids)
 
 
+def _level(cyc):
+    """The common level of a face's vertices ``(prefix, level, k)``, or None."""
+    if all(isinstance(v, tuple) and len(v) == 3 for v in cyc):
+        levels = {v[1] for v in cyc}
+        if len(levels) == 1:
+            return levels.pop()
+    return None
+
+
 def _same_grading(g, h) -> bool:
     return g[0] == h[0] and math.isclose(g[1], h[1], rel_tol=1e-12)
 
@@ -128,11 +137,13 @@ class BlockLayout:
         # cylinder: None for a plate (``addSurfaceFilling``), or a
         # ``addBSplineFilling`` type ("Stretch", "Curved")
         self.filling: str | None = None
-        # Projection of a point onto the fitting's intended wall.  Set, every
-        # curved wall face is a plate through points on the wall
-        # (``_wall_surface``), so its interior mesh nodes lie on the wall to
-        # the plate's accuracy (DESIGN §6, task 0051).
-        self.wall = None
+        # Level → projection of a point onto that level's intended surface
+        # (the wall, or a shell boundary).  A curved face whose four
+        # vertices ``(prefix, level, k)`` share a level listed here is a
+        # plate through points on that surface (``_wall_surface``), so its
+        # interior mesh nodes lie on it to the plate's accuracy (DESIGN §6,
+        # tasks 0051, 0052).
+        self.walls: dict[int, object] = {}
         self._classes: dict[frozenset, tuple[int, tuple]] | None = None
 
     # -- construction -----------------------------------------------------
@@ -383,7 +394,7 @@ class BlockLayout:
             e.start = e.a
         return e.tag if e.start == a else -e.tag
 
-    def _surface(self, cyc, wall: bool = False) -> int:
+    def _surface(self, cyc) -> int:
         """Bound surface, or a new one (plane if straight and coplanar)."""
         k = _key(*cyc)
         if k not in self.faces:
@@ -399,8 +410,8 @@ class BlockLayout:
                 # surface is the exact cylinder (DESIGN §6, task 0025), as
                 # in a sweep's straight slab
                 self.faces[k] = _ruled(loop)
-            elif wall and self.wall is not None:
-                self.faces[k] = self._wall_surface(cyc, loop)
+            elif (wall := self.walls.get(_level(cyc))) is not None:
+                self.faces[k] = self._wall_surface(cyc, loop, wall)
             elif self.filling is not None:
                 self.faces[k] = geo.addBSplineFilling(loop, type=self.filling)
             else:
@@ -429,11 +440,10 @@ class BlockLayout:
             pts = pa + np.outer(t, pb - pa)
         return pts if e.a == a else pts[::-1]
 
-    def _wall_surface(self, cyc, loop: int) -> int:
+    def _wall_surface(self, cyc, loop: int, wall) -> int:
         """A wall surface bounded by *loop* that passes through the wall
         (task 0051): a plate filling of the loop's own curves, constrained
-        to a Coons grid between them projected onto the wall by
-        ``self.wall``.  Without the points a plate or B-spline filling only
+        to a Coons grid between them projected onto the wall by *wall*.  Without the points a plate or B-spline filling only
         knows the boundary and sags 0.4–16 % of R off a junction wall.
         """
         n = _WALL_SAMPLES
@@ -448,7 +458,7 @@ class BlockLayout:
                    + (1 - u) * v * top[0] + u * v * top[-1]))
         geo = gmsh.model.occ
         scale = max(np.ptp(grid.reshape(-1, 3), axis=0))
-        tags = [geo.addPoint(*self.wall(q)) for q in grid[1:-1, 1:-1].reshape(-1, 3)]
+        tags = [geo.addPoint(*wall(q)) for q in grid[1:-1, 1:-1].reshape(-1, 3)]
         tag = geo.addSurfaceFilling(loop, pointTags=tags, tol3d=_WALL_TOL * scale,
                                     maxDegree=_WALL_DEGREE, maxSegments=_WALL_SEGMENTS)
         for t_ in tags:
@@ -493,8 +503,7 @@ class BlockLayout:
         result = FillResult()
         surf_of: dict[frozenset, int] = {}
         for k, users in use.items():
-            surf_of[k] = self._surface(users[0][1],
-                                       wall=len(users) == 1 and k not in self.port_faces)
+            surf_of[k] = self._surface(users[0][1])
 
         for ids, material in self.blocks:
             sl = geo.addSurfaceLoop([surf_of[_key(*(ids[i] for i in f))] for f in _FACES])

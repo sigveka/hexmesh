@@ -140,9 +140,9 @@ def _spline(spec, points, **kw):
     return asm
 
 
-def _tee(ratio, direction=(0, 1, 0)):
+def _tee(ratio, direction=(0, 1, 0), spec=None):
     """Straight → Tee → Straight on both outlets."""
-    asm = Assembly(_one(), direction=list(direction), up=[0, 0, 1], lc=0.1)
+    asm = Assembly(spec or _one(), direction=list(direction), up=[0, 0, 1], lc=0.1)
     asm.add(Straight(0.2, n_layers=2))
     main, branch = asm.add(Tee(run_length=0.2, branch_length=0.25,
                                branch_radius=ratio * 0.1), names=["main", "branch"])
@@ -177,6 +177,9 @@ CASES = {
     "bend-rolled-180":     lambda: _rolled_outlet(_one(), Bend(0.3, 90, n_layers=4), 180),
     "tee-0.5":             lambda: _tee(0.5),
     "tee-0.9-oblique":     lambda: _tee(0.9, direction=(1, 1, 0.2)),
+    "tee-0.5-2layer":      lambda: _tee(0.5, spec=_two()),
+    "tee-0.9-3layer":      lambda: _tee(0.9, spec=_three()),
+    "tee-0.5-3layer-oblique": lambda: _tee(0.5, direction=(1, 1, 0.2), spec=_three()),
     "wye-60":              lambda: _wye(60),
     "wye-90":              lambda: _wye(90),
     "wye-60-oblique":      lambda: _wye(60, direction=(1, 1, 0.2)),
@@ -355,15 +358,18 @@ def _outline_dev(u, v, spec0, spec1=None, t=None):
 
 
 def _tee_deviation(tee, inlet, spec, x) -> float:
-    """Largest distance of the points *x* from a tee's wall, the union of its
-    main cylinder and its branch cylinder (z ≥ 0 along the branch axis),
-    relative to the main radius."""
+    """Largest distance of the points *x* from the nearest of a tee's layer
+    boundaries, each the union of a main cylinder and a branch cylinder
+    (z ≥ 0 along the branch axis) grown by the shells' cumulative
+    thickness (decision 0028), relative to the outer radius."""
     o, ex, _, ez = tee._origin_basis(inlet)
     R, r = spec.core_shape.radius, tee.branch_radius
     v = x - o
-    dm = np.linalg.norm(v - np.outer(v @ ex, ex), axis=1) - R
-    db = np.linalg.norm(v - np.outer(np.clip(v @ ez, 0, None), ez), axis=1) - r
-    return float(np.abs(np.minimum(dm, db)).max() / R)
+    dm = np.linalg.norm(v - np.outer(v @ ex, ex), axis=1)
+    db = np.linalg.norm(v - np.outer(np.clip(v @ ez, 0, None), ez), axis=1)
+    Ts = [o_.radius - R for o_ in spec.outlines]
+    dev = np.min([np.abs(np.minimum(dm - (R + T), db - (r + T))) for T in Ts], axis=0)
+    return float(dev.max() / (R + Ts[-1]))
 
 
 def wall_deviations(asm) -> dict[str, float]:

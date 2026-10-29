@@ -7,7 +7,8 @@ The tee is a block layout: its O-grid ring layer turns continuously from
 the main pipe into the branch, so the junction is all-hex with no merged
 nodes.  Ports are named, and the open ends become the patches
 ``fluid_inlet``, ``fluid_main_end`` and ``fluid_branch_end``.
-(Prototype limits: single-layer spec, branch radius below the main radius.)
+(Limits: circular layers, branch radius below the main radius.  Shells run
+through the junction too: decision 0028.)
 """
 
 from hexmesh import Assembly, Bend, PipeSpec, Straight, Tee

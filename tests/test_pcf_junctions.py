@@ -360,7 +360,8 @@ PIPE
         _read(tmp_path, text).to_assembly(_spec())
 
 
-def test_layered_spec_rejected_naming_the_tee(tmp_path):
+def test_layered_spec_runs_through_the_tee(tmp_path):
+    """A pipe wall runs through the tee into the branch (task 0052)."""
     text = LINE + """\
 TEE
     END-POINT 1000 0 0 100
@@ -369,8 +370,10 @@ TEE
     BRANCH1-POINT 1100 300 0 50
 """
     layered = _spec().shell("wall", dR=0.005, nrad=2)
-    with pytest.raises(AssemblyError, match=r"TEE_1.*single-layer"):
-        _read(tmp_path, text).to_assembly(layered)
+    asm = _read(tmp_path, text).to_assembly(layered)
+    asm.validate()
+    tee = next(e for e in asm.edges if len(e.ports) == 3)
+    assert [p.spec.layer_names for p in tee.ports] == [["fluid", "wall"]] * 3
 
 
 def test_component_identifier_labels(tmp_path):

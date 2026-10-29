@@ -300,8 +300,8 @@ same grading.
 The assembly supports any stack of circle and rectangle outlines through
 the sweep fittings (`Straight`, `Bend`, `MiterBend`, `SplinePipe`,
 `Closure`, `Reducer`); bend radii are checked against the outermost
-outline. `Elbow` and drum nozzles need every outline circular; `Tee`
-and `Wye` are single-layer.
+outline. `Elbow`, `Tee` and drum nozzles need every outline circular;
+`Wye` is single-layer.
 
 ---
 
@@ -521,8 +521,16 @@ A perpendicular, centred side-branch tee, built as a block layout.
   Other branch angles need a twisting fitting (decision 0024).
 - **Layers.** `n_run`, `n_branch` and `n_turn` are the axial layers of the
   runs, the branch, and the turning blocks.
-- **Limits.** A single-layer spec, `rot = 0`, and `branch_radius` below the
-  main radius.
+- **Shells.** Any stack of circular shells runs through the junction
+  (decision 0028). The branch copies the main's shells: same names,
+  thicknesses, `nrad` and `mprg`. Each interface group (`interface_fluid_steel`
+  …) and the outer wall continue from the main through the junction into
+  the branch. Wall and shell boundaries lie on their offset cylinders to
+  about 3e-4 of the radius (task 0051).
+- **Limits.** Circular layers, `rot = 0`, and `branch_radius` below the
+  main radius. With T the total shell thickness, `run_length` must exceed
+  `branch_radius + T`, and `branch_length` the turning station's height,
+  `R + T + (branch_radius + T)/2`. Both are checked before GMSH.
 
 ### `Wye(angle, run_length, branch_length, n_run=3, n_branch=3, n_split=3, roll=0.0, toward=None)`
 
@@ -712,7 +720,7 @@ the bare one when both are straight: a bare valve between insulated pipes
 gets insulation one cell in at each side.  A straight whose two ends
 differ switches at its middle.  Each switch is an `insulation_end` wall.
 Rejected, naming the component or pipeline: an insulated junction
-(`Tee` / `Wye` are single-layer), a switch with no straight neighbour, a
+(not yet read through a junction: task 0054), a switch with no straight neighbour, a
 thickness change between two insulated components, an insulated pipeline
 without `INSULATION-THICKNESS`, and a spec that already has an
 `insulation` shell.

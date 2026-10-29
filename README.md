@@ -551,8 +551,9 @@ with `python3 docs/gallery/build.py` (needs `vtk`).
 
 ## Current limitations
 
-- **Tee:** single-layer specs, perpendicular and centred branch, branch radius
-  below the main radius.
+- **Tee:** perpendicular and centred branch, branch radius below the main
+  radius; shells circular, and the branch's copy the main's (no separate
+  branch wall thickness).
 - **Wye (prototype):** single-layer specs, equal daughters with the inlet's
   spec, coplanar and symmetric, angle 30°–120°. Quality is measured, not
   yet bounded: min scaled Jacobian about 0.1 (decision 0017).

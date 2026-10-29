@@ -422,10 +422,14 @@ def test_spool_set_on_meshes_on_single_layer_spec(tmp_path):
 
 
 def test_spool_set_on_rejected_on_layered_spec(tmp_path):
+    """A set-on tee's run is the branch bore each side (task 0037): too short
+    for the wall's slab, which inverts.  Rejected before GMSH (task 0052,
+    Questions for design)."""
     net = _read_spool(tmp_path, SPOOL)
-    with pytest.raises(AssemblyError, match=r"component 7 \(TEE-SET-ON .*SKEY TESO"
-                                            r".*single-layer"):
-        net.to_assembly(_spec(0.05))
+    asm = net.to_assembly(_spec(0.05))
+    with pytest.raises(AssemblyError, match=r"Tee.*inverted or degenerate"):
+        asm.validate()
+    assert not gmsh.isInitialized()
 
 
 def _read_spool(tmp_path, text, name="spool.pcf"):
