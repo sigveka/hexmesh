@@ -74,7 +74,7 @@ in degrees. The thresholds are data, in `hexmesh.assembly.limits`.
 
 | Method | Does |
 |---|---|
-| `mesh(dim=3, *, walls_by_fitting=False)` | Build faces, fill all fittings, write physical groups, and mesh. Between the surface and volume mesh, junction wall nodes are projected onto their analytic walls (decision 0029); `projection_report` holds each fitting's largest move, absolute and in local wall radii, and its cells' min corner scaled Jacobian. A move beyond `limits.WALL_PROJECTION_WARN_MOVE` (1) wall radii warns; a folded cell (corner SJ ≤ 0) in a projected fitting or its neighbours raises `AssemblyError`, naming the fitting. Projected nodes keep stale parametric coordinates, so leave GMSH's mesh optimisers off. Walls are `{layer}_wall`, after the layer outermost where they are, plus `{layer}_end` for the end faces of a terminated layer. With `walls_by_fitting`, each is split per fitting, `{group}_{name}`; *name* is the fitting's label or `<Type><index>` (`Bend3`) |
+| `mesh(dim=3, *, walls_by_fitting=False)` | Build faces, fill all fittings, write physical groups, and mesh. Between the surface and volume mesh, junction wall nodes are projected onto their analytic walls (decision 0029); `projection_report` holds each fitting's largest move, absolute and in local wall radii, and its cells' min corner scaled Jacobian. A move beyond `limits.WALL_PROJECTION_WARN_MOVE` (1) wall radii warns; a folded cell (corner SJ ≤ 0) in a projected fitting or its neighbours raises `AssemblyError`, naming the fitting. An OCC or GMSH error inside a fitting's fill also becomes an `AssemblyError` naming the fitting and quoting the original message. Projected nodes keep stale parametric coordinates, so leave GMSH's mesh optimisers off. Walls are `{layer}_wall`, after the layer outermost where they are, plus `{layer}_end` for the end faces of a terminated layer. With `walls_by_fitting`, each is split per fitting, `{group}_{name}`; *name* is the fitting's label or `<Type><index>` (`Bend3`) |
 | `write(path, dim=3, *, walls_by_fitting=False)` | `mesh()`, then `gmsh.write(path)`; the format follows the extension |
 | `write_openfoam(path, *, interfaces=False, walls_by_fitting=False)` | `mesh()`, then write a `.msh` for `gmshToFoam`: MSH 2.2 ASCII, without the material-interface groups unless `interfaces=True` (the split rebuilds them as `mappedWall`; kept, they become faceZones); the GMSH options and groups are restored afterwards.  Also writes the role manifest `<stem>.roles.json` |
 | `group_roles()` | Physical-group name → role (`volume`, `open_end`, `wall`, `interface`), from the graph, as last written by `mesh()` |
@@ -583,14 +583,17 @@ decision 0017).
   `angle` from 30° to 120°. `run_length` must exceed R·(tan(angle/2) + 0.1)
   and `branch_length` R·(cot(angle/2) + 1); the messages give the numbers.
 - **Shells** (task 0053).  Each shell boundary is the wall's level set at
-  R + T_l, built and projected like the wall.  The total shell thickness
-  is limited, and not yet checked before gmsh: about 0.19 R at 30°,
-  0.28 R at 45°, 0.40 R at 60°, 0.59 R at 90°, 0.84 R at 120° (any
-  `nang`).  Past it the daughters' shells fold where they meet (below
-  90°, caught by `mesh()`), OCC fails building the crotch (90°), or a
-  hub shell block inverts (120°, caught by `validate()`).  A pipe wall
-  (T ≈ 0.04 R) is well inside; at 30° the shell's min corner SJ is
-  about 0.04.
+  R + T_l, built and projected like the wall.  Checked before gmsh:
+  - `angle` ≥ 40° (`limits.WYE_SHELL_MIN_ANGLE`; the shell cells' min
+    corner SJ is 0.11–0.13 at 40°, 0.04 at 30°);
+  - total shell thickness T ≤ R · min(0.65 tan(angle/2), 0.55)
+    (`WYE_SHELL_TAN_FACTOR`, `WYE_SHELL_MAX`): 0.27 / 0.38 / 0.55 R at
+    45° / 60° / 90°–120°.  The measured limits are 0.28 / 0.40 / 0.59 /
+    0.84 R at 45° / 60° / 90° / 120°; past them the daughters' shells fold.
+  A pipe wall (T ≈ 0.04 R) is well inside.
+- **Quality warning.** `validate()` warns when the layout's predicted min
+  corner SJ is below `PREDICTED_SJ_MIN` (0.1): single-layer wyes at 30°
+  and 35°.  There is no reject tier for the wye until its layout redesign.
 - **Wall.** The union of the inlet and daughter tubes, with a sharp crotch
   crease. `mesh()` projects the junction's wall nodes onto it (decision
   0029), so they lie on it to rounding; the faces between them are

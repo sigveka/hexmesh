@@ -120,6 +120,47 @@ class TestTopology:
             asm, _, _ = _wye_asm(spec=spec)
             asm.validate()
 
+    @pytest.mark.parametrize("angle, inside, outside", [
+        (60, 0.35, 0.40),        # limit 0.65 tan 30° = 0.375 R
+        (90, 0.50, 0.60),        # limit capped at 0.55 R
+    ])
+    def test_shell_thickness_limit(self, angle, inside, outside):
+        """Task 0053: total shell thickness ≤ R·min(0.65 tan(angle/2), 0.55),
+        checked before GMSH, the error naming angle, thickness and limit."""
+        two = lambda t: _spec().shell("wall", dR=t / 2 * R, nrad=1).shell(
+            "insulation", dR=t / 2 * R, nrad=1)
+        asm, _, _ = _wye_asm(angle, spec=two(inside), run=0.4, branch=0.7)
+        asm.validate()
+        with pytest.raises(AssemblyError, match=rf"Wye at {angle}°: total shell "
+                           rf"thickness .*\({outside:g} R\) exceeds the limit"):
+            asm, _, _ = _wye_asm(angle, spec=two(outside), run=0.4, branch=0.7)
+            asm.validate()
+        assert not gmsh.isInitialized()
+
+    def test_shell_min_angle(self):
+        """Shelled wyes start at WYE_SHELL_MIN_ANGLE (40°); single-layer at 30°."""
+        thin = _spec().shell("wall", dR=0.04 * R, nrad=1)
+        asm, _, _ = _wye_asm(40, spec=thin, run=0.4, branch=0.7)
+        asm.validate()
+        with pytest.raises(AssemblyError, match="35° with shells .*WYE_SHELL_MIN_ANGLE 40°"):
+            asm, _, _ = _wye_asm(35, spec=thin, run=0.4, branch=0.7)
+            asm.validate()
+        asm, _, _ = _wye_asm(35, run=0.4, branch=0.7)
+        asm.validate()
+
+    @pytest.mark.parametrize("angle, warns", [(30, True), (35, True), (45, False)])
+    def test_narrow_wye_warns(self, angle, warns):
+        """Predicted min corner SJ < PREDICTED_SJ_MIN warns (task 0053); the
+        wye has no reject tier until its layout redesign."""
+        asm, _, _ = _wye_asm(angle, run=0.4, branch=0.7)
+        if warns:
+            with pytest.warns(UserWarning, match=r"predicted min corner scaled "
+                              r"Jacobian 0\.\d+ is below PREDICTED_SJ_MIN"):
+                asm.validate()
+        else:
+            asm.validate()
+            assert not [w for w in asm.warnings if "PREDICTED_SJ_MIN" in w]
+
     def test_crotch_corners_on_the_wall(self):
         """The wall vertices of the crotch lie on the intended wall."""
         asm, _, _ = _wye_asm(60)
@@ -162,6 +203,18 @@ def test_thin_wall_shell(gmsh_session, angle):
     names = {gmsh.model.getPhysicalName(d, t) for d, t in gmsh.model.getPhysicalGroups()}
     assert {"fluid", "wall", "interface_fluid_wall", "wall_wall"} <= names, names
     assert asm.projection_report[asm.edges[0].name]["min_sj"] > 0.1
+
+
+def test_fill_errors_are_assembly_errors(gmsh_session, monkeypatch):
+    """No raw OCC/GMSH exception escapes a fill (task 0053): it becomes an
+    AssemblyError naming the fitting and quoting the original message."""
+    def boom(self, *a, **k):
+        raise Exception("OpenCASCADE exception  GeomFill_BSplineCurves: forced")
+    monkeypatch.setattr(Wye, "fill", boom)
+    asm, _, _ = _wye_asm(60)
+    with pytest.raises(AssemblyError, match=r"Wye.*fill failed \(Exception: "
+                       r"OpenCASCADE exception  GeomFill_BSplineCurves: forced\)"):
+        asm.mesh()
 
 
 def test_mesh_is_mirror_symmetric(gmsh_session):

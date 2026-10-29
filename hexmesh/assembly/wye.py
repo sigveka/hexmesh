@@ -266,6 +266,8 @@ class Wye:
             if not isinstance(outline, CircleShape):
                 raise ValueError(f"Wye: shell `{sh.name}` is not circular; junction "
                                  f"shells are circular only (decisions 0026, 0028)")
+        if spec.shells:
+            self._check_shells(spec)
         if spec.rot != 0 or spec.n_outer != 4:
             raise ValueError("Wye prototype requires rot = 0 and n_outer = 4")
         if self.toward is not None:
@@ -295,6 +297,27 @@ class Wye:
                                  f"add the fitting to an assembly")
             if n < 1:
                 raise ValueError("layer counts must be >= 1")
+
+    def _check_shells(self, spec: PipeSpec) -> None:
+        """Shelled wyes: the narrowest angle and the total thickness
+        (``limits.WYE_SHELL_*``, task 0053)."""
+        if self.angle < limits.WYE_SHELL_MIN_ANGLE:
+            raise ValueError(
+                f"Wye angle {self.angle:g}° with shells is below "
+                f"WYE_SHELL_MIN_ANGLE {limits.WYE_SHELL_MIN_ANGLE:g}°: the shell "
+                f"cells' quality collapses (single-layer wyes go down to "
+                f"{ANGLE_RANGE[0]:g}°)")
+        R = spec.core_shape.radius
+        T = spec.outlines[-1].radius - R
+        h = math.radians(self.angle) / 2
+        allowed = R * min(limits.WYE_SHELL_TAN_FACTOR * math.tan(h), limits.WYE_SHELL_MAX)
+        if T > allowed:
+            raise ValueError(
+                f"Wye at {self.angle:g}°: total shell thickness {T:.4g} "
+                f"({T / R:.3g} R) exceeds the limit {allowed:.4g} ({allowed / R:.3g} R "
+                f"= R · min({limits.WYE_SHELL_TAN_FACTOR:g} tan(angle/2), "
+                f"{limits.WYE_SHELL_MAX:g})): the daughters' shells fold where they "
+                f"meet")
 
     def layout(self, frames: list[Frame], spec: PipeSpec) -> BlockLayout:
         # Declared in the rolled inlet frame; fill() binds the inlet face
@@ -455,7 +478,11 @@ class Wye:
 
     # -- contract -----------------------------------------------------
 
-    def validate(self, frames: list[Frame], spec: PipeSpec) -> None:
+    def validate(self, frames: list[Frame], spec: PipeSpec) -> list[str]:
+        """Raise ValueError if invalid; return warnings (a layout whose
+        predicted min corner SJ is below ``PREDICTED_SJ_MIN``: the narrow
+        single-layer wyes, task 0053).  The reject tier is off for the
+        wye until its layout redesign."""
         self.check(spec)
         check_port_pairs(self, [spec] + [s for _, s in self.ports(frames[0], spec)])
         expected = [f for f, _ in self.ports(frames[0], spec)]
@@ -465,9 +492,14 @@ class Wye:
                     or np.dot(want.up, got.up) < 1 - 1e-9):
                 raise ValueError("port interface does not match Wye geometry")
         try:
-            self.layout(frames, spec).validate()
+            sj = self.layout(frames, spec).validate()["min_corner_sj"]
         except LayoutError as e:
             raise ValueError(f"block layout invalid: {e}") from None
+        if sj < limits.PREDICTED_SJ_MIN:
+            return [f"Wye at {self.angle:g}°: predicted min corner scaled Jacobian "
+                    f"{sj:.3g} is below PREDICTED_SJ_MIN {limits.PREDICTED_SJ_MIN:g} "
+                    f"(narrow wyes; the layout redesign is planned)"]
+        return []
 
     def cell_count(self, frames: list[Frame], spec: PipeSpec) -> int:
         """Exact hex count of the block layout (pure; DESIGN P4)."""

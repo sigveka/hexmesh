@@ -606,12 +606,20 @@ class Assembly:
 
         fill = FillResult()
         for edge in edges:
-            with _occ.building():
-                part = edge.fitting.fill(
-                    [p.face for p in edge.ports],
-                    [p.frame for p in edge.ports],
-                    edge.ports[0].spec, self.lc,
-                )
+            # No raw OCC or GMSH exception escapes a fill (task 0053): it
+            # becomes an AssemblyError naming the fitting.
+            try:
+                with _occ.building():
+                    part = edge.fitting.fill(
+                        [p.face for p in edge.ports],
+                        [p.frame for p in edge.ports],
+                        edge.ports[0].spec, self.lc,
+                    )
+            except AssemblyError:
+                raise
+            except Exception as e:
+                raise AssemblyError(
+                    f"{edge}: fill failed ({type(e).__name__}: {e})") from e
             self._fitting_volumes[edge.index] = [v for vs in part.volumes.values() for v in vs]
             # Wall group per surface; a fill that names none has its
             # inlet's stack throughout (DESIGN A7, decision 0006).

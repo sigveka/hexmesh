@@ -55,6 +55,20 @@ COSINE_S0_MAX = 0.5
 #: every angle measured keeps SJ ≥ 0.11.
 WYE_N_SPLIT_MAX = 6
 
+#: Total shell thickness through a wye (task 0053): T ≤ R ·
+#: min(WYE_SHELL_TAN_FACTOR · tan(angle/2), WYE_SHELL_MAX), R the core
+#: radius.  Measured limits (any nang): 0.19 / 0.28 / 0.40 / 0.59 / 0.84 R
+#: at 30° / 45° / 60° / 90° / 120°, i.e. 0.69 tan(angle/2) below 90°.
+#: Past them the daughters' shells fold where they meet, OCC fails
+#: building the crotch (90°), or a hub shell block inverts (120°).  The
+#: rule allows 0.17 / 0.27 / 0.38 / 0.55 / 0.55 R.
+WYE_SHELL_TAN_FACTOR = 0.65
+WYE_SHELL_MAX = 0.55
+#: Narrowest wye with shells (task 0053): the shell cells' min corner SJ is
+#: 0.11–0.13 at 40° (thin and at the limit) but 0.04–0.05 at 30°.
+#: Single-layer wyes keep 30°–120° (decision 0017).
+WYE_SHELL_MIN_ANGLE = 40.0
+
 #: Wall projection (decision 0029, task 0056): a node moved further than
 #: this many local wall radii onto its fitting's analytic wall gets a
 #: warning naming the fitting.  Legitimate moves reach 0.77 R (30° wye,

@@ -108,6 +108,8 @@ def test_wye_projected_without_folds(gmsh_session, angle, nang):
     asm = _wye(angle, nang)
     with warnings.catch_warnings():
         warnings.simplefilter("error")
+        # 30°: the narrow-wye quality warning (task 0053) is expected
+        warnings.filterwarnings("ignore", message=".*below PREDICTED_SJ_MIN")
         asm.mesh()
     report = asm.check_quality()
     assert report.ok and report.min_quality > 0, str(report)

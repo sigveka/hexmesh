@@ -1,6 +1,6 @@
 # 0053 — Multi-layer wye: shells as offset level sets
 
-- **Status:** ready (design answered Q1 2026-10-30: the thickness limit, error wrapping, 45° for shelled wyes)
+- **Status:** done
 - **Decision:** [0028 — Multi-layer junctions](../decisions/0028-multi-layer-junctions.md)
 - **Depends on:** 0051.
 
@@ -171,20 +171,41 @@ inputs (decision 0029, item 5).  Thanks for trying both variants.
 
 ## Outcome
 
-**Partial (2026-10-30): steps 0–2 and 4 done, step 3 measured; blocked
-on Q1 (the limit to enforce).**
-- **Files:** `hexmesh/assembly/wye.py` (`Skeleton` level sets, shell
-  levels in `layout`, per-level projectors, circular-shell check),
-  `tests/test_fitting_conformance.py` (four kit cases, every level set
-  measured), `tests/test_wye.py` (thin-shell probe, rectangular shell
-  rejected), `tests/test_layer_outlines.py` (message), `API.md`,
-  `README.md`.
-- **Accept so far:** kit cases at 60° and 90°, fluid + wall and fluid +
-  wall + insulation: all-hex, meshed = predicted, walls and interfaces
-  on their level sets, signatures class 0 (all kit tests pass).
-  Single-layer meshes identical.  Quality table under *Agent notes*.
-- **Suite:** 1969 passed, 14 skipped; the one failure (an old
-  "single-layer" message in `test_layer_outlines.py`) fixed, file
-  re-run 48 passed.
-- **Left for after Q1:** the pre-gmsh thickness check with its message,
-  and its test.
+**Done (2026-10-30).**  Steps 0–4 and the design answer to Q1.
+- **Files:**
+  - `hexmesh/assembly/wye.py`: `Skeleton` level sets, shell levels in
+    `layout`, per-level projectors, circular-shell check,
+    `_check_shells`, and the predicted-SJ warning in `validate`.
+  - `hexmesh/assembly/limits.py`: `WYE_SHELL_TAN_FACTOR` 0.65,
+    `WYE_SHELL_MAX` 0.55 and `WYE_SHELL_MIN_ANGLE` 40°, with the
+    measured limits.
+  - `hexmesh/assembly/assembler.py`: `fill()` turns any OCC or GMSH
+    exception into an `AssemblyError` naming the fitting and quoting
+    the message.
+  - Tests: `test_fitting_conformance.py` (four kit cases),
+    `test_wye.py`, `test_layer_outlines.py`, `test_projection.py`.
+  - `API.md`, `README.md`.
+- **40° measurement** (design item 3), shell `nrad` 2: the shell cells'
+  min corner SJ is 0.120 / 0.126 for a thin shell (T/R 0.04, `nang`
+  4 / 8) and 0.108 / 0.114 at the limit (0.237 R).  The fluid's is
+  0.109.  That's ≥ 0.1, so `WYE_SHELL_MIN_ANGLE` is 40°.  At 45° the
+  shell SJ is 0.173 thin and 0.159 at the limit.
+- **Narrow-wye warning:** the predicted min corner SJ is 0.065 at 30°
+  and 0.086 at 35°, so both warn; 40° and up don't.  There's no reject
+  tier.
+- **Tests added:**
+  - the thickness limit on each side at 60° and 90°;
+  - the minimum angle (35° rejected with a shell, 40° accepted, 35°
+    single-layer accepted);
+  - the warning at 30°, 35° and 45°;
+  - a forced fill failure, raised as `AssemblyError`;
+  - the thin-shell probe at 90° and 120°.
+- **Suite:** 1975 passed, 14 skipped, 2 failed.  The two failures are
+  `test_projection.py::test_wye_projected_without_folds[30-*]`: it
+  turns every warning into an error, so it caught the new, intended
+  narrow-wye warning.  It now ignores that one warning; the file
+  re-ran 20 passed.
+- **Follow-ups:**
+  - the wye-layout redesign (decision 0029 item 5), with the
+    outer-station experiment as input;
+  - the reject tier for wyes after that redesign.

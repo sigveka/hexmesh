@@ -556,8 +556,8 @@ with `python3 docs/gallery/build.py` (needs `vtk`).
 - **Tee:** perpendicular and centred branch, branch radius below the main
   radius; shells circular, and the branch's copy the main's (no separate
   branch wall thickness).
-- **Wye (prototype):** circular shells up to a total thickness of about
-  0.19 R at 30° to 0.84 R at 120° (`API.md`), equal daughters with the inlet's
+- **Wye (prototype):** circular shells from 40°, total thickness up to
+  0.65 R·tan(angle/2), at most 0.55 R (`API.md`), equal daughters with the inlet's
   spec, coplanar and symmetric, angle 30°–120°. Quality is measured, not
   yet bounded: min scaled Jacobian about 0.1 (decision 0017). The wall
   nodes are exact, but the faces between them miss the wall by about 2 %
