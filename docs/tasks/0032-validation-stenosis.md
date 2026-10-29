@@ -267,6 +267,12 @@ it when SIMPLE's iteration is unstable around the fixed point.
   the medium level (about 15 min on 4 cores) in *Outcome*; it sets the
   study's budget.
 
+**Design-session checks (2026-10-29):** SIMPLE's plateau is neither
+the convection scheme (limitedLinearV, linearUpwind and linear all
+plateau) nor the hexmesh mesh (a `blockMesh` O-grid with the same
+topology plateaus the same way).  Details in
+`docs/integrations/openfoam.md`.  `pimpleFoam` to steady stands.
+
 ## Outcome
 
 _Not done._

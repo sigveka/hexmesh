@@ -119,6 +119,29 @@ All v1912, gmsh 4.12.1, 2026-10-25.
   Each region still passed `checkMesh`, so only the patch list shows the
   error.  `write_openfoam` therefore leaves these groups out by default
   (`interfaces=True` keeps them).
+- **`simpleFoam` doesn't converge on the steady laminar stenosis jet; it
+  isn't the mesh or the convection scheme** (v1912, design session
+  2026-10-29, task 0032).  Medium level (122 688 cells, Re 500, cosine
+  stenosis s0 = 0.25), 1500 SIMPLE iterations on 4 cores, relaxation
+  p 0.3 / U 0.7:
+  - `div(phi,U)` = `bounded Gauss limitedLinearV 1`, `linearUpwind
+    grad(U)` and `linear`: all plateau within about 100 iterations (p
+    residual 0.35–0.47), with reattachment 4.7–5.5 D against the DNS
+    database's 11.0 D.  Not limiter chatter.
+  - An independent `blockMesh` O-grid with the same topology, counts and
+    axial stations (1420 blocks; non-orthogonality 31.0°, skewness 0.69)
+    plateaus the same way (p 0.39–0.42, reattachment 5.2 D).  Not the
+    hexmesh mesh or its `gmshToFoam` route.
+  - The coding session (task 0032) found that SIMPLE, SIMPLEC and heavier
+    relaxation all plateau, and that SIMPLE started on the converged
+    steady state leaves it.  Transient `pimpleFoam` reaches the steady
+    state.
+  - Reading: SIMPLE's iteration is unstable around this steady solution
+    (a confined jet near its instability threshold), an algorithmic
+    limit, not a defect.  Not reported upstream.  To take it further:
+    a current OpenFOAM release, then a CFD Online question if it
+    persists.
+  - Scripts: the design session's scratchpad (`simple_check/`).
 - **`checkMesh` thresholds** (v1912, design session 2026-10-28, task
   0047).  On a circle-in-3:1-rectangle ring (max non-orthogonality
   81.3°): "*Number of severely non-orthogonal (> 70 degrees) faces:
