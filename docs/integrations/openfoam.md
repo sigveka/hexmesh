@@ -235,6 +235,38 @@ All v1912, gmsh 4.12.1, 2026-10-25.
   (`simpleCoeffs { n (N 1 1); delta 0.001; }`, slabs along a pipe's x
   axis), and needs no graph partitioner.
 
+- **Open: the buoyant/compressible flow solvers diverge on hexmesh meshes**
+  (v1912 Ubuntu package `1912.200626-2build3`, gmsh 4.12.1, 2026-10-29,
+  task 0035).  Incompressible `simpleFoam`/`pimpleFoam` on the same
+  meshes are fine (tasks 0020, 0032).  Not yet explained.
+  - **Symptom:** `buoyantSimpleFoam`, `chtMultiRegionSimpleFoam` (fluid
+    region) and the transient `buoyantPimpleFoam` (Co 0.5) all blow up
+    within 5 iterations or steps: continuity error grows 50–1000× per
+    pressure correction, transverse velocity appears first in the inlet
+    cells near the O-H core corners (r ≈ 0.46–0.53 R), then h, and the
+    run aborts with "Negative initial temperature T0".
+  - **Converges, same dictionaries and fields:** a `blockMesh` square
+    duct (64 × 10 × 10, orthogonal), 300 iterations to continuity 1.6e-9;
+    and the shipped `buoyantSimpleFoam/buoyantCavity` tutorial unchanged.
+  - **Diverges:** every hexmesh mesh tried, via `gmshToFoam` +
+    `apply_boundary_roles`: the circular O-H pipe (cell aspect 12 or
+    1.6), and a hexmesh square duct (`RectShape`, planar faces, non-orth.
+    ≈ 23°).
+  - **Ruled out** (each changed alone, still diverges): `rhoConst` vs
+    `perfectGas`; p level 0 vs 1e5; water-like vs air-like fluid at the
+    same Re; g = 0 vs −9.81; `momentumPredictor` on/off; relaxation
+    (0.3/0.3, 0.7/0.3, the tutorials'); upwind vs limitedLinear;
+    `fixedFluxPressure` vs `zeroGradient` p_rgh; velocity vs pressure
+    inlet; GAMG vs PCG; cell/face/point zones removed; `renumberMesh`;
+    developed vs zero initial velocity.
+  - **Mesh checks pass:** `checkMesh -allGeometry -allTopology` OK; every
+    internal face points owner → neighbour and every boundary face
+    outward; `fvc::reconstruct`'s Σ Sf⊗Sf/|Sf| has condition ≤ 6 and
+    reconstructs a uniform field to 1e-17.
+  - Next to try: a `blockMesh` O-grid pipe (to tell topology from
+    hexmesh/`gmshToFoam` specifics), non-orthogonal correctors on the
+    `blockMesh` duct skewed to 23°, another OpenFOAM build.
+
 
 
 ## Gaps in hexmesh's OpenFOAM support
