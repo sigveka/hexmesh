@@ -3,7 +3,7 @@
 - **Status:** accepted
 - **Date:** 2026-10-24 (accepted 2026-10-26 by the user: "I accept the
   two tasks")
-- **Tasks:** 0031, 0032
+- **Tasks:** 0031, 0032; 0055 (bulges, amendment 2026-10-28)
 
 ## Context
 
@@ -95,6 +95,29 @@ Settled at acceptance:
 4. **Exactness under decision 0015:** one axial layer per station slab,
    so no surface carries interior nodes; wall nodes are exact at every
    station, and chords between stations are bounded in `validate()`.
+
+### Amendment (2026-10-28, accepted by the user): bulges
+
+`("cosine", s0)` also takes **s0 ≤ 0**: a smooth symmetric bulge with
+largest radius `(1 − 2·s0)·R` at the middle; s0 = 0 is a plain pipe.
+Allowed range **−1 ≤ s0 < 0.5**, so the bulge is at most 3 R.
+- **Why.**  Outward bulges are real geometries:
+  - fusiform aneurysms (abdominal aortic aneurysms), and the dilatation
+    downstream of a stenosis;
+  - expansion chambers and pulsation dampeners;
+  - strainer housings;
+  - corroded or overpressured pipe sections.
+- **For studies.**  One parameter then spans constriction → plain pipe
+  → bulge with a single mesh topology: node-aligned variants for a
+  surrogate, whose response changes character at s0 = 0.
+- **Meshing is unchanged:** every layer scales with r(s), and the
+  chord-error check applies as before.
+- **The name stays** (`"cosine"`); its docstring says "constriction
+  (s0 > 0) or bulge (s0 < 0)".
+- **Validation reference for later:**
+  [`salsac_and_sparks_etal_2006`], in-vitro PIV in symmetric idealised
+  abdominal aortic aneurysms of increasing size (pulsatile, not a steady
+  DNS); RESEARCH §7.5.
 
 ## Consequences
 

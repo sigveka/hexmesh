@@ -61,13 +61,14 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0049](0049-validation-turbulent-pipe.md) | Validation: fully developed turbulent pipe flow (RANS, k-ω SST) | ready (after 0043) | 0012, 0015 |
 | [0050](0050-validation-turbulent-bend.md) | Validation: turbulent flow in a 90° bend (Sudo et al. 1998) | ready (after 0049) | 0012, 0015 |
 | [0051](0051-exact-junction-walls.md) | Exact junction walls (tee and wye) | done | 0028, 0029 |
-| [0052](0052-multi-layer-tee.md) | Multi-layer tee: shells as offset levels of the junction | done (limit: Q1) | 0028 |
+| [0052](0052-multi-layer-tee.md) | Multi-layer tee: shells as offset levels of the junction | ready (Q1 answered: implement limit, `run_length=None`) | 0028 |
 | [0053](0053-multi-layer-wye.md) | Multi-layer wye: shells as offset level sets | ready (after 0051) | 0028 |
 | [0054](0054-insulated-junctions-end-to-end.md) | Insulated junctions end to end: PCF, example, docs | ready (after 0052, 0053) | 0028, 0023 |
 | [0055](0055-cosine-bulge.md) | Cosine profile bulges: `("cosine", s0)` with s0 ≤ 0 | ready | 0008 |
+| [0056](0056-projection-limits-and-wye-axial-counts.md) | Projection follow-ups: inversion check, move warning, wye axial counts | ready (after 0051) | 0029 |
 
 **Current order (2026-10-28, design, revised):** finish the task in
-progress (0034), then **multi-layer junctions: 0051 → 0052 → 0053 →
+progress (0034), then **multi-layer junctions: 0051 → 0052 → 0056 → 0053 →
 0054**, then 0055 → 0032 → 0035 → 0049 → 0044 → 0050.
 - 0042 and 0043 are done; validation cases build on
   `hexmesh.study.openfoam`.

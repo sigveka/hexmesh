@@ -93,6 +93,10 @@ if one is affected (decisions README, template).
 8. **Units and scale.**  Vessels are millimetres; nothing should assume
    pipe-sized defaults (e.g. tolerances in absolute metres).
 
+**Note (2026-10-28):** idealised aneurysms come with decision 0008's
+bulge amendment: `("cosine", s0 < 0)`, task 0055.  Validation reference
+for later: [`salsac_and_sparks_etal_2006`] (RESEARCH §7.5).
+
 ## Verified vs. assumed
 
 - **Verified:** hexmesh capabilities and task status in the tables

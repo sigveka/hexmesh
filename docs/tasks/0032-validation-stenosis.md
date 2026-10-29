@@ -90,7 +90,7 @@ turbulence, Re = 750 and 1000 (follow-ups if Re = 500 passes).
     into the 5 D.
 
 **Note from design (2026-10-28): the paper is now in `docs/papers/`**
-(`direct-numerical-simulation-of-stenotic-flows-part-1-steady-7cuwid0vj4.pdf`).
+(`varghese_and_frankel_etal_2007.pdf`).
 It is the 2005 preprint ("Under consideration for publication in J.
 Fluid Mech.", received 28 January 2005), not the published 2007 version:
 cite the published one, but check any number you take against the
@@ -133,6 +133,11 @@ preprint):
   - Out of scope here.  It is the validation case for an eccentric core
     (decision 0021, stage 3) and for non-centred outlines (decision
     0026).
+- **Griffith et al. (2008) is not a second source for this geometry**
+  (read 2026-10-28; RESEARCH §7.3 corrected).  Their blockage is
+  semicircular, not the cosine.  They do measure the recirculation
+  length where the wall shear stress is zero, which is the method to use
+  here too.
 
 ## Questions for design
 

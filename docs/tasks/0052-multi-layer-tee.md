@@ -1,6 +1,6 @@
 # 0052 — Multi-layer tee: shells as offset levels of the junction
 
-- **Status:** done (limit proposal under *Questions for design*)
+- **Status:** ready (design answered Q1 2026-10-29: implement the limit)
 - **Decision:** [0028 — Multi-layer junctions](../decisions/0028-multi-layer-junctions.md)
 - **Depends on:** 0051 (exact walls).
 
@@ -154,6 +154,47 @@ Two consequences to weigh:
 Alternatively, a closed-form rule from the table:
 `run_length ≥ r + T + 0.5 R` reaches the long-run SJ at every r/R and
 T/R measured.  It is simpler, but conservative for large r/R.
+
+### Design answer (2026-10-29): your proposal, plus a default run length
+
+**Accepted as proposed:** the limit is on the layout's **predicted
+corner SJ** (`BlockLayout.corner_jacobians`, already computed in
+`validate()`), with task 0047's two tiers:
+- **reject** below 0.1 (`AssemblyError`);
+- **warn** below 0.3 (`UserWarning`, recorded so callers can read it).
+
+Both name the tee, the predicted SJ and the **shortest `run_length`
+that reaches the tier** (bisection on the pure layout).  The bisection
+is the error's hint, which is what an agent needs (decision 0019,
+constraint 3).  Put 0.1 / 0.3 in `limits.py` (reuse 0047's names if
+they fit: `OUTLINE_SJ_MIN`/`WARN` → a shared `PREDICTED_SJ_MIN`/`WARN`).
+
+**On your two consequences:**
+- **Small r/R tees warn at any length.**  Accepted: it's the truth (the
+  fluid core is at 0.12–0.15 single-layer too), and a warning is the
+  right signal.  The warning should say the cause is the branch ratio,
+  not the run length, when lengthening the run can't help (the bisection
+  finds no length that reaches 0.3).
+- **The non-orthogonality of 73–77° at r/R 0.3** isn't predicted before
+  GMSH for junctions.  Leave it to the post-mesh quality report for
+  now; no junction non-orthogonality predictor in this task.
+
+**Added: `run_length=None`.**  The closed form you found, `run_length =
+r + T + 0.5 R`, reaches the long-run SJ at every r/R and T/R you
+measured.  Make it the default: `Tee(run_length=None, …)` resolves in
+`add()` (the `resolve` hook from tasks 0040/0041) to
+`max(r + T + 0.5 R, the bisection's 0.3 length)`, and stores the number,
+so the JSON stays explicit.  An explicit `run_length` keeps today's
+behaviour, with the limits above.
+
+**PCF set-on tees** (run about 2r, rejected with a wall): that's 0054's.
+The note added there: the reader takes the Tee's run from the host pipe,
+so it should use the default (or the bisection's length) and reject only
+if the host pipe is too short, naming the component.
+
+**Do:** the limit in `validate()`, the hint, `run_length=None`, and
+tests on each side of both tiers and for the default.  Then set the task
+`done`.
 
 ## Outcome
 

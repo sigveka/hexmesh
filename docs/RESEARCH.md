@@ -303,11 +303,36 @@ $$
   meshes from triangulated surfaces using cutting planes.  It treats the
   bifurcation as planar.
 - [`livesu_and_muntoni_etal_2016`]: skeleton-driven hex meshing of
-  tubular shapes, including junctions of higher valence.  Relevant to
-  crosses and multi-branch headers.
+  tubular shapes, including junctions of higher valence: an octopus with
+  eight limbs meeting at one point, without high-valence vertices.  Full
+  text read 2026-10-28.  Relevant to crosses and multi-branch headers,
+  and its refinement "cones" to density changes (§9.4).
 - [`pietroni_and_campen_etal_2023`]: survey.  For tubular domains it
   concludes that the hard part is splitting the domain into sweepable
   sub-volumes, not meshing them.
+
+### 4.3b Wall exactness at the wye's crease (task 0051, 2026-10-29)
+
+With node projection (decision 0029) every wye wall node is on the
+canal surface to 1e-15 R.  The remaining error is the chord across the
+crease, where faces cut across it:
+
+| `nang` | wye 60° | wye 90° |
+|---|---|---|
+| 4 | 2.9 % R | 3.2 % R |
+| 8 | 0.95 % R | 0.88 % R |
+| 16 | 0.26 % R | 0.24 % R |
+| 32 | 0.07 % R | 0.06 % R |
+
+- **Second order in `nang`, and under decision 0029's 1 % threshold at
+  `nang` 8**, so no layout change for now.  The crease would be exact
+  only on block edges (the separation half-planes of §4.4).  Revisit if
+  a wye validation case is sensitive at the crotch.
+- **Nearest-point projection folds the crotch:** the filled face is a
+  sharper V than the wall.  A smoothed-normal projector (`TubeUnion`)
+  avoids it.
+- **The knee:** the hub's spherical cap was resolved by `n_run` only,
+  with chords of 8–10 % R at any `nang` (task 0056).
 
 ### 4.4 What this means for Stage 6 (Y-junction redesign)
 
@@ -377,7 +402,13 @@ block template is the preferred fix.
 ## 6. Default branching angles (optional)
 
 Murray's law ($r_0^3 = r_1^3 + r_2^3$) and its angle extension
-[`zamir_1976`] give optimal bifurcation angles for transport networks.  A
+[`zamir_1976`] give optimal bifurcation angles for transport networks.
+[`lubashevsky_and_gafiychuk_1999`] (arXiv preprint, read 2026-10-28)
+shows two optimality principles leading to Murray's law are equivalent:
+minimum work to maintain the flow, and minimum drag and lumen volume.
+It also derives the law from flow redistribution in a symmetric
+microcirculatory tree.  Useful for default radius ratios when hexmesh
+generates idealised vascular trees (decision 0018).  A
 closed form for a symmetric Y is in [`bennett_2025`]:
 $\cos(\theta/2) = 2^{(m-p)/(m+p)}$, which tends to the Steiner angle
 $120°$ as $m\to 0$.  These apply to biological and fluidic trees.
@@ -478,9 +509,26 @@ i.e. 0.05 D at the throat, in one plane.
 - The [Purdue CFD Lab database](https://engineering.purdue.edu/CFDLAB/DNS_stenoticflow_database/main.html)
   covers the axisymmetric and an eccentric model.
 - Part 2 (JFM 582:281–318) covers pulsatile flow.
-- [`griffith_and_leweke_etal_2008`] studies the same geometry: it finds
-  the post-stenotic jet stays laminar at Re 500 and 1000 in simulation,
-  unlike experiments, and analyses convective and absolute instabilities.
+- [`griffith_and_leweke_etal_2008`] (read 2026-10-28, PDF in
+  `docs/papers/`) studies a **different** geometry.  It is not the cosine:
+  a blockage **semicircular in cross-section**, set by the stenosis degree
+  b = 1 − (d/D)² (by area), with blockage radius r_b = (D/2)(1 − √(1 − b)).
+  - **Range:** Re 50–2500, b 0.2–0.95.  Poiseuille inlet; axisymmetric
+    spectral-element base flows, linear stability analysis, and dye
+    experiments in water.
+  - **The recirculation length L_R** (where the wall shear stress is 0)
+    grows linearly with Re for every b, and collapses with
+    L_R/D = C · [(1 − b/2)/(1 − b) − 1/√(1 − b)] · Re (eq. 4.3; the
+    analogy is a cylinder wake).
+  - **Converged values** (Table 1, polynomial order 9): L_R/D = 7.356
+    (b = 0.5, Re = 2000), 18.38 (b = 0.75, Re = 800), 41.40 (b = 0.9,
+    Re = 500).  These are tabulated numbers good to four digits, unlike
+    Varghese's figures.
+  - **For hexmesh:** a possible second laminar stenosis case.  It needs a
+    semicircular profile, whose wall meets the tube at a right angle (a
+    vertical tangent at the blockage ends).  A smooth R(x) sweep can't
+    follow that without clustering stations at the ends; it would need a
+    named `("semicircle", b)` profile with end clustering (not planned).
 - Background: experiments with the same smooth cosine stenosis (Cassanova
   & Giddens 1978, cited by Griffith et al.; not checked).
 
@@ -589,6 +637,7 @@ objects abort on the local OpenFOAM build (`docs/integrations/openfoam.md`).
 | Rectangular duct | Fourier series; $f\,Re \approx 56.9$ for a square ($D_h$) | rectangular sections (task 0028) | planned, after 0028 |
 | Dean flow, weak curvature | Dean's perturbation for the flow reduction at small Dean number (check coefficients against the source) | `Bend` | planned |
 | Womersley flow | Bessel-function velocity profile | transient runs; vascular direction (decision 0018) | planned |
+| Fusiform aneurysm (symmetric bulge) | in-vitro PIV wall shear stress for growing symmetric AAA models [`salsac_and_sparks_etal_2006`] (pulsatile; open access via UCL Discovery) | cosine profile with s0 < 0 (task 0055); vascular direction (decision 0018) | planned, after 0055 |
 
 Order: 0033 → 0034 → 0035 (each reuses the previous one's setup).  The
 planned cases get tasks when their fitting exists or the area is in
@@ -796,6 +845,20 @@ smoothing.
 - **The alternative** is a declared non-conformal break, coupled with
   OpenFOAM AMI.  That is the same scope question as decision 0003,
   option C.
+- **Published precedent for refinement transitions along a tube**
+  [`livesu_and_muntoni_etal_2016`] (full text read 2026-10-28, §5):
+  - "cones" are conforming **2×2 → 4×4** (and 1×1 → 2×2) cross-section
+    subdivision transitions placed along a skeleton limb.  Two in series
+    give a 4² scaling.
+  - Where to subdivide is solved globally as an integer linear program:
+    neighbours split equally, and a cone's base splits once more than
+    its tip.
+  - Cones are allowed only on terminal limbs, so no loop can make the
+    system unsolvable.  That's the same issue a density switch in a
+    looped hexmesh network would meet.
+  - Their meshes are smoothed afterwards (the interior is optimised), and
+    their sections are polycube-like quads, not O-H.  So the scheme is a
+    pattern to adapt, not a drop-in.
 
 ### 9.5 Single-sheet insertion in swept meshes: cleave and fill [`borden_and_benzley_etal_2000`]
 
@@ -1045,6 +1108,20 @@ marked where they rest on snippets.
     et al. (1993) from Texas A&M, plus their own pressure-drop data.
   - Other RANS studies report the discharge coefficient within about
     4–6 % of experiment, usually under-predicted (snippets).
+- [`tukiman_and_ghazali_etal_2017`] (read 2026-10-28, CC-BY, PDF in
+  `docs/papers/`): a commercial-code RANS study of an orifice.
+  - **Setup:** D = 12.3 mm, d = 5 mm (β ≈ 0.41), plate 2 mm thick;
+    246 mm upstream and 494 mm in total; water, uniform inlet at
+    0.38 m/s (Re_D ≈ 4 700).  Standard k-ε, first-order schemes,
+    740 000 unstructured hexahedra.
+  - **Weak as a reference:** results are qualitative only (velocity and
+    pressure along the centreline, the vena contracta position).  There
+    is no discharge coefficient, no grid-convergence study and no
+    measured data.
+  - **Useful as:** a concrete orifice configuration for a hexmesh example
+    once decision 0021 stage 1 exists.  It also leads to Shan et al.
+    (2016, Chem. Eng. Sci. 152:497–506), PIV of orifice flows across β
+    (not checked).
 - **What is reported:** discharge coefficient against Re and β; vena
   contracta position; the downstream jet, recirculation and reattachment;
   pressure-loss coefficients.
@@ -1151,22 +1228,29 @@ the user; the latter is the arXiv preprint), and `erickson_2014` (author
 copy), `verhetsel_and_pellerin_etal_2019` (arXiv), `verhetsel_2024`
 (thesis) and `livesu_and_pitzalis_etal_2022` (arXiv), all downloaded.
 `pitzalis_and_livesu_etal_2021` was supplied by the user (publisher PDF).
-Not downloaded: `staten_and_shepherd_etal_2008`/`2010` and
-`chen_and_gao_etal_2016` (paywalled; OSTI unreachable).
+Supplied by the user 2026-10-28 and filed under their keys:
+`staten_and_shepherd_etal_2008`, `chen_and_gao_etal_2016`,
+`livesu_and_muntoni_etal_2016`, `wang_and_juttler_etal_2008` (the TOG
+version), `griffith_and_leweke_etal_2008`,
+`varghese_and_frankel_etal_2007` (the 2005 preprint),
+`tukiman_and_ghazali_etal_2017`, `lubashevsky_and_gafiychuk_1999`
+(arXiv) and `rushdi_and_mitchell_etal_2015` (IMR24, not cited yet).
+Downloaded: `salsac_and_sparks_etal_2006` (UCL Discovery) and
+`mckeon_and_zagarola_etal_2005` (Caltech).  The §9.6 mesh-matching
+description was checked against the Staten 2008 and Chen 2016 full
+texts: chords are paired "within a tolerance".  Still not downloaded:
+`staten_and_shepherd_etal_2010` (paywalled).
 
 Not downloaded:
 
 - Paywalled, with no open copy found: `bishop_1975`,
   `desantis_and_debeule_etal_2011`, `gordon_and_hall_1973a`,
-  `gordon_and_hall_1973b`, `winslow_1966`, `zamir_1976`, and
-  `wang_and_juttler_etal_2008` (use the 2007 tech report instead).
-- Open copy exists but the download failed: `livesu_and_muntoni_etal_2016`
-  (the host timed out; URL in the `.bib`) and `farouki_2002` (the server
+  `gordon_and_hall_1973b`, `winslow_1966`, `zamir_1976`.
+- Open copy exists but the download failed: `farouki_2002` (the server
   returned a corrupt multipart response).
 
 The double-reflection listing (§1) and §4.1–4.2 were checked against the
 full papers.  The formulas in §2, §3.1 and §5 are standard results or
 derived here: §3.1 was verified numerically, the rest were not.  The
-descriptions of the paywalled items, and of `zhang_and_bazilevs_etal_2007`
-and `livesu_and_muntoni_etal_2016`, rest on abstracts and secondary
-citations.
+descriptions of the paywalled items, and of `zhang_and_bazilevs_etal_2007`,
+rest on abstracts and secondary citations.

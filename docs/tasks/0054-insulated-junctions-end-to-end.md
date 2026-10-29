@@ -42,6 +42,13 @@ limitations, `API.md`.
 
 _None yet._
 
+**Note from design (2026-10-29, task 0052 Q1):** a PCF set-on tee with a
+wall inverts at the PCF's run of about 2r.  The reader takes the Tee's
+run from the host pipe, so it should use `Tee(run_length=None)` (the
+default from 0052: `r + T + 0.5 R`, or longer to reach SJ 0.3).  Reject
+only when the host pipe is too short for that, naming the component and
+the length needed.
+
 ## Questions for design
 
 _None._

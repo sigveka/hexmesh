@@ -2,8 +2,8 @@
 
 - **Status:** accepted
 - **Date:** 2026-10-29 (accepted by the user, on task 0051's Q1)
-- **Tasks:** 0051 (new steps 5–8: projection, tee and wye, crotch
-  measurement); 0053 builds its shells on it.  A conditional follow-up
+- **Tasks:** 0051 (steps 5–8: projection, tee and wye, crotch
+  measurement; done), 0056 (follow-up: wye axial counts); 0053 builds its shells on it.  A conditional follow-up
   for the wye layout (below).
 
 ## Context
@@ -105,6 +105,50 @@ The decision-0015 paragraph gains:
 > nearest point on the wall, never crossing into another branch; a move
 > beyond the limit in `limits.py` is an error.  The kit checks the final
 > mesh nodes.
+
+### Amendment (2026-10-29, after task 0051): projector and move limit
+
+Task 0051 implemented the decision and measured it:
+- every tee and wye wall node is within 1e-15 R on the final mesh;
+- no folds;
+- crotch chord error 0.95 % R (60°) and 0.88 % (90°) at `nang` 8,
+  second order in `nang`.
+
+Three points change or settle:
+1. **The projector is not nearest-point.**  Nearest-point projection
+   folds the crotch: the filled crotch face is a sharper V than the
+   wall, so nodes just inside the crease swap order.  `TubeUnion`
+   projects along a smoothed normal: the gradient of a soft minimum of
+   the tubes' signed distances, landing on the wall point on that line.
+   It is the nearest point away from creases, keeps rows of nodes in
+   order across one, and never crosses into another branch.  DESIGN
+   §6's paragraph is reworded to match.
+2. **Inversion is the guard; distance is only a warning.**
+   - A limit in cell heights rejects valid fine meshes: a legitimate
+     move scales with `nrad` (2.5 cell heights at `nrad` 9, 60° wye).
+   - A limit in wall radii rejects valid narrow wyes: measured moves are
+     0.77 R at 30°, 0.60 R at 35°, 0.47 R at 40° (`nang` 8), all
+     unfolded.  A projector that crosses a branch moves nodes by about
+     R, so no distance separates the two cleanly.
+   - So `Assembly.mesh()` **rejects inverted cells** (corner SJ ≤ 0) in
+     every projected fitting, naming the fitting.  It **warns** when a
+     node moves more than **1.0 × its wall's local radius**
+     (`WALL_PROJECTION_WARN_MOVE`; above every legitimate move
+     measured), and reports the largest move.  Condition 2 ("a bad
+     projection fails loudly") is met by the inversion check, without a
+     separate `check_quality` call.
+3. **The crease measurement is under the 1 % threshold** (item 5), so
+   there is no wye layout follow-up.  It's borderline at `nang` 8, and
+   3 % at `nang` 4; recorded in RESEARCH.  Revisit if a wye validation
+   case shows it.
+
+Also found: the wye's knee (the hub's spherical cap) is resolved by
+`n_run` only, so chords there stay at 8–10 % R at any `nang`.  That is
+resolution, not exactness: task 0056 derives the wye's default axial
+counts from its arcs.  The tee keeps its pinned plates.  Projection
+after plain fillings gives the same exactness, but the nodes slide
+tangentially (up to 1.3 % R) and the plates cost only about 0.4 s per
+tee.
 
 ## Consequences
 
