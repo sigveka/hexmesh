@@ -1,6 +1,6 @@
 # 0056 — Projection follow-ups: inversion check, move warning, wye axial counts
 
-- **Status:** blocked (Q1: `n_split`; Q2: creases). Steps 1–2 committed.
+- **Status:** ready (design answered Q1, Q2 2026-10-29: step 3 with an `n_split` cap)
 - **Decision:** [0029 — Wall exactness by node projection](../decisions/0029-wall-exactness-by-node-projection.md), amendment 2026-10-29
 - **Depends on:** 0051.  Before 0053 (the wye's shells use the same
   projection and counts).
@@ -173,6 +173,35 @@ over 1 %.**
 - The crotch crease of 30°–40° wyes is 1.7–3.1 % at `nang` 8.
 - Both are decision 0029 item 5's case: crease on block edges, a wye
   layout follow-up.  Does design open it now (before 0053), or after?
+
+### Design answer (2026-10-29)
+
+**Q1: (a).**  Resolve `n_run` and `n_branch` from arcs as specified.
+`n_split` is resolved the same way but **capped at
+`WYE_N_SPLIT_MAX = 6`** (`limits.py`; SJ ≥ 0.11 at every angle you
+measured).
+- **Documented:** the knee arcs stay coarser (about 2–3× the angular
+  cell) in the docstring and `API.md`.
+- **Explicit counts** above the cap stay allowed; a fold is caught by
+  the inversion check, which names the fitting.
+- **`refined(k)`** scales an explicit or resolved `n_split` past the cap.
+  Report what happens for a 120° wye at k = 2 and 4 (it may fold).  If it
+  does, `refined` should keep `n_split` at the cap for wyes, and record
+  that in the refined description.
+- Apply the patch with the cap, re-run step 4's table for the resolved
+  defaults, and finish the task.
+
+**Q2: after 0053, not before.**  Tees (the common plant junction) are
+exact.  Redesigning the wye layout now would hold up the insulated
+junctions (0053, 0054) before the agent SDK, which is the user's order.
+- 0053 builds its shells through the projector interface, so a new
+  layout reuses them; keep shell placement per level and
+  layout-independent where you can.
+- Meanwhile, `README.md` limitations state the wye's remaining wall
+  error: about 2 % R at `nang` 8 at the inlet/daughter crease (60°–120°),
+  2–3 % at the crotch of wyes under 45°, both first order in `nang`.
+- Design records the wye-layout redesign (creases on block edges,
+  RESEARCH §4.4) as a decision after 0054.
 
 ## Outcome
 

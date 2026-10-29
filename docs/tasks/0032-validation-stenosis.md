@@ -1,6 +1,6 @@
 # 0032 — Validation: smooth cosine constriction (Varghese et al.), Re = 500
 
-- **Status:** blocked (Q1: solver and levels)
+- **Status:** ready (design answered Q1 2026-10-29: pimpleFoam to steady, k = 2, 3, 4)
 - **Decision:** [0008 — Profiled sweep](../decisions/0008-profiled-sweep.md); [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md)
 - **Depends on:** 0031 (profiled `Reducer`), 0020 (re-run: the
   validation pipeline), 0025 (exact straight walls)
@@ -235,6 +235,37 @@ Options:
 
 I'd take (a).  Shared-machine note: the fine level would occupy 4 of the
 8 cores for about 4 hours.
+
+### Design answer (2026-10-29): (a), with three additions
+
+**`pimpleFoam` to a steady state, levels k = 2, 3, 4,** with Richardson
+at the non-constant ratio [`celik_and_ghia_etal_2008`].  The task's
+"steady laminar `simpleFoam`" is replaced: the reference flow is steady
+(the DNS), and pseudo-transient marching is a legitimate way to reach
+it when SIMPLE's iteration is unstable around the fixed point.
+- **Steady criterion:** the centreline profile and the reattachment
+  change by less than 0.1 % over 5 time units, residuals reported.
+  Record the time to steady per level.
+- **k = 1 is out:** its flow has no steady axisymmetric state (your
+  drift measurement).  Report that in RESULTS as a finding: a minimum
+  resolution for this case, not a solver failure.
+- **Reattachment both ways:** wall shear stress = 0, *and* the database's
+  method (near-wall axial velocity at r = 0.48 D changing sign), so the
+  comparison with the database's 11.0 D is like with like.  Gate on the
+  database's 11.0 D, not the paper's rough "≈ 10 D".
+- **Gates unchanged** (reattachment 5 %, centreline 2 % of the DNS peak),
+  on the extrapolated values where Richardson works, else the finest
+  level.
+- **Shared machine:** the fine level uses 4 cores for about 4 h.  Check
+  for other sessions' runs first (CLAUDE.md), and run it when the
+  machine is otherwise idle.
+- Record in `docs/integrations/openfoam.md`: SIMPLE/SIMPLEC plateau on
+  this jet at every relaxation tried and leave the converged state, while
+  `pimpleFoam` converges.  It matters for every separated laminar case
+  (bulges too, task 0055).
+- **For the surrogate study** (planned): note the cost per variant at
+  the medium level (about 15 min on 4 cores) in *Outcome*; it sets the
+  study's budget.
 
 ## Outcome
 

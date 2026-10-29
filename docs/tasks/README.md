@@ -41,7 +41,7 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0029](0029-transition-circle-rectangle.md) | `Transition`: circle ↔ rectangle and rectangle ↔ rectangle sweeps | done | 0009 |
 | [0030](0030-wye-prototype.md) | Wye prototype: symmetric Y-junction as a block layout | done | 0017 |
 | [0031](0031-profiled-reducer.md) | Profiled `Reducer`: constrictions, venturis and nozzles | done | 0008 |
-| [0032](0032-validation-stenosis.md) | Validation: smooth cosine constriction (Varghese et al.), Re = 500 | blocked (Q1 solver and levels) | 0008, 0012 |
+| [0032](0032-validation-stenosis.md) | Validation: smooth cosine constriction (Varghese et al.), Re = 500 | ready (Q1 answered: pimpleFoam, k = 2–4) | 0008, 0012 |
 | [0033](0033-validation-heated-rod.md) | Validation: solid rod with uniform heat generation | done | 0012, 0015 |
 | [0034](0034-validation-layered-conduction.md) | Validation: conduction through a heated multi-layer cylinder (CHT, solids) | done | 0012 |
 | [0035](0035-validation-heated-pipe-cht.md) | Validation: heated multi-layer pipe with laminar flow (full CHT) | blocked (Q1 fluid solvers diverge on hexmesh meshes) | 0012 |
@@ -65,7 +65,7 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0053](0053-multi-layer-wye.md) | Multi-layer wye: shells as offset level sets | ready (after 0051) | 0028 |
 | [0054](0054-insulated-junctions-end-to-end.md) | Insulated junctions end to end: PCF, example, docs | ready (after 0052, 0053) | 0028, 0023 |
 | [0055](0055-cosine-bulge.md) | Cosine profile bulges: `("cosine", s0)` with s0 ≤ 0 | done | 0008 |
-| [0056](0056-projection-limits-and-wye-axial-counts.md) | Projection follow-ups: inversion check, move warning, wye axial counts | blocked (Q1 `n_split`, Q2 creases; steps 1–2 done) | 0029 |
+| [0056](0056-projection-limits-and-wye-axial-counts.md) | Projection follow-ups: inversion check, move warning, wye axial counts | ready (Q1, Q2 answered: `n_split` cap; layout after 0054) | 0029 |
 
 **Current order (2026-10-28, design, revised):** finish the task in
 progress (0034), then **multi-layer junctions: 0051 → 0052 → 0056 → 0053 →
@@ -76,6 +76,8 @@ progress (0034), then **multi-layer junctions: 0051 → 0052 → 0056 → 0053 �
   and pipe walls through tees and wyes, before the agent SDK (decision
   0019) is promoted.  0051 (exact junction walls) is a prerequisite:
   shells can't sit on wall faces that are 2–5 % of R off.
+- After 0054, design opens the wye-layout redesign (creases on block
+  edges; decision 0029 item 5, triggered by task 0056).
 - 0055 (cosine bulges) is small; do it before 0032 so the stenosis
   example covers the full range when the validation lands.
 - Then the stenosis (0032): the draft exists (paused during 0043), the

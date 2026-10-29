@@ -150,6 +150,16 @@ after plain fillings gives the same exactness, but the nodes slide
 tangentially (up to 1.3 % R) and the plates cost only about 0.4 s per
 tee.
 
+**Item 5 triggered (2026-10-29, task 0056).**  With resolved counts
+two creases exceed 1 % R at `nang` 8:
+- the mitre crease where the inlet cylinder meets each daughter
+  (2.3 % at 60°, first order in `nang`);
+- the crotch of wyes under about 50° (1.7–3.1 %).
+
+The wye-layout follow-up (creases on block edges) is **scheduled after
+task 0054**, so the insulated junctions come first (the user's order).
+The README states the error meanwhile.
+
 ## Consequences
 
 - Task 0051 reopens (steps 5–8) and closes the tee wall row; the wye

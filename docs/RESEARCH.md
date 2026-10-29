@@ -506,6 +506,17 @@ i.e. 0.05 D at the throat, in one plane.
   - **Eccentric, Re 1000:** transitions to turbulence after about
     4–6 D and reattaches by about 10 D.
   - The local copy is the 2005 preprint; cite the 2007 article.
+  - **Purdue database** (Axi_stdy/Re500, fetched 2026-10-28; no
+    licence, not committed): radial velocity profiles at x/D = −2…15,
+    no wall shear stress.  Peak centreline 4.596 u_m at x = 0;
+    reattachment ≈ **11.0 D**, from the sign change of the near-wall
+    axial velocity at r = 0.48 D.  The paper's text says ≈ 10 D.
+  - **OpenFOAM v1912 (task 0032):** `simpleFoam` / SIMPLEC plateau and
+    leave the converged state.  Transient `pimpleFoam` reaches steady
+    in 10–20 time units.  The coarsest hexmesh level (`nang` 6,
+    15 k cells) has no steady axisymmetric state: the jet drifts off
+    axis, a resolution artefact.  The medium level (123 k cells) gives
+    reattachment 11.12 D (+0.9 %).
 - The [Purdue CFD Lab database](https://engineering.purdue.edu/CFDLAB/DNS_stenoticflow_database/main.html)
   covers the axisymmetric and an eccentric model.
 - Part 2 (JFM 582:281–318) covers pulsatile flow.
