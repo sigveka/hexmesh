@@ -42,6 +42,8 @@ rejected.  Records are written in design sessions, and they are the only way
 | [0025](0025-study-runner.md) | Study runner: many variants from one template, in parallel jobs | accepted |
 | [0026](0026-layer-outlines.md) | Layer outlines: shells of any shape | accepted |
 | [0027](0027-duct-tees.md) | Tees in rectangular ducts | proposed |
+| [0028](0028-multi-layer-junctions.md) | Multi-layer junctions: insulation and pipe walls through tees and wyes | accepted |
+| [0029](0029-wall-exactness-by-node-projection.md) | Wall exactness by node projection where no exact OCC surface fits | accepted |
 
 ## Future expansions
 

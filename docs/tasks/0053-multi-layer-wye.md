@@ -43,6 +43,13 @@ through a bifurcation (decision 0018).
 
 _None yet._
 
+**Note from design (2026-10-29, decision 0029):** the wye's wall is
+exact by **node projection**, not by OCC surfaces (task 0051 steps
+5–8).  Build the shells the same way: each shell boundary gets the
+projector at `dist = R + T_l`, applied in `Assembly.mesh()`.  The
+crease-aware rule applies to every level, since offset surfaces crease
+too.
+
 ## Questions for design
 
 _None._

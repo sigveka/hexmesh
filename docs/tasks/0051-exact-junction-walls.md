@@ -1,7 +1,7 @@
 # 0051 — Exact junction walls (tee and wye)
 
-- **Status:** blocked (tee done; wye: *Questions for design*)
-- **Decision:** [0028 — Multi-layer junctions](../decisions/0028-multi-layer-junctions.md) (item 1); DESIGN §6
+- **Status:** ready (design answered Q1 2026-10-29: steps 5–8)
+- **Decision:** [0028 — Multi-layer junctions](../decisions/0028-multi-layer-junctions.md) (item 1); [0029 — Wall exactness by node projection](../decisions/0029-wall-exactness-by-node-projection.md); DESIGN §6
 - **Depends on:** —  (0052 and 0053 build on it)
 
 Ground rules for all tasks: [README](README.md#ground-rules).
@@ -150,6 +150,56 @@ interpolate from the moved surface nodes).
 **Proposed:** node projection for junction walls (wye; optionally tee
 too), with a crease-aware projector, as a new 0051 step or a follow-up
 task.  0053 depends on the answer; 0052 (multi-layer tee) does not.
+
+### Design answer (2026-10-29): yes, node projection (decision 0029)
+
+Accepted, as you proposed, with three conditions.  DESIGN §6 is amended
+(the projection paragraph after decision 0015's), and the deviation
+rows are updated (tee: pinned plates, 3e-4 R; a new wye row).
+
+**Steps 5–8** (replace "wye blocked"):
+5. **Projector interface.**  A fitting exposes an analytic projector per
+   surface it owns (wall now; shell boundaries at offset `R + T` for
+   0052/0053): points → nearest points.  Keep it an interface, not wye
+   code: vascular surfaces (decision 0018) will bring their own.
+   `Assembly.mesh()` applies it between `generate(2)` and `generate(3)`
+   to every node of the fitting's wall curves and faces, and nowhere
+   else.  Nodes on curves shared with a swept neighbour are already
+   exact; projecting them must be a no-op (check).
+6. **Crease-aware wye projector.**  The nearest point on the canal
+   surface `dist = R` (union of the inlet and daughter tubes and the
+   knee sphere), never crossing into another branch.  For a point near
+   the crotch, take the nearest point over the pieces whose projection
+   lies on the outer boundary of the union (not inside another tube); on
+   the crease itself, the crease curve.  The 60° wye is the test: no
+   folded cells, no node moved across the crotch.
+7. **Safety:**
+   - a move larger than `WALL_PROJECTION_MAX_MOVE` × the local cell
+     height (in `limits.py`; propose the value from your measurements)
+     is an `AssemblyError` naming the fitting and the move;
+   - `check_quality` after projection in the kit.
+8. **Tee and measurements.**
+   - Apply the projector to the tee as well.  Measure whether its
+     pinned plates are still needed: if plain Stretch fillings plus
+     projection give the same nodes (to 1e-6 R) and quality, drop the
+     plates and their 588 construction points per tee, and report the
+     build time before and after.
+   - **Crotch chord error:** with projection, every node is on the wall,
+     but faces containing the crease cut across it.  Report the largest
+     distance from the analytic wall at face centres and edge midpoints
+     near the crease, wye 60° and 90°, `nang` 4 / 8 / 16.  Above about
+     1 % of R at `nang` 8, design opens a wye-layout follow-up (crease on
+     block edges).
+   - Document in `API.md` and `docs/integrations/gmsh.md` that the OCC
+     surfaces stay approximate (CAD export, `gmsh.model` queries) and
+     projected nodes lose their parametric coordinates.
+
+**Accept (added):**
+- every tee and wye wall node within 1e-6 R of the analytic wall on the
+  final mesh, in every kit case, wye 60° included;
+- no folded cells, quality reported before and after projection;
+- the crotch chord-error table;
+- the kit's exactness check runs the wye cases (no skips).
 
 ## Outcome
 

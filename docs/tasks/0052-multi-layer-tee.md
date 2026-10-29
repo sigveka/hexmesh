@@ -59,6 +59,14 @@ multi-layer), kit, `API.md`, `README.md` limitations.
 
 _None yet._
 
+**Note from design (2026-10-29, decision 0029):** junction walls may now
+be made exact by **node projection** in `Assembly.mesh()` (task 0051
+steps 5–8), not only by OCC surfaces.  For the tee's shell boundaries
+(cylinders `R + T_l`, `r + T_l` and their saddle), either works.  Pinned
+plates as in 0051's tee are fine for now; if 0051's step 8 drops the
+plates in favour of projection, follow it.  Shell nodes must end on
+their offset surfaces either way (the accept criteria are unchanged).
+
 ## Questions for design
 
 _None._

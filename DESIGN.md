@@ -214,6 +214,14 @@ side surfaces: straight slabs use ruled surfaces (a ruled surface
 between two identical parallel arcs is the cylinder).  Where no exact
 surface is available, use one axial layer per slab.  The conformance
 kit checks every wall and interface node against its analytic surface.
+Where a face's exact surface can't be built as a conformal OCC surface
+(junctions whose wall crosses several smooth pieces, or a crease), the
+fitting supplies an analytic wall projector instead, and
+`Assembly.mesh()` moves that face's mesh nodes onto the wall between
+surface and volume meshing (decision 0029).  The projection is the
+nearest point on the wall, never crossing into another branch; a move
+beyond the limit in `limits.py` is an error.  The kit checks the final
+mesh nodes.
 (Decision 0015; plate-filled sides sagged up to 1.08 % of R and biased
 Poiseuille Δp by 2.6 %, [RESEARCH §7.4](docs/RESEARCH.md#74-laminar-hagenpoiseuille-verification-task-0020).)
 
@@ -405,7 +413,8 @@ The present code predates these rules.  Known deviations:
 | `nang` checked per connector, not resolved across the network | A5 | `fittings.py`, `spec.py` |
 | Corner correspondence between two faces found by nearest-distance search, not from interface frames | A3, §6.1 | `fittings._connect_layer` — legacy connectors only; `hexmesh/assembly` uses `corners.frame_offset` |
 | `n_outer = 8` core cannot be filled: its 8-sided centre patch does not bound a transfinite hex block (needs splitting into 4 blocks) | §7 | `faces/oh_circle.build_oh_circle8`; rejected in validation by `hexmesh/assembly` |
-| Tee wall faces (junction and run slabs) are OCC-filled surfaces, so interior wall nodes lie 2–5 % of R off the true cylinders | §6 exactness | `hexmesh/assembly/tee.py` |
+| Tee wall faces are pinned plate fillings: wall nodes within 3e-4 R of the cylinders, not exact (task 0051; closes with node projection, decision 0029) | §6 exactness | `hexmesh/assembly/tee.py` |
+| Wye wall faces are Stretch fillings 11–16 % of R off the wall, and the crotch faces contain the crease (task 0051; node projection, decision 0029; the crease may need a layout change) | §6 exactness | `hexmesh/assembly/wye.py` |
 | Tee prototype limited to single-layer specs, `rot = 0`, perpendicular centred branch | §7.1 | `hexmesh/assembly/tee.py` |
 
 New code must not add to this table.
