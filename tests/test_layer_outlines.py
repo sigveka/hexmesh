@@ -260,14 +260,14 @@ class TestQualityLimits:
         assert [str(c.message) for c in caught
                 if issubclass(c.category, UserWarning)] == asm.warnings
         for m in asm.warnings:
-            assert "layer `ring`" in m and ("OUTLINE_SJ_WARN 0.3" in m
+            assert "layer `ring`" in m and ("PREDICTED_SJ_WARN 0.3" in m
                                             or "OUTLINE_NONORTH_WARN 70°" in m)
 
     @pytest.mark.parametrize("spec, message", [
         (_circle_in_rect(3, 0.1), r"layer `ring` \(circle in a 3:1 rectangle\): predicted "
                                   r"non-orthogonality 81\.3° is above OUTLINE_NONORTH_MAX 80°"),
         (_rect_in_circle(11, 0.3), r"layer `ring` \(11:1 rectangle in a circle\): predicted "
-                                   r"corner scaled Jacobian 0\.091 is below OUTLINE_SJ_MIN 0\.1"),
+                                   r"corner scaled Jacobian 0\.091 is below PREDICTED_SJ_MIN 0\.1"),
     ], ids=["non-orth", "sj"])
     def test_hard_limits_reject_before_gmsh(self, spec, message):
         asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1])

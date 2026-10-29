@@ -183,7 +183,7 @@ def build(p):
             "sampling": {"grid": {"w": [0.15, 0.26]}}}))
         rows = preflight(load_study(tmp_path / "s.json"))
         assert rows[0]["warnings"] == []
-        assert rows[1]["status"] == "checked" and "OUTLINE_SJ_WARN" in rows[1]["warnings"][0]
+        assert rows[1]["status"] == "checked" and "PREDICTED_SJ_WARN" in rows[1]["warnings"][0]
 
 
 class TestJsonTemplate:

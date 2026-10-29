@@ -504,7 +504,7 @@ A pipe along a cubic spline through `points`, parametrised by chord length.
 - **Validation.** It rejects curvature tighter than the outer radius, and
   more than 30° of turn per layer.
 
-### `Tee(run_length, branch_length, branch_radius, n_run=3, n_branch=3, n_turn=2, roll=0.0, toward=None)`
+### `Tee(run_length=None, branch_length, branch_radius, n_run=3, n_branch=3, n_turn=2, roll=0.0, toward=None)`
 
 A perpendicular, centred side-branch tee, built as a block layout.
 
@@ -519,6 +519,11 @@ A perpendicular, centred side-branch tee, built as a block layout.
   instead; `add()` picks the nearest allowed roll and rejects a direction
   more than 1° off it (`limits.JUNCTION_TOWARD_TOL`), naming the angle.
   Other branch angles need a twisting fitting (decision 0024).
+- **Run length.** `run_length=None` (or omitted) is resolved by `add()` to
+  `branch_radius + T + R/2` (T the total shell thickness), or the shortest
+  run whose predicted quality reaches the warning tier below, whichever is
+  longer; the number is stored, so `to_dict()` stays explicit.
+  `branch_length` and `branch_radius` are required.
 - **Layers.** `n_run`, `n_branch` and `n_turn` are the axial layers of the
   runs, the branch, and the turning blocks.
 - **Shells.** Any stack of circular shells runs through the junction
@@ -533,6 +538,15 @@ A perpendicular, centred side-branch tee, built as a block layout.
   main radius. With T the total shell thickness, `run_length` must exceed
   `branch_radius + T`, and `branch_length` the turning station's height,
   `R + T + (branch_radius + T)/2`. Both are checked before GMSH.
+- **Predicted quality.** `validate()` computes the layout's min corner
+  scaled Jacobian before GMSH (`Tee.predicted_sj`). Below
+  `limits.PREDICTED_SJ_MIN` (0.1) it raises; below
+  `limits.PREDICTED_SJ_WARN` (0.3) it warns and records the warning in
+  `Assembly.warnings`. Both messages give the shortest `run_length` that
+  reaches the tier (`Tee.shortest_run`), or say that none does: the
+  junction core's quality is set by the branch ratio, about 0.26 at
+  r/R 0.5 at any run. **Tees with r/R below about 0.57 always warn** (task
+  0052).
 
 ### `Wye(angle, run_length, branch_length, n_run=3, n_branch=3, n_split=3, roll=0.0, toward=None)`
 

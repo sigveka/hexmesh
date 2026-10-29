@@ -38,7 +38,7 @@ Scope: circular layers, ``rot = 0``, ``n_outer = 4``, branch radius
 
 from __future__ import annotations
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 import numpy as np
 
@@ -49,6 +49,7 @@ from .blocks import (
     face_patches, face_vertices,
 )
 from .interface import Frame, junction_roll, junction_toward, outer_radius, rolled
+from .limits import PREDICTED_SJ_MIN, PREDICTED_SJ_WARN
 from .projection import Tube, TubeUnion
 from .signature import check_port_pairs
 
@@ -104,8 +105,12 @@ class Tee:
 
     Parameters
     ----------
-    run_length : float
+    run_length : float, optional
         Distance from the T-point to each main port (inlet and outlet).
+        ``None`` (the default) is resolved when the tee is added:
+        ``r + T + 0.5 R`` (T the total shell thickness), or the shortest
+        run whose predicted corner scaled Jacobian reaches
+        ``PREDICTED_SJ_WARN``, whichever is longer (task 0052).
     branch_length : float
         Distance from the main axis to the branch port.
     branch_radius : float
@@ -131,17 +136,81 @@ class Tee:
     strategies = frozenset({0})   # both port pairs: main in → main out, → branch
     port_names = ("main", "branch")
 
-    run_length:    float
-    branch_length: float
-    branch_radius: float
+    run_length:    float | None = None
+    branch_length: float | None = None      # required
+    branch_radius: float | None = None      # required
     n_run:    int = 3
     n_branch: int = 3
     n_turn:   int = 2
     roll:     float = 0.0
     toward:   tuple | None = field(default=None, metadata={"input": True})
 
+    def __post_init__(self):
+        missing = [n for n in ("branch_length", "branch_radius") if getattr(self, n) is None]
+        if missing:
+            raise TypeError(f"Tee: missing required argument(s): {', '.join(missing)}")
+
     def resolve(self, inlet: Frame, spec: PipeSpec, axial_cell=None, outlet=None) -> "Tee":
-        return junction_toward(self, inlet, spec)     # counts keep their defaults
+        tee = junction_toward(self, inlet, spec)      # counts keep their defaults
+        if tee.run_length is None:
+            _check_circle(spec)
+            R, r, T = spec.core_shape.radius, tee.branch_radius, thicknesses(spec)[-1]
+            run = r + T + 0.5 * R
+            if r < R:              # else check() rejects it, naming the radius
+                need = tee.shortest_run(inlet, spec, PREDICTED_SJ_WARN)
+                run = max(run, need or 0.0)
+            tee = replace(tee, run_length=run)
+        return tee
+
+    # -- predicted quality (task 0052) ----------------------------------
+
+    def predicted_sj(self, inlet: Frame, spec: PipeSpec, run_length: float | None = None) -> float:
+        """Min corner scaled Jacobian of the block layout, with
+        *run_length* if given (pure)."""
+        tee = self if run_length is None else replace(self, run_length=run_length)
+        frames = [inlet] + [f for f, _ in tee.ports(inlet, spec)]
+        return float(tee.layout(frames, spec).corner_jacobians().min())
+
+    def shortest_run(self, inlet: Frame, spec: PipeSpec, tier: float) -> float | None:
+        """Shortest ``run_length`` (to 1e-3 R, rounded up) whose predicted
+        corner scaled Jacobian reaches *tier*; ``None`` if no length does:
+        the branch ratio limits the junction core.  Bisection on the pure
+        layout; the SJ rises with the run up to a plateau about 1.5 R long."""
+        R, r, T = spec.core_shape.radius, self.branch_radius, thicknesses(spec)[-1]
+        lo, hi = r + T, r + T + 2 * R
+        if self.predicted_sj(inlet, spec, hi) < tier:
+            return None
+        q = 1e-3 * R
+        while hi - lo > q:
+            mid = 0.5 * (lo + hi)
+            if self.predicted_sj(inlet, spec, mid) >= tier:
+                hi = mid
+            else:
+                lo = mid
+        return round(math.ceil(hi / q - 1e-9) * q, 12)
+
+    def _quality(self, inlet: Frame, spec: PipeSpec) -> list[str]:
+        """Apply the predicted-SJ tiers: raise below ``PREDICTED_SJ_MIN``,
+        return a warning below ``PREDICTED_SJ_WARN``.  Each names the
+        predicted SJ and the shortest run that reaches the tier."""
+        sj = self.predicted_sj(inlet, spec)
+        for tier, name in ((PREDICTED_SJ_MIN, "PREDICTED_SJ_MIN"),
+                           (PREDICTED_SJ_WARN, "PREDICTED_SJ_WARN")):
+            if sj >= tier:
+                continue
+            need = self.shortest_run(inlet, spec, tier)
+            if need is None:
+                hint = (f"no run_length reaches it: the branch ratio r/R "
+                        f"{self.branch_radius / spec.core_shape.radius:.3g} limits the "
+                        f"junction core")
+            else:
+                hint = f"run_length {need:.4g} or more reaches it (now {self.run_length:.4g})"
+            msg = (f"predicted corner scaled Jacobian {sj:.3f} is below {name} "
+                   f"{tier:g}; {hint}")
+            if tier == PREDICTED_SJ_MIN:
+                raise ValueError(msg)
+            return [msg]
+        return []
 
     # -- ports --------------------------------------------------------
 
@@ -163,6 +232,9 @@ class Tee:
 
     def check(self, spec: PipeSpec) -> None:
         _check_circle(spec)
+        if self.run_length is None:
+            raise ValueError("Tee: run_length=None is resolved by Assembly.add(); "
+                             "add the fitting to an assembly")
         R, r = spec.core_shape.radius, self.branch_radius
         T = thicknesses(spec)[-1]
         if spec.rot != 0 or spec.n_outer != 4:
@@ -321,7 +393,9 @@ class Tee:
 
     # -- contract -----------------------------------------------------
 
-    def validate(self, frames: list[Frame], spec: PipeSpec) -> None:
+    def validate(self, frames: list[Frame], spec: PipeSpec) -> list[str]:
+        """Raise ValueError if invalid; return warnings (predicted quality
+        below ``PREDICTED_SJ_WARN``)."""
         self.check(spec)
         check_port_pairs(self, [spec] + [s for _, s in self.ports(frames[0], spec)])
         expected = [f for f, _ in self.ports(frames[0], spec)]
@@ -330,10 +404,12 @@ class Tee:
                     or np.dot(want.normal, got.normal) < 1 - 1e-9
                     or np.dot(want.up, got.up) < 1 - 1e-9):
                 raise ValueError("port interface does not match Tee geometry")
-        try:
+        found = self._quality(frames[0], spec)      # before the layout's own
+        try:                                        # inversion check: names a run
             self.layout(frames, spec).validate()
         except LayoutError as e:
             raise ValueError(f"block layout invalid: {e}") from None
+        return found
 
     def cell_count(self, frames: list[Frame], spec: PipeSpec) -> int:
         """Exact hex count of the block layout (pure; DESIGN P4)."""

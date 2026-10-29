@@ -510,11 +510,14 @@ class Assembly:
             # The fitting's own checks first: they give the most specific
             # reason (e.g. "Wye prototype supports single-layer specs only").
             try:
-                edge.fitting.validate(
+                found = edge.fitting.validate(
                     [p.frame for p in edge.ports], edge.ports[0].spec
                 )
             except ValueError as e:
                 raise AssemblyError(f"{edge}: {e}") from None
+            for msg in found or ():          # a fitting's predicted-quality warnings
+                self.warnings.append(f"{edge}: {msg}")
+                warnings.warn(f"{edge}: {msg}", UserWarning, stacklevel=2)
             # A4: each port pair, as connected, must be in a switch class the
             # fitting declares (decision 0011).  Before the exact type check
             # below, so the error names what differs.

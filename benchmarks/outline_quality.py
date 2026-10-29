@@ -258,11 +258,11 @@ def band(pairing: str, gap: float, nang: int, crosses, hi: float = 50.0) -> floa
 def bands(pairings, gaps, nangs) -> list[dict]:
     """Aspect ratios where each limit of ``hexmesh.assembly.limits`` starts."""
     from hexmesh.assembly.limits import (OUTLINE_NONORTH_MAX, OUTLINE_NONORTH_WARN,
-                                         OUTLINE_SJ_MIN, OUTLINE_SJ_WARN)
+                                         PREDICTED_SJ_MIN, PREDICTED_SJ_WARN)
     tests = {
-        "SJ warn": lambda q: q.min_sj < OUTLINE_SJ_WARN,
+        "SJ warn": lambda q: q.min_sj < PREDICTED_SJ_WARN,
         "non-orth warn": lambda q: q.max_non_ortho > OUTLINE_NONORTH_WARN,
-        "SJ reject": lambda q: q.min_sj < OUTLINE_SJ_MIN,
+        "SJ reject": lambda q: q.min_sj < PREDICTED_SJ_MIN,
         "non-orth reject": lambda q: q.max_non_ortho > OUTLINE_NONORTH_MAX,
     }
     rows = []

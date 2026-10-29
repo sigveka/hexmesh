@@ -37,7 +37,7 @@ import numpy as np
 
 from ..core.shape import CircleShape, RectShape, outline
 from ..core.spec import PipeSpec
-from .limits import OUTLINE_NONORTH_MAX, OUTLINE_NONORTH_WARN, OUTLINE_SJ_MIN, OUTLINE_SJ_WARN
+from .limits import OUTLINE_NONORTH_MAX, OUTLINE_NONORTH_WARN, PREDICTED_SJ_MIN, PREDICTED_SJ_WARN
 
 
 @dataclass(frozen=True)
@@ -237,9 +237,9 @@ def _describe(shape) -> str:
 def check_section_quality(spec: PipeSpec) -> list[str]:
     """Apply the outline quality limits to every shell that changes shape.
 
-    Raises ``ValueError`` past a hard limit (``OUTLINE_SJ_MIN``,
+    Raises ``ValueError`` past a hard limit (``PREDICTED_SJ_MIN``,
     ``OUTLINE_NONORTH_MAX``); returns one message per soft limit passed
-    (``OUTLINE_SJ_WARN``, ``OUTLINE_NONORTH_WARN``).  Each names the
+    (``PREDICTED_SJ_WARN``, ``OUTLINE_NONORTH_WARN``).  Each names the
     layer, the metric, the predicted value and the limit.
     """
     shells = [i for i in range(1, len(spec.outlines)) if changes_shape(spec, i)]
@@ -251,15 +251,15 @@ def check_section_quality(spec: PipeSpec) -> list[str]:
         q = quality[i]
         what = (f"layer `{q.name}` ({_describe(spec.outlines[i - 1])} in a "
                 f"{_describe(spec.outlines[i])})")
-        if q.min_sj < OUTLINE_SJ_MIN:
+        if q.min_sj < PREDICTED_SJ_MIN:
             raise ValueError(f"{what}: predicted corner scaled Jacobian {q.min_sj:.3f} "
-                             f"is below OUTLINE_SJ_MIN {OUTLINE_SJ_MIN:g}")
+                             f"is below PREDICTED_SJ_MIN {PREDICTED_SJ_MIN:g}")
         if q.max_non_ortho > OUTLINE_NONORTH_MAX:
             raise ValueError(f"{what}: predicted non-orthogonality {q.max_non_ortho:.1f}° "
                              f"is above OUTLINE_NONORTH_MAX {OUTLINE_NONORTH_MAX:g}°")
-        if q.min_sj < OUTLINE_SJ_WARN:
+        if q.min_sj < PREDICTED_SJ_WARN:
             warn.append(f"{what}: predicted corner scaled Jacobian {q.min_sj:.3f} "
-                        f"is below OUTLINE_SJ_WARN {OUTLINE_SJ_WARN:g}")
+                        f"is below PREDICTED_SJ_WARN {PREDICTED_SJ_WARN:g}")
         if q.max_non_ortho > OUTLINE_NONORTH_WARN:
             warn.append(f"{what}: predicted non-orthogonality {q.max_non_ortho:.1f}° "
                         f"is above OUTLINE_NONORTH_WARN {OUTLINE_NONORTH_WARN:g}°")

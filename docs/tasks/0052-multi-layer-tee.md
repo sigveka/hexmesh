@@ -1,6 +1,6 @@
 # 0052 — Multi-layer tee: shells as offset levels of the junction
 
-- **Status:** ready (design answered Q1 2026-10-29: implement the limit)
+- **Status:** done
 - **Decision:** [0028 — Multi-layer junctions](../decisions/0028-multi-layer-junctions.md)
 - **Depends on:** 0051 (exact walls).
 
@@ -129,6 +129,46 @@ plates as in 0051's tee are fine for now; if 0051's step 8 drops the
 plates in favour of projection, follow it.  Shell nodes must end on
 their offset surfaces either way (the accept criteria are unchanged).
 
+**Q1 answer implemented (2026-10-29).**
+- **Limits:** 0047's `OUTLINE_SJ_MIN`/`WARN` are renamed
+  `PREDICTED_SJ_MIN`/`WARN` and shared (`section_quality`, the
+  benchmark, two tests' messages).
+- **`Tee`:**
+  - `predicted_sj(inlet, spec, run_length=None)`: the layout's min
+    corner SJ (pure).
+  - `shortest_run(inlet, spec, tier)`: bisection between r + T and
+    r + T + 2 R, to 1e-3 R, rounded up.  It first checks the long end, so
+    a tee that can't reach the tier costs one evaluation.  The bisection
+    takes 0.2–0.3 s when it runs (13 ms per layout single-layer).
+- **Fitting warnings:** `Tee.validate()` applies the tiers before the
+  layout's own inversion check, so a short run gets the hint rather than
+  "inverted or degenerate".  It returns its warnings, and
+  `Assembly.validate()` records any a fitting returns in
+  `Assembly.warnings`, as it does the outline ones.
+- **`run_length=None`:** `run_length`, `branch_length` and
+  `branch_radius` all default to `None`, so positional calls
+  (`Tee(0.2, 0.25, 0.05)`, used widely) keep working.
+  `__post_init__` makes the last two required (`TypeError`).
+  `Tee.resolve` fills the run in on `add()`.
+- **Plateau SJ against r/R** (single layer; shells don't lower it):
+
+  | r/R | 0.3 | 0.4 | 0.5 | 0.55 | 0.6 | 0.7 | 0.8 | 0.9 | 0.95 |
+  |---|---|---|---|---|---|---|---|---|---|
+  | SJ | 0.150 | 0.203 | 0.258 | 0.286 | 0.316 | 0.377 | 0.441 | 0.509 | 0.543 |
+
+  So **every tee with r/R below about 0.57 warns, at any run length**.
+  That includes the plain r/R 0.5 tee of the kit, the examples and most
+  tests, wider than "r/R ≲ 0.3" in the answer.  The message blames the
+  branch ratio.
+- **Default run reaches nearly the plateau:** r + T + 0.5 R gives 0.493 of
+  0.509 at r/R 0.9, single layer; elsewhere the plateau itself.  No
+  measured case needed the bisection's longer run: the closed form
+  always passed 0.3 where the plateau did.
+- **PCF set-on tee with a wall** (task 0037's spool): now rejected with
+  "predicted corner scaled Jacobian −0.159 is below PREDICTED_SJ_MIN
+  0.1; run_length 0.0385 or more reaches it (now 0.0254)", which is
+  what 0054 needs.
+
 ## Questions for design
 
 **Q1 (proposed limit, step 4).**  Clearance alone (`run_length > r + T`,
@@ -198,7 +238,32 @@ tests on each side of both tiers and for the default.  Then set the task
 
 ## Outcome
 
-**Done.**  Any stack of circular shells runs through the tee.
+**Q1 limit and `run_length=None` (2026-10-29): done.**
+
+- **Two tiers on the predicted corner SJ, before GMSH:** reject below 0.1,
+  warn below 0.3 (recorded in `Assembly.warnings`).  Each message names
+  the tee, the SJ, and the shortest `run_length` that reaches the tier,
+  or says the branch ratio limits it.
+- **`Tee(run_length=None)`** resolves on `add()` to
+  `max(r + T + 0.5 R, shortest run reaching 0.3)`, stored in the JSON.
+- **Files:** `hexmesh/assembly/tee.py`, `limits.py`, `assembler.py`
+  (fitting warnings), `section_quality.py` and
+  `benchmarks/outline_quality.py` (renamed limits), `API.md`.
+- **Tests:** `test_tee.py` +9: reject with hint, the hint passes; warn
+  with hint, the hint is silent; ratio-limited warning; the default ×5
+  (stored, at least the closed form, near the plateau); `None` outside an
+  assembly, missing arguments.  Updated: `test_io_readers` (set-on
+  message), `test_layer_outlines` and `test_study` (renamed limits).
+- **Suite:** 1890 passed (before: 1881; +9 here).
+- **For design:**
+  - Tees with r/R below about 0.57 always warn (table in *Agent notes*):
+    the kit tee, the examples, most PCF reducing tees.  If that's too
+    noisy, options are a lower warning tier for junction cores (their
+    plateau is the junction's own limit), or warning only when a longer
+    run would help.
+  - DESIGN's tee limits row can mention the predicted-SJ tiers.
+
+**Shells (earlier, 2026-10-29): done.**  Any stack of circular shells runs through the tee.
 
 - **Kit cases** `tee-0.5-2layer`, `tee-0.9-3layer` and
   `tee-0.5-3layer-oblique`: all-hex, meshed = predicted, class-0 ports,

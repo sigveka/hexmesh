@@ -427,7 +427,7 @@ def test_spool_set_on_rejected_on_layered_spec(tmp_path):
     Questions for design)."""
     net = _read_spool(tmp_path, SPOOL)
     asm = net.to_assembly(_spec(0.05))
-    with pytest.raises(AssemblyError, match=r"Tee.*inverted or degenerate"):
+    with pytest.raises(AssemblyError, match=r"Tee.*below PREDICTED_SJ_MIN 0\.1; run_length 0\.0385 or more"):
         asm.validate()
     assert not gmsh.isInitialized()
 

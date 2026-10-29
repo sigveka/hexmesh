@@ -3,6 +3,8 @@ Tee block layout (hexmesh/assembly/tee.py).  Conformance is covered by the
 kit (tests/test_fitting_conformance.py); these tests cover the tee itself.
 """
 
+import warnings
+
 import gmsh
 import numpy as np
 import pytest
@@ -189,3 +191,75 @@ def test_interfaces_continuous_through_tee(gmsh_session, ratio):
                         seen.add(n)
                         todo.append(n)
         assert len(seen) == len(quads), f"{name}: {len(seen)} of {len(quads)} quads connected"
+
+
+# ---------------------------------------------------------------------------
+# Predicted quality and the default run length (task 0052, Q1)
+# ---------------------------------------------------------------------------
+
+def _shelled_tee(ratio, T, run):
+    spec = _spec() if T == 0 else _spec().shell("steel", dR=T, nrad=2)
+    asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1], lc=0.05)
+    asm.add(Tee(run, 0.5, ratio * R), names=["main", "branch"])
+    return asm
+
+
+def _hint(message):
+    import re
+    return float(re.search(r"run_length ([0-9.e-]+) or more reaches it", message).group(1))
+
+
+def test_short_run_rejected_with_the_length_that_works():
+    asm = _shelled_tee(0.5, 0.02, 0.08)            # steel slab at SJ 0.06
+    with pytest.raises(AssemblyError, match=r"Tee.*predicted corner scaled Jacobian "
+                       r"0\.060 is below PREDICTED_SJ_MIN 0\.1; run_length .* or more") as e:
+        asm.validate()
+    need = _hint(str(e.value))
+    assert 0.08 < need < 0.09
+    with pytest.warns(UserWarning):                # at the hint: past the hard tier
+        _shelled_tee(0.5, 0.02, need).validate()
+    assert not gmsh.isInitialized()
+
+
+def test_warning_names_the_run_that_reaches_it():
+    asm = _shelled_tee(0.7, 0.02, 0.095)           # SJ 0.215
+    with pytest.warns(UserWarning, match=r"below PREDICTED_SJ_WARN 0\.3; run_length "):
+        asm.validate()
+    assert len(asm.warnings) == 1 and asm.warnings[0].startswith("fitting #0 Tee(")
+    need = _hint(asm.warnings[0])
+    ok = _shelled_tee(0.7, 0.02, need)
+    ok.validate()
+    assert ok.warnings == []
+
+
+def test_small_branch_warns_at_any_length():
+    """r/R below about 0.57 can't reach 0.3: the message blames the ratio."""
+    asm = _shelled_tee(0.5, 0.0, 0.5)
+    with pytest.warns(UserWarning, match=r"no run_length reaches it: the branch ratio r/R 0\.5"):
+        asm.validate()
+
+
+@pytest.mark.parametrize("ratio, T", [(0.25, 0.0), (0.25, 0.05), (0.5, 0.02), (0.9, 0.0), (0.9, 0.05)])
+def test_default_run_length(ratio, T):
+    """run_length=None resolves on add() to max(r + T + 0.5 R, the shortest
+    run reaching PREDICTED_SJ_WARN), and is stored."""
+    asm = _shelled_tee(ratio, T, None)
+    e = asm.edges[0]
+    tee, inlet, spec = e.fitting, e.ports[0].frame, e.ports[0].spec
+    need = tee.shortest_run(inlet, spec, 0.3) or 0.0
+    assert tee.run_length == pytest.approx(max(ratio * R + T + 0.5 * R, need))
+    assert asm.to_dict()["edges"][0]["fitting"]["run_length"] == tee.run_length
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")            # r/R 0.25 and 0.5 warn at any run
+        asm.validate()
+    # the default nearly reaches the long-run quality (0.493 of 0.509 at r/R 0.9)
+    assert tee.predicted_sj(inlet, spec) == pytest.approx(
+        tee.predicted_sj(inlet, spec, tee.run_length + R), abs=0.02)
+
+
+def test_default_run_length_needs_an_assembly():
+    tee = Tee(branch_length=0.25, branch_radius=0.05)
+    with pytest.raises(ValueError, match="run_length=None is resolved by Assembly.add"):
+        tee.check(_spec())
+    with pytest.raises(TypeError, match="missing required argument.*branch_radius"):
+        Tee(0.2, 0.25)
