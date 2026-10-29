@@ -782,17 +782,23 @@ Each case lives in `validation/<case>/`: `README.md` describes it, `RESULTS.md` 
 
 **Status:** —
 
+<p><img src="../validation/heated_rod/img/uniform-1.png" width="68%"> <img src="../validation/heated_rod/img/uniform-1_section.png" width="29%"></p>
+
 Case: [validation/heated_rod/README.md](../validation/heated_rod/README.md); results: [RESULTS.md](../validation/heated_rod/RESULTS.md).
 
 ### Layered conduction: results
 
 **Status:** accepted (task 0034, gates of decision 0015)
 
+<p><img src="../validation/layered_conduction/img/k1.png" width="68%"> <img src="../validation/layered_conduction/img/k1_section.png" width="29%"></p>
+
 Case: [validation/layered_conduction/README.md](../validation/layered_conduction/README.md); results: [RESULTS.md](../validation/layered_conduction/RESULTS.md).
 
 ### laminar Hagen–Poiseuille
 
 **Status:** accepted (task 0020, gates of decision 0015)
+
+<p><img src="../validation/poiseuille/img/coarse.png" width="68%"> <img src="../validation/poiseuille/img/coarse_section.png" width="29%"></p>
 
 Case: [validation/poiseuille/README.md](../validation/poiseuille/README.md); results: [RESULTS.md](../validation/poiseuille/RESULTS.md).
 

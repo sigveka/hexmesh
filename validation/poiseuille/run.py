@@ -75,6 +75,14 @@ def assembly(factor: int) -> Assembly:
     return asm
 
 
+def meshes():
+    """(label, caption, build) per mesh shown in README.md
+    (``docs/gallery/build.py --validation``)."""
+    return [(name, f"{name}: nang {BASE['nang'] * f}, nrad {BASE['nrad'] * f}, "
+                   f"{sum(BASE['n_layers']) * f} axial layers",
+             lambda f=f: assembly(f)) for name, f in LEVELS.items()]
+
+
 # --- OpenFOAM dictionaries ---------------------------------------------------
 
 CONTROL = """application     simpleFoam;

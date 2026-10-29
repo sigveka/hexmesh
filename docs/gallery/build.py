@@ -6,11 +6,20 @@ Example gallery: meshes every example, renders it, measures it, and writes
     python3 docs/gallery/build.py --jobs 4          # four examples at once
     python3 docs/gallery/build.py --only tee wye    # re-run some, keep the rest
     python3 docs/gallery/build.py --markdown-only   # rewrite GALLERY.md only
+    python3 docs/gallery/build.py --validation      # validation meshes, all cases
+    python3 docs/gallery/build.py --validation poiseuille
 
 The prose comes from the examples' docstrings and the category packages'
 docstrings, so edit it there.  Validation cases come from
 ``validation/<case>/`` (README.md, RESULTS.md with a ``**Status:**`` line,
 optional ``figure.png``) and planned ones from ``docs/tasks/*validation*``.
+
+**Validation meshes.**  A case whose ``run.py`` defines ``meshes()``,
+returning ``(label, caption, build)`` per mesh, gets
+``validation/<case>/img/<label>_section.png`` for each mesh (and
+``<label>.png``, an overview, for the first) and a "Mesh" section in its
+README.md, between ``<!-- mesh:start -->`` and ``<!-- mesh:end -->``
+markers (inserted after the "## Case" section the first time).
 
 Needs ``vtk`` for rendering.  Each example runs in its own process (one
 GMSH session each).  Follow the shared-machine rules in CLAUDE.md before a
@@ -126,8 +135,12 @@ def faces(asm) -> tuple[dict, dict]:
              "position": np.asarray(frame.position)})
 
 
-def render(scene: dict, path: Path, size, view: str) -> None:
-    """Render polygons with VTK, off screen, to a PNG."""
+def render(scene: dict, path: Path, size, view: str, fit: bool = False) -> None:
+    """Render polygons with VTK, off screen, to a PNG.
+
+    With *fit*, the image is rendered at twice the size and cropped to the
+    mesh (plus a margin), then scaled to *size*'s width, so long, thin
+    meshes fill the frame instead of a mostly empty one."""
     import numpy as np
     import vtk
 
@@ -188,12 +201,11 @@ def render(scene: dict, path: Path, size, view: str) -> None:
     cam.SetViewUp(*up)
     ren.ResetCamera()
     cam.Zoom(1.15 if view == "overview" else 1.05)
-
     win = vtk.vtkRenderWindow()
     win.SetOffScreenRendering(1)
     win.SetMultiSamples(8)
     win.AddRenderer(ren)
-    win.SetSize(*size)
+    win.SetSize(*((2 * size[0], 2 * size[1]) if fit else size))
     win.Render()
     grab = vtk.vtkWindowToImageFilter()
     grab.SetInput(win)
@@ -202,6 +214,17 @@ def render(scene: dict, path: Path, size, view: str) -> None:
     writer.SetFileName(str(path))
     writer.SetInputConnection(grab.GetOutputPort())
     writer.Write()
+    if fit:
+        from PIL import Image, ImageChops
+        im = Image.open(path).convert("RGB")
+        box = ImageChops.difference(im, Image.new("RGB", im.size, "white")).getbbox()
+        if box:
+            pad = int(0.04 * max(box[2] - box[0], box[3] - box[1]))
+            im = im.crop((max(box[0] - pad, 0), max(box[1] - pad, 0),
+                          min(box[2] + pad, im.width), min(box[3] + pad, im.height)))
+            im = im.resize((size[0], max(1, round(im.height * size[0] / im.width))),
+                           Image.LANCZOS)
+        im.save(path)
 
 
 def worker(qualname: str, out: Path) -> None:
@@ -228,6 +251,130 @@ def worker(qualname: str, out: Path) -> None:
     m.update(predicted=result.predicted, meshed=result.meshed,
              build_s=round(build, 2))
     out.write_text(json.dumps(m, indent=1))
+
+
+def load_case(case: str):
+    """``validation/<case>/run.py`` as a module (not run)."""
+    import importlib.util
+    path = ROOT / "validation" / case / "run.py"
+    spec = importlib.util.spec_from_file_location(f"validation_{case}", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def validation_worker(case: str, label: str, out: Path) -> None:
+    import gmsh
+    from hexmesh import Session
+
+    entries = load_case(case).meshes()
+    first = entries[0][0] == label
+    build = next(b for l, _, b in entries if l == label)
+    img = ROOT / "validation" / case / "img"
+    img.mkdir(parents=True, exist_ok=True)
+    with Session(f"{case}-{label}"):
+        asm = build()
+        asm.validate()
+        predicted = asm.cell_count()
+        asm.mesh()
+        meshed = sum(len(t) for t in gmsh.model.mesh.getElements(3)[1])
+        m = measure(asm)
+        overview, section = faces(asm)
+    if first:
+        render(overview, img / f"{label}.png", (1000, 600), "overview", fit=True)
+    render(section, img / f"{label}_section.png", (420, 420), "section")
+    m.update(predicted=predicted, meshed=meshed)
+    out.write_text(json.dumps(m, indent=1))
+
+
+def validation_cases() -> list[str]:
+    """Cases whose run.py defines meshes()."""
+    found = []
+    for run in sorted((ROOT / "validation").glob("*/run.py")):
+        if re.search(r"^def meshes\(", run.read_text(), re.M):
+            found.append(run.parent.name)
+    return found
+
+
+def run_validation(cases: list[str], jobs: int) -> dict:
+    """Render every case's meshes, one subprocess per mesh; return
+    case → label → metrics."""
+    todo = [(c, label) for c in cases for label, _, _ in load_case(c).meshes()]
+
+    def one(item):
+        case, label = item
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "m.json"
+            env = dict(os.environ, PYTHONPATH=str(ROOT))
+            p = subprocess.run([sys.executable, __file__, "--vworker", case, label,
+                                str(out)], env=env, capture_output=True, text=True)
+            if p.returncode:
+                print(f"{case}/{label}: FAILED\n{p.stderr[-2000:]}", flush=True)
+                return item, {"error": p.stderr.strip().splitlines()[-1]}
+            m = json.loads(out.read_text())
+            print(f"{case}/{label}: {m['meshed']} cells, min SICN {m['min_sicn']:.3f}",
+                  flush=True)
+            return item, m
+
+    results: dict = {}
+    with ThreadPoolExecutor(max_workers=jobs) as pool:
+        for (case, label), m in pool.map(one, todo):
+            results.setdefault(case, {})[label] = m
+    return results
+
+
+MESH_START, MESH_END = "<!-- mesh:start -->", "<!-- mesh:end -->"
+
+
+def mesh_md(case: str, metrics: dict) -> str:
+    """The README "Mesh" section of a validation case."""
+    entries = load_case(case).meshes()
+    first = entries[0][0]
+    lines = [MESH_START, "## Mesh", "",
+             "_Generated by `python3 docs/gallery/build.py --validation "
+             f"{case}`; don't edit between the markers._", "",
+             f'<img src="img/{first}.png" width="{overview_width(case, first)}" '
+             f'alt="{case}, {first} mesh">', "",
+             "<p>" + " ".join(f'<img src="img/{l}_section.png" width="{96 // len(entries)}%" '
+                              f'alt="{c}">' for l, c, _ in entries) + "</p>", "",
+             "Inlet cross-sections, left to right: "
+             + "; ".join(c for _, c, _ in entries) + ".", "",
+             "| Mesh | Cells | min SICN | min SJ (where) | max aspect |",
+             "|---|---|---|---|---|"]
+    for label, _, _ in entries:
+        m = metrics.get(label)
+        if not m or "error" in m:
+            lines.append(f"| {label} | — | — | — | — |")
+            continue
+        cells = fmt_int(m["meshed"]) + ("" if m["meshed"] == m["predicted"] else " ✗")
+        lines.append(f"| {label} | {cells} | {m['min_sicn']:.3f} | {m['min_sj']:.3f} "
+                     f"({m['min_sj_fitting']}) | {m['max_aspect']:.1f} |")
+    lines += ["", MESH_END]
+    return "\n".join(lines)
+
+
+def overview_width(case: str, label: str) -> str:
+    """Full width for a wide overview, narrower for a tall one."""
+    from PIL import Image
+    path = ROOT / "validation" / case / "img" / f"{label}.png"
+    if not path.exists():
+        return "100%"
+    w, h = Image.open(path).size
+    return "100%" if h <= 0.6 * w else "60%"
+
+
+def update_readme(case: str, block: str) -> None:
+    """Replace the marked block, or insert it after the "## Case" section."""
+    path = ROOT / "validation" / case / "README.md"
+    text = path.read_text()
+    if MESH_START in text and MESH_END in text:
+        a, b = text.index(MESH_START), text.index(MESH_END) + len(MESH_END)
+        text = text[:a] + block + text[b:]
+    else:
+        m = re.search(r"^## Case\b.*?(?=^## )", text, re.M | re.S)
+        at = m.end() if m else len(text)
+        text = text[:at] + block + "\n\n" + text[at:]
+    path.write_text(text)
 
 
 # --------------------------------------------------------------------------
@@ -350,6 +497,12 @@ def validation_md() -> str:
                       if l.startswith("# ")), case.name)
         out += [f"### {title}", "",
                 f"**Status:** {status_of(res.read_text())}", ""]
+        if case.name in validation_cases():
+            first = load_case(case.name).meshes()[0][0]
+            if (case / "img" / f"{first}.png").exists():
+                out += [f'<p><img src="../validation/{case.name}/img/{first}.png" width="68%"> '
+                        f'<img src="../validation/{case.name}/img/{first}_section.png" '
+                        f'width="29%"></p>', ""]
         if (case / "figure.png").exists():
             out += [f'<img src="../validation/{case.name}/figure.png" width="70%">', ""]
         out += [f"Case: [validation/{case.name}/README.md](../validation/{case.name}/README.md); "
@@ -435,17 +588,36 @@ def main() -> None:
     ap.add_argument("--jobs", type=int, default=1, help="examples at once")
     ap.add_argument("--markdown-only", action="store_true",
                     help="rewrite GALLERY.md from metrics.json, no meshing")
+    ap.add_argument("--validation", nargs="*", metavar="CASE",
+                    help="render validation meshes into their READMEs "
+                         "(all cases with meshes() if none named)")
     ap.add_argument("--worker", nargs=2, help=argparse.SUPPRESS)
+    ap.add_argument("--vworker", nargs=3, help=argparse.SUPPRESS)
     args = ap.parse_args()
 
     if args.worker:
         worker(args.worker[0], Path(args.worker[1]))
+        return
+    if args.vworker:
+        validation_worker(args.vworker[0], args.vworker[1], Path(args.vworker[2]))
         return
 
     from hexmesh.examples import ALL
     saved = json.loads(METRICS.read_text()) if METRICS.exists() else {}
     metrics = saved.get("examples", {})
     meta = saved.get("meta", {})
+    if args.validation is not None:
+        cases = args.validation or validation_cases()
+        vmetrics = saved.get("validation", {})
+        vmetrics.update(run_validation(cases, args.jobs))
+        for case in cases:
+            update_readme(case, mesh_md(case, vmetrics.get(case, {})))
+            print(f"wrote validation/{case}/README.md")
+        saved["validation"] = vmetrics
+        METRICS.write_text(json.dumps(saved, indent=1))
+        write_markdown(metrics, meta)
+        print(f"wrote {GALLERY.relative_to(ROOT)}")
+        return
     if not args.markdown_only:
         names = ALL
         if args.only:
@@ -455,7 +627,8 @@ def main() -> None:
         meta = {"date": datetime.date.today().isoformat(), "commit": git_describe(),
                 "gmsh": gmsh.__version__, "python": sys.version.split()[0],
                 "cpus": os.cpu_count(), "jobs": args.jobs}
-        METRICS.write_text(json.dumps({"meta": meta, "examples": metrics}, indent=1))
+        METRICS.write_text(json.dumps({**saved, "meta": meta, "examples": metrics},
+                                      indent=1))
     write_markdown(metrics, meta)
     print(f"wrote {GALLERY.relative_to(ROOT)}")
 

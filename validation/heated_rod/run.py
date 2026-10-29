@@ -86,6 +86,15 @@ def assembly(series: str, k: int) -> Assembly:
     return Assembly.from_dict(d)
 
 
+def meshes():
+    """(label, caption, build) per mesh shown in README.md
+    (``docs/gallery/build.py --validation``)."""
+    return [(f"{series}-{k}", f"{series}, k = {k}: nang {BASE['nang'] * k}, "
+                              f"nrad {BASE['nrad'] * k}",
+             lambda s=series, k=k: assembly(s, k))
+            for series, k in (("uniform", 1), ("graded", 1), ("uniform", 4))]
+
+
 # --- OpenFOAM dictionaries ---------------------------------------------------
 
 H = pois._header

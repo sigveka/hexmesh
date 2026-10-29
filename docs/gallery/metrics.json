@@ -991,5 +991,316 @@
    "meshed": 13164,
    "build_s": 7.23
   }
+ },
+ "validation": {
+  "heated_rod": {
+   "uniform-1": {
+    "fittings": 1,
+    "fitting_types": {
+     "Straight": 1
+    },
+    "volumes": 5,
+    "materials": [
+     "rod"
+    ],
+    "min_sicn": 0.23829723811987927,
+    "mean_sicn": 0.3156150552091518,
+    "min_sj": 0.7933533402912332,
+    "min_sj_fitting": "#0 Straight",
+    "max_aspect": 7.500000000000008,
+    "groups": {
+     "open_end": [
+      "rod_inlet",
+      "rod_outlet"
+     ],
+     "wall": [
+      "rod_wall"
+     ],
+     "interface": [],
+     "volume": [
+      "rod"
+     ]
+    },
+    "predicted": 216,
+    "meshed": 216
+   },
+   "graded-1": {
+    "fittings": 1,
+    "fitting_types": {
+     "Straight": 1
+    },
+    "volumes": 5,
+    "materials": [
+     "rod"
+    ],
+    "min_sicn": 0.11545671754127439,
+    "mean_sicn": 0.2717537691475008,
+    "min_sj": 0.7933533402912332,
+    "min_sj_fitting": "#0 Straight",
+    "max_aspect": 24.56722975230062,
+    "groups": {
+     "open_end": [
+      "rod_inlet",
+      "rod_outlet"
+     ],
+     "wall": [
+      "rod_wall"
+     ],
+     "interface": [],
+     "volume": [
+      "rod"
+     ]
+    },
+    "predicted": 216,
+    "meshed": 216
+   },
+   "uniform-4": {
+    "fittings": 1,
+    "fitting_types": {
+     "Straight": 1
+    },
+    "volumes": 5,
+    "materials": [
+     "rod"
+    ],
+    "min_sicn": 0.056086337678024234,
+    "mean_sicn": 0.0862878472630439,
+    "min_sj": 0.7298640702516239,
+    "min_sj_fitting": "#0 Straight",
+    "max_aspect": 30.000000000000057,
+    "groups": {
+     "open_end": [
+      "rod_inlet",
+      "rod_outlet"
+     ],
+     "wall": [
+      "rod_wall"
+     ],
+     "interface": [],
+     "volume": [
+      "rod"
+     ]
+    },
+    "predicted": 3456,
+    "meshed": 3456
+   }
+  },
+  "poiseuille": {
+   "coarse": {
+    "fittings": 3,
+    "fitting_types": {
+     "Straight": 3
+    },
+    "volumes": 15,
+    "materials": [
+     "fluid"
+    ],
+    "min_sicn": 0.19226580774390223,
+    "mean_sicn": 0.25544767728517914,
+    "min_sj": 0.7933533402912328,
+    "min_sj_fitting": "#0 Straight",
+    "max_aspect": 9.375000000000059,
+    "groups": {
+     "open_end": [
+      "fluid_inlet",
+      "fluid_outlet"
+     ],
+     "wall": [
+      "fluid_wall"
+     ],
+     "interface": [],
+     "volume": [
+      "fluid"
+     ]
+    },
+    "predicted": 5184,
+    "meshed": 5184
+   },
+   "medium": {
+    "fittings": 3,
+    "fitting_types": {
+     "Straight": 3
+    },
+    "volumes": 15,
+    "materials": [
+     "fluid"
+    ],
+    "min_sicn": 0.18233905125653396,
+    "mean_sicn": 0.2657781215270108,
+    "min_sj": 0.7518398074789749,
+    "min_sj_fitting": "#0 Straight",
+    "max_aspect": 9.37500000000015,
+    "groups": {
+     "open_end": [
+      "fluid_inlet",
+      "fluid_outlet"
+     ],
+     "wall": [
+      "fluid_wall"
+     ],
+     "interface": [],
+     "volume": [
+      "fluid"
+     ]
+    },
+    "predicted": 41472,
+    "meshed": 41472
+   },
+   "fine": {
+    "fittings": 3,
+    "fitting_types": {
+     "Straight": 3
+    },
+    "volumes": 15,
+    "materials": [
+     "fluid"
+    ],
+    "min_sicn": 0.1770517313327698,
+    "mean_sicn": 0.27037842584937727,
+    "min_sj": 0.7298640702516203,
+    "min_sj_fitting": "#2 Straight",
+    "max_aspect": 9.375000000000298,
+    "groups": {
+     "open_end": [
+      "fluid_inlet",
+      "fluid_outlet"
+     ],
+     "wall": [
+      "fluid_wall"
+     ],
+     "interface": [],
+     "volume": [
+      "fluid"
+     ]
+    },
+    "predicted": 331776,
+    "meshed": 331776
+   }
+  },
+  "layered_conduction": {
+   "k1": {
+    "fittings": 1,
+    "fitting_types": {
+     "Straight": 1
+    },
+    "volumes": 13,
+    "materials": [
+     "rod",
+     "steel",
+     "insulation"
+    ],
+    "min_sicn": 0.6656954522706892,
+    "mean_sicn": 0.8330548433834419,
+    "min_sj": 0.7933533402912338,
+    "min_sj_fitting": "#0 Straight",
+    "max_aspect": 3.028007990814269,
+    "groups": {
+     "open_end": [
+      "insulation_inlet",
+      "insulation_outlet",
+      "rod_inlet",
+      "rod_outlet",
+      "steel_inlet",
+      "steel_outlet"
+     ],
+     "wall": [
+      "insulation_wall"
+     ],
+     "interface": [
+      "interface_rod_steel",
+      "interface_steel_insulation"
+     ],
+     "volume": [
+      "insulation",
+      "rod",
+      "steel"
+     ]
+    },
+    "predicted": 456,
+    "meshed": 456
+   },
+   "k2": {
+    "fittings": 1,
+    "fitting_types": {
+     "Straight": 1
+    },
+    "volumes": 13,
+    "materials": [
+     "rod",
+     "steel",
+     "insulation"
+    ],
+    "min_sicn": 0.5054410927448948,
+    "mean_sicn": 0.7325525858203447,
+    "min_sj": 0.7518398074789752,
+    "min_sj_fitting": "#0 Straight",
+    "max_aspect": 4.000000000000755,
+    "groups": {
+     "open_end": [
+      "insulation_inlet",
+      "insulation_outlet",
+      "rod_inlet",
+      "rod_outlet",
+      "steel_inlet",
+      "steel_outlet"
+     ],
+     "wall": [
+      "insulation_wall"
+     ],
+     "interface": [
+      "interface_rod_steel",
+      "interface_steel_insulation"
+     ],
+     "volume": [
+      "insulation",
+      "rod",
+      "steel"
+     ]
+    },
+    "predicted": 1824,
+    "meshed": 1824
+   },
+   "k4": {
+    "fittings": 1,
+    "fitting_types": {
+     "Straight": 1
+    },
+    "volumes": 13,
+    "materials": [
+     "rod",
+     "steel",
+     "insulation"
+    ],
+    "min_sicn": 0.27085675514858165,
+    "mean_sicn": 0.4783190547787151,
+    "min_sj": 0.7298640702516246,
+    "min_sj_fitting": "#0 Straight",
+    "max_aspect": 8.000000000002625,
+    "groups": {
+     "open_end": [
+      "insulation_inlet",
+      "insulation_outlet",
+      "rod_inlet",
+      "rod_outlet",
+      "steel_inlet",
+      "steel_outlet"
+     ],
+     "wall": [
+      "insulation_wall"
+     ],
+     "interface": [
+      "interface_rod_steel",
+      "interface_steel_insulation"
+     ],
+     "volume": [
+      "insulation",
+      "rod",
+      "steel"
+     ]
+    },
+    "predicted": 7296,
+    "meshed": 7296
+   }
+  }
  }
 }
