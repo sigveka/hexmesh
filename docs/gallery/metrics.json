@@ -1,6 +1,6 @@
 {
  "meta": {
-  "date": "2026-10-28",
+  "date": "2026-10-29",
   "commit": "1f5ea6d + uncommitted changes",
   "gmsh": "4.12.1",
   "python": "3.12.3",
@@ -874,6 +874,88 @@
    "predicted": 9036,
    "meshed": 9036,
    "build_s": 6.51
+  },
+  "fittings.junction_walls": {
+   "fittings": 7,
+   "fitting_types": {
+    "Straight": 5,
+    "Tee": 1,
+    "Wye": 1
+   },
+   "volumes": 78,
+   "materials": [
+    "fluid"
+   ],
+   "min_sicn": 0.04053228617120627,
+   "mean_sicn": 0.426176454315523,
+   "min_sj": 0.06501524284489825,
+   "min_sj_fitting": "#4 Wye",
+   "max_aspect": 15.706822833831795,
+   "groups": {
+    "open_end": [
+     "fluid_branch_end",
+     "fluid_inlet",
+     "fluid_left_end",
+     "fluid_right_end"
+    ],
+    "wall": [
+     "fluid_wall"
+    ],
+    "interface": [],
+    "volume": [
+     "fluid"
+    ]
+   },
+   "predicted": 10176,
+   "meshed": 10176,
+   "build_s": 3.16
+  },
+  "sections.insulated_tee": {
+   "fittings": 5,
+   "fitting_types": {
+    "Straight": 3,
+    "Tee": 1,
+    "Bend": 1
+   },
+   "volumes": 231,
+   "materials": [
+    "fluid",
+    "steel",
+    "insulation"
+   ],
+   "min_sicn": 0.10740561094895411,
+   "mean_sicn": 0.42246038289685667,
+   "min_sj": 0.3155573209617121,
+   "min_sj_fitting": "#1 Tee",
+   "max_aspect": 15.625000000000261,
+   "groups": {
+    "open_end": [
+     "fluid_branch_end",
+     "fluid_inlet",
+     "fluid_main_end",
+     "insulation_branch_end",
+     "insulation_inlet",
+     "insulation_main_end",
+     "steel_branch_end",
+     "steel_inlet",
+     "steel_main_end"
+    ],
+    "wall": [
+     "insulation_wall"
+    ],
+    "interface": [
+     "interface_fluid_steel",
+     "interface_steel_insulation"
+    ],
+    "volume": [
+     "fluid",
+     "insulation",
+     "steel"
+    ]
+   },
+   "predicted": 13164,
+   "meshed": 13164,
+   "build_s": 7.23
   }
  }
 }
