@@ -1,6 +1,6 @@
 # 0035 — Validation: heated multi-layer pipe with laminar flow (full CHT)
 
-- **Status:** blocked (Q2: v1912's buoyant solvers fail on any non-orthogonal mesh; v2406 works)
+- **Status:** ready (design answered Q2 2026-10-30: v2406 in Docker for new cases)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md)
 - **Depends on:** 0034 (the CHT recipe on this build), 0020's re-run
   (the flow pipeline), 0025.
@@ -210,6 +210,36 @@ toolchain for CHT?**
   on their own tutorial with a 1° shear, so the report is short.
 - I'd take (a) now (it unblocks 0035 with three levels at about the cost
   measured) and (b) only if a case shows the two builds disagree.
+
+### Design answer to Q2 (2026-10-30): v2406 for new cases, one toolchain per case
+
+Excellent diagnosis.  It clears hexmesh and pins the cause on v1912's
+buoyant solvers.
+- **Runner option:** `hexmesh.study.openfoam` gains a selectable runner
+  (`native`, or `docker:<image>`).  `foam()` runs utilities and solvers
+  through it, and every result records the runner and image.
+- **One toolchain per case:** run conversion *and* solvers in the same
+  version for a case, not v1912 conversion with a v2406 solver, so each
+  result names one toolchain.  Check that v2406's `gmshToFoam` gives the
+  same mesh (cell count and patches; it should).
+- **v2406 (`opencfd/openfoam-default:2406`) is the default for new
+  validation cases:** this task, and 0049, 0050, 0067, 0068.
+- **Finished cases** (0020, 0032, 0033, 0034) keep their v1912 results
+  and recorded versions.  Cross-check on v2406 at their coarsest level
+  (0032 at k = 2), once.  If a key quantity moves by more than its
+  GCI, report it under *Questions for design*; otherwise record the
+  agreement in each RESULTS.md.
+- **No upstream report:** v1912 is unsupported and the defect is absent
+  in v2406.
+- **Users:** add to `README.md` (limitations / OpenFOAM) that buoyant
+  and CHT solvers need OpenFOAM v2406 or later on non-orthogonal meshes,
+  which includes every hexmesh mesh, with the 1° sheared-tutorial
+  evidence in `openfoam.md`.
+- **Shared machine:** container processes appear in `/proc`, so
+  `other_runs()` sees them.  Check that it does, and record it.
+- **Then finish 0035** on v2406, three levels as planned.
+
+Decision 0012 is amended to match (toolchain).
 
 ## Outcome
 

@@ -44,7 +44,7 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0032](0032-validation-stenosis.md) | Validation: smooth cosine constriction (Varghese et al.), Re = 500 | done | 0008, 0012 |
 | [0033](0033-validation-heated-rod.md) | Validation: solid rod with uniform heat generation | done | 0012, 0015 |
 | [0034](0034-validation-layered-conduction.md) | Validation: conduction through a heated multi-layer cylinder (CHT, solids) | done | 0012 |
-| [0035](0035-validation-heated-pipe-cht.md) | Validation: heated multi-layer pipe with laminar flow (full CHT) | blocked (Q2: v1912's buoyant solvers fail on non-orthogonal meshes; v2406 works) | 0012 |
+| [0035](0035-validation-heated-pipe-cht.md) | Validation: heated multi-layer pipe with laminar flow (full CHT) | ready (Q2 answered: v2406 in Docker) | 0012 |
 | [0036](0036-linear-build-time.md) | Linear build time: fewer `synchronize` calls, and a build benchmark | done | 0020 |
 | [0037](0037-pcf-branched-networks.md) | PCF reader: branched networks and junctions | done | 0023 |
 | [0038](0038-pcf-insulation-and-equipment.md) | PCF reader: insulation and equipment connections | done | 0023 |
@@ -62,14 +62,32 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0050](0050-validation-turbulent-bend.md) | Validation: turbulent flow in a 90° bend (Sudo et al. 1998) | ready (after 0049) | 0012, 0015 |
 | [0051](0051-exact-junction-walls.md) | Exact junction walls (tee and wye) | done | 0028, 0029 |
 | [0052](0052-multi-layer-tee.md) | Multi-layer tee: shells as offset levels of the junction | done | 0028 |
-| [0053](0053-multi-layer-wye.md) | Multi-layer wye: shells as offset level sets | blocked (Q1 shell-thickness limit) | 0028 |
+| [0053](0053-multi-layer-wye.md) | Multi-layer wye: shells as offset level sets | ready (Q1 answered: thickness limit, error wrapping) | 0028 |
 | [0054](0054-insulated-junctions-end-to-end.md) | Insulated junctions end to end: PCF, example, docs | ready (after 0052, 0053) | 0028, 0023 |
 | [0055](0055-cosine-bulge.md) | Cosine profile bulges: `("cosine", s0)` with s0 ≤ 0 | done | 0008 |
 | [0056](0056-projection-limits-and-wye-axial-counts.md) | Projection follow-ups: inversion check, move warning, wye axial counts | done | 0029 |
+| [0057](0057-duct-tee-rectangular-tap.md) | Duct tee: rectangular straight tap on a rectangular duct | ready | 0027 |
+| [0058](0058-duct-tee-round-tap.md) | Duct tee: round tap on a rectangular duct | ready (after 0057) | 0027 |
+| [0059](0059-branched-hvac-example.md) | Example: a branched HVAC supply | ready (after 0057, 0058) | 0027 |
+| [0060](0060-tee-angle-laterals.md) | General branches, stage 1: `Tee(angle=…)`, laterals | ready (after 0056, 0053, 0054) | 0031 |
+| [0061](0061-tee-offset-taps.md) | General branches, stage 2: `Tee(offset=…)`, tangential and offset taps | ready (after 0060) | 0031, 0023 |
+| [0062](0062-straight-twist.md) | General branches, stage 3: `Straight(twist=…)`, and `toward=` at any roll | ready (after 0060) | 0031, 0029 |
+| [0063](0063-duct-shoe-taps.md) | General branches, stage 4: shoe taps on ducts | ready (after 0057, 0058, 0060) | 0031, 0027 |
+| [0064](0064-pcf-reader-robustness.md) | PCF reader robustness: annotations, unknown inline components, several networks | ready | 0023 |
+| [0065](0065-network-model-and-builder.md) | Network interchange 1a: the network model, and the builder out of `pcf.py` | ready (after 0064) | 0032 |
+| [0066](0066-network-model-operations.md) | Network interchange 1b: select, cut, join, merge, and the public API | ready (after 0065) | 0032 |
+| [0067](0067-validation-womersley.md) | Validation: Womersley flow (pulsatile laminar pipe flow, exact solution) | ready (after 0032's Re 500) | 0012, 0015 |
+| [0068](0068-validation-pulsatile-stenosis.md) | Validation: pulsatile flow through the cosine stenosis (Varghese et al., Part 2) | ready (after 0067, 0032) | 0012, 0015 |
 
 **Current order (2026-10-28, design, revised):** finish the task in
 progress (0034), then **multi-layer junctions: 0051 → 0052 → 0056 → 0053 →
-0054**, then 0055 → 0032 → 0035 → 0049 → 0044 → 0050.
+0054**, then 0055 → 0032 → 0067 → 0068 → 0035 → 0049 → 0044 → 0050.  Duct tees
+(0057 → 0058 → 0059) fit in whenever the junction work pauses; they
+don't depend on it.  General branches (decision 0031) follow the junction-shell
+work: 0060 → 0061 / 0062 → 0063 (0063 also after the duct tees).
+Network interchange (decision 0032, stage 1): 0064 → 0065 → 0066.  It
+doesn't depend on the junction work, so it can run whenever the
+agent switches tracks; it comes before the IFC importer (stage 3).
 - 0042 and 0043 are done; validation cases build on
   `hexmesh.study.openfoam`.
 - Junctions come first at the user's request (decision 0028): insulation

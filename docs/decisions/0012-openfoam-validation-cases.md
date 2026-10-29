@@ -68,6 +68,25 @@ Cheaper, but not repeatable, and results go stale as the code changes.
   capability (for example a global refinement factor) is reported as a
   finding, not built inside the validation task.
 
+## Amendment (2026-10-30): toolchain
+
+- **Evidence (task 0035):** v1912's buoyant and CHT solvers (Ubuntu
+  package 1912.200626) fail on any non-orthogonal mesh, OpenFOAM's own
+  `buoyantCavity` tutorial sheared by 1° included.  `blockMesh` O-grids
+  and sheared ducts fail the same way, so hexmesh is cleared.  v2406
+  (`opencfd/openfoam-default:2406`, Docker) runs all of them, and the
+  full CHT case.
+- **Decision:**
+  - new validation cases run on **v2406 in Docker**, conversion and
+    solvers in the same version (one toolchain per case);
+  - the runner is selectable in `hexmesh.study.openfoam`, and recorded
+    with every result;
+  - finished v1912 cases keep their results, with a one-off v2406
+    cross-check at the coarsest level; re-validation only if a result
+    moves beyond its GCI.
+- **Users:** README states the v2406+ requirement for buoyant/CHT
+  solvers on hexmesh meshes.
+
 ## Verified vs. assumed
 
 - Verified: OpenFOAM v1912 and its tutorials are installed; `gmshToFoam`

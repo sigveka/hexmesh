@@ -41,9 +41,12 @@ rejected.  Records are written in design sessions, and they are the only way
 | [0024](0024-api-ergonomics.md) | API ergonomics: port names, absolute orientation, angle units, axial cell size | accepted |
 | [0025](0025-study-runner.md) | Study runner: many variants from one template, in parallel jobs | accepted |
 | [0026](0026-layer-outlines.md) | Layer outlines: shells of any shape | accepted |
-| [0027](0027-duct-tees.md) | Tees in rectangular ducts | proposed |
+| [0027](0027-duct-tees.md) | Tees in rectangular ducts | accepted |
 | [0028](0028-multi-layer-junctions.md) | Multi-layer junctions: insulation and pipe walls through tees and wyes | accepted |
 | [0029](0029-wall-exactness-by-node-projection.md) | Wall exactness by node projection where no exact OCC surface fits | accepted |
+| [0030](0030-future-simulation-suite.md) | Future expansion: hexmesh as one generator in a multi-domain study and surrogate suite | proposed (future) |
+| [0031](0031-general-branch-junctions.md) | General branch junctions: laterals, offset taps and arbitrary roll | accepted |
+| [0032](0032-network-interchange.md) | Network interchange: importers, a network model, a network document, one builder | proposed (work in progress) |
 
 ## Future expansions
 
@@ -56,6 +59,7 @@ against (template, *Consequences*).
 | [0018](0018-future-vascular-networks.md) | Idealised vascular networks (centrelines + radius, bifurcations, VMTK input) |
 | [0019](0019-future-agent-sdk.md) | Agent SDK: tool interface over the network JSON (schema, structured errors, preview, build jobs) |
 | [0021](0021-future-flow-restrictions.md) | Flow restrictions, staged: profiles (stage 0) → orifice plates → bevels and rounded entries → eccentric, segmental, cone meters → non-swept devices |
+| [0030](0030-future-simulation-suite.md) | A multi-domain study and surrogate suite with hexmesh as one generator (layers: generators, solver adapters, study engine, datasets, surrogates, V&V; versioned contracts) |
 
 On hold, not yet recorded (discussed 2026-10-26): drum heads and closed
 vessels (a `Head` fitting as half a cubed-sphere O-grid; spheres as two

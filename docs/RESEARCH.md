@@ -177,6 +177,10 @@ quadric–quadric intersections is in [`miller_1987`].
 
 ### 3.2 Consequences for block topology
 
+- **Note (2026-10-29, decision 0031):** the side-corner split described
+  in the next item is obsolete.  The block-layout tee (DESIGN §7.1) puts
+  its saddle corners on the branch diagonals, so no sub-arc rule is
+  needed.  The laterals-and-offsets item below still applies.
 - **Tips and sides are not equivalent.**  For a perpendicular tee the
   tips land on main-pipe angle $0$, which is a structural corner when
   `n_outer = 8`.  The sides land at $\pm\arcsin(r/R)$, which is generally
@@ -511,7 +515,51 @@ i.e. 0.05 D at the throat, in one plane.
     no wall shear stress.  Peak centreline 4.596 u_m at x = 0;
     reattachment ≈ **11.0 D**, from the sign change of the near-wall
     axial velocity at r = 0.48 D.  The paper's text says ≈ 10 D.
-  - **OpenFOAM v1912 (task 0032):** `simpleFoam` / SIMPLEC plateau and
+  - **The whole database** (surveyed 2026-10-29, design session; every
+    file downloads; Tecplot ASCII, one zone per station; normalised by
+    u_i = 0.5; no licence statement, so download at run time and never
+    commit):
+
+    | Case | Files | Stations |
+    |---|---|---|
+    | axisymmetric steady, Re 500 | `Axi_stdy/Re500/vel.dat`: r, u, v, w; 101 radial points | x/D −2…15 |
+    | axisymmetric steady, Re 750 and 1000 | `Axi_stdy/Re750/vel.dat`, `Re1000/vel.dat`: r, z, u, v, w; 501 points | x/D −2…15 |
+    | axisymmetric pulsatile, mean Re 600 | `Axi_puls/vel_p1…p6.dat`: velocity at 6 phases | x/D −2…15 |
+    | eccentric steady, time-averaged | `Ec_stdy_Re2000/{XZ,XY}-plane/timeavg_{vel,rms,tke}_*.dat` | x/D −2…22 |
+    | eccentric pulsatile, mean Re 600 | `Ec_puls/{XZ,XY}-plane/phaseavg_{vel,tke}_*_p1…p6.dat` | x/D −2…22 |
+
+    - **The eccentric steady case's Reynolds number is ambiguous:** the
+      page says Re 1000, the folder `Re2000`.  The paper's transitional
+      eccentric case (the one with RMS and TKE) is Re 1000, so the folder
+      name is probably a mislabel.  Confirm before use.
+    - **The pulsatile case** [`varghese_and_frankel_etal_2007b`]
+      (Part 2; the 2005 preprint is in `docs/papers/`, read
+      2026-10-29):
+      - **Geometry:** the same as Part 1: cosine stenosis, s₀ = 0.25,
+        L = 2D, 3D upstream and 16D downstream of the throat.
+      - **Inlet:** the Womersley solution, eq. 2.1,
+        u/u_c = (1 − r²) + A·[1 − J₀(i^{3/2} α r)/J₀(i^{3/2} α)]·sin(ωt)
+        (r = r/R).  **As printed the oscillatory term is complex times
+        sin(ωt); read it as A·Im{[1 − J₀(i^{3/2} α r)/J₀(i^{3/2} α)]
+        e^{iωt}}.**  That reading gives a centreline of 0.337–1.663 u_c,
+        peaking at t/T = 0.255: matching the text's "minimum and maximum
+        Reynolds of approximately 200 and 1000" and the timing of
+        fig. 1 (fig. 1 read by eye is about 5 % wider).
+      - **Parameters:** α = (D/2)√(ω/ν) = 7.5; A = 0.667.  **Re = 600
+        on D and the mean *centreline* inlet velocity u_c** (bulk-velocity
+        Re 300: not Part 1's convention).  So with D = u_c = 1,
+        ν = 1/600, ω = 4α²ν/D² = 0.375 and T = 2π/ω ≈ 16.76 time units.
+      - **Data:** six phases at intervals of T/6; from fig. 1, about
+        t/T ≈ 0.09 + k/6 (T1 … T6, read by eye, ±0.01), with T2 at peak
+        flow and T5 at minimum.  The database's `vel_p1…p6` are taken to
+        be T1 … T6 (to confirm against the phase-averaged profiles).
+      - **Method:** spectral elements K = 1600, N = 9; Δt = 1e-3;
+        started from the steady Re 500 solution; a periodic state after
+        the initial transients left the domain.
+      - **Result:** the axisymmetric model stays laminar.  Upstream
+        profiles match Womersley; peak throat velocity above
+        3.65 u_c.
+ `simpleFoam` / SIMPLEC plateau and
     leave the converged state.  Transient `pimpleFoam` reaches steady
     in 10–20 time units.  The coarsest hexmesh level (`nang` 6,
     15 k cells) has no steady axisymmetric state: the jet drifts off
@@ -638,7 +686,9 @@ objects abort on the local OpenFOAM build (`docs/integrations/openfoam.md`).
 | Rod with uniform heat generation | $T = T_w + q'''(R^2 - r^2)/4k$ | O-H core, pure diffusion (no p–U coupling) | task 0033 |
 | Heated rod with cladding (solids) | series resistances $\sum \ln(r_{i+1}/r_i)/2\pi k_i$, log profiles | layer stack, interfaces, `mappedWall` coupling | task 0034 |
 | Heated multi-layer pipe, laminar | $dT_b/dx = q'/\dot m c_p$; Nu = 48/11 (uniform flux); log profiles | full CHT | task 0035 |
-| Smooth cosine constriction | DNS data (§7.3) | profiled reducer | task 0032 |
+| Smooth cosine constriction | DNS data (§7.3) | profiled reducer | task 0032 (Re 500; Re 750 and 1000 as a follow-up step) |
+| Pulsatile flow through the cosine stenosis, mean Re 600 (centreline-velocity Re) | Purdue DNS, velocity at 6 phases; inlet from [`varghese_and_frankel_etal_2007b`] (§7.3) | first time-dependent validation; vascular direction (decision 0018) | task 0068 (after 0067 and 0032) |
+| Eccentric stenosis, steady (Re 1000, transitional) and pulsatile | Purdue DNS: mean, RMS, TKE in two planes (§7.3) | off-centre cores (decision 0021, stage 3); transitional flow | future: needs eccentric outlines and transition-resolving runs |
 | Fully developed turbulent pipe | friction factor [`mckeon_and_zagarola_etal_2005`]; DNS profiles [`el_khoury_and_schlatter_etal_2013`] (Re_τ 180–1000) | wall grading for RANS (y⁺), k-ω SST | task 0049 |
 | Turbulent 90° bend | hot-wire profiles, Re 6 × 10⁴ [`sudo_and_sumida_etal_1998`] | `Bend` in turbulent flow; basis for loss-coefficient studies | task 0050 |
 | Uniform wall temperature | Nu = 3.66 | as 0035, wall BC variant | planned |
@@ -647,7 +697,7 @@ objects abort on the local OpenFOAM build (`docs/integrations/openfoam.md`).
 | Taylor–Couette | $u_\theta = Ar + B/r$ | circumferential resolution in shells | planned |
 | Rectangular duct | Fourier series; $f\,Re \approx 56.9$ for a square ($D_h$) | rectangular sections (task 0028) | planned, after 0028 |
 | Dean flow, weak curvature | Dean's perturbation for the flow reduction at small Dean number (check coefficients against the source) | `Bend` | planned |
-| Womersley flow | Bessel-function velocity profile | transient runs; vascular direction (decision 0018) | planned |
+| Womersley flow | Bessel-function velocity profile | transient runs, the time-varying inlet; vascular direction (decision 0018) | task 0067 |
 | Fusiform aneurysm (symmetric bulge) | in-vitro PIV wall shear stress for growing symmetric AAA models [`salsac_and_sparks_etal_2006`] (pulsatile; open access via UCL Discovery) | cosine profile with s0 < 0 (task 0055); vascular direction (decision 0018) | planned, after 0055 |
 
 Order: 0033 → 0034 → 0035 (each reuses the previous one's setup).  The

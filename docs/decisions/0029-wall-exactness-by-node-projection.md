@@ -160,6 +160,12 @@ The wye-layout follow-up (creases on block edges) is **scheduled after
 task 0054**, so the insulated junctions come first (the user's order).
 The README states the error meanwhile.
 
+**Scope grown (2026-10-29, decision 0031's amendment):** the redesign
+also covers **asymmetric daughters**, i.e. equal tees (daughters at 0°
+and 90°) and equal laterals.  Its timing depends on 0053's thin-shell
+probe: if thin shells fold on today's wye, the redesign comes before
+0053.
+
 ## Consequences
 
 - Task 0051 reopens (steps 5–8) and closes the tee wall row; the wye

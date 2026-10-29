@@ -318,6 +318,22 @@ plateau) nor the hexmesh mesh (a `blockMesh` O-grid with the same
 topology plateaus the same way).  Details in
 `docs/integrations/openfoam.md`.  `pimpleFoam` to steady stands.
 
+**Follow-up step (design, 2026-10-29): Re 750 and Re 1000.**  After
+Re 500 passes its gates, run the same driver at Re 750 and Re 1000.  The
+Purdue database has both (`Axi_stdy/Re750/vel.dat`, `Re1000/vel.dat`;
+r, z, u, v, w, 501 radial points per station, x/D −2…15; RESEARCH §7.3).
+- **Same geometry, mesh levels and `pimpleFoam`-to-steady route;** only ν
+  changes.  The paper reports both as laminar and axisymmetric.
+- **Same gates.**  Reattachment from the database's near-wall velocity
+  (as for Re 500), and the centreline against the DNS peak.
+- **Report the time to steady per Re.**  Re 1000 may need a finer level
+  or longer runs; if the coarsest level drifts off-axis as at Re 500,
+  say so.
+- **Why:** a three-point Re sweep on one mesh topology: a first study-
+  runner case and the anchor range of a stenosis surrogate.
+- It may also be done as a study (`hexmesh.study`, decision 0025) with
+  Re as the parameter, if that's simpler than three driver runs.
+
 ## Outcome
 
 **Done (2026-10-30).**  Accepted: every gate passes (RESULTS.md).

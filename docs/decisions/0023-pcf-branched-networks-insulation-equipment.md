@@ -118,6 +118,14 @@ equipment geometry is built (decision 0002: nozzles are boundaries).
     `Straight` today; keeping the PCF component type in the label lets
     a later stage map them to restriction fittings.
 
+**Note (2026-10-29, decision 0031's amendment):**
+- **Equal tees** become `Tee`s with r = R, built by the wye-family
+  layout once the wye-layout redesign lands.  Until then the reader's
+  rejection should say they're planned, not unsupported (task 0064).
+- **Odd ratios:** a PCF tee with τ < r/R < 1 is rejected with the hint
+  from 0031.
+- **Laterals and offset set-ons** map through 0031's stages 1–2.
+
 ## Verified vs. assumed
 
 - **Verified:** the PCF facts (guide, via `docs/integrations/pcf.md`);

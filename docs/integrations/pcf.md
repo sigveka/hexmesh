@@ -162,6 +162,44 @@ systems export PCF, and no public IDF specification was found.  Not to
 be confused with the PCB "Intermediate Data Format" (`.emn`/`.emp`)
 that Inventor's IDF translator reads.
 
+## More sample files (surveyed 2026-10-29, design session)
+
+GitHub code search for PCF keywords (`ISOGEN-FILES`, `UNITS-CO-ORDS`,
+`END-CONNECTION-PIPELINE`).  Licences checked by the GitHub API:
+- **`braedonsaunders/spoolyard`** (AGPL-3.0, commit `6f595f4`, active;
+  "open-source piping isometrics and spool fabrication drawings").  Its
+  tests (`test/piping-pcf*.test.ts`) embed four synthetic PCFs:
+  - an imperial line (111 lines) with an equipment connection, an olet,
+    an equal tee, an eccentric reducer, flanges, a gasket, bolts, a
+    valve, a cap, supports, a message and an iso-split point;
+  - a metric file with Windows line endings, two pipelines, ends a
+    fraction of a millimetre apart, and deliberately odd components
+    (`FROBNICATOR`, `UNION`, `VALVE-ANGLE`, `MISC-COMPONENT`, `TEXT`);
+  - a small standalone line.
+
+  **AGPL: use locally only, never copy into hexmesh.**  Extracted copies
+  are in the design session's scratchpad (`pcf_dl/`); re-extract from
+  the repository when needed.
+- **Without a licence** (don't copy): `xiafelex/Plant3D-PCF`,
+  `deccanai-org/cad-extraction`, `shtirlitsDva/Revit-PCF-Importer`,
+  `VB6Hobbyst7/AViewer`, `andrefpf/opps`,
+  `RGoharimehr/liquid-cooling-rd-studio`, `kaushikray0601/eht_office`,
+  `mkvk31-cell/LogiK-3D`; also the earlier `bobydo/file_analyze` (most
+  hits; possibly someone's project data) and `Cszabi/IsoSurvey`.
+- **GPL writers without sample files:** `shtirlitsDva/Revit-PCF-Exporter`
+  (needs Revit), `MOPT-UFSC/OpenPulse` (`pcf_exporter.py`; could
+  generate fixtures from its own models; the output isn't GPL-bound).
+
+**hexmesh's reader on the spoolyard fixtures** (2026-10-29):
+
+| Fixture | Result |
+|---|---|
+| standalone line | reads, 8 fittings, validates |
+| imperial line | reads 14 components; rejects the **equal tee** with a clear message (decision 0023: out of scope).  5 warnings, mostly annotation records (`MESSAGE-SQUARE`, a `WELD` given by `CO-ORDS`, `END-POSITION-OPEN`) reported as "unsupported" |
+| metric, CRLF | reads (CRLF fine); fails with "starts 0.3 m from the open end of component 4".  The real cause is the skipped unknown `FROBNICATOR` between two pipes, so the message misleads.  The file also holds two unconnected pipelines, and has `UNION`, `VALVE-ANGLE` (inlet and outlet at 90°) and `MISC-COMPONENT` |
+
+Follow-ups: task 0064.
+
 ## Other readers and sample files (surveyed 2026-10-25)
 
 **Not the same format.**  `pySourceSDK/ValvePCF` (GPL-3.0, last push

@@ -1,6 +1,6 @@
 # 0053 — Multi-layer wye: shells as offset level sets
 
-- **Status:** blocked (Q1: the shell-thickness limit to enforce before gmsh)
+- **Status:** ready (design answered Q1 2026-10-30: the thickness limit, error wrapping, 45° for shelled wyes)
 - **Decision:** [0028 — Multi-layer junctions](../decisions/0028-multi-layer-junctions.md)
 - **Depends on:** 0051.
 
@@ -136,6 +136,38 @@ check before gmsh naming both.
 - The real fix for both is the wye-layout redesign; the
   outer-station experiment (*Agent notes*) suggests the daughter
   stations should depend on the outer radius there.
+
+### Design answer to Q1 (2026-10-30)
+
+The thin-shell probe passed (no fold at T/R 0.04), so the wye-layout
+redesign stays after 0054.
+
+1. **Thickness limit: your proposal.**
+   - `T ≤ R · min(0.65 tan(angle/2), 0.55)`, in `limits.py`
+     (`WYE_SHELL_TAN_FACTOR = 0.65`, `WYE_SHELL_MAX = 0.55`).
+   - Checked in `Wye.check` before GMSH; the error names the angle, the
+     total thickness and the limit.
+   - Record the measured limits beside it (the margin is the point).
+2. **No raw OCC or GMSH exception may escape a fill**, in any fitting,
+   not only the wye.
+   - Wrap the fill step (`Assembly.fill`, per fitting) so any OCC or
+     GMSH error becomes an `AssemblyError` naming the fitting and
+     quoting the original message.
+   - Test it with a forced failure.
+3. **Narrow shelled wyes:**
+   - Measure the shell cells' min corner SJ at 40° (thin and at the
+     limit).  The narrowest angle for a wye **with shells** is 40° if
+     that's ≥ 0.1, else 45° (shell SJ ≥ 0.15 measured).
+     `WYE_SHELL_MIN_ANGLE` in `limits.py`; the error names it.
+   - **Single-layer wyes keep 30°–120°** (decision 0017, "be practical"),
+     but warn when the layout's predicted min corner SJ is below 0.1
+     (30°, 35° today), naming the value: the two tiers of 0047/0052,
+     with the reject tier left off for the wye until the redesign.
+4. Then finish: the check's tests (each side of the limit, at two
+   angles), README/API wording, *Outcome*.
+
+The outer-station experiment goes into the wye-layout redesign's
+inputs (decision 0029, item 5).  Thanks for trying both variants.
 
 ## Outcome
 

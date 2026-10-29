@@ -1,9 +1,10 @@
 # 0027 — Tees in rectangular ducts
 
-- **Status:** proposed (recorded 2026-10-28 at the user's request: "This
-  sounds like a good idea"; accept to get tasks)
+- **Status:** accepted (2026-10-29, by the user: "accept the duct
+  tees"), as recommended below
 - **Date:** 2026-10-28
-- **Tasks:** none until accepted.
+- **Tasks:** 0057 (rectangular straight tap), 0058 (round tap on a
+  duct), 0059 (branched HVAC example)
 
 ## Context
 
@@ -90,6 +91,23 @@ Tasks once accepted:
 3. An `hvac_supply`-style branched example (a supply main with two taps)
    and its gallery entry.
 
+## Decision
+
+**The recommendation above, accepted 2026-10-29:**
+- **A1 then A2:** rectangular straight tap first, then the round tap.
+- **B:** `face="wide" | "narrow"`.
+- **C:** one `Tee` with `branch=`.
+- **D:** the limits as listed.
+- Perpendicular, centred, single-layer.
+
+Added since the proposal:
+- **Quality limit:** the predicted corner SJ of the layout, with the two
+  tiers of tasks 0047/0052 (reject < 0.1, warn < 0.3, with a hint).
+- **Walls:** exact as OCC surfaces where they are planes (every
+  rectangular duct wall).  A round tap's branch walls may use decision
+  0029's node projection, as the pipe tee does.
+- **Shoe taps** go to the general-branch decision (0031).
+
 ## Consequences
 
 - `Tee` gains `branch=` and `face=`; its docstring and `API.md` list
@@ -101,9 +119,12 @@ Tasks once accepted:
     junction, using the same outline protocol; insulated duct tees would
     combine 0026 with junction layers later.
   - 0018 (vascular), 0021 (flow restrictions): none.
-  - The general-branch decision (laterals, offset taps, arbitrary roll;
-    discussed 2026-10-28, not yet recorded) should cover ducts as well
-    as pipes, so shoe taps don't need a separate design.
+  - The general-branch decision (0031, proposed: laterals, offset taps,
+    arbitrary roll) covers ducts as well as pipes, so shoe taps need no
+    separate design.
+  - 0028 (multi-layer junctions) and 0026 (layer outlines): insulated
+    duct tees combine them later; single-layer here.
+  - 0030 (suite): none.
 
 ## Verified vs. assumed
 

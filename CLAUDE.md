@@ -51,7 +51,7 @@ Record settled questions as decisions, then write tasks; unsettled ones
 stay `proposed`, with no tasks.  Check every new decision against the
 constraints of the future expansions listed in
 `docs/decisions/README.md` (vascular networks, decision 0018; agent SDK, decision 0019; flow
-restrictions, decision 0021).
+restrictions, decision 0021; simulation suite, decision 0030).
 
 ---
 
