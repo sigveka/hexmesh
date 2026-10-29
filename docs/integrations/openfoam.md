@@ -228,6 +228,13 @@ All v1912, gmsh 4.12.1, 2026-10-25.
     `valueFraction` comes before `value`, so a reader must match the
     keyword `value` exactly (`hexmesh.study.openfoam.read_patch_values`).
 
+- **No Scotch: `decomposePar` with `method scotch` fails** (v1912 Ubuntu
+  package, 2026-10-29, task 0032).  The library linked is
+  `dummyScotchDecomp`: "FOAM exiting … scotchDecomp::decompose …
+  dummyScotchDecomp.C at line 112".  `method simple` works
+  (`simpleCoeffs { n (N 1 1); delta 0.001; }`, slabs along a pipe's x
+  axis), and needs no graph partitioner.
+
 
 
 ## Gaps in hexmesh's OpenFOAM support

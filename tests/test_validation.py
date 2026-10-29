@@ -143,3 +143,28 @@ def test_layered_conduction_coarse(layers, variant):
         assert abs(r[key]) < 1e-9, key                  # heat through each interface
     for key in ("t0_err", "t1_err", "t2_err"):
         assert -0.02 < r[key] < 0, key                  # coarse: about −1 % of the rise
+
+
+STENOSIS_SCRIPT = ROOT / "validation" / "stenosis" / "run.py"
+
+
+@pytest.fixture(scope="module")
+def stenosis(tmp_path_factory):
+    work = tmp_path_factory.mktemp("stenosis")
+    out = work / "results.json"
+    run = subprocess.run([sys.executable, str(STENOSIS_SCRIPT), "--levels", "coarse",
+                          "--no-reference", "--end-time", "200", "--work", str(work),
+                          "--json", str(out)],
+                         capture_output=True, text=True)
+    assert run.returncode == 0, run.stdout[-3000:] + run.stderr[-3000:]
+    return json.loads(out.read_text())
+
+
+def test_stenosis_coarse(stenosis):
+    """Task 0032: the pipeline runs the cosine constriction's coarse level
+    (200 SIMPLE iterations) on a mesh checkMesh accepts.  Not a flow check:
+    SIMPLE does not converge on this case (task 0032, Q1)."""
+    r, = stenosis["levels"]
+    assert r["mesh_ok"] and r["cells_foam"] == r["cells"] == 15336
+    assert r["iterations"] == 200
+    assert r["u_peak"] > 3                              # a jet forms (> 4 u_m in the DNS)
