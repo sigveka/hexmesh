@@ -1,6 +1,6 @@
 # 0056 — Projection follow-ups: inversion check, move warning, wye axial counts
 
-- **Status:** ready (design answered Q3 2026-10-29: keep the cap, document, finish)
+- **Status:** done
 - **Decision:** [0029 — Wall exactness by node projection](../decisions/0029-wall-exactness-by-node-projection.md), amendment 2026-10-29
 - **Depends on:** 0051.  Before 0053 (the wye's shells use the same
   projection and counts).
@@ -304,7 +304,15 @@ probe that first (note in 0053).
 
 ## Outcome
 
-**Steps 1–4 done (2026-10-29); blocked on Q3.**
+**Done (2026-10-30).**  Design answered Q3: keep the cap, document the
+limits.  `README.md` (wye limitations) and `API.md` (`Wye`, *Limits of
+the cap*) now state them: reliable to about `nrad` 6, only `n_split` 3
+at 120° with `nrad` 12, `refined(k)` may fold beyond k = 2 (`mesh()`
+names the wye), the knee's wall error doesn't converge with `nang`, so
+grid studies over wyes stop at k = 2.  Docs only; no code change since
+step 3.
+
+**Steps 1–4 (2026-10-29), before the answer to Q3:**
 - **Step 3:** wye counts resolved from arcs, `n_split` capped at
   `WYE_N_SPLIT_MAX` = 6 and held there by `refined(k)`.
   - **Files:** `hexmesh/assembly/wye.py` (`_resolve`, docstring),

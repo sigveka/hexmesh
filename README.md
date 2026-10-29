@@ -563,6 +563,11 @@ with `python3 docs/gallery/build.py` (needs `vtk`).
   of R at `nang` 8 at the inlet/daughter crease (60°–120°) and 2–3 % at
   the crotch of wyes under 45°, both first order in `nang`; a layout with
   the creases on block edges is planned (decision 0029, task 0056).
+  Default wyes are reliable to about `nrad` 6; at 120° with `nrad` 12
+  only `n_split` 3 is safe.  `refined(k)` of a wye may fold beyond
+  k = 2, and `mesh()` says so, naming the wye.  The wall error at the
+  knee (3–6 % of R) doesn't converge with `nang`, so grid studies over
+  wyes stop at k = 2.
 - **Rectangular ducts and outlines:** no tee or elbow for ducts.  A
   stack with a rectangle needs equal counts per side, and so does
   `Transition`.

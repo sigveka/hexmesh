@@ -573,6 +573,12 @@ decision 0017).
   2–3× at `nang` 8.  An explicit count above the cap is allowed, and a
   fold is caught by `mesh()`'s inversion check, which names the wye.
   `refined(k)` holds `n_split` at the cap too (task 0056).
+- **Limits of the cap.**  Default wyes are reliable to about `nrad` 6;
+  at 120° with `nrad` 12 only `n_split` 3 is safe (4 folds).  So
+  `refined(k)` of a wye may fold beyond k = 2; `mesh()` raises
+  `AssemblyError` naming the wye.  The wall error at the knee, 3–6 % of R
+  away from the creases, doesn't fall with `nang` (the knee arcs stay at
+  6 layers), so grid studies over wyes stop at k = 2.
 - **Limits.** A single-layer circular spec, `rot = 0`, `n_outer = 4`, and
   `angle` from 30° to 120°. `run_length` must exceed R·(tan(angle/2) + 0.1)
   and `branch_length` R·(cot(angle/2) + 1); the messages give the numbers.
