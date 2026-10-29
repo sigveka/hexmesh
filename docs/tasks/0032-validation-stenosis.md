@@ -1,6 +1,6 @@
 # 0032 — Validation: smooth cosine constriction (Varghese et al.), Re = 500
 
-- **Status:** ready (design answered Q1 2026-10-29: pimpleFoam to steady, k = 2, 3, 4)
+- **Status:** done
 - **Decision:** [0008 — Profiled sweep](../decisions/0008-profiled-sweep.md); [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md)
 - **Depends on:** 0031 (profiled `Reducer`), 0020 (re-run: the
   validation pipeline), 0025 (exact straight walls)
@@ -201,6 +201,43 @@ preprint):
 - Scratch cases and logs: this session's scratchpad, `0032x/` (T coarse
   transient, M medium transient, S1/S2 the SIMPLE tests).
 
+**Resumed 2026-10-29 after the design answer: `pimpleFoam` to steady,
+k = 2, 3, 4.**
+- **Driver:**
+  - `pimpleFoam` from rest: Euler, Co 0.8, 2 correctors, the Poiseuille
+    solvers, no relaxation.
+  - 5-time-unit chunks, restarted from the latest time; steady when the
+    centreline (largest change, of the peak) and both reattachment
+    measures change < 0.1 % over a chunk.
+  - Reattachment both ways: τ_w = 0, and u(0.48 D) = 0, continuous and
+    sampled at the 1 D stations.
+  - Celik's non-constant-ratio Richardson (fixed-point q(p)); checked
+    on synthetic data (recovers p = 2 and the exact value).
+  - Mesh geometry computed once per case (982k cells at k4); `--repost`
+    re-measures saved fields.
+  - Old time directories pruned by the driver, case and processors:
+    `purgeWrite` counts only one run's writes (integration note).
+- **The centreline measure was biased.**  The quadratic fit over
+  0.35 R(x) overestimates the axis value past the throat, where the jet
+  is a flat core with a shear layer: +0.06 U at 2 D on k3, which made
+  k3 look worse than k2 (2.85 % against 2.17 %).  0.2 R and 0.12 R agree
+  to 0.004 U, so the window is now 0.2 R.  All levels re-measured from
+  the saved fields.
+- **Results (RESULTS.md):** all three gates pass.
+  - Reattachment, database measure: 10.98 / 11.02 / 10.97 D (k2/k3/k4)
+    against 11.03 D; k4 −0.5 %.
+  - τ_w = 0: 11.12 / 11.41 / 11.40 D, converged (k3–k4 0.03 %), +3.4 %.
+    The two measures differ by 0.43 D: the velocity 0.02 D from the wall
+    turns positive before the wall shear stress does.
+  - Centreline: 0.93 % of the DNS peak at most (k4, x = 3 D).  The jet
+    is slightly faster than the DNS past the throat at every level.
+  - Convergence is oscillatory for most quantities (k3 overshoots), so
+    Richardson extrapolation is reported but used only where defined
+    (the separation point; 3 centreline stations).
+- **Time to steady:** t = 10 (k2), 15 (k3, k4).
+- Scratch: this session's scratchpad, `0032/` (logs, `results.json`,
+  re-measured `final.json`); the cases in `validation/stenosis/work/`.
+
 ## Questions for design
 
 **Q1. `simpleFoam` doesn't converge on this case; which solver and
@@ -275,4 +312,36 @@ topology plateaus the same way).  Details in
 
 ## Outcome
 
-_Not done._
+**Done (2026-10-30).**  Accepted: every gate passes (RESULTS.md).
+- **Files:** `validation/stenosis/run.py` (`pimpleFoam` to steady,
+  both reattachment measures, non-constant-ratio Richardson,
+  `--repost`), `README.md`, `RESULTS.md`; `tests/test_validation.py`
+  (opt-in: the coarse level for 10 time units, 51 s);
+  `docs/integrations/openfoam.md` (the `pimpleFoam` recipe and costs,
+  `purgeWrite` with restarts, under design's SIMPLE entry).
+- **Measurements:**
+
+  | Level | Cells | steady from t | wall time, 4 cores | reattachment (database measure) | τ_w = 0 | max centreline err. |
+  |---|---|---|---|---|---|---|
+  | k2 | 122 688 | 10 | 760 s | 10.981 D | 11.123 D | 1.32 % |
+  | k3 | 414 072 | 15 | 5647 s | 11.019 D | 11.405 D | 1.25 % |
+  | k4 | 981 504 | 15 | 17 705 s | 10.970 D | 11.402 D | 0.93 % |
+
+  DNS (database): reattachment 11.025 D.  Mass balance ≤ 1.5e-10.
+- **Cost per variant for the surrogate study:** k2, 13 min on 4 cores
+  from rest, is the cheapest steady level.  k = 1 has no steady
+  axisymmetric state, so it isn't an option.
+- **Surprises:**
+  - The 0.35 R centreline fit was biased by up to 1.3 % of the peak
+    past the throat; a measure, not a flow, problem.
+  - Oscillatory grid convergence at ratios 4/3, 3/2: the observed
+    orders mean little except for the separation point (3.5).
+  - The two reattachment measures differ by 0.43 D, consistently at
+    every level.
+- **Not applicable:** the D2 (`core="fixed"`) comparison: task 0031
+  measured it but didn't keep it as an option.
+- **Follow-ups (proposed):**
+  - The surrogate study could start each variant from its neighbour's
+    steady state (`mapFields`), probably well under 13 min; not
+    measured.
+  - Re = 750/1000, the eccentric model (out of scope here).

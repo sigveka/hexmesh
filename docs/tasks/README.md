@@ -41,7 +41,7 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0029](0029-transition-circle-rectangle.md) | `Transition`: circle ↔ rectangle and rectangle ↔ rectangle sweeps | done | 0009 |
 | [0030](0030-wye-prototype.md) | Wye prototype: symmetric Y-junction as a block layout | done | 0017 |
 | [0031](0031-profiled-reducer.md) | Profiled `Reducer`: constrictions, venturis and nozzles | done | 0008 |
-| [0032](0032-validation-stenosis.md) | Validation: smooth cosine constriction (Varghese et al.), Re = 500 | ready (Q1 answered: pimpleFoam, k = 2–4) | 0008, 0012 |
+| [0032](0032-validation-stenosis.md) | Validation: smooth cosine constriction (Varghese et al.), Re = 500 | done | 0008, 0012 |
 | [0033](0033-validation-heated-rod.md) | Validation: solid rod with uniform heat generation | done | 0012, 0015 |
 | [0034](0034-validation-layered-conduction.md) | Validation: conduction through a heated multi-layer cylinder (CHT, solids) | done | 0012 |
 | [0035](0035-validation-heated-pipe-cht.md) | Validation: heated multi-layer pipe with laminar flow (full CHT) | blocked (Q1 fluid solvers diverge on hexmesh meshes) | 0012 |

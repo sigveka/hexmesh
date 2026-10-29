@@ -153,7 +153,7 @@ def stenosis(tmp_path_factory):
     work = tmp_path_factory.mktemp("stenosis")
     out = work / "results.json"
     run = subprocess.run([sys.executable, str(STENOSIS_SCRIPT), "--levels", "coarse",
-                          "--no-reference", "--end-time", "200", "--work", str(work),
+                          "--no-reference", "--end-time", "10", "--work", str(work),
                           "--json", str(out)],
                          capture_output=True, text=True)
     assert run.returncode == 0, run.stdout[-3000:] + run.stderr[-3000:]
@@ -162,9 +162,12 @@ def stenosis(tmp_path_factory):
 
 def test_stenosis_coarse(stenosis):
     """Task 0032: the pipeline runs the cosine constriction's coarse level
-    (200 SIMPLE iterations) on a mesh checkMesh accepts.  Not a flow check:
-    SIMPLE does not converge on this case (task 0032, Q1)."""
+    for 10 time units of pimpleFoam (two chunks, one steadiness check) on a
+    mesh checkMesh accepts.  Not a flow check: the coarse level has no
+    steady axisymmetric state (task 0032)."""
     r, = stenosis["levels"]
     assert r["mesh_ok"] and r["cells_foam"] == r["cells"] == 15336
-    assert r["iterations"] == 200
+    assert r["end_time"] == 10 and len(r["changes"]) == 1
+    assert r["mass_err"] < 1e-6
     assert r["u_peak"] > 3                              # a jet forms (> 4 u_m in the DNS)
+    assert r["x_reattachment"] and r["x_reattachment_probe"]

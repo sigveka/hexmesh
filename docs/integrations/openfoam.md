@@ -142,6 +142,17 @@ All v1912, gmsh 4.12.1, 2026-10-25.
     a current OpenFOAM release, then a CFD Online question if it
     persists.
   - Scripts: the design session's scratchpad (`simple_check/`).
+  - **What works: `pimpleFoam` from rest to a steady state** (coding
+    session, 2026-10-30, task 0032; `validation/stenosis/run.py`).
+    Euler, `adjustTimeStep` at `maxCo` 0.8, `nOuterCorrectors` 1,
+    `nCorrectors` 2, no relaxation, the Poiseuille case's solvers for
+    `p|pFinal` and `U|UFinal`.  Run in 5-time-unit chunks (restart with
+    `startFrom latestTime`), steady when the quantities of interest
+    change < 0.1 % over a chunk.  Steady by t = 10–15 D/U at every
+    level; 760 s (123k cells), 5647 s (414k), 17 705 s (982k) on 4 cores.
+  - **`purgeWrite` counts one run's writes only:** with chunked restarts
+    each run writes once, so nothing is purged, in the case or in the
+    `processor*` directories.  The driver deletes old times itself.
 - **`checkMesh` thresholds** (v1912, design session 2026-10-28, task
   0047).  On a circle-in-3:1-rectangle ring (max non-orthogonality
   81.3°): "*Number of severely non-orthogonal (> 70 degrees) faces:

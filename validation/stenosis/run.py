@@ -6,15 +6,23 @@ Part 1 [varghese_and_frankel_etal_2007], Purdue database.
 
     hexmesh Assembly (profiled Reducer) → refined(k) → write_openfoam
     → gmshToFoam → apply_boundary_roles → checkMesh → parabolic inlet
-    → simpleFoam (optionally in parallel) → post-processing in Python
+    → pimpleFoam to a steady state (optionally in parallel)
+    → post-processing in Python
 
-Three levels, every density doubled per level (8× cells).  Compared with
-the DNS: centreline axial velocity at x/D = −2 … 15, and the reattachment
-point of the wall shear stress downstream of the throat; Richardson
-extrapolation and observed orders [celik_and_ghia_etal_2008].  Usage::
+``simpleFoam`` doesn't converge on this case (its iteration is unstable
+around the steady state), so the flow is marched in time from rest until
+it stops changing: the centreline and both reattachment measures move by
+less than 0.1 % over 5 time units (task 0032, design answer to Q1).
 
-    python3 validation/stenosis/run.py [--levels coarse medium fine]
-        [--np N] [--end-time N] [--reference vel.dat | --no-reference]
+Levels k = 2, 3, 4 of ``refined(k)``; k = 1 has no steady axisymmetric
+state.  Compared with the DNS: centreline axial velocity at x/D = −2 … 15,
+and the reattachment point, both where the wall shear stress vanishes and
+where the axial velocity at r = 0.48 D turns positive (the database's
+measure).  Richardson extrapolation at the non-constant ratios 4/3 and 3/2
+[celik_and_ghia_etal_2008].  Usage::
+
+    python3 validation/stenosis/run.py [--levels k2 k3 k4] [--np N]
+        [--end-time T] [--reference vel.dat | --no-reference]
         [--work DIR] [--json FILE]
 
 The reference is the database's Re = 500 axisymmetric steady file
@@ -28,6 +36,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import math
 import re
 import shutil
 import urllib.request
@@ -74,12 +83,23 @@ X_IN, X_OUT = -3 * D, 16 * D   # domain: 3 D upstream, 16 D downstream (p. 5)
 X_SPLIT = 13 * D          # downstream: graded up to here, uniform after
 DNS_U = 0.5               # the database's normalising velocity
 SLAB_GAP = 1e-3 * D       # below the finest axial cell (0.014 D)
+R_PROBE = 0.48 * D        # the database's last point before the wall
+# Centreline fit window, a fraction of R(x).  Past the throat the jet has
+# a flat core and a shear layer, so a parabola over a wide window biases
+# the axis value high: 0.35 R gave +0.06 U at x = 2 D on k = 3; 0.2 R and
+# 0.12 R agree to 0.004 U (task 0032).
+CENTRE_WINDOW = 0.2
+CHUNK = 5.0               # time units between steadiness checks
+STEADY_TOL = 1e-3         # 0.1 % change over CHUNK: steady
 
 # --- the coarse level; refined(k) doubles every count -----------------------
 # Both runs next to the constriction are graded to meet its axial spacing,
 # L_STEN / sten, so no cell length jumps there.
 BASE = dict(nang=6, nrad=3, up=16, sten=36, near=80, far=10)
-LEVELS = {"coarse": 1, "medium": 2, "fine": 4}
+# k = 1 ("coarse") has no steady axisymmetric state; it stays for the
+# pipeline test (tests/test_validation.py).
+LEVELS = {"coarse": 1, "k2": 2, "k3": 3, "k4": 4}
+DEFAULT_LEVELS = ["k2", "k3", "k4"]
 
 
 def growth(first: float, length: float, n: int) -> float:
@@ -111,7 +131,8 @@ def meshes():
     (``docs/gallery/build.py --validation``)."""
     return [(name, f"{name}: nang {BASE['nang'] * k}, nrad {BASE['nrad'] * k}, "
                    f"{sum(BASE[n] for n in ('up', 'sten', 'near', 'far')) * k} axial layers",
-             lambda k=k: assembly(k)) for name, k in LEVELS.items()]
+             lambda k=k: assembly(k))
+            for name, k in ((n, LEVELS[n]) for n in DEFAULT_LEVELS)]
 
 
 def radius(x):
@@ -134,16 +155,66 @@ boundaryField
 """
 
 
-def write_case(case: Path, end_time: int, n_proc: int) -> None:
-    """simpleFoam, laminar, with the Poiseuille case's schemes and solvers
-    (the inlet value is set by ``parabolic_inlet`` after conversion)."""
+CONTROL = """application     pimpleFoam;
+startFrom       latestTime;
+startTime       0;
+stopAt          endTime;
+endTime         {end_time:g};
+deltaT          {delta_t:g};
+adjustTimeStep  yes;
+maxCo           0.8;
+writeControl    adjustableRunTime;
+writeInterval   {chunk:g};
+purgeWrite      2;
+writeFormat     ascii;
+writePrecision  12;
+writeCompression off;
+timeFormat      general;
+timePrecision   8;
+runTimeModifiable false;
+"""
+
+# the Poiseuille case's schemes, in time (Euler) and without `bounded`
+SCHEMES = pois.SCHEMES.replace("default steadyState;", "default Euler;").replace(
+    "bounded Gauss", "Gauss")
+
+# the Poiseuille case's solvers for the final correctors too; no relaxation
+SOLUTION = """solvers
+{
+    "(p|pFinal)"
+    {
+        solver          GAMG;
+        smoother        GaussSeidel;
+        tolerance       1e-09;
+        relTol          0.05;
+    }
+    "(U|UFinal)"
+    {
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
+        tolerance       1e-10;
+        relTol          0.1;
+    }
+}
+PIMPLE
+{
+    nOuterCorrectors 1;
+    nCorrectors     2;
+    nNonOrthogonalCorrectors 0;
+}
+"""
+
+
+def write_case(case: Path, end_time: float, n_proc: int, delta_t: float) -> None:
+    """pimpleFoam, laminar, from rest (the inlet value is set by
+    ``parabolic_inlet`` after conversion)."""
     for d in ("0", "constant", "system"):
         (case / d).mkdir(parents=True, exist_ok=True)
     files = {
         "system/controlDict": of.header("dictionary", "controlDict", "system")
-        + pois.CONTROL.format(end_time=end_time),
-        "system/fvSchemes": of.header("dictionary", "fvSchemes", "system") + pois.SCHEMES,
-        "system/fvSolution": of.header("dictionary", "fvSolution", "system") + pois.SOLUTION,
+        + CONTROL.format(end_time=end_time, delta_t=delta_t, chunk=CHUNK),
+        "system/fvSchemes": of.header("dictionary", "fvSchemes", "system") + SCHEMES,
+        "system/fvSolution": of.header("dictionary", "fvSolution", "system") + SOLUTION,
         "constant/transportProperties": of.header("dictionary", "transportProperties",
                                                   "constant")
         + f"transportModel  Newtonian;\nnu              {NU};\n",
@@ -162,6 +233,12 @@ def write_case(case: Path, end_time: int, n_proc: int) -> None:
             f"simpleCoeffs {{ n ({n_proc} 1 1); delta 0.001; }}\n")
     for name, text in files.items():
         (case / name).write_text(text)
+
+
+def set_end_time(case: Path, end_time: float) -> None:
+    path = case / "system/controlDict"
+    path.write_text(re.sub(r"^endTime\s+\S+;", f"endTime         {end_time:g};",
+                           path.read_text(), flags=re.M))
 
 
 def parabolic_inlet(case: Path) -> float:
@@ -189,27 +266,56 @@ def parabolic_inlet(case: Path) -> float:
 
 # --- post-processing ---------------------------------------------------------
 
-def results(case: Path) -> dict:
+def geometry(case: Path) -> dict:
+    """What the post-processing needs from the mesh, computed once per case
+    (the k = 4 mesh has about a million cells)."""
     mesh = case / "constant/polyMesh"
     pts, faces = of.read_points(mesh / "points"), of.read_faces(mesh / "faces")
     owner, neigh = of.read_labels(mesh / "owner"), of.read_labels(mesh / "neighbour")
-    t = of.latest_time(case)
-    U = of.read_internal(t / "U", 3)
-    n_cells = len(U)
+    n_cells = int(owner.max()) + 1
     fc, sf = of.face_geometry(pts, faces)
     cc, _ = of.cell_geometry(fc, sf, owner, neigh, n_cells)
-
-    # centreline: per axial slab, u = c0 + c2 r² fitted to the cells within
-    # 0.35 R(x) of the axis (no cell centre lies on it).  Slabs are the
-    # clusters of those cells' x, split at gaps above SLAB_GAP: in a
-    # tapering slab a cell's centroid x shifts with its radius, so exact
-    # x values don't group a slab.
     x, r = cc[:, 0], np.hypot(cc[:, 1], cc[:, 2])
-    near = np.nonzero(r < 0.35 * radius(x))[0]
+
+    # centreline slabs: the cells within CENTRE_WINDOW · R(x) of the axis, clustered
+    # by x and split at gaps above SLAB_GAP (in a tapering slab a cell's
+    # centroid x shifts with its radius, so exact x values don't group it)
+    near = np.nonzero(r < CENTRE_WINDOW * radius(x))[0]
     near = near[np.argsort(x[near], kind="stable")]
-    cut = np.nonzero(np.diff(x[near]) > SLAB_GAP)[0] + 1
+    centre = np.split(near, np.nonzero(np.diff(x[near]) > SLAB_GAP)[0] + 1)
+
+    # near-wall probe slabs, in the straight pipe past the constriction
+    # (planar slabs there): the cells in the outer quarter of the radius
+    outer = np.nonzero((x > L_STEN / 2) & (r > 0.75 * R))[0]
+    outer = outer[np.argsort(x[outer], kind="stable")]
+    probe = np.split(outer, np.nonzero(np.diff(x[outer]) > SLAB_GAP)[0] + 1)
+
+    # wall shear stress: per wall face, the axial tangent and the distance
+    # from the wall cell's centre; faces grouped by x
+    wall = of.read_patch_faces(mesh / "boundary", "fluid_wall")
+    cell = owner[wall]
+    n = sf[wall] / np.linalg.norm(sf[wall], axis=1)[:, None]      # outward
+    d = np.einsum("ij,ij->i", fc[wall] - cc[cell], n)
+    tang = np.array([1.0, 0.0, 0.0]) - n[:, 0:1] * n
+    tang /= np.linalg.norm(tang, axis=1)[:, None]
+    wx = np.round(fc[wall, 0] / 1e-6).astype(np.int64)
+    order = np.argsort(wx, kind="stable")
+    _, starts = np.unique(wx[order], return_index=True)
+    groups = np.split(order, starts[1:])
+    return {"n_cells": n_cells, "x": x, "r": r, "centre": centre, "probe": probe,
+            "wall_cell": cell, "wall_tang": tang, "wall_d": d, "wall_groups": groups,
+            "wall_x": np.array([fc[wall[g], 0].mean() for g in groups])}
+
+
+def results(geo: dict, t: Path) -> dict:
+    """The flow quantities at time directory *t*."""
+    U = of.read_internal(t / "U", 3)
+    x, r = geo["x"], geo["r"]
+
+    # centreline: per slab, u = c0 + c2 r² fitted near the axis (no cell
+    # centre lies on it); c0 is the centreline value
     xs, uc = [], []
-    for cells in np.split(near, cut):
+    for cells in geo["centre"]:
         rr, uu = r[cells], U[cells, 0]
         if np.ptp(rr) > 1e-9 * R:
             c0 = np.linalg.lstsq(np.column_stack([np.ones(len(rr)), rr ** 2]), uu,
@@ -220,33 +326,59 @@ def results(case: Path) -> dict:
         uc.append(float(c0))
     xs, uc = np.array(xs), np.array(uc)
 
-    # wall shear stress (kinematic), axial sense: ν · u_t / d from the wall
-    # cell, u_t the velocity's component along the wall's axial tangent
-    wall = of.read_patch_faces(mesh / "boundary", "fluid_wall")
-    cell = owner[wall]
-    n = sf[wall] / np.linalg.norm(sf[wall], axis=1)[:, None]      # outward
-    d = np.einsum("ij,ij->i", fc[wall] - cc[cell], n)
-    ex = np.array([1.0, 0.0, 0.0])
-    tang = ex - n[:, 0:1] * n
-    tang /= np.linalg.norm(tang, axis=1)[:, None]
-    tau = NU * np.einsum("ij,ij->i", U[cell], tang) / d
-    wx = np.round(fc[wall, 0] / 1e-6).astype(np.int64)
-    order = np.argsort(wx, kind="stable")
-    _, starts = np.unique(wx[order], return_index=True)
-    tx = np.array([fc[wall[g], 0].mean() for g in np.split(order, starts[1:])])
-    tw = np.array([tau[g].mean() for g in np.split(order, starts[1:])])
+    # axial velocity at R_PROBE: per slab, u = (R − r)(a + b (R − r)) fitted
+    # to the outer cells, so it vanishes at the wall
+    px, pu = [], []
+    for cells in geo["probe"]:
+        y = R - r[cells]
+        a = np.linalg.lstsq(np.column_stack([y, y ** 2]), U[cells, 0], rcond=None)[0]
+        yp = R - R_PROBE
+        px.append(float(x[cells].mean()))
+        pu.append(float(yp * a[0] + yp ** 2 * a[1]))
+    px, pu = np.array(px), np.array(pu)
+    stations = np.arange(1.0, 16.0)
+    su = np.interp(stations, px, pu)
+
+    # wall shear stress (kinematic), axial sense: ν · u_t / d from the wall cell
+    tau = NU * np.einsum("ij,ij->i", U[geo["wall_cell"]], geo["wall_tang"]) / geo["wall_d"]
+    tx = geo["wall_x"]
+    tw = np.array([tau[g].mean() for g in geo["wall_groups"]])
     sep, att = crossings(tx, tw)
 
     q_in = -float(of.read_patch_values(t / "phi", "fluid_inlet").sum())
     q_out = float(of.read_patch_values(t / "phi", "fluid_outlet").sum())
     peak = int(np.argmax(uc))
     return {
+        "time": float(t.name),
         "centreline": list(zip(xs.tolist(), uc.tolist())),
         "wall_shear": list(zip(tx.tolist(), tw.tolist())),
+        "probe": list(zip(px.tolist(), pu.tolist())),
         "u_peak": float(uc[peak]), "x_peak": float(xs[peak]),
         "x_separation": sep, "x_reattachment": att,
+        "x_reattachment_probe": last_rise(px, pu),
+        "x_reattachment_stations": last_rise(stations, su),
         "q_in": q_in, "q_out": q_out, "mass_err": abs(q_out - q_in) / q_in,
     }
+
+
+def change(prev: dict, cur: dict) -> dict:
+    """Relative change between two states: the centreline (largest, of the
+    peak) and each reattachment measure."""
+    xp, up = np.array(prev["centreline"]).T
+    xc, uc = np.array(cur["centreline"]).T
+    out = {"centreline": float(np.abs(np.interp(xp, xc, uc) - up).max() / up.max())}
+    for key in ("x_reattachment", "x_reattachment_probe"):
+        a, b = prev[key], cur[key]
+        out[key] = float("inf") if a is None or b is None else abs(b - a) / abs(a)
+    return out
+
+
+def last_rise(x, f) -> float | None:
+    """The last − → + sign change of *f* along *x*, linearly interpolated."""
+    for i in range(len(x) - 2, -1, -1):
+        if f[i] < 0 <= f[i + 1]:
+            return float(x[i] - f[i] * (x[i + 1] - x[i]) / (f[i + 1] - f[i]))
+    return None
 
 
 def crossings(x: np.ndarray, tau: np.ndarray) -> tuple[float | None, float | None]:
@@ -284,16 +416,15 @@ def read_reference(path: Path) -> dict:
     return out
 
 
-def reference_reattachment(ref: dict, r_probe: float = 0.48) -> float:
+def reference_reattachment(ref: dict, r_probe: float = R_PROBE) -> float:
     """x/D where the axial velocity at *r_probe* (0.02 D from the wall, the
     database's last point before it) turns positive past the throat: the
     stations are 1 D apart, so linear interpolation between them."""
     zs = sorted(z for z in ref if z > 0)
-    w = [float(np.interp(r_probe, ref[z]["r"], ref[z]["w"])) for z in zs]
-    for i in range(len(zs) - 1, 0, -1):
-        if w[i - 1] < 0 <= w[i]:
-            return zs[i - 1] - w[i - 1] * (zs[i] - zs[i - 1]) / (w[i] - w[i - 1])
-    raise ValueError("no reattachment in the reference")
+    att = last_rise(zs, [float(np.interp(r_probe, ref[z]["r"], ref[z]["w"])) for z in zs])
+    if att is None:
+        raise ValueError("no reattachment in the reference")
+    return att
 
 
 def compare(row: dict, ref: dict) -> dict:
@@ -311,7 +442,31 @@ def compare(row: dict, ref: dict) -> dict:
 
 # --- driver ------------------------------------------------------------------
 
-def run_level(name: str, k: int, work: Path, end_time: int, n_proc: int) -> dict:
+def richardson(f3: float, f2: float, f1: float, r21: float, r32: float) -> dict:
+    """Three-level Richardson extrapolation at non-constant refinement
+    ratios [celik_and_ghia_etal_2008], §2.1, steps 3–5: f1 the finest
+    level, r21 = h2/h1, r32 = h3/h2.  The observed order solves
+    p = |ln|ε32/ε21| + q(p)| / ln r21 by fixed-point iteration."""
+    e21, e32 = f2 - f1, f3 - f2
+    if e21 == 0 or e32 == 0:
+        raise ValueError("two levels agree exactly")
+    s = 1.0 if e32 / e21 > 0 else -1.0
+    p = abs(math.log(abs(e32 / e21))) / math.log(r21)
+    for _ in range(100):
+        q = math.log((r21 ** p - s) / (r32 ** p - s))
+        p_new = abs(math.log(abs(e32 / e21)) + q) / math.log(r21)
+        if abs(p_new - p) < 1e-10:
+            break
+        p = p_new
+    rp = r21 ** p
+    ext = (rp * f1 - f2) / (rp - 1)
+    e_a = abs((f1 - f2) / f1)
+    return {"order": p, "extrapolated": ext, "e_a": e_a,
+            "e_ext": abs((ext - f1) / ext), "gci_fine": 1.25 * e_a / (rp - 1),
+            "oscillatory": s < 0}
+
+
+def run_level(name: str, k: int, work: Path, max_time: float, n_proc: int) -> dict:
     case = work / name
     if case.exists():
         shutil.rmtree(case)
@@ -323,20 +478,42 @@ def run_level(name: str, k: int, work: Path, end_time: int, n_proc: int) -> dict
         msh = case / "stenosis.msh"
         asm.write_openfoam(msh)
         sj = asm.check_quality("scaled_jacobian").worst
-    write_case(case, end_time, n_proc)
+    # first step well under Co 0.8 at the throat (u ≈ 8, cell ≈ L/(36k));
+    # adjustTimeStep grows it
+    first = min(CHUNK, max_time)
+    write_case(case, first, n_proc, delta_t=0.1 * L_STEN / (36 * k) / 8)
     of.foam(f"gmshToFoam {msh.name}", case, "log.gmshToFoam")
     retyped = apply_boundary_roles(case, roles_path(msh))
     check = of.foam("checkMesh", case, "log.checkMesh")
     scale = parabolic_inlet(case)
+    geo = geometry(case)
     if n_proc > 1:
         of.foam("decomposePar -force", case, "log.decomposePar")
-        solve = of.foam(f"mpirun -np {n_proc} simpleFoam -parallel", case, "log.simpleFoam")
-        of.foam("reconstructPar -latestTime", case, "log.reconstructPar")
-    else:
-        solve = of.foam("simpleFoam", case, "log.simpleFoam")
-    m = re.search(r"SIMPLE solution converged in (\d+) iterations", solve)
-    hist = residuals(solve)
-    times = re.findall(r"^Time = (\d+)$", solve, re.M)
+
+    # march in chunks of CHUNK time units until two successive states agree
+    logs, states, changes, steady = [], [], [], False
+    end, wall = first, 0.0
+    while True:
+        set_end_time(case, end)
+        if n_proc > 1:
+            log = of.foam(f"mpirun -np {n_proc} pimpleFoam -parallel", case,
+                          f"log.pimpleFoam.{end:g}")
+            of.foam("reconstructPar -latestTime", case, f"log.reconstructPar.{end:g}")
+        else:
+            log = of.foam("pimpleFoam", case, f"log.pimpleFoam.{end:g}")
+        logs.append(log)
+        wall += float(re.findall(r"ExecutionTime = ([\d.e+-]+) s", log)[-1])
+        states.append(results(geo, of.latest_time(case)))
+        if len(states) > 1:
+            changes.append({"time": states[-1]["time"], **change(states[-2], states[-1])})
+            print(f"[{name}] t = {end:g}: {json.dumps(changes[-1])}", flush=True)
+            steady = all(v < STEADY_TOL for k_, v in changes[-1].items() if k_ != "time")
+        if steady or end >= max_time:
+            break
+        prune(case, keep=2)
+        end = min(end + CHUNK, max_time)
+
+    hist = residuals("".join(logs))
     out = {
         "level": name, "factor": k, "cells": cells,
         "cells_foam": int(re.search(r"cells:\s+(\d+)", check).group(1)),
@@ -346,21 +523,34 @@ def run_level(name: str, k: int, work: Path, end_time: int, n_proc: int) -> dict
             re.search(r"non-orthogonality Max: ([\d.e+-]+)", check).group(1)),
         "max_skewness": float(re.search(r"Max skewness = ([\d.e+-]+)", check).group(1)),
         "inlet_scale": scale, "n_proc": n_proc,
-        "converged": m is not None,
-        "iterations": int(m.group(1)) if m else int(times[-1]),
-        "exec_time": float(re.findall(r"ExecutionTime = ([\d.e+-]+) s", solve)[-1]),
+        "steady": steady, "end_time": end,
+        # the first state of the steady pair: the flow was steady from there
+        "time_to_steady": states[-2]["time"] if steady else None,
+        "time_steps": sum(len(re.findall(r"^Time = ", lg, re.M)) for lg in logs),
+        "exec_time": wall, "changes": changes,
         "final_residuals": {f: v[-1] for f, v in hist.items()},
         "residual_history": {f: v[::max(1, len(v) // 200)] for f, v in hist.items()},
     }
-    out.update(results(case))
+    out.update(states[-1])
     return out
 
 
+def prune(case: Path, keep: int) -> None:
+    """Drop all but the last *keep* time directories, reconstructed and
+    per processor (purgeWrite counts only one run's writes, and every
+    chunk is a run)."""
+    for root in [case, *case.glob("processor*")]:
+        times = sorted((d for d in root.iterdir() if d.is_dir() and d.name != "0"
+                        and re.fullmatch(r"[\d.e+-]+", d.name)), key=lambda d: float(d.name))
+        for d in times[:-keep]:
+            shutil.rmtree(d)
+
+
 def residuals(log: str) -> dict[str, list[float]]:
-    """Initial residual per SIMPLE iteration of p and each U component
-    (the first solve of each field in an iteration)."""
+    """Initial residual per time step of p and each U component (the first
+    solve of each field in a step)."""
     out: dict[str, list[float]] = {}
-    for block in re.split(r"^Time = \d+$", log, flags=re.M)[1:]:
+    for block in re.split(r"^Time = \S+$", log, flags=re.M)[1:]:
         seen = set()
         for f, v in re.findall(r"Solving for (\w+), Initial residual = ([\d.e+-]+)", block):
             if f not in seen:
@@ -383,70 +573,119 @@ def reference(path: Path | None, work: Path) -> Path:
 
 def table(rows: list[dict]) -> str:
     lines = ["| Level | Cells | Mesh OK | min SJ | max non-orth. (°) | max skewness "
-             "| Iterations | mass balance | u_peak / U | x_sep / D | x_reatt / D "
+             "| steady from t | wall time (s) | mass balance | u_peak / U | x_sep / D "
+             "| x_reatt / D: τ_w = 0 | u(0.48 D) = 0 | at 1 D stations "
              "| max centreline err. (of DNS peak) |",
-             "|---|---|---|---|---|---|---|---|---|---|---|---|"]
+             "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for r in rows:
         f = (lambda v: "—" if v is None else f"{v:.3f}")
         cmp = r.get("compare")
         centre = ("—" if not cmp else
                   f"{cmp['max_centre_err']:.2%} at x = {cmp['max_centre_err_x']:g}")
+        steady = (f"{r['time_to_steady']:g}" if r["steady"]
+                  else f"not steady by {r['end_time']:g}")
         lines.append(
             f"| {r['level']} | {r['cells']} | {r['mesh_ok']} | {r['min_scaled_jacobian']:.3f} "
             f"| {r['max_non_orthogonality']:.1f} | {r['max_skewness']:.3f} "
-            f"| {r['iterations']}{'' if r['converged'] else ' (not converged)'} "
+            f"| {steady} | {r['exec_time']:.0f} "
             f"| {r['mass_err']:.1e} | {r['u_peak']:.4f} | {f(r['x_separation'])} "
-            f"| {f(r['x_reattachment'])} "
-            f"| {centre} |")
+            f"| {f(r['x_reattachment'])} | {f(r['x_reattachment_probe'])} "
+            f"| {f(r['x_reattachment_stations'])} | {centre} |")
     return "\n".join(lines)
+
+
+def extrapolate(rows: list[dict], ref: dict | None) -> dict:
+    """Richardson over three levels: each scalar, and the centreline at
+    every database station (the extrapolated value where the order is
+    defined and not oscillatory, else the finest level's)."""
+    ks = [r["factor"] for r in rows]
+    r21, r32 = ks[2] / ks[1], ks[1] / ks[0]
+    rich = {"ratios": [r21, r32]}
+    for key in ("u_peak", "x_separation", "x_reattachment", "x_reattachment_probe"):
+        try:
+            rich[key] = richardson(*(r[key] for r in rows), r21, r32)
+        except (TypeError, ValueError, ZeroDivisionError) as e:
+            rich[key] = {"error": str(e)}
+    if ref:
+        zs = rows[-1]["compare"]["stations"]
+        vals = np.array([r["compare"]["centre"] for r in rows])
+        best, used = [], 0
+        for i in range(len(zs)):
+            try:
+                e = richardson(*vals[:, i], r21, r32)
+                ok = not e["oscillatory"] and math.isfinite(e["extrapolated"])
+            except (ValueError, ZeroDivisionError):
+                ok = False
+            best.append(e["extrapolated"] if ok else float(vals[2, i]))
+            used += ok
+        dns = np.array(rows[-1]["compare"]["dns_centre"])
+        peak = rows[-1]["compare"]["dns_peak"]
+        err = (np.array(best) - dns) / peak
+        i = int(np.argmax(np.abs(err)))
+        rich["centreline"] = {"stations": zs, "best": best, "extrapolated_stations": used,
+                              "max_err": float(abs(err[i])), "max_err_x": float(zs[i])}
+    return rich
 
 
 def main(argv=None) -> dict:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("--levels", nargs="+", default=list(LEVELS), choices=list(LEVELS))
+    ap.add_argument("--levels", nargs="+", default=DEFAULT_LEVELS, choices=list(LEVELS))
     ap.add_argument("--reference", type=Path,
                     help="the database's Re = 500 vel.dat (default: download it)")
     ap.add_argument("--no-reference", action="store_true", help="skip the comparison")
     ap.add_argument("--work", type=Path, default=HERE / "work")
-    ap.add_argument("--end-time", type=int, default=20000)
+    ap.add_argument("--end-time", type=float, default=60.0,
+                    help="stop here if not steady before (time units, D / U)")
     ap.add_argument("--np", type=int, default=1, dest="n_proc",
-                    help="MPI processes for simpleFoam (levels other than coarse)")
+                    help="MPI processes for pimpleFoam (levels other than coarse)")
     ap.add_argument("--json", type=Path, help="write all results as JSON")
+    ap.add_argument("--repost", type=Path, metavar="JSON",
+                    help="don't run: measure the latest fields of the levels in this "
+                         "earlier --json output again (cases in --work)")
     args = ap.parse_args(argv)
     ref = (None if args.no_reference
            else read_reference(reference(args.reference, args.work)))
     ref_att = reference_reattachment(ref) if ref else None
+    earlier = ({r["level"]: r for r in json.loads(args.repost.read_text())["levels"]}
+               if args.repost else {})
     rows = []
-    for name in args.levels:
+    for name in (list(earlier) if earlier else args.levels):
         n = 1 if name == "coarse" else args.n_proc
-        r = run_level(name, LEVELS[name], args.work, args.end_time, n)
+        if earlier:
+            case = args.work / name
+            r = {**earlier[name], **results(geometry(case), of.latest_time(case))}
+        else:
+            r = run_level(name, LEVELS[name], args.work, args.end_time, n)
         if ref:
             r["compare"] = compare(r, ref)
-            r["reattachment_err"] = ((r["x_reattachment"] - ref_att) / ref_att
-                                     if r["x_reattachment"] is not None else None)
+            for key in ("x_reattachment", "x_reattachment_probe"):
+                r[key + "_err"] = ((r[key] - ref_att) / ref_att
+                                   if r[key] is not None else None)
         print(json.dumps({k: v for k, v in r.items()
-                          if k not in ("centreline", "wall_shear", "compare")}), flush=True)
+                          if k not in ("centreline", "wall_shear", "probe", "compare",
+                                       "residual_history")}), flush=True)
         rows.append(r)
+        if args.json:      # after every level: the fine level takes hours
+            write_json(args.json, rows, {}, ref, ref_att)
     if ref:
         print(f"\nDNS: peak centreline u/U = {max(v['centre'] for v in ref.values()):.4f}, "
               f"reattachment x/D = {ref_att:.3f}\n")
     print(table(rows))
-    rich = {}
-    if len(rows) == 3 and all(r["x_reattachment"] is not None for r in rows):
-        for key in ("u_peak", "x_reattachment", "x_separation"):
-            try:
-                rich[key] = pois.richardson(*(r[key] for r in rows))
-            except (ValueError, ZeroDivisionError) as e:
-                rich[key] = {"error": str(e)}
+    rich = extrapolate(rows, ref) if len(rows) == 3 else {}
+    if rich:
         print("\n" + json.dumps(rich, indent=1))
     if args.json:
-        args.json.write_text(json.dumps({
-            "versions": pois.versions(), "levels": rows, "richardson": rich,
-            "reference": None if not ref else {
-                "reattachment": ref_att,
-                "centre": {str(z): v["centre"] for z, v in sorted(ref.items())}},
-        }, indent=1))
+        write_json(args.json, rows, rich, ref, ref_att)
     return {"levels": rows, "richardson": rich}
+
+
+def write_json(path: Path, rows, rich, ref, ref_att) -> None:
+    path.write_text(json.dumps({
+        "versions": pois.versions(), "levels": rows, "richardson": rich,
+        "reference": None if not ref else {
+            "reattachment": ref_att,
+            "centre": {str(z): v["centre"] for z, v in sorted(ref.items())}},
+    }, indent=1))
 
 
 if __name__ == "__main__":
