@@ -1,6 +1,6 @@
 # 0035 — Validation: heated multi-layer pipe with laminar flow (full CHT)
 
-- **Status:** ready (design answered Q1 2026-10-29: time-boxed diagnosis)
+- **Status:** blocked (Q2: v1912's buoyant solvers fail on any non-orthogonal mesh; v2406 works)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md)
 - **Depends on:** 0034 (the CHT recipe on this build), 0020's re-run
   (the flow pipeline), 0025.
@@ -106,6 +106,40 @@ temperature-dependent properties.
 - Scratch cases: this session's scratchpad, `0035/` (`V*`, `A64*`,
   `Bduct`, `Hduct`, `buoyantCavity`).
 
+**2026-10-30: diagnosis done, in design's order (about 2 h).**
+Fluid-only `buoyantSimpleFoam` pipe with the driver's fluid
+dictionaries; details in `docs/integrations/openfoam.md`.
+1. **Non-orthogonal correctors 1 and 2; `limited corrected 0.33`;
+   `uncorrected`:** all still diverge in 4–5 iterations.
+2. **`blockMesh` O-grid** (`validation/tools/blockmesh_ogrid.py`, same
+   topology and counts): diverges.  So not hexmesh or `gmshToFoam`.
+   - **Skewed `blockMesh` duct:** diverges at every shear tried, 1° to
+     35°; unsheared converges.  So not the O-H topology either.
+   - **The shipped `buoyantCavity` tutorial, box sheared 1°:**
+     floating-point exception at iteration 6.  The v1912 build's buoyant
+     solvers fail on any non-orthogonal mesh.
+3. **OpenFOAM v2406** (`opencfd/openfoam-default:2406` Docker image,
+   pulled for this; 1.5 GB): the sheared tutorial, our O-H pipe and the
+   23° duct all converge.
+   - **The full CHT case on v2406**, k = 1 (10 944 cells; mesh,
+     conversion and setup by the driver on v1912, only
+     `chtMultiRegionSimpleFoam` in the container): converged in 3000
+     iterations, residuals ≤ 2e-6; energy balance −6e-8, mass 2e-9.
+
+     | Quantity | k = 1 | exact (mesh-based where it applies) | error |
+     |---|---|---|---|
+     | Nu | 4.469 | 48/11 = 4.364 | +2.4 % |
+     | dT_b/dx (K/m) | 16.133 | 16.138 | −0.03 % |
+     | ΔT steel (K) | 0.05796 | 0.05818 | −0.37 % |
+     | ΔT insulation (K) | 163.31 | 163.00 | +0.19 % |
+
+     Steel–fluid interface temperatures match to 1e-11.  So the
+     driver, the regions and the coupled baffles work; only the solver
+     build was in the way.
+- Scratch: this session's scratchpad, `0035d/` (`make.py`, the
+  fluid-only reproducer; `cht2406.py`, the driver with the solver in the
+  container; the cases).
+
 ## Questions for design
 
 **Q1. The compressible/buoyant solvers diverge on hexmesh meshes in this
@@ -159,6 +193,23 @@ I'd do (a) first: whether it's hexmesh's fault decides everything else.
    report what a split (frozen flow + energy) would and wouldn't validate.
 
 Record everything in `docs/integrations/openfoam.md` (your "Open" entry).
+
+**Q2. v1912 can't run any case with a fluid region in a buoyant or CHT
+solver on a hexmesh mesh (every one is non-orthogonal).  Which
+toolchain for CHT?**
+- (a) **v2406 in Docker for the solver only**, as `cht2406.py` did: a
+  `--openfoam docker:opencfd/openfoam-default:2406` option in
+  `hexmesh.study.openfoam` (`foam()` runs solvers in the container,
+  conversion stays on v1912).  Small; validated toolchain becomes
+  mixed, so version records must name both.
+- (b) **v2406 for every validation case** (re-run 0020, 0032, 0034 on
+  it).  One toolchain, but re-validation cost (0032's k4 alone is 5 h).
+- (c) **Install v2406 natively** instead of Docker; same as (a)/(b)
+  without the container, but it's a system change for you.
+- Also worth deciding: report the v1912 defect upstream?  It reproduces
+  on their own tutorial with a 1° shear, so the report is short.
+- I'd take (a) now (it unblocks 0035 with three levels at about the cost
+  measured) and (b) only if a case shows the two builds disagree.
 
 ## Outcome
 

@@ -269,10 +269,13 @@ All v1912, gmsh 4.12.1, 2026-10-25.
   (`simpleCoeffs { n (N 1 1); delta 0.001; }`, slabs along a pipe's x
   axis), and needs no graph partitioner.
 
-- **Open: the buoyant/compressible flow solvers diverge on hexmesh meshes**
-  (v1912 Ubuntu package `1912.200626-2build3`, gmsh 4.12.1, 2026-10-29,
-  task 0035).  Incompressible `simpleFoam`/`pimpleFoam` on the same
-  meshes are fine (tasks 0020, 0032).  Not yet explained.
+- **v1912's buoyant solvers fail on any non-orthogonal mesh** (Ubuntu
+  package `1912.200626-2build3`, gmsh 4.12.1, found 2026-10-29, cause
+  isolated 2026-10-30, task 0035).  Not a hexmesh problem: the shipped
+  `buoyantCavity` tutorial with its box sheared by 1° crashes too.
+  OpenFOAM v2406 (the `opencfd/openfoam-default:2406` Docker image)
+  runs all of it.  Incompressible `simpleFoam`/`pimpleFoam` on the same
+  meshes are fine (tasks 0020, 0032).
   - **Symptom:** `buoyantSimpleFoam`, `chtMultiRegionSimpleFoam` (fluid
     region) and the transient `buoyantPimpleFoam` (Co 0.5) all blow up
     within 5 iterations or steps: continuity error grows 50–1000× per
@@ -297,9 +300,32 @@ All v1912, gmsh 4.12.1, 2026-10-25.
     internal face points owner → neighbour and every boundary face
     outward; `fvc::reconstruct`'s Σ Sf⊗Sf/|Sf| has condition ≤ 6 and
     reconstructs a uniform field to 1e-17.
-  - Next to try: a `blockMesh` O-grid pipe (to tell topology from
-    hexmesh/`gmshToFoam` specifics), non-orthogonal correctors on the
-    `blockMesh` duct skewed to 23°, another OpenFOAM build.
+  - **The cause, 2026-10-30** (fluid-only pipe, the heated-pipe
+    driver's fluid dictionaries, rhoConst, Re 100, g = 0, 300
+    iterations):
+    - `nNonOrthogonalCorrectors` 1 or 2, `snGrad` `limited corrected
+      0.33` or `uncorrected`: still diverges (4–5 iterations).
+    - A `blockMesh` O-grid with hexmesh's topology and counts
+      (`validation/tools/blockmesh_ogrid.py`, non-orth. 18°): diverges.
+      So it isn't hexmesh or `gmshToFoam`.
+    - A `blockMesh` square duct whose section is sheared by 1°, 3°, 6°,
+      12°, 23° or 35°: diverges at every angle.  Unsheared: converges.
+      So it isn't the O-H topology or the size of the angle: any
+      non-orthogonality at all.
+    - **The shipped `buoyantCavity` tutorial, its box sheared by 1°**
+      (non-orth. 1°), otherwise unchanged: floating-point exception at
+      iteration 6.  Unsheared: 100 iterations, fine.
+    - **OpenFOAM v2406** (`opencfd/openfoam-default:2406`, 1.5 GB):
+      v2406's own `buoyantCavity` sheared 1°, and our hexmesh O-H pipe
+      and 23° duct with the v1912 case files unchanged, all converge
+      (300 iterations, continuity 1.4e-6 and 2.1e-6).
+  - **So:** a defect of this v1912 build's buoyant/compressible pressure
+    equation on non-orthogonal meshes, fixed (or absent) in v2406.
+    Whether it's v1912 itself or the Ubuntu build isn't known.  Every
+    hexmesh mesh is non-orthogonal (O-H corners), so CHT with a fluid
+    region needs another OpenFOAM build.
+  - Scripts: the coding session's scratchpad, `0035d/` (`make.py`,
+    `cht2406.py`).
 
 
 
