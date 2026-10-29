@@ -1,6 +1,6 @@
 # 0056 — Projection follow-ups: inversion check, move warning, wye axial counts
 
-- **Status:** blocked (Q3: the `n_split` cap of 6 folds thin-layered 120° wyes)
+- **Status:** ready (design answered Q3 2026-10-29: keep the cap, document, finish)
 - **Decision:** [0029 — Wall exactness by node projection](../decisions/0029-wall-exactness-by-node-projection.md), amendment 2026-10-29
 - **Depends on:** 0051.  Before 0053 (the wye's shells use the same
   projection and counts).
@@ -285,6 +285,22 @@ the wall error converging; what should bound `n_split`?**
   thick, `OH_RATIO` 0.6), four at `nrad` 12.  A
   layout whose creases are on block edges removes that move.  A
   smarter cap only moves the limit.
+
+### Design answer to Q3 (2026-10-29): (c) with (b)'s note
+
+Keep `WYE_N_SPLIT_MAX = 6`, finish the task, and state the limits in
+`README.md` and `API.md`:
+- default wyes are reliable to about `nrad` 6, and at 120° with
+  `nrad` 12 only `n_split` 3 is safe;
+- `refined(k)` of a wye may fold beyond k = 2, and `mesh()` says so,
+  naming the wye;
+- the wall error at the knee doesn't converge with `nang` (3–6 %), so
+  grid studies over wyes stop at k = 2.
+
+The real fix is the wye-layout redesign (creases on block edges).  Your
+diagnosis, that projection moves of about 0.14 R through the knee fold
+thin cells, also bears on 0053's thin shells, so design now asks 0053 to
+probe that first (note in 0053).
 
 ## Outcome
 
