@@ -392,8 +392,9 @@ def wall_deviations(asm) -> dict[str, float]:
       stations blend two shapes): no closed form; they must
       have one axial layer per slab, so no surface carries interior nodes
       (asserted), and they are not measured;
-    * ``Tee``: the union of the main and branch cylinders (task 0051);
-      ``Wye``: not measured yet (task 0051, *Questions for design*).
+    * ``Tee``: the union of the main and branch cylinders, per layer;
+      ``Wye``: the level set ``Skeleton.distance = R`` (tasks 0051, 0052;
+      their nodes are projected, decision 0029).
     """
     fill = asm._fill
     # end annuli of a terminated layer lie on station planes, not cylinders
@@ -403,8 +404,6 @@ def wall_deviations(asm) -> dict[str, float]:
     for e in asm.edges:
         frames = [p.frame for p in e.ports]
         spec = e.ports[0].spec
-        if isinstance(e.fitting, Wye):
-            continue                                   # task 0051
         vols = asm.fitting_volumes()[e.index]
         bnd = {abs(t) for _, t in gmsh.model.getBoundary([(3, v) for v in vols],
                                                        combined=False, oriented=False)}
@@ -413,6 +412,10 @@ def wall_deviations(asm) -> dict[str, float]:
                        for t in surfs])
         if isinstance(e.fitting, Tee):
             out[e.name] = _tee_deviation(e.fitting, frames[0], spec, x)
+            continue
+        if isinstance(e.fitting, Wye):
+            R = spec.core_shape.radius
+            out[e.name] = float(np.abs(e.fitting.skeleton(frames[0], spec).distance(x) - R).max() / R)
             continue
         path = e.fitting.path(frames[0], frames[1], spec)
         scale = max(_extent(path.spec_at(k, spec)) for k in range(len(path.frames)))
@@ -550,16 +553,14 @@ class TestConformance:
 
     def test_walls_exact(self, case):
         """Every wall and interface node on its analytic surface (DESIGN §6).
-        A tee's curved wall faces are plates through wall points, exact to
-        1e-3 R (task 0051)."""
-        if case.startswith("wye"):
-            pytest.skip("wye walls: task 0051, Questions for design")
+        Junction walls are put there by node projection (decision 0029), to
+        1e-6 R (task 0051)."""
         _session()
         try:
             asm = CASES[case]()
             asm.mesh()
             dev = wall_deviations(asm)
-            tol = 1e-3 if case.startswith("tee") else 1e-9
+            tol = 1e-6 if case.startswith(("tee", "wye")) else 1e-9
             bad = {k: v for k, v in dev.items() if v > tol}
             assert not bad, f"wall nodes off the analytic surface (× R): {bad}"
         finally:

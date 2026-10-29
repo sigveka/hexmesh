@@ -98,7 +98,7 @@ class TestTopology:
         asm, _, _ = _wye_asm(60)
         lay = _layout(asm)
         sk = asm.edges[0].fitting.skeleton(asm.inlet.frame, asm.inlet.spec)
-        w = np.array([lay.coords[("W", k)] for k in range(4)])
+        w = np.array([lay.coords[("W", 1, k)] for k in range(4)])
         np.testing.assert_allclose(sk.distance(w), R, rtol=1e-12)
 
 

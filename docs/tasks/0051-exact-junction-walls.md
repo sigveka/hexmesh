@@ -1,6 +1,6 @@
 # 0051 — Exact junction walls (tee and wye)
 
-- **Status:** ready (design answered Q1 2026-10-29: steps 5–8)
+- **Status:** done
 - **Decision:** [0028 — Multi-layer junctions](../decisions/0028-multi-layer-junctions.md) (item 1); [0029 — Wall exactness by node projection](../decisions/0029-wall-exactness-by-node-projection.md); DESIGN §6
 - **Depends on:** —  (0052 and 0053 build on it)
 
@@ -94,6 +94,133 @@ it onto the wall.
    move every node of the junction's wall curves and faces onto the wall
    with `setNode`, then `generate(3)`.  Results under *Questions for
    design*.
+
+**Steps 5–8 (2026-10-29): node projection.**
+
+- **Interface (step 5).**  A projector is a callable `points (n, 3) →
+  points (n, 3)` (`hexmesh/assembly/projection.py`).
+  - `BlockLayout.walls` maps a level to its projector.  `realise` puts
+    the faces of each listed level in `FillResult.projections`, as
+    `(projector, surfaces)`.
+  - `Assembly.mesh()` runs `generate(2)`, then `_project_walls`: every
+    node on those surfaces, their curves and their points is moved with
+    `setNode`.  Then `generate(3)`; `mesh(2)` projects too.
+  - The tee lists levels 1…L (walls and shell boundaries, ready for
+    0053); the wye lists level 1.  To give the crotch faces a level, the
+    wye's `F`/`W` vertex ids gained one (`("W", 1, k)`).
+  - **Shared nodes are a no-op:** port-curve nodes move ≤ 1.5e-15 R
+    (`test_shared_nodes_do_not_move`).
+- **Projector (step 6), refined.**  `TubeUnion`: a union of tubes about
+  lines or rays (half-sphere caps at the ray origins).  So it is the
+  canal surface, knee sphere included.
+  - `nearest()` is the projector step 6 asked for: candidates on each
+    tube, on each pair's intersection curve (Gauss–Newton) and the triple
+    point; those inside another tube are dropped; the nearest wins.  At a
+    tie between two flanks it goes onto the crease.
+  - **Nearest-point projection folds the 60° wye** (min corner SJ
+    −0.04 at `nang` 8, −0.57 at 16).  The Stretch-filled crotch face is
+    a sharper V than the wall.  Just inside the crease, nearest points
+    run backwards across the mirror plane
+    (`test_crease_keeps_order`).
+  - **So the projector maps along a smoothed normal instead.**  The
+    direction is the gradient of a soft minimum of the tubes' signed
+    distances (width `TubeUnion.SOFT` = 2 R); the result is the wall
+    point on that line nearest the node.  Away from creases, that is the nearest point.
+    Across one, rows of nodes stay in order on both flanks.  No folded
+    cells at any measured case.
+  - **The width matters for narrow wyes.**  The full suite found the 30°
+    wye folded (`test_wye::test_all_hex_valid_mesh[30]`).  Min corner SJ
+    at `nang` 8 / 16:
+
+    | width | 30° | 35° | 40° | 45° | 50° | 55° |
+    |---|---|---|---|---|---|---|
+    | 0.25 R | −0.39 / … | −0.38 | −0.29 | −0.34 | −0.39 | — |
+    | 0.5 R | −0.07 / −0.25 | −0.24 / −0.22 | −0.29 / −0.32 | 0.12 / −0.37 | 0.16 / 0.16 | 0.18 / 0.18 |
+    | 1 R | −0.18 / −0.21 | 0.07 / −0.27 | 0.11 / 0.11 | 0.13 / 0.13 | 0.16 / 0.16 | 0.18 / 0.18 |
+    | **2 R** | 0.07 / 0.06 | 0.09 / 0.09 | 0.11 / 0.11 | 0.13 / 0.13 | 0.16 / 0.16 | 0.18 / 0.18 |
+    | 4 R | 0.07 / 0.07 | 0.09 / 0.09 | 0.11 / 0.11 | 0.13 / 0.13 | 0.16 / 0.16 | 0.18 / 0.18 |
+    | no projection | 0.065 | | | 0.133 | | |
+
+    2 R and 4 R match the unprojected mesh's quality from 30° to 120°;
+    2 R is used.  The longer the crease, the further the filled crotch
+    face strays from the wall and the wider the blend has to be.
+    (0.25 R row: `nang` 8 only.)
+  - **Moves grow as the angle narrows:** 0.77 R at 30°, 0.60 R at 35°,
+    0.47 R at 40°, 0.38 R at 45°, 0.18 R at 60°, 0.13 R at 90° and 120°.
+  - The tee uses the same class (main line plus branch ray).
+- **Move limit (step 7).**  `limits.WALL_PROJECTION_MAX_MOVE = 4.0`.
+  - Measured in local cell heights: a node's shortest hex edge to a node
+    on no wall, checked after `generate(3)`.  Moved nodes are matched by
+    position, since `generate(3)` renumbers them (`gmsh.md`).
+  - My first measure, the shortest wall-mesh edge, grew with `nang` (2.6
+    at 16) while nothing folded.
+  - By cell height the ratio doesn't depend on `nang`, but does on
+    `nrad`.  See the tables below and *Outcome*, "For design".
+- **Tee plates kept (step 8).**  Stretch plus projection puts the tee's
+  nodes on the wall to rounding, with the same quality.  But the nodes
+  sit up to 1.3 % of R (r/R 0.5) and 0.6 % (0.9) from the pinned-plate
+  nodes, sliding tangentially; about 13 % of all nodes differ by more
+  than 1e-6 R.  That fails "the same nodes to 1e-6 R", so the plates
+  stay.  Without them a tee builds about 0.4 s faster (1.7 → 1.3 s at
+  r/R 0.5, `nang` 8).
+
+**Measurements** (`Straight` – junction – two `Straight`s, R = 0.1,
+`nrad` 3, `n_layers` defaults; scratchpad `proj_measure.py`).  "dev":
+largest node distance from the analytic wall.  "move": largest
+projection move.  "ratio": move ÷ local cell height.  SJ: the junction's
+min corner scaled Jacobian.
+
+| case | `nang` | dev before | dev after | move | ratio | SJ before → after | min SICN |
+|---|---|---|---|---|---|---|---|
+| wye 60° | 4 | 0.15 R | 1e-15 R | 0.180 R | 0.77 | 0.211 → 0.211 | 0.173 → 0.173 |
+| wye 60° | 8 | 0.16 R | 1e-15 R | 0.180 R | 0.87 | 0.211 → 0.211 | 0.110 → 0.110 |
+| wye 60° | 16 | 0.16 R | 1e-15 R | 0.180 R | 0.87 | 0.211 → 0.211 | 0.059 → 0.059 |
+| wye 90° | 4 | 0.11 R | 1e-15 R | 0.121 R | 0.70 | 0.258 → 0.236 | 0.168 → 0.151 |
+| wye 90° | 8 | 0.13 R | 1e-15 R | 0.129 R | 0.70 | 0.258 → 0.233 | 0.122 → 0.122 |
+| wye 90° | 16 | 0.13 R | 1e-15 R | 0.138 R | 0.74 | 0.251 → 0.227 | 0.070 → 0.070 |
+| wye 120° | 4–16 | — | 1e-15 R | 0.127–0.138 R | 0.78 | 0.155 → 0.149–0.155 | unchanged |
+| tee 0.5, plates | 4–32 | ≤ 1.2e-3 R | 6e-16 R | ≤ 0.0012 R | ≤ 0.008 | 0.258 → 0.258 | unchanged |
+| tee 0.9, plates | 4–32 | ≤ 4.1e-4 R | 6e-16 R | ≤ 0.0004 R | ≤ 0.003 | 0.509 → 0.509 | unchanged |
+| tee 0.5, Stretch | 4–32 | 3.2–3.4 % R | 6e-16 R | 0.034 R | ≤ 0.15 | 0.258 → 0.258 | unchanged |
+| tee 0.9, Stretch | 4–32 | 2.2 % R | 6e-16 R | 0.022 R | 0.13 | 0.509 → 0.509 | unchanged |
+
+Wye rows at width 2 R; the cell-height ratios and the `nrad` table below
+were measured at 0.25 R (moves differ by under 0.01 R).  The min SICN
+falls with `nang` before projection too (the hub's back
+corners, task 0030).
+
+**Move ratio against `nrad`** (`nang` 8; no folds, SJ as above):
+
+| `nrad` | wye 60° | wye 90° |
+|---|---|---|
+| 3 | 0.86 | 0.68 |
+| 6 | 1.70 | 1.43 |
+| 9 | 2.54 | 2.28 |
+| 9, `mprg` 1.3 | 1.12 | 0.90 |
+
+At `nrad` 9 the 90° wye's min SICN drops from 0.067 to 0.023, and its
+SJ from 0.258 to 0.226; nothing inverts.  The transfinite volume
+re-interpolates the whole block from its projected faces, so a move is
+spread across the block, not taken by the first cell.
+
+**Crotch chord error** (step 8): the largest distance from the analytic
+wall of the wall quads' centres and edge midpoints near the crease (both
+daughter flanks within 0.25 R of each other, past the hub, away from the
+inlet tube).
+
+| `nang` | wye 60°, before | wye 60°, after | wye 90°, before | wye 90°, after |
+|---|---|---|---|---|
+| 4 | 12.6 % R | 2.8 % R | 2.1 % R | 3.2 % R |
+| 8 | 14.4 % R | **0.85 % R** | 5.0 % R | **0.88 % R** |
+| 16 | 15.7 % R | 0.23 % R | 5.4 % R | 0.24 % R |
+
+Width 2 R (at 0.25 R: 2.9 / 0.95 / 0.26 % for 60°, and 0.07 / 0.06 % at
+`nang` 32).  Second order in `nang`, under the 1 % threshold at `nang`
+8.  120°: 2.0 / 0.52 / 0.13 %.
+
+**Elsewhere** on the wye wall the chord error stays at **10 % of R (60°)
+and 8 % (90°) at every `nang`**.  These are the hub's spherical cap at
+the outer knees: axial edges 0.94 R long, set by `n_run`, not `nang`.
 
 ## Questions for design
 
@@ -203,34 +330,102 @@ rows are updated (tee: pinned plates, 3e-4 R; a new wye row).
 
 ## Outcome
 
-**Partial: tee done, wye blocked on Q1.**
+**Done (2026-10-29).**  Steps 1–4 (tee plates) in `705a35d`; steps 5–8
+(node projection, decision 0029) in this commit.
 
-- **Tee walls within 1e-3 R.**  Every tee wall node is within 3.0e-4 R
-  (r/R 0.5) or 1.3e-4 R (r/R 0.9) of the cylinders, at `nang` 4 and 8
-  and in the oblique kit case.  Before: 2.2–3.2 %.
-  - Method: a plate filling of each curved wall face, pinned to a 7 × 7
-    grid projected onto the cylinder union (`BlockLayout.wall`,
-    `_wall_surface`, `tee.tee_wall`).
-  - The accuracy limit is OCC's plate fit.  Node projection on top would
-    give 7e-7 (Q1).
-- **Unchanged:** cell counts (1296 per kit tee case), all-hex, the 5
-  physical groups, min SICN (0.149 / 0.263) and the tee's min corner SJ
-  (0.258 / 0.509).  The worst cells aren't on the wall faces.
-- **Build time** of the kit tee cases, median of 3, idle machine:
-  1.44 → 1.85 s (r/R 0.5) and 1.33 → 1.66 s (0.9, oblique), about
-  +0.35 s per tee for 12 plate solves.
-  - Each tee also leaves 588 construction points for the batch removal.
-    At about 3.9 ms per point in a 2000-volume model (`gmsh.md`), that
-    is about 2.3 s per tee in a large network.
-- **Kit:** `wall_deviations` measures `Tee` against the cylinder union,
-  and `test_walls_exact` runs the tee cases at 1e-3 R (the wye cases
-  are still skipped, Q1).  `tests/test_tee.py` adds a `nang` 8 check and
-  a negative control: without the projection the check sees 3.2 %.
-- **Files:** `hexmesh/assembly/blocks.py`, `hexmesh/assembly/tee.py`,
-  `tests/test_fitting_conformance.py`, `tests/test_tee.py`,
-  `docs/integrations/gmsh.md`.
-- **Suite:** 1809 passed, 3 skipped (before: 1805 passed, 5 skipped; +2
-  tests, +2 kit cases no longer skipped).
-- **For design:** the DESIGN deviation row on tee wall faces can be
-  reworded to "within 3e-4 R (plate fit)" or closed, as design sees fit.
-  The wye has no row of its own yet, though its faces are 11–16 % off.
+- **Every tee and wye wall node is on the analytic wall to 1e-15 R** on
+  the final mesh, in every kit case (wye 60°, 60° oblique and 90°
+  included), and at `nang` 4–32 (*Agent notes*).
+  - Before: tee 2.2–3.4 % (3e-4 R with the plates), wye 11–16 %.
+  - The kit's `test_walls_exact` runs the wye cases (no skips), at 1e-6
+    R for junctions.
+- **No folded cells**, wyes 30°–120° at `nang` 4–16.  Min corner SJ:
+  30° 0.06–0.07 (0.065 before), 60° 0.211 before and after, 90° 0.258 →
+  0.227–0.236, 120° 0.155 → 0.149–0.155; tees unchanged.  Min SICN
+  unchanged except 90° at `nang` 4 (0.168 → 0.151).  Kit
+  `test_realisation` checks quality after projection.
+  - This took a wide smoothing (2 R): narrower ones fold 30°–50° wyes
+    (*Agent notes*).  The full suite's 30° wye test found it.
+- **Crotch chord error** 0.85 % R at `nang` 8 (60°) and 0.88 % (90°);
+  2.8–3.2 % at `nang` 4, 0.23–0.24 % at 16.  Table under *Agent notes*.
+- **Tee plates kept:** projection after Stretch fillings gives nodes up
+  to 1.3 % R away from the plate nodes (same quality), so it fails the
+  "same nodes to 1e-6 R" rule.  The plates cost about 0.4 s per tee.
+- **Projection cost:** about +0.1 s for a kit wye (1.19 → 1.32 s at
+  `nang` 8).
+- **Files:**
+  - new `hexmesh/assembly/projection.py`: `Tube`, `TubeUnion`;
+  - `hexmesh/assembly/assembler.py`: `mesh()` projects between
+    `generate(2)` and `(3)`, plus `_project_walls`, `_check_projection`,
+    `projection_report`;
+  - `hexmesh/assembly/sweep.py`: `FillResult.projections`;
+  - `hexmesh/assembly/blocks.py`: `walls` lists every level's faces for
+    projection, and `pin_walls`;
+  - `hexmesh/assembly/limits.py`: `WALL_PROJECTION_MAX_MOVE`;
+  - `hexmesh/assembly/tee.py`: `tee_wall` is a `TubeUnion`;
+  - `hexmesh/assembly/wye.py`: `Wye.wall`, crotch vertex levels;
+  - `API.md`, `README.md`, `docs/integrations/gmsh.md` ("Moving surface
+    nodes before volume meshing": stale parametric coordinates,
+    renumbering);
+  - tests: new `tests/test_projection.py` (15); `test_fitting_conformance`,
+    `test_tee`, `test_wye` updated.
+- **Suite:** 1881 passed, 0 skipped, 0 failed (at the 0052 commit: 1859
+  passed, 3 skipped).  +19 in `test_projection.py`; the 3 wye kit
+  exactness cases no longer skipped; the rest is the other session's
+  stenosis example in the working tree.
+- **Surprises:**
+  - nearest-point projection folds the crotch;
+  - `setNode(…, [])` keeps stale (u, v);
+  - `generate(3)` renumbers nodes in the assembly;
+  - the wye's hub-cap chords don't refine with `nang`.
+
+**For design:**
+1. **Projector is not nearest-point.**  Decision 0029 and step 6 say
+   nearest point.  At the crotch that folds cells, so `TubeUnion` maps
+   along a smoothed normal (nearest away from creases).  If DESIGN §6's
+   new paragraph says "nearest", it could say "a nearby point on the
+   surface that keeps neighbouring nodes in order (nearest, away from
+   creases)".
+2. **Move-limit unit.**  In local cell heights, a legitimate move grows
+   with `nrad` (0.29 × `nrad` for the 60° wye: 2.5 at 9), so 4.0 rejects
+   valid wyes above `nrad` ≈ 13.  A projector that crosses branches moves
+   nodes by R or more.  Options:
+   - (a) keep cell heights (4.0);
+   - (b) a fraction of the wall's local radius, e.g. 0.5 R (measured
+     ≤ 0.18 R), independent of density;
+   - (c) both: reject above 0.5 R, warn above some cell-height multiple.
+   I'd take (b): what the limit guards against is a wrong projector, and
+   folds are caught by `check_quality` anyway.
+3. **DESIGN rows:** the tee row ("pinned plates, 3e-4 R") and the new wye
+   row can close: the nodes are exact.  What remains is OCC geometry
+   only (CAD export) and the chord error above.
+4. **Task 0056's 0.5 R move limit rejects narrow wyes.**  Measured moves:
+   0.77 R at 30°, 0.60 R at 35°, 0.47 R at 40° (`nang` 8), all valid and
+   unfolded.  Either the limit depends on the angle, or it's higher
+   (about 1 R; a branch-crossing projector moves nodes by R or more, so
+   1 R doesn't separate them cleanly), or the inversion check carries
+   the safety alone.  Narrow wyes can't use a 0.5 R limit without a
+   crotch layout that follows the crease.
+5. **Proposed follow-ups:**
+   - the wye's hub cap is resolved by `n_run` alone: chords about 10 % R
+     there at any `nang`.  Scale its axial layers with `nang`, or tie
+     them to the cap's arc.
+   - Wye shells (0053) can reuse `Wye.wall(…, radius=R + T)`.
+
+**Design response to *For design* 1–4 (2026-10-29):** see decision
+0029's amendment and task 0056.  In short:
+1. smoothed-normal projector accepted (DESIGN §6 reworded);
+2. move limit becomes 0.5 × local wall radius, plus an inversion check
+   in `mesh()` (task 0056);
+3. both DESIGN rows closed; the crotch is under the 1 % threshold, so no
+   layout follow-up;
+4. wye axial counts from arcs (task 0056).
+
+Finish this task as it stands (fill in the suite result); 0056 carries
+the changes.
+
+**Design response to item 4 (2026-10-29):** agreed.  No distance
+limit: `mesh()` rejects inverted cells in projected fittings (the guard),
+and only *warns* above 1.0 × local wall radius.  Decision 0029's
+amendment, DESIGN §6 and task 0056 are updated.  Leave
+`WALL_PROJECTION_MAX_MOVE` as you have it in this task; 0056 replaces it.

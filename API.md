@@ -74,7 +74,7 @@ in degrees. The thresholds are data, in `hexmesh.assembly.limits`.
 
 | Method | Does |
 |---|---|
-| `mesh(dim=3, *, walls_by_fitting=False)` | Build faces, fill all fittings, write physical groups, and mesh. Walls are `{layer}_wall`, after the layer outermost where they are, plus `{layer}_end` for the end faces of a terminated layer. With `walls_by_fitting`, each is split per fitting, `{group}_{name}`; *name* is the fitting's label or `<Type><index>` (`Bend3`) |
+| `mesh(dim=3, *, walls_by_fitting=False)` | Build faces, fill all fittings, write physical groups, and mesh. Between the surface and volume mesh, junction wall nodes are projected onto their analytic walls (decision 0029); `projection_report` holds each fitting's largest move, absolute and in local cell heights, and a move beyond `limits.WALL_PROJECTION_MAX_MOVE` cell heights raises `AssemblyError`. Projected nodes keep stale parametric coordinates, so leave GMSH's mesh optimisers off. Walls are `{layer}_wall`, after the layer outermost where they are, plus `{layer}_end` for the end faces of a terminated layer. With `walls_by_fitting`, each is split per fitting, `{group}_{name}`; *name* is the fitting's label or `<Type><index>` (`Bend3`) |
 | `write(path, dim=3, *, walls_by_fitting=False)` | `mesh()`, then `gmsh.write(path)`; the format follows the extension |
 | `write_openfoam(path, *, interfaces=False, walls_by_fitting=False)` | `mesh()`, then write a `.msh` for `gmshToFoam`: MSH 2.2 ASCII, without the material-interface groups unless `interfaces=True` (the split rebuilds them as `mappedWall`; kept, they become faceZones); the GMSH options and groups are restored afterwards.  Also writes the role manifest `<stem>.roles.json` |
 | `group_roles()` | Physical-group name → role (`volume`, `open_end`, `wall`, `interface`), from the graph, as last written by `mesh()` |
@@ -525,8 +525,10 @@ A perpendicular, centred side-branch tee, built as a block layout.
   (decision 0028). The branch copies the main's shells: same names,
   thicknesses, `nrad` and `mprg`. Each interface group (`interface_fluid_steel`
   …) and the outer wall continue from the main through the junction into
-  the branch. Wall and shell boundaries lie on their offset cylinders to
-  about 3e-4 of the radius (task 0051).
+  the branch. Wall and shell-boundary nodes lie on their offset cylinders
+  to rounding: the faces are plates through cylinder points (3e-4 of the
+  radius), and `mesh()` projects the nodes the rest of the way (decision
+  0029, task 0051).
 - **Limits.** Circular layers, `rot = 0`, and `branch_radius` below the
   main radius. With T the total shell thickness, `run_length` must exceed
   `branch_radius + T`, and `branch_length` the turning station's height,
@@ -552,10 +554,16 @@ decision 0017).
 - **Limits.** A single-layer circular spec, `rot = 0`, `n_outer = 4`, and
   `angle` from 30° to 120°. `run_length` must exceed R·(tan(angle/2) + 0.1)
   and `branch_length` R·(cot(angle/2) + 1); the messages give the numbers.
+- **Wall.** The union of the inlet and daughter tubes, with a sharp crotch
+  crease. `mesh()` projects the junction's wall nodes onto it (decision
+  0029), so they lie on it to rounding; the faces between them are
+  chords. At the crease the chord error is about 3 %, 1 % and 0.3 % of R at
+  `nang` 4, 8 and 16 (task 0051). The hub's spherical cap is resolved by
+  `n_run`, not `nang`: chords there stay about 10 % of R.
 - **Quality.** Measured, not gated (decision 0017). The worst cells, min
   scaled Jacobian 0.06–0.16 depending on the angle, sit next to the hub's
-  back corners. Junction wall nodes are up to about 20 % of R off the
-  intended surface, and the crotch is rounded. The numbers are in task 0030.
+  back corners. The numbers are in task 0030; projection leaves them
+  within 0.04 (task 0051).
 
 ### `Closure(n_layers=None, tension=1.0, axial_grading=1.0)`
 

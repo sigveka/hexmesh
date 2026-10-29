@@ -111,15 +111,21 @@ def _tee_wall_deviation(nang, ratio):
 
 
 def test_tee_wall_nodes_on_cylinders(gmsh_session):
-    """Every tee wall node within 1e-3 R of the two cylinders (task 0051)."""
-    assert _tee_wall_deviation(8, 0.5) < 1e-3
+    """Every tee wall node within 1e-6 R of the two cylinders (task 0051,
+    by node projection: decision 0029)."""
+    assert _tee_wall_deviation(8, 0.5) < 1e-6
 
 
 def test_tee_wall_check_catches_filled_faces(gmsh_session, monkeypatch):
-    """Without the wall projection the faces are plain fillings, 2–3 % of R
-    off: the check must see it."""
-    from hexmesh.assembly import tee as tee_mod
-    monkeypatch.setattr(tee_mod, "tee_wall", lambda *a: None)
+    """Without wall surfaces or projection the faces are plain fillings,
+    2–3 % of R off: the check must see it."""
+    layout = Tee.layout
+
+    def bare(self, frames, spec):
+        lay = layout(self, frames, spec)
+        lay.walls = {}
+        return lay
+    monkeypatch.setattr(Tee, "layout", bare)
     assert _tee_wall_deviation(4, 0.5) > 0.02
 
 

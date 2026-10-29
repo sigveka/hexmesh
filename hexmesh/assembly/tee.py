@@ -49,6 +49,7 @@ from .blocks import (
     face_patches, face_vertices,
 )
 from .interface import Frame, junction_roll, junction_toward, outer_radius, rolled
+from .projection import Tube, TubeUnion
 from .signature import check_port_pairs
 
 _SAMPLES = 9   # interior points per spline edge
@@ -73,37 +74,12 @@ def branch_spec(spec: PipeSpec, radius: float) -> PipeSpec:
     return out
 
 
-def tee_wall(o, ex, ez, R: float, r: float):
-    """Projection onto the tee wall: the main cylinder (axis ``o + x ex``,
-    radius *R*) united with the branch cylinder (axis ``o + z ez``, z ≥ 0,
-    radius *r*).  The nearer cylinder's radial projection that is not
-    inside the other cylinder."""
-    def main(p):
-        a = (p - o) @ ex
-        w = p - o - a * ex
-        return o + a * ex + R * w / np.linalg.norm(w)
-
-    def branch(p):
-        h = max((p - o) @ ez, 0.0)
-        w = p - o - h * ez
-        return o + h * ez + r * w / np.linalg.norm(w)
-
-    def d_main(q):
-        v = q - o
-        return np.linalg.norm(v - (v @ ex) * ex)
-
-    def d_branch(q):
-        v = q - o
-        return np.linalg.norm(v - max(v @ ez, 0.0) * ez)
-
-    def to_wall(p):
-        p = np.asarray(p, dtype=float)
-        pm, pb = main(p), branch(p)
-        tol = 1e-12 * R
-        ok = [q for q, outside in ((pm, d_branch(pm) >= r - tol),
-                                   (pb, d_main(pb) >= R - tol)) if outside]
-        return min(ok or [pm, pb], key=lambda q: np.linalg.norm(q - p))
-    return to_wall
+def tee_wall(o, ex, ez, R: float, r: float) -> TubeUnion:
+    """The tee wall: the main cylinder (axis ``o + x ex``, radius *R*)
+    united with the branch cylinder (axis ``o + z ez``, z ≥ 0, radius *r*),
+    as a wall projector (decision 0029)."""
+    return TubeUnion([Tube(tuple(o), tuple(ex), R, ray=False),
+                      Tube(tuple(o), tuple(ez), r)])
 
 
 def _check_circle(spec: PipeSpec) -> None:

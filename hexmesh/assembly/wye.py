@@ -10,7 +10,9 @@ plane.  That plane contains two arc midpoints of the O-H section, not two
 corners (task 0030, Q1).  The intended wall is the canal surface of radius
 R about this skeleton, {p : dist(p, skeleton) = R}: exact on the three
 cylinders, a sphere about O at the outer knees, a crease at the crotch.
-Wall curves are base curves pushed onto it.
+Wall curves are base curves pushed onto it.  The faces between them are
+Stretch fillings, up to 16 % of R off; ``Assembly.mesh()`` projects their
+mesh nodes onto the wall (``Wye.wall``, decision 0029, task 0051).
 
 Topology (symmetric hub; task 0030, Q2)
 ---------------------------------------
@@ -47,6 +49,7 @@ from .blocks import (
     corner_shift, face_patches, face_vertices,
 )
 from .interface import Frame, junction_roll, junction_toward, rolled
+from .projection import Tube, TubeUnion
 from .signature import check_port_pairs
 
 _SAMPLES = 9            # interior points per spline edge
@@ -199,6 +202,13 @@ class Wye:
                 "t_hub": _F_FRACTION * t_apex,
                 "t_apex": t_apex}
 
+    def wall(self, inlet: Frame, spec: PipeSpec, radius: float | None = None) -> TubeUnion:
+        """The wall (or, with *radius*, an offset of it) as a projector: the
+        union of the inlet and daughter tubes (decision 0029)."""
+        o, n, _, dl, dr = self._axes(inlet)
+        rho = spec.core_shape.radius if radius is None else radius
+        return TubeUnion([Tube(tuple(o), tuple(d), rho) for d in (-n, dl, dr)])
+
     def skeleton(self, inlet: Frame, spec: PipeSpec) -> Skeleton:
         o, n, _, dl, dr = self._axes(inlet)
         return Skeleton(o, n, (dl, dr), spec.core_shape.radius)
@@ -279,15 +289,15 @@ class Wye:
                   1: (dl, +right_l, +1), 2: (dl, +right_l, -1)}
         for k, (d, side, z) in crotch.items():
             radial = (side + z * u) / math.sqrt(2)
-            lay.vertex(("F", k), o + tf * d + OH_RATIO * R * radial)
-            lay.vertex(("W", k), o + t * d + R * radial)
-            lay.edge(("F", k), ("W", k))
+            lay.vertex(("F", 0, k), o + tf * d + OH_RATIO * R * radial)
+            lay.vertex(("W", 1, k), o + t * d + R * radial)
+            lay.edge(("F", 0, k), ("W", 1, k))
 
         P = lambda v: lay.coords[v]
         s_ = lambda name: (lambda l, k: (name, l, k))
         a, l_, r_ = s_("Sa"), s_("SL"), s_("SR")
-        F = lambda k: ("F", k)
-        W = lambda k: ("W", k)
+        F = lambda k: ("F", 0, k)
+        W = lambda k: ("W", 1, k)
 
         # Daughter cores: outer edges bend from n to d (Hermite); crotch
         # edges run along d from the crotch corners.
@@ -350,7 +360,7 @@ class Wye:
 
         # Ring layer: core quad → its wall quad.
         def wall(v):
-            return (v[0], 1, v[2]) if v[0] in ("Sa", "SL", "SR") else W(v[1])
+            return (v[0], 1, v[2]) if v[0] in ("Sa", "SL", "SR") else W(v[2])
         rings = [
             (a(0, 0), a(0, 1), F(1), F(0)),             # hub top
             (a(0, 3), a(0, 2), F(2), F(3)),             # hub bottom
@@ -371,6 +381,10 @@ class Wye:
         # fragile (OCC rebuilds shared edges).  Stretch B-spline fillings
         # are valid at every angle and symmetric (task 0030 notes).
         lay.filling = "Stretch"
+        # the wall's nodes are put on it by projection (decision 0029); no
+        # OCC surface through wall points stays conformal (task 0051)
+        lay.walls = {1: self.wall(frames[0], spec)}
+        lay.pin_walls = False
         return lay
 
     # -- contract -----------------------------------------------------

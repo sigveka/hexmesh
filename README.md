@@ -96,13 +96,15 @@ hexmesh follows a fixed pipeline. The full rules are in [DESIGN.md](DESIGN.md).
 Accuracy comes from placing nodes on exact curves, not from OCC surfaces.
 Bends, miter bends, reducers and spline pipes place one station per axial layer,
 so every wall node lies on an exact station curve. Miter cuts are the exact
-ellipse where the two pipes meet. There are two known exceptions:
-- the interior wall nodes of a multi-layer `Straight` lie on a filled surface,
-  up to 0.7 % of the radius off. This is an open follow-up
-  ([task 0012](docs/tasks/0012-miter-bend-and-elbow.md#outcome));
-- the tee's wall nodes are 2–5 % off, a deviation listed in DESIGN.md §9;
-- the wye's junction wall nodes are up to about 20 % of the radius off, and
-  its crotch is rounded (prototype, [task 0030](docs/tasks/0030-wye-prototype.md)).
+ellipse where the two pipes meet. Tee and wye wall nodes are projected onto
+the analytic wall after surface meshing
+([decision 0029](docs/decisions/0029-wall-exactness-by-node-projection.md));
+the OCC surfaces underneath stay approximate, and the faces between the nodes
+are chords: at the wye's crotch crease about 1 % of the radius at `nang` 8
+([task 0051](docs/tasks/0051-exact-junction-walls.md)). There is one known
+exception: the interior wall nodes of a multi-layer `Straight` lie on a filled
+surface, up to 0.7 % of the radius off. This is an open follow-up
+([task 0012](docs/tasks/0012-miter-bend-and-elbow.md#outcome)).
 
 ---
 

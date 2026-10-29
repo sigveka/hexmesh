@@ -115,6 +115,10 @@ class FillResult:
     curves:     list[CurveMesh]      = field(default_factory=list)
     surfaces:   list[int]            = field(default_factory=list)
     mesh_vols:  list[int]            = field(default_factory=list)
+    # (projector, surfaces): Assembly.mesh() moves these surfaces' nodes,
+    # with their curves' and points', onto the projector's surface
+    # (decision 0029)
+    projections: list[tuple[object, list[int]]] = field(default_factory=list)
 
     def merge(self, other: "FillResult") -> None:
         for k, v in other.volumes.items():
@@ -126,6 +130,7 @@ class FillResult:
         self.curves.extend(other.curves)
         self.surfaces.extend(other.surfaces)
         self.mesh_vols.extend(other.mesh_vols)
+        self.projections.extend(other.projections)
 
 
 @dataclass(frozen=True)

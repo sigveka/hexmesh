@@ -60,7 +60,7 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0048](0048-layer-outline-examples.md) | Examples for layer outlines and multi-layer transitions | done | 0026 |
 | [0049](0049-validation-turbulent-pipe.md) | Validation: fully developed turbulent pipe flow (RANS, k-ω SST) | ready (after 0043) | 0012, 0015 |
 | [0050](0050-validation-turbulent-bend.md) | Validation: turbulent flow in a 90° bend (Sudo et al. 1998) | ready (after 0049) | 0012, 0015 |
-| [0051](0051-exact-junction-walls.md) | Exact junction walls (tee and wye) | ready (steps 5–8, node projection) | 0028, 0029 |
+| [0051](0051-exact-junction-walls.md) | Exact junction walls (tee and wye) | done | 0028, 0029 |
 | [0052](0052-multi-layer-tee.md) | Multi-layer tee: shells as offset levels of the junction | done (limit: Q1) | 0028 |
 | [0053](0053-multi-layer-wye.md) | Multi-layer wye: shells as offset level sets | ready (after 0051) | 0028 |
 | [0054](0054-insulated-junctions-end-to-end.md) | Insulated junctions end to end: PCF, example, docs | ready (after 0052, 0053) | 0028, 0023 |

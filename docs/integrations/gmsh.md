@@ -183,7 +183,32 @@ lies on an analytic wall.
     contains the crease.  Mirror-image faces differed: 0.0006 R vs
     0.46 R.  Other settings: 13 × 13 points, `numIter` 6, and
     `numPointsOnCurves` 40 failed to build; `degree` 2 and `anisotropic`
-    didn't help.  Not used for the wye.
+    didn't help.  Not used for the wye: its nodes are projected instead
+    (next section).
+
+### Moving surface nodes before volume meshing — *verified*
+
+gmsh 4.12.1, 2026-10-29, task 0051 (decision 0029).  `Assembly.mesh()`
+runs `generate(2)`, moves junction wall nodes onto the analytic wall with
+`mesh.setNode`, then `generate(3)`.
+
+- **Transfinite volumes use the moved positions.**  After `generate(3)`
+  every projected wye and tee wall node is on the analytic wall to
+  1e-15 R, and the volume interior follows (no folded cells at `nang` 4–32).
+- **The OCC surfaces stay as built**: Stretch fillings (wye) or plates
+  (tee), 3e-4 to 16 % of R off the wall.  Anything that reads the geometry
+  (`getValue`, `getClosestPoint`, CAD export) sees those, not the mesh.
+- **`setNode(tag, xyz, [])` keeps the old parametric coordinates**, which
+  no longer match the node.  `getNode` returned the same (u, v) before
+  and after the move on a cylinder face; passing new (u, v) is the only
+  way to change them.  Anything that re-evaluates nodes from (u, v) on the
+  OCC surface (mesh optimisation, `Mesh.SecondOrder` with curved
+  elements) would undo or distort the projection.
+- **`generate(3)` renumbers the surface nodes** in the assembly
+  (`Mesh.Renumber` is 1 by default): of 3161 nodes after projection, 48
+  kept both tag and position (60° wye kit model, `nang` 8).  A single
+  OCC cylinder kept all its tags.  Match nodes across volume meshing by
+  position (`Assembly._check_projection` does).
 
 ### Non-uniform `affineTransform` renumbers points and curves — *verified*
 4.12.1 / OCC 7.6.3.  `occ.affineTransform` with a non-uniform scale keeps

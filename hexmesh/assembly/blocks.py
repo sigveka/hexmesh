@@ -137,13 +137,14 @@ class BlockLayout:
         # cylinder: None for a plate (``addSurfaceFilling``), or a
         # ``addBSplineFilling`` type ("Stretch", "Curved")
         self.filling: str | None = None
-        # Level → projection of a point onto that level's intended surface
-        # (the wall, or a shell boundary).  A curved face whose four
-        # vertices ``(prefix, level, k)`` share a level listed here is a
-        # plate through points on that surface (``_wall_surface``), so its
-        # interior mesh nodes lie on it to the plate's accuracy (DESIGN §6,
-        # tasks 0051, 0052).
+        # Level → projector onto that level's intended surface (the wall, or
+        # a shell boundary; ``projection``).  Every face whose four vertices
+        # ``(prefix, level, k)`` share a level listed here has its mesh
+        # nodes moved onto that surface by ``Assembly.mesh()`` (decision
+        # 0029).  With *pin_walls*, its curved faces are also plates through
+        # points on the surface (``_wall_surface``, task 0051).
         self.walls: dict[int, object] = {}
+        self.pin_walls = True
         self._classes: dict[frozenset, tuple[int, tuple]] | None = None
 
     # -- construction -----------------------------------------------------
@@ -410,7 +411,7 @@ class BlockLayout:
                 # surface is the exact cylinder (DESIGN §6, task 0025), as
                 # in a sweep's straight slab
                 self.faces[k] = _ruled(loop)
-            elif (wall := self.walls.get(_level(cyc))) is not None:
+            elif self.pin_walls and (wall := self.walls.get(_level(cyc))) is not None:
                 self.faces[k] = self._wall_surface(cyc, loop, wall)
             elif self.filling is not None:
                 self.faces[k] = geo.addBSplineFilling(loop, type=self.filling)
@@ -458,7 +459,7 @@ class BlockLayout:
                    + (1 - u) * v * top[0] + u * v * top[-1]))
         geo = gmsh.model.occ
         scale = max(np.ptp(grid.reshape(-1, 3), axis=0))
-        tags = [geo.addPoint(*wall(q)) for q in grid[1:-1, 1:-1].reshape(-1, 3)]
+        tags = [geo.addPoint(*q) for q in wall(grid[1:-1, 1:-1].reshape(-1, 3))]
         tag = geo.addSurfaceFilling(loop, pointTags=tags, tol3d=_WALL_TOL * scale,
                                     maxDegree=_WALL_DEGREE, maxSegments=_WALL_SEGMENTS)
         for t_ in tags:
@@ -520,6 +521,12 @@ class BlockLayout:
         for bi, (ids, material) in enumerate(self.blocks):
             for f in _FACES:
                 materials.setdefault(_key(*(ids[i] for i in f)), []).append(material)
+        on_level: dict[int, list[int]] = {}
+        for k, users in use.items():
+            level = _level(users[0][1])
+            if level in self.walls:
+                on_level.setdefault(level, []).append(surf_of[k])
+        result.projections = [(self.walls[l], s) for l, s in sorted(on_level.items())]
         for k, users in use.items():
             result.surfaces.append(surf_of[k])
             if len(users) == 1 and k not in self.port_faces:
