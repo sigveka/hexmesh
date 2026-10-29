@@ -52,6 +52,7 @@ from .blocks import (
 from .interface import Frame, junction_roll, junction_toward, rolled
 from .projection import Tube, TubeUnion
 from .signature import check_port_pairs
+from .tee import thicknesses
 
 _SAMPLES = 9            # interior points per spline edge
 ANGLE_RANGE = (30.0, 120.0)
@@ -76,7 +77,8 @@ def _hermite(p, q, tp, tq, n=_SAMPLES):
 
 class Skeleton:
     """Inlet axis up to O and the daughter rays from O; the intended wall
-    is the level set dist = R."""
+    is the level set dist = R, and shell boundary l the level set
+    dist = R + T_l (task 0053)."""
 
     def __init__(self, origin, inlet, daughters, radius):
         self.o = np.asarray(origin, dtype=float)
@@ -103,30 +105,32 @@ class Skeleton:
             out = np.minimum(out, np.linalg.norm(p - t[:, None] * d, axis=1))
         return out
 
-    def to_wall(self, p) -> np.ndarray:
-        """Push *p* onto the wall along the ray from its nearest skeleton point."""
+    def to_wall(self, p, radius: float | None = None) -> np.ndarray:
+        """Push *p* onto the level set dist = *radius* (default R) along the
+        ray from its nearest skeleton point."""
+        rho = self.R if radius is None else radius
         _, c = self.nearest(p)
         v = p - c
         v = v / np.linalg.norm(v)
         # march to the first exit (another branch may lie further along
         # the ray), then bisect
-        step = self.R / 16
+        step = rho / 16
         lo = 0.0
-        while self.nearest(c + (lo + step) * v)[0] < self.R:
+        while self.nearest(c + (lo + step) * v)[0] < rho:
             lo += step
-            if lo > 20 * self.R:
+            if lo > 20 * rho:
                 raise ValueError("wall projection: ray does not leave the wye")
         hi = lo + step
         for _ in range(60):
             mid = 0.5 * (lo + hi)
-            if self.nearest(c + mid * v)[0] < self.R:
+            if self.nearest(c + mid * v)[0] < rho:
                 lo = mid
             else:
                 hi = mid
         return c + 0.5 * (lo + hi) * v
 
-    def curve(self, points) -> Spline:
-        return Spline(tuple(tuple(self.to_wall(p)) for p in points))
+    def curve(self, points, radius: float | None = None) -> Spline:
+        return Spline(tuple(tuple(self.to_wall(p, radius)) for p in points))
 
 
 # Axial counts, and the sentinels that identify their edges in resolve()
@@ -256,10 +260,12 @@ class Wye:
     # -- topology -----------------------------------------------------
 
     def check(self, spec: PipeSpec) -> None:
-        if spec.shells:
-            raise ValueError("Wye prototype supports single-layer specs only")
         if not isinstance(spec.core_shape, CircleShape):
             raise ValueError("Wye prototype supports circular cores only")
+        for sh, outline in zip(spec.shells, spec.outlines[1:]):
+            if not isinstance(outline, CircleShape):
+                raise ValueError(f"Wye: shell `{sh.name}` is not circular; junction "
+                                 f"shells are circular only (decisions 0026, 0028)")
         if spec.rot != 0 or spec.n_outer != 4:
             raise ValueError("Wye prototype requires rot = 0 and n_outer = 4")
         if self.toward is not None:
@@ -295,6 +301,9 @@ class Wye:
         # (built unrolled) with the corner shift.  Outlets are rolled already.
         A, L, Rp = rolled(frames[0], self.roll), frames[1], frames[2]
         R = spec.core_shape.radius
+        names = spec.layer_names
+        levels = range(1, len(names) + 1)            # wall and shell boundaries
+        Rl = {l: R + t for l, t in zip(levels, thicknesses(spec))}
         o, n, u, dl, dr = self._axes(frames[0])
         g = self.placement(R)
         sk = self.skeleton(frames[0], spec)
@@ -309,11 +318,13 @@ class Wye:
         face_vertices(lay, "R", Rp, spec)
         for name, fr in (("Sa", sa), ("SL", sl), ("SR", sr)):
             face_vertices(lay, name, fr, spec, port=False)
-            for k in range(4):
-                lay.edge((name, 1, k), (name, 1, (k + 1) % 4), ArcAbout(tuple(fr.position)))
+            for l in levels:
+                for k in range(4):
+                    lay.edge((name, l, k), (name, l, (k + 1) % 4),
+                             ArcAbout(tuple(fr.position)))
 
         # Straight runs: generators of the cylinder are straight lines.
-        for lvl in (0, 1):
+        for lvl in (0, *levels):
             for k in range(4):
                 lay.edge(("A", lvl, k), ("Sa", lvl, k), divisions=self.n_run)
                 lay.edge(("SL", lvl, k), ("L", lvl, k), divisions=self.n_branch)
@@ -325,17 +336,21 @@ class Wye:
         t, tf = g["t_crotch"], g["t_hub"]
         crotch = {0: (dr, -right_r, +1), 3: (dr, -right_r, -1),
                   1: (dl, +right_l, +1), 2: (dl, +right_l, -1)}
+        # Shell levels: the same corner, further out along the same ray from
+        # the daughter axis (task 0053; growing t with the level as the
+        # tee does folds more wyes, task notes).
         for k, (d, side, z) in crotch.items():
             radial = (side + z * u) / math.sqrt(2)
             lay.vertex(("F", 0, k), o + tf * d + OH_RATIO * R * radial)
-            lay.vertex(("W", 1, k), o + t * d + R * radial)
-            lay.edge(("F", 0, k), ("W", 1, k))
+            for l in levels:
+                lay.vertex(("W", l, k), o + t * d + Rl[l] * radial)
+                lay.edge(("F", 0, k) if l == 1 else ("W", l - 1, k), ("W", l, k))
 
         P = lambda v: lay.coords[v]
         s_ = lambda name: (lambda l, k: (name, l, k))
         a, l_, r_ = s_("Sa"), s_("SL"), s_("SR")
         F = lambda k: ("F", 0, k)
-        W = lambda k: ("W", 1, k)
+        W = lambda k, l=1: ("W", l, k)
 
         # Daughter cores: outer edges bend from n to d (Hermite); crotch
         # edges run along d from the crotch corners.
@@ -344,61 +359,70 @@ class Wye:
             for ka, ks in outer:
                 lay.edge(a(0, ka), st(0, ks), Spline(tuple(map(tuple, _hermite(
                     P(a(0, ka)), P(st(0, ks)), n, d)))), divisions=self.n_split)
-                lay.edge(a(1, ka), st(1, ks), sk.curve(_hermite(
-                    P(a(1, ka)), P(st(1, ks)), n, d)))
+                for l in levels:
+                    lay.edge(a(l, ka), st(l, ks), sk.curve(_hermite(
+                        P(a(l, ka)), P(st(l, ks)), n, d), Rl[l]))
             for kf, ks in crotch_k:
                 lay.edge(F(kf), st(0, ks))
-                lay.edge(W(kf), st(1, ks))      # a cylinder generator: exact
+                for l in levels:
+                    lay.edge(W(kf, l), st(l, ks))      # a cylinder generator: exact
 
         # Hub top and bottom: Sa corners to the crotch corners, the chord
         # pushed onto the wall (a Hermite arriving along d overshoots across
         # the mirror plane and crosses its mirror image).
-        for k in range(4):
-            lay.edge(a(1, k), W(k), sk.curve(
-                np.linspace(P(a(1, k)), P(W(k)), _SAMPLES + 2)[1:-1]))
+        for l in levels:
+            for k in range(4):
+                lay.edge(a(l, k), W(k, l), sk.curve(
+                    np.linspace(P(a(l, k)), P(W(k, l)), _SAMPLES + 2)[1:-1], Rl[l]))
 
         # Crotch patch.  Top and bottom edges: from each W along its
         # daughter's cylinder to the crease at _KINK elevation, where the two
         # halves meet (C0, so a polyline).  Sides: around each daughter's
         # crotch side, bulging past the apex.
-        def on_daughter(d, side, t_, phi):
-            return o + t_ * d + R * (math.cos(phi) * side + math.sin(phi) * u)
+        def on_daughter(d, side, t_, phi, rho):
+            return o + t_ * d + rho * (math.cos(phi) * side + math.sin(phi) * u)
         m = _SAMPLES // 2
-        for k0, k1, z in ((0, 1, +1), (3, 2, -1)):
-            # straight in (t, φ) on each daughter's cylinder, W → crease
-            phi_k = z * math.radians(_KINK)
-            t_k = g["t_apex"] * math.cos(phi_k)
-            frac = np.linspace(0.0, 1.0, m + 2)[1:]
-            ts = t + (t_k - t) * frac
-            ps = z * math.pi / 4 + (phi_k - z * math.pi / 4) * frac
-            half_r = [on_daughter(dr, -right_r, a_, b_) for a_, b_ in zip(ts, ps)]
-            half_l = [on_daughter(dl, right_l, a_, b_) for a_, b_ in zip(ts, ps)][:-1]
-            lay.edge(W(k0), W(k1), Polyline(tuple(map(tuple, half_r + half_l[::-1]))))
-        t_mid = g["t_bulge"]
-        for k0, k1, d, side in ((0, 3, dr, -right_r), (1, 2, dl, right_l)):
-            phi = np.linspace(-np.pi / 4, np.pi / 4, _SAMPLES + 2)[1:-1]
-            tt = t + (t_mid - t) * np.cos(2 * phi)
-            pts = [o + ti * d + R * (math.cos(f) * side + math.sin(f) * u)
-                   for ti, f in zip(tt, phi)]
-            lay.edge(W(k0), W(k1), sk.curve(pts[::-1]))     # top → bottom
+        h = math.radians(self.angle) / 2
+        for l in levels:
+            rho = Rl[l]
+            t_apex = rho * math.cos(h) / math.sin(h)   # the offset crease's apex
+            for k0, k1, z in ((0, 1, +1), (3, 2, -1)):
+                # straight in (t, φ) on each daughter's cylinder, W → crease
+                phi_k = z * math.radians(_KINK)
+                t_k = t_apex * math.cos(phi_k)
+                frac = np.linspace(0.0, 1.0, m + 2)[1:]
+                ts = t + (t_k - t) * frac
+                ps = z * math.pi / 4 + (phi_k - z * math.pi / 4) * frac
+                half_r = [on_daughter(dr, -right_r, a_, b_, rho) for a_, b_ in zip(ts, ps)]
+                half_l = [on_daughter(dl, right_l, a_, b_, rho)
+                          for a_, b_ in zip(ts, ps)][:-1]
+                lay.edge(W(k0, l), W(k1, l),
+                         Polyline(tuple(map(tuple, half_r + half_l[::-1]))))
+            t_mid = max(t, t_apex) + R * _BULGE
+            for k0, k1, d, side in ((0, 3, dr, -right_r), (1, 2, dl, right_l)):
+                phi = np.linspace(-np.pi / 4, np.pi / 4, _SAMPLES + 2)[1:-1]
+                tt = t + (t_mid - t) * np.cos(2 * phi)
+                pts = [on_daughter(d, side, ti, f, rho) for ti, f in zip(tt, phi)]
+                lay.edge(W(k0, l), W(k1, l), sk.curve(pts[::-1], rho))    # top → bottom
 
-        fluid = spec.layer_names[0]
+        fluid = names[0]
 
         # Runs.
-        for _, cyc in face_patches("A", spec):
-            lay.block(list(cyc) + [a(lv, k) for (_, lv, k) in cyc], fluid)
+        for mat, cyc in face_patches("A", spec):
+            lay.block(list(cyc) + [a(lv, k) for (_, lv, k) in cyc], mat)
         for st, port in ((l_, "L"), (r_, "R")):
-            for _, cyc in face_patches(port, spec):
-                lay.block([st(lv, k) for (_, lv, k) in cyc] + list(cyc), fluid)
+            for mat, cyc in face_patches(port, spec):
+                lay.block([st(lv, k) for (_, lv, k) in cyc] + list(cyc), mat)
 
         # Hub and daughter cores.
         lay.block([a(0, 0), a(0, 1), a(0, 2), a(0, 3), F(0), F(1), F(2), F(3)], fluid)
         lay.block([a(0, 0), a(0, 3), F(3), F(0), r_(0, 0), r_(0, 3), r_(0, 2), r_(0, 1)], fluid)
         lay.block([a(0, 1), a(0, 2), F(2), F(1), l_(0, 1), l_(0, 2), l_(0, 3), l_(0, 0)], fluid)
 
-        # Ring layer: core quad → its wall quad.
-        def wall(v):
-            return (v[0], 1, v[2]) if v[0] in ("Sa", "SL", "SR") else W(v[2])
+        # Ring layers: core quad → its wall quad, then one block per shell
+        # between levels l − 1 and l.
+        def lift(v, l):
+            return (v[0], l, v[2]) if v[0] in ("Sa", "SL", "SR") else W(v[2], l)
         rings = [
             (a(0, 0), a(0, 1), F(1), F(0)),             # hub top
             (a(0, 3), a(0, 2), F(2), F(3)),             # hub bottom
@@ -413,15 +437,19 @@ class Wye:
             (a(0, 2), F(2), l_(0, 3), l_(0, 2)),        # D_L bottom
         ]
         for quad in rings:
-            lay.block(list(quad) + [wall(v) for v in quad], fluid)
+            lay.block(list(quad) + [lift(v, 1) for v in quad], fluid)
+            for l, material in zip(levels[1:], names[1:]):
+                lay.block([lift(v, l - 1) for v in quad] + [lift(v, l) for v in quad],
+                          material)
         # Plate fillings of these long curved faces sag up to 0.66 R and
         # are not mirror-symmetric; pinned to points on the wall they are
         # fragile (OCC rebuilds shared edges).  Stretch B-spline fillings
         # are valid at every angle and symmetric (task 0030 notes).
         lay.filling = "Stretch"
-        # the wall's nodes are put on it by projection (decision 0029); no
-        # OCC surface through wall points stays conformal (task 0051)
-        lay.walls = {1: self.wall(frames[0], spec)}
+        # the wall's and shell boundaries' nodes are put on them by
+        # projection (decision 0029); no OCC surface through wall points
+        # stays conformal (task 0051)
+        lay.walls = {l: self.wall(frames[0], spec, radius=Rl[l]) for l in levels}
         lay.pin_walls = False
         return lay
 

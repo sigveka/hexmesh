@@ -300,8 +300,8 @@ same grading.
 The assembly supports any stack of circle and rectangle outlines through
 the sweep fittings (`Straight`, `Bend`, `MiterBend`, `SplinePipe`,
 `Closure`, `Reducer`); bend radii are checked against the outermost
-outline. `Elbow`, `Tee` and drum nozzles need every outline circular;
-`Wye` is single-layer.
+outline. `Elbow`, `Tee`, `Wye` and drum nozzles need every outline
+circular.
 
 ---
 
@@ -579,9 +579,18 @@ decision 0017).
   `AssemblyError` naming the wye.  The wall error at the knee, 3–6 % of R
   away from the creases, doesn't fall with `nang` (the knee arcs stay at
   6 layers), so grid studies over wyes stop at k = 2.
-- **Limits.** A single-layer circular spec, `rot = 0`, `n_outer = 4`, and
+- **Limits.** Circular core and shells, `rot = 0`, `n_outer = 4`, and
   `angle` from 30° to 120°. `run_length` must exceed R·(tan(angle/2) + 0.1)
   and `branch_length` R·(cot(angle/2) + 1); the messages give the numbers.
+- **Shells** (task 0053).  Each shell boundary is the wall's level set at
+  R + T_l, built and projected like the wall.  The total shell thickness
+  is limited, and not yet checked before gmsh: about 0.19 R at 30°,
+  0.28 R at 45°, 0.40 R at 60°, 0.59 R at 90°, 0.84 R at 120° (any
+  `nang`).  Past it the daughters' shells fold where they meet (below
+  90°, caught by `mesh()`), OCC fails building the crotch (90°), or a
+  hub shell block inverts (120°, caught by `validate()`).  A pipe wall
+  (T ≈ 0.04 R) is well inside; at 30° the shell's min corner SJ is
+  about 0.04.
 - **Wall.** The union of the inlet and daughter tubes, with a sharp crotch
   crease. `mesh()` projects the junction's wall nodes onto it (decision
   0029), so they lie on it to rounding; the faces between them are

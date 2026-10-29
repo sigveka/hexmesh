@@ -54,6 +54,12 @@ def _three(radius=0.1):
     return _two(radius).shell("insulation", dR=0.03, nrad=2)
 
 
+def _three_thin(radius=0.1):
+    """Fluid, wall and insulation, 0.3 R in all: inside the wye's thickness
+    limit at 60° (0.40 R, task 0053), which `_three` (0.55 R) is not."""
+    return _one(radius).shell("wall", dR=0.01, nrad=2).shell("insulation", dR=0.02, nrad=2)
+
+
 def _duct(half_w=0.1, half_h=0.05, nang_w=4, nang_h=2, name="air", nrad=2):
     """Single-layer rectangular duct, 2:1 by default (task 0028)."""
     return PipeSpec(nang_w=nang_w, nang_h=nang_h).core(
@@ -151,9 +157,9 @@ def _tee(ratio, direction=(0, 1, 0), spec=None):
     return asm
 
 
-def _wye(angle, direction=(0, 1, 0)):
+def _wye(angle, direction=(0, 1, 0), spec=None):
     """Straight → Wye → Straight on both outlets."""
-    asm = Assembly(_one(), direction=list(direction), up=[0, 0, 1], lc=0.1)
+    asm = Assembly(spec or _one(), direction=list(direction), up=[0, 0, 1], lc=0.1)
     asm.add(Straight(0.2, n_layers=2))
     left, right = asm.add(Wye(angle, run_length=0.25, branch_length=0.4),
                           names=["left", "right"])
@@ -183,6 +189,10 @@ CASES = {
     "wye-60":              lambda: _wye(60),
     "wye-90":              lambda: _wye(90),
     "wye-60-oblique":      lambda: _wye(60, direction=(1, 1, 0.2)),
+    "wye-60-2layer":       lambda: _wye(60, spec=_two()),
+    "wye-90-2layer":       lambda: _wye(90, spec=_two()),
+    "wye-60-3layer":       lambda: _wye(60, spec=_three_thin()),
+    "wye-90-3layer-oblique": lambda: _wye(90, direction=(1, 1, 0.2), spec=_three_thin()),
     "miter-1cut":          lambda: _between(_one(), MiterBend(0.3, 90, n_cuts=1)),
     "miter-3cut-2layer":   lambda: _between(_two(), MiterBend(0.3, 90, n_cuts=3)),
     "miter-rolled":        lambda: _between(_two(), MiterBend(0.3, -60, n_cuts=2, roll=30)),
@@ -395,8 +405,8 @@ def wall_deviations(asm) -> dict[str, float]:
       have one axial layer per slab, so no surface carries interior nodes
       (asserted), and they are not measured;
     * ``Tee``: the union of the main and branch cylinders, per layer;
-      ``Wye``: the level set ``Skeleton.distance = R`` (tasks 0051, 0052;
-      their nodes are projected, decision 0029).
+      ``Wye``: the level sets ``Skeleton.distance = R + T_l`` (tasks 0051,
+      0052, 0053; their nodes are projected, decision 0029).
     """
     fill = asm._fill
     # end annuli of a terminated layer lie on station planes, not cylinders
@@ -417,7 +427,10 @@ def wall_deviations(asm) -> dict[str, float]:
             continue
         if isinstance(e.fitting, Wye):
             R = spec.core_shape.radius
-            out[e.name] = float(np.abs(e.fitting.skeleton(frames[0], spec).distance(x) - R).max() / R)
+            radii = [o_.radius for o_ in spec.outlines]
+            dist = e.fitting.skeleton(frames[0], spec).distance(x)
+            dev = np.min([np.abs(dist - rho) for rho in radii], axis=0)
+            out[e.name] = float(dev.max() / radii[-1])
             continue
         path = e.fitting.path(frames[0], frames[1], spec)
         scale = max(_extent(path.spec_at(k, spec)) for k in range(len(path.frames)))

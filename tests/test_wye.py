@@ -15,7 +15,7 @@ import numpy as np
 import pytest
 
 from hexmesh.assembly import Assembly, AssemblyError, Straight, Wye, limits
-from hexmesh.core.shape import CircleShape
+from hexmesh.core.shape import CircleShape, RectShape
 from hexmesh.core.spec import PipeSpec
 
 R = 0.1
@@ -111,7 +111,8 @@ class TestTopology:
         assert not gmsh.isInitialized()
 
     @pytest.mark.parametrize("spec, message", [
-        (_spec().shell("wall", dR=0.02, nrad=2), "single-layer"),
+        (_spec().shell("box", outer=RectShape(0.15, 0.15, 4, 4), nrad=2),
+         "circular only.*0026"),
         (_spec(rot=0.2), "rot = 0"),
     ])
     def test_spec_limits(self, spec, message):
@@ -147,6 +148,20 @@ def test_all_hex_valid_mesh(gmsh_session, angle):
     assert report.ok, str(report)
     names = {gmsh.model.getPhysicalName(d, t) for d, t in gmsh.model.getPhysicalGroups()}
     assert names == {"fluid", "fluid_inlet", "fluid_left", "fluid_right", "fluid_wall"}
+
+
+@pytest.mark.parametrize("angle", [90, 120])
+def test_thin_wall_shell(gmsh_session, angle):
+    """A realistic pipe wall (T/R = 0.04) through the wye (task 0053 step 0):
+    wall and shell boundary projected, no fold, the shell's cells no worse
+    than the fluid's (min corner SJ 0.16 / 0.12 at 90° / 120°)."""
+    asm, _, _ = _wye_asm(angle, spec=_spec().shell("wall", dR=0.04 * R, nrad=1),
+                         run=0.4, branch=0.7)
+    asm.mesh()
+    assert sum(len(t) for t in gmsh.model.mesh.getElements(3)[1]) == asm.cell_count()
+    names = {gmsh.model.getPhysicalName(d, t) for d, t in gmsh.model.getPhysicalGroups()}
+    assert {"fluid", "wall", "interface_fluid_wall", "wall_wall"} <= names, names
+    assert asm.projection_report[asm.edges[0].name]["min_sj"] > 0.1
 
 
 def test_mesh_is_mirror_symmetric(gmsh_session):
