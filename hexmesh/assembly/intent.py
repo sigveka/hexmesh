@@ -42,6 +42,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from ..core.spec import PipeSpec
+from . import limits
 from .fittings import (
     Bend, Closure, Elbow, MiterBend, Reducer, SplinePipe, Straight, Transition,
 )
@@ -256,9 +257,12 @@ def refine_spec_dict(d: dict, k: int) -> dict:
 
 def _refine_fitting_dict(d: dict, k: int) -> dict:
     d = dict(d)
+    split = d.get("n_split") if d.get("type") == "Wye" else None
     for key in AXIAL_COUNTS:
         if key in d:
             d[key] *= k
+    if split is not None:             # task 0056: more turning layers fold a wye
+        d["n_split"] = max(split, min(split * k, limits.WYE_N_SPLIT_MAX))
     if "axial_grading" in d:
         d["axial_grading"] **= 1.0 / k
     if "outlet" in d:

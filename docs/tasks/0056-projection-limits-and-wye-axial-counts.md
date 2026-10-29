@@ -1,6 +1,6 @@
 # 0056 — Projection follow-ups: inversion check, move warning, wye axial counts
 
-- **Status:** ready (design answered Q1, Q2 2026-10-29: step 3 with an `n_split` cap)
+- **Status:** blocked (Q3: the `n_split` cap of 6 folds thin-layered 120° wyes)
 - **Decision:** [0029 — Wall exactness by node projection](../decisions/0029-wall-exactness-by-node-projection.md), amendment 2026-10-29
 - **Depends on:** 0051.  Before 0053 (the wye's shells use the same
   projection and counts).
@@ -143,6 +143,64 @@ projection off / on):
 56 layers, 0.155).  The worst cells sit at the hub's back corners
 (the five-block radial edges), upstream of O.
 
+**Step 3 done with the cap (2026-10-29, after the design answer).**
+- **Implementation:** the held-back patch, plus the cap.
+  - `limits.WYE_N_SPLIT_MAX = 6`; `Wye._resolve` clamps a resolved
+    `n_split` to it.
+  - `refined(k)` takes a wye's `n_split` to `max(n, min(n·k, 6))`: it
+    grows up to the cap and never shrinks an explicit count.
+  - Explicit counts are kept as given.
+- **A side effect:** with counts left `None`, the wye's angle, length,
+  roll and spec checks now fire in `add()` (resolution runs them) rather
+  than in `validate()`.  It's still before gmsh.  Three tests were
+  updated for it.
+- **Refined 120° wye** (`nang` 8, `nrad` 3, run 0.4, branch 0.7, R 0.1):
+
+  | k | counts, `n_split` × k | min SJ | counts, cap held | min SJ |
+  |---|---|---|---|---|
+  | 1 | 12, 28, 6 | 0.117 | same | 0.117 |
+  | 2 | 24, 56, 12 | **folds** (4 cells, −0.684) | 24, 56, 6 | 0.117 |
+  | 4 | 48, 112, 24 | **folds** (208 cells, −1) | 48, 112, 6 | **folds** (8 cells, −0.413) |
+
+  So `refined` holds the cap, as asked.  But k = 4 still folds, and not
+  because of `nang` or the axial counts: `nang` 32 with `nrad` 3 and
+  48, 112, 6 is fine (0.117).  It's **`nrad`**, which `refined(4)` takes
+  to 12 (Q3).
+- **Fold against `nrad`, 120°, `nang` 32, counts 48, 112, `n_split`:**
+
+  | `nrad` | `n_split` 3 | 4 | 5 | 6 |
+  |---|---|---|---|---|
+  | 3 | 0.153 | 0.129 | | 0.117 |
+  | 6 | 0.152 | | | 0.071 |
+  | 12 | 0.147 | **−0.366** | **−0.492** | **−0.413** |
+
+  At `nang` 8, `nrad` 12, `n_split` 6: 0.030 (no fold, near one).  At
+  60° and 90° (`nang` 32, `nrad` 12, resolved counts, `n_split` 6):
+  0.156 and 0.121.  The thinner the radial cells, the fewer turning
+  layers a 120° wye takes before projection folds it.
+- **Step 4 re-run with the cap** (resolved defaults, `nrad` 3; same
+  measure as above):
+
+  | angle | resolved counts at `nang` 4 / 8 / 16 | crease | rest of wall | min SJ |
+  |---|---|---|---|---|
+  | 30° | 10,6,6 / 19,12,6 / 37,24,6 | 4.8 / 2.8 / 1.2 % | 3.1 % (all) | 0.065 / 0.065 / 0.064 |
+  | 35° | 10,8,6 / 19,15,6 / 37,29,6 | 4.3 / 2.1 / 0.8 % | 3.9 % | 0.086 |
+  | 40° | 10,9,6 / 19,17,6 / 37,34,6 | 3.9 / 1.7 / 0.5 % | 4.9 % | 0.109 |
+  | 60° | 9,11,6 / 17,22,6 / 34,44,6 | 2.8 / 0.85 / 0.23 % | 3.2 / 2.9 / 4.0 % | 0.156 |
+  | 90° | 8,13,6 / 15,26,6 / 30,51,6 | 3.2 / 0.88 / 0.34 % | 4.0 / 3.9 / 4.6 % | 0.164 |
+  | 120° | 6,14,6 / 12,28,6 / 23,56,6 | 2.0 / 0.52 / 0.13 % | 6.2 % (all) | 0.117 |
+
+  - Every case meshes; min SJ ≥ 0.064, equal to or above the uncapped
+    resolved counts.
+  - **The rest-of-wall error no longer falls with `nang`.**  Uncapped it
+    did (30°: 2.9 → 1.1 %, 90°: 5.4 → 1.5 %).  With the cap it sits at
+    3–6 %, about today's fixed 3/3/3 values at 30°–60° and half of
+    them at 90°–120°.  That's the coarse knee arcs, the cost the design
+    answer accepted, but it doesn't converge: at 120° it's 6.2 % at
+    every `nang`.
+  - Scripts: this session's scratchpad, `0056/measure.py`, `refk.py`,
+    `foldnrad.py`; data `0056/cap.jsonl`.
+
 ## Questions for design
 
 **Q1. Resolving `n_split` from arcs lowers quality, and folds 120°
@@ -203,9 +261,52 @@ junctions (0053, 0054) before the agent SDK, which is the user's order.
 - Design records the wye-layout redesign (creases on block edges,
   RESEARCH §4.4) as a decision after 0054.
 
+**Q3. The cap of 6 doesn't keep thin-layered wyes valid, and it stops
+the wall error converging; what should bound `n_split`?**
+- **Folds:** a 120° wye with `nrad` 12 folds from `n_split` 4 (above).
+  So `refined(4)` of a default 120° wye folds even with the cap held,
+  and so would a user's `nrad` 12 spec at the default.
+  `mesh()` catches it and names the wye, so nothing invalid is written.
+- **Accuracy:** the rest-of-wall error is constant in `nang` (3–6 %),
+  so a grid study (0015) over a wye doesn't converge at the knee.
+- Options:
+  - (a) **A cap that depends on the section:** e.g. `n_split ≤ c ·
+    nang / nrad`, fitted from the tables above.  Simple, but it only
+    keeps the mesh valid; the wall error still won't converge.
+  - (b) **Keep 6** and document that a wye refines only to about
+    `nrad` 6 (with `n_split` 3 the only safe value at 120°, `nrad` 12).
+    Grid studies over wyes then stop at k = 2.
+  - (c) **Treat both as the wye-layout redesign's problem** (Q2, after
+    0054).  Meanwhile ship the cap with a README line on the `nrad`
+    limit.
+- I'd take (c) with (b)'s note.  The fold comes from projecting
+  thin cells through the knee: a turning block's wall nodes move by
+  about 0.14 R: one radial cell at `nrad` 3 (the O-ring is 0.4 R
+  thick, `OH_RATIO` 0.6), four at `nrad` 12.  A
+  layout whose creases are on block edges removes that move.  A
+  smarter cap only moves the limit.
+
 ## Outcome
 
-**Partial (2026-10-29): steps 1–2 done; step 3 blocked on Q1, Q2.**
+**Steps 1–4 done (2026-10-29); blocked on Q3.**
+- **Step 3:** wye counts resolved from arcs, `n_split` capped at
+  `WYE_N_SPLIT_MAX` = 6 and held there by `refined(k)`.
+  - **Files:** `hexmesh/assembly/wye.py` (`_resolve`, docstring),
+    `blocks.py` (edge lengths), `limits.py`, `intent.py`
+    (`_refine_fitting_dict`), `assembler.py` (`refined` docstring),
+    `API.md`, `README.md` (signature; the wall-error limitation from the
+    design answer to Q2).
+  - **Tests:** `test_wye.py`: resolved counts double with `nang`;
+    explicit counts kept; `refined` holds the cap (4 cases).
+    `test_refined.py` skips the k³ check for wyes.  Three tests take
+    rejection in `add()`.
+  - **Suite:** 1916 passed, 6 skipped (the one failure in the first run,
+    `test_orientation.py::test_roll_off_period_rejected`, was the
+    `add()` change; fixed, file re-run: 42 passed).
+  - **Measurements:** the tables under *Agent notes*.  The fold
+    against `nrad` and the flat wall error are Q3.
+
+**Earlier (steps 1–2):**
 - **Move warning** above 1 local wall radius (no rejection by
   distance), and the **inversion check** in `mesh()` over projected
   fittings and their neighbours.  Both name the fitting.

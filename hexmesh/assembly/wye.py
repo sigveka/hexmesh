@@ -38,12 +38,13 @@ Scope of this prototype: single-layer circular specs, ``rot = 0``,
 
 from __future__ import annotations
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 import numpy as np
 
 from ..core.shape import CircleShape
 from ..core.spec import PipeSpec
+from . import limits
 from .blocks import (
     ArcAbout, BlockLayout, LayoutError, OH_RATIO, Polyline, Spline, bind_face,
     corner_shift, face_patches, face_vertices,
@@ -128,6 +129,11 @@ class Skeleton:
         return Spline(tuple(tuple(self.to_wall(p)) for p in points))
 
 
+# Axial counts, and the sentinels that identify their edges in resolve()
+_COUNTS = ("n_run", "n_branch", "n_split")
+_SENTINELS = {"n_run": 10007, "n_branch": 10009, "n_split": 10037}
+
+
 @dataclass(frozen=True)
 class Wye:
     """Symmetric Y-junction: one inlet, two daughters with the inlet's spec.
@@ -141,10 +147,20 @@ class Wye:
         Distance from the inlet port to the bifurcation point O.
     branch_length : float
         Distance from O to each outlet port, along the daughter axes.
-    n_run, n_branch : int
+    n_run, n_branch : int, optional
         Axial layers of the inlet run and of each daughter run.
-    n_split : int
+    n_split : int, optional
         Layers of each daughter's turning block (hub → daughter station).
+        A count left ``None`` (the default) is resolved when the wye is
+        added: the fewest layers that keep every edge it divides, the hub
+        cap's arcs included, no longer than the angular cell at the wall,
+        (π/2)·R / ``nang``, or ``axial_cell`` if the assembly sets a
+        shorter one (task 0056).  A resolved ``n_split`` is capped at
+        ``limits.WYE_N_SPLIT_MAX`` (6): the turning blocks' cells degrade
+        as it grows, and fold at 120° from about 20 layers, so the knee
+        arcs stay coarser, about 2–3× the angular cell.  An explicit
+        count above the cap is allowed; a fold is caught by
+        ``Assembly.mesh()``'s inversion check.
 
     roll : float
         Rotation of the daughters' plane about the inlet axis in degrees,
@@ -167,16 +183,34 @@ class Wye:
     angle:         float
     run_length:    float
     branch_length: float
-    n_run:    int = 3
-    n_branch: int = 3
-    n_split:  int = 3
+    n_run:    int | None = None
+    n_branch: int | None = None
+    n_split:  int | None = None
     roll:     float = 0.0
     toward:   tuple | None = field(default=None, metadata={"input": True})
 
     def resolve(self, inlet: Frame, spec: PipeSpec, axial_cell=None, outlet=None) -> "Wye":
         # toward names the right daughter's side: the rolled frame's right,
         # 90° from its up.
-        return junction_toward(self, inlet, spec, offset=90.0)
+        wye = junction_toward(self, inlet, spec, offset=90.0)
+        unset = [n for n in _COUNTS if getattr(wye, n) is None]
+        if not unset:
+            return wye
+        # One layout with a distinct sentinel per unset count: each edge's
+        # class count then names the parameter that divides it.
+        probe = replace(wye, **{n: _SENTINELS[n] if getattr(wye, n) is None else getattr(wye, n)
+                                for n in _COUNTS})
+        probe.check(spec)
+        frames = [inlet] + [f for f, _ in probe.ports(inlet, spec)]
+        lengths = probe.layout(frames, spec).edge_lengths().values()
+        h = 0.5 * math.pi * spec.core_shape.radius / spec.nang
+        if axial_cell is not None:
+            h = min(h, axial_cell)
+        counts = {n: max(1, math.ceil(max(L for L, d in lengths if d == _SENTINELS[n]) / h - 1e-9))
+                  for n in unset}
+        if "n_split" in counts:
+            counts["n_split"] = min(counts["n_split"], limits.WYE_N_SPLIT_MAX)
+        return replace(wye, **counts)
 
     # -- geometry (pure) ----------------------------------------------
 
@@ -248,7 +282,11 @@ class Wye:
                 f"branch_length must exceed {g['s_out']:.4g} at {self.angle:g}° "
                 f"(R·(cot(angle/2) + {_OUT_MARGIN:g}): the daughter stations "
                 f"clear each other)")
-        for n in (self.n_run, self.n_branch, self.n_split):
+        for name in _COUNTS:
+            n = getattr(self, name)
+            if n is None:
+                raise ValueError(f"Wye: {name}=None is resolved by Assembly.add(); "
+                                 f"add the fitting to an assembly")
             if n < 1:
                 raise ValueError("layer counts must be >= 1")
 

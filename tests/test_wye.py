@@ -14,7 +14,7 @@ import gmsh
 import numpy as np
 import pytest
 
-from hexmesh.assembly import Assembly, AssemblyError, Straight, Wye
+from hexmesh.assembly import Assembly, AssemblyError, Straight, Wye, limits
 from hexmesh.core.shape import CircleShape
 from hexmesh.core.spec import PipeSpec
 
@@ -60,6 +60,31 @@ class TestTopology:
         assert report["blocks"] == 29
         assert report["min_corner_sj"] > 0
 
+    @pytest.mark.parametrize("angle", [30, 60, 120])
+    def test_resolved_counts_follow_the_angular_cell(self, angle):
+        """Unset counts resolve from the arcs (task 0056): doubling nang
+        about doubles n_run and n_branch; n_split stays at the cap."""
+        coarse, fine = (_wye_asm(angle, spec=_spec(nang))[0].edges[0].fitting
+                        for nang in (8, 16))
+        for name in ("n_run", "n_branch"):
+            assert abs(getattr(fine, name) - 2 * getattr(coarse, name)) <= 1, name
+        assert coarse.n_split == fine.n_split == limits.WYE_N_SPLIT_MAX
+        assert not gmsh.isInitialized()
+
+    def test_explicit_counts_are_kept(self):
+        asm, _, _ = _wye_asm(60, n_run=2, n_branch=3, n_split=9)
+        wye = asm.edges[0].fitting
+        assert (wye.n_run, wye.n_branch, wye.n_split) == (2, 3, 9)
+
+    @pytest.mark.parametrize("n_split, k, expected",
+                             [(2, 2, 4), (3, 4, 6), (6, 2, 6), (9, 2, 9)])
+    def test_refined_holds_n_split_at_the_cap(self, n_split, k, expected):
+        """A 120° wye at nang 16 folds at n_split 12 (task 0056): refined
+        scales n_split only up to the cap, and never below its own value."""
+        asm, _, _ = _wye_asm(60, n_run=2, n_branch=3, n_split=n_split)
+        wye = asm.refined(k).edges[0].fitting
+        assert (wye.n_run, wye.n_branch, wye.n_split) == (2 * k, 3 * k, expected)
+
     @pytest.mark.parametrize("nang, nrad, n_run, n_branch, n_split",
                              [(4, 3, 3, 3, 3), (6, 2, 2, 5, 4), (5, 4, 1, 1, 2)])
     def test_cell_count_closed_form(self, nang, nrad, n_run, n_branch, n_split):
@@ -79,8 +104,9 @@ class TestTopology:
         (dict(n_split=0), "layer counts"),
     ])
     def test_rejected_before_gmsh(self, kw, message):
-        asm, _, _ = _wye_asm(**kw)
+        # resolving unset counts runs the checks in add(); explicit ones in validate()
         with pytest.raises(AssemblyError, match=message):
+            asm, _, _ = _wye_asm(**kw)
             asm.validate()
         assert not gmsh.isInitialized()
 
@@ -89,8 +115,8 @@ class TestTopology:
         (_spec(rot=0.2), "rot = 0"),
     ])
     def test_spec_limits(self, spec, message):
-        asm, _, _ = _wye_asm(spec=spec)
         with pytest.raises(AssemblyError, match=message):
+            asm, _, _ = _wye_asm(spec=spec)
             asm.validate()
 
     def test_crotch_corners_on_the_wall(self):

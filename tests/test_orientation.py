@@ -170,8 +170,8 @@ def test_roll_off_period_rejected():
     with pytest.raises(AssemblyError, match="period 90°"):
         a.validate()
     b = Assembly(_pipe())
-    b.add(_wye(roll=45))
-    with pytest.raises(AssemblyError, match="period 90°"):
+    with pytest.raises(AssemblyError, match="period 90°"):   # in add(): resolving counts
+        b.add(_wye(roll=45))
         b.validate()
 
 

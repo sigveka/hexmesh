@@ -21,6 +21,8 @@ SLOW = {"spline-3d-2layer", "spline-s-bend", "spline-graded",
 @pytest.mark.parametrize("k", [2, 3])
 def test_cell_count_scales_by_k_cubed(case, k):
     asm = kit.CASES[case]()
+    if case.startswith("wye"):
+        pytest.skip("a wye's n_split stops at WYE_N_SPLIT_MAX (task 0056): test_wye.py")
     assert asm.refined(k).cell_count() == k**3 * asm.cell_count()
 
 

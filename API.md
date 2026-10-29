@@ -89,7 +89,7 @@ in degrees. The thresholds are data, in `hexmesh.assembly.limits`.
 |---|---|
 | `to_dict()` / `Assembly.from_dict(d)` | The network description as plain JSON-serialisable data, and back |
 | `save(path)` / `Assembly.load(path)` | The same, as a JSON file (indented, sorted keys) |
-| `refined(k)` | A new assembly at k× the resolution (integer k ≥ 1), built from `to_dict()`: `nang`, every `nrad`, every `n_layers`, a tee's `n_run` / `n_branch` / `n_turn` and a wye's `n_split` × k, the axial cell index of each `stack_changes` entry × k, and `mprg` and `axial_grading` → their k-th root.  Geometry, topology and `mbmp` stay; `first_cell` specs keep their resolved `mprg`.  **k³× the cells.** |
+| `refined(k)` | A new assembly at k× the resolution (integer k ≥ 1), built from `to_dict()`: `nang`, every `nrad`, every `n_layers`, a tee's `n_run` / `n_branch` / `n_turn` and a wye's `n_run` / `n_branch` × k (a wye's `n_split` × k up to `WYE_N_SPLIT_MAX` = 6, never below its own value: more turning layers fold the wye, task 0056), the axial cell index of each `stack_changes` entry × k, and `mprg` and `axial_grading` → their k-th root.  Geometry, topology and `mbmp` stay; `first_cell` specs keep their resolved `mprg`.  **k³× the cells.** |
 
 The file records how the network was built, not its geometry:
 - the pose and spec of the first interface;
@@ -548,7 +548,7 @@ A perpendicular, centred side-branch tee, built as a block layout.
   r/R 0.5 at any run. **Tees with r/R below about 0.57 always warn** (task
   0052).
 
-### `Wye(angle, run_length, branch_length, n_run=3, n_branch=3, n_split=3, roll=0.0, toward=None)`
+### `Wye(angle, run_length, branch_length, n_run=None, n_branch=None, n_split=None, roll=0.0, toward=None)`
 
 A symmetric Y-junction, built as a block layout around a hub (prototype,
 decision 0017).
@@ -564,7 +564,15 @@ decision 0017).
   same way.
 - **Layers.** `n_run` and `n_branch` are the axial layers of the straight
   runs (inlet, each daughter); `n_split` those of each daughter's turning
-  block.
+  block.  A count left `None` is resolved in `add()`: the fewest layers
+  that keep every edge it divides, the hub cap's arcs included, no longer
+  than the angular cell at the wall, (π/2)·R / `nang` (or `axial_cell` if
+  shorter).  A resolved `n_split` is capped at `limits.WYE_N_SPLIT_MAX`
+  (6), because more turning layers degrade the turning blocks and fold
+  120° wyes; so the knee arcs stay coarser than the angular cell, about
+  2–3× at `nang` 8.  An explicit count above the cap is allowed, and a
+  fold is caught by `mesh()`'s inversion check, which names the wye.
+  `refined(k)` holds `n_split` at the cap too (task 0056).
 - **Limits.** A single-layer circular spec, `rot = 0`, `n_outer = 4`, and
   `angle` from 30° to 120°. `run_length` must exceed R·(tan(angle/2) + 0.1)
   and `branch_length` R·(cot(angle/2) + 1); the messages give the numbers.

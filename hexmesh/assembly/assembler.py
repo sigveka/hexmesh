@@ -351,10 +351,16 @@ class Assembly:
         Built from the saved description (:meth:`to_dict`, scaled,
         :meth:`from_dict`); this assembly is unchanged.  ``nang``, every
         ``nrad`` and every axial count (``n_layers``; a tee's ``n_run``,
-        ``n_branch`` and ``n_turn``; a wye's ``n_split``) are multiplied
-        by *k*, and every grading ratio (radial ``mprg``,
+        ``n_branch`` and ``n_turn``; a wye's ``n_run`` and ``n_branch``)
+        are multiplied by *k*, and every grading ratio (radial ``mprg``,
         ``axial_grading``) becomes its k-th root, so each coarse cell
         splits into k cells of the same growth.  Geometry, topology and ``mbmp`` are unchanged.
+
+        Exception: a wye's ``n_split`` grows only up to
+        ``limits.WYE_N_SPLIT_MAX`` (6), and never shrinks.  More turning
+        layers fold the wye under wall projection (a 120° wye at
+        ``nang`` 8: ``n_split`` 12 at k = 2 and 24 at k = 4 both fold;
+        task 0056), so its knee arcs refine only with ``nang``.
 
         **Cost:** k³ × the cells (``refined(2)`` has 8×).
 

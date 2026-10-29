@@ -419,6 +419,20 @@ class BlockLayout:
                 self.faces[k] = geo.addSurfaceFilling(loop)
         return self.faces[k]
 
+    def edge_lengths(self) -> dict[frozenset, tuple[float, int]]:
+        """Edge key → (length along its declared geometry, divisions), for
+        every edge of every block (pure)."""
+        out = {}
+        for k, (n, _) in self._division_classes().items():
+            a, b = tuple(k)
+            if k in self.edges:
+                pts = self._edge_points(a, b, 65)
+                L = float(np.linalg.norm(np.diff(pts, axis=0), axis=1).sum())
+            else:
+                L = float(np.linalg.norm(self.coords[b] - self.coords[a]))
+            out[k] = (L, n)
+        return out
+
     def _edge_points(self, a, b, n: int) -> np.ndarray:
         """*n* points along edge a → b, from its declared geometry."""
         e = self.edges[_key(a, b)]

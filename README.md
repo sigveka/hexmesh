@@ -120,7 +120,7 @@ surface, up to 0.7 % of the radius off. This is an open follow-up
 | `Transition(outlet, length, n_layers, axial_grading=1)` | Circle ↔ rectangle, or rectangle ↔ rectangle, in every layer; equal counts per side |
 | `SplinePipe(points, n_layers, end_tangent=None, axial_grading=1)` | Pipe along a cubic spline; `points[0]` is the inlet position |
 | `Tee(run_length, branch_length, branch_radius, n_run=3, n_branch=3, n_turn=2, roll=0, toward=None)` | Perpendicular side-branch tee, block layout; returns `(main, branch)`. The branch points along `up`, rolled by a multiple of 90°, or `toward` a direction |
-| `Wye(angle, run_length, branch_length, n_run=3, n_branch=3, n_split=3, roll=0, toward=None)` | Symmetric Y-junction, block layout; returns `(left, right)`. `roll` (a multiple of 90°) turns its plane |
+| `Wye(angle, run_length, branch_length, n_run=None, n_branch=None, n_split=None, roll=0, toward=None)` | Symmetric Y-junction, block layout; returns `(left, right)`. Unset layer counts follow the angular cell (`n_split` capped at 6). `roll` (a multiple of 90°) turns its plane |
 | `Closure(n_layers, tension=1.0, axial_grading=1)` | Smooth run between two existing interfaces, used with `close()` for loops |
 
 ### Building a network
@@ -558,7 +558,11 @@ with `python3 docs/gallery/build.py` (needs `vtk`).
   branch wall thickness).
 - **Wye (prototype):** single-layer specs, equal daughters with the inlet's
   spec, coplanar and symmetric, angle 30°–120°. Quality is measured, not
-  yet bounded: min scaled Jacobian about 0.1 (decision 0017).
+  yet bounded: min scaled Jacobian about 0.1 (decision 0017). The wall
+  nodes are exact, but the faces between them miss the wall by about 2 %
+  of R at `nang` 8 at the inlet/daughter crease (60°–120°) and 2–3 % at
+  the crotch of wyes under 45°, both first order in `nang`; a layout with
+  the creases on block edges is planned (decision 0029, task 0056).
 - **Rectangular ducts and outlines:** no tee or elbow for ducts.  A
   stack with a rectangle needs equal counts per side, and so does
   `Transition`.

@@ -49,6 +49,12 @@ PREDICTED_SJ_MIN = 0.1
 COSINE_S0_MIN = -1.0
 COSINE_S0_MAX = 0.5
 
+#: Largest resolved ``Wye.n_split`` (task 0056): the turning blocks' min
+#: corner SJ falls as n_split grows (0.21 → 0.10 at 60° from 3 to 20
+#: layers) and a 120° wye folds under projection from about 20.  At 6
+#: every angle measured keeps SJ ≥ 0.11.
+WYE_N_SPLIT_MAX = 6
+
 #: Wall projection (decision 0029, task 0056): a node moved further than
 #: this many local wall radii onto its fitting's analytic wall gets a
 #: warning naming the fitting.  Legitimate moves reach 0.77 R (30° wye,
