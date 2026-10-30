@@ -78,7 +78,7 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0066](0066-network-model-operations.md) | Network interchange 1b: select, cut, join, merge, and the public API | ready (after 0065) | 0032 |
 | [0067](0067-validation-womersley.md) | Validation: Womersley flow (pulsatile laminar pipe flow, exact solution) | ready (after 0032's Re 500) | 0012, 0015 |
 | [0068](0068-validation-pulsatile-stenosis.md) | Validation: pulsatile flow through the cosine stenosis (Varghese et al., Part 2) | ready (after 0067, 0032) | 0012, 0015 |
-| [0069](0069-duct-tap-pillow-prototype.md) | Prototype: duct tap with a pillowed ring (hole on the wall) | ready | 0033 |
+| [0069](0069-duct-tap-pillow-prototype.md) | Prototype: duct tap with a pillowed ring (hole on the wall) | done (Q1: adopt the pillowed layout?) | 0033 |
 
 **Current order (2026-10-28, design, revised):** finish the task in
 progress (0034), then **multi-layer junctions: 0051 → 0052 → 0056 → 0053 →
