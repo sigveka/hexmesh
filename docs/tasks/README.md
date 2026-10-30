@@ -66,24 +66,25 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0054](0054-insulated-junctions-end-to-end.md) | Insulated junctions end to end: PCF, example, docs | done | 0028, 0023 |
 | [0055](0055-cosine-bulge.md) | Cosine profile bulges: `("cosine", s0)` with s0 ≤ 0 | done | 0008 |
 | [0056](0056-projection-limits-and-wye-axial-counts.md) | Projection follow-ups: inversion check, move warning, wye axial counts | done | 0029 |
-| [0057](0057-duct-tee-rectangular-tap.md) | Duct tee: rectangular straight tap on a rectangular duct | blocked (Q1: the pipe tee's layout doesn't port to taps narrower than the duct) | 0027 |
-| [0058](0058-duct-tee-round-tap.md) | Duct tee: round tap on a rectangular duct | ready (after 0057) | 0027 |
-| [0059](0059-branched-hvac-example.md) | Example: a branched HVAC supply | ready (after 0057, 0058) | 0027 |
+| [0057](0057-duct-tee-rectangular-tap.md) | Duct tee: full-width rectangular tap on a rectangular duct | on hold (after 0069; dropped if it covers full-width taps) | 0027 |
+| [0058](0058-duct-tee-round-tap.md) | Duct tee: round tap on a rectangular duct | blocked (after 0069 and the layout choice) | 0027 |
+| [0059](0059-branched-hvac-example.md) | Example: a branched HVAC supply | ready (after the duct-tap layout, 0069) | 0027 |
 | [0060](0060-tee-angle-laterals.md) | General branches, stage 1: `Tee(angle=…)`, laterals | ready (after 0056, 0053, 0054) | 0031 |
 | [0061](0061-tee-offset-taps.md) | General branches, stage 2: `Tee(offset=…)`, tangential and offset taps | ready (after 0060) | 0031, 0023 |
 | [0062](0062-straight-twist.md) | General branches, stage 3: `Straight(twist=…)`, and `toward=` at any roll | ready (after 0060) | 0031, 0029 |
-| [0063](0063-duct-shoe-taps.md) | General branches, stage 4: shoe taps on ducts | ready (after 0057, 0058, 0060) | 0031, 0027 |
+| [0063](0063-duct-shoe-taps.md) | General branches, stage 4: shoe taps on ducts | ready (after 0057, 0060; round or narrow shoes after 0033) | 0031, 0027 |
 | [0064](0064-pcf-reader-robustness.md) | PCF reader robustness: annotations, unknown inline components, several networks | ready | 0023 |
 | [0065](0065-network-model-and-builder.md) | Network interchange 1a: the network model, and the builder out of `pcf.py` | ready (after 0064) | 0032 |
 | [0066](0066-network-model-operations.md) | Network interchange 1b: select, cut, join, merge, and the public API | ready (after 0065) | 0032 |
 | [0067](0067-validation-womersley.md) | Validation: Womersley flow (pulsatile laminar pipe flow, exact solution) | ready (after 0032's Re 500) | 0012, 0015 |
 | [0068](0068-validation-pulsatile-stenosis.md) | Validation: pulsatile flow through the cosine stenosis (Varghese et al., Part 2) | ready (after 0067, 0032) | 0012, 0015 |
+| [0069](0069-duct-tap-pillow-prototype.md) | Prototype: duct tap with a pillowed ring (hole on the wall) | ready | 0033 |
 
 **Current order (2026-10-28, design, revised):** finish the task in
 progress (0034), then **multi-layer junctions: 0051 → 0052 → 0056 → 0053 →
 0054**, then 0055 → 0032 → 0067 → 0068 → 0035 → 0049 → 0044 → 0050.  Duct tees
-(0057 → 0058 → 0059) fit in whenever the junction work pauses; they
-don't depend on it.  General branches (decision 0031) follow the junction-shell
+(0069 prototype → 0058, 0057 only if needed → 0059) fit in whenever
+the junction work pauses; they don't depend on it.  General branches (decision 0031) follow the junction-shell
 work: 0060 → 0061 / 0062 → 0063 (0063 also after the duct tees).
 Network interchange (decision 0032, stage 1): 0064 → 0065 → 0066.  It
 doesn't depend on the junction work, so it can run whenever the

@@ -47,6 +47,7 @@ rejected.  Records are written in design sessions, and they are the only way
 | [0030](0030-future-simulation-suite.md) | Future expansion: hexmesh as one generator in a multi-domain study and surrogate suite | proposed (future) |
 | [0031](0031-general-branch-junctions.md) | General branch junctions: laterals, offset taps and arbitrary roll | accepted |
 | [0032](0032-network-interchange.md) | Network interchange: importers, a network model, a network document, one builder | proposed (work in progress) |
+| [0033](0033-duct-tap-topology.md) | Junction layout for duct taps narrower than their face (and round taps on ducts) | accepted for prototyping |
 
 ## Future expansions
 

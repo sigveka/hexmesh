@@ -1,6 +1,6 @@
 # 0059 — Example: a branched HVAC supply
 
-- **Status:** ready (after 0057, 0058)
+- **Status:** ready (after the duct-tap layout: 0069 and its follow-up, or 0057 if it returns)
 - **Decision:** [0027 — Tees in rectangular ducts](../decisions/0027-duct-tees.md)
 - **Depends on:** 0057, 0058.
 
@@ -16,8 +16,9 @@ or extend `hvac_supply` if it reads better), `hexmesh/examples/__init__.py`
 
 **Do.**
 - A rectangular supply main from a fan transition, with two
-  rectangular taps (one wide-face, one narrow-face) and one round tap
-  to a round branch duct; a duct bend; named outlets.
+  rectangular taps (one wide-face, one narrow-face) and one round tap,
+  using whatever decision 0033's layout supports; a duct bend; named
+  outlets.
 - Use `axial_cell` and `toward=` where they make the script shorter.
 - Docstring in the style of the other examples: what it shows, then the
   limits in one line.

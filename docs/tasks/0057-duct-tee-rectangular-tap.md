@@ -1,6 +1,6 @@
-# 0057 — Duct tee: rectangular straight tap on a rectangular duct
+# 0057 — Duct tee: full-width rectangular tap on a rectangular duct
 
-- **Status:** blocked (Q1: the pipe tee's layout doesn't port to a tap narrower than the duct)
+- **Status:** on hold (the user, 2026-10-30: prototype decision 0033's layout first, task 0069; dropped if it covers full-width taps)
 - **Decision:** [0027 — Tees in rectangular ducts](../decisions/0027-duct-tees.md)
 - **Depends on:** —  (0058 and 0059 build on it)
 
@@ -129,6 +129,24 @@ the walls aren't planes and the step-5 exactness fails.
 - **Recommendation:** A now (0057 as a full-width tap, the rest of the
   task unchanged), and B as its own decision before 0058.
 
+
+### Design answer to Q1 (2026-10-30): A, full-width taps
+
+Your analysis is right, and checking on paper first saved a prototype.
+- **Scope of this task:** taps that span their face **across** (q = a),
+  with any extent along the duct (p) within the room checks, on the wide
+  or narrow face.  Decision 0027 is amended: this is common in HVAC (a
+  side branch as tall as a flat main).
+- **Rejection:** narrower taps (q < a) are rejected with a hint: "a
+  tap narrower than its face needs decision 0033's layout; use a
+  full-width tap and a `Transition` on the branch".
+- **C is rejected for good** (cut creases, inexact walls).
+- **B** becomes decision 0033 (proposed): prototype a pillowed ring
+  (hole on the wall, the branch's ring sheet ending on the wall around
+  the hole) first, then your collar if needed.
+- **The rest of the task stands:** fields, room checks, the
+  predicted-quality tiers, planar walls, measurements.  The quality table
+  over p / face length (along) and duct aspect, wide and narrow face.
 
 ## Outcome
 

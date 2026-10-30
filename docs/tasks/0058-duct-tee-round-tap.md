@@ -1,6 +1,6 @@
 # 0058 — Duct tee: round tap on a rectangular duct
 
-- **Status:** ready (after 0057)
+- **Status:** blocked (on decision 0033: a layout for taps inside the face)
 - **Decision:** [0027 — Tees in rectangular ducts](../decisions/0027-duct-tees.md) (A2)
 - **Depends on:** 0057.
 

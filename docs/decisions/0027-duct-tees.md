@@ -60,6 +60,8 @@ is 180°, so a 90° roll is rejected.  Needs an explicit field, e.g.
 - The branch must fit inside the face it leaves from, with a margin
   (the turn blocks need room): branch extent < face extent − margin, in
   both directions.  Full-width ("bullhead") branches are out.
+  *(Amended 2026-10-30: full width across is allowed, and is the first
+  case; see the amendment below.)*
 - Counts: the branch shares the main's counts per side (as the pipe
   tee's branch shares `nang`).
 - Single-layer first; insulated duct tees need junction layers (open for
@@ -107,6 +109,39 @@ Added since the proposal:
   rectangular duct wall).  A round tap's branch walls may use decision
   0029's node projection, as the pipe tee does.
 - **Shoe taps** go to the general-branch decision (0031).
+
+### Amendment (2026-10-30, after task 0057's Q1): full-width taps first
+
+**Finding (task 0057, checked on paper against `tee.py`):** a duct's O-H
+corners are its creases (the edges y = ±a, z = ±b).  With a tap narrower
+than its face across (q < a), the pipe tee's layout puts a crease inside
+block faces in two places: the station's side edge, and the slab's
+corner edge.  So the walls fold and aren't planes.  Making the creases
+block edges needs six station vertices where the port has four, which
+either changes the port faces (against DESIGN §7.1) or needs new blocks.
+With **q = a** the layout ports exactly:
+- the station's top corners are the duct's corners;
+- the slab corners run along the creases;
+- every wall face is a plane;
+- the ports are standard.
+
+**Superseded in part (2026-10-30, the user: "aim for B right away"):**
+full-width taps are on hold.  The layout of decision 0033 is prototyped
+first (task 0069), and full-width taps come back only if it doesn't cover
+them.
+
+**Decision (as amended, now on hold):**
+- **D changes:** a tap that spans its face **across** (q = a) is
+  allowed, with any extent along the duct (p) within the room checks.
+  That's common in HVAC: a side branch as tall as a flat main
+  (600 × 300 main, 300 × 300 branch off the narrow face).  A narrower
+  branch run follows through a `Transition`.
+- **Narrower taps (q < a)** and **round taps** (0058) wait for a junction
+  layout that keeps the creases on block edges: decision 0033
+  (proposed).
+- **Rejected:** folding the faces and projecting nodes onto the box
+  (decision 0029).  The crease would be cut by a cell width near the
+  junction, so the walls wouldn't be exact.
 
 ## Consequences
 
