@@ -561,18 +561,31 @@ A perpendicular, centred side-branch tee, built as a block layout.
     axis, so its `half_w`/`nang_w` run across (along the main's `right`)
     and `half_h` along the main; on a right/left face its `up` is the
     main's `up`, so `half_w` runs along the main and `half_h` across.
-  - **Size.** The tap must reach at most `limits.DUCT_TAP_MAX_RATIO`
-    (0.93) of the face's half-width across; a tap as wide as the face is a
-    full-width tap (task 0057, not yet supported) and is rejected; in
-    between is rejected with the largest tap that fits.
+  - **Size.** A tap inside the face (pillowed) reaches at most
+    `limits.DUCT_TAP_MAX_RATIO` (0.93) of the face's half-width across. A
+    rectangular tap exactly as wide as the face is a **full-width tap**
+    (below). In between is rejected with the largest tap that fits.
+  - **Full-width taps** (task 0057). The pipe tee's layout with straight
+    edges: the hole's corners lie on the duct's creases and every wall is
+    a plane. No tunables (`margin` … `n_wall` are rejected); `n_turn` is
+    the turning blocks' layers. `run_length=None` resolves to the tap's
+    half-length along the main plus half the duct's smaller half-extent.
+    The predicted SJ (meshed = predicted) depends only on the tap's length
+    along the main, p, relative to the duct's ring thickness t =
+    (1 − OH_RATIO)·min(half_w, half_h): 0.12 at p = 0.5 t, 0.20 at
+    0.75 t, 0.40 at 1.5 t, 0.55 at 2.25 t, 0.58 (1/√3) at 3.75 t and beyond. Neither `run_length`, `nang`
+    nor the aspect changes it, so its tier messages suggest a longer tap.
+    `branch_length` must exceed the turning station, the face plus half
+    the branch's smaller half-extent.
   - **Tunables.** `margin`, `dome`, `sheet` (layout shape) and `n_wall`
     (cells from a station to the hole) are resolved by `add()` to the best
     predicted quality and stored, so `to_dict()` stays explicit; give them
     to override. `run_length=None` resolves to the tap's reach along the
     main plus 4 ring thicknesses.
   - **Quality.** The predicted-SJ tiers as above. A round tap's prediction
-    can overestimate by up to 0.11, so `mesh()` also applies the tiers to
-    its meshed cells, naming the fitting. A narrow-face tap on a duct of
+    can overestimate by up to 0.13, so for round taps the prediction only
+    rejects (below 0.1) and `mesh()` applies both tiers to the meshed
+    cells, naming the fitting: one warning, not two. A narrow-face tap on a duct of
     aspect ≥ `limits.DUCT_TAP_NARROW_ASPECT_WARN` (3) warns and suggests
     the wide face (min SJ about 0.13, non-orthogonality up to 82°).
   - **Limits.** Single-layer ducts, `rot = 0`, `n_outer = 4`;

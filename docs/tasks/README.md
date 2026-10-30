@@ -66,7 +66,7 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0054](0054-insulated-junctions-end-to-end.md) | Insulated junctions end to end: PCF, example, docs | done | 0028, 0023 |
 | [0055](0055-cosine-bulge.md) | Cosine profile bulges: `("cosine", s0)` with s0 ≤ 0 | done | 0008 |
 | [0056](0056-projection-limits-and-wye-axial-counts.md) | Projection follow-ups: inversion check, move warning, wye axial counts | done | 0029 |
-| [0057](0057-duct-tee-rectangular-tap.md) | Duct tee: full-width rectangular tap on a rectangular duct | ready (after 0070; full-width complement) | 0027 |
+| [0057](0057-duct-tee-rectangular-tap.md) | Duct tee: full-width rectangular tap on a rectangular duct | done | 0027 |
 | [0058](0058-duct-tee-round-tap.md) | Duct tee: round tap on a rectangular duct | superseded by 0070 | 0027 |
 | [0059](0059-branched-hvac-example.md) | Example: a branched HVAC supply | ready (after 0070, 0057) | 0027 |
 | [0060](0060-tee-angle-laterals.md) | General branches, stage 1: `Tee(angle=…)`, laterals | ready (after 0056, 0053, 0054) | 0031 |

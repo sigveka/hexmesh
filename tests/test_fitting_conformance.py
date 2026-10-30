@@ -159,13 +159,19 @@ def _tee(ratio, direction=(0, 1, 0), spec=None):
 
 def _duct_tap(branch, aspect=2, face="wide", roll=0, direction=(1, 0, 0)):
     """Straight → duct-tap Tee → Straight on both outlets (task 0070).
-    *branch* is "rect" or "round", reaching 0.6 of the face's half-width."""
+    *branch* is "rect" or "round", reaching 0.6 of the face's half-width,
+    or "full": as wide as the face, 0.6 of it along the main (task 0057)."""
     B = 0.05
     n = 4
     spec = _duct(half_w=aspect * B, half_h=B, nang_w=n, nang_h=n, name="fluid", nrad=3)
     a = aspect * B if face == "wide" else B
-    shape = (RectShape(0.6 * a, 0.6 * a, n, n) if branch == "rect"
-             else CircleShape(radius=0.6 * a, nang=n))
+    if branch == "full":
+        along_up = face == "wide" or aspect == 1      # the tap on an up/down face
+        shape = RectShape(a, 0.6 * a, n, n) if along_up else RectShape(0.6 * a, a, n, n)
+    elif branch == "rect":
+        shape = RectShape(0.6 * a, 0.6 * a, n, n)
+    else:
+        shape = CircleShape(radius=0.6 * a, nang=n)
     asm = Assembly(spec, direction=list(direction), up=[0, 0, 1], lc=0.1)
     asm.add(Straight(0.2, n_layers=n))
     main, br = asm.add(Tee(branch_length=2 * aspect * B, branch=shape, face=face, roll=roll,
@@ -210,6 +216,9 @@ CASES = {
     "tee-duct-round-2-wide":  lambda: _duct_tap("round", roll=180),
     "tee-duct-round-2-narrow": lambda: _duct_tap("round", face="narrow"),
     "tee-duct-round-3-wide":  lambda: _duct_tap("round", aspect=3),
+    "tee-duct-full-1-wide":   lambda: _duct_tap("full", aspect=1),
+    "tee-duct-full-2-wide":   lambda: _duct_tap("full", roll=180, direction=(1, 1, 0.2)),
+    "tee-duct-full-2-narrow": lambda: _duct_tap("full", face="narrow"),
     "wye-60":              lambda: _wye(60),
     "wye-90":              lambda: _wye(90),
     "wye-60-oblique":      lambda: _wye(60, direction=(1, 1, 0.2)),

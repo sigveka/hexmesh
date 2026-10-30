@@ -59,13 +59,16 @@ from .blocks import (
     ArcAbout, BlockLayout, LayoutError, OH_RATIO, Spline, bind_face, corner_shift,
     face_patches, face_vertices,
 )
-from .duct_tap import DuctTap
+from .duct_tap import DuctTap, FullWidthTap
 from .interface import Frame, junction_roll, junction_toward, outer_radius, rolled
 from .limits import PREDICTED_SJ_MIN, PREDICTED_SJ_WARN
 from .projection import Tube, TubeUnion
 from .signature import check_port_pairs
 
 _SAMPLES = 9   # interior points per spline edge
+# Default full-width duct-tap run: the tap's half-length plus this many
+# times the duct's smaller half-extent (task 0057; the pipe tee's R/2).
+FULL_WIDTH_RUN = 0.5
 
 
 def thicknesses(spec: PipeSpec) -> list[float]:
@@ -508,9 +511,19 @@ class Tee:
         along, across = (br.half_h, br.half_w) if on_U else (br.half_w, br.half_h)
         return on_U, a, b, along, across, along, across
 
+    def _full_width(self, spec: PipeSpec) -> bool:
+        """A rectangular tap as wide as its face across (task 0057)."""
+        _, a, _, _, _, _, reach_y = self._duct_geometry(spec)
+        return isinstance(self.branch, RectShape) and abs(reach_y / a - 1) < 1e-9
+
     def _tap(self, inlet: Frame, spec: PipeSpec, **tuning):
         _, _, _, along, across, _, _ = self._duct_geometry(spec)
         side = 1 if abs(math.remainder(self.roll, 360.0)) < 1e-9 else -1
+        if self._full_width(spec):
+            return FullWidthTap(run_length=self.run_length, branch_length=self.branch_length,
+                                along=along, across=across, face=self.face or "wide",
+                                side=side, n_run=self.n_run, n_branch=self.n_branch,
+                                n_turn=self.n_turn)
         kw = {k: getattr(self, k) for k in ("margin", "dome", "sheet", "n_wall")}
         kw.update(tuning)
         return DuctTap(run_length=self.run_length, branch_length=self.branch_length,
@@ -527,6 +540,16 @@ class Tee:
             raise ValueError("Tee: a rectangular main needs branch=RectShape(…) or "
                              "CircleShape(…); branch_radius= is the shorthand for pipes")
         tee = replace(self, face=self.face or "wide")
+        if tee._full_width(spec):
+            tuning = [n for n in ("margin", "dome", "sheet", "n_wall") if getattr(tee, n) is not None]
+            if tuning:
+                raise ValueError(f"Tee: a full-width tap has no {', '.join(tuning)} "
+                                 f"(pillowed taps only)")
+            if tee.run_length is None:
+                _, a, b, along, *_ = tee._duct_geometry(spec)
+                tee = replace(tee, run_length=along + FULL_WIDTH_RUN * min(a, b))
+            tee._check_duct(spec)
+            return tee
         if tee.run_length is None:
             on_U, a, b, *_, reach_x, _ = tee._duct_geometry(spec)
             t = (1 - OH_RATIO) * min(a, b)
@@ -539,8 +562,9 @@ class Tee:
 
     def _check_duct(self, spec: PipeSpec, tuned: bool = True) -> None:
         sh = spec.core_shape
-        if self.run_length is None or (tuned and None in (self.margin, self.dome, self.sheet,
-                                                          self.n_wall)):
+        tunables = () if self._full_width(spec) else (self.margin, self.dome, self.sheet,
+                                                         self.n_wall)
+        if self.run_length is None or (tuned and None in tunables):
             raise ValueError("Tee: run_length and the duct-tap tunables are resolved "
                              "by Assembly.add(); add the fitting to an assembly")
         if spec.shells:
@@ -570,16 +594,27 @@ class Tee:
         on_U, a, b, along, across, reach_x, reach_y = self._duct_geometry(spec)
         face = self.face or "wide"
         ratio = reach_y / a
-        if isinstance(br, RectShape) and abs(ratio - 1) < 1e-9:
-            raise ValueError(f"Tee: a tap as wide as the {face} face (across ratio 1) is "
-                             f"a full-width tap: task 0057, not yet supported")
+        t = (1 - OH_RATIO) * min(a, b)
+        if self._full_width(spec):
+            z1 = b + 0.5 * min(along, across)
+            if self.run_length <= along:
+                raise ValueError(f"Tee: run_length must exceed the full-width tap's "
+                                 f"half-length along the main, {along:.4g}")
+            if self.branch_length <= z1:
+                raise ValueError(f"Tee: branch_length must exceed the turning station's "
+                                 f"height {z1:.4g} (the {face} face at {b:.4g} plus half "
+                                 f"the branch's smaller half-extent)")
+            for n in (self.n_run, self.n_branch, self.n_turn):
+                if n < 1:
+                    raise ValueError("layer counts must be >= 1")
+            return
         if ratio > limits.DUCT_TAP_MAX_RATIO:
             raise ValueError(
                 f"Tee: the tap reaches {reach_y:.4g} across the {face} face of "
                 f"half-width {a:.4g}: ratio {ratio:.3g} exceeds DUCT_TAP_MAX_RATIO "
                 f"{limits.DUCT_TAP_MAX_RATIO:g}; a tap up to "
-                f"{limits.DUCT_TAP_MAX_RATIO * a:.4g}, or a full-width tap (task 0057)")
-        t = (1 - OH_RATIO) * min(a, b)
+                f"{limits.DUCT_TAP_MAX_RATIO * a:.4g}, or a full-width tap (across "
+                f"{a:.4g})")
         need = reach_x + (self.margin or min(DuctTap.TUNING["margin"])) * t
         if self.run_length <= need:
             raise ValueError(f"Tee: run_length must exceed {need:.4g}: the tap's reach "
@@ -597,20 +632,29 @@ class Tee:
         sj = self._tap(frames[0], spec).predicted_sj(frames, spec)
         on_U, a, b, *_ = self._duct_geometry(spec)
         face = self.face or "wide"
-        hint = ("on the wide face it is better" if face == "narrow"
-                else "a smaller tap, or a longer tap along the main, may do better")
+        full = self._full_width(spec)
+        if full:            # the predicted SJ depends on its length alone, task 0057
+            hint = ("a full-width tap's quality is set by its length along the main "
+                    "(run_length has no effect): a longer tap does better")
+        else:
+            hint = ("on the wide face it is better" if face == "narrow"
+                    else "a smaller tap, or a longer tap along the main, may do better")
         found = []
         for tier, name in ((PREDICTED_SJ_MIN, "PREDICTED_SJ_MIN"),
                            (PREDICTED_SJ_WARN, "PREDICTED_SJ_WARN")):
             if sj >= tier:
                 continue
+            kind = "full-width duct tap" if full else "duct tap"
             msg = (f"predicted corner scaled Jacobian {sj:.3f} is below {name} "
-                   f"{tier:g} (duct tap, {face} face); {hint}")
+                   f"{tier:g} ({kind}, {face} face); {hint}")
             if tier == PREDICTED_SJ_MIN:
                 raise ValueError(msg)
-            found.append(msg)
+            # a round tap's prediction overestimates: its warning tier is
+            # the meshed check in Assembly.mesh() (task 0057's note)
+            if not self.meshed_sj_check(spec):
+                found.append(msg)
             break
-        if face == "narrow" and b / a >= limits.DUCT_TAP_NARROW_ASPECT_WARN:
+        if not full and face == "narrow" and b / a >= limits.DUCT_TAP_NARROW_ASPECT_WARN:
             found.append(
                 f"a tap on the narrow face of a duct of aspect {b / a:.3g} (≥ "
                 f"DUCT_TAP_NARROW_ASPECT_WARN {limits.DUCT_TAP_NARROW_ASPECT_WARN:g}): "

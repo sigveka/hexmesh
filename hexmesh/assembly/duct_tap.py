@@ -85,6 +85,7 @@ class DuctTap:
     side:   int = 1
     n_run:    int = 3
     n_branch: int = 3
+    n_turn:   int = 2       # FullWidthTap's turn blocks
     margin: float | None = None
     dome:   float | None = None
     sheet:  float | None = None
@@ -317,3 +318,112 @@ class DuctTap:
 
     def predicted_sj(self, frames: list[Frame], spec: PipeSpec) -> float:
         return float(self.layout(frames, spec).corner_jacobians().min())
+
+
+@dataclass(frozen=True)
+class FullWidthTap(DuctTap):
+    """Full-width duct tap (task 0057, decision 0027 amended): the hole
+    spans its face across (q = a), so its corners lie on the duct's
+    creases and the pipe tee's layout ports with straight edges (DESIGN
+    §7.1): stations at x = ±p, a core, side and bottom rings, the branch
+    core and four turn blocks up to a turning station at height
+    ``turning_height``.  Every wall face is a plane.  No tunables."""
+
+
+    def tuned(self, inlet: Frame, spec: PipeSpec) -> "FullWidthTap":
+        return self
+
+    def turning_height(self, b: float) -> float:
+        """Above the axis: the face plus half the branch's smaller
+        half-extent (the pipe tee's R + r/2)."""
+        p, q = self._hole()
+        return b + 0.5 * min(p, q)
+
+    def layout(self, frames: list[Frame], spec: PipeSpec) -> BlockLayout:
+        o, ex, ey, ez, a, b, on_U = self._basis(frames[0], spec)
+        p, _ = self._hole()
+        sh = spec.core_shape
+        t = (1 - OH_RATIO) * min(a, b)
+        iw, ih = a - t, b - t
+        # The stations' level-0 corners: the main's inner rectangle across,
+        # inset min(t, p/2) from the hole along; the branch core tapers from
+        # there to the branch's own inner rectangle at Z.  The branch's inset
+        # instead (as the pipe tee) gives min SJ 0.06 for short taps, task 0057.
+        cx = p - min(t, p / 2)
+        z1 = self.turning_height(b)
+        name = spec.layer_names[0]
+        bframe, bspec = self.branch(frames[0], spec)
+        if not (p < self.run_length and z1 < self.branch_length):
+            raise LayoutError(f"tap does not fit: p {p:.4g} vs run {self.run_length:.4g}, "
+                              f"turning height {z1:.4g} vs branch {self.branch_length:.4g}")
+
+        def P(x, y, z):
+            return o + x * ex + y * ey + z * ez
+
+        lay = BlockLayout()
+        face_vertices(lay, "A", frames[0], spec)
+        face_vertices(lay, "B", frames[1], spec)
+        face_vertices(lay, "E", frames[2], bspec)
+        Z = Frame(o + z1 * ez, ez, bframe.up)
+        face_vertices(lay, "Z", Z, bspec, port=False)
+        mapA = _label_map(lay, "A", frames[0].position, ey, ez)
+        mapB = _label_map(lay, "B", frames[1].position, ey, ez)
+        mapE = _label_map(lay, "E", frames[2].position, ex, ey)
+        mapZ = _label_map(lay, "Z", Z.position, ex, ey)
+        n_y = sh.nang_w if on_U else sh.nang_h
+        n_z = sh.nang_h if on_U else sh.nang_w       # also the branch's count along x
+        nrad = spec._core_nrad
+
+        # Stations at x = ∓p: ids by canonical (sy, sz).
+        for X, sx in (("Sa", -1), ("Sd", 1)):
+            for (sy, sz) in _LABS:
+                lay.vertex((X, 0, (sy, sz)), P(sx * cx, sy * iw, sz * ih))
+                lay.vertex((X, 1, (sy, sz)), P(sx * p, sy * a, sz * b))
+            for i, l0 in enumerate(_LABS):
+                l1 = _LABS[(i + 1) % 4]
+                n = n_y if l0[1] == l1[1] else n_z
+                for lvl in (0, 1):
+                    lay.edge((X, lvl, l0), (X, lvl, l1), divisions=n)
+                lay.edge((X, 0, l0), (X, 1, l0), divisions=nrad,
+                         grading=("Progression", spec._core_mprg))
+        for port, X, m in (("A", "Sa", mapA), ("B", "Sd", mapB)):
+            inv = {k: lab for lab, k in m.items()}
+            for k in range(4):
+                for lvl in (0, 1):
+                    lay.edge((port, lvl, k), (X, lvl, inv[k]), divisions=self.n_run)
+            for material, cyc in face_patches(port, spec):
+                lay.block(list(cyc) + [(X, l, inv[k]) for (_, l, k) in cyc], material)
+        for lab in _LABS:
+            for lvl in (0, 1):
+                lay.edge(("Sa", lvl, lab), ("Sd", lvl, lab), divisions=n_z)
+
+        sa = lambda l, sy, sz: ("Sa", l, (sy, sz))
+        sd = lambda l, sy, sz: ("Sd", l, (sy, sz))
+        lay.block([sa(0, -1, -1), sd(0, -1, -1), sd(0, 1, -1), sa(0, 1, -1),
+                   sa(0, -1, 1), sd(0, -1, 1), sd(0, 1, 1), sa(0, 1, 1)], name)      # core
+        lay.block([sa(0, 1, -1), sd(0, 1, -1), sd(1, 1, -1), sa(1, 1, -1),
+                   sa(0, 1, 1), sd(0, 1, 1), sd(1, 1, 1), sa(1, 1, 1)], name)        # S+
+        lay.block([sa(0, -1, -1), sd(0, -1, -1), sd(1, -1, -1), sa(1, -1, -1),
+                   sa(0, -1, 1), sd(0, -1, 1), sd(1, -1, 1), sa(1, -1, 1)], name)    # S−
+        lay.block([sa(0, -1, -1), sd(0, -1, -1), sd(0, 1, -1), sa(0, 1, -1),
+                   sa(1, -1, -1), sd(1, -1, -1), sd(1, 1, -1), sa(1, 1, -1)], name)  # bottom
+
+        # Branch: corners by (sx, sy), in the pipe tee's branch order.
+        quads = ((1, 1), (1, -1), (-1, -1), (-1, 1))
+        top = lambda l, sx, sy: ("Sd" if sx > 0 else "Sa", l, (sy, 1))
+        z = lambda l, sx, sy: ("Z", l, mapZ[(sx, sy)])
+        for q in quads:
+            for lvl in (0, 1):
+                lay.edge(top(lvl, *q), z(lvl, *q), divisions=self.n_turn)
+        lay.block([top(0, *q) for q in quads] + [z(0, *q) for q in quads], name)  # branch core
+        for k in range(4):
+            qk, qj = quads[k], quads[(k + 1) % 4]
+            lay.block([top(0, *qk), top(0, *qj), top(1, *qj), top(1, *qk),
+                       z(0, *qk), z(0, *qj), z(1, *qj), z(1, *qk)], name)        # turn
+        inv = {k: lab for lab, k in mapE.items()}
+        for k in range(4):
+            for lvl in (0, 1):
+                lay.edge(("Z", lvl, mapZ[inv[k]]), ("E", lvl, k), divisions=self.n_branch)
+        for material, cyc in face_patches("E", bspec):
+            lay.block([("Z", l, mapZ[inv[k]]) for (_, l, k) in cyc] + list(cyc), material)
+        return lay

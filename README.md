@@ -572,8 +572,9 @@ with `python3 docs/gallery/build.py` (needs `vtk`).
   wyes stop at k = 2.
 - **Rectangular ducts and outlines:** no elbow for ducts.  A duct tee
   (`Tee(branch=…)` on a duct) takes a rectangular or round tap inside the
-  face, up to 0.93 of its width, on single-layer ducts only; no
-  full-width taps yet (task 0057).  Narrow-face taps on deep ducts (3:1)
+  face, up to 0.93 of its width, or a rectangular tap as wide as the
+  face, on single-layer ducts only.  A full-width tap's quality is set by
+  its length along the main (short taps warn, very short ones fail).  Narrow-face taps on deep ducts (3:1)
   mesh poorly (min SJ about 0.13, non-orthogonality to 82°) and warn.  A
   tap costs about 1.6–2.3× the cells of a plain run of the same length.
   A stack with a rectangle needs equal counts per side, and so does

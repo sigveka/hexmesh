@@ -1,6 +1,6 @@
 # 0057 — Duct tee: full-width rectangular tap on a rectangular duct
 
-- **Status:** ready (0070 done: plugs into its `ratio == 1` rejection; plus the round-tap warning note)
+- **Status:** done
 - **Decision:** [0027 — Tees in rectangular ducts](../decisions/0027-duct-tees.md)
 - **Depends on:** —  (0058 and 0059 build on it)
 
@@ -104,6 +104,30 @@ q (across, y).
   the crease too.
 
 
+**2026-10-30: coding (after 0070 and design's answer A).**
+- Steps 1 and 3's fields, dispatch and most checks already came with
+  0070.  This task adds `duct_tap.FullWidthTap`, a subclass of `DuctTap`
+  that reuses its frame, branch and ports and overrides `layout`.
+  `Tee._tap` picks it when a `RectShape` branch reaches exactly across
+  the face.
+- **Refined step 2's layout** (recorded here, not a design change).  The
+  pipe tee's station inner corners, ported literally (the branch's inner
+  rectangle on top, the branch's x inset below), give min SJ 0.06 for
+  short taps.  They put the S± rings between a thin top and a thick
+  bottom.  Using the main's inner rectangle across instead, inset
+  min(t, p/2) from the hole along, gives min 0.195 on the step-6 grid.
+  The branch core tapers from it to the branch's own inner rectangle at
+  the turning station.  An inset of min(t, c·p) for c from 0.5 to 0.9
+  differs by under 0.03; I chose 0.5, which keeps the core's top half the
+  hole.
+- Run length doesn't enter the predicted SJ (the slabs are boxes), so
+  step 4's "shortest `run_length`" hint is replaced by "a longer tap".
+  `run_length=None` resolves to p + `FULL_WIDTH_RUN`·min(a, b), with
+  `FULL_WIDTH_RUN` = 0.5 (the pipe tee's R/2).
+- The round-tap note: the predicted reject stays for round taps; the
+  predicted warning is dropped, so `mesh()`'s check gives the one
+  warning.
+
 ## Questions for design
 
 **Q1. Which layout for a duct tap narrower than the duct?**  The pipe
@@ -168,4 +192,59 @@ Test: a round narrow-face tap warns exactly once.
 
 ## Outcome
 
-_Not done._
+Done 2026-10-30.
+
+**Files.**
+- `hexmesh/assembly/duct_tap.py`: `FullWidthTap` (layout,
+  `turning_height`), and an `n_turn` field on `DuctTap`.
+- `tee.py`:
+  - `_full_width`, and the dispatch in `_tap` and `_resolve_duct`;
+  - full-width room checks (run beyond p, branch beyond the turning
+    station) and rejection of the pillowed tunables;
+  - `FULL_WIDTH_RUN` 0.5;
+  - the tier hint for full-width taps;
+  - the round-tap predicted warning dropped (design note).
+- Docs: `API.md` (full-width taps, round-tap quality) and the `README.md`
+  limitations.
+
+**Tests.**
+- Kit: 3 full-width cases (1:1 wide; 2:1 wide, roll 180, oblique; 2:1
+  narrow), 39 tests.  All are all-hex, meshed = predicted, with class-0
+  ports and walls exact.
+- `test_duct_tap.py`: 28 tests (was 22):
+  - dispatch, with the predicted SJ the same over `run_length` and
+    `nang`;
+  - the short-tap reject and warning, naming "a longer tap";
+  - tunables rejected;
+  - both room checks;
+  - a round narrow tap warns exactly once.
+- Pipe tees: the 5 kit tee cases give node coordinates identical to HEAD
+  (0.0).
+- Full suite: 2133 passed, 14 skipped, 0 failed.
+
+**Measurements** (50 meshes: p/a 0.2 / 0.3 / 0.6 / 0.9 / 1.5 × aspect 1
+/ 2 / 3 × wide / narrow × `nang` 4 / 8, single layer, `nrad` 3):
+- All are all-hex, cells = predicted, and **meshed min SJ = predicted
+  exactly**.  Wall nodes are within 2e-16 of their planes.
+- Quality depends only on p / t, with t = (1 − OH_RATIO)·min(a, b):
+
+  | p / t | 0.5 | 0.75 | 1.5 | 2.25 | ≥ 3.75 |
+  |---|---|---|---|---|---|
+  | min SJ | 0.123 | 0.195 | 0.403 | 0.549 | 0.577 |
+  | max non-orth. (nang 4 / 8) | 77.0° / 77.8° | 71.4° / 72.5° | 57.6° / 59.4° | 49.1° / 52.1° | 49.1° / 52.1° |
+
+- `nang` and `run_length` don't change the predicted SJ, and the duct
+  aspect enters only through t.  The two tiers are enough: short taps (p
+  under about 1.1 t) warn and very short ones (p under about 0.4 t)
+  reject, so no extra limit is proposed.
+
+**Surprises.**
+- The literal port of the pipe tee's station corners gives 0.06 for short
+  taps (*Agent notes*).
+- No sizing rule is needed: unlike the pipe tee, `run_length` has no
+  effect.
+
+**Follow-ups.**
+- 0059 (HVAC example) can now use both tap kinds.
+- Shelled duct taps (decisions 0026/0028) remain out of scope for both
+  layouts.

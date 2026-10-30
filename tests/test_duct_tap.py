@@ -89,8 +89,11 @@ def test_roll_picks_the_side():
 
 
 @pytest.mark.parametrize("make, message", [
-    (lambda: _tee(RectShape(A, 0.4 * A, 4, 4)), "full-width tap: task 0057"),
-    (lambda: _tee(_rect(0.96 * A)), "exceeds DUCT_TAP_MAX_RATIO"),
+    (lambda: _tee(RectShape(A, 0.05 * A, 4, 4)), "below PREDICTED_SJ_MIN.*full-width.*longer tap"),
+    (lambda: _tee(RectShape(A, 0.4 * A, 4, 4), margin=1.0), "full-width tap has no margin"),
+    (lambda: _tee(RectShape(A, 0.4 * A, 4, 4), branch_length=0.06), "turning station"),
+    (lambda: _tee(RectShape(A, 0.4 * A, 4, 4), run_length=0.04), "half-length along the main"),
+    (lambda: _tee(_rect(0.96 * A)), "exceeds DUCT_TAP_MAX_RATIO.*full-width tap"),
     (lambda: _tee(CircleShape(radius=0.96 * A, nang=4)), "exceeds DUCT_TAP_MAX_RATIO"),
     (lambda: _tee(_rect(0.5 * A), roll=90), "roll is 0 or 180"),
     (lambda: _tee(_rect(0.5 * A), toward=(0, 1, 0)), "toward= is for pipe tees"),
@@ -159,3 +162,42 @@ def test_rect_tap_has_no_meshed_check():
     assert not Tee(branch_length=0.3, branch_radius=0.05).meshed_sj_check(
         PipeSpec(nang=4).core("fluid", radius=0.1, nrad=3))
 
+
+
+def test_round_narrow_tap_warns_once(gmsh_session):
+    """The predicted warning tier is dropped for round taps; the meshed
+    check gives the one warning (task 0057's design note)."""
+    asm = _asm(_tee(CircleShape(radius=0.6 * B, nang=4), face="narrow"))
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        asm.mesh()
+    sj = [str(x.message) for x in w if "scaled Jacobian" in str(x.message)]
+    assert len(sj) == 1 and "meshed corner scaled Jacobian" in sj[0], sj
+
+
+def test_full_width_dispatch_and_quality_by_length():
+    """q = a builds FullWidthTap (task 0057): no tunables, run_length
+    resolved, and the predicted SJ set by the tap's length along the main
+    alone: not by run_length, nang or the duct's aspect."""
+    from hexmesh.assembly.duct_tap import FullWidthTap
+    inlet = Frame(np.zeros(3), np.array([1.0, 0, 0]), np.array([0, 0, 1.0]))
+    sjs = set()
+    for run in (None, 0.2, 0.4):
+        for n in (4, 8):
+            spec = _spec(n=n)
+            tee = _tee(RectShape(A, 0.6 * A, n, n), run_length=run).resolve(inlet, spec)
+            tap = tee._tap(inlet, spec)
+            assert isinstance(tap, FullWidthTap)
+            assert None not in (tee.run_length,) and tee.margin is None
+            frames = [inlet] + [f for f, _ in tap.ports(inlet, spec)]
+            sjs.add(round(tap.predicted_sj(frames, spec), 9))
+    assert len(sjs) == 1 and sjs.pop() > 0.5
+
+
+def test_full_width_short_tap_warns():
+    asm = _asm(_tee(RectShape(A, 0.3 * B, 4, 4)))
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        asm.validate()
+    assert any("full-width duct tap" in str(x.message) and "PREDICTED_SJ_WARN" in str(x.message)
+               for x in w)
