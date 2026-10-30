@@ -2,6 +2,7 @@
 
 - **Status:** ready (after 0043)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (its "turbulent pipe DNS" case); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
+- **Category:** V2 (DNS profiles; V4 friction-factor correlation as secondary)
 - **Depends on:** 0043 (shared OpenFOAM helpers).  Uses `first_cell`
   wall grading and `refined(k)`.
 

@@ -2,6 +2,7 @@
 
 - **Status:** done
 - **Decision:** [0008 — Profiled sweep](../decisions/0008-profiled-sweep.md); [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md)
+- **Category:** V2 (DNS: Varghese et al. Part 1)
 - **Depends on:** 0031 (profiled `Reducer`), 0020 (re-run: the
   validation pipeline), 0025 (exact straight walls)
 

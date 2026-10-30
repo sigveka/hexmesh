@@ -695,7 +695,10 @@ objects abort on the local OpenFOAM build (`docs/integrations/openfoam.md`).
 | Graetz problem | series solution for local Nu(x) | axial resolution and grading near an inlet | planned |
 | Annular Poiseuille (solid core, fluid shell) | $u = \frac{G}{4\mu}\left[R_2^2 - r^2 + (R_2^2 - R_1^2)\frac{\ln(r/R_2)}{\ln(R_1/R_2)}\right]$ | a fluid region in a shell layer | planned |
 | Taylor–Couette | $u_\theta = Ar + B/r$ | circumferential resolution in shells | planned |
-| Rectangular duct | Fourier series; $f\,Re \approx 56.9$ for a square ($D_h$) | rectangular sections (task 0028) | planned, after 0028 |
+| Rectangular duct | Fourier series; $f\,Re \approx 56.9$ for a square ($D_h$) | rectangular sections (task 0028) | task 0071 |
+| Laminar 90° square bend, Re 790 | LDA profiles (Taylor, Whitelaw & Yianneskis 1982; §7.8) | duct bends | task 0072 |
+| Circle-to-rectangle transition duct (turbulent) | Davis & Gessner 1992 (§7.8) | `Transition` | planned, after 0049 |
+| Square-duct turbulence | KIT DNS (Pinelli et al. 2010; §7.8) | straight ducts; tests the turbulence model | planned, later |
 | Dean flow, weak curvature | Dean's perturbation for the flow reduction at small Dean number (check coefficients against the source) | `Bend` | planned |
 | Womersley flow | Bessel-function velocity profile | transient runs, the time-varying inlet; vascular direction (decision 0018) | task 0067 |
 | Fusiform aneurysm (symmetric bulge) | in-vitro PIV wall shear stress for growing symmetric AAA models [`salsac_and_sparks_etal_2006`] (pulsatile; open access via UCL Discovery) | cosine profile with s0 < 0 (task 0055); vascular direction (decision 0018) | planned, after 0055 |
@@ -761,6 +764,63 @@ serpentine of `Straight` + `Bend(180)` pairs, `nang` 4, one layer).
 - Facts about OCC/gmsh synchronization: `docs/integrations/gmsh.md`.
 
 ---
+
+### 7.8 Duct validation references (surveyed 2026-10-30, design session)
+
+For hexmesh's rectangular sections (task 0028), duct bends,
+circle ↔ rectangle transitions (task 0029) and duct taps (task 0070).
+Category labels as decision 0012's amendment (V1 exact, V2
+high-fidelity simulation, V3 experiment, V4 correlation).
+
+- **V1: fully developed laminar flow in a rectangular duct.**  The
+  Poisson problem for the axial velocity in a rectangle has an exact
+  Fourier series.  Shah & London (1978) compile f·Re and Nu against
+  aspect ratio; f·Re ≈ 56.9 for a square on the hydraulic diameter.  The
+  polynomial fits quoted in handbooks are fits; compute the series
+  ourselves (task 0071).
+- **V3: laminar and turbulent flow in a 90° square bend.**
+  - **Source:** Taylor, Whitelaw & Yianneskis, *J. Fluids Eng.* 1982,
+    and NASA contractor report (NTRS 19820016574).  Imperial College
+    water tunnel.
+  - **Geometry:** hydraulic diameter 40 mm, mean bend radius 92 mm
+    (R/D_h ≈ 2.3), thin inlet boundary layers after a straight section.
+  - **Data:** laser-Doppler profiles at **Re 790 (laminar)** and 40 000
+    (turbulent), through and after the bend.
+  - **Companions:** an S-duct (two 22.5° sectors), and a laminar
+    strongly curved square duct (Humphrey, Taylor & Whitelaw, *JFM*
+    1977).
+  - **Note:** later CFD agreed qualitatively, less well at 60° and 77.5°
+    (secondary sources).  Task 0072 uses the laminar case.
+- **V3: circle-to-rectangle transition duct.**
+  - **Source:** Davis & Gessner (NASA TM 105210, 1991; *AIAA J.* 30,
+    1992).
+  - **Geometry and flow:** superellipse cross-sections, length 4.5 D,
+    equal inlet and outlet areas, turbulent, Re 3.9 × 10⁵.
+  - **Data:** static pressures, mean velocities and all six Reynolds
+    stresses.
+  - **Note:** the authors caution against standard wall functions.  A
+    second-moment closure study matched the mean flow but not the
+    downstream decay of the stresses.
+  - Planned after the turbulent pipe (task 0049).
+- **V2: turbulent square-duct DNS.**
+  - **Source:** Pinelli, Uhlmann, Sekimoto & Kawahara, *JFM* 644, 2010;
+    Uhlmann et al., *JFM* 588, 2007.
+  - **Data:** KIT, `https://www.iwu.kit.edu/nfm/dns_data/duct/`:
+    statistics binaries over a range of low bulk Reynolds numbers, a
+    data sheet, friction factors.  No licence statement, so download at
+    run time.
+  - **Caution:** the secondary flows of the second kind are missed by
+    linear eddy-viscosity RANS (k-ω SST included), so this tests the
+    turbulence model more than the mesh.  A reference for later.
+  - Rectangular-duct DNS by Orlandi & Pirozzoli (*J. Turbul.* 2020;
+    arXiv 1907.07987) has no data release found.
+- **V3/V4: duct T-junction loss coefficients.**  An Ohio State thesis
+  (Christian) measured junctions with square, rectangular and oval side
+  branches at several area and aspect ratios.  Its snippets say the
+  losses are independent of Reynolds number and depend little on the
+  branch shape.  Read before use; a comparison for duct taps (task
+  0070), not a gate.  Handbook coefficients (ASHRAE Duct Fitting
+  Database, Idelchik) are commercial or book-only: V4 comparisons.
 
 ## 8. Proposed hexmesh actions
 

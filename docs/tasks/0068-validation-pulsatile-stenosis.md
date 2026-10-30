@@ -2,6 +2,7 @@
 
 - **Status:** ready (after 0067 and 0032)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
+- **Category:** V2 (DNS: Varghese et al. Part 2)
 - **Depends on:** 0032 (the stenosis driver, geometry, levels and
   steady results); 0067 (the pulsatile inlet machinery).
 

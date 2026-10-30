@@ -87,6 +87,46 @@ Cheaper, but not repeatable, and results go stale as the code changes.
 - **Users:** README states the v2406+ requirement for buoyant/CHT
   solvers on hexmesh meshes.
 
+## Amendment (2026-10-30, the user): how cases are categorised
+
+**Vocabulary** (Roache; ASME V&V 20; AIAA G-077):
+- **code verification:** the equations are solved correctly; checked
+  against exact solutions;
+- **solution verification:** the discretisation error is estimated
+  (Richardson / GCI, decision 0015).  It happens *in every case*, so it
+  isn't a category;
+- **validation:** the model is right for the physics; checked against
+  measurements or a trusted stand-in.
+
+**Primary category: the reference** (exactly one per case):
+
+| Category | Reference | Examples |
+|---|---|---|
+| **V1, exact solution** (code verification) | analytic or series solution | Poiseuille, heated rod, layered conduction, heated pipe, Womersley, laminar rectangular duct |
+| **V2, high-fidelity simulation** | DNS / LES data | stenosis steady and pulsatile, square-duct DNS |
+| **V3, experiment** | measurements | Sudo bend, Taylor square bend, Davis transition, Štigler tee |
+| **V4, correlation or standard** (comparison) | empirical fits, standards, handbooks | McKeon friction factor, ISO 5167, Idelchik / ASHRAE |
+
+A case with several references takes the strongest as its category and
+lists the rest (e.g. 0049: V2 for profiles, V4 for the friction
+factor).
+
+**Tags** (any number):
+- **regime:** `laminar`, `transient`, `transitional`, `rans:<model>`;
+- **physics:** `flow`, `cht`;
+- **features:** the hexmesh features a case exercises, from a fixed
+  list: `section:circle`, `section:rect`, `layers`, `straight`, `bend`,
+  `miter`, `spline`, `profiled-reducer`, `transition`, `tee`,
+  `duct-tap`, `wye`, `stack-changes`, `projection`;
+- **toolchain:** OpenFOAM version and runner.
+
+**Machine-readable:**
+- each `validation/<case>/` has a `case.json`: category, reference
+  (citation key and data source), tags, status, gates, task;
+- the gallery generates the validation page from these files: cases
+  grouped by category, and a **coverage matrix** (features × cases)
+  showing what is validated and what isn't.
+
 ## Verified vs. assumed
 
 - Verified: OpenFOAM v1912 and its tutorials are installed; `gmshToFoam`

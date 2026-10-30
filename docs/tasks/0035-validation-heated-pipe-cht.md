@@ -2,6 +2,7 @@
 
 - **Status:** ready (design answered Q2 2026-10-30: v2406 in Docker for new cases)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md)
+- **Category:** V1 (exact: Nu = 48/11, conduction series)
 - **Depends on:** 0034 (the CHT recipe on this build), 0020's re-run
   (the flow pipeline), 0025.
 

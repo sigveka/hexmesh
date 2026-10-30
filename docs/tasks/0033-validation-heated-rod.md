@@ -2,6 +2,7 @@
 
 - **Status:** done
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md)
+- **Category:** V1 (exact)
 - **Depends on:** 0025 (exact straight walls).  Uses task 0020's
   pipeline pieces (case writing, Python post-processing).
 

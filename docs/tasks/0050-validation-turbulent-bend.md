@@ -2,6 +2,7 @@
 
 - **Status:** ready (after 0049)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (its "Dean bend" case, turbulent); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
+- **Category:** V3 (experiment: Sudo et al. 1998)
 - **Depends on:** 0049 (model setup, wall treatment, post-processing).
 
 Ground rules for all tasks: [README](README.md#ground-rules).

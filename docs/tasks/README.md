@@ -80,10 +80,15 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0068](0068-validation-pulsatile-stenosis.md) | Validation: pulsatile flow through the cosine stenosis (Varghese et al., Part 2) | ready (after 0067, 0032) | 0012, 0015 |
 | [0069](0069-duct-tap-pillow-prototype.md) | Prototype: duct tap with a pillowed ring (hole on the wall) | done (Q1 answered: B adopted, decision 0033) | 0033 |
 | [0070](0070-duct-tap-merge-into-tee.md) | Duct taps: the pillowed tap in `Tee` | done | 0033, 0027 |
+| [0071](0071-validation-rectangular-duct.md) | Validation (V1): fully developed laminar flow in rectangular ducts | ready | 0012, 0015 |
+| [0072](0072-validation-laminar-square-bend.md) | Validation (V3): laminar 90° square-duct bend (Taylor et al., Re 790) | ready (after 0071) | 0012, 0015 |
+| [0073](0073-validation-metadata-and-coverage.md) | Validation metadata (`case.json`), categories and a coverage matrix in the gallery | ready | 0012 |
 
 **Current order (2026-10-28, design, revised):** finish the task in
 progress (0034), then **multi-layer junctions: 0051 → 0052 → 0056 → 0053 →
-0054**, then 0055 → 0032 → 0067 → 0068 → 0035 → 0049 → 0044 → 0050.  Duct tees
+0054**, then 0055 → 0032 → 0067 → 0068 → 0035 → 0049 → 0044 → 0050.
+Validation bookkeeping 0073 any time (small); duct validation 0071 →
+0072 after 0035 (v2406 runner).  Duct tees
 (0069 prototype, done → 0070 merge → 0057 full-width → 0059) fit in whenever
 the junction work pauses; they don't depend on it.  General branches (decision 0031) follow the junction-shell
 work: 0060 → 0061 / 0062 → 0063 (0063 also after the duct tees).
