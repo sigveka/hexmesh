@@ -171,3 +171,39 @@ def test_stenosis_coarse(stenosis):
     assert r["mass_err"] < 1e-6
     assert r["u_peak"] > 3                              # a jet forms (> 4 u_m in the DNS)
     assert r["x_reattachment"] and r["x_reattachment_probe"]
+
+
+def _have_v2406() -> bool:
+    import shutil
+    if shutil.which("docker") is None:
+        return False
+    return subprocess.run(["docker", "image", "inspect", "opencfd/openfoam-default:2406"],
+                          capture_output=True).returncode == 0
+
+
+@pytest.fixture(scope="module")
+def womersley(tmp_path_factory):
+    """Task 0067's coarsest level on v2406 in Docker (about 2 min)."""
+    if not _have_v2406():
+        pytest.skip("no opencfd/openfoam-default:2406 image")
+    work = tmp_path_factory.mktemp("womersley")
+    out = work / "results.json"
+    run = subprocess.run([sys.executable, str(ROOT / "validation/womersley/run.py"),
+                          "--levels", "k1", "--work", str(work), "--json", str(out)],
+                         capture_output=True, text=True)
+    assert run.returncode == 0, run.stdout[-3000:] + run.stderr[-3000:]
+    return json.loads(out.read_text())["levels"][0]
+
+
+def test_womersley_coarse(womersley):
+    """The coarsest level's measured values (RESULTS.md), with margin: the
+    exact inlet is applied, the run becomes periodic, and the errors stay
+    where they were measured (the gates are for the finest level)."""
+    r = womersley
+    assert r["mesh_ok"] and r["cells_foam"] == r["cells"]
+    assert r["inlet_applied_err"] < 1e-8               # boundaryData at every step: exact
+    assert r["periods"] <= 4 and r["periodic_change"] < 1e-3
+    assert r["profile_max_all"] < 0.025                # 2.1 % of u_c measured
+    assert abs(r["dpdx_amplitude_err"]) < 0.01 and abs(r["dpdx_phase_deg"]) < 2
+    assert r["q_err_max"] < 1e-3
+    assert [round(p["t_over_T"], 2) for p in r["phases"]] == [0.09, 0.26, 0.42, 0.59, 0.76, 0.92]

@@ -15,6 +15,23 @@ decision 0003, option C (proposed).
 | OpenFOAM | Source | Status |
 |---|---|---|
 | v1912 (ESI/openfoam.com line), build patch 200626 | Debian `openfoam` 1912.200626-2build3 | Installed; hexmesh output converts, splits and passes `checkMesh` (task 0005, 2026-10-25, gmsh 4.12.1) |
+| v2406 (ESI line), build `_be01ca78-20240625` | Docker image `opencfd/openfoam-default:2406` | Default for new validation cases (decision 0012, toolchain), through `hexmesh.study.openfoam`'s runner (task 0067, 2026-10-30) |
+
+**Docker runner** (`set_runner("docker:opencfd/openfoam-default:2406")`
+or `HEXMESH_OPENFOAM`; task 0067, 2026-10-30, Docker image above):
+- each command runs in a fresh container, `--user $(id -u):$(id -g)`,
+  `HOME=/tmp`, the case (and for `convert`, the mesh's directory)
+  mounted at its own path; the image's environment is
+  `/usr/lib/openfoam/openfoam2406/etc/bashrc`.  Files come out owned by
+  the user.  *Verified*.
+- **Same mesh as v1912:** `gmshToFoam` + `apply_boundary_roles` +
+  `checkMesh` on a 6-`nang` pipe: 864 cells, max non-orthogonality
+  23.4527°, max skewness 0.422244 in both.  *Verified*.
+- **Shared machine:** solver processes in a container appear in the
+  host's `/proc` (`other_runs()` lists them).  *Verified* with a
+  `pimpleFoam`-named process in the container.
+- **`gmshToFoam` needs `system/controlDict`** in v2406 as in v1912;
+  write the dictionaries before converting.
 
 The utilities need the OpenFOAM environment:
 
@@ -334,6 +351,32 @@ All v1912, gmsh 4.12.1, 2026-10-25.
     region needs another OpenFOAM build.
   - Scripts: the coding session's scratchpad, `0035d/` (`make.py`,
     `cht2406.py`).
+- **`faceZones` format differs, v1912 vs v2406** (task 0067, 2026-10-30).
+  v1912 writes each zone name on its own line; v2406 opens the list on the
+  first name (`(planeA`) and adds a `meta { names … }` header entry.
+  `read_zone` accepts both.  *Verified* on both versions' `topoSet`
+  output.
+- **A time- and space-varying inlet without coded BCs works:
+  `timeVaryingMappedFixedValue`** (v2406, task 0067, 2026-10-30).
+  Python writes `constant/boundaryData/<patch>/points` (the inlet face
+  centres) and `…/<time>/U` (one vector per point), with `mapMethod
+  nearest`.  Written at **every solver time step**, the BC's linear
+  interpolation in time is exact at each step, and the applied face values
+  match the formula to 2e-10.  Used with `timeFormat fixed;
+  timePrecision 9` and the boundaryData times written at the same 9
+  digits.  It works in parallel after a plain `decomposePar`, with no
+  extra steps (same 2e-10).  *Verified* (Womersley, k1–k4, serial and 4
+  processes).
+- **A restart takes `deltaT` from `<time>/uniform/time`, not from
+  `controlDict`** (v2406, task 0067, 2026-10-30).  To restart at a
+  different Δt (a time-step study warm-started from a periodic state),
+  rewrite `deltaT` there.  `backward` then starts with the old-time
+  fields (`U_0`) at the old step (`deltaT0`), which it handles.
+  *Verified:* `steps_per_period` 960 from a 480-step state; Co 0.23.
+- **Open MPI counts physical cores, not threads.**  `mpirun -np 6` in
+  the v2406 image on this machine (4 cores, 8 threads) stops with "not
+  enough slots".  Use `-np` ≤ cores (or `--oversubscribe`).  *Verified*
+  2026-10-30.
 
 
 

@@ -10,10 +10,19 @@ Post-processing is in Python, from the ASCII case files: function objects
 v1912 here, and coded boundary conditions fail to compile
 (``docs/integrations/openfoam.md``).  Cases must be written with
 ``writeFormat ascii`` and ``writeCompression off`` for the readers.
+
+**Runner** (decision 0012's toolchain amendment): ``native`` sources
+``OPENFOAM_RC``; ``docker:<image>`` (e.g. ``docker:opencfd/openfoam-
+default:2406``) runs each command in a fresh container as the calling
+user, with the case mounted at its own path.  Pick it with
+``set_runner`` or the ``HEXMESH_OPENFOAM`` environment variable; record
+``runner()`` and ``openfoam_version()`` with every result.  One
+toolchain per case: conversion and solvers in the same runner.
 """
 
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 from pathlib import Path
@@ -21,6 +30,39 @@ from pathlib import Path
 import numpy as np
 
 OPENFOAM_RC = Path("/usr/share/openfoam/etc/bashrc")
+#: The image's environment, whatever its version directory.
+_DOCKER_RC = "for f in /usr/lib/openfoam/openfoam*/etc/bashrc; do source $f; done"
+#: The default for new validation cases (decision 0012, toolchain).
+V2406 = "docker:opencfd/openfoam-default:2406"
+
+_runner = os.environ.get("HEXMESH_OPENFOAM", "native")
+
+
+def set_runner(spec: str) -> None:
+    """``"native"`` or ``"docker:<image>"``."""
+    global _runner
+    if spec != "native" and not (spec.startswith("docker:") and len(spec) > 7):
+        raise ValueError(f"OpenFOAM runner {spec!r}: give 'native' or 'docker:<image>'")
+    _runner = spec
+
+
+def runner() -> str:
+    return _runner
+
+
+def _argv(cmd: str, cwd: Path, mounts=()) -> list[str]:
+    """The command line that runs *cmd* in *cwd* with the runner's
+    OpenFOAM environment.  Docker mounts *cwd* and *mounts* at their own
+    paths, so absolute paths in *cmd* still resolve."""
+    if _runner == "native":
+        return ["bash", "-c", f"source {OPENFOAM_RC} >/dev/null 2>&1; {cmd}"]
+    cwd = Path(cwd).resolve()
+    vols = []
+    for m in dict.fromkeys([cwd, *(Path(m).resolve() for m in mounts)]):
+        vols += ["-v", f"{m}:{m}"]
+    return ["docker", "run", "--rm", "--user", f"{os.getuid()}:{os.getgid()}",
+            "-e", "HOME=/tmp", *vols, "-w", str(cwd), "--entrypoint", "bash",
+            _runner[len("docker:"):], "-c", f"{_DOCKER_RC} >/dev/null 2>&1; {cmd}"]
 
 _NUM = r"[-+0-9.eE]+"
 
@@ -33,18 +75,21 @@ def header(cls: str, obj: str, location: str = "") -> str:
 
 
 def have_openfoam() -> bool:
-    if not OPENFOAM_RC.exists():
+    """Whether the selected runner has OpenFOAM (``gmshToFoam``)."""
+    if _runner == "native" and not OPENFOAM_RC.exists():
         return False
-    run = subprocess.run(["bash", "-c", f"source {OPENFOAM_RC} >/dev/null 2>&1; "
-                          "command -v gmshToFoam"], capture_output=True)
+    try:
+        run = subprocess.run(_argv("command -v gmshToFoam", Path.cwd()), capture_output=True)
+    except FileNotFoundError:          # no docker
+        return False
     return run.returncode == 0
 
 
-def foam(cmd: str, case: Path, log: str) -> str:
-    """Run *cmd* (a shell command) in *case* with the OpenFOAM environment;
-    write its output to ``case/log``; raise ``RuntimeError`` on failure."""
-    run = subprocess.run(["bash", "-c", f"source {OPENFOAM_RC} >/dev/null 2>&1; {cmd}"],
-                         cwd=case, capture_output=True, text=True)
+def foam(cmd: str, case: Path, log: str, mounts=()) -> str:
+    """Run *cmd* (a shell command) in *case* with the runner's OpenFOAM
+    environment; write its output to ``case/log``; raise ``RuntimeError``
+    on failure.  *mounts*: further directories a Docker runner needs."""
+    run = subprocess.run(_argv(cmd, case, mounts), cwd=case, capture_output=True, text=True)
     (case / log).write_text(run.stdout + run.stderr)
     if run.returncode != 0:
         raise RuntimeError(f"{cmd} failed in {case} (see {log}):\n{run.stdout[-3000:]}"
@@ -53,8 +98,7 @@ def foam(cmd: str, case: Path, log: str) -> str:
 
 
 def openfoam_version() -> str:
-    return subprocess.run(["bash", "-c", f"source {OPENFOAM_RC} >/dev/null 2>&1; "
-                           "echo $WM_PROJECT_VERSION"],
+    return subprocess.run(_argv("echo $WM_PROJECT_VERSION", Path.cwd()),
                           capture_output=True, text=True).stdout.strip()
 
 
@@ -69,7 +113,7 @@ def convert(case: Path, msh: Path, split_regions: bool = False) -> list[str]:
         apply_boundary_roles, apply_boundary_roles_to_regions, roles_path,
     )
     msh = Path(msh)
-    foam(f"gmshToFoam {msh.resolve()}", case, "log.gmshToFoam")
+    foam(f"gmshToFoam {msh.resolve()}", case, "log.gmshToFoam", mounts=[msh.resolve().parent])
     if split_regions:
         foam("splitMeshRegions -cellZones -overwrite", case, "log.splitMeshRegions")
         done = apply_boundary_roles_to_regions(case, roles_path(msh))
@@ -129,7 +173,9 @@ def read_labels(path: Path):
 
 def read_zone(path: Path, name: str):
     text = _strip_header(path.read_text())
-    i = re.search(rf"^{name}\s*\{{", text, re.M).end()
+    # v1912 puts each name on its own line; v2406 opens the list on the
+    # first one, "(planeA"
+    i = re.search(rf"^\(?{name}\s*\{{", text, re.M).end()
     _, body = _list_body(text, text.index("faceLabels", i))
     return np.array(body.split(), int)
 

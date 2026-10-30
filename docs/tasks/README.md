@@ -76,7 +76,7 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0064](0064-pcf-reader-robustness.md) | PCF reader robustness: annotations, unknown inline components, several networks | ready | 0023 |
 | [0065](0065-network-model-and-builder.md) | Network interchange 1a: the network model, and the builder out of `pcf.py` | ready (after 0064) | 0032 |
 | [0066](0066-network-model-operations.md) | Network interchange 1b: select, cut, join, merge, and the public API | ready (after 0065) | 0032 |
-| [0067](0067-validation-womersley.md) | Validation: Womersley flow (pulsatile laminar pipe flow, exact solution) | ready (after 0032's Re 500) | 0012, 0015 |
+| [0067](0067-validation-womersley.md) | Validation: Womersley flow (pulsatile laminar pipe flow, exact solution) | done | 0012, 0015 |
 | [0068](0068-validation-pulsatile-stenosis.md) | Validation: pulsatile flow through the cosine stenosis (Varghese et al., Part 2) | ready (after 0067, 0032) | 0012, 0015 |
 | [0069](0069-duct-tap-pillow-prototype.md) | Prototype: duct tap with a pillowed ring (hole on the wall) | done (Q1 answered: B adopted, decision 0033) | 0033 |
 | [0070](0070-duct-tap-merge-into-tee.md) | Duct taps: the pillowed tap in `Tee` | done | 0033, 0027 |

@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "title": "Womersley flow (pulsatile laminar pipe flow)",
+  "category": "V1",
+  "references": [
+    {
+      "source": "exact: Womersley profile and pressure gradient, the inlet of varghese_and_frankel_etal_2007b eq. 2.1 (α 7.5, A 0.667, Re 600)",
+      "role": "primary"
+    },
+    {
+      "key": "varghese_and_frankel_etal_2007b",
+      "source": "inlet waveform and phases t/T = 0.09 + k/6",
+      "role": "secondary"
+    }
+  ],
+  "tags": {
+    "regime": [
+      "laminar",
+      "transient"
+    ],
+    "physics": [
+      "flow"
+    ],
+    "features": [
+      "section:circle",
+      "straight"
+    ],
+    "toolchain": {
+      "openfoam": "v2406",
+      "runner": "docker"
+    }
+  },
+  "status": "accepted",
+  "task": "0067",
+  "gates": [
+    {
+      "quantity": "max profile error, finest level, every phase",
+      "limit": "≤ 1 % of u_c; extrapolated within 0.3 %"
+    },
+    {
+      "quantity": "axial pressure gradient, finest level",
+      "limit": "amplitude within 1 %, phase within 2°"
+    },
+    {
+      "quantity": "time-step study",
+      "limit": "time error below space error at the finest level (or the split reported)"
+    },
+    {
+      "quantity": "periodicity",
+      "limit": "phase values change < 0.1 % between periods; periods reported"
+    }
+  ]
+}
