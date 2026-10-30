@@ -35,6 +35,7 @@ What each example shows, what its mesh looks like, and how good the cells are.  
 | [lagged_duct](#lagged_duct) | Lagged duct: a rectangular air duct with a steel wall and lagging, through a reducer and bends both ways. | 10 488 | 0.025 | 0.690 | 5.3 s |
 | [insulated_transition](#insulated_transition) | Insulated transition: an insulated round pipe becomes an insulated duct, turns, and the insulation stops. | 9 036 | 0.050 | 0.689 | 6.5 s |
 | [insulated_tee](#insulated_tee) | Insulated tee: a three-layer header with a side branch, the steel and the insulation running through the junction into the branch. | 13 164 | 0.107 | 0.316 | 7.2 s |
+| [insulated_network](#insulated_network) | Insulated network: a three-layer header with a tee and a wye, the steel and the insulation running through both junctions, and one branch left bare. | 18 012 | 0.059 | 0.156 | 9.0 s |
 | **Networks: composing fittings into routes, branches and trees** | | | | | |
 | [pipe_network](#pipe_network) | Branched network built as a graph: a header with two side taps, each pointing a different way. | 11 496 | 0.189 | 0.316 | 2.9 s |
 | [pipe_rack](#pipe_rack) | 3-D pipe route mixing every sweep fitting: elbow, riser, segmented miter, spline offset, reducer and a rolled bend. | 13 872 | 0.100 | 0.766 | 6.4 s |
@@ -550,6 +551,37 @@ python3 -m hexmesh.examples.sections.insulated_tee
 - **Interfaces:** `interface_fluid_steel`, `interface_steel_insulation`
 - **Colours:** fluid blue, steel orange, insulation green; walls grey.
 
+### insulated_network
+
+**Insulated network: a three-layer header with a tee and a wye, the steel and the insulation running through both junctions, and one branch left bare.**
+
+<p><img src="gallery/img/insulated_network.png" width="68%" alt="insulated_network"> <img src="gallery/img/insulated_network_section.png" width="29%" alt="insulated_network, inlet section"></p>
+
+Junctions carry the whole layer stack (decision 0028): the tee's branch
+copies the header's shells, and the wye's daughters keep the header's
+spec, so every `interface_*` group is one conformal sheet through the
+network.  The tee's branch is bare beyond its first cell: its straight's
+`stack_changes` drops the insulation, and the annulus where it stops is
+`insulation_end` (decision 0006).  That is where the PCF reader places a
+bare leg's switch too (task 0054).
+
+Junction shells have limits, checked before GMSH (`API.md`): a wye with
+shells needs 40° or more, and its total shell thickness at most
+R · min(0.65 tan(angle/2), 0.55), 0.375 R at 60°; here 0.31 R.
+
+```bash
+python3 -m hexmesh.examples.sections.insulated_network
+```
+
+| Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
+|---|---|---|---|---|---|---|---|
+| 7: Straight ×5, Tee, Wye | 211 | 18 012 | 0.059 | 0.439 | 0.156 (#4 Wye) | 25.0 | 9.0 s |
+
+- **Open ends:** `fluid_inlet`, `fluid_left`, `fluid_right`, `fluid_tap`, `insulation_inlet`, `insulation_left`, `insulation_right`, `steel_inlet`, `steel_left`, `steel_right`, `steel_tap`
+- **Walls:** `insulation_end`, `insulation_wall`, `steel_wall`
+- **Interfaces:** `interface_fluid_steel`, `interface_steel_insulation`
+- **Colours:** fluid blue, steel orange, insulation green; walls grey.
+
 ## Networks: composing fittings into routes, branches and trees
 
 Fittings join conformally whatever their order, so a network is a
@@ -802,17 +834,23 @@ Case: [validation/layered_conduction/README.md](../validation/layered_conduction
 
 Case: [validation/poiseuille/README.md](../validation/poiseuille/README.md); results: [RESULTS.md](../validation/poiseuille/RESULTS.md).
 
+### smooth cosine constriction, Re = 500
+
+**Status:** accepted (task 0032, gates of decision 0012 as revised in the task)
+
+Case: [validation/stenosis/README.md](../validation/stenosis/README.md); results: [RESULTS.md](../validation/stenosis/RESULTS.md).
+
 ### Planned
 
 | Task | Status |
 |---|---|
-| [0032 — Validation: smooth cosine constriction (Varghese et al.), Re = 500](tasks/0032-validation-stenosis.md) | ready (after 0031 and 0020's re-run) |
 | [0033 — Validation: solid rod with uniform heat generation (O-H core, pure diffusion)](tasks/0033-validation-heated-rod.md) | done |
 | [0034 — Validation: conduction through a heated, multi-layer cylinder (CHT, solids only)](tasks/0034-validation-layered-conduction.md) | done |
-| [0035 — Validation: heated multi-layer pipe with laminar flow (full CHT)](tasks/0035-validation-heated-pipe-cht.md) | ready (after 0034) |
+| [0035 — Validation: heated multi-layer pipe with laminar flow (full CHT)](tasks/0035-validation-heated-pipe-cht.md) | ready (design answered Q2 2026-10-30: v2406 in Docker for new cases) |
 | [0049 — Validation: fully developed turbulent pipe flow (RANS, k-ω SST)](tasks/0049-validation-turbulent-pipe.md) | ready (after 0043) |
 | [0050 — Validation: turbulent flow in a 90° bend (Sudo et al. 1998)](tasks/0050-validation-turbulent-bend.md) | ready (after 0049) |
+| [0067 — Validation: Womersley flow (pulsatile laminar pipe flow, exact solution)](tasks/0067-validation-womersley.md) | ready (after 0032's Re 500 level is done: same machine time) |
 
 ---
 
-Generated 2026-10-29 from hexmesh 5f12e1e + uncommitted changes, gmsh 4.12.1, Python 3.12.3, 8 CPUs, 1 job(s).
+Generated 2026-10-30 from hexmesh eb8f72a + uncommitted changes, gmsh 4.12.1, Python 3.12.3, 8 CPUs, 1 job(s).

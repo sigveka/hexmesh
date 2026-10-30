@@ -411,7 +411,8 @@ def test_spool_set_on_meshes_on_single_layer_spec(tmp_path):
     single = PipeSpec(nang=4).core("fluid", CircleShape(radius=0.05, nang=4), nrad=3)
     asm = net.to_assembly(single)
     tee, = [e for e in asm.edges if isinstance(e.fitting, Tee)]
-    assert tee.fitting.run_length == pytest.approx(1 * INCH)     # the branch bore
+    # the Tee's default run (task 0054): r + T + 0.5 R, here 0.0125 + 0.025
+    assert tee.fitting.run_length == pytest.approx(0.0375)
     np.testing.assert_allclose(tee.ports[2].frame.position,
                                np.array([3, 46.0625, 70]) * INCH, atol=1e-9)
     assert [a for _, a in net.report["joints"]] == ["absorbed"] * 4
@@ -421,14 +422,21 @@ def test_spool_set_on_meshes_on_single_layer_spec(tmp_path):
         assert sum(len(t) for t in gmsh.model.mesh.getElements(3)[1]) == predicted
 
 
-def test_spool_set_on_rejected_on_layered_spec(tmp_path):
-    """A set-on tee's run is the branch bore each side (task 0037): too short
-    for the wall's slab, which inverts.  Rejected before GMSH (task 0052,
-    Questions for design)."""
+def test_spool_set_on_on_layered_spec(tmp_path):
+    """A set-on tee's run was the branch bore each side (task 0037), too
+    short for the wall's slab (task 0052).  It is now the Tee's default
+    (task 0054): past the reject tier.  The branch ratio (0.25) still
+    keeps it below PREDICTED_SJ_WARN at any run, so it warns."""
+    from hexmesh.assembly import Tee
     net = _read_spool(tmp_path, SPOOL)
     asm = net.to_assembly(_spec(0.05))
-    with pytest.raises(AssemblyError, match=r"Tee.*below PREDICTED_SJ_MIN 0\.1; run_length 0\.0385 or more"):
+    with pytest.warns(UserWarning, match=r"below PREDICTED_SJ_WARN 0\.3; no run_length "
+                      r"reaches it: the branch ratio r/R 0\.25"):
         asm.validate()
+    tee, = [e for e in asm.edges if isinstance(e.fitting, Tee)]
+    assert tee.fitting.run_length > 1 * INCH
+    np.testing.assert_allclose(tee.ports[2].frame.position,
+                               np.array([3, 46.0625, 70]) * INCH, atol=1e-9)
     assert not gmsh.isInitialized()
 
 

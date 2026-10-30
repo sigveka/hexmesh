@@ -190,11 +190,47 @@ TEE
     CENTRE-POINT 1100 0 0
     BRANCH1-POINT 1100 300 0 50
     INSULATION ON
+PIPE
+    END-POINT 1200 0 0 100
+    END-POINT 2000 0 0 100
+    INSULATION ON
+PIPE
+    END-POINT 1100 300 0 50
+    END-POINT 1100 900 0 50
+    INSULATION OFF
 """
 
 
+def _groups():
+    return {gmsh.model.getPhysicalName(d, t) for d, t in gmsh.model.getPhysicalGroups()}
+
+
+def test_insulated_tee(tmp_path):
+    """Insulation runs through a tee (task 0054): the tee is three-layer,
+    its insulation continuous with the main's; the branch, bare in the
+    PCF, ends it one cell into its first straight (``insulation_end``)."""
+    from hexmesh.assembly import Tee
+    asm = _read(tmp_path, INSULATED_TEE).to_assembly(_steel(), axial_cell=0.05,
+                                                      insulation=True)
+    tee, = [e for e in asm.edges if isinstance(e.fitting, Tee)]
+    assert tee.ports[0].spec.layer_names == ["fluid", "steel", "insulation"]
+    assert tee.ports[2].spec.layer_names == ["fluid", "steel", "insulation"]
+    branch, = [e for e in asm.edges if e.ports[0] is tee.ports[2]]   # the bare leg
+    assert isinstance(branch.fitting, Straight)
+    changes = branch.fitting.stack_changes
+    assert len(changes) == 1 and changes[0][0] == 1
+    assert changes[0][1].layer_names == ["fluid", "steel"]
+    predicted = asm.cell_count()
+    with Session("tee"):
+        asm.mesh()
+        assert sum(len(t) for t in gmsh.model.mesh.getElements(3)[1]) == predicted
+        names = _groups()
+        assert {"insulation", "interface_steel_insulation", "insulation_wall",
+                "insulation_end"} <= names, names
+        assert asm.check_quality().ok
+
+
 @pytest.mark.parametrize("text, match", [
-    (INSULATED_TEE, r"component 1 \(TEE TEE_1.*insulated junction"),
     (VALVE_LINE.replace("    INSULATION-THICKNESS 50\n", ""),
      r"pipeline 'L-1'.*component 0 \(PIPE PIPE_1.*no INSULATION-THICKNESS"),
     (HEADER + """\
@@ -233,7 +269,18 @@ PIPELINE-REFERENCE L-1
     END-POINT 1300 0 0 100
     INSULATION ON
 """), r"insulation thickness changes from 0.03 m to 0.05 m"),
-], ids=["insulated-tee", "no-thickness", "no-straight", "thickness-change"])
+    (INSULATED_TEE.replace("""PIPE
+    END-POINT 1100 300 0 50
+    END-POINT 1100 900 0 50
+    INSULATION OFF
+""", """PIPELINE-REFERENCE L-2
+    INSULATION-THICKNESS 30
+PIPE
+    END-POINT 1100 300 0 50
+    END-POINT 1100 900 0 50
+    INSULATION ON
+"""), r"PIPE PIPE_3.*insulation thickness changes from 0\.02 m to 0\.03 m"),
+], ids=["no-thickness", "no-straight", "thickness-change", "branch-thickness"])
 def test_insulation_errors_name_the_component(tmp_path, text, match):
     with pytest.raises(AssemblyError, match=match):
         _read(tmp_path, text).to_assembly(_steel() if "TEE" not in text else _single(),

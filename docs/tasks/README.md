@@ -63,7 +63,7 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0051](0051-exact-junction-walls.md) | Exact junction walls (tee and wye) | done | 0028, 0029 |
 | [0052](0052-multi-layer-tee.md) | Multi-layer tee: shells as offset levels of the junction | done | 0028 |
 | [0053](0053-multi-layer-wye.md) | Multi-layer wye: shells as offset level sets | done | 0028 |
-| [0054](0054-insulated-junctions-end-to-end.md) | Insulated junctions end to end: PCF, example, docs | ready (after 0052, 0053) | 0028, 0023 |
+| [0054](0054-insulated-junctions-end-to-end.md) | Insulated junctions end to end: PCF, example, docs | done | 0028, 0023 |
 | [0055](0055-cosine-bulge.md) | Cosine profile bulges: `("cosine", s0)` with s0 ≤ 0 | done | 0008 |
 | [0056](0056-projection-limits-and-wye-axial-counts.md) | Projection follow-ups: inversion check, move warning, wye axial counts | done | 0029 |
 | [0057](0057-duct-tee-rectangular-tap.md) | Duct tee: rectangular straight tap on a rectangular duct | blocked (Q1: the pipe tee's layout doesn't port to taps narrower than the duct) | 0027 |

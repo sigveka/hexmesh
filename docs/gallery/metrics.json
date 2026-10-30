@@ -1,7 +1,7 @@
 {
  "meta": {
-  "date": "2026-10-29",
-  "commit": "5f12e1e + uncommitted changes",
+  "date": "2026-10-30",
+  "commit": "eb8f72a + uncommitted changes",
   "gmsh": "4.12.1",
   "python": "3.12.3",
   "cpus": 8,
@@ -990,6 +990,57 @@
    "predicted": 13164,
    "meshed": 13164,
    "build_s": 7.23
+  },
+  "sections.insulated_network": {
+   "fittings": 7,
+   "fitting_types": {
+    "Straight": 5,
+    "Tee": 1,
+    "Wye": 1
+   },
+   "volumes": 211,
+   "materials": [
+    "fluid",
+    "steel",
+    "insulation"
+   ],
+   "min_sicn": 0.05872629180967923,
+   "mean_sicn": 0.43915464388757974,
+   "min_sj": 0.1564439262035709,
+   "min_sj_fitting": "#4 Wye",
+   "max_aspect": 25.00000000000335,
+   "groups": {
+    "open_end": [
+     "fluid_inlet",
+     "fluid_left",
+     "fluid_right",
+     "fluid_tap",
+     "insulation_inlet",
+     "insulation_left",
+     "insulation_right",
+     "steel_inlet",
+     "steel_left",
+     "steel_right",
+     "steel_tap"
+    ],
+    "wall": [
+     "insulation_end",
+     "insulation_wall",
+     "steel_wall"
+    ],
+    "interface": [
+     "interface_fluid_steel",
+     "interface_steel_insulation"
+    ],
+    "volume": [
+     "fluid",
+     "insulation",
+     "steel"
+    ]
+   },
+   "predicted": 18012,
+   "meshed": 18012,
+   "build_s": 9.02
   }
  },
  "validation": {

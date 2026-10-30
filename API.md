@@ -740,9 +740,9 @@ one network: components in list order, each file with its own units.
 | concentric reducer | `Reducer` |
 | eccentric reducer | rejected |
 | `TEE` | `Tee`: run from the two `END-POINT`s, branch `CENTRE-POINT` → `BRANCH1-POINT`, its radius from the branch bore (`spec(bore)`, or the main radius × bore ratio) |
-| `TEE-SET-ON`, `TEE-STUB`, `OLET` | the host `PIPE` through `CENTRE-POINT` is split: straight + `Tee` + straight.  The tee's run is the branch's nominal bore on each side of `CENTRE-POINT`; a host too short for it is rejected |
+| `TEE-SET-ON`, `TEE-STUB`, `OLET` | the host `PIPE` through `CENTRE-POINT` is split: straight + `Tee` + straight.  The tee's run on each side of `CENTRE-POINT` is the `Tee`'s own default (`run_length=None`: r + T + R/2, or longer to reach `PREDICTED_SJ_WARN`; task 0054), from the spec's radii and shells; a host too short for it is rejected, naming the length needed |
 | `Y-PIECE-FABRICATED` | its stem `PIPE` (ending at `CENTRE-POINT`) is cut back by the `Wye`'s inlet run, r·(tan h + 0.6) with r the nominal radius, h half the angle; then `Wye`, `BRANCH1-POINT` as the right daughter |
-| rejected, naming the component and the limit | crosses, `Y-PIECE-FITTING`, tangential / offset set-ons (`TTSO`, `TTRF`, `TOSO`, `TORF`), equal tees, branches not perpendicular, asymmetric or non-coplanar Y pieces, daughters of another size, layered specs (the junction prototypes' limits) |
+| rejected, naming the component and the limit | crosses, `Y-PIECE-FITTING`, tangential / offset set-ons (`TTSO`, `TTRF`, `TOSO`, `TORF`), equal tees, branches not perpendicular, asymmetric or non-coplanar Y pieces, daughters of another size, and the junctions' own limits (a wye's shell thickness and angle, a tee's predicted quality) |
 | joint | absorbed: the preceding straight run is extended over it, or else the following one starts at it; dropped at an open end next to a non-straight fitting; rejected between two non-straight fittings |
 
 **Parameters**
@@ -767,8 +767,12 @@ stops, the change sits one cell inside the straight component next to it,
 the bare one when both are straight: a bare valve between insulated pipes
 gets insulation one cell in at each side.  A straight whose two ends
 differ switches at its middle.  Each switch is an `insulation_end` wall.
-Rejected, naming the component or pipeline: an insulated junction
-(not yet read through a junction: task 0054), a switch with no straight neighbour, a
+
+A junction with any insulated leg is insulated throughout: the `Tee` or
+`Wye` carries the shell (task 0054), and a bare leg ends it one cell into
+its first straight.  The runs into the junction get the shell before it.
+Rejected, naming the component or pipeline: a junction whose legs have
+two insulation thicknesses, a switch with no straight neighbour, a
 thickness change between two insulated components, an insulated pipeline
 without `INSULATION-THICKNESS`, and a spec that already has an
 `insulation` shell.

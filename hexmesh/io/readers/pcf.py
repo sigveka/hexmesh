@@ -162,7 +162,7 @@ class ComponentSpec:
     end_insulation: tuple = (None, None)    # INSULATION-ON/-SINGLE → "ON", -OFF → "OFF"
     branch_insulation: tuple = (None, None) # on BRANCH1-POINT / BRANCH2-POINT
     ins: tuple = (0.0, 0.0)     # insulation thickness at (start, end), m (to_assembly)
-    ins_junction: bool = False  # a junction with any insulated leg (to_assembly)
+    ins_junction: float = 0.0   # insulation through a junction, m; 0 bare (to_assembly)
 
 
 @dataclass
@@ -780,13 +780,20 @@ def _radius(spec) -> float:
     return spec.core_shape.radius
 
 
-def _split_hosts(comps, labels, tol):
+def _branch_radius(spec, R: float, branch_bore: float, main_bore: float) -> float:
+    """A tee branch's radius: the spec's for its bore, or *R* scaled like a
+    Reducer when the spec is fixed."""
+    return _radius(spec(branch_bore)) if callable(spec) else R * branch_bore / main_bore
+
+
+def _split_hosts(comps, labels, tol, seton_run):
     """Replace each set-on and Y piece by a ``tee`` / ``wye`` with explicit
-    ports, splitting its host pipe (pure).  The split is set from nominal
-    sizes, not the spec, so it is the same for every spec: a set-on's run
-    is its branch's nominal bore (a diameter) each side of CENTRE-POINT; a
-    Y piece's inlet run is ``r·(tan h + margin + 0.5)``, ``r`` the stem's
-    nominal radius and ``h`` half the daughters' angle."""
+    ports, splitting its host pipe (pure).  A set-on's run each side of
+    CENTRE-POINT is ``seton_run(set-on, host, thickness)``: the Tee's own
+    default (``Tee(run_length=None)``, task 0054), set by the geometry
+    alone, so the same for any density.  A Y piece's inlet run is
+    ``r·(tan h + margin + 0.5)``, ``r`` the stem's nominal radius and ``h``
+    half the daughters' angle."""
     from ...assembly import AssemblyError
     from ...assembly.wye import _IN_MARGIN
     comps, labels = list(comps), list(labels)
@@ -823,15 +830,15 @@ def _split_hosts(comps, labels, tol):
             axis = (host.end - host.start) / L
             if not j_c.branch_bore:
                 raise AssemblyError(f"{what}: needs a size on BRANCH1-POINT")
-            run = j_c.branch_bore              # the branch diameter
+            t_j = _junction_thickness([j_c.ins_junction, *host.ins], what)
+            run = seton_run(j_c, host, t_j)
             if t - run <= tol or t + run >= L - tol:
                 raise AssemblyError(
                     f"{what}: host pipe {labels[h]} is too short around the branch; "
                     f"the tee needs {run:.4g} m on each side of CENTRE-POINT")
             a, b = c - run * axis, c + run * axis
             tee = ComponentSpec(**{**j_c.__dict__, "kind": "tee", "start": a, "end": b,
-                                   "bore": host.bore,
-                                   "ins_junction": j_c.ins_junction or max(host.ins) > 0})
+                                   "bore": host.bore, "ins_junction": t_j})
             pieces = [ComponentSpec(**{**host.__dict__, "start": host.start.copy(), "end": a,
                                        "ins": (host.ins[0],) * 2}),
                       tee,
@@ -858,7 +865,8 @@ def _split_hosts(comps, labels, tol):
             a = c - run * n
             wye = ComponentSpec(**{**j_c.__dict__, "kind": "wye", "start": a, "end": a,
                                    "bore": host.bore,
-                                   "ins_junction": j_c.ins_junction or max(host.ins) > 0})
+                                   "ins_junction": _junction_thickness(
+                                       [j_c.ins_junction, *host.ins], what)})
             stem = ComponentSpec(**{**host.__dict__, "start": far.copy(), "end": a})
             pieces, names = [stem, wye], [labels[h], labels[i]]
         # the pieces take the host's place in file order; the junction's
@@ -1070,8 +1078,21 @@ def _resolve_insulation(net: NetworkSpec, labels: list[str]) -> None:
         own = c.insulation
         c.ins = tuple(thick(e or own) for e in c.end_insulation)
         legs = [own] + [b or own for b in c.branch_insulation]
-        c.ins_junction = c.kind in ("tee", "seton", "ypiece") and any(
-            thick(x) > 0 for x in legs + [e or own for e in c.end_insulation])
+        c.ins_junction = (_junction_thickness(
+            [thick(x) for x in legs + [e or own for e in c.end_insulation]],
+            _describe(c, label)) if c.kind in ("tee", "seton", "ypiece") else 0.0)
+
+
+def _junction_thickness(ts, what: str) -> float:
+    """The insulation thickness through a junction: that of its insulated
+    legs (0 if none).  The insulation runs through the junction (task 0054);
+    a bare leg ends it one cell into its first straight."""
+    from ...assembly import AssemblyError
+    found = sorted({t for t in ts if t > 0})
+    if len(found) > 1:
+        raise AssemblyError(f"{what}: its legs have insulation {found[0]:.4g} m and "
+                            f"{found[-1]:.4g} m; a junction carries one thickness")
+    return found[0] if found else 0.0
 
 
 def _dressed(spec, t: float, nrad: int):
@@ -1098,7 +1119,8 @@ def _plan_insulation(comps, labels, t_in, to_junction, tol):
     """Insulation switches along a run of oriented two-port components.
 
     *t_in* is the thickness of the interface the run starts from;
-    *to_junction* says the run ends at a (bare) junction.  Returns, per
+    *to_junction* is the thickness of the junction the run ends at (None:
+    an open end).  Returns, per
     component, ``(t_inlet, t_outlet, cell_pattern)``: the thickness at its
     ports and, for a straight that hosts a switch, the per-cell thickness
     as ``(first, middle_in, middle_out, last)``.  A switch sits one cell
@@ -1141,8 +1163,8 @@ def _plan_insulation(comps, labels, t_in, to_junction, tol):
     host(None, 0, t_in, a[0], "its inlet")
     for k in range(n - 1):
         host(k, k + 1, b[k], a[k + 1], f"its joint with {labels[k + 1]}")
-    if to_junction:
-        host(n - 1, None, b[-1], 0.0, "the junction after it")
+    if to_junction is not None:
+        host(n - 1, None, b[-1], to_junction, "the junction after it")
     return [(port_in[k], port_out[k], (port_in[k], a[k], b[k], port_out[k]))
             for k in range(n)]
 
@@ -1250,11 +1272,25 @@ def _build_assembly(net: NetworkSpec, spec, axial_cell, kinks, tol, lc, inlet=No
         _resolve_insulation(net, labels)
     else:
         for c in net.components:
-            c.ins, c.ins_junction = (0.0, 0.0), False
+            c.ins, c.ins_junction = (0.0, 0.0), 0.0
+
+    def seton_run(j_c, host, t_j):
+        """The Tee's default run for a set-on on *host* (task 0054)."""
+        from ...assembly import Tee
+        from ...assembly.interface import Frame
+        base = spec(host.bore) if callable(spec) else spec
+        main = _dressed(base, t_j, insulation_nrad) if insulation else base
+        R = _radius(main)
+        rb = _branch_radius(spec, R, j_c.branch_bore, host.bore)
+        if not rb < R:             # the junction rejects it, naming the radii
+            return j_c.branch_bore
+        tee = Tee(None, 10 * R, rb).resolve(
+            Frame(np.zeros(3), np.array([1.0, 0, 0]), np.array([0, 0, 1.0])), main)
+        return tee.run_length
 
     comps, labels = _split_hosts(
         [ComponentSpec(**{**c.__dict__, "start": c.start.copy(), "end": c.end.copy()})
-         for c in net.components], labels, tol)
+         for c in net.components], labels, tol, seton_run)
     joints = [c for c in comps if c.kind == "joint"]
     parts = [_Part(c, l, _ports(c)) for c, l in zip(comps, labels) if c.kind != "joint"]
     if not parts:
@@ -1289,7 +1325,7 @@ def _place(net, parts, nodes, at_node, names, root, spec, axial_cell, kinks, tol
     first = _orient(parts[k0].comp, q0)
     current = base = spec(first.bore) if callable(spec) else spec
     if ins["on"]:
-        t0 = 0.0 if first.kind in ("tee", "wye") else first.ins[0]
+        t0 = first.ins_junction if first.kind in ("tee", "wye") else first.ins[0]
         current = _dressed(current, t0, ins["nrad"])
     d0 = (_unit(first.end - first.start) if first.kind == "tee"
           else _unit(first.centre - first.start) if first.kind == "wye"
@@ -1332,10 +1368,11 @@ def _place(net, parts, nodes, at_node, names, root, spec, axial_cell, kinks, tol
         c = _orient(p.comp, q)
         what = _describe(p.comp, p.label)
         frame = iface.frame
-        if c.ins_junction:
-            raise AssemblyError(f"{what}: insulated junction; the reader can't "
-                                f"carry insulation through a junction yet (task 0054), "
-                                f"so insulation must stop before it")
+        if ins["on"] and abs(_thickness(iface.spec) - c.ins_junction) > 1e-12:
+            raise AssemblyError(
+                f"{what}: arrives with insulation {_thickness(iface.spec):.4g} m but "
+                f"carries {c.ins_junction:.4g} m, and no straight component before "
+                f"it can hold the change")
         check(what, frame, c.start)
         centre = c.centre
         axis = _unit(centre - c.start)
@@ -1356,8 +1393,7 @@ def _place(net, parts, nodes, at_node, names, root, spec, axial_cell, kinks, tol
             if not (c.branch_bore and main_bore):
                 raise AssemblyError(f"{what}: needs sizes on its run and branch points")
             R = _radius(iface.spec)
-            rb = (_radius(spec(c.branch_bore)) if callable(spec)
-                  else R * c.branch_bore / main_bore)        # scaled like a Reducer
+            rb = _branch_radius(spec, R, c.branch_bore, main_bore)
             if not rb < R:
                 raise AssemblyError(f"{what}: equal tees are not supported (branch "
                                     f"radius {rb:.4g} must be below the main radius "
@@ -1411,7 +1447,8 @@ def _place(net, parts, nodes, at_node, names, root, spec, axial_cell, kinks, tol
         if jn is not None:
             jc = _orient(parts[jn[0]].comp, jn[1])
             end_dir = _unit(jc.centre - jc.start)
-        iface = _place_chain(asm, iface, chain, end_dir, spec, kinks, tol, ins, jn is not None,
+        to_junction = None if jn is None else _orient(parts[jn[0]].comp, jn[1]).ins_junction
+        iface = _place_chain(asm, iface, chain, end_dir, spec, kinks, tol, ins, to_junction,
                              report, net.coord_scale)
         if jn is None:
             end_of(iface, end_node)

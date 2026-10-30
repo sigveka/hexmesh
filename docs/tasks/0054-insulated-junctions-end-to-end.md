@@ -1,6 +1,6 @@
 # 0054 — Insulated junctions end to end: PCF, example, docs
 
-- **Status:** ready (after 0052, 0053)
+- **Status:** done
 - **Decision:** [0028 — Multi-layer junctions](../decisions/0028-multi-layer-junctions.md); PCF rule from [0023](../decisions/0023-pcf-branched-networks-insulation-equipment.md)
 - **Depends on:** 0052, 0053 (and their limits answered by design).
 
@@ -40,7 +40,33 @@ limitations, `API.md`.
 
 ## Agent notes
 
-_None yet._
+**2026-10-30.**
+- **PCF reader:**
+  - `ComponentSpec.ins_junction` is now the junction's insulation
+    thickness (0 bare), not a flag.  Legs with two thicknesses are an
+    error naming the junction.
+  - A run into a junction plans its switches to end at that thickness
+    (`_plan_insulation`'s `to_junction` is a thickness).  A run leaving
+    it starts from the junction's port spec, so the existing rule puts a
+    bare leg's switch one cell into its first straight; no new
+    placement code.
+  - A junction reached with another thickness (junction straight after
+    junction, or the inlet) is rejected, naming it.
+- **Set-on run** (design's note): `_split_hosts` takes the run from
+  `Tee(run_length=None).resolve(...)` on the host's spec, dressed with
+  the junction's insulation.  It depends on radii and shells only (the
+  layout's corner SJ doesn't depend on densities), so a refined spec
+  gives the same split.  The spool's set-on goes from 1" (0.0254) to
+  0.0375 single-layer and 0.0475 with a wall.  The layered spool, once
+  rejected (SJ < 0.1), now validates.  It still warns, because its
+  branch ratio 0.25 keeps the SJ under 0.3 at any run.
+- **Example** `sections.insulated_network`:
+  - three-layer header (fluid, steel 6 mm, insulation 25 mm, R 0.1),
+    tee (r 0.06, run resolved 0.141), 60° wye;
+  - the tee's branch is bare from cell 1 via `stack_changes`;
+  - 18 012 cells (= predicted), min SICN 0.059, no warnings, about 9 s;
+  - gallery entry generated.
+- **DESIGN rows (step 4)** are under *Outcome*.
 
 **Note from design (2026-10-29, task 0052 Q1):** a PCF set-on tee with a
 wall inverts at the PCF's run of about 2r.  The reader takes the Tee's
@@ -55,4 +81,36 @@ _None._
 
 ## Outcome
 
-_Not done._
+**Done (2026-10-30).**
+- **Files:**
+  - `hexmesh/io/readers/pcf.py`;
+  - `hexmesh/examples/sections/insulated_network.py`, listed in
+    `examples/__init__.py`;
+  - tests: `test_pcf_insulation_equipment.py`, `test_io_readers.py`;
+  - docs: `API.md`, `README.md`, `docs/integrations/pcf.md`;
+  - gallery: `docs/GALLERY.md`, `metrics.json`, two images.
+- **Tests:**
+  - New `test_insulated_tee`: the fixture is extended with an insulated
+    main pipe and a bare branch pipe.  It checks a three-layer tee, the
+    branch's switch at cell 1, meshed = predicted, the
+    `interface_steel_insulation`, `insulation_wall` and `insulation_end`
+    groups, and quality ok.
+  - New rejection case: a branch pipe on another pipeline with a
+    different thickness, named.
+  - The old "insulated junction" rejection is removed.
+  - The spool set-on tests are updated for the new run.
+- **Suite:** 1978 passed, 14 skipped, 1 failed.  The failure was my
+  new layered-spool test, which expected no warning; the branch-ratio
+  warning is correct, so the test now expects it.  The file re-ran 31
+  passed.
+- **DESIGN rows (for design):**
+  - No row closes because of this task.  The Tee row stays
+    (perpendicular, centred), and the wye's shell limits never had a
+    row.
+  - Rows 1–8 of "Current deviations" name legacy files deleted in task
+    0017 (`straight.py`, `bend.py`, `y_block.py`, `junction.py`,
+    `model.py`, `network.py`, `connect()`, `_connect_layer`).  A grep of
+    `hexmesh/` finds none of their practices left (`occ.fragment`,
+    `removeDuplicateNodes`, extrude/revolve fills, `connect(`), so they
+    look closable.
+

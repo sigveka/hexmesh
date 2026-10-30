@@ -516,7 +516,8 @@ With `insulation=True`, components marked `INSULATION ON` get an
 `insulation` shell of the pipeline's `INSULATION-THICKNESS`.  Where it
 stops or starts (a bare valve or flange), the change sits one cell inside
 the neighbouring straight component, which gives `insulation_end` wall
-patches.  Ends at `END-CONNECTION-EQUIPMENT` records are named after the
+patches.  Junctions carry the insulation through (a bare branch ends it
+one cell into its first straight).  Ends at `END-CONNECTION-EQUIPMENT` records are named after the
 nozzle (`V_101_N1`) and are never extended by `extend_open_ends`.
 
 It checks every component against its PCF end points and raises
@@ -545,7 +546,7 @@ with `python3 docs/gallery/build.py` (needs `vtk`).
 | Category | Examples | Shows |
 |---|---|---|
 | `fittings` | `smooth_bend`, `miter_bend`, `spline_pipe`, `reducer_network`, `stenosis`, `tee`, `wye`, `loop` | one building block each: bends, reducer, profiled reducer (cosine constriction), junctions, `Closure` |
-| `sections` | `insulated_pipe`, `insulated_route`, `graded_bend`, `rect_duct`, `duct_transition`, `layer_outlines`, `lagged_duct`, `insulated_transition` | what runs through the pipe: layer stacks, wall and axial grading, rectangular ducts, shells of any outline, `Transition` of a whole stack |
+| `sections` | `insulated_pipe`, `insulated_route`, `graded_bend`, `rect_duct`, `duct_transition`, `layer_outlines`, `lagged_duct`, `insulated_transition`, `insulated_tee`, `insulated_network` | what runs through the pipe: layer stacks, wall and axial grading, rectangular ducts, shells of any outline, `Transition` of a whole stack |
 | `networks` | `pipe_network`, `pipe_rack`, `distribution_tree`, `bifurcation_tree`, `skewed_network` | composing fittings: routes, branches, trees, any orientation |
 | `applications` | `drum_nozzle`, `hvac_supply`, `cooling_channels` | equipment nozzles, ventilation ducting, cooling channels |
 

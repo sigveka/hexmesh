@@ -20,7 +20,7 @@ CATEGORIES: dict[str, list[str]] = {
                  "reducer_network", "stenosis", "tee", "wye", "junction_walls", "loop"],
     "sections": ["insulated_pipe", "insulated_route", "graded_bend",
                  "rect_duct", "duct_transition", "layer_outlines", "lagged_duct",
-                 "insulated_transition", "insulated_tee"],
+                 "insulated_transition", "insulated_tee", "insulated_network"],
     "networks": ["pipe_network", "pipe_rack", "distribution_tree",
                  "bifurcation_tree", "skewed_network"],
     "applications": ["drum_nozzle", "hvac_supply", "cooling_channels"],
