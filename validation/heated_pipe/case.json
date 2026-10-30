@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "title": "Heated multi-layer pipe with laminar flow (full CHT)",
+  "category": "V1",
+  "references": [
+    {
+      "source": "exact: fully developed Nu = 48/11 (uniform flux), radial conduction through the shells",
+      "role": "primary"
+    }
+  ],
+  "tags": {
+    "regime": [
+      "laminar"
+    ],
+    "physics": [
+      "flow",
+      "cht"
+    ],
+    "features": [
+      "section:circle",
+      "layers",
+      "straight"
+    ],
+    "toolchain": {
+      "openfoam": "v2406",
+      "runner": "docker"
+    }
+  },
+  "status": "in progress",
+  "task": "0035",
+  "gates": [
+    {
+      "quantity": "checkMesh",
+      "limit": "Mesh OK per region, every level"
+    },
+    {
+      "quantity": "energy balance",
+      "limit": "within 0.1 % at every level"
+    },
+    {
+      "quantity": "extrapolated Nu",
+      "limit": "within 1 % of 48/11"
+    },
+    {
+      "quantity": "extrapolated solid ΔTs",
+      "limit": "within 0.5 %"
+    }
+  ]
+}

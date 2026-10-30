@@ -3,6 +3,7 @@
 - **Status:** ready
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (category V1); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V1 (exact: rectangular-duct series)
+- **Features:** `section:rect`, `straight`
 - **Depends on:** rectangular sections (task 0028); the shared OpenFOAM
   helpers (0043); toolchain v2406 in Docker (0012's amendment).
 

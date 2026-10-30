@@ -82,7 +82,7 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0070](0070-duct-tap-merge-into-tee.md) | Duct taps: the pillowed tap in `Tee` | done | 0033, 0027 |
 | [0071](0071-validation-rectangular-duct.md) | Validation (V1): fully developed laminar flow in rectangular ducts | ready | 0012, 0015 |
 | [0072](0072-validation-laminar-square-bend.md) | Validation (V3): laminar 90° square-duct bend (Taylor et al., Re 790) | ready (after 0071) | 0012, 0015 |
-| [0073](0073-validation-metadata-and-coverage.md) | Validation metadata (`case.json`), categories and a coverage matrix in the gallery | ready | 0012 |
+| [0073](0073-validation-metadata-and-coverage.md) | Validation metadata (`case.json`), categories and a coverage matrix in the gallery | done (Q1, not blocking: `conduction` tag) | 0012 |
 
 **Current order (2026-10-28, design, revised):** finish the task in
 progress (0034), then **multi-layer junctions: 0051 → 0052 → 0056 → 0053 →
@@ -167,6 +167,14 @@ These apply to every task.
   between `<!-- mesh:start -->` / `<!-- mesh:end -->`.  It is inserted
   after "## Case" the first time; don't edit inside the markers.  Re-run
   it when the meshes change.  See `poiseuille` and `heated_rod`.
+- **Every validation case ships a `case.json`** (since 2026-10-30, task
+  0073): category V1–V4, references, tags (regime, physics, features
+  from decision 0012's list, toolchain), status, gates and task, valid
+  against `validation/case.schema.json`.  Update its `status` with
+  RESULTS'.  The gallery stops on a missing or invalid one.  A planned
+  validation task carries a `- **Category:** Vn` line and a
+  `- **Features:**` line (feature names in backticks), which give its
+  column in the coverage matrix.
 - Keep each task a separate, reviewable change.  Match the surrounding code
   style: dataclasses, numpy, short docstrings that cite DESIGN rules.
 

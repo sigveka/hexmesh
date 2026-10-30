@@ -3,6 +3,7 @@
 - **Status:** done
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md)
 - **Category:** V1 (exact)
+- **Features:** `section:circle`, `layers`, `straight`
 - **Depends on:** 0025 (exact straight walls **and material
   interfaces**: before it, interfaces sag up to 0.7 % of R, which biases
   the layer resistances), 0033 (`laplacianFoam` + `fvOptions` setup).

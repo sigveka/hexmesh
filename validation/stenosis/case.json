@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "title": "Smooth cosine constriction, Re = 500",
+  "category": "V2",
+  "references": [
+    {
+      "key": "varghese_and_frankel_etal_2007",
+      "source": "DNS, Part 1: centreline velocity and reattachment (Purdue CFD Lab database)",
+      "role": "primary"
+    }
+  ],
+  "tags": {
+    "regime": [
+      "laminar"
+    ],
+    "physics": [
+      "flow"
+    ],
+    "features": [
+      "section:circle",
+      "straight",
+      "profiled-reducer"
+    ],
+    "toolchain": {
+      "openfoam": "v1912",
+      "runner": "native"
+    }
+  },
+  "status": "accepted",
+  "task": "0032",
+  "gates": [
+    {
+      "quantity": "reattachment, by u(0.48 D) = 0 and by wall shear stress",
+      "limit": "within 5 % of the DNS's 11.03 D"
+    },
+    {
+      "quantity": "centreline velocity, x/D = −2 … 15",
+      "limit": "within 2 % of the DNS peak"
+    }
+  ]
+}

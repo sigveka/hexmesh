@@ -3,6 +3,7 @@
 - **Status:** ready (after 0071)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (category V3); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V3 (experiment: Taylor, Whitelaw & Yianneskis 1982)
+- **Features:** `section:rect`, `straight`, `bend`
 - **Depends on:** 0071 (the rectangular-duct setup); duct bends (task
   0028).
 

@@ -12,7 +12,11 @@ Example gallery: meshes every example, renders it, measures it, and writes
 The prose comes from the examples' docstrings and the category packages'
 docstrings, so edit it there.  Validation cases come from
 ``validation/<case>/`` (README.md, RESULTS.md with a ``**Status:**`` line,
-optional ``figure.png``) and planned ones from ``docs/tasks/*validation*``.
+optional ``figure.png``, and ``case.json`` checked against
+``validation/case.schema.json``: a missing or invalid one stops the build)
+and planned ones from ``docs/tasks/*validation*`` (their ``Category`` and
+``Features`` lines).  The validation section groups cases by category and
+ends with a coverage matrix, hexmesh features × cases (task 0073).
 
 **Validation meshes.**  A case whose ``run.py`` defines ``meshes()``,
 returning ``(label, caption, build)`` per mesh, gets
@@ -477,45 +481,141 @@ def status_of(text: str) -> str:
     return status.split(". ")[0].rstrip(".")
 
 
+CATEGORIES_V = {
+    "V1": "exact solution (code verification)",
+    "V2": "high-fidelity simulation",
+    "V3": "experiment",
+    "V4": "correlation or standard",
+}
+STATUS_MARK = {"accepted": "●", "in progress": "◐", "planned": "○", "rejected": "✗"}
+
+
+def case_schema() -> dict:
+    return json.loads((ROOT / "validation" / "case.schema.json").read_text())
+
+
+def case_meta(case: str) -> dict:
+    """``validation/<case>/case.json``, checked against the schema; a
+    missing or invalid file raises, naming it (task 0073)."""
+    import jsonschema
+    path = ROOT / "validation" / case / "case.json"
+    if not path.exists():
+        raise SystemExit(f"{path.relative_to(ROOT)}: missing (every validation case "
+                         f"ships a case.json, docs/tasks/README.md)")
+    try:
+        meta = json.loads(path.read_text())
+        jsonschema.validate(meta, case_schema())
+    except (json.JSONDecodeError, jsonschema.ValidationError) as e:
+        msg = e.message if isinstance(e, jsonschema.ValidationError) else str(e)
+        raise SystemExit(f"{path.relative_to(ROOT)}: invalid: {msg}") from None
+    return meta
+
+
+def case_dirs() -> list[str]:
+    """Every validation case: a directory with a ``run.py``."""
+    return sorted(p.parent.name for p in (ROOT / "validation").glob("*/run.py"))
+
+
+def planned_cases(done_tasks: set[str]) -> list[dict]:
+    """Validation tasks without a case yet that carry a ``Category`` line:
+    {task, title, file, category, features, status}."""
+    features = case_schema()["properties"]["tags"]["properties"]["features"]["items"]["enum"]
+    out = []
+    for t in sorted((ROOT / "docs" / "tasks").glob("*validation*.md")):
+        task = t.name[:4]
+        if task in done_tasks:
+            continue
+        text = t.read_text()
+        cat = re.search(r"^- \*\*Category:\*\* (V[1-4])", text, re.M)
+        if not cat:
+            continue
+        feat = re.search(r"^- \*\*Features:\*\* (.+)$", text, re.M)
+        tags = re.findall(r"`([^`]+)`", feat.group(1)) if feat else []
+        unknown = set(tags) - set(features)
+        if unknown:
+            raise SystemExit(f"docs/tasks/{t.name}: unknown features {sorted(unknown)}")
+        out.append({"task": task, "title": text.splitlines()[0].lstrip("# ").split(" — ", 1)[-1],
+                    "file": t.name, "category": cat.group(1), "features": tags,
+                    "status": status_of(text)})
+    return out
+
+
+def coverage_md(cases: list[tuple[str, dict]], planned: list[dict]) -> list[str]:
+    """Features down, cases across (existing, then planned); a mark per
+    feature a case exercises, by status.  Empty rows are what isn't
+    validated yet."""
+    features = case_schema()["properties"]["tags"]["properties"]["features"]["items"]["enum"]
+    cols = [(c, m["category"], m["status"], set(m["tags"]["features"])) for c, m in cases]
+    cols += [(f"{p['task']}", p["category"], "planned", set(p["features"])) for p in planned]
+    head = "| Feature | " + " | ".join(f"{name}<br>{cat}" for name, cat, _, _ in cols) + " |"
+    rows = [head, "|---|" + "---|" * len(cols)]
+    for f in features:
+        marks = [STATUS_MARK[st] if f in fs else "" for _, _, st, fs in cols]
+        label = f"`{f}`" if any(marks) else f"`{f}` (none)"
+        rows.append(f"| {label} | " + " | ".join(marks) + " |")
+    legend = ", ".join(f"{m} {s}" for s, m in STATUS_MARK.items())
+    return ["### Coverage", "",
+            "Which hexmesh features each case exercises (decision 0012's fixed list). "
+            f"Marks: {legend}; planned cases are named by task.  Rows marked "
+            "*(none)* have no validation case, existing or planned.", "",
+            *rows, ""]
+
+
 def validation_md() -> str:
     out = [
         "## Validation",
         "",
-        "Meshes from hexmesh solved with OpenFOAM and compared with analytic or "
-        "published solutions (decision 0012); each case is judged by grid "
-        "convergence against gates set in advance (decision 0015).",
+        "Meshes from hexmesh solved with OpenFOAM and compared with a reference "
+        "(decision 0012); each case is judged by grid convergence against gates "
+        "set in advance (decision 0015).  Cases are grouped by their reference: "
+        "V1 exact solutions (code verification), V2 high-fidelity simulations, "
+        "V3 experiments, V4 correlations and standards.",
         "",
-        "Each case lives in `validation/<case>/`: `README.md` describes it, "
-        "`RESULTS.md` holds the measurements and opens with a `**Status:**` "
-        "line, and an optional `figure.png` is shown here.",
+        "Each case lives in `validation/<case>/`: `case.json` gives its category, "
+        "references, tags, status and gates; `README.md` describes it; "
+        "`RESULTS.md` holds the measurements; an optional `figure.png` is "
+        "shown here.",
         "",
     ]
-    cases = sorted(p for p in (ROOT / "validation").glob("*/RESULTS.md"))
-    for res in cases:
-        case = res.parent
-        title = next((re.sub(r"^Results:\s*", "", l[2:].strip()) for l in res.read_text().splitlines()
-                      if l.startswith("# ")), case.name)
-        out += [f"### {title}", "",
-                f"**Status:** {status_of(res.read_text())}", ""]
-        if case.name in validation_cases():
-            first = load_case(case.name).meshes()[0][0]
-            if (case / "img" / f"{first}.png").exists():
-                out += [f'<p><img src="../validation/{case.name}/img/{first}.png" width="68%"> '
-                        f'<img src="../validation/{case.name}/img/{first}_section.png" '
-                        f'width="29%"></p>', ""]
-        if (case / "figure.png").exists():
-            out += [f'<img src="../validation/{case.name}/figure.png" width="70%">', ""]
-        out += [f"Case: [validation/{case.name}/README.md](../validation/{case.name}/README.md); "
-                f"results: [RESULTS.md](../validation/{case.name}/RESULTS.md).", ""]
-    planned = []
-    for t in sorted((ROOT / "docs" / "tasks").glob("*validation*.md")):
-        if any(r.parent.name in t.stem for r in cases):
-            continue
-        text = t.read_text()
-        title = text.splitlines()[0].lstrip("# ").strip()
-        planned.append(f"| [{title}](tasks/{t.name}) | {status_of(text)} |")
-    if planned:
-        out += ["### Planned", "", "| Task | Status |", "|---|---|", *planned, ""]
+    cases = [(c, case_meta(c)) for c in case_dirs()]
+    planned = planned_cases({m["task"] for _, m in cases})
+    for cat, what in CATEGORIES_V.items():
+        mine = [(c, m) for c, m in cases if m["category"] == cat]
+        later = [p for p in planned if p["category"] == cat]
+        out += [f"### {cat}: {what}", ""]
+        if not mine and not later:
+            out += ["_No cases yet._", ""]
+        for name, m in mine:
+            case = ROOT / "validation" / name
+            tags = m["tags"]
+            tag_list = [*tags["regime"], *tags["physics"], *tags["features"],
+                        f"OpenFOAM {tags['toolchain']['openfoam']} ({tags['toolchain']['runner']})"]
+            refs = "; ".join((f"{r['source']} [`{r['key']}`]" if "key" in r else r["source"])
+                             + ("" if r["role"] == "primary" else " (secondary)")
+                             for r in m["references"])
+            out += [f"#### {m['title']}", "",
+                    f"**Status:** {m['status']} (task {m['task']}).  **Reference:** {refs}.", "",
+                    "Tags: " + ", ".join(f"`{t}`" for t in tag_list) + ".", ""]
+            if m["gates"]:
+                out += ["Gates: " + "; ".join(f"{g['quantity']}: {g['limit']}"
+                                              for g in m["gates"]) + ".", ""]
+            if name in validation_cases():
+                first = load_case(name).meshes()[0][0]
+                if (case / "img" / f"{first}.png").exists():
+                    out += [f'<p><img src="../validation/{name}/img/{first}.png" width="68%"> '
+                            f'<img src="../validation/{name}/img/{first}_section.png" '
+                            f'width="29%"></p>', ""]
+            if (case / "figure.png").exists():
+                out += [f'<img src="../validation/{name}/figure.png" width="70%">', ""]
+            links = [f"[{f}](../validation/{name}/{f})" for f in ("README.md", "RESULTS.md")
+                     if (case / f).exists()]
+            links.append(f"[case.json](../validation/{name}/case.json)")
+            out += [f"Case: `validation/{name}/`: " + ", ".join(links) + ".", ""]
+        if later:
+            out += ["Planned:", "", "| Task | Status |", "|---|---|",
+                    *(f"| [{p['task']}: {p['title']}](tasks/{p['file']}) | {p['status']} |"
+                      for p in later), ""]
+    out += coverage_md(cases, planned)
     return "\n".join(out)
 
 

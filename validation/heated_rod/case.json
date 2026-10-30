@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "title": "Solid rod with uniform heat generation",
+  "category": "V1",
+  "references": [
+    {
+      "source": "exact: T(r) = T_w + Su (R² − r²)/(4 DT)",
+      "role": "primary"
+    }
+  ],
+  "tags": {
+    "regime": [],
+    "physics": [
+      "conduction"
+    ],
+    "features": [
+      "section:circle",
+      "straight"
+    ],
+    "toolchain": {
+      "openfoam": "v1912",
+      "runner": "native"
+    }
+  },
+  "status": "accepted",
+  "task": "0033",
+  "gates": [
+    {
+      "quantity": "extrapolated centre excess ΔT₀",
+      "limit": "within 0.1 % of exact"
+    }
+  ]
+}

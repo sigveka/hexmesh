@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "title": "Laminar Hagen–Poiseuille pipe",
+  "category": "V1",
+  "references": [
+    {
+      "source": "exact: u = 2Ū(1 − r²/R²), Δp = 32μŪL/D²",
+      "role": "primary"
+    }
+  ],
+  "tags": {
+    "regime": [
+      "laminar"
+    ],
+    "physics": [
+      "flow"
+    ],
+    "features": [
+      "section:circle",
+      "straight"
+    ],
+    "toolchain": {
+      "openfoam": "v1912",
+      "runner": "native"
+    }
+  },
+  "status": "accepted",
+  "task": "0020",
+  "gates": [
+    {
+      "quantity": "extrapolated Δp and u_max",
+      "limit": "within 0.1 % of exact"
+    },
+    {
+      "quantity": "fine-level |error|",
+      "limit": "< 1 %"
+    },
+    {
+      "quantity": "error over levels",
+      "limit": "decreases monotonically"
+    },
+    {
+      "quantity": "u_max observed order",
+      "limit": "≥ 1.5"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "title": "Conduction through a heated multi-layer cylinder",
+  "category": "V1",
+  "references": [
+    {
+      "source": "exact: piecewise radial conduction through rod, steel and insulation",
+      "role": "primary"
+    }
+  ],
+  "tags": {
+    "regime": [],
+    "physics": [
+      "conduction"
+    ],
+    "features": [
+      "section:circle",
+      "layers",
+      "straight"
+    ],
+    "toolchain": {
+      "openfoam": "v1912",
+      "runner": "native"
+    }
+  },
+  "status": "accepted",
+  "task": "0034",
+  "gates": [
+    {
+      "quantity": "checkMesh",
+      "limit": "Mesh OK, every region, every level"
+    },
+    {
+      "quantity": "energy balance through every interface and the outer wall",
+      "limit": "balanced (no tolerance set in advance; measured ≤ 1.2e-9)"
+    },
+    {
+      "quantity": "extrapolated T₀, T(r₁), T(r₂)",
+      "limit": "within 0.1 % of exact"
+    },
+    {
+      "quantity": "L2 order per region",
+      "limit": "≈ 2"
+    }
+  ]
+}

@@ -3,6 +3,7 @@
 - **Status:** ready (after 0032's Re 500 level is done: same machine time)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V1 (exact: Womersley)
+- **Features:** `section:circle`, `straight`
 - **Depends on:** the shared OpenFOAM helpers (0043); the Poiseuille
   setup (0020).  0068 (pulsatile stenosis) builds on it.
 

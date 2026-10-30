@@ -3,6 +3,7 @@
 - **Status:** done
 - **Decision:** [0012 — OpenFOAM verification and validation cases](../decisions/0012-openfoam-validation-cases.md)
 - **Category:** V1 (exact)
+- **Features:** `section:circle`, `straight`
 - **Depends on:** 0005 (done 2026-10-25), 0009's fix to `write_openfoam`
   for single-material meshes (see step 1), and **0023** (boundary
   retyping).  Decision 0013: use 0023's `apply_boundary_roles` for the
