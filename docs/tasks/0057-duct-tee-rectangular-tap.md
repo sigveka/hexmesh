@@ -1,6 +1,6 @@
 # 0057 — Duct tee: full-width rectangular tap on a rectangular duct
 
-- **Status:** ready (after 0070: the full-width complement of the pillowed tap; decision 0033)
+- **Status:** ready (0070 done: plugs into its `ratio == 1` rejection; plus the round-tap warning note)
 - **Decision:** [0027 — Tees in rectangular ducts](../decisions/0027-duct-tees.md)
 - **Depends on:** —  (0058 and 0059 build on it)
 
@@ -147,6 +147,24 @@ Your analysis is right, and checking on paper first saved a prototype.
 - **The rest of the task stands:** fields, room checks, the
   predicted-quality tiers, planar walls, measurements.  The quality table
   over p / face length (along) and duct aspect, wide and narrow face.
+
+### Design note (2026-10-30, from task 0070's follow-ups)
+
+**Round taps warn twice** (predicted, then meshed) on similar numbers.
+While in `Tee._check_duct`:
+- for **round** taps, keep the **predicted reject** (< 0.1) before GMSH:
+  the prediction overestimates them, so a predicted value under the
+  floor means a worse mesh, and failing early is cheap;
+- drop the **predicted warning** (< 0.3) for round taps: the meshed check
+  in `mesh()` gives the warning tier, so users see one accurate warning,
+  not two;
+- rectangular taps keep both tiers on the prediction (it matches the
+  mesh for them).
+
+Test: a round narrow-face tap warns exactly once.
+
+**Where this task plugs in:** the `ratio == 1` rejection in
+`Tee._check_duct` (task 0070).
 
 ## Outcome
 

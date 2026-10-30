@@ -124,6 +124,13 @@ full-width taps (task 0057) are **on hold**, not the first step:
      naming the cause and suggesting the wide face; their
      non-orthogonality (≤ 82°) is reported post-mesh, as for tees.
 
+**Merged (2026-10-30, task 0070):** `DUCT_TAP_MAX_RATIO = 0.93`.  At
+0.95 a rectangular 1:1 tap meshes below 0.1; at 0.93 every case is
+≥ 0.12, with non-orthogonality ≤ 80.5°.  Round taps: the prediction
+overestimates by up to 0.13 (3:1 wide), and the meshed check catches it.
+Round taps get the warning tier from the meshed check only (task 0057's
+note).
+
 ## Consequences
 
 - When chosen: 0058 (round tap) and narrow rectangular taps get tasks;
