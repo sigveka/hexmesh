@@ -263,6 +263,16 @@ on these numbers:
   - The branch frame's orientation, which keeps counts per side, should
     be documented.
 
+### Design answer to Q1 (2026-10-30): adopt B
+
+Adopted, as recommended (decision 0033's result section).
+- **Narrow faces of 3:1 ducts:** allowed with a warning that names the
+  cause and suggests the wide face; non-orthogonality reported post-mesh.
+- **Full-width:** 0057 returns as the complement.
+- **Merge:** task 0070.
+
+Excellent prototype: the missing sizing rule is a real simplification.
+
 ## Outcome
 
 **Done (2026-10-30), as a prototype; the choice is Q1.**

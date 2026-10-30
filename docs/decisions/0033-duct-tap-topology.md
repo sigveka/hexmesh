@@ -1,10 +1,11 @@
 # 0033 — Junction layout for duct taps narrower than their face (and round taps on ducts)
 
-- **Status:** accepted for prototyping (2026-10-30, the user: "aim for
-  B right away").  The layout is chosen on the prototype's
-  measurements, as decision 0017 did for the wye.
+- **Status:** accepted: **B, the pillowed tap** (2026-10-30, on task
+  0069's prototype measurements; prototyping accepted by the user: "aim
+  for B right away").
 - **Date:** 2026-10-30
-- **Tasks:** 0069 (prototype B, the pillowed ring).  Blocks 0058 (round tap) and narrow rectangular
+- **Tasks:** 0069 (prototype, done); 0070 (merge into `Tee`); 0057
+  returns for full-width taps.  Blocks 0058 (round tap) and narrow rectangular
   taps; 0063 (shoe taps) depends on it for anything but full-width taps.
 
 ## Context
@@ -76,6 +77,52 @@ full-width taps (task 0057) are **on hold**, not the first step:
 - **if B also covers full-width taps** (its wall loop needs a margin
   around the hole, so this is open), 0057 is dropped;
 - **if not,** 0057 returns as the small complement for q = a.
+
+## Result (2026-10-30, task 0069) and decision
+
+**The prototype** (`hexmesh/assembly/duct_tap.py`, 38 blocks).
+- **Main:** the port slabs are standard.  Between the stations, the side
+  rings and the bottom ring are unchanged, so every crease is a block
+  edge.
+- **Top ring:** re-blocked as an O-grid tube around a column under the
+  hole.
+- **Core:** carries the pillow: a dome sheet continuing the branch's
+  ring.
+- **Ports:** standard O-H faces, class 0 (the branch has the main's
+  counts per side, frame turned to match).
+- **Walls:** exact planes or cylinders.
+
+**Measured** (72 meshes: ratio 0.3 / 0.6 / 0.9 × aspect 1 / 2 / 3 × wide
+/ narrow × `nang` 4 / 8 × rectangular / round):
+- all-hex, meshed = predicted, wall nodes on their surfaces to 3e-16;
+- min corner SJ ≥ 0.125 everywhere; wide faces ≥ 0.20, mostly 0.3–0.43;
+- narrow faces of a 3:1 duct 0.125–0.164, max non-orthogonality up to
+  82°;
+- cells 1.6–2.3× a plain main and branch run.
+- **No sizing rule:** the tube's O-grid carries the main's across lines
+  into the hole, so any tap inside the face fits.
+- **Tunables** (station margin, dome depth, sheet thickness) are resolved
+  per tap by maximising the predicted SJ (48 pure layouts), worth up to
+  2.5×.
+- **Full-width taps** (q = a) are not covered: the hole's corners land
+  on the creases and blocks degenerate to wedges.
+
+**Decision:**
+1. **B is the duct-tap layout** for rectangular and round taps inside
+   the face.  The collar (A) is not needed.
+2. **One public `Tee`, the layout by ratio** (as for equal tees,
+   decision 0031's amendment):
+   - pillowed tap for across ratio q/a ≤ ρ_max (set when merging; 0.9
+     measures fine);
+   - **full-width tap** (task 0057) at q = a;
+   - rejected in between, with a hint.
+3. **Quality:**
+   - the two tiers on predicted SJ (reject < 0.1, warn < 0.3);
+   - for **round taps also the meshed SJ**, since the prediction
+     overestimates them by up to 0.11;
+   - **narrow-face taps on deep ducts** (3:1) are allowed with a warning
+     naming the cause and suggesting the wide face; their
+     non-orthogonality (≤ 82°) is reported post-mesh, as for tees.
 
 ## Consequences
 

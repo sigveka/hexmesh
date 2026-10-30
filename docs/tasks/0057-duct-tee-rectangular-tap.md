@@ -1,6 +1,6 @@
 # 0057 — Duct tee: full-width rectangular tap on a rectangular duct
 
-- **Status:** on hold (the user, 2026-10-30: prototype decision 0033's layout first, task 0069; dropped if it covers full-width taps)
+- **Status:** ready (after 0070: the full-width complement of the pillowed tap; decision 0033)
 - **Decision:** [0027 — Tees in rectangular ducts](../decisions/0027-duct-tees.md)
 - **Depends on:** —  (0058 and 0059 build on it)
 
