@@ -34,7 +34,7 @@ import gmsh
 from scipy.interpolate import CubicSpline
 
 from .. import _occ
-from ..core.shape import OH_RATIO   # re-exported: inner-square scale of the OH face
+from ..core.shape import OH_RATIO, RectShape   # OH_RATIO re-exported: inner-square scale of the OH face
 from ..core.cross_section import interface_group_name
 from ..quality_hex import corner_scaled_jacobians
 from .corners import curve_endpoints
@@ -581,11 +581,17 @@ def face_vertices(layout: BlockLayout, prefix, frame, spec, port: bool = True) -
     """
     from .corners import corner0_angle
     n = spec.n_outer
-    a0 = corner0_angle(spec)
-    nang = spec.nang // (n // 4)
     nrads = [spec._core_nrad] + [sh.nrad for sh in spec.shells]
     mprgs = [spec._core_mprg] + [sh.mprg for sh in spec.shells]
     bump = ("Bump", spec.mbmp) if spec.mbmp != 1.0 else None
+    if isinstance(spec.core_shape, RectShape):
+        _rect_face_vertices(layout, prefix, frame, spec, nrads, mprgs, bump)
+        if port:
+            for _, cyc in face_patches(prefix, spec):
+                layout.port_face(cyc)
+        return
+    a0 = corner0_angle(spec)
+    nang = spec.nang // (n // 4)
     for lvl, rad in enumerate(face_levels(spec)):
         for k in range(n):
             ang = a0 + 2 * np.pi * k / n
@@ -601,6 +607,32 @@ def face_vertices(layout: BlockLayout, prefix, frame, spec, port: bool = True) -
     if port:
         for _, cyc in face_patches(prefix, spec):
             layout.port_face(cyc)
+
+
+def _rect_face_vertices(layout, prefix, frame, spec, nrads, mprgs, bump) -> None:
+    """``face_vertices`` for a rectangular core (``build_oh_rect``): the
+    inner rectangle inset by the uniform ring thickness (1 − OH_RATIO)·
+    min(half_w, half_h), each layer's outline corner along the ring's
+    corner line (decision 0026), counts per side (task 0070)."""
+    sh = spec.core_shape
+    t = (1 - OH_RATIO) * min(sh.half_w, sh.half_h)
+    c, s = math.cos(spec.rot_rad), math.sin(spec.rot_rad)
+    inner = [np.array([su * (sh.half_w - t), sv * (sh.half_h - t)])
+             for su, sv in ((1, 1), (-1, 1), (-1, -1), (1, -1))]
+    levels = [inner] + [[o.ring_corner(math.atan2(p[1], p[0])) for p in inner]
+                        for o in spec.outlines]
+    counts = spec.side_counts
+    for lvl, corners in enumerate(levels):
+        for k, (u, v) in enumerate(corners):
+            layout.vertex((prefix, lvl, k), frame.position
+                          + (c * u - s * v) * frame.right + (s * u + c * v) * frame.up)
+        for k in range(4):
+            layout.edge((prefix, lvl, k), (prefix, lvl, (k + 1) % 4),
+                        divisions=counts[k], grading=bump)
+            if lvl:
+                layout.edge((prefix, lvl - 1, k), (prefix, lvl, k),
+                            divisions=nrads[lvl - 1],
+                            grading=("Progression", mprgs[lvl - 1]))
 
 
 def face_patches(prefix, spec) -> list[tuple[str, tuple]]:

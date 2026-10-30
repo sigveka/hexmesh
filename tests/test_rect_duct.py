@@ -148,12 +148,12 @@ class TestRejections:
         (Elbow(90), "use Bend"),
         # sizes may change (decision 0026), shapes may not
         (Reducer(_circle(), 0.2, n_layers=2), "Transition"),
-        (Tee(0.2, 0.2, 0.03), "rectangular tees"),
+        (Tee(0.2, 0.2, 0.03), "needs branch=RectShape"),   # a duct tap takes branch= (task 0070)
         (Wye(60, 0.3, 0.5), "circular cores only"),
     ])
     def test_unsupported_fittings(self, fitting, message):
         asm = Assembly(_duct(), direction=[1, 0, 0], up=[0, 0, 1])
-        # a tee's ports already need a radius, so it fails in add()
+        # a tee on a duct needs branch=, so it fails in add()
         with pytest.raises((AssemblyError, ValueError), match=message):
             asm.add(fitting)
             asm.validate()

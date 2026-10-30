@@ -41,6 +41,16 @@ PREDICTED_SJ_WARN = 0.3
 #: Reject below: the wye prototype's floor (decision 0017).
 PREDICTED_SJ_MIN = 0.1
 
+#: Duct taps (decision 0033, task 0070): the largest across ratio q/a of a
+#: tap inside the face (q its reach across, a the face's half-width).  The
+#: ±y tube blocks thin as q → a: at 0.95 a 1:1 duct's rectangular tap
+#: meshes at corner SJ 0.095, below ``PREDICTED_SJ_MIN``; at 0.93 every
+#: measured case (1:1–3:1, both faces, rectangular and round) is ≥ 0.12.
+DUCT_TAP_MAX_RATIO = 0.93
+#: A tap on the narrow face of a duct at least this deep (depth/width)
+#: warns: the dome reaches into a deep, thin core (task 0069, 3:1).
+DUCT_TAP_NARROW_ASPECT_WARN = 3.0
+
 #: ``("cosine", s0)`` profile severity (decision 0008, amended 2026-10-28;
 #: task 0055): s0 > 0 a constriction with throat ``(1 − 2·s0)·R``, s0 = 0 a
 #: plain pipe, s0 < 0 a bulge of largest radius ``(1 − 2·s0)·R``.  The

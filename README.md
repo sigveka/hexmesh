@@ -570,8 +570,13 @@ with `python3 docs/gallery/build.py` (needs `vtk`).
   k = 2, and `mesh()` says so, naming the wye.  The wall error at the
   knee (3–6 % of R) doesn't converge with `nang`, so grid studies over
   wyes stop at k = 2.
-- **Rectangular ducts and outlines:** no tee or elbow for ducts.  A
-  stack with a rectangle needs equal counts per side, and so does
+- **Rectangular ducts and outlines:** no elbow for ducts.  A duct tee
+  (`Tee(branch=…)` on a duct) takes a rectangular or round tap inside the
+  face, up to 0.93 of its width, on single-layer ducts only; no
+  full-width taps yet (task 0057).  Narrow-face taps on deep ducts (3:1)
+  mesh poorly (min SJ about 0.13, non-orthogonality to 82°) and warn.  A
+  tap costs about 1.6–2.3× the cells of a plain run of the same length.
+  A stack with a rectangle needs equal counts per side, and so does
   `Transition`.
 - **Layer changes:** insulation can't start or stop inside a fitting yet
   (decision 0006).

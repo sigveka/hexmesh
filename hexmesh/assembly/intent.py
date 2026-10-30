@@ -41,6 +41,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from ..core.shape import SHAPES, shape_from_dict
 from ..core.spec import PipeSpec
 from . import limits
 from .fittings import (
@@ -66,6 +67,8 @@ def _plain(v):
     """Numbers, tuples, arrays and specs as JSON-native values."""
     if isinstance(v, PipeSpec):
         return v.to_dict()
+    if isinstance(v, tuple(SHAPES.values())):     # a duct tap's branch
+        return v.to_dict()
     if isinstance(v, np.generic):
         return v.item()
     if isinstance(v, (tuple, list, np.ndarray)):
@@ -75,9 +78,10 @@ def _plain(v):
 
 def _tuples(v):
     """Inverse of _plain for tuple-valued fields (lists become tuples, and
-    dicts inside them specs, as in ``stack_changes``)."""
+    dicts inside them specs, as in ``stack_changes``, or shapes, tagged
+    by ``type``)."""
     if isinstance(v, dict):
-        return PipeSpec.from_dict(v)
+        return shape_from_dict(v) if v.get("type") in SHAPES else PipeSpec.from_dict(v)
     return tuple(_tuples(x) for x in v) if isinstance(v, list) else v
 
 
@@ -232,7 +236,7 @@ def from_dict(cls, d: dict) -> "Assembly":
 
 # Axial cell counts per fitting type.  Everything else in a fitting is
 # geometry or topology (MiterBend.n_cuts included) and stays.
-AXIAL_COUNTS = ("n_layers", "n_run", "n_branch", "n_turn", "n_split")
+AXIAL_COUNTS = ("n_layers", "n_run", "n_branch", "n_turn", "n_split", "n_wall")
 
 
 def refine_spec_dict(d: dict, k: int) -> dict:
@@ -267,6 +271,9 @@ def _refine_fitting_dict(d: dict, k: int) -> dict:
         d["axial_grading"] **= 1.0 / k
     if "outlet" in d:
         d["outlet"] = refine_spec_dict(d["outlet"], k)
+    if isinstance(d.get("branch"), dict):    # a duct tap's branch shape: its counts
+        d["branch"] = {key: v * k if key in ("nang", "nang_w", "nang_h") else v
+                       for key, v in d["branch"].items()}
     if "stack_changes" in d:          # (axial cell index, spec): cell i → cell k·i
         d["stack_changes"] = [[i * k, refine_spec_dict(spec, k)]
                               for i, spec in d["stack_changes"]]

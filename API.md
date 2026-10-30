@@ -504,7 +504,7 @@ A pipe along a cubic spline through `points`, parametrised by chord length.
 - **Validation.** It rejects curvature tighter than the outer radius, and
   more than 30° of turn per layer.
 
-### `Tee(run_length=None, branch_length, branch_radius, n_run=3, n_branch=3, n_turn=2, roll=0.0, toward=None)`
+### `Tee(run_length=None, branch_length, branch_radius, n_run=3, n_branch=3, n_turn=2, roll=0.0, toward=None, branch=None, face=None, margin=None, dome=None, sheet=None, n_wall=None)`
 
 A perpendicular, centred side-branch tee, built as a block layout.
 
@@ -547,6 +547,36 @@ A perpendicular, centred side-branch tee, built as a block layout.
   junction core's quality is set by the branch ratio, about 0.26 at
   r/R 0.5 at any run. **Tees with r/R below about 0.57 always warn** (task
   0052).
+- **Duct taps** (decision 0033, task 0070). On a rectangular main the tee
+  is a duct tap: `branch=RectShape(half_w, half_h, nang_w, nang_h)` or
+  `branch=CircleShape(radius, nang)` (`branch_radius` is the pipe
+  shorthand; on a pipe, `branch=CircleShape` is the same as it).
+  - **Face and side.** `face="wide"` (default) or `"narrow"`; `roll` 0 puts
+    the tap on the +`up` face (wide face of a duct wider than deep) or the
+    +`right` face (narrow), 180 on the opposite one. `toward` is rejected.
+  - **Branch frame.** The branch keeps the main's counts per side (a
+    class-0 port), so its section must have the main's `(nang_w,
+    nang_h)`, or for a round tap the main must have equal counts and
+    `nang` match them. On an up/down face the branch's `up` is the main's
+    axis, so its `half_w`/`nang_w` run across (along the main's `right`)
+    and `half_h` along the main; on a right/left face its `up` is the
+    main's `up`, so `half_w` runs along the main and `half_h` across.
+  - **Size.** The tap must reach at most `limits.DUCT_TAP_MAX_RATIO`
+    (0.93) of the face's half-width across; a tap as wide as the face is a
+    full-width tap (task 0057, not yet supported) and is rejected; in
+    between is rejected with the largest tap that fits.
+  - **Tunables.** `margin`, `dome`, `sheet` (layout shape) and `n_wall`
+    (cells from a station to the hole) are resolved by `add()` to the best
+    predicted quality and stored, so `to_dict()` stays explicit; give them
+    to override. `run_length=None` resolves to the tap's reach along the
+    main plus 4 ring thicknesses.
+  - **Quality.** The predicted-SJ tiers as above. A round tap's prediction
+    can overestimate by up to 0.11, so `mesh()` also applies the tiers to
+    its meshed cells, naming the fitting. A narrow-face tap on a duct of
+    aspect ≥ `limits.DUCT_TAP_NARROW_ASPECT_WARN` (3) warns and suggests
+    the wide face (min SJ about 0.13, non-orthogonality up to 82°).
+  - **Limits.** Single-layer ducts, `rot = 0`, `n_outer = 4`;
+    `branch_length` beyond the face.
 
 ### `Wye(angle, run_length, branch_length, n_run=None, n_branch=None, n_split=None, roll=0.0, toward=None)`
 

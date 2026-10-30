@@ -1,9 +1,11 @@
 """
-Duct tap — PROTOTYPE (task 0069, decision 0033 B): a perpendicular branch
-on a flat face of a rectangular duct, narrower than the face, with the hole
-on the wall and the branch's ring layer continued into the main as a dome.
+Duct tap: the block layout of a ``Tee`` on a rectangular main (decision
+0033 B; prototyped in task 0069, merged in task 0070): a perpendicular
+branch on a flat face, narrower than the face, with the hole on the wall
+and the branch's ring layer continued into the main as a dome.
 
-Not wired into ``Tee``; the layout is chosen on this prototype's numbers.
+``DuctTap`` is the layout engine, not a fitting: ``Tee`` builds it from its
+own fields and checks (``Tee._tap``).
 
 Canonical frame
 ---------------
@@ -44,34 +46,10 @@ import numpy as np
 
 from ..core.shape import CircleShape, OH_RATIO, RectShape
 from ..core.spec import PipeSpec
-from .blocks import ArcAbout, BlockLayout, LayoutError, bind_face, face_patches, face_vertices
+from .blocks import ArcAbout, BlockLayout, LayoutError, face_patches, face_vertices
 from .interface import Frame
-from .signature import check_port_pairs
 
 _LABS = ((1, 1), (-1, 1), (-1, -1), (1, -1))       # CCW in the (first, second) plane
-
-
-def rect_face_vertices(lay: BlockLayout, prefix, frame: Frame, spec: PipeSpec,
-                       port: bool = True) -> None:
-    """``face_vertices`` for a single-layer rectangular O-H face: corners
-    at (±hw, ±hh) and the uniform-ring inner rectangle, counts per side."""
-    sh = spec.core_shape
-    hw, hh = sh.half_w, sh.half_h
-    t = (1 - OH_RATIO) * min(hw, hh)
-    R, U = frame.right, frame.up
-    for lvl, (w, h) in enumerate(((hw - t, hh - t), (hw, hh))):
-        for k, (su, sv) in enumerate(_LABS):
-            lay.vertex((prefix, lvl, k), frame.position + su * w * R + sv * h * U)
-    counts = spec.side_counts
-    grading = ("Progression", spec._core_mprg)
-    for k in range(4):
-        j = (k + 1) % 4
-        for lvl in (0, 1):
-            lay.edge((prefix, lvl, k), (prefix, lvl, j), divisions=counts[k])
-        lay.edge((prefix, 0, k), (prefix, 1, k), divisions=spec._core_nrad, grading=grading)
-    if port:
-        for _, cyc in face_patches(prefix, spec):
-            lay.port_face(cyc)
 
 
 def _label_map(lay, prefix, o, e1, e2) -> dict:
@@ -87,7 +65,7 @@ def _label_map(lay, prefix, o, e1, e2) -> dict:
 
 @dataclass(frozen=True)
 class DuctTap:
-    """Prototype duct tap (task 0069).
+    """Duct-tap layout engine (``Tee`` on a rectangular main).
 
     ``along`` and ``across`` are the hole's half-extents along the main
     axis and across the face; ``radius`` instead makes a round tap.
@@ -95,11 +73,8 @@ class DuctTap:
     ``margin`` is the station distance beyond the hole, in units of the
     ring thickness t; ``dome`` the core fraction K_c reaches down;
     ``sheet`` the dome sheet's thickness as a fraction of K_c's depth.
-    Left as None, ``resolve`` (in ``Assembly.add``) picks the three that
-    maximise the predicted min corner SJ over ``TUNING`` (pure)."""
-
-    strategies = frozenset({0})
-    port_names = ("main", "branch")
+    ``tuned`` fills the unset ones with the three that maximise the
+    predicted min corner SJ over ``TUNING`` (pure)."""
 
     run_length:    float
     branch_length: float
@@ -118,7 +93,7 @@ class DuctTap:
     TUNING = {"margin": (0.5, 1.0, 2.0, 3.0), "dome": (0.2, 0.35, 0.6, 0.85),
               "sheet": (0.2, 0.35, 0.5)}
 
-    def resolve(self, inlet: Frame, spec: PipeSpec, axial_cell=None, outlet=None) -> "DuctTap":
+    def tuned(self, inlet: Frame, spec: PipeSpec) -> "DuctTap":
         """Fill unset tunables with the best predicted min corner SJ."""
         import itertools
         from dataclasses import replace
@@ -136,7 +111,7 @@ class DuctTap:
             if best is None or sj > best[0]:
                 best = (sj, tap)
         if best is None:
-            raise ValueError("DuctTap: no tuning fits (the tap or the run is too large)")
+            raise ValueError("no layout fits: the tap is too long for run_length")
         return best[1]
 
     # -- geometry -------------------------------------------------------
@@ -181,15 +156,6 @@ class DuctTap:
         main = Frame(o + self.run_length * ex, ex, inlet.up)
         return [(main, spec), self.branch(inlet, spec)]
 
-    def check(self, spec: PipeSpec) -> None:
-        sh = spec.core_shape
-        if not isinstance(sh, RectShape) or spec.shells or spec.rot != 0:
-            raise ValueError("DuctTap prototype: single-layer rectangular main, rot 0")
-        if self.radius is not None and sh.nang_w != sh.nang_h:
-            raise ValueError("DuctTap: a round tap needs a main with equal counts per side")
-        if (self.radius is None) == (self.along is None or self.across is None):
-            raise ValueError("DuctTap: give along and across, or radius")
-
     # -- layout ---------------------------------------------------------
 
     def layout(self, frames: list[Frame], spec: PipeSpec) -> BlockLayout:
@@ -211,12 +177,9 @@ class DuctTap:
             raise LayoutError(f"tap does not fit: q {q:.4g} vs a {a:.4g}, s {s:.4g}")
 
         lay = BlockLayout()
-        rect_face_vertices(lay, "A", frames[0], spec)
-        rect_face_vertices(lay, "B", frames[1], spec)
-        if self.radius is None:
-            rect_face_vertices(lay, "E", frames[2], bspec)
-        else:
-            face_vertices(lay, "E", frames[2], bspec)
+        face_vertices(lay, "A", frames[0], spec)
+        face_vertices(lay, "B", frames[1], spec)
+        face_vertices(lay, "E", frames[2], bspec)
         mapA = _label_map(lay, "A", frames[0].position, ey, ez)
         mapB = _label_map(lay, "B", frames[1].position, ey, ez)
         mapE = _label_map(lay, "E", frames[2].position, ex, ey)
@@ -310,7 +273,7 @@ class DuctTap:
         for lab in loop:
             lay.edge(W(1, *lab), C(1, *lab), divisions=nrad)
         # The O-grid's radial count: station corners → hole corners.
-        n_wall = self.n_wall or max(2, math.ceil(n_j * (s - p) / (2 * p) - 1e-9))
+        n_wall = self.n_wall or self.wall_cells(spec)
         for X, sx in (("Sa", -1), ("Sd", 1)):
             for sy in (-1, 1):
                 lay.edge((X, 1, (sy, 1)), W(1, sx, sy), divisions=n_wall)
@@ -337,25 +300,20 @@ class DuctTap:
             lay.block([("W", l, inv[k]) for (_, l, k) in cyc] + list(cyc), material)
         return lay
 
-    # -- contract -------------------------------------------------------
-
-    def validate(self, frames: list[Frame], spec: PipeSpec) -> list[str]:
-        self.check(spec)
-        check_port_pairs(self, [spec] + [s for _, s in self.ports(frames[0], spec)])
-        try:
-            self.layout(frames, spec).validate()
-        except LayoutError as e:
-            raise ValueError(f"block layout invalid: {e}") from None
-        return []
-
-    def cell_count(self, frames: list[Frame], spec: PipeSpec) -> int:
-        return self.layout(frames, spec).cell_count()
+    def wall_cells(self, spec: PipeSpec) -> int:
+        """The O-grid's default radial count, station corners → hole
+        corners: cells about as long as the branch's along the main.  Not
+        linear in the counts (a ceiling), so ``Tee`` stores it resolved and
+        refinement scales it (task 0070)."""
+        sh = spec.core_shape
+        on_U = (sh.half_w >= sh.half_h) == (self.face == "wide")
+        a, b = (sh.half_w, sh.half_h) if on_U else (sh.half_h, sh.half_w)
+        t = (1 - OH_RATIO) * min(a, b)
+        p, _ = self._hole()
+        extent = self.radius if self.radius is not None else p
+        n_y, n_z = (sh.nang_w, sh.nang_h) if on_U else (sh.nang_h, sh.nang_w)
+        n_j = n_z if self.radius is None else n_y
+        return max(2, math.ceil(n_j * (extent + self.margin * t - p) / (2 * p) - 1e-9))
 
     def predicted_sj(self, frames: list[Frame], spec: PipeSpec) -> float:
         return float(self.layout(frames, spec).corner_jacobians().min())
-
-    def fill(self, faces, frames, spec, lc):
-        lay = self.layout(frames, spec)
-        for prefix, face in zip("ABE", faces):
-            bind_face(lay, prefix, face)
-        return lay.realise(spec.layer_names)

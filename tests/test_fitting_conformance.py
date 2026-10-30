@@ -157,6 +157,24 @@ def _tee(ratio, direction=(0, 1, 0), spec=None):
     return asm
 
 
+def _duct_tap(branch, aspect=2, face="wide", roll=0, direction=(1, 0, 0)):
+    """Straight → duct-tap Tee → Straight on both outlets (task 0070).
+    *branch* is "rect" or "round", reaching 0.6 of the face's half-width."""
+    B = 0.05
+    n = 4
+    spec = _duct(half_w=aspect * B, half_h=B, nang_w=n, nang_h=n, name="fluid", nrad=3)
+    a = aspect * B if face == "wide" else B
+    shape = (RectShape(0.6 * a, 0.6 * a, n, n) if branch == "rect"
+             else CircleShape(radius=0.6 * a, nang=n))
+    asm = Assembly(spec, direction=list(direction), up=[0, 0, 1], lc=0.1)
+    asm.add(Straight(0.2, n_layers=n))
+    main, br = asm.add(Tee(branch_length=2 * aspect * B, branch=shape, face=face, roll=roll,
+                           n_run=n, n_branch=n), names=["main", "branch"])
+    asm.add(main, Straight(0.2, n_layers=n))
+    asm.add(br, Straight(0.1, n_layers=n))
+    return asm
+
+
 def _wye(angle, direction=(0, 1, 0), spec=None):
     """Straight → Wye → Straight on both outlets."""
     asm = Assembly(spec or _one(), direction=list(direction), up=[0, 0, 1], lc=0.1)
@@ -186,6 +204,12 @@ CASES = {
     "tee-0.5-2layer":      lambda: _tee(0.5, spec=_two()),
     "tee-0.9-3layer":      lambda: _tee(0.9, spec=_three()),
     "tee-0.5-3layer-oblique": lambda: _tee(0.5, direction=(1, 1, 0.2), spec=_three()),
+    "tee-duct-rect-2-wide":   lambda: _duct_tap("rect"),
+    "tee-duct-rect-2-narrow": lambda: _duct_tap("rect", face="narrow", roll=180),
+    "tee-duct-rect-3-wide":   lambda: _duct_tap("rect", aspect=3, direction=(1, 1, 0.2)),
+    "tee-duct-round-2-wide":  lambda: _duct_tap("round", roll=180),
+    "tee-duct-round-2-narrow": lambda: _duct_tap("round", face="narrow"),
+    "tee-duct-round-3-wide":  lambda: _duct_tap("round", aspect=3),
     "wye-60":              lambda: _wye(60),
     "wye-90":              lambda: _wye(90),
     "wye-60-oblique":      lambda: _wye(60, direction=(1, 1, 0.2)),
@@ -384,6 +408,24 @@ def _tee_deviation(tee, inlet, spec, x) -> float:
     return float(dev.max() / (R + Ts[-1]))
 
 
+def _duct_tap_deviation(tee, inlet, spec, x) -> float:
+    """Largest distance of the points *x* from a duct tap's walls: the
+    duct's faces |y| = a, |z| = b, or (z ≥ b) the branch's planes or
+    cylinder, relative to the duct's half-diagonal (task 0070)."""
+    tap = tee._tap(inlet, spec)
+    o, ex, ey, ez, a, b, _ = tap._basis(inlet, spec)
+    v = x - o
+    X, Y, Z = v @ ex, v @ ey, v @ ez
+    main = np.minimum(np.abs(np.abs(Y) - a), np.abs(np.abs(Z) - b))
+    if tap.radius is not None:
+        br = np.abs(np.hypot(X, Y) - tap.radius)
+    else:
+        p, q = tap._hole()
+        br = np.abs(np.maximum(np.abs(X) - p, np.abs(Y) - q))
+    br = np.where(Z >= b - 1e-9, br, np.inf)
+    return float(np.minimum(main, br).max() / math.hypot(a, b))
+
+
 def wall_deviations(asm) -> dict[str, float]:
     """Largest distance, relative to the outer radius, of any node on a
     fitting's wall or material-interface surfaces from its analytic surface
@@ -422,6 +464,9 @@ def wall_deviations(asm) -> dict[str, float]:
         surfs = sorted(bnd & sides)
         x = np.vstack([gmsh.model.mesh.getNodes(2, t, includeBoundary=True)[1].reshape(-1, 3)
                        for t in surfs])
+        if isinstance(e.fitting, Tee) and isinstance(spec.core_shape, RectShape):
+            out[e.name] = _duct_tap_deviation(e.fitting, frames[0], spec, x)
+            continue
         if isinstance(e.fitting, Tee):
             out[e.name] = _tee_deviation(e.fitting, frames[0], spec, x)
             continue

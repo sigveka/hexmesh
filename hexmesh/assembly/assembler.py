@@ -731,6 +731,8 @@ class Assembly:
         if dim == 3:
             gmsh.model.mesh.generate(3)
         self._check_projection(moved)
+        if dim == 3:
+            self._check_meshed_sj()
         self._meshed = True
 
     def _project_walls(self) -> dict[int, tuple[np.ndarray, np.ndarray]]:
@@ -804,6 +806,36 @@ class Assembly:
                 raise AssemblyError(
                     f"{e.name}: wall projection folded {int((sj <= 0).sum())} cell(s), "
                     f"min corner scaled Jacobian {sj.min():.3g} (decision 0029)")
+
+    def _check_meshed_sj(self) -> None:
+        """For fittings whose predicted corner SJ is not a bound
+        (``meshed_sj_check``: round duct taps, task 0070), apply the
+        predicted-SJ tiers to the meshed cells: a warning below
+        ``PREDICTED_SJ_WARN``, an ``AssemblyError`` below
+        ``PREDICTED_SJ_MIN``, each naming the fitting."""
+        edges = [e for e in self._edges
+                 if getattr(e.fitting, "meshed_sj_check", None)
+                 and e.fitting.meshed_sj_check(e.ports[0].spec)]
+        if not edges:
+            return
+        ntag, nx, _ = gmsh.model.mesh.getNodes()
+        pos = np.full(int(ntag.max()) + 1, -1)
+        pos[ntag.astype(int)] = np.arange(len(ntag))
+        nx = nx.reshape(-1, 3)
+        for e in edges:
+            hexes = [n.reshape(-1, 8) for v in self._fitting_volumes[e.index]
+                     for t, _, n in zip(*gmsh.model.mesh.getElements(3, v)) if t == 5]
+            sj = float(min_scaled_jacobians(nx[pos[np.vstack(hexes).astype(int)]]).min())
+            if sj < limits.PREDICTED_SJ_MIN:
+                raise AssemblyError(
+                    f"{e.name}: meshed corner scaled Jacobian {sj:.3f} is below "
+                    f"PREDICTED_SJ_MIN {limits.PREDICTED_SJ_MIN:g}; a smaller tap, or the "
+                    f"wide face, may do better")
+            if sj < limits.PREDICTED_SJ_WARN:
+                msg = (f"{e.name}: meshed corner scaled Jacobian {sj:.3f} is below "
+                       f"PREDICTED_SJ_WARN {limits.PREDICTED_SJ_WARN:g}")
+                self.warnings.append(msg)
+                warnings.warn(msg, UserWarning, stacklevel=3)
 
     def _set_constraints(self) -> None:
         msh = gmsh.model.mesh
