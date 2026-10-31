@@ -224,7 +224,10 @@ creases; near a crease it keeps neighbouring nodes in order and never
 crosses into another branch.  `Assembly.mesh()` rejects inverted cells
 in the projected fittings, and warns when a node moves more than its
 wall's local radius (`limits.py`).  The kit checks the final mesh
-nodes.
+nodes.  With second-order elements (`order=2`), the high-order
+wall nodes of projected fittings are projected too, and gmsh's
+high-order optimisers are not used: they move wall nodes back onto the
+OCC surface (decision 0034).
 (Decision 0015; plate-filled sides sagged up to 1.08 % of R and biased
 Poiseuille Δp by 2.6 %, [RESEARCH §7.4](docs/RESEARCH.md#74-laminar-hagenpoiseuille-verification-task-0020).)
 

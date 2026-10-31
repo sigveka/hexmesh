@@ -559,6 +559,18 @@ i.e. 0.05 D at the throat, in one plane.
       - **Result:** the axisymmetric model stays laminar.  Upstream
         profiles match Womersley; peak throat velocity above
         3.65 u_c.
+      - **The database's upstream flow doesn't match eq. 2.1** (task
+        0068, 2026-10-31):
+        - the x = −2D profiles differ from Womersley by 0.03–0.145 u_c
+          (max); hexmesh's own −2D differs by ≤ 0.028;
+        - peak centreline 1.696 u_c, against the waveform's 1.663;
+        - the paper's own text has the minimum below 0.3 u_c, against
+          eq. 2.1's 0.337;
+        - the database files' phases, recovered from their flow rates,
+          are up to 0.04 T off the nominal T1…T6.
+
+        So downstream profiles are compared, not gated (task 0068's
+        design answer).
  `simpleFoam` / SIMPLEC plateau and
     leave the converged state.  Transient `pimpleFoam` reaches steady
     in 10–20 time units.  The coarsest hexmesh level (`nang` 6,
@@ -696,6 +708,10 @@ objects abort on the local OpenFOAM build (`docs/integrations/openfoam.md`).
 | Annular Poiseuille (solid core, fluid shell) | $u = \frac{G}{4\mu}\left[R_2^2 - r^2 + (R_2^2 - R_1^2)\frac{\ln(r/R_2)}{\ln(R_1/R_2)}\right]$ | a fluid region in a shell layer | planned |
 | Taylor–Couette | $u_\theta = Ar + B/r$ | circumferential resolution in shells | planned |
 | Rectangular duct | Fourier series; $f\,Re \approx 56.9$ for a square ($D_h$) | rectangular sections (task 0028) | task 0071 |
+| Manufactured solutions, conduction, on every fitting | exact by construction (§7.9) | every feature's mesh, incl. projection and stack changes | task 0074 |
+| Laminar helical pipe | De Amicis et al. 2014; Manlapaz & Churchill 1980 (§7.9) | `SplinePipe` | task 0075 |
+| FDA benchmark nozzle | three-laboratory PIV (Hariharan et al. 2011; §7.9) | flow restrictions (decision 0021 stage 1), stack changes | planned, after stage 1 |
+| Symmetric bifurcation (Zhao & Lieber 1994) | LDA, Re 518–2089 (§7.9) | `Wye` with unequal daughters | planned, after the wye redesign |
 | Laminar 90° square bend, Re 790 | LDA profiles (Taylor, Whitelaw & Yianneskis 1982; §7.8) | duct bends | task 0072 |
 | Circle-to-rectangle transition duct (turbulent) | Davis & Gessner 1992 (§7.8) | `Transition` | planned, after 0049 |
 | Square-duct turbulence | KIT DNS (Pinelli et al. 2010; §7.8) | straight ducts; tests the turbulence model | planned, later |
@@ -821,6 +837,34 @@ high-fidelity simulation, V3 experiment, V4 correlation).
   branch shape.  Read before use; a comparison for duct taps (task
   0070), not a gate.  Handbook coefficients (ASHRAE Duct Fitting
   Database, Idelchik) are commercial or book-only: V4 comparisons.
+
+### 7.9 Validation candidates for uncovered features (surveyed 2026-10-30, design session)
+
+Task 0073's coverage matrix shows eight features with no validation
+case: `miter`, `spline`, `transition`, `tee`, `duct-tap`, `wye`,
+`stack-changes`, `projection`.  Candidates, by feature (categories as
+decision 0012):
+
+| Feature | Candidate | Cat. | Fit and caveats |
+|---|---|---|---|
+| **all features, incl. `projection`, `stack-changes`** | **method of manufactured solutions (MMS)** for conduction (and later flow) on each fitting's mesh: choose a smooth T(x), add the source −k∇²T, impose T on the boundaries, measure the error and its order | V1 | Verifies the discretisation on junction, miter, spline and projected meshes, which no single physical case does.  Needs a spatially varying source: `codedFvOption` must compile in the v2406 container (check), or a field-based source.  Recommended as the backbone of feature verification. |
+| **`stack-changes`** (as flow geometry), flow restrictions (decision 0021) | **FDA benchmark nozzle**: 12 mm pipe, sudden contraction to a 4 mm, 40 mm throat, 10° conical diffuser; PIV at three laboratories; throat Re 500–6500 (Hariharan et al., *J. Biomech. Eng.* 133, 2011); a 28-simulation CFD round-robin (Stewart et al.); data free at fdacfd.nci.nih.gov | V3 | Laminar at Re_throat 500 (inter-lab ±10 %).  The sudden contraction is a ring layer stopping (decision 0021, stage 1) and the diffuser a profiled reducer.  Needs stage 1 (layer name vs material split).  Best single target for restrictions. |
+| **`wye`** | **Zhao & Lieber 1994**: steady inspiratory and expiratory flow in a symmetric 70° bifurcation, two-component LDA, Re 518–2089 (*J. Biomech. Eng.* 116); later called the experimental benchmark | V3 | **Area-preserving daughters** (smaller than the parent), so it needs unequal-radius daughters: a scope item for the wye-layout redesign (decision 0029 item 5 / 0031's amendment). |
+| **`tee`** (reduced branch) | Dividing- and combining-flow loss coefficients by area ratio (Miller; the BHRA data; Gardel); the Vattenfall T-junction (OECD/NEA, r/R ≈ 0.71, thermal mixing, LDV; LES needed) | V4; V3 later | RANS comparisons after 0049/0050.  Vattenfall needs LES: future.  The equal-diameter Štigler tee (§7.2) needs the wye family (decision 0031's amendment). |
+| **`duct-tap`** | Ohio State thesis (Christian): loss coefficients of T-junctions with square, rectangular and oval side branches (§7.8); ASHRAE Duct Fitting Database | V3 / V4 | Read the thesis; comparisons, not gates. |
+| **`spline`** | **Laminar helical pipes**: De Amicis et al. (2014, Politecnico di Milano) measured friction factors, matching laminar correlations (Manlapaz & Churchill 1980) to a few per cent; Germano (torsion) theory | V3 / V4 | A `SplinePipe` through helix points approximates the helix; record the geometric deviation.  Laminar, so it can run now. |
+| **`miter`** | No velocity dataset found for mitred *pipe* bends; loss coefficients by number of cuts and angle in Idelchik and Miller | V4 | Comparison only; low priority. |
+| **`transition`** | Davis & Gessner circle-to-rectangle duct (§7.8) | V3 | Planned, after 0049. |
+| **`bend`** (pipe, laminar) | Dean flow in a torus at weak curvature (§7.5, planned) | V1 | A `Bend` is an exact torus section; complements Sudo (0050, turbulent). |
+
+**Priorities** (design's view):
+1. **MMS conduction harness** (V1, every feature);
+2. **laminar helical pipe** (V3, spline; runs now);
+3. **FDA nozzle** (V3, restrictions and stack changes; after decision
+   0021 stage 1);
+4. **Zhao & Lieber** (V3, wye; after the redesign adds unequal
+   daughters);
+5. **tee and duct-tap loss coefficients** (V4, after the RANS cases).
 
 ## 8. Proposed hexmesh actions
 

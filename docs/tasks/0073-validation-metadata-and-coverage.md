@@ -77,6 +77,10 @@ shows what is validated and what isn't.
 `cht`.  I added `conduction` for the solid-only cases (heated rod,
 layered conduction).  Keep it in the list, or fold those into `cht`?
 
+**Design answer to Q1 (2026-10-30): keep `conduction`.**  A
+solids-only case isn't conjugate; the distinction is accurate.
+Decision 0012's tag list is updated.
+
 ## Outcome
 
 Done 2026-10-30.

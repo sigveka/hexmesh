@@ -1,4 +1,4 @@
-"""
+r"""
 Insulated network: a three-layer header with a tee and a wye, the steel and
 the insulation running through both junctions, and one branch left bare.
 
@@ -14,7 +14,8 @@ bare leg's switch too (task 0054).
 
 Junction shells have limits, checked before GMSH (``API.md``): a wye with
 shells needs 40° or more, and its total shell thickness at most
-R · min(0.65 tan(angle/2), 0.55), 0.375 R at 60°; here 0.31 R.
+$R \min\left(0.65 \tan(\theta/2),\ 0.55\right)$ for a wye of angle $\theta$:
+$0.375\,R$ at 60°; here $0.31\,R$.
 """
 
 from hexmesh import Assembly, PipeSpec, Straight, Tee, Wye

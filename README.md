@@ -1,586 +1,179 @@
 # hexmesh
 
-Structured all-hex meshes for CFD pipe networks, built on [GMSH](https://gmsh.info/).
+![Python ≥ 3.10](https://img.shields.io/badge/python-%E2%89%A5%203.10-3776ab)
+![gmsh 4.12](https://img.shields.io/badge/gmsh-4.12-555)
+![OpenFOAM v1912 · v2406](https://img.shields.io/badge/OpenFOAM-v1912%20%C2%B7%20v2406-2a6ebb)
+![version 0.3.0](https://img.shields.io/badge/version-0.3.0-888)
+![BSD 3-Clause](https://img.shields.io/badge/licence-BSD--3--Clause-2e7d32)
 
-Describe a network as a graph of fittings: straight runs, bends, elbows, miter
-bends, reducers, duct transitions, spline pipes, tees, wyes and loop closures.
-hexmesh places and checks it in pure Python, then builds a conformal
-hexahedral mesh for OpenFOAM or any other finite-volume solver.
+**Structured all-hex meshes for pipe and duct networks, junctions included.**
+No tetrahedra, no pyramids, no hanging nodes: conformal by construction,
+with fluid, wall and insulation as separate regions for conjugate heat
+transfer.
 
-```
-Straight → Bend → Straight → Tee → Straight
-                              └──→ Elbow → Straight
-```
+<p>
+<img src="docs/gallery/img/insulated_network.png" width="66%" alt="An insulated header with a tee and a wye, all hexahedra">
+<img src="docs/gallery/img/insulated_tee_section.png" width="30%" alt="Cross-section: O-grid fluid core, steel wall, insulation">
+</p>
 
-All cells are hexahedra: no tetrahedra, no pyramids, no hanging nodes, and no
-node merging. Neighbouring fittings share one face, so the mesh is conformal by
-construction.
-
----
-
-## Why structured hex?
-
-- **Accuracy.** Cells aligned with the flow reduce numerical diffusion compared
-  with tetrahedral meshes.
-- **Efficiency.** For the same axial resolution you need roughly 5–10× fewer
-  cells.
-- **Solver compatibility.** Boundary conditions and wall functions work
-  directly on pure-hex meshes.
+<!-- readme:features:start -->
+| | |
+|---|---|
+| ✔ **All-hex everywhere**, including tees, wyes and duct taps | ✔ **Exact walls**: every wall node on the true surface |
+| ✔ **Multi-region**: fluid, steel, insulation, conformal interfaces | ✔ **Cell count exact before meshing** (`cell_count()`) |
+| ✔ **Writes OpenFOAM cases** (patches, regions, CHT setup) | ✔ **Same connectivity across a parameter sweep** (studies, surrogates) |
+<!-- readme:features:end -->
 
 ---
 
-## Installation
-
-```bash
-pip install gmsh numpy
-pip install -e .              # from the repo root
-pip install -e ".[io]"        # + scipy, for the bathymetry reader
-```
-
-Python ≥ 3.10. Developed and tested with GMSH 4.12.
-
----
-
-## Quick start
+## Ten lines, one checked mesh
 
 ```python
-from hexmesh import Assembly, Bend, PipeSpec, Session, Straight
+from hexmesh import Assembly, Bend, PipeSpec, Session, Straight, Tee
 
-# 1. Cross-section: fluid core + pipe wall
-pipe = (
-    PipeSpec(nang=6)
-    .core("fluid", radius=0.1, nrad=5)
-    .shell("pipe_wall", dR=0.01, nrad=2)
-)
+pipe = (PipeSpec(nang=6)
+        .core("fluid", radius=0.1, nrad=5, first_cell=0.01)
+        .shell("steel", dR=0.008, nrad=2)
+        .shell("insulation", dR=0.04, nrad=3))
 
-# 2. Assembly: inlet at the origin, flowing along +x
-with Session("elbow"):
+with Session("insulated_tee"):
     asm = Assembly(pipe, direction=[1, 0, 0], up=[0, 0, 1])
-    asm.add(Straight(0.5, n_layers=10))
-    asm.add(Bend(radius=0.3, angle=90, n_layers=12))
-    asm.add(Straight(0.5, n_layers=10))
-
-    asm.validate()                 # pure Python: raises before any geometry is built
-    print(asm.cell_count())        # 6528, exact, before meshing
-    asm.write("elbow.msh")         # build faces, fill, groups, mesh, write
-    print(asm.check_quality())     # per-material minSICN report
+    asm.add(Straight(0.5, n_layers=8))
+    main, branch = asm.add(Tee(branch_length=0.3, branch_radius=0.06))
+    asm.add(main, Straight(0.5, n_layers=8), names=["main_end"])
+    bend = asm.add(branch, Bend(radius=0.3, angle=90, n_layers=10))
+    asm.add(bend, Straight(0.3, n_layers=6), names=["branch_end"])
+    print(asm.cell_count())                   # exact, before any geometry
+    asm.write_openfoam("insulated_tee.msh")   # then gmshToFoam
 ```
 
-To find the fitting that holds the worst cell, group by fitting and use
-a shape metric:
+<!-- readme:metrics:start -->
+What it gives (the gallery's `hexmesh.examples.sections.insulated_tee`):
 
-```python
-report = asm.check_quality("scaled_jacobian", threshold=0.6, by="fitting")
-print(report.worst_region.name)    # e.g. "#3 Tee"
-```
+| cells (predicted = meshed) | regions | min scaled Jacobian (where) | min SICN | build |
+|---|---|---|---|---|
+| 13 164 = 13 164 | fluid · steel · insulation | 0.32 (the tee) | 0.11 | 7.2 s |
 
-To inspect a mesh, run `gmsh elbow.msh`. Use Tools → Clipping to see inside,
-and Tools → Visibility to show individual patches.
+<sub>gmsh 4.12.1, one core, 2026-10-30.  Every example's numbers: [GALLERY.md](docs/GALLERY.md).</sub>
+<!-- readme:metrics:end -->
 
----
-
-## How it works
-
-hexmesh follows a fixed pipeline. The full rules are in [DESIGN.md](DESIGN.md).
-
-| Step | What | GMSH? |
-|---|---|---|
-| Intent | `add()` / `close()` record fittings and the interfaces between them | no |
-| Place | each fitting computes its outlet frames from its inlet frame | no |
-| Validate | port types, fitting geometry, cell budget | no |
-| Faces | every interface face is built exactly once | yes |
-| Fill | each fitting fills hex blocks between its existing port faces, in any order | yes |
-| Groups | physical groups derived from the graph | yes |
-| Mesh | transfinite meshing; nothing is merged | yes |
-
-Accuracy comes from placing nodes on exact curves, not from OCC surfaces.
-Bends, miter bends, reducers and spline pipes place one station per axial layer,
-so every wall node lies on an exact station curve. Miter cuts are the exact
-ellipse where the two pipes meet. Tee and wye wall nodes are projected onto
-the analytic wall after surface meshing
-([decision 0029](docs/decisions/0029-wall-exactness-by-node-projection.md));
-the OCC surfaces underneath stay approximate, and the faces between the nodes
-are chords: at the wye's crotch crease about 1 % of the radius at `nang` 8
-([task 0051](docs/tasks/0051-exact-junction-walls.md)). There is one known
-exception: the interior wall nodes of a multi-layer `Straight` lie on a filled
-surface, up to 0.7 % of the radius off. This is an open follow-up
-([task 0012](docs/tasks/0012-miter-bend-and-elbow.md#outcome)).
+Doubling every density parameter doubles the nodes in each direction:
+**8× the cells**, as for any structured 3-D mesh.
 
 ---
 
 ## Fittings
 
-| Fitting | Use |
+<table>
+<tr>
+<td align="center"><img src="docs/gallery/img/smooth_bend.png" width="180"><br><code>Bend</code> · <code>Elbow</code></td>
+<td align="center"><img src="docs/gallery/img/miter_bend.png" width="180"><br><code>MiterBend</code></td>
+<td align="center"><img src="docs/gallery/img/spline_pipe.png" width="180"><br><code>SplinePipe</code></td>
+<td align="center"><img src="docs/gallery/img/stenosis.png" width="180"><br><code>Reducer</code> (profiled)</td>
+</tr>
+<tr>
+<td align="center"><img src="docs/gallery/img/tee.png" width="180"><br><code>Tee</code></td>
+<td align="center"><img src="docs/gallery/img/wye.png" width="180"><br><code>Wye</code></td>
+<td align="center"><img src="docs/gallery/img/duct_transition.png" width="180"><br><code>Transition</code> (circle ↔ rectangle)</td>
+<td align="center"><img src="docs/gallery/img/loop.png" width="180"><br><code>Closure</code> (loops)</td>
+</tr>
+</table>
+
+Plus `Straight`, rectangular ducts, duct taps, layer outlines (round in
+square and square in round) and insulation that stops and starts along a
+run.
+
+**Not yet:**
+- tees with a non-perpendicular or offset branch (planned);
+- unequal wye daughters;
+- second-order export (in progress);
+- insulation starting inside a fitting.
+
+Full list in the [guide](docs/GUIDE.md#current-limitations).
+
+---
+
+## Validated, with the numbers
+
+<!-- readme:validation:start -->
+Each case is meshed by hexmesh, solved with OpenFOAM, and judged by grid
+convergence against gates set in advance.
+
+| Case | Reference | Result | Status |
+|---|---|---|---|
+| Hagen–Poiseuille pipe | exact (V1) | Δp and u_max extrapolated within 0.03 % | ✅ accepted |
+| Heated rod, uniform source | exact (V1) | centre ΔT extrapolated within 0.1 % | ✅ accepted |
+| Multi-layer conduction (rod, steel, insulation) | exact (V1) | temperatures within 0.001 %, second order | ✅ accepted |
+| Womersley pulsatile flow | exact (V1) | profile error ≤ 1 % of u_c at every phase | ✅ accepted |
+| Cosine stenosis, Re 500 | DNS (V2), Varghese et al. 2007 | reattachment 11.12 D vs 11.03 D (+0.9 %) | ✅ accepted |
+| Heated insulated pipe, full CHT | exact (V1) | | ⏳ in progress |
+| Rectangular duct; square-duct bend; turbulent pipe and bend; helical pipe | exact, experiment, DNS | | 📋 planned |
+<!-- readme:validation:end -->
+
+Categories, the coverage matrix (which features are validated and which
+aren't yet) and every case's mesh: [GALLERY.md, Validation](docs/GALLERY.md#validation).
+
+---
+
+## Where it fits
+
+- **Process piping and heat loss.** Insulated lines with the fluid, steel
+  and insulation as conformal regions, ready for `chtMultiRegionFoam`.
+  Read plant data from PCF isometrics.
+- **HVAC ducts.** Rectangular ducts, round-to-rectangle transitions, duct
+  taps.
+- **Biomedical flows.** Stenoses, bifurcation trees, pulsatile inlets;
+  the stenosis is validated against DNS.
+- **Studies and surrogates.** A parameter sweep keeps the node numbering:
+  node *i* is the same point of the network in every variant, only moved.
+  Fields map one-to-one, which is what reduced-order and surrogate models
+  need.  See `hexmesh.study`.
+
+More in [Why hexmesh?](docs/WHY.md).
+
+---
+
+## Install
+
+```bash
+pip install gmsh numpy
+pip install -e .              # from the repo root
+```
+
+Python ≥ 3.10, gmsh 4.12.  OpenFOAM is only needed to run the cases;
+hexmesh writes them without it.
+
+---
+
+## Documentation
+
+| | |
 |---|---|
-| `Straight(length, n_layers, axial_grading=1, stack_changes=())` | Straight run. `stack_changes` ends or starts outer layers inside it (see *Insulation gaps*) |
-| `Bend(radius, angle, n_layers, roll=0, axial_grading=1, stack_changes=(), toward=None)` | Circular-arc bend. `roll` (degrees) turns the bend plane about the pipe axis; 0 bends toward `up`. Or `toward=(x, y, z)`: the absolute direction to turn toward |
-| `Elbow(angle=90, schedule="long", n_layers=8, roll=0, axial_grading=1, toward=None)` | Butt-weld elbow: a `Bend` with radius 1.5 D (`"long"`) or 1 D (`"short"`), D = outer diameter |
-| `MiterBend(radius, angle, n_cuts=1, n_layers=2, roll=0, toward=None)` | Segmented bend of straight pieces. Same ports as `Bend(radius, angle)`; each cut turns ≤ 90° |
-| `Reducer(outlet, length, n_layers, axial_grading=1)` | Concentric cone to another radius (reducer or expander). Only radii may change |
-| `Transition(outlet, length, n_layers, axial_grading=1)` | Circle ↔ rectangle, or rectangle ↔ rectangle, in every layer; equal counts per side |
-| `SplinePipe(points, n_layers, end_tangent=None, axial_grading=1)` | Pipe along a cubic spline; `points[0]` is the inlet position |
-| `Tee(run_length, branch_length, branch_radius, n_run=3, n_branch=3, n_turn=2, roll=0, toward=None)` | Perpendicular side-branch tee, block layout; returns `(main, branch)`. The branch points along `up`, rolled by a multiple of 90°, or `toward` a direction |
-| `Wye(angle, run_length, branch_length, n_run=None, n_branch=None, n_split=None, roll=0, toward=None)` | Symmetric Y-junction, block layout; returns `(left, right)`. Unset layer counts follow the angular cell (`n_split` capped at 6). `roll` (a multiple of 90°) turns its plane |
-| `Closure(n_layers, tension=1.0, axial_grading=1)` | Smooth run between two existing interfaces, used with `close()` for loops |
-
-### Building a network
-
-```python
-asm = Assembly(pipe, direction=[1, 0, 0], up=[0, 0, 1])
-
-# add(fitting) continues from the tail
-asm.add(Straight(0.4, n_layers=8))
-
-# multi-outlet fittings return one interface per outlet; toward= points
-# the branch in an absolute direction (here sideways, +y)
-main, branch = asm.add(Tee(run_length=0.2, branch_length=0.25, branch_radius=0.06,
-                           toward=(0, 1, 0)))
-
-# add(interface, fitting) branches from any interface and returns its outlet
-bend = asm.add(main, Bend(radius=0.3, angle=90, n_layers=12, toward=(0, -1, 0)))
-
-# names= names the outlets (a list, or a dict by port name: a tee has
-# "main" and "branch"); open ends become patches such as "fluid_main_end"
-asm.add(bend, Straight(0.3, n_layers=6), names=["main_end"])
-asm.add(branch, Straight(0.3, n_layers=6), names={"outlet": "branch_end"})
-
-# every angle is in degrees, including PipeSpec(rot=...)
-
-# close(source, target, fitting) joins two open interfaces, e.g. a loop:
-# asm.close(asm.interfaces[-1], asm.inlet, Closure(n_layers=24))
-```
-
-Validation runs before anything is built. It rejects, with a message naming the
-fitting:
-- mismatched cross-sections at an interface;
-- bends tighter than the pipe;
-- miter cuts outside 1–90°;
-- reducers that change more than radii;
-- closures that would kink;
-- an assembly over `validate(max_cells=...)`.
+| [Guide](docs/GUIDE.md) | every fitting, cross-sections, physical groups, OpenFOAM output, studies, plant data |
+| [API](API.md) | the reference |
+| [Gallery](docs/GALLERY.md) | every example with its mesh, quality numbers and the code; the validation cases |
+| [Why hexmesh?](docs/WHY.md) | the case for structured all-hex networks, and when not to use hexmesh |
+| [Design](DESIGN.md) | the rules every fitting follows: interfaces first, fittings as fills, conformal by construction |
 
 ---
 
-## Cross-section specification
-
-```python
-from hexmesh import PipeSpec
-
-# Bare pipe (fluid only)
-PipeSpec(nang=6).core("fluid", radius=0.05, nrad=4)
-
-# Fluid + pipe wall
-PipeSpec(nang=6).core("fluid", radius=0.05, nrad=4).shell("pipe_wall", dR=0.005, nrad=2)
-
-# Fluid + wall + insulation, refined toward the wall
-(PipeSpec(nang=6)
- .core("fluid", radius=0.05, nrad=4)
- .shell("steel", dR=0.005, nrad=2)
- .shell("insulation", dR=0.03, nrad=4, mprg=1.2))
-```
-
-- `nang` sets the cells along each 90° arc of the cross-section. It is shared by
-  every layer.
-- `nrad` sets the cells across each layer.
-- `mprg` is the radial progression. Values above 1 refine toward the inner side
-  of the layer.
-- `PipeSpec(mbmp=...)` sets an angular bump.
-- `first_cell=` sets the radial height of the cell at a layer's outer wall,
-  in place of `mprg`:
-
-  ```python
-  PipeSpec(nang=6).core("fluid", radius=0.05, nrad=12, first_cell=2e-4)
-  ```
-
-  This is a geometric height, not y⁺, which also depends on the flow.
-  In a shell the height is exact all the way round. In the core it is the
-  largest wall cell: it is reached at mid-arc, where the core is thickest,
-  and the cells at the four corners are about 0.81× it.
-
-Each layer becomes its own physical volume, and neighbouring layers meet at
-conformal material interfaces, which is what conjugate heat transfer needs.
-Every layer is built from a 5-patch O-H cross-section:
-
-```
-      N
-   NW / \ NE
-  ───/───\───
- W | c_sq | E    ← centre square patch
-  ───\───/───
-   SW \ / SE
-      S
-```
-
-The centre square avoids the singular pole a pure O-grid would have.
-
-### Rectangular ducts
-
-```python
-# 2:1 duct, 0.2 wide (along the frame's right) by 0.1 high (along up)
-PipeSpec(nang_w=8, nang_h=4).core("air", half_w=0.1, half_h=0.05, nrad=3)
-```
-
-A duct uses the same O-H layout with straight sides: a centre rectangle and
-a ring of uniform thickness, with `nang_w` cells along the width and
-`nang_h` along the height. Ducts run through `Straight`, `Bend`,
-`MiterBend`, `SplinePipe`, `Closure` and `Reducer`.  Shells may have any
-outline, so a duct can carry a wall and lagging, and a pipe can sit in a
-rectangular block (`.shell(name, outer=RectShape(...))`, API.md); a stack
-with a rectangle has the same count on every side.
-`Transition` joins a duct to a circular pipe, or to a duct of another size,
-when the counts per side match: a circle's `nang` equals the duct's
-`nang_w` and `nang_h`.  It changes every layer of a stack together, so an
-insulated pipe can become an insulated duct.
-
-`up` decides which side is the height, and a bend's `roll` decides its
-plane. `Bend(..., roll=0)` turns toward `up`, across the height: the
-**easy way** for a wide, flat duct. `roll=90` turns across the width: the
-**hard way**. Its radius is checked against the half-width instead of
-the half-height. A 2:1 duct only matches itself turned by 180°, not 90°,
-so loops close modulo 180°.
-
----
-
-## Resolution and cell count
-
-| Parameter | Controls | Set on |
-|---|---|---|
-| `nang` | cells per 90° arc (around the pipe) | `PipeSpec` |
-| `nrad` | cells across each layer | `.core()` / `.shell()` |
-| `n_layers` | cells along the axis, per fitting | each fitting, or from `Assembly(axial_cell=…)` |
-
-The mesh is structured, so its size is known exactly before meshing. A
-cross-section has `nang² + 4·nang·Σnrad` cells, multiplied by each fitting's
-axial layers:
-
-```python
-asm.validate(max_cells=2_000_000)   # raises AssemblyError over budget
-asm.cell_count()                    # total, without GMSH
-asm.cell_counts()                   # per fitting
-```
-
-**Axial cell size.** Instead of `n_layers` on every fitting, give the
-assembly a target axial cell length and leave `n_layers` out: each sweep
-fitting gets `ceil(L / axial_cell)` layers, `L` its centreline length, or
-more if it needs more to be valid (a spline's 30° turn per layer, a
-profiled reducer's chord tolerance, a bend's < 180° per layer). The
-resolved count is stored in the fitting and in the saved file. An
-explicit `n_layers` always wins; `Elbow` and `MiterBend` have defaults
-(8 and 2), so pass `n_layers=None` to them. `Tee` and `Wye` keep their own
-counts.
-
-```python
-asm = Assembly(pipe, direction=[1, 0, 0], up=[0, 0, 1], axial_cell=0.05)
-asm.add(Straight(0.5))                         # 10 layers
-asm.add(Bend(radius=0.3, angle=90))            # 0.471 / 0.05 → 10 layers
-```
-
-**Axial grading.** `axial_grading` is the ratio of consecutive axial cell
-lengths along a fitting, inlet to outlet. Above 1, cells are finest at the
-inlet (for example after a tee); below 1, finest at the outlet. It doesn't
-change the cell count. `MiterBend` and `Tee` are not graded yet.
-
-```python
-asm.add(Straight(1.0, n_layers=20, axial_grading=1.1))   # first cell at the inlet
-asm.add(Bend(radius=0.3, angle=90, n_layers=12, axial_grading=0.9))
-```
-
-> **Refinement is cubic.** Doubling `nang`, every `nrad` and every `n_layers`
-> doubles the nodes in each direction, which gives **8× the cells** in 3-D. If
-> you come from unstructured meshing, expect this rather than a linear increase.
-
-**Convergence studies.** `asm.refined(k)` returns a copy at k× the
-resolution in every direction: `nang`, every `nrad` and every axial count
-× k, and every grading ratio replaced by its k-th root, so each coarse cell
-splits into k cells of the same growth. It has **k³× the cells**, and the
-original is unchanged.
-
-```python
-levels = [asm, asm.refined(2), asm.refined(4)]   # 1×, 8×, 64× the cells
-```
-
-A spec built with `first_cell=` keeps its resolved progression, so the
-refined first cell is smaller.
-
----
-
-## Physical groups
-
-For a layer named `"fluid"`:
-
-| Physical group | Content |
-|---|---|
-| `fluid` | all fluid volumes |
-| `fluid_inlet` | the inlet face (`Assembly(..., inlet_name=...)`) |
-| `fluid_outlet` | the only other open end, when there is just one |
-| `fluid_<name>` | an open end named with `add(..., names=[...])`; unnamed extra ends are `fluid_port<N>` |
-| `interface_fluid_pipe_wall` | conformal interface to the next layer (inner, then outer material) |
-| `pipe_wall_wall` | outer wall, named after the layer that is outermost there |
-| `insulation_end` | end faces of a layer that stops or starts inside a fitting |
-| `pipe_wall_wall_<fitting>` | with `mesh(walls_by_fitting=True)`: the outer wall of one fitting, in place of `pipe_wall_wall` (likewise `insulation_end_<fitting>`). `<fitting>` is its `add(..., label=...)` or `<Type><index>` (`Bend3`) |
-
-Every boundary face belongs to exactly one group. A closed loop has no
-inlet or outlet groups.
-
-### Insulation gaps
-
-Outer layers can stop and start inside a `Straight` or `Bend`, e.g. at a
-flange or a support.  `stack_changes` lists `(i, spec)` pairs: from axial
-cell `i` on, the stack is `spec`.
-
-```python
-bare = PipeSpec(nang=4).core("fluid", radius=0.1, nrad=3).shell("pipe_wall", dR=0.01, nrad=2)
-insulated = PipeSpec(nang=4).core("fluid", radius=0.1, nrad=3) \
-    .shell("pipe_wall", dR=0.01, nrad=2).shell("insulation", dR=0.03, nrad=2)
-
-asm = Assembly(insulated)
-asm.add(Straight(1.0, n_layers=10, stack_changes=((3, bare), (7, insulated))))
-```
-
-Cells 3–6 are bare.  The rules:
-- only outermost layers may stop or start;
-- the remaining layers keep their names, radii, `nrad` and grading (to
-  change those, use a `Reducer`);
-- changes sit inside the fitting (`0 < i < n_layers`), never at a port.
-
-The outlet port carries the last stack.  The cell count counts each layer
-only where it is present.
-
-### OpenFOAM
-
-```python
-asm.write_openfoam("pipe.msh")    # MSH 2.2 ASCII, for gmshToFoam
-```
-
-```bash
-gmshToFoam pipe.msh
-splitMeshRegions -cellZones -overwrite   # multi-material (CHT) only
-```
-
-Each material becomes a cellZone, and after the split a region with
-`mappedWall` interfaces to its neighbours.  `write_openfoam` leaves the
-`interface_*` groups out of the file by default, because the split
-rebuilds every interface as a `mappedWall` pair itself;
-`interfaces=True` keeps them as faceZones.
-
-`gmshToFoam` writes every patch as type `patch`.  `write_openfoam` also
-writes `pipe.roles.json`, the role of each group taken from the network
-(wall, open end, interface, volume), and one call retypes the walls:
-
-```python
-from hexmesh.io.writers.openfoam_boundary import apply_boundary_roles_to_regions
-apply_boundary_roles_to_regions("case", "pipe.roles.json")   # every region, or the unsplit mesh
-```
-
-Open ends stay `patch`, and the split's `mappedWall` interfaces are left
-alone.  Verified with OpenFOAM v1912; details in
-[docs/integrations/openfoam.md](docs/integrations/openfoam.md).
-
----
-
-## Inlet and outlet runs
-
-CFD boundary conditions want straight pipe before and after the region of
-interest.  Add it in diameters, before building:
-
-```python
-asm.extend_open_ends(upstream=5, downstream=10)   # 5 D before, 10 D after each outlet
-```
-
-The diameter is that of each end's flow core (for a duct, the hydraulic
-diameter 4A / P).  The patch names
-(`fluid_inlet`, `fluid_outlet`, named ends) stay the same.
-
-## Starting at a drum nozzle
-
-Declare the drum and its nozzles once, and the nozzle poses follow:
-
-```python
-from hexmesh import Drum, Nozzle, OnShell, OnHead
-
-drum = Drum("D101", diameter=2.0, length=6.0, axis=[1, 0, 0], up=[0, 0, 1],
-            nozzles=[Nozzle("N1", pipe, OnShell(axial=1.5, angle=0, projection=1.4)),
-                     Nozzle("N2", pipe, OnHead("second", offset=0.0, angle=0, projection=0.8))])
-asm = Assembly.from_nozzle(drum, "N1")   # inlet patch fluid_D101_N1
-asm.add(Straight(0.5, n_layers=10))
-```
-
-`drum.validate()` (run by `from_nozzle`) rejects nozzles whose face is
-inside the shell or head, nozzles that are too large, and footprints that
-overlap.  The drum itself is not meshed.
-
-## Saving a network
-
-An assembly can be saved as a JSON description of how it was built, and
-loaded again, with no GMSH involved:
-
-```python
-asm.save("network.json")
-asm = Assembly.load("network.json")   # same interfaces, same mesh
-```
-
-The file lists the inlet, then every fitting in order with its parameters.
-Edit a parameter there and everything downstream moves with it, which
-suits parametric studies.  Lengths are in your unit, unconverted.
-
-## Running studies
-
-`hexmesh.study` turns one study file into many variants.  It checks them
-all in seconds without GMSH, meshes them in parallel processes, and
-records everything in one manifest.
-
-```json
-{
-  "template": {"python": "bends:build"},
-  "sampling": {"grid": {"radius": [0.15, 0.2, 0.3], "angle": [45, 60, 90]}},
-  "budget":   {"max_cells_variant": 100000},
-  "output":   "out"
-}
-```
-
-`bends.py`, next to the study file, has `build(params) -> Assembly`.  A
-JSON template instead is a saved network with `"$name"` placeholders.
-
-```bash
-python3 -m hexmesh.study run study.json --stage preflight   # check only
-python3 -m hexmesh.study run study.json --jobs 4            # then mesh
-python3 -m hexmesh.study status study.json
-python3 -m hexmesh.study export study.json                  # aligned arrays
-```
-
-- **Preflight** builds and validates every variant and counts its cells.
-  If any variant fails, it reports which one and why, and meshes nothing
-  (`--keep-going` meshes the rest).
-- **Mesh** writes `out/variants/<hash>/`, named by a hash of the
-  parameters.  A variant that is already meshed is skipped, so a re-run
-  after adding rows meshes only the new ones.
-- **Manifest:** `out/study.csv` and `out/study.json`, one row per
-  variant.
-  - Each row records its status, cells, quality, times, errors and a
-    **topology key**.
-  - Variants with the same key have identical node numbering and hex
-    connectivity: geometry-only variants line up node for node.
-  - `export` writes one `out/aligned/<key>.npz` per key (coordinates per
-    variant, shared connectivity), for surrogate models.
-- **Case and run** (optional, `"format": "openfoam"`):
-  - a `case` block names an OpenFOAM case template without a mesh;
-    each variant gets a copy, with the mesh converted, patches retyped
-    and `$name` tokens replaced by its parameters;
-  - a `run` block gives a command (e.g. `./Allrun`), `cores_per_job`,
-    and a `post(case, params) -> dict` function whose result goes in the
-    manifest.
-- `--jobs` defaults to 1.  On a shared machine, mind the other runs: the
-  run stage refuses while other pytest or OpenFOAM runs are active,
-  unless `--force`.
-
-Schema and options: [API.md](API.md#study-runner-hexmeshstudy).
-
-## Reading plant data
-
-```python
-from hexmesh.io.readers.pcf import read_pcf
-
-net = read_pcf("line.pcf")                       # Isogen PCF; units from its header
-asm = net.to_assembly(pipe)                      # or pipe=lambda bore: PipeSpec(...)
-
-net = read_pcf(["unit-a.pcf", "unit-b.pcf"])     # several files, one network
-asm = net.to_assembly(pipe, inlet="A_100_end1")  # an open end by name or point
-asm = net.to_assembly(pipe, insulation=True)     # insulation where the PCF says
-```
-
-The reader follows the PCF reference guide.  Units come from
-`UNITS-CO-ORDS` and `UNITS-BORE`.  `bore` is the **nominal** size in
-metres (4" → 0.1016 m), not an inside diameter.
-
-`to_assembly` maps the PCF components to fittings:
-- pipes, flanges, valves and caps become `Straight`;
-- elbows and bends become `Bend`, from their corner point, checked against
-  `ANGLE` and `BEND-RADIUS`;
-- concentric reducers become `Reducer`;
-- `TEE` becomes `Tee`; a set-on, stub-in or olet splits its host pipe
-  around a `Tee`; a fabricated Y piece becomes `Wye`;
-- welds, couplings and gaskets up to 1/16" long are absorbed into the
-  neighbouring straight runs instead of being meshed as slivers.
-
-Branched files are read as a tree, joined by end points across pipelines
-and files.  The root is the first open end (preferring a `FLOW`
-upstream end) from which every junction is entered through its inlet.
-Fittings are labelled from the file (`TEE_1`, `OLET_2`, or the
-component's `COMPONENT-IDENTIFIER`) and open ends from the pipeline
-(`A_100_end3`), so wall and port patches can be traced back to the
-isometric.  Junctions the fittings can't build (crosses, equal, angled,
-offset or tangential tees, asymmetric Y pieces) are rejected naming the
-component.
-
-With `insulation=True`, components marked `INSULATION ON` get an
-`insulation` shell of the pipeline's `INSULATION-THICKNESS`.  Where it
-stops or starts (a bare valve or flange), the change sits one cell inside
-the neighbouring straight component, which gives `insulation_end` wall
-patches.  Junctions carry the insulation through (a bare branch ends it
-one cell into its first straight).  Ends at `END-CONNECTION-EQUIPMENT` records are named after the
-nozzle (`V_101_N1`) and are never extended by `extend_open_ends`.
-
-It checks every component against its PCF end points and raises
-`AssemblyError` naming the component on any gap; nothing is snapped.  The
-tolerance scales with the model (at least 0.11").
-
-Pipeline routes from `hexmesh.io.readers.bathymetry.read_bathymetry` bend at
-their vertices without fittings, so build them with
-`to_assembly(pipe, kinks="spline")`.
-
----
-
-## Examples
-
-The examples are grouped by what they illustrate.  Each writes
-`<name>.msh` to the current directory:
-
-```bash
-python3 -m hexmesh.examples.fittings.smooth_bend
-```
-
-**[docs/GALLERY.md](docs/GALLERY.md)** shows every example with images,
-cell counts and quality metrics, and the validation cases.  Regenerate it
-with `python3 docs/gallery/build.py` (needs `vtk`).
-
-| Category | Examples | Shows |
-|---|---|---|
-| `fittings` | `smooth_bend`, `miter_bend`, `spline_pipe`, `reducer_network`, `stenosis`, `tee`, `wye`, `loop` | one building block each: bends, reducer, profiled reducer (cosine constriction), junctions, `Closure` |
-| `sections` | `insulated_pipe`, `insulated_route`, `graded_bend`, `rect_duct`, `duct_transition`, `layer_outlines`, `lagged_duct`, `insulated_transition`, `insulated_tee`, `insulated_network` | what runs through the pipe: layer stacks, wall and axial grading, rectangular ducts, shells of any outline, `Transition` of a whole stack |
-| `networks` | `pipe_network`, `pipe_rack`, `distribution_tree`, `bifurcation_tree`, `skewed_network` | composing fittings: routes, branches, trees, any orientation |
-| `applications` | `drum_nozzle`, `hvac_supply`, `cooling_channels` | equipment nozzles, ventilation ducting, cooling channels |
-
----
-
-## Current limitations
-
-- **Tee:** perpendicular and centred branch, branch radius below the main
-  radius; shells circular, and the branch's copy the main's (no separate
-  branch wall thickness).
-- **Wye (prototype):** circular shells from 40°, total thickness up to
-  0.65 R·tan(angle/2), at most 0.55 R (`API.md`), equal daughters with the inlet's
-  spec, coplanar and symmetric, angle 30°–120°. Quality is measured, not
-  yet bounded: min scaled Jacobian about 0.1 (decision 0017). The wall
-  nodes are exact, but the faces between them miss the wall by about 2 %
-  of R at `nang` 8 at the inlet/daughter crease (60°–120°) and 2–3 % at
-  the crotch of wyes under 45°, both first order in `nang`; a layout with
-  the creases on block edges is planned (decision 0029, task 0056).
-  Default wyes are reliable to about `nrad` 6; at 120° with `nrad` 12
-  only `n_split` 3 is safe.  `refined(k)` of a wye may fold beyond
-  k = 2, and `mesh()` says so, naming the wye.  The wall error at the
-  knee (3–6 % of R) doesn't converge with `nang`, so grid studies over
-  wyes stop at k = 2.
-- **Rectangular ducts and outlines:** no elbow for ducts.  A duct tee
-  (`Tee(branch=…)` on a duct) takes a rectangular or round tap inside the
-  face, up to 0.93 of its width, or a rectangular tap as wide as the
-  face, on single-layer ducts only.  A full-width tap's quality is set by
-  its length along the main (short taps warn, very short ones fail).  Narrow-face taps on deep ducts (3:1)
-  mesh poorly (min SJ about 0.13, non-orthogonality to 82°) and warn.  A
-  tap costs about 1.6–2.3× the cells of a plain run of the same length.
-  A stack with a rectangle needs equal counts per side, and so does
-  `Transition`.
-- **Layer changes:** insulation can't start or stop inside a fitting yet
-  (decision 0006).
-
-Design decisions and planned work: [docs/decisions/](docs/decisions/) and
-[docs/tasks/](docs/tasks/).
+## Licence
+
+hexmesh is released under the [BSD 3-Clause licence](LICENSE).
+
+That licence covers hexmesh's own code.  Its dependencies keep theirs:
+- **gmsh** is GPL-2.0-or-later (with an exception for some bundled
+  meshers).  hexmesh doesn't ship gmsh; you install it.  If you
+  distribute hexmesh together with gmsh, for example inside a product,
+  the GPL's terms apply to that combination.  gmsh's authors offer
+  commercial licences for other uses.
+- **Planned, optional:** IfcOpenShell, for the IFC reader, is LGPL.
+- **OpenFOAM**, used to run the cases, is GPL-3.0.
+- **Validation reference data** (e.g. the Purdue stenosis DNS) isn't
+  redistributed here.  The case scripts download it at run time, under
+  its owners' terms.
+
+## Citing
+
+If you use hexmesh in your work, please cite it.  GitHub's **Cite this
+repository** button gives APA and BibTeX from [CITATION.cff](CITATION.cff).

@@ -166,6 +166,15 @@ and 90°) and equal laterals.  Its timing depends on 0053's thin-shell
 probe: if thin shells fold on today's wye, the redesign comes before
 0053.
 
+**Scope grown again (2026-10-30, the user):** **unequal daughter radii**
+(smaller than the parent).
+- Real bifurcations and the wye benchmark need them.  Zhao & Lieber
+  (1994), the experimental benchmark for a symmetric bifurcation
+  (RESEARCH §7.9), has area-preserving daughters (r_d = R/√2).  Murray's
+  law gives r_d = R/2^{1/3} for vascular trees (§6).
+- So the redesign's wye takes a daughter radius (or one per daughter),
+  not only the inlet's spec.
+
 ## Consequences
 
 - Task 0051 reopens (steps 5–8) and closes the tee wall row; the wye

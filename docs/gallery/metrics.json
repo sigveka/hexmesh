@@ -1444,6 +1444,101 @@
     "predicted": 491520,
     "meshed": 491520
    }
+  },
+  "stenosis": {
+   "k2": {
+    "fittings": 4,
+    "fitting_types": {
+     "Straight": 3,
+     "Reducer": 1
+    },
+    "volumes": 375,
+    "materials": [
+     "fluid"
+    ],
+    "min_sicn": 0.34490123300884235,
+    "mean_sicn": 0.8169222049629058,
+    "min_sj": 0.7318494706091423,
+    "min_sj_fitting": "#1 Reducer",
+    "max_aspect": 4.752317214196193,
+    "groups": {
+     "open_end": [
+      "fluid_inlet",
+      "fluid_outlet"
+     ],
+     "wall": [
+      "fluid_wall"
+     ],
+     "interface": [],
+     "volume": [
+      "fluid"
+     ]
+    },
+    "predicted": 122688,
+    "meshed": 122688
+   },
+   "k3": {
+    "fittings": 4,
+    "fitting_types": {
+     "Straight": 3,
+     "Reducer": 1
+    },
+    "volumes": 555,
+    "materials": [
+     "fluid"
+    ],
+    "min_sicn": 0.3377947651716856,
+    "mean_sicn": 0.8223430734511666,
+    "min_sj": 0.7176476152097224,
+    "min_sj_fitting": "#1 Reducer",
+    "max_aspect": 4.761011791039784,
+    "groups": {
+     "open_end": [
+      "fluid_inlet",
+      "fluid_outlet"
+     ],
+     "wall": [
+      "fluid_wall"
+     ],
+     "interface": [],
+     "volume": [
+      "fluid"
+     ]
+    },
+    "predicted": 414072,
+    "meshed": 414072
+   },
+   "k4": {
+    "fittings": 4,
+    "fitting_types": {
+     "Straight": 3,
+     "Reducer": 1
+    },
+    "volumes": 735,
+    "materials": [
+     "fluid"
+    ],
+    "min_sicn": 0.33418284767373024,
+    "mean_sicn": 0.8249280018754933,
+    "min_sj": 0.710422510635222,
+    "min_sj_fitting": "#1 Reducer",
+    "max_aspect": 4.765367043445269,
+    "groups": {
+     "open_end": [
+      "fluid_inlet",
+      "fluid_outlet"
+     ],
+     "wall": [
+      "fluid_wall"
+     ],
+     "interface": [],
+     "volume": [
+      "fluid"
+     ]
+    },
+    "predicted": 981504,
+    "meshed": 981504
+   }
   }
  }
 }

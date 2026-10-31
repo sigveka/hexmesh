@@ -30,11 +30,11 @@
   "task": "0032",
   "gates": [
     {
-      "quantity": "reattachment, by u(0.48 D) = 0 and by wall shear stress",
-      "limit": "within 5 % of the DNS's 11.03 D"
+      "quantity": "reattachment, by $u(0.48\\,D) = 0$ and by wall shear stress",
+      "limit": "within 5 % of the DNS's $11.03\\,D$"
     },
     {
-      "quantity": "centreline velocity, x/D = −2 … 15",
+      "quantity": "centreline velocity, $x/D = -2 \\ldots 15$",
       "limit": "within 2 % of the DNS peak"
     }
   ]

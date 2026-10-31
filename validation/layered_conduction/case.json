@@ -32,15 +32,15 @@
     },
     {
       "quantity": "energy balance through every interface and the outer wall",
-      "limit": "balanced (no tolerance set in advance; measured ≤ 1.2e-9)"
+      "limit": "balanced (no tolerance set in advance; measured $\\le 1.2 \\times 10^{-9}$)"
     },
     {
-      "quantity": "extrapolated T₀, T(r₁), T(r₂)",
+      "quantity": "extrapolated $T_0$, $T(r_1)$, $T(r_2)$",
       "limit": "within 0.1 % of exact"
     },
     {
       "quantity": "L2 order per region",
-      "limit": "≈ 2"
+      "limit": "$\\approx 2$"
     }
   ]
 }

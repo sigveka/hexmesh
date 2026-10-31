@@ -48,6 +48,7 @@ rejected.  Records are written in design sessions, and they are the only way
 | [0031](0031-general-branch-junctions.md) | General branch junctions: laterals, offset taps and arbitrary roll | accepted |
 | [0032](0032-network-interchange.md) | Network interchange: importers, a network model, a network document, one builder | proposed (work in progress) |
 | [0033](0033-duct-tap-topology.md) | Junction layout for duct taps narrower than their face (and round taps on ducts) | accepted (B, pillowed tap) |
+| [0034](0034-secondary-solvers.md) | Secondary solvers for code-to-code comparison (FEniCSx, Nek5000/NekRS), and second-order mesh export | accepted in part (FEniCSx, second-order export; Nek proposed) |
 
 ## Future expansions
 

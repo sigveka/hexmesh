@@ -299,6 +299,54 @@ option afterwards.  `Assembly.write` keeps gmsh's default.
 (Corrected 2026-10-25; this entry earlier said "nothing in hexmesh sets
 it" and implied 4.1 was a problem.)
 
+### Second-order hexes: `setOrder(2)` on transfinite meshes (gmsh 4.12.1, design session, 2026-10-31)
+
+Probe: examples meshed with `Assembly.mesh(3)`, then
+`gmsh.model.mesh.setOrder(2)`.  Script in the design session's scratchpad
+(not kept); numbers below.
+
+- **It works on transfinite hex meshes.**
+  - Hex27 / Quad9 by default; Hex20 / Quad8 with
+    `Mesh.SecondOrderIncomplete = 1`.
+  - First-order nodes keep their tags and positions.
+  - Takes 1.4–8 s (bend, tee, wye, stenosis).
+- **New nodes go onto the OCC surface.**  On walls whose OCC surface is
+  the true one (straight, bend, the stenosis loft), the high-order nodes
+  are on it to 1e-14, with no invalid elements.
+- **Projected walls (decision 0029) are not exact.**  The OCC surface
+  there isn't the analytic one, and `setOrder` doesn't know about
+  hexmesh's projection:
+  - **tee:** high-order nodes up to 7.8e-4 R off the analytic surface
+    (the linear chord midpoints are 1.5e-2 R off);
+  - **wye:** up to **0.16 R** off, worse than the linear chords
+    (0.036 R), and 32 hexes invert.
+- **Re-projecting the high-order wall nodes** with the fitting's
+  projector puts them on the analytic surface (to 1e-15):
+  - **tee:** valid, min scaled Jacobian 0.536 (as linear);
+  - **wye:** 36–52 hexes invert, all touching the projected wall.
+    Recomputing face and body nodes from the Hex20 serendipity
+    interpolant doesn't help (36).
+  - **The wye gets worse with refinement** (`nang` 6 / 12 / 24:
+    36 / 180 / 1044 inverted).  The worst chord-midpoint offset stays
+    0.039 R at every resolution, so it is not curvature sag.  Likely
+    cause (not verified): near the wye's creases, the union projector
+    sends a chord midpoint onto the other tube.  A crease-aware rule
+    (project onto the tube the edge's end nodes lie on) would be the
+    first thing to try.
+- **gmsh's high-order optimisers undo the projection:**
+  - `optimize("HighOrder")` restores validity on the wye (min SJ 0.21)
+    but pulls the wall nodes, vertices included, back onto the OCC
+    surface (0.16 R off);
+  - `"HighOrderElastic"` does the same and leaves 20 inverted;
+  - with `Mesh.HighOrderFixBoundaryNodes = 1`, `"HighOrder"` hadn't
+    finished after 11 min on 5.7 k hexes, so it was stopped.
+
+  Don't run them on projected fittings.
+- **Quality numbers:** `getElementQualities(…, "minSJ")` on high-order
+  elements is computed over the whole element (Bézier bounds), not at
+  the corners.  It isn't comparable to hexmesh's corner SJ (smooth
+  bend: 0.809 linear vs 0.184 second order, both valid).
+
 ## Open questions
 
 - ~~Does `gmsh.write` keep physical names and element orientation the way

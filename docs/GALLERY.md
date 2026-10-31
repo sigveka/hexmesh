@@ -567,7 +567,8 @@ bare leg's switch too (task 0054).
 
 Junction shells have limits, checked before GMSH (`API.md`): a wye with
 shells needs 40° or more, and its total shell thickness at most
-R · min(0.65 tan(angle/2), 0.55), 0.375 R at 60°; here 0.31 R.
+$R \min\left(0.65 \tan(\theta/2),\ 0.55\right)$ for a wye of angle $\theta$:
+$0.375\,R$ at 60°; here $0.31\,R$.
 
 ```bash
 python3 -m hexmesh.examples.sections.insulated_network
@@ -814,21 +815,21 @@ Each case lives in `validation/<case>/`: `case.json` gives its category, referen
 
 #### Heated multi-layer pipe with laminar flow (full CHT)
 
-**Status:** in progress (task 0035).  **Reference:** exact: fully developed Nu = 48/11 (uniform flux), radial conduction through the shells.
+**Status:** in progress (task 0035).  **Reference:** exact: fully developed $\mathrm{Nu} = 48/11$ (uniform flux), radial conduction through the shells.
 
 Tags: `laminar`, `flow`, `cht`, `section:circle`, `layers`, `straight`, `OpenFOAM v2406 (docker)`.
 
-Gates: checkMesh: Mesh OK per region, every level; energy balance: within 0.1 % at every level; extrapolated Nu: within 1 % of 48/11; extrapolated solid ΔTs: within 0.5 %.
+Gates: checkMesh: Mesh OK per region, every level; energy balance: within 0.1 % at every level; extrapolated $\mathrm{Nu}$: within 1 % of $48/11$; extrapolated solid $\Delta T$s: within 0.5 %.
 
 Case: `validation/heated_pipe/`: [case.json](../validation/heated_pipe/case.json).
 
 #### Solid rod with uniform heat generation
 
-**Status:** accepted (task 0033).  **Reference:** exact: T(r) = T_w + Su (R² − r²)/(4 DT).
+**Status:** accepted (task 0033).  **Reference:** exact: $T(r) = T_w + \dfrac{S_u\,(R^2 - r^2)}{4\,D_T}$.
 
 Tags: `conduction`, `section:circle`, `straight`, `OpenFOAM v1912 (native)`.
 
-Gates: extrapolated centre excess ΔT₀: within 0.1 % of exact.
+Gates: extrapolated centre excess $\Delta T_0$: within 0.1 % of exact.
 
 <p><img src="../validation/heated_rod/img/uniform-1.png" width="68%"> <img src="../validation/heated_rod/img/uniform-1_section.png" width="29%"></p>
 
@@ -840,7 +841,7 @@ Case: `validation/heated_rod/`: [README.md](../validation/heated_rod/README.md),
 
 Tags: `conduction`, `section:circle`, `layers`, `straight`, `OpenFOAM v1912 (native)`.
 
-Gates: checkMesh: Mesh OK, every region, every level; energy balance through every interface and the outer wall: balanced (no tolerance set in advance; measured ≤ 1.2e-9); extrapolated T₀, T(r₁), T(r₂): within 0.1 % of exact; L2 order per region: ≈ 2.
+Gates: checkMesh: Mesh OK, every region, every level; energy balance through every interface and the outer wall: balanced (no tolerance set in advance; measured $\le 1.2 \times 10^{-9}$); extrapolated $T_0$, $T(r_1)$, $T(r_2)$: within 0.1 % of exact; L2 order per region: $\approx 2$.
 
 <p><img src="../validation/layered_conduction/img/k1.png" width="68%"> <img src="../validation/layered_conduction/img/k1_section.png" width="29%"></p>
 
@@ -848,22 +849,35 @@ Case: `validation/layered_conduction/`: [README.md](../validation/layered_conduc
 
 #### Laminar Hagen–Poiseuille pipe
 
-**Status:** accepted (task 0020).  **Reference:** exact: u = 2Ū(1 − r²/R²), Δp = 32μŪL/D².
+**Status:** accepted (task 0020).  **Reference:** exact: $u = 2\bar{U}\left(1 - r^2/R^2\right)$, $\Delta p = 32\,\mu \bar{U} L / D^2$.
 
 Tags: `laminar`, `flow`, `section:circle`, `straight`, `OpenFOAM v1912 (native)`.
 
-Gates: extrapolated Δp and u_max: within 0.1 % of exact; fine-level |error|: < 1 %; error over levels: decreases monotonically; u_max observed order: ≥ 1.5.
+Gates: extrapolated $\Delta p$ and $u_\mathrm{max}$: within 0.1 % of exact; fine-level |error|: < 1 %; error over levels: decreases monotonically; $u_\mathrm{max}$ observed order: $\ge 1.5$.
 
 <p><img src="../validation/poiseuille/img/coarse.png" width="68%"> <img src="../validation/poiseuille/img/coarse_section.png" width="29%"></p>
 
 Case: `validation/poiseuille/`: [README.md](../validation/poiseuille/README.md), [RESULTS.md](../validation/poiseuille/RESULTS.md), [case.json](../validation/poiseuille/case.json).
 
+#### Womersley flow (pulsatile laminar pipe flow)
+
+**Status:** accepted (task 0067).  **Reference:** exact: Womersley profile and pressure gradient, the inlet of `varghese_and_frankel_etal_2007b` eq. 2.1 ($\alpha = 7.5$, $A = 0.667$, $\mathrm{Re} = 600$); inlet waveform and phases $t/T = 0.09 + k/6$ [`varghese_and_frankel_etal_2007b`] (secondary).
+
+Tags: `laminar`, `transient`, `flow`, `section:circle`, `straight`, `OpenFOAM v2406 (docker)`.
+
+Gates: max profile error, finest level, every phase: $\le 1$ % of $u_c$; extrapolated within 0.3 %; axial pressure gradient, finest level: amplitude within 1 %, phase within 2°; time-step study: time error below space error at the finest level (or the split reported); periodicity: phase values change < 0.1 % between periods; periods reported.
+
+<p><img src="../validation/womersley/img/k1.png" width="68%"> <img src="../validation/womersley/img/k1_section.png" width="29%"></p>
+
+Case: `validation/womersley/`: [README.md](../validation/womersley/README.md), [RESULTS.md](../validation/womersley/RESULTS.md), [case.json](../validation/womersley/case.json).
+
 Planned:
 
 | Task | Status |
 |---|---|
-| [0067: Validation: Womersley flow (pulsatile laminar pipe flow, exact solution)](tasks/0067-validation-womersley.md) | ready (after 0032's Re 500 level is done: same machine time) |
 | [0071: Validation (V1): fully developed laminar flow in rectangular ducts](tasks/0071-validation-rectangular-duct.md) | ready |
+| [0074: Verification (V1): manufactured solutions for conduction on every fitting's mesh](tasks/0074-validation-mms-conduction.md) | ready (on the v2406 runner, after 0035's Docker option exists) |
+| [0077: Verification (V1): FEniCSx toolchain, and second-order export checked end to end](tasks/0077-validation-fenicsx-second-order.md) | ready (step 1 any time; steps 2–4 after 0076) |
 
 ### V2: high-fidelity simulation
 
@@ -873,7 +887,9 @@ Planned:
 
 Tags: `laminar`, `flow`, `section:circle`, `straight`, `profiled-reducer`, `OpenFOAM v1912 (native)`.
 
-Gates: reattachment, by u(0.48 D) = 0 and by wall shear stress: within 5 % of the DNS's 11.03 D; centreline velocity, x/D = −2 … 15: within 2 % of the DNS peak.
+Gates: reattachment, by $u(0.48\,D) = 0$ and by wall shear stress: within 5 % of the DNS's $11.03\,D$; centreline velocity, $x/D = -2 \ldots 15$: within 2 % of the DNS peak.
+
+<p><img src="../validation/stenosis/img/k2.png" width="68%"> <img src="../validation/stenosis/img/k2_section.png" width="29%"></p>
 
 Case: `validation/stenosis/`: [README.md](../validation/stenosis/README.md), [RESULTS.md](../validation/stenosis/RESULTS.md), [case.json](../validation/stenosis/case.json).
 
@@ -882,7 +898,7 @@ Planned:
 | Task | Status |
 |---|---|
 | [0049: Validation: fully developed turbulent pipe flow (RANS, k-ω SST)](tasks/0049-validation-turbulent-pipe.md) | ready (after 0043) |
-| [0068: Validation: pulsatile flow through the cosine stenosis (Varghese et al., Part 2)](tasks/0068-validation-pulsatile-stenosis.md) | ready (after 0067 and 0032) |
+| [0068: Validation: pulsatile flow through the cosine stenosis (Varghese et al., Part 2)](tasks/0068-validation-pulsatile-stenosis.md) | ready (design answered Q1–Q3, 2026-10-31: eq |
 
 ### V3: experiment
 
@@ -892,6 +908,7 @@ Planned:
 |---|---|
 | [0050: Validation: turbulent flow in a 90° bend (Sudo et al. 1998)](tasks/0050-validation-turbulent-bend.md) | ready (after 0049) |
 | [0072: Validation (V3): laminar flow in a 90° square-duct bend (Taylor, Whitelaw & Yianneskis, Re 790)](tasks/0072-validation-laminar-square-bend.md) | ready (after 0071) |
+| [0075: Validation (V3): laminar flow in a helical pipe (spline pipe)](tasks/0075-validation-helical-pipe.md) | ready (on the v2406 runner) |
 
 ### V4: correlation or standard
 
@@ -901,22 +918,22 @@ _No cases yet._
 
 Which hexmesh features each case exercises (decision 0012's fixed list). Marks: ● accepted, ◐ in progress, ○ planned, ✗ rejected; planned cases are named by task.  Rows marked *(none)* have no validation case, existing or planned.
 
-| Feature | heated_pipe<br>V1 | heated_rod<br>V1 | layered_conduction<br>V1 | poiseuille<br>V1 | stenosis<br>V2 | 0049<br>V2 | 0050<br>V3 | 0067<br>V1 | 0068<br>V2 | 0071<br>V1 | 0072<br>V3 |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| `section:circle` | ◐ | ● | ● | ● | ● | ○ | ○ | ○ | ○ |  |  |
-| `section:rect` |  |  |  |  |  |  |  |  |  | ○ | ○ |
-| `layers` | ◐ |  | ● |  |  |  |  |  |  |  |  |
-| `straight` | ◐ | ● | ● | ● | ● | ○ | ○ | ○ | ○ | ○ | ○ |
-| `bend` |  |  |  |  |  |  | ○ |  |  |  | ○ |
-| `miter` (none) |  |  |  |  |  |  |  |  |  |  |  |
-| `spline` (none) |  |  |  |  |  |  |  |  |  |  |  |
-| `profiled-reducer` |  |  |  |  | ● |  |  |  | ○ |  |  |
-| `transition` (none) |  |  |  |  |  |  |  |  |  |  |  |
-| `tee` (none) |  |  |  |  |  |  |  |  |  |  |  |
-| `duct-tap` (none) |  |  |  |  |  |  |  |  |  |  |  |
-| `wye` (none) |  |  |  |  |  |  |  |  |  |  |  |
-| `stack-changes` (none) |  |  |  |  |  |  |  |  |  |  |  |
-| `projection` (none) |  |  |  |  |  |  |  |  |  |  |  |
+| Feature | heated_pipe<br>V1 | heated_rod<br>V1 | layered_conduction<br>V1 | poiseuille<br>V1 | stenosis<br>V2 | womersley<br>V1 | 0049<br>V2 | 0050<br>V3 | 0068<br>V2 | 0071<br>V1 | 0072<br>V3 | 0074<br>V1 | 0075<br>V3 | 0077<br>V1 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `section:circle` | ◐ | ● | ● | ● | ● | ● | ○ | ○ | ○ |  |  | ○ | ○ | ○ |
+| `section:rect` |  |  |  |  |  |  |  |  |  | ○ | ○ | ○ |  |  |
+| `layers` | ◐ |  | ● |  |  |  |  |  |  |  |  | ○ |  |  |
+| `straight` | ◐ | ● | ● | ● | ● | ● | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
+| `bend` |  |  |  |  |  |  |  | ○ |  |  | ○ | ○ |  | ○ |
+| `miter` |  |  |  |  |  |  |  |  |  |  |  | ○ |  |  |
+| `spline` |  |  |  |  |  |  |  |  |  |  |  | ○ | ○ |  |
+| `profiled-reducer` |  |  |  |  | ● |  |  |  | ○ |  |  | ○ |  |  |
+| `transition` |  |  |  |  |  |  |  |  |  |  |  | ○ |  |  |
+| `tee` |  |  |  |  |  |  |  |  |  |  |  | ○ |  | ○ |
+| `duct-tap` |  |  |  |  |  |  |  |  |  |  |  | ○ |  |  |
+| `wye` |  |  |  |  |  |  |  |  |  |  |  | ○ |  |  |
+| `stack-changes` |  |  |  |  |  |  |  |  |  |  |  | ○ |  |  |
+| `projection` |  |  |  |  |  |  |  |  |  |  |  | ○ |  | ○ |
 
 ---
 

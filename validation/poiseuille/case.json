@@ -4,7 +4,7 @@
   "category": "V1",
   "references": [
     {
-      "source": "exact: u = 2Ū(1 − r²/R²), Δp = 32μŪL/D²",
+      "source": "exact: $u = 2\\bar{U}\\left(1 - r^2/R^2\\right)$, $\\Delta p = 32\\,\\mu \\bar{U} L / D^2$",
       "role": "primary"
     }
   ],
@@ -28,7 +28,7 @@
   "task": "0020",
   "gates": [
     {
-      "quantity": "extrapolated Δp and u_max",
+      "quantity": "extrapolated $\\Delta p$ and $u_\\mathrm{max}$",
       "limit": "within 0.1 % of exact"
     },
     {
@@ -40,8 +40,8 @@
       "limit": "decreases monotonically"
     },
     {
-      "quantity": "u_max observed order",
-      "limit": "≥ 1.5"
+      "quantity": "$u_\\mathrm{max}$ observed order",
+      "limit": "$\\ge 1.5$"
     }
   ]
 }

@@ -77,18 +77,26 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0065](0065-network-model-and-builder.md) | Network interchange 1a: the network model, and the builder out of `pcf.py` | ready (after 0064) | 0032 |
 | [0066](0066-network-model-operations.md) | Network interchange 1b: select, cut, join, merge, and the public API | ready (after 0065) | 0032 |
 | [0067](0067-validation-womersley.md) | Validation: Womersley flow (pulsatile laminar pipe flow, exact solution) | done | 0012, 0015 |
-| [0068](0068-validation-pulsatile-stenosis.md) | Validation: pulsatile flow through the cosine stenosis (Varghese et al., Part 2) | ready (after 0067, 0032) | 0012, 0015 |
+| [0068](0068-validation-pulsatile-stenosis.md) | Validation: pulsatile flow through the cosine stenosis (Varghese et al., Part 2) | ready (Q1–Q3 answered) | 0012, 0015 |
 | [0069](0069-duct-tap-pillow-prototype.md) | Prototype: duct tap with a pillowed ring (hole on the wall) | done (Q1 answered: B adopted, decision 0033) | 0033 |
 | [0070](0070-duct-tap-merge-into-tee.md) | Duct taps: the pillowed tap in `Tee` | done | 0033, 0027 |
 | [0071](0071-validation-rectangular-duct.md) | Validation (V1): fully developed laminar flow in rectangular ducts | ready | 0012, 0015 |
 | [0072](0072-validation-laminar-square-bend.md) | Validation (V3): laminar 90° square-duct bend (Taylor et al., Re 790) | ready (after 0071) | 0012, 0015 |
 | [0073](0073-validation-metadata-and-coverage.md) | Validation metadata (`case.json`), categories and a coverage matrix in the gallery | done (Q1, not blocking: `conduction` tag) | 0012 |
+| [0074](0074-validation-mms-conduction.md) | Verification (V1): manufactured solutions for conduction on every fitting's mesh | ready (v2406 runner) | 0012, 0015 |
+| [0075](0075-validation-helical-pipe.md) | Validation (V3): laminar flow in a helical pipe (spline pipe) | ready (v2406 runner) | 0012, 0015 |
+| [0076](0076-second-order-export.md) | Second-order mesh export: `Assembly.mesh(order=2)` | ready | 0034, 0029 |
+| [0077](0077-validation-fenicsx-second-order.md) | Verification (V1): FEniCSx toolchain, and second-order export checked end to end | ready (step 1 any time; 2–4 after 0076) | 0034, 0012, 0015 |
+| [0078](0078-readme-generated-sections.md) | README: generated numbers, validation table, hero image and checks | ready | — |
 
 **Current order (2026-10-28, design, revised):** finish the task in
 progress (0034), then **multi-layer junctions: 0051 → 0052 → 0056 → 0053 →
 0054**, then 0055 → 0032 → 0067 → 0068 → 0035 → 0049 → 0044 → 0050.
 Validation bookkeeping 0073 any time (small); duct validation 0071 →
-0072 after 0035 (v2406 runner).  Duct tees
+0072 after 0035 (v2406 runner).  Feature coverage: 0074 (MMS, every
+fitting) and 0075 (helical pipe) after 0035's runner, 0074 first.
+Second order: 0076, with 0077's toolchain step in parallel, then
+0077's checks.  Duct tees
 (0069 prototype, done → 0070 merge → 0057 full-width → 0059) fit in whenever
 the junction work pauses; they don't depend on it.  General branches (decision 0031) follow the junction-shell
 work: 0060 → 0061 / 0062 → 0063 (0063 also after the duct tees).
@@ -174,7 +182,10 @@ These apply to every task.
   RESULTS'.  The gallery stops on a missing or invalid one.  A planned
   validation task carries a `- **Category:** Vn` line and a
   `- **Features:**` line (feature names in backticks), which give its
-  column in the coverage matrix.
+  column in the coverage matrix.  Formulas in `case.json` (references,
+  gates) and in example docstrings are LaTeX math (`$…$`), so
+  `docs/GALLERY.md` typesets them; module docstrings with backslashes
+  are raw strings (`r"""…"""`).  (2026-10-31, the user.)
 - Keep each task a separate, reviewable change.  Match the surrounding code
   style: dataclasses, numpy, short docstrings that cite DESIGN rules.
 

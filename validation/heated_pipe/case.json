@@ -4,7 +4,7 @@
   "category": "V1",
   "references": [
     {
-      "source": "exact: fully developed Nu = 48/11 (uniform flux), radial conduction through the shells",
+      "source": "exact: fully developed $\\mathrm{Nu} = 48/11$ (uniform flux), radial conduction through the shells",
       "role": "primary"
     }
   ],
@@ -38,11 +38,11 @@
       "limit": "within 0.1 % at every level"
     },
     {
-      "quantity": "extrapolated Nu",
-      "limit": "within 1 % of 48/11"
+      "quantity": "extrapolated $\\mathrm{Nu}$",
+      "limit": "within 1 % of $48/11$"
     },
     {
-      "quantity": "extrapolated solid ΔTs",
+      "quantity": "extrapolated solid $\\Delta T$s",
       "limit": "within 0.5 %"
     }
   ]

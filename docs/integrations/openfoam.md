@@ -377,6 +377,19 @@ All v1912, gmsh 4.12.1, 2026-10-25.
   the v2406 image on this machine (4 cores, 8 threads) stops with "not
   enough slots".  Use `-np` ≤ cores (or `--oversubscribe`).  *Verified*
   2026-10-30.
+- **`gmshToFoam` reads first-order elements only** (v1912 native and
+  v2406 Docker; design session, 2026-10-31).
+  - **Evidence:** the smooth-bend example raised to order 2 with gmsh
+    4.12.1 `setOrder(2)`, written as MSH 2.2:
+    - Hex27 / Quad9 file: "Unhandled element 10" (Quad9) for every face
+      element, then FATAL "No cells read … (hex=5, prism=6, pyramid=7,
+      tet=4)";
+    - Hex20 / Quad8 file (`Mesh.SecondOrderIncomplete`): "Unhandled
+      element 16" (Quad8), then the same error.
+  - **Expected:** finite volume uses straight-edged polyhedra.  Curved
+    walls enter OpenFOAM only through node positions.  Export order 1
+    for OpenFOAM; second-order meshes are for other solvers (decision
+    0034).
 
 
 

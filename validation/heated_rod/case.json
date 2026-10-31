@@ -4,7 +4,7 @@
   "category": "V1",
   "references": [
     {
-      "source": "exact: T(r) = T_w + Su (R² − r²)/(4 DT)",
+      "source": "exact: $T(r) = T_w + \\dfrac{S_u\\,(R^2 - r^2)}{4\\,D_T}$",
       "role": "primary"
     }
   ],
@@ -26,7 +26,7 @@
   "task": "0033",
   "gates": [
     {
-      "quantity": "extrapolated centre excess ΔT₀",
+      "quantity": "extrapolated centre excess $\\Delta T_0$",
       "limit": "within 0.1 % of exact"
     }
   ]

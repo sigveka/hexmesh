@@ -866,7 +866,7 @@ result with `to_assembly(spec, kinks="spline")`. Needs `scipy`
 ## Study runner (`hexmesh.study`)
 
 One study file gives many variants (decision 0025).  Usage is in
-[README.md](README.md#running-studies).
+[the guide](docs/GUIDE.md#running-studies).
 
 **Study file** (JSON; paths relative to it; every key but `template` is
 optional):
@@ -981,7 +981,7 @@ rows = run(study, jobs=2)        # stages up to the study's last; PreflightFaile
 
 ## Physical groups
 
-The naming convention is in [README.md](README.md#physical-groups). It
+The naming convention is in [the guide](docs/GUIDE.md#physical-groups). It
 follows from the graph (rule A7):
 - volumes per material;
 - `<layer>_<patch>` for each open interface;

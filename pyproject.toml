@@ -1,12 +1,14 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.backends.legacy:build"
+requires = ["setuptools>=77", "wheel"]   # >= 77: SPDX `license` (PEP 639)
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "hexmesh"
 version = "0.3.0"
 description = "Composable structured hex mesh generation for CFD pipe systems"
 readme = "README.md"
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
 requires-python = ">=3.10"
 dependencies = [
     "numpy>=1.24",

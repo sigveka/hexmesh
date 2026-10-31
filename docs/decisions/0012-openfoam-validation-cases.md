@@ -113,7 +113,9 @@ factor).
 
 **Tags** (any number):
 - **regime:** `laminar`, `transient`, `transitional`, `rans:<model>`;
-- **physics:** `flow`, `cht`;
+- **physics:** `flow`, `cht`, `conduction` (solids only, no fluid:
+  added by task 0073 and kept, 2026-10-30, since a case without a fluid
+  isn't conjugate);
 - **features:** the hexmesh features a case exercises, from a fixed
   list: `section:circle`, `section:rect`, `layers`, `straight`, `bend`,
   `miter`, `spline`, `profiled-reducer`, `transition`, `tee`,

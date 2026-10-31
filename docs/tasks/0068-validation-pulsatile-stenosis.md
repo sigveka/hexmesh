@@ -1,6 +1,6 @@
 # 0068 — Validation: pulsatile flow through the cosine stenosis (Varghese et al., Part 2)
 
-- **Status:** ready (after 0067 and 0032)
+- **Status:** ready (design answered Q1–Q3, 2026-10-31: eq. 2.1 inlet; profiles reported, throat peak and flow features gated; levels k1–k3)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V2 (DNS: Varghese et al. Part 2)
 - **Features:** `section:circle`, `straight`, `profiled-reducer`
@@ -65,11 +65,168 @@ mode) or `validation/stenosis_pulsatile/`; say which.
 
 ## Agent notes
 
-_None yet._
+- **Where:** `validation/stenosis_pulsatile/` (a new driver, reusing
+  `validation/stenosis/run.py`'s mesh and levels and
+  `validation/womersley/run.py`'s inlet and schemes by import), so the
+  steady case stays as accepted.
+- **Database units:** `Axi_puls/vel_p*.dat` has columns (r, yp, u, v,
+  w), w axial, 501 points across the diameter, stations x/D = −2 … 15
+  every 1 D.  Its velocities are in u_c units already: u_i = 0.5 is the
+  mean bulk velocity, u_c/2.  A free scale fitted to the six x = −2D
+  profiles gives 1.00–1.01.
+- **Phases, from the flow rate.**  Each file's flow rate is conserved
+  along the straight pipe (to 0.3 %; the constriction stations miss it by
+  up to 6 %, a sampling effect in the database).  So it fixes the file's
+  phase on the inlet waveform:
+
+  | file | nominal t/T | from flow rate |
+  |---|---|---|
+  | p1 | 0.090 | 0.052 |
+  | p2 | 0.257 | 0.263 |
+  | p3 | 0.423 | 0.418 |
+  | p4 | 0.590 | 0.563 |
+  | p5 | 0.757 | 0.755 |
+  | p6 | 0.923 | 0.892 |
+
+  p1, p4 and p6 are 0.03–0.04 off nominal, outside the "±0.01 by eye".
+  The flow rate is double-valued over a period; the root nearer the
+  nominal phase is taken.  The run writes at both sets of phases; the
+  comparison uses the flow-rate phases.
+- **The DNS's own x = −2D profiles are not the Womersley inlet** at
+  either set of phases.  The max difference is 0.03–0.14 u_c; at peak
+  flow (p2) the DNS centreline is 1.696 u_c, above the waveform's 1.663
+  maximum at any phase.  No single scale, A or α fits all six (residual
+  13 %).  Upstream influence of the constriction (1 D downstream) would
+  change the shape but not the flow rate, which matches.  Our periodic
+  run will show whether the computed x = −2D profile departs in the same
+  way.
+- **Running:** from rest; `adjustTimeStep` with maxCo 0.5;
+  boundaryData every T/480 (linear-in-time error ~1e-5 u_c); one
+  pimpleFoam run per sample time (writes exactly there); sampled by a
+  `sets` function object (axis, r = 0.48 D, the station diameters),
+  so a parallel case stays decomposed.  The processors read the root's
+  `constant/boundaryData`: no re-decomposition per period.
+- **Cost (coarse, 15 336 cells, 2 processes):** 1 640 steps and 149 s
+  per period.
+
+- **k2 measured** (122 688 cells, 4 processes, v2406 Docker, 2026-10-31):
+  periodic after **3 periods** from rest (changes 0.60, then 4.8e-5);
+  3 785–4 100 steps and about 48 min per period.  Laminar and
+  axisymmetric: profile asymmetry ≤ 5e-3 u_c at every station and phase.
+
+  At the flow-rate phases, RMS difference from the DNS (u_c) by station:
+
+  | file | −2 | 0 | 1 | 2 | 3 | 4 | 6 | 10 | x = −2D vs Womersley: ours / DNS |
+  |---|---|---|---|---|---|---|---|---|---|
+  | p1 | 0.102 | 0.328 | 0.079 | 0.058 | 0.027 | 0.017 | 0.016 | 0.014 | 0.028 / 0.145 |
+  | p2 | 0.022 | 0.455 | 0.163 | 0.085 | 0.053 | 0.053 | 0.103 | 0.015 | 0.015 / 0.034 |
+  | p3 | 0.056 | 0.276 | 0.083 | 0.059 | 0.050 | 0.045 | 0.043 | 0.048 | 0.019 / 0.078 |
+  | p4 | 0.075 | 0.067 | 0.017 | 0.015 | 0.015 | 0.017 | 0.020 | 0.031 | 0.023 / 0.117 |
+  | p5 | 0.044 | 0.028 | 0.026 | 0.033 | 0.035 | 0.037 | 0.039 | 0.042 | 0.009 / 0.083 |
+  | p6 | 0.015 | 0.089 | 0.010 | 0.011 | 0.011 | 0.011 | 0.010 | 0.010 | 0.021 / 0.027 |
+
+  (The last column is the max difference.)  At the nominal phases p1, p4
+  and p6 are much worse (p4: 0.17–0.36; p6: 0.09–0.40), which confirms
+  the flow-rate phases.  Throat centreline at peak flow (p2, x = 0):
+  4.517 against the DNS's 4.625 (−2.3 %).  The x = 0 column is suspect
+  on the DNS side: its flow rate there is 6 % off the pipe's.
+- **Cost, for the budget (Q3):** per period about 48 min (k2), about
+  3.6 h (k3), about 11.5 h (k4, 981 504 cells) on 4 cores.  Three
+  periods per level: k3 ≈ 11 h, k4 ≈ 35 h; Δt halved at k4, 2 periods
+  warm, ≈ 46 h.  The whole task as written ≈ 4 days of this machine.
 
 ## Questions for design
 
-_None._
+**Q1 (blocking): the database's inlet is not eq. 2.1 as we read it.**
+The DNS's x = −2D profiles differ from the Womersley inlet by
+0.03–0.145 u_c (max), at the phases their own flow rates give.  Ours
+differ by 0.009–0.028 u_c on the same mesh run, so the constriction's
+upstream influence (real, up to 2.8 % here) doesn't explain it.  At
+peak flow the DNS centreline (1.696 u_c) exceeds the waveform's maximum
+at any phase (1.663), and no one scale, A or α fits all six files (best
+residual 13 %).  The paper says the upstream profiles "closely
+correspond" to eq. 2.1, and mentions upstream separation at −1D and
+−2D in deceleration.  The downstream differences (up to 0.16 u_c past
+the throat at k2) follow from the inlet at least in part.  Options:
+- (a) keep eq. 2.1 (as now) and judge downstream at what it gives,
+  stating that the DNS's inlet differs;
+- (b) drive our inlet with an inlet fitted to the DNS's x = −2D profiles
+  (six phases only: a fitted Fourier series in time, per radius), moving
+  our inlet to −2D, or keeping −3D and accepting 1D of development;
+- (c) another reading of eq. 2.1 (the sin(ωt) as printed?) that fits
+  the database: we tried the obvious ones without success.
+
+**Q2 (blocking with Q1): the gates.**
+- "Upstream (x = −2D) within 1 % of u_c of the Womersley inlet": our own
+  x = −2D departs by up to 2.8 % at k2, a physical upstream effect.
+  Measure at −2.5D, or relax to the departure the mesh series converges
+  to?
+- "Downstream RMS within 5 % of u_c at every phase and station": with
+  (a), it fails at k2 at x = 1–6D at peak flow (p2: up to 0.16).
+- Phases: the comparison uses the flow-rate phases (Agent notes), not
+  the nominal ones.  Recorded here so design can confirm.
+
+**Q3 (for the user, via design): the budget.**  ≈ 4 days of this machine
+for k2–k4 and Δt halved at k4 (Agent notes).  Cheaper: Δt halved at
+k3 (≈ 15 h instead of 46 h), ≈ 2½ days total.
+
+**Design answers (2026-10-31).**
+
+**Q1: (a), keep eq. 2.1 as the inlet.**  The paper itself confirms the
+mismatch.  §3.1 says the upstream centreline drops "to less than
+0.3 u_c" at minimum flow, below eq. 2.1's minimum of 0.337 at any
+phase.  Together with the agent's 1.696 > 1.663 at peak, the DNS's
+upstream flow swings wider than the inlet the paper states.  We can't
+tell whether that is an unstated inlet, upstream influence our run
+doesn't reproduce, or a database artefact.
+- **Not (b):** a Fourier fit through six phases has at most three
+  harmonics, and it would validate against the database's upstream
+  data instead of the paper's stated setup.  The six phases are the
+  comparison data; they can't also be the boundary condition.
+- **Not (c):** the obvious readings were tried, and no single A or α
+  fits.
+- State the discrepancy in README and RESULTS, with the x = −2D table
+  (ours vs DNS vs Womersley) as evidence.
+
+**Q2: the gates.**
+- **Upstream:** drop "x = −2D within 1 % of Womersley".  Task 0067
+  already verifies the inlet machinery.  Instead, **report** our −2D
+  departure from Womersley per phase and its convergence over the
+  levels.
+- **Downstream: two tiers.**  Station-by-station profile RMS is
+  **reported, not gated**: with the DNS's upstream differing by up to
+  0.145 u_c, a 5 % gate downstream would test the inlet, not the mesh.
+  The **gates** are quantities that depend less on the inlet's details:
+  - peak throat centreline velocity at peak flow (p2, x = 0) within
+    **5 %** of the DNS, and above the paper's 3.65 u_c (k2: 4.517 vs
+    4.625, −2.3 %);
+  - the **flow features** the paper describes, at the matching phases:
+    - the jet and vortex ring in acceleration;
+    - separation over the whole post-stenotic section in late
+      deceleration;
+    - a small **upstream separation at −1D and −2D** in deceleration
+      (near-wall reverse flow);
+    - no permanent recirculation;
+    - laminar and axisymmetric throughout.
+
+    State each as present or absent with the evidence.  If ours lacks
+    the upstream separation, that is the finding (it may explain part
+    of Q1's mismatch).
+  - the solution-verification part as usual: GCI on the throat peak.
+- **Phases:** confirmed.  Compare at the flow-rate phases, and list the
+  nominal ones in RESULTS.
+- **Category:** stays V2, with the inlet caveat stated in `case.json`'s
+  notes.
+
+**Q3 (the user, 2026-10-31): levels k1–k3, about 1 day.**
+- Run k1 (coarse), k2 (done) and k3.  Check the time step at k2
+  (Δt halved, one level only).  No k4.
+- GCI from the three levels.  If k1 is outside the asymptotic range
+  (Part 1's coarse level had no steady axisymmetric state), say so and
+  report k2–k3 as an error band instead of an extrapolation.
+- Three periods per level, as measured (periodic after 3).
+- Check for another session's runs before starting (shared-machine
+  rule).
 
 ## Outcome
 

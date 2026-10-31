@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use hexmesh in your work, please cite it as below."
+title: "hexmesh: structured all-hex meshes for pipe and duct networks"
+type: software
+authors:
+  - family-names: Karolius
+    given-names: Sigve
+version: 0.3.0
+license: BSD-3-Clause
+repository-code: "https://github.com/sigveka/hexmesh"
+abstract: >-
+  hexmesh builds structured, all-hexahedral, conformal meshes of pipe and
+  duct networks with GMSH, including tees, wyes and duct taps, with fluid,
+  wall and insulation as separate regions for conjugate heat transfer.
+  It writes OpenFOAM cases, predicts cell counts exactly before meshing,
+  and keeps mesh connectivity fixed across parameter studies.
+keywords:
+  - CFD
+  - mesh generation
+  - hexahedral mesh
+  - structured mesh
+  - pipe networks
+  - OpenFOAM
+  - gmsh
+  - conjugate heat transfer
