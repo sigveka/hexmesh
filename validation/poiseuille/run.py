@@ -43,9 +43,9 @@ from hexmesh.io.writers.openfoam_boundary import (             # noqa: E402
 )
 # Shared OpenFOAM helpers (task 0043), moved from this script.
 from hexmesh.study.openfoam import (                           # noqa: E402
-    OPENFOAM_RC, foam, header as _header, latest_time as _latest_time,
+    foam, header as _header, latest_time as _latest_time,
     read_faces, read_internal, read_labels, read_patch_faces, read_patch_values,
-    read_points, read_zone,
+    openfoam_version, read_points, read_zone, runner,
 )
 
 # --- physics -----------------------------------------------------------------
@@ -385,11 +385,10 @@ def versions() -> dict:
     dirty = subprocess.run(["git", "status", "--porcelain", "--", str(HERE.parents[1] / "hexmesh")],
                            cwd=HERE,
                            capture_output=True, text=True).stdout.strip()
-    foam_v = subprocess.run(["bash", "-c", f"source {OPENFOAM_RC} >/dev/null 2>&1; "
-                             "echo $WM_PROJECT_VERSION"],
-                            capture_output=True, text=True).stdout.strip()
+    # the version and runner actually used (native or a container; task 0035)
     return {"hexmesh": git + ("+local" if dirty else ""), "gmsh": gmsh.__version__,
-            "openfoam": foam_v, "date": datetime.date.today().isoformat()}
+            "openfoam": openfoam_version(), "runner": runner(),
+            "date": datetime.date.today().isoformat()}
 
 
 def table(rows: list[dict]) -> str:

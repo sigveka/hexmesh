@@ -373,10 +373,27 @@ All v1912, gmsh 4.12.1, 2026-10-25.
   rewrite `deltaT` there.  `backward` then starts with the old-time
   fields (`U_0`) at the old step (`deltaT0`), which it handles.
   *Verified:* `steps_per_period` 960 from a 480-step state; Co 0.23.
+- **`chtMultiRegionSimpleFoam` (v2406) ignored the regions'
+  `residualControl` here** (task 0035, 2026-10-31).  With
+  `residualControl { p_rgh 1e-6; U 1e-5; h 1e-9; }` in
+  `system/fluid/fvSolution` `SIMPLE` and `{ h 1e-9; }` in each solid's,
+  it was still running at iteration 11 258, with every first initial
+  residual below its limit (largest Uy 1.7e-6, p_rgh 2.3e-7, h ≤ 1.5e-11).
+  The global `system/fvSolution` had `SIMPLE {}`.  Where this solver reads
+  its convergence controls was not investigated.  The heated-pipe driver
+  runs in chunks of 500 iterations and stops on the measured quantities
+  instead.
+- **A Docker container outlives its client.**  Killing the `docker run`
+  client's parent (e.g. a driver stopped by `timeout`) leaves the
+  container running, and its output goes nowhere.  `foam()` names each
+  container (`hexmesh-<pid>-<n>`), and stops it when the caller is
+  interrupted, including SIGTERM.  `tests/test_openfoam_runner.py`
+  checks this.  *Verified* 2026-10-31.
 - **Open MPI counts physical cores, not threads.**  `mpirun -np 6` in
   the v2406 image on this machine (4 cores, 8 threads) stops with "not
   enough slots".  Use `-np` ≤ cores (or `--oversubscribe`).  *Verified*
   2026-10-30.
+
 - **`gmshToFoam` reads first-order elements only** (v1912 native and
   v2406 Docker; design session, 2026-10-31).
   - **Evidence:** the smooth-bend example raised to order 2 with gmsh

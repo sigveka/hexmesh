@@ -100,3 +100,11 @@ would need fewer time units; not measured.
   the radius, so it vanishes at the wall, evaluated at r = 0.48 D.
 - **Wall shear stress:** ν u_t / d from each wall cell, averaged per
   axial position.
+
+## Cross-check on OpenFOAM v2406
+
+Decision 0012's toolchain amendment (task 0035): the k2 re-run
+end to end on v2406 (`opencfd/openfoam-default:2406` in Docker,
+conversion included), 2026-10-31.  **The results agree with v1912** to
+the digits reported: u_peak 4.7038 U, x_sep 0.225 D, reattachment 11.123 / 10.981 / 10.982 D, max centreline error 1.32 % at x = 0, steady from t = 10, mass balance 1.5e-10; 683 s against 760 s.  The v1912 results above stay the
+recorded ones.

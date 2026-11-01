@@ -18,13 +18,18 @@ user, with the case mounted at its own path.  Pick it with
 ``set_runner`` or the ``HEXMESH_OPENFOAM`` environment variable; record
 ``runner()`` and ``openfoam_version()`` with every result.  One
 toolchain per case: conversion and solvers in the same runner.
+``foam()`` writes each command's output to its log as it runs, and stops
+the command (its container) if the caller is interrupted.
 """
 
 from __future__ import annotations
 
+import itertools
 import os
 import re
+import signal
 import subprocess
+import threading
 from pathlib import Path
 
 import numpy as np
@@ -50,17 +55,22 @@ def runner() -> str:
     return _runner
 
 
-def _argv(cmd: str, cwd: Path, mounts=()) -> list[str]:
+_names = itertools.count()
+
+
+def _argv(cmd: str, cwd: Path, mounts=(), name: str | None = None) -> list[str]:
     """The command line that runs *cmd* in *cwd* with the runner's
     OpenFOAM environment.  Docker mounts *cwd* and *mounts* at their own
-    paths, so absolute paths in *cmd* still resolve."""
+    paths, so absolute paths in *cmd* still resolve; *name* names the
+    container."""
     if _runner == "native":
         return ["bash", "-c", f"source {OPENFOAM_RC} >/dev/null 2>&1; {cmd}"]
     cwd = Path(cwd).resolve()
     vols = []
     for m in dict.fromkeys([cwd, *(Path(m).resolve() for m in mounts)]):
         vols += ["-v", f"{m}:{m}"]
-    return ["docker", "run", "--rm", "--user", f"{os.getuid()}:{os.getgid()}",
+    return ["docker", "run", "--rm", *(["--name", name] if name else []),
+            "--user", f"{os.getuid()}:{os.getgid()}",
             "-e", "HOME=/tmp", *vols, "-w", str(cwd), "--entrypoint", "bash",
             _runner[len("docker:"):], "-c", f"{_DOCKER_RC} >/dev/null 2>&1; {cmd}"]
 
@@ -87,14 +97,44 @@ def have_openfoam() -> bool:
 
 def foam(cmd: str, case: Path, log: str, mounts=()) -> str:
     """Run *cmd* (a shell command) in *case* with the runner's OpenFOAM
-    environment; write its output to ``case/log``; raise ``RuntimeError``
-    on failure.  *mounts*: further directories a Docker runner needs."""
-    run = subprocess.run(_argv(cmd, case, mounts), cwd=case, capture_output=True, text=True)
-    (case / log).write_text(run.stdout + run.stderr)
-    if run.returncode != 0:
-        raise RuntimeError(f"{cmd} failed in {case} (see {log}):\n{run.stdout[-3000:]}"
-                           f"{run.stderr[-2000:]}")
-    return run.stdout
+    environment; raise ``RuntimeError`` on failure; return its standard
+    output.  The output goes to ``case/log`` as it runs (standard error
+    appended at the end).  *mounts*: further directories a Docker runner
+    needs.
+
+    If the caller is interrupted (``KeyboardInterrupt``, ``SystemExit``,
+    or SIGTERM, e.g. from ``timeout``), the command is stopped too: a
+    Docker container would otherwise outlive its client (task 0035)."""
+    name = None if _runner == "native" else f"hexmesh-{os.getpid()}-{next(_names)}"
+    path = Path(case) / log
+    main = threading.current_thread() is threading.main_thread()
+    if main:
+        def _term(signum, frame):
+            raise SystemExit(128 + signum)
+        old = signal.signal(signal.SIGTERM, _term)
+    try:
+        with open(path, "w") as out:
+            proc = subprocess.Popen(_argv(cmd, case, mounts, name), cwd=case, stdout=out,
+                                    stderr=subprocess.PIPE, text=True)
+            try:
+                _, err = proc.communicate()
+            except BaseException:
+                if name:
+                    subprocess.run(["docker", "stop", "-t", "2", name], capture_output=True)
+                proc.terminate()
+                proc.wait()
+                raise
+        stdout = path.read_text()
+        if err:
+            with open(path, "a") as out:
+                out.write(err)
+    finally:
+        if main:
+            signal.signal(signal.SIGTERM, old)
+    if proc.returncode != 0:
+        raise RuntimeError(f"{cmd} failed in {case} (see {log}):\n{stdout[-3000:]}"
+                           f"{err[-2000:]}")
+    return stdout
 
 
 def openfoam_version() -> str:

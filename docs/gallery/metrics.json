@@ -1539,6 +1539,131 @@
     "predicted": 981504,
     "meshed": 981504
    }
+  },
+  "heated_pipe": {
+   "k1": {
+    "fittings": 3,
+    "fitting_types": {
+     "Straight": 3
+    },
+    "volumes": 39,
+    "materials": [
+     "fluid",
+     "steel",
+     "insulation"
+    ],
+    "min_sicn": 0.19226580774390223,
+    "mean_sicn": 0.3171628917483005,
+    "min_sj": 0.7933533402912328,
+    "min_sj_fitting": "#1 Straight",
+    "max_aspect": 12.500000000000368,
+    "groups": {
+     "open_end": [
+      "fluid_inlet",
+      "fluid_outlet",
+      "insulation_inlet",
+      "insulation_outlet",
+      "steel_inlet",
+      "steel_outlet"
+     ],
+     "wall": [
+      "insulation_wall"
+     ],
+     "interface": [
+      "interface_fluid_steel",
+      "interface_steel_insulation"
+     ],
+     "volume": [
+      "fluid",
+      "insulation",
+      "steel"
+     ]
+    },
+    "predicted": 10944,
+    "meshed": 10944
+   },
+   "k2": {
+    "fittings": 3,
+    "fitting_types": {
+     "Straight": 3
+    },
+    "volumes": 39,
+    "materials": [
+     "fluid",
+     "steel",
+     "insulation"
+    ],
+    "min_sicn": 0.18233905125653396,
+    "mean_sicn": 0.32496488255278955,
+    "min_sj": 0.7518398074789753,
+    "min_sj_fitting": "#1 Straight",
+    "max_aspect": 12.500000000001222,
+    "groups": {
+     "open_end": [
+      "fluid_inlet",
+      "fluid_outlet",
+      "insulation_inlet",
+      "insulation_outlet",
+      "steel_inlet",
+      "steel_outlet"
+     ],
+     "wall": [
+      "insulation_wall"
+     ],
+     "interface": [
+      "interface_fluid_steel",
+      "interface_steel_insulation"
+     ],
+     "volume": [
+      "fluid",
+      "insulation",
+      "steel"
+     ]
+    },
+    "predicted": 87552,
+    "meshed": 87552
+   },
+   "k3": {
+    "fittings": 3,
+    "fitting_types": {
+     "Straight": 3
+    },
+    "volumes": 39,
+    "materials": [
+     "fluid",
+     "steel",
+     "insulation"
+    ],
+    "min_sicn": 0.17883752193878735,
+    "mean_sicn": 0.32718015905749565,
+    "min_sj": 0.7372773368101213,
+    "min_sj_fitting": "#1 Straight",
+    "max_aspect": 12.500000000003814,
+    "groups": {
+     "open_end": [
+      "fluid_inlet",
+      "fluid_outlet",
+      "insulation_inlet",
+      "insulation_outlet",
+      "steel_inlet",
+      "steel_outlet"
+     ],
+     "wall": [
+      "insulation_wall"
+     ],
+     "interface": [
+      "interface_fluid_steel",
+      "interface_steel_insulation"
+     ],
+     "volume": [
+      "fluid",
+      "insulation",
+      "steel"
+     ]
+    },
+    "predicted": 295488,
+    "meshed": 295488
+   }
   }
  }
 }

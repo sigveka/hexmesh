@@ -76,3 +76,11 @@ This is consistent with a local error at the core-square corners that
 does not shrink with the cells, spreading through the elliptic solution
 (decision 0022).  It is still a correlation: decision 0022's option B (a
 corner-free control mesh) would establish the cause.
+
+## Cross-check on OpenFOAM v2406
+
+Decision 0012's toolchain amendment (task 0035): the level 1, both series re-run
+end to end on v2406 (`opencfd/openfoam-default:2406` in Docker,
+conversion included), 2026-10-31.  **The results agree with v1912** to
+the digits reported: ΔT₀ errors −1.3772 % (uniform) and −1.7155 % (graded), the same L2 and max errors, and energy balance 1.2e-14 / 5.0e-14.  The v1912 results above stay the
+recorded ones.

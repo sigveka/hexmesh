@@ -77,6 +77,11 @@
         }
       }
     },
-    "task": {"type": "string", "pattern": "^[0-9]{4}$"}
+    "task": {"type": "string", "pattern": "^[0-9]{4}$"},
+    "notes": {
+      "description": "Optional: a caveat a reader needs before trusting the comparison, e.g. a reference's known mismatch (task 0068).",
+      "type": "string",
+      "minLength": 1
+    }
   }
 }

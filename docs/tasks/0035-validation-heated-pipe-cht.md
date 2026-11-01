@@ -1,6 +1,6 @@
 # 0035 — Validation: heated multi-layer pipe with laminar flow (full CHT)
 
-- **Status:** ready (design answered Q2 2026-10-30: v2406 in Docker for new cases)
+- **Status:** done
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md)
 - **Category:** V1 (exact: Nu = 48/11, conduction series)
 - **Features:** `section:circle`, `layers`, `straight`
@@ -142,6 +142,34 @@ dictionaries; details in `docs/integrations/openfoam.md`.
   fluid-only reproducer; `cht2406.py`, the driver with the solver in the
   container; the cases).
 
+**2026-10-31: finishing on v2406 (design's Q2 answer).**
+- **Runner:** built in task 0067 (`set_runner`, `HEXMESH_OPENFOAM`).
+  `foam()` now writes its log as it runs, and stops its container when
+  the caller is interrupted: twice a `timeout` left an orphaned solver
+  container running (`openfoam.md`, tested).
+- **One toolchain:** the driver runs conversion and solver on v2406
+  (`--openfoam`, default v2406).  k1 end to end on v2406 gives the
+  October mixed-toolchain numbers to every digit (Nu 4.4693, dT_b/dx
+  16.1329, steel 0.057959 K, insulation 163.310 K).  So v2406's
+  `gmshToFoam` gives the same mesh.  `versions()` (in the Poiseuille
+  driver, shared) now records the version and runner actually used,
+  not the native installation's.
+- **Convergence by quantities.**  v2406's `chtMultiRegionSimpleFoam`
+  ignored the regions' `residualControl` (still running at iteration
+  11 258 with every residual under its limit; `openfoam.md`).  The
+  driver runs in chunks of 500 iterations and stops when Nu, dT_b/dx and
+  both solid ΔTs change by less than 1e-6 between chunks.
+- **Levels 1, 2, 3, not 1, 2, 4** (the user, 2026-10-31).  k2 took 4 500
+  iterations and 2.1 h on 4 processes; the iterations grow about 2.25×
+  per level, so k4 would take about 37 h.  k3 ≈ 11 h; Richardson at
+  ratios 2 and 3/2 (non-constant, as 0032).
+- **Cross-check of finished cases on v2406** (design's Q2 answer), at
+  their coarsest level: 0020 (coarse), 0033 (level 1, both series), 0034
+  (level 1, both variants), 0032 (k2).  All agree with v1912 to every
+  digit reported; recorded in each RESULTS.md.
+- **README:** the OpenFOAM section and *Current limitations* say that
+  buoyant and CHT solvers need v2406 or later on hexmesh meshes.
+
 ## Questions for design
 
 **Q1. The compressible/buoyant solvers diverge on hexmesh meshes in this
@@ -245,4 +273,49 @@ Decision 0012 is amended to match (toolchain).
 
 ## Outcome
 
-_Not done._
+**Accepted:** every gate passes.  OpenFOAM v2406 in Docker for
+conversion and solver, gmsh 4.12.1, 2026-10-31/11-01; details in
+`validation/heated_pipe/RESULTS.md`.
+
+| Quantity (for RESEARCH) | k1 | k2 | k3 | extrapolated (order) | gate |
+|---|---|---|---|---|---|
+| cells (fluid / steel / insulation) | 10 944 | 87 552 | 295 488 | | |
+| Nu (exact 48/11 = 4.3636) | 4.4693 (+2.42 %) | 4.3977 (+0.78 %) | 4.3822 (+0.43 %) | 4.3671, **+0.080 %** (1.74) | 1 % |
+| e(dT_b/dx), mesh-exact | −0.032 % | −0.0074 % | −0.0014 % | +0.005 % (2.03) | |
+| e(ΔT steel), mesh-exact | −0.37 % | −0.092 % | −0.040 % | **−0.0001 %** (2.02) | 0.5 % |
+| e(ΔT insulation), mesh-exact | +0.19 % | +0.050 % | +0.022 % | **−0.0008 %** (2.17) | 0.5 % |
+| energy balance | −1.5e-7 | −1.0e-7 | −8.2e-7 | | 0.1 % |
+| iterations; solver time | 2 000; 833 s (1 proc.) | 4 500; 2.1 h | 8 500; 14 h (4 proc.) | | |
+
+**Files.**
+- `validation/heated_pipe/`: `run.py` (v2406 runner, chunked
+  convergence, resume by level, non-constant-ratio Richardson), new
+  `README.md` and `RESULTS.md`, `case.json` accepted, `img/`.
+- `hexmesh/study/openfoam.py`: `foam()` streams its log and stops its
+  container on interruption, including SIGTERM.
+- `tests/test_openfoam_runner.py`: the container-cleanup test (opt-in,
+  Docker).
+- `validation/poiseuille/run.py`: `versions()` records the OpenFOAM
+  version and runner actually used.
+- `RESULTS.md` of poiseuille, heated_rod, layered_conduction, stenosis:
+  the v2406 cross-check (all agree).
+- `README.md`: OpenFOAM v2406 or later for buoyant/CHT solvers.
+- `docs/integrations/openfoam.md`: `residualControl` ignored by
+  `chtMultiRegionSimpleFoam`; orphaned containers.
+- `validation/case.schema.json`: optional `notes` (for 0068), shown in
+  the gallery.
+
+**Surprises.**
+- v2406's `chtMultiRegionSimpleFoam` ignored per-region
+  `residualControl`.
+- SIMPLE iterations grow about 2.25× per level, so the cost grows about
+  18× per doubling: k4 would have been about 37 h.
+- Nu converges at order 1.74, below the solids' 2: it comes from the
+  near-wall cells of the non-orthogonal fluid region.
+
+**Proposed follow-ups.**
+- The uniform-wall-temperature and Graetz cases (RESEARCH §7.5) can reuse
+  this driver; budget about 17 h for three levels.
+- If a CHT study needs faster convergence: a better-conditioned
+  start (a solid temperature field from the exact log profile), or
+  `chtMultiRegionFoam` with large time steps.  Not tried.

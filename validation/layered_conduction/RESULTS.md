@@ -73,3 +73,11 @@ L2 observed orders (log₂ of successive ratios): rod 2.01, 2.00; steel 2.01, 2.
   coarse level, doubling per level.  This is the segregated coupling
   across a 1000:1 conductivity ratio, not the mesh
   (`docs/integrations/openfoam.md`).
+
+## Cross-check on OpenFOAM v2406
+
+Decision 0012's toolchain amendment (task 0035): the level 1, both variants re-run
+end to end on v2406 (`opencfd/openfoam-default:2406` in Docker,
+conversion included), 2026-10-31.  **The results agree with v1912** to
+the digits reported: e(T₀), e(T(r₁)), e(T(r₂)) −0.9501 / −0.9468 / −0.9462 % (fixed) and −0.9316 / −0.9289 / −0.9284 %, e(T₃) −0.1678 % (convection); converged at iteration 47 074 and 58 605 (v1912: 47 076 and 58 605).  The v1912 results above stay the
+recorded ones.

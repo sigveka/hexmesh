@@ -13,10 +13,14 @@ surface, against the exact developed solution.
 Exact, thermally and hydrodynamically developed, uniform flux: the bulk
 temperature rises at q′/(ṁ c_p); the fluid side has Nu = 48/11; each
 solid layer's temperature drop is q′/(2π k) ln(r_out/r_in).  Three
-levels by ``Assembly.refined(k)``, k = 1 / 2 / 4.  Usage::
+levels by ``Assembly.refined(k)``, k = 1 / 2 / 3 (k = 4 would take about 37 h here).  Usage::
 
-    python3 validation/heated_pipe/run.py [--levels 1 2 4] [--np N]
-        [--end-time N] [--work DIR] [--json FILE]
+    python3 validation/heated_pipe/run.py [--levels 1 2 3] [--np N]
+        [--end-time N] [--work DIR] [--json FILE] [--openfoam native|docker:IMAGE]
+
+OpenFOAM v2406 in Docker by default (decision 0012's toolchain): v1912's
+buoyant and CHT solvers diverge on non-orthogonal meshes, which every
+hexmesh mesh is (docs/integrations/openfoam.md).
 """
 
 from __future__ import annotations
@@ -43,7 +47,12 @@ from hexmesh.study import openfoam as of                       # noqa: E402
 _spec = importlib.util.spec_from_file_location("poiseuille_run",
                                                ROOT / "validation/poiseuille/run.py")
 pois = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(pois)                  # richardson(), versions()
+_spec.loader.exec_module(pois)                  # versions()
+# the non-constant-ratio Richardson extrapolation (levels 1, 2, 3)
+_spec = importlib.util.spec_from_file_location("stenosis_run",
+                                               ROOT / "validation/stenosis/run.py")
+sten = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(sten)
 
 # --- physics -----------------------------------------------------------------
 R1, R2, R3 = 0.010, 0.012, 0.020             # fluid, steel, insulation outer radii [m]
@@ -58,6 +67,13 @@ Q_OUT = 800.0                                # q″₃ into the outer surface [W
 T_IN = 300.0
 NU_EXACT = 48 / 11
 LENGTH = 30 * D
+# Convergence: run in chunks and stop when every measured quantity changes
+# by less than CONVERGED_TOL between chunks.  v2406's
+# chtMultiRegionSimpleFoam ignored the regions' residualControl here
+# (docs/integrations/openfoam.md), and the quantities are what's judged.
+CHUNK = 500
+CONVERGED_TOL = 1e-6
+QUANTITIES = ("nu", "dtb_dx", "dt_steel", "dt_insulation")
 X_A, X_B = 20 * D, 25 * D                    # measurement planes; Nu at the middle
 PLANES = {"planeA": X_A, "planeB": X_B}
 SOLIDS = ("steel", "insulation")
@@ -97,20 +113,21 @@ def meshes():
     return [(f"k{k}", f"k = {k}: nang {BASE['nang'] * k}, nrad {BASE['fluid'] * k} / "
                       f"{BASE['steel'] * k} / {BASE['insulation'] * k}, "
                       f"{sum(BASE['n_layers']) * k} axial layers",
-             lambda k=k: assembly(k)) for k in (1, 2, 4)]
+             lambda k=k: assembly(k)) for k in (1, 2, 3)]
 
 
 # --- case --------------------------------------------------------------------
 H = of.header
 
 CONTROL = """application     chtMultiRegionSimpleFoam;
-startFrom       startTime;
+startFrom       latestTime;
 startTime       0;
 stopAt          endTime;
 endTime         {end_time};
 deltaT          1;
 writeControl    timeStep;
-writeInterval   {end_time};
+writeInterval   {chunk};
+purgeWrite      2;
 writeFormat     ascii;
 writePrecision  17;
 writeCompression off;
@@ -222,7 +239,7 @@ def write_dicts(case: Path, end_time: int, n_proc: int) -> None:
     """The dictionaries splitMeshRegions and the solver need (no fields)."""
     files = {
         "system/controlDict": H("dictionary", "controlDict", "system")
-        + CONTROL.format(end_time=end_time),
+        + CONTROL.format(end_time=CHUNK, chunk=CHUNK),
         "system/fvSchemes": H("dictionary", "fvSchemes", "system") + SOLID_SCHEMES,
         "system/fvSolution": H("dictionary", "fvSolution", "system") + "SIMPLE {}\n",
         "constant/g": H("uniformDimensionedVectorField", "g", "constant")
@@ -482,11 +499,28 @@ def run_level(k: int, work: Path, end_time: int, n_proc: int) -> dict:
     scale = parabolic_inlet(case)
     if n_proc > 1:
         of.foam("decomposePar -allRegions -force", case, "log.decomposePar")
-        solve = of.foam(f"mpirun -np {n_proc} chtMultiRegionSimpleFoam -parallel", case,
-                        "log.chtMultiRegionSimpleFoam")
-        of.foam("reconstructPar -allRegions -latestTime", case, "log.reconstructPar")
-    else:
-        solve = of.foam("chtMultiRegionSimpleFoam", case, "log.chtMultiRegionSimpleFoam")
+    logs, prev, changes, end = [], None, [], 0
+    control = case / "system/controlDict"
+    while end < end_time:
+        end += CHUNK
+        control.write_text(re.sub(r"^endTime\s+\S+;", f"endTime         {end};",
+                                  control.read_text(), flags=re.M))
+        if n_proc > 1:
+            logs.append(of.foam(f"mpirun -np {n_proc} chtMultiRegionSimpleFoam -parallel",
+                                case, f"log.chtMultiRegionSimpleFoam.{end}"))
+            of.foam("reconstructPar -allRegions -latestTime", case, f"log.reconstructPar.{end}")
+        else:
+            logs.append(of.foam("chtMultiRegionSimpleFoam", case,
+                                f"log.chtMultiRegionSimpleFoam.{end}"))
+        cur = results(case)
+        if prev is not None:
+            ch = max(abs(cur[q] - prev[q]) / abs(cur[q]) for q in QUANTITIES)
+            changes.append((end, ch))
+            print(f"[k{k}] iteration {end}: change {ch:.2e}", flush=True)
+            if ch < CONVERGED_TOL:
+                break
+        prev = cur
+    solve = "".join(logs)
     history = residual_history(solve)
     out = {
         "k": k, "nang": BASE["nang"] * k, "cells": cells,
@@ -496,34 +530,60 @@ def run_level(k: int, work: Path, end_time: int, n_proc: int) -> dict:
         "retyped": retyped, "min_scaled_jacobian": sj, "inlet_scale": scale,
         "iterations": history[-1][0], "last_residuals": history[-1][1],
         "residual_history": history[::max(1, len(history) // 200)], "n_proc": n_proc,
+        "converged": bool(changes) and changes[-1][1] < CONVERGED_TOL, "changes": changes,
+        "exec_time": sum(float(re.findall(r"ExecutionTime = ([\d.e+-]+) s", lg)[-1])
+                         for lg in logs),
     }
     out.update(results(case))
     return out
 
 
+def extrapolate(rows: list[dict]) -> dict:
+    """Richardson over three levels [celik_and_ghia_etal_2008], at the
+    ratios their k give (3/2 and 2 for k = 1, 2, 3)."""
+    if len(rows) != 3:
+        return {}
+    c, m, f = sorted(rows, key=lambda r: r["k"])
+    out = {}
+    for key in ("nu", "dt_steel", "dt_insulation", "dtb_dx"):
+        try:
+            out[key] = sten.richardson(c[key], m[key], f[key], f["k"] / m["k"], m["k"] / c["k"])
+        except (ValueError, ZeroDivisionError) as e:
+            out[key] = {"error": str(e)}
+    return out
+
+
 def main(argv=None) -> dict:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("--levels", nargs="+", type=int, default=[1, 2, 4])
+    ap.add_argument("--levels", nargs="+", type=int, default=[1, 2, 3])
     ap.add_argument("--work", type=Path, default=HERE / "work")
     ap.add_argument("--end-time", type=int, default=20000)
     ap.add_argument("--np", type=int, default=1, dest="n_proc",
                     help="MPI processes (levels above 1)")
     ap.add_argument("--json", type=Path)
+    ap.add_argument("--openfoam", default=of.V2406,
+                    help="runner: native, or docker:IMAGE (default: v2406 in Docker)")
     args = ap.parse_args(argv)
+    of.set_runner(args.openfoam)
+    # levels already in --json are reused, so the levels can run separately
+    old = {}
+    if args.json and args.json.exists():
+        old = {r["k"]: r for r in json.loads(args.json.read_text())["levels"]}
     rows = []
     for k in args.levels:
+        if k in old:
+            print(f"[k{k}] reused from {args.json}", flush=True)
+            rows.append(old[k])
+            continue
         r = run_level(k, args.work, args.end_time, 1 if k == 1 else args.n_proc)
         print(json.dumps({key: v for key, v in r.items()
                           if key not in ("checks", "residual_history")}, default=float),
               flush=True)
         rows.append(r)
-    rich = {}
-    if len(rows) == 3:
-        for key in ("nu", "dt_steel", "dt_insulation", "dtb_dx"):
-            try:
-                rich[key] = pois.richardson(*(r[key] for r in rows))
-            except (ValueError, ZeroDivisionError) as e:
-                rich[key] = {"error": str(e)}
+        if args.json:
+            args.json.write_text(json.dumps({"versions": pois.versions(), "levels": rows},
+                                            indent=1, default=float))
+    rich = extrapolate(rows)
     data = {"versions": pois.versions(), "levels": rows, "richardson": rich}
     if args.json:
         args.json.write_text(json.dumps(data, indent=1, default=float))

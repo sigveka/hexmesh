@@ -62,3 +62,19 @@ def test_docker_runner_reports_v2406(restore_runner, tmp_path):
     assert of.have_openfoam() and of.openfoam_version() == "v2406"
     out = of.foam("touch made_here && echo ok", tmp_path, "log.touch")
     assert "ok" in out and (tmp_path / "made_here").stat().st_uid == os.getuid()
+
+
+@pytest.mark.openfoam
+@pytest.mark.skipif(not _have_image(), reason="no opencfd/openfoam-default:2406 image")
+def test_docker_container_stops_with_its_caller(tmp_path):
+    """A caller killed by ``timeout`` (SIGTERM) stops its container: a
+    Docker container otherwise outlives its client."""
+    import sys
+    script = ("import sys; from pathlib import Path; from hexmesh.study import openfoam as of;"
+              f"of.set_runner(of.V2406); of.foam('sleep 120', Path({str(tmp_path)!r}), 'log.sleep')")
+    run = subprocess.run(["timeout", "8", sys.executable, "-c", script],
+                         cwd=Path(__file__).resolve().parents[1], capture_output=True)
+    assert run.returncode != 0
+    left = subprocess.run(["docker", "ps", "-q", "--filter", "volume=" + str(tmp_path)],
+                          capture_output=True, text=True).stdout.split()
+    assert left == []

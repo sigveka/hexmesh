@@ -127,3 +127,11 @@ not the O-H section.  The meshed section is an inscribed polygon whose
 area deficit adds a second-order error of the opposite sign.  Richardson
 extrapolation and the meshed-section reference (above) show convergence.
 The `nang` sweep shows non-orthogonality levelling off near 45°.
+
+## Cross-check on OpenFOAM v2406
+
+Decision 0012's toolchain amendment (task 0035): the coarse level re-run
+end to end on v2406 (`opencfd/openfoam-default:2406` in Docker,
+conversion included), 2026-10-31.  **The results agree with v1912** to
+the digits reported: Δp 8.036058e-05 and u_max 9.906548e-03, the same to every digit in the tables above; mesh 5 184 cells, non-orthogonality 23.5°.  The v1912 results above stay the
+recorded ones.

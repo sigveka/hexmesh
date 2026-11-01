@@ -26,7 +26,7 @@
       "runner": "docker"
     }
   },
-  "status": "in progress",
+  "status": "accepted",
   "task": "0035",
   "gates": [
     {

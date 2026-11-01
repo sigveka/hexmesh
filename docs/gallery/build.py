@@ -599,6 +599,8 @@ def validation_md() -> str:
             if m["gates"]:
                 out += ["Gates: " + "; ".join(f"{g['quantity']}: {g['limit']}"
                                               for g in m["gates"]) + ".", ""]
+            if m.get("notes"):
+                out += [f"**Note:** {m['notes']}", ""]
             if name in validation_cases():
                 first = load_case(name).meshes()[0][0]
                 if (case / "img" / f"{first}.png").exists():
