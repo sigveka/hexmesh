@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Shared OpenFOAM helpers (decision 0025 item 7, task 0043): dictionary
 headers, running a utility with a log, mesh conversion, and readers for
@@ -13,8 +25,11 @@ v1912 here, and coded boundary conditions fail to compile
 
 **Runner** (decision 0012's toolchain amendment): ``native`` sources
 ``OPENFOAM_RC``; ``docker:<image>`` (e.g. ``docker:opencfd/openfoam-
-default:2406``) runs each command in a fresh container as the calling
-user, with the case mounted at its own path.  Pick it with
+default:2406``) runs each command in a fresh container (as the calling
+user where the host has user ids), with the case and any extra
+directories mounted at ``/work/0``, ``/work/1``, … and host paths in the
+command rewritten to match, so it runs from Windows too (decision 0039,
+task 0092).  Pick it with
 ``set_runner`` or the ``HEXMESH_OPENFOAM`` environment variable; record
 ``runner()`` and ``openfoam_version()`` with every result.  One
 toolchain per case: conversion and solvers in the same runner.
@@ -30,7 +45,7 @@ import re
 import signal
 import subprocess
 import threading
-from pathlib import Path
+from pathlib import Path, PurePath
 
 import numpy as np
 
@@ -60,19 +75,67 @@ _names = itertools.count()
 
 def _argv(cmd: str, cwd: Path, mounts=(), name: str | None = None) -> list[str]:
     """The command line that runs *cmd* in *cwd* with the runner's
-    OpenFOAM environment.  Docker mounts *cwd* and *mounts* at their own
-    paths, so absolute paths in *cmd* still resolve; *name* names the
+    OpenFOAM environment (Docker: :func:`docker_argv`); *name* names the
     container."""
     if _runner == "native":
         return ["bash", "-c", f"source {OPENFOAM_RC} >/dev/null 2>&1; {cmd}"]
-    cwd = Path(cwd).resolve()
-    vols = []
-    for m in dict.fromkeys([cwd, *(Path(m).resolve() for m in mounts)]):
-        vols += ["-v", f"{m}:{m}"]
+    user = (os.getuid(), os.getgid()) if hasattr(os, "getuid") else None
+    return docker_argv(cmd, Path(cwd).resolve(), [Path(m).resolve() for m in mounts],
+                       image=_runner[len("docker:"):], name=name, user=user)
+
+
+#: where the Docker runner mounts host directories
+CONTAINER_ROOT = "/work"
+
+
+def container_paths(dirs) -> list[tuple[PurePath, str, bool]]:
+    """(host, container path, mounted) for each absolute host directory in
+    *dirs* (duplicates collapse; the first is the working directory).
+    Directories not inside another one are mounted at ``/work/0``,
+    ``/work/1``, …: the one holding the working directory first, then the
+    rest in order.  One inside a mounted directory maps to its subpath, so
+    ``..`` between them still resolves.  Works on ``PureWindowsPath`` as
+    well as ``Path``."""
+    dirs = list(dict.fromkeys(dirs))
+    roots = [d for d in dirs if not any(o != d and d.is_relative_to(o) for o in dirs)]
+    roots.sort(key=lambda r: not dirs[0].is_relative_to(r))          # stable
+    out = []
+    for d in dirs:
+        i, root = next((i, r) for i, r in enumerate(roots) if d.is_relative_to(r))
+        rel = d.relative_to(root).as_posix()
+        out.append((d, f"{CONTAINER_ROOT}/{i}" + ("" if rel == "." else f"/{rel}"), d == root))
+    return out
+
+
+#: what may end a path in a shell command
+_PATH_END = r"""(?=$|[\s;&|<>()"'])"""
+
+
+def container_command(cmd: str, mapping) -> str:
+    """*cmd* with every host path under a mapped directory rewritten to its
+    container path (Windows separators become ``/``).  A path matches only
+    as a whole word: after the start, a space, ``=`` or a quote."""
+    for host, cont, _ in sorted(mapping, key=lambda m: -len(str(m[0]))):
+        pattern = (r"""(?<![^\s="'])""" + re.escape(str(host))
+                   + r"""(?P<rest>(?:[\\/][^\s;&|<>()"']*)?)""" + _PATH_END)
+        cmd = re.sub(pattern, lambda m: cont + m["rest"].replace("\\", "/"), cmd)
+    return cmd
+
+
+def docker_argv(cmd: str, cwd: PurePath, mounts=(), *, image: str, name: str | None = None,
+                user: tuple[int, int] | None = None) -> list[str]:
+    """``docker run`` for *cmd* in *cwd* (absolute host paths): *cwd* and
+    *mounts* mounted under ``/work`` (:func:`container_paths`), ``-w`` the
+    container path of *cwd*, host paths in *cmd* rewritten
+    (:func:`container_command`).  ``--user`` only with *user* (uid, gid):
+    Windows has none, and Docker Desktop maps file ownership itself."""
+    mapping = container_paths([cwd, *mounts])
+    mounted = sorted((m for m in mapping if m[2]), key=lambda m: int(m[1].split("/")[2]))
+    vols = [a for host, cont, _ in mounted for a in ("-v", f"{host}:{cont}")]
     return ["docker", "run", "--rm", *(["--name", name] if name else []),
-            "--user", f"{os.getuid()}:{os.getgid()}",
-            "-e", "HOME=/tmp", *vols, "-w", str(cwd), "--entrypoint", "bash",
-            _runner[len("docker:"):], "-c", f"{_DOCKER_RC} >/dev/null 2>&1; {cmd}"]
+            *(["--user", f"{user[0]}:{user[1]}"] if user else []),
+            "-e", "HOME=/tmp", *vols, "-w", mapping[0][1], "--entrypoint", "bash",
+            image, "-c", f"{_DOCKER_RC} >/dev/null 2>&1; {container_command(cmd, mapping)}"]
 
 _NUM = r"[-+0-9.eE]+"
 
@@ -113,7 +176,7 @@ def foam(cmd: str, case: Path, log: str, mounts=()) -> str:
             raise SystemExit(128 + signum)
         old = signal.signal(signal.SIGTERM, _term)
     try:
-        with open(path, "w") as out:
+        with open(path, "w", encoding="utf-8") as out:
             proc = subprocess.Popen(_argv(cmd, case, mounts, name), cwd=case, stdout=out,
                                     stderr=subprocess.PIPE, text=True)
             try:
@@ -124,9 +187,9 @@ def foam(cmd: str, case: Path, log: str, mounts=()) -> str:
                 proc.terminate()
                 proc.wait()
                 raise
-        stdout = path.read_text()
+        stdout = path.read_text(encoding="utf-8")
         if err:
-            with open(path, "a") as out:
+            with open(path, "a", encoding="utf-8") as out:
                 out.write(err)
     finally:
         if main:
@@ -195,24 +258,24 @@ def _strip_header(text: str) -> str:
 
 
 def read_points(path: Path):
-    n, body = _list_body(_strip_header(path.read_text()))
+    n, body = _list_body(_strip_header(path.read_text(encoding="utf-8")))
     return np.array(re.findall(_NUM, body), float).reshape(n, 3)
 
 
 def read_faces(path: Path) -> list[list[int]]:
-    n, body = _list_body(_strip_header(path.read_text()))
+    n, body = _list_body(_strip_header(path.read_text(encoding="utf-8")))
     faces = [[int(v) for v in f.split()] for f in re.findall(r"\d+\(([^)]*)\)", body)]
     assert len(faces) == n
     return faces
 
 
 def read_labels(path: Path):
-    n, body = _list_body(_strip_header(path.read_text()))
+    n, body = _list_body(_strip_header(path.read_text(encoding="utf-8")))
     return np.array(body.split(), int)
 
 
 def read_zone(path: Path, name: str):
-    text = _strip_header(path.read_text())
+    text = _strip_header(path.read_text(encoding="utf-8"))
     # v1912 puts each name on its own line; v2406 opens the list on the
     # first one, "(planeA"
     i = re.search(rf"^\(?{name}\s*\{{", text, re.M).end()
@@ -221,7 +284,7 @@ def read_zone(path: Path, name: str):
 
 
 def read_internal(path: Path, ncomp: int):
-    text = _strip_header(path.read_text())
+    text = _strip_header(path.read_text(encoding="utf-8"))
     i = text.index("internalField")
     n, body = _list_body(text, i)
     return np.array(re.findall(_NUM, body), float).reshape(n, ncomp) if ncomp > 1 \
@@ -230,7 +293,7 @@ def read_internal(path: Path, ncomp: int):
 
 def read_patch_faces(path: Path, patch: str):
     """Face labels of *patch*, from ``constant/polyMesh/boundary``."""
-    text = _strip_header(path.read_text())
+    text = _strip_header(path.read_text(encoding="utf-8"))
     i = re.search(rf"^\s*{patch}\s*\{{", text, re.M).end()
     body = text[i:text.index("}", i)]
     n = int(re.search(r"nFaces\s+(\d+)", body).group(1))
@@ -241,7 +304,7 @@ def read_patch_faces(path: Path, patch: str):
 def read_patch_values(path: Path, patch: str, n: int | None = None):
     """A patch's ``value`` list (scalars).  A ``uniform`` value is returned
     as *n* copies, or raises ``ValueError`` without *n*."""
-    text = _strip_header(path.read_text())
+    text = _strip_header(path.read_text(encoding="utf-8"))
     i = re.search(rf"^\s*{patch}\s*\{{", text[text.index("boundaryField"):], re.M)
     j = text.index("boundaryField") + i.end()
     k = re.compile(r"(?<!\w)value\s").search(text, j).start()   # not valueFraction
@@ -319,7 +382,7 @@ def substitute_case(case: Path, params: dict) -> list[str]:
         if rel.parts[:2] == ("constant", "polyMesh") or rel.name.startswith("log."):
             continue
         try:
-            text = path.read_text()
+            text = path.read_text(encoding="utf-8")
         except UnicodeDecodeError:
             continue
         if "$" not in text:
@@ -344,7 +407,7 @@ def substitute_case(case: Path, params: dict) -> list[str]:
             raise ValueError(f"{rel}: unknown placeholder(s) "
                              + ", ".join(f"${n}" for n in dict.fromkeys(missing)))
         if new != text:
-            path.write_text(new)
+            path.write_text(new, encoding="utf-8", newline="\n")
             changed.append(str(rel))
     return changed
 

@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Study runner (decision 0025, task 0042): study file, sampling, preflight,
 mesh stage, manifest, topology key and aligned export.
@@ -6,7 +18,10 @@ mesh stage, manifest, topology key and aligned export.
 import csv
 import dataclasses
 import json
+import os
+import shutil
 import time
+import warnings
 
 import numpy as np
 import pytest
@@ -417,13 +432,27 @@ class TestCaseTemplates:
             run_stage(study, rows, jobs=1, force=True)
 
 
-def test_other_runs_sees_a_detached_process():
+def _without_psutil(monkeypatch):
+    import sys
+    monkeypatch.setitem(sys.modules, "psutil", None)          # import psutil fails
+
+
+@pytest.mark.skipif(os.name == "nt" or shutil.which("bash") is None,
+                    reason="starts a detached process through bash (POSIX)")
+@pytest.mark.parametrize("backend", ["psutil", "proc"])
+def test_other_runs_sees_a_detached_process(backend, monkeypatch):
     """A process that isn't ours (reparented) and looks like pytest."""
     import os
     import signal
     import subprocess
     import sys
-    from hexmesh.study import other_runs
+    from hexmesh.study import other_runs, stages
+    if backend == "psutil":
+        pytest.importorskip("psutil")
+    else:
+        if not (stages.PROC / "self" / "stat").exists():
+            pytest.skip("no /proc")
+        _without_psutil(monkeypatch)
     out = subprocess.run(
         ["bash", "-c", f"{sys.executable} -c 'import time; time.sleep(30)' "
                        f"pytest-marker-0043 >/dev/null 2>&1 & echo $!"],
@@ -438,6 +467,31 @@ def test_other_runs_sees_a_detached_process():
         assert not any(line.startswith(f"{os.getpid()}:") for line in other_runs())
     finally:
         os.kill(pid, signal.SIGTERM)
+
+
+def test_other_runs_without_psutil_or_proc_warns_once(monkeypatch, tmp_path):
+    """macOS or Windows without psutil: nothing found, one warning."""
+    from hexmesh.study import other_runs, stages
+    _without_psutil(monkeypatch)
+    monkeypatch.setattr(stages, "PROC", tmp_path / "no_proc")
+    monkeypatch.setattr(stages, "_warned_unavailable", False)
+    with pytest.warns(UserWarning, match="can't check for other"):
+        assert other_runs() == []
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        assert other_runs() == []                              # warned once
+
+
+def test_other_runs_never_raises(monkeypatch):
+    import sys
+    import types
+    from hexmesh.study import other_runs, stages
+    broken = types.ModuleType("psutil")
+    broken.Process = lambda: (_ for _ in ()).throw(RuntimeError("no process table"))
+    monkeypatch.setitem(sys.modules, "psutil", broken)
+    monkeypatch.setattr(stages, "_warned_unavailable", False)
+    with pytest.warns(UserWarning, match="RuntimeError: no process table"):
+        assert other_runs() == []
 
 
 @pytest.mark.openfoam

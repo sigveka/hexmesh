@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Architecture rules of DESIGN §3.1 (decision 0037; task 0081).
 
@@ -15,6 +27,9 @@ functions count the same as module-level ones.
   so they can't form one; they still count for the other rules.
 - **A cap on shape-specific sites** outside ``core/shape.py`` and
   ``sections`` (see :func:`shape_sites`).  The cap only goes down.
+- **Text I/O names its encoding** (decision 0039; task 0092): every text
+  ``open``, ``read_text`` and ``write_text`` in ``hexmesh/`` passes
+  ``encoding=`` (see :func:`encoding_violations`).
 
 Each check returns its violations, so the planted-violation tests at the
 end run the same code on a synthetic tree.
@@ -61,6 +76,11 @@ RULE_ORDER = "DESIGN §3.1, dependency order"
 RULE_PRIVATE = "DESIGN §3.1, no private name crosses a package"
 RULE_CYCLE = "DESIGN §3.1, no module cycles"
 RULE_SHAPES = "DESIGN §3.1, shapes and section layouts own their behaviour"
+RULE_ENCODING = "decision 0039, text I/O names its encoding"
+#: ``X.open(...)`` on these modules is not a text-file open (binary by
+#: default, or a dataset or model)
+BINARY_OPENERS = {"gzip", "bz2", "lzma", "tarfile", "zipfile", "wave", "dbm", "shelve",
+                  "rasterio", "fiona", "gmsh"}
 
 
 # --- the module tree -----------------------------------------------------------
@@ -301,6 +321,51 @@ def shape_sites(root: Path) -> list[str]:
     return out
 
 
+def _mode(node: ast.Call, position: int) -> ast.expr | None:
+    for kw in node.keywords:
+        if kw.arg == "mode":
+            return kw.value
+    return node.args[position] if len(node.args) > position else None
+
+
+def encoding_violations(root: Path) -> list[str]:
+    """Text I/O without ``encoding=`` anywhere in ``hexmesh/``:
+
+    - ``open(...)`` / ``io.open(...)`` / ``os.fdopen(...)`` /
+      ``X.open(...)`` (a ``Path``) whose mode is not a string constant
+      containing ``b``;
+    - ``X.read_text(...)`` / ``X.write_text(...)``.
+
+    ``encoding`` counts by keyword, or as ``read_text``'s first positional
+    argument and ``write_text``'s second.  ``X.open`` on ``gzip``,
+    ``tarfile`` and the like is skipped (binary by default)."""
+    out = []
+    for mod, path in modules(root).items():
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"), str(path))):
+            if not isinstance(node, ast.Call):
+                continue
+            f, where = node.func, f"{path.relative_to(root)}:{node.lineno}"
+            has = any(kw.arg == "encoding" for kw in node.keywords)
+            if isinstance(f, ast.Attribute) and f.attr in ("read_text", "write_text"):
+                has = has or len(node.args) > (0 if f.attr == "read_text" else 1)
+            elif ((isinstance(f, ast.Name) and f.id == "open")
+                  or (isinstance(f, ast.Attribute) and f.attr == "open"
+                      and not (isinstance(f.value, ast.Name) and f.value.id in BINARY_OPENERS))
+                  or (isinstance(f, ast.Attribute) and f.attr == "fdopen")):
+                position = 1 if isinstance(f, ast.Name) or (
+                    isinstance(f.value, ast.Name) and f.value.id in ("io", "os")) else 0
+                mode = _mode(node, position)
+                if (isinstance(mode, ast.Constant) and isinstance(mode.value, str)
+                        and "b" in mode.value):
+                    continue
+                has = has or len(node.args) > position + 2          # open(f, m, buffering, enc)
+            else:
+                continue
+            if not has:
+                out.append(f"{where}: {ast.unparse(node)}")
+    return out
+
+
 # --- the real tree -------------------------------------------------------------
 
 def test_every_module_has_a_capability():
@@ -342,6 +407,12 @@ def test_shape_sites_cap():
         f"{len(sites)} shape-specific sites: lower SHAPE_SITES_CAP to {len(sites)} "
         "(the cap only goes down)")
 
+
+
+def test_text_io_names_its_encoding():
+    bad = encoding_violations(ROOT)
+    assert not bad, (f"{RULE_ENCODING}; pass encoding=\"utf-8\" (and newline=\"\\n\" for "
+                     "files OpenFOAM or a shell reads):\n  " + "\n  ".join(bad))
 
 # --- planted violations: the same checks on a synthetic tree --------------------
 
@@ -430,3 +501,25 @@ def test_planted_shape_sites(tmp_path, text, n):
                             "hexmesh/core/shape.py": text,       # the owner: not counted
                             "hexmesh/sections/oh.py": text})
     assert len(shape_sites(root)) == n
+
+
+@pytest.mark.parametrize("text, n", [
+    ("open(p)\n", 1),
+    ("open(p, 'w')\n", 1),
+    ("open(p, mode='a')\n", 1),
+    ("p.open()\n", 1),
+    ("p.read_text()\n", 1),
+    ("p.write_text(s)\n", 1),
+    ("os.fdopen(fd, 'w')\n", 1),
+    ("open(p, 'rb')\n", 0),                                      # binary
+    ("p.open(mode='wb')\n", 0),
+    ("open(p, 'w', encoding='utf-8')\n", 0),
+    ("p.read_text('utf-8') + p.write_text(s, 'utf-8')\n", 0),    # positional encoding
+    ("gzip.open(p) and gmsh.open(p) and rasterio.open(p)\n", 0),  # not text-file opens
+    ("p.read_bytes() and p.write_bytes(b)\n", 0),
+])
+def test_planted_encoding(tmp_path, text, n):
+    root = _tree(tmp_path, {"hexmesh/study/x.py": text})
+    bad = encoding_violations(root)
+    assert len(bad) == n, bad
+    assert all(b.startswith("hexmesh/study/x.py:1: ") for b in bad)

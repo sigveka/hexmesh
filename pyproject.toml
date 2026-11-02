@@ -28,6 +28,9 @@ gallery = [             # docs/gallery/build.py; tests/test_validation_meta.py
     "Pillow>=10",
     "jsonschema>=4.10",
 ]
+study = [              # hexmesh.study.stages.other_runs off Linux (decision 0039)
+    "psutil>=5.9",
+]
 dev = [
     "pytest>=7",
     "pytest-cov",

@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 The study file (decision 0025, task 0042).
 
@@ -120,7 +132,7 @@ class Study:
         if "python" in self.template:
             return self.function(self.template["python"], "template.python")
         from ..assembly import Assembly
-        text = self.resolve(self.template["json"]).read_text()
+        text = self.resolve(self.template["json"]).read_text(encoding="utf-8")
         network = json.loads(text)
         return lambda params: Assembly.from_dict(substitute(network, params))
 
@@ -129,7 +141,7 @@ class Study:
         parameter has a placeholder."""
         if "json" not in self.template:
             return
-        used = placeholders(json.loads(self.resolve(self.template["json"]).read_text()))
+        used = placeholders(json.loads(self.resolve(self.template["json"]).read_text(encoding="utf-8")))
         unknown, unused = sorted(used - names), sorted(names - used)
         if unknown or unused:
             raise StudyError("; ".join(
@@ -141,7 +153,7 @@ class Study:
 def load_study(path) -> Study:
     path = Path(path).resolve()
     try:
-        raw = json.loads(path.read_text())
+        raw = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as e:
         raise StudyError(f"{path}: not JSON ({e})") from None
     if not isinstance(raw, dict):

@@ -27,7 +27,7 @@ def _version() -> str:
     from pathlib import Path
     pyproject = Path(__file__).resolve().parents[1] / "pyproject.toml"
     if pyproject.is_file():
-        text = pyproject.read_text()
+        text = pyproject.read_text(encoding="utf-8")
         if re.search(r'^name\s*=\s*"hexmesh"', text, re.M):
             return re.search(r'^version\s*=\s*"([^"]+)"', text, re.M).group(1)
     from importlib.metadata import PackageNotFoundError, version

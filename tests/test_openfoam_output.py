@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 OpenFOAM-compatible output (docs/tasks/0005).
 
@@ -159,3 +171,21 @@ def test_openfoam_cht_split(gmsh_session, tmp_path, interfaces):
     zones = zones_file.read_text() if zones_file.exists() else ""
     kept = "interface_fluid_steel" in zones and "interface_steel_insulation" in zones
     assert kept == interfaces
+
+
+def test_case_files_have_lf_line_endings_on_any_platform(tmp_path, monkeypatch):
+    """Decision 0039: OpenFOAM and the shell read these files, so they're
+    written with ``newline="\\n"``.  Simulate Windows text mode (``\\n`` →
+    ``\\r\\n`` unless the caller passes *newline*) and check the bytes."""
+    from hexmesh.io import write_openfoam_case
+    real = pathlib.Path.write_text
+
+    def windows_write_text(self, data, encoding=None, errors=None, newline=None):
+        return real(self, data, encoding, errors, "\r\n" if newline is None else newline)
+
+    monkeypatch.setattr(pathlib.Path, "write_text", windows_write_text)
+    write_openfoam_case(tmp_path / "case", ["fluid", "steel"],
+                        fluid_regions=["fluid"], solid_regions=["steel"])
+    files = [p for p in (tmp_path / "case").rglob("*") if p.is_file()]
+    assert len(files) >= 7 and (tmp_path / "case" / "Allrun") in files
+    assert [p.relative_to(tmp_path) for p in files if b"\r" in p.read_bytes()] == []

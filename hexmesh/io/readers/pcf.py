@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 PCF (Piping Component File) reader.
 
@@ -652,7 +664,7 @@ def _iter_records(path: Path, net: NetworkSpec) -> Iterator[tuple[str, dict, str
         elif kind == "other":
             net.connections.append((name, a))
 
-    with path.open() as fh:
+    with path.open(encoding="utf-8") as fh:
         for raw_line in fh:
             line = raw_line.rstrip().expandtabs()
             if not line or line.startswith(";"):

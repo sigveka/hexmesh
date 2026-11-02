@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Study manifest and aligned export (decision 0025, items 4 and 5).
 
@@ -52,7 +64,7 @@ def write_manifest(study: Study, rows: list[dict]) -> None:
     study.output.mkdir(parents=True, exist_ok=True)
     names = list(dict.fromkeys(k for r in rows for k in r["params"]))
     results = list(dict.fromkeys(k for r in rows for k in (r.get("result") or {})))
-    with open(study.output / "study.csv", "w", newline="") as f:
+    with open(study.output / "study.csv", "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow(COLUMNS[:2] + names + [f"result.{k}" for k in results] + COLUMNS[2:])
         for r in rows:
@@ -65,14 +77,14 @@ def write_manifest(study: Study, rows: list[dict]) -> None:
                        + ["" if vals[k] is None else vals[k] for k in COLUMNS[2:]])
     (study.output / "study.json").write_text(json.dumps({
         "study": study.raw, "versions": versions(),
-        "variants": [_public(r) for r in rows]}, indent=1, default=str))
+        "variants": [_public(r) for r in rows]}, indent=1, default=str), encoding="utf-8")
 
 
 def read_manifest(study: Study) -> dict:
     path = study.output / "study.json"
     if not path.exists():
         raise StudyError(f"no manifest at {path}: run the study first")
-    return json.loads(path.read_text())
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def read_mesh(path: Path) -> tuple[np.ndarray, np.ndarray, np.ndarray]:

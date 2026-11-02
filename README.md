@@ -159,8 +159,15 @@ pip install hexmesh           # once it is on PyPI (not yet)
 Python ≥ 3.10, gmsh ≥ 4.12.  An existing gmsh installation (e.g. from
 your system's package manager) is used as is.  Extras: `[bathymetry]`
 (GeoTIFF / NetCDF surfaces and shapefile routes), `[gallery]` (the
-gallery images).  OpenFOAM is only needed to run the cases; hexmesh
-writes them without it.
+gallery images), `[study]` (`psutil`, so studies can see other runs on
+any system).  OpenFOAM is only needed to run the cases; hexmesh writes
+them without it.
+
+| | Linux | macOS | Windows |
+|---|---|---|---|
+| meshing | yes | yes | yes |
+| studies and validation, OpenFOAM in Docker | yes | yes | yes (Docker Desktop) |
+| studies and validation, native OpenFOAM | yes | — | WSL only |
 
 ---
 

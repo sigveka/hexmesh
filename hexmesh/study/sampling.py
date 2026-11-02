@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Sampling (decision 0025): the same study file always gives the same
 variants, in the same order.
@@ -48,7 +60,7 @@ def samples(study: Study) -> list[dict]:
                 raise StudyError("sampling.table.rows must be a list of objects")
             return [dict(r) for r in rows]
         if "csv" in spec:
-            with open(study.resolve(spec["csv"]), newline="") as f:
+            with open(study.resolve(spec["csv"]), newline="", encoding="utf-8") as f:
                 return [{k.strip(): _number(v.strip()) for k, v in row.items()}
                         for row in csv.DictReader(f)]
         raise StudyError("sampling.table needs 'rows' or 'csv'")

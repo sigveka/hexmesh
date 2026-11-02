@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 OpenFOAM case scaffolding writer.
 
@@ -71,10 +83,12 @@ def write_openfoam_case(
     _write_control_dict(root, solver, end_time, delta_t, write_interval)
     _write_fv_schemes(root)
     _write_fv_solution(root)
+    # constant/ before regionProperties goes into it (task 0092: a fresh
+    # directory used to fail here)
+    (root / "constant" / "polyMesh").mkdir(parents=True, exist_ok=True)
     _write_region_properties(root, fluid, solid)
 
     # Create per-region constant/ subdirectories (populated by splitMeshRegions)
-    (root / "constant" / "polyMesh").mkdir(parents=True, exist_ok=True)
     for region in regions:
         (root / "constant" / region).mkdir(exist_ok=True)
         (root / "0"        / region).mkdir(parents=True, exist_ok=True)
@@ -137,7 +151,7 @@ def _write_control_dict(
 
         runTimeModifiable true;
     """)
-    (root / "system" / "controlDict").write_text(content)
+    (root / "system" / "controlDict").write_text(content, encoding="utf-8", newline="\n")
 
 
 def _write_fv_schemes(root: Path) -> None:
@@ -149,7 +163,7 @@ def _write_fv_schemes(root: Path) -> None:
         interpolationSchemes { default linear; }
         snGradSchemes   { default corrected; }
     """)
-    (root / "system" / "fvSchemes").write_text(content)
+    (root / "system" / "fvSchemes").write_text(content, encoding="utf-8", newline="\n")
 
 
 def _write_fv_solution(root: Path) -> None:
@@ -173,7 +187,7 @@ def _write_fv_solution(root: Path) -> None:
         }
         PIMPLE { nOuterCorrectors 1; nCorrectors 2; nNonOrthogonalCorrectors 1; }
     """)
-    (root / "system" / "fvSolution").write_text(content)
+    (root / "system" / "fvSolution").write_text(content, encoding="utf-8", newline="\n")
 
 
 def _write_region_properties(
@@ -191,7 +205,7 @@ def _write_region_properties(
             solid  {_fmt(solid)}
         );
     """)
-    (root / "constant" / "regionProperties").write_text(content)
+    (root / "constant" / "regionProperties").write_text(content, encoding="utf-8", newline="\n")
 
 
 def _write_region_fv_schemes(root: Path, region: str) -> None:
@@ -206,7 +220,7 @@ def _write_region_fv_schemes(root: Path, region: str) -> None:
         interpolationSchemes { default linear; }
         snGradSchemes   { default corrected; }
     """)
-    (dst / "fvSchemes").write_text(content)
+    (dst / "fvSchemes").write_text(content, encoding="utf-8", newline="\n")
 
 
 def _write_region_fv_solution(root: Path, region: str) -> None:
@@ -226,7 +240,7 @@ def _write_region_fv_solution(root: Path, region: str) -> None:
         }
         PIMPLE { nOuterCorrectors 1; nCorrectors 2; nNonOrthogonalCorrectors 1; }
     """)
-    (dst / "fvSolution").write_text(content)
+    (dst / "fvSolution").write_text(content, encoding="utf-8", newline="\n")
 
 
 def _write_all_run(root: Path, solver: str) -> None:
@@ -240,5 +254,5 @@ def _write_all_run(root: Path, solver: str) -> None:
         runApplication {solver}
     """)
     p = root / "Allrun"
-    p.write_text(script)
+    p.write_text(script, encoding="utf-8", newline="\n")
     p.chmod(0o755)

@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Study stages (decision 0025, task 0042): preflight and mesh.
 
@@ -139,8 +151,8 @@ def _network_text(network: dict) -> str:
 def up_to_date(study: Study, row: dict) -> bool:
     d = variant_dir(study, row["hash"])
     try:
-        result = json.loads((d / "result.json").read_text())
-        same = (d / "network.json").read_text() == _network_text(row["network"])
+        result = json.loads((d / "result.json").read_text(encoding="utf-8"))
+        same = (d / "network.json").read_text(encoding="utf-8") == _network_text(row["network"])
     except (OSError, json.JSONDecodeError):
         return False
     return same and result.get("status") == "meshed" and (d / study.mesh_name).exists()
@@ -155,8 +167,8 @@ def mesh(study: Study, rows: list[dict], jobs: int | None = None) -> list[str]:
         d = variant_dir(study, r["hash"])
         d.mkdir(parents=True, exist_ok=True)
         (d / "result.json").unlink(missing_ok=True)
-        (d / "network.json").write_text(_network_text(r["network"]))
-        (d / "params.json").write_text(json.dumps(canonical(r["params"]), indent=1))
+        (d / "network.json").write_text(_network_text(r["network"]), encoding="utf-8")
+        (d / "params.json").write_text(json.dumps(canonical(r["params"]), indent=1), encoding="utf-8")
 
     def run(row):
         d = variant_dir(study, row["hash"])
@@ -170,7 +182,7 @@ def mesh(study: Study, rows: list[dict], jobs: int | None = None) -> list[str]:
             (d / "result.json").write_text(json.dumps({
                 "status": "mesh_failed",
                 "error": f"worker exited {proc.returncode}: "
-                         + (proc.stderr.strip().splitlines() or ["(no output)"])[-1]}))
+                         + (proc.stderr.strip().splitlines() or ["(no output)"])[-1]}), encoding="utf-8")
 
     with ThreadPoolExecutor(max_workers=jobs) as pool:
         list(pool.map(run, todo))
@@ -186,9 +198,9 @@ def load_results(study: Study, rows: list[dict]) -> None:
             continue
         d = variant_dir(study, r["hash"])
         try:
-            if (d / "network.json").read_text() != _network_text(r["network"]):
+            if (d / "network.json").read_text(encoding="utf-8") != _network_text(r["network"]):
                 continue
-            result = json.loads((d / "result.json").read_text())
+            result = json.loads((d / "result.json").read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             continue                       # not meshed yet
         r.update({k: v for k, v in result.items() if k not in ("status", "traceback")})
@@ -225,7 +237,7 @@ def mesh_worker(d: Path, fmt: str, walls_by_fitting: bool) -> int:
         out["error"] = f"{type(e).__name__}: {e}"
         out["traceback"] = traceback.format_exc()[-4000:]
     out["mesh_time"] = time.perf_counter() - t0
-    (d / "result.json").write_text(json.dumps(out, indent=1))
+    (d / "result.json").write_text(json.dumps(out, indent=1), encoding="utf-8")
     return 0 if out["status"] == "meshed" else 1
 
 
@@ -256,7 +268,7 @@ def run_fingerprint(study: Study, row: dict) -> str:
 
 def _read_json(path: Path) -> dict | None:
     try:
-        return json.loads(path.read_text())
+        return json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return None
 
@@ -302,7 +314,7 @@ def case_stage(study: Study, rows: list[dict], jobs: int | None = None) -> list[
             out["status"] = "case_ready"
         except Exception as e:                               # recorded, not raised
             out["status"], out["error"] = "case_failed", f"{type(e).__name__}: {e}"
-        (d / "case.json").write_text(json.dumps(out, indent=1))
+        (d / "case.json").write_text(json.dumps(out, indent=1), encoding="utf-8")
         row.update({k: v for k, v in out.items() if k != "fingerprint"})
 
     with ThreadPoolExecutor(max_workers=jobs or study.jobs) as pool:
@@ -310,37 +322,88 @@ def case_stage(study: Study, rows: list[dict], jobs: int | None = None) -> list[
     return [r["hash"] for r in todo]
 
 
-def other_runs() -> list[str]:
-    """Command lines of pytest, OpenFOAM solver or mpirun processes that
-    aren't this process, its ancestors or its children (CLAUDE.md:
-    another session's runs on a shared machine)."""
+def _is_run(cmd: str) -> bool:
+    words = cmd.split()
+    if not words:
+        return False
+    exe = Path(words[0]).name
+    return "pytest" in cmd or exe.endswith("Foam") or exe in ("mpirun", "mpiexec")
+
+
+def _other_runs_psutil(psutil) -> list[str]:
+    me = psutil.Process()
+    mine = {me.pid, *(p.pid for p in me.parents())}
+    found = []
+    for p in psutil.process_iter(["pid", "ppid", "cmdline"]):
+        pid, ppid, words = p.info["pid"], p.info["ppid"], p.info["cmdline"] or []
+        if pid in mine or ppid == me.pid:                # this process, its ancestors, its children
+            continue
+        cmd = " ".join(words).strip()
+        if _is_run(cmd):
+            found.append(f"{pid}: {cmd[:120]}")
+    return found
+
+
+#: the process table read without psutil (Linux)
+PROC = Path("/proc")
+
+
+def _other_runs_proc() -> list[str]:
     mine = {os.getpid()}
     pid = os.getpid()
     while pid > 1:                                   # ancestors
         try:
-            stat = Path(f"/proc/{pid}/stat").read_text()
+            stat = (PROC / str(pid) / "stat").read_text(encoding="utf-8")
         except OSError:
             break
         pid = int(stat.rsplit(")", 1)[1].split()[1])
         mine.add(pid)
     found = []
-    for p in Path("/proc").iterdir():
+    for p in PROC.iterdir():
         if not p.name.isdigit() or int(p.name) in mine:
             continue
         try:
             cmd = (p / "cmdline").read_bytes().replace(b"\0", b" ").decode().strip()
-            parent = int((p / "stat").read_text().rsplit(")", 1)[1].split()[1])
+            parent = int((p / "stat").read_text(encoding="utf-8").rsplit(")", 1)[1].split()[1])
         except (OSError, ValueError, IndexError):
             continue
         if parent == os.getpid():
             continue                                 # our own children
-        words = cmd.split()
-        if not words:
-            continue
-        exe = Path(words[0]).name
-        if "pytest" in cmd or exe.endswith("Foam") or exe in ("mpirun", "mpiexec"):
+        if _is_run(cmd):
             found.append(f"{p.name}: {cmd[:120]}")
     return found
+
+
+_warned_unavailable = False
+
+
+def other_runs() -> list[str]:
+    """Command lines of pytest, OpenFOAM solver or mpirun processes that
+    aren't this process, its ancestors or its children (CLAUDE.md:
+    another session's runs on a shared machine).
+
+    Uses ``psutil`` when installed (the ``study`` extra), else ``/proc``
+    (Linux).  Elsewhere, or if the check fails, it returns nothing and
+    warns once that the check is unavailable; it never raises (decision
+    0039)."""
+    global _warned_unavailable
+    try:
+        import psutil
+    except ImportError:
+        psutil = None
+    try:
+        if psutil is not None:
+            return _other_runs_psutil(psutil)
+        if (PROC / "self" / "stat").exists():
+            return _other_runs_proc()
+        reason = "no psutil and no /proc (pip install 'hexmesh[study]')"
+    except Exception as e:                           # never raises
+        reason = f"{type(e).__name__}: {e}"
+    if not _warned_unavailable:
+        _warned_unavailable = True
+        warnings.warn(f"can't check for other pytest or OpenFOAM runs: {reason}",
+                      stacklevel=2)
+    return []
 
 
 def run_stage(study: Study, rows: list[dict], jobs: int | None = None,
@@ -372,7 +435,7 @@ def run_stage(study: Study, rows: list[dict], jobs: int | None = None,
         out = {"fingerprint": run_fingerprint(study, row), "run_log": str(log)}
         t0 = time.perf_counter()
         try:
-            with open(log, "w") as f:
+            with open(log, "w", encoding="utf-8") as f:
                 proc = subprocess.run(
                     ["bash", "-c", f"source {OPENFOAM_RC} >/dev/null 2>&1; {study.run['command']}"],
                     cwd=case, stdout=f, stderr=subprocess.STDOUT, timeout=timeout)
@@ -393,7 +456,7 @@ def run_stage(study: Study, rows: list[dict], jobs: int | None = None,
         else:
             out["status"] = "run_failed"
             out.setdefault("error", f"command exited {out['run_exit']} (see {log})")
-        (d / "run.json").write_text(json.dumps(out, indent=1))
+        (d / "run.json").write_text(json.dumps(out, indent=1), encoding="utf-8")
         row.update({k: v for k, v in out.items() if k != "fingerprint"})
 
     with ThreadPoolExecutor(max_workers=jobs) as pool:
