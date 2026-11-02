@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "title": "Laminar flow in rectangular ducts (aspect ratios 1, 2, 4)",
+  "category": "V1",
+  "references": [
+    {
+      "source": "exact: Fourier series for fully developed flow in a rectangle; $f\\,\\mathrm{Re}$ checked against Shah & London (1978)",
+      "role": "primary"
+    }
+  ],
+  "tags": {
+    "regime": [
+      "laminar"
+    ],
+    "physics": [
+      "flow"
+    ],
+    "features": [
+      "section:rect",
+      "straight"
+    ],
+    "toolchain": {
+      "openfoam": "v2406",
+      "runner": "docker"
+    }
+  },
+  "status": "accepted",
+  "task": "0071",
+  "gates": [
+    {
+      "quantity": "Cartesian control: extrapolated $f\\,\\mathrm{Re}$ and $u_c$, every aspect ratio",
+      "limit": "within 0.1 % of exact"
+    },
+    {
+      "quantity": "Cartesian control: finest-level |error|",
+      "limit": "< 1 %"
+    },
+    {
+      "quantity": "Cartesian control: observed order",
+      "limit": "near 2 (else the setup is suspect)"
+    },
+    {
+      "quantity": "hexmesh O-H levels",
+      "limit": "reported against the control, not gated (decision 0015 amendment 2)"
+    }
+  ]
+}

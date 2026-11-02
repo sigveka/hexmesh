@@ -900,6 +900,18 @@ Gates: extrapolated $\Delta p$ and $u_\mathrm{max}$: within 0.1 % of exact; fine
 
 Case: `validation/poiseuille/`: [README.md](../validation/poiseuille/README.md), [RESULTS.md](../validation/poiseuille/RESULTS.md), [case.json](../validation/poiseuille/case.json).
 
+#### Laminar flow in rectangular ducts (aspect ratios 1, 2, 4)
+
+**Status:** accepted (task 0071).  **Reference:** exact: Fourier series for fully developed flow in a rectangle; $f\,\mathrm{Re}$ checked against Shah & London (1978).
+
+Tags: `laminar`, `flow`, `section:rect`, `straight`, `OpenFOAM v2406 (docker)`.
+
+Gates: Cartesian control: extrapolated $f\,\mathrm{Re}$ and $u_c$, every aspect ratio: within 0.1 % of exact; Cartesian control: finest-level |error|: < 1 %; Cartesian control: observed order: near 2 (else the setup is suspect); hexmesh O-H levels: reported against the control, not gated (decision 0015 amendment 2).
+
+<p><img src="../validation/rect_duct/img/ar1_k1.png" width="68%"> <img src="../validation/rect_duct/img/ar1_k1_section.png" width="29%"></p>
+
+Case: `validation/rect_duct/`: [README.md](../validation/rect_duct/README.md), [RESULTS.md](../validation/rect_duct/RESULTS.md), [case.json](../validation/rect_duct/case.json).
+
 #### Womersley flow (pulsatile laminar pipe flow)
 
 **Status:** accepted (task 0067).  **Reference:** exact: Womersley profile and pressure gradient, the inlet of `varghese_and_frankel_etal_2007b` eq. 2.1 ($\alpha = 7.5$, $A = 0.667$, $\mathrm{Re} = 600$); inlet waveform and phases $t/T = 0.09 + k/6$ [`varghese_and_frankel_etal_2007b`] (secondary).
@@ -916,7 +928,6 @@ Planned:
 
 | Task | Status |
 |---|---|
-| [0071: Validation (V1): fully developed laminar flow in rectangular ducts](tasks/0071-validation-rectangular-duct.md) | ready |
 | [0074: Verification (V1): manufactured solutions for conduction on every fitting's mesh](tasks/0074-validation-mms-conduction.md) | ready (on the v2406 runner, after 0035's Docker option exists) |
 | [0077: Verification (V1): FEniCSx toolchain, and second-order export checked end to end](tasks/0077-validation-fenicsx-second-order.md) | ready (step 1 any time; steps 2–4 after 0076) |
 
@@ -961,7 +972,7 @@ Planned:
 | Task | Status |
 |---|---|
 | [0050: Validation: turbulent flow in a 90° bend (Sudo et al. 1998)](tasks/0050-validation-turbulent-bend.md) | ready (after 0049) |
-| [0072: Validation (V3): laminar flow in a 90° square-duct bend (Taylor, Whitelaw & Yianneskis, Re 790)](tasks/0072-validation-laminar-square-bend.md) | ready (after 0071) |
+| [0072: Validation (V3): laminar flow in a 90° square-duct bend (Taylor, Whitelaw & Yianneskis, Re 790)](tasks/0072-validation-laminar-square-bend.md) | ready (after 0071 and 0084) |
 | [0075: Validation (V3): laminar flow in a helical pipe (spline pipe)](tasks/0075-validation-helical-pipe.md) | ready (on the v2406 runner) |
 | [0079: Validation (V3): a Taylor bubble rising in stagnant liquid (VOF)](tasks/0079-validation-taylor-bubble.md) | ready (on the v2406 runner) |
 
@@ -973,16 +984,16 @@ _No cases yet._
 
 Which hexmesh features each case exercises (decision 0012's fixed list). Marks: ● accepted, ◐ in progress, ○ planned, ✗ rejected; planned cases are named by task.  Rows marked *(none)* have no validation case, existing or planned.
 
-| Feature | heated_pipe<br>V1 | heated_rod<br>V1 | layered_conduction<br>V1 | poiseuille<br>V1 | stenosis<br>V2 | stenosis_pulsatile<br>V2 | womersley<br>V1 | 0049<br>V2 | 0050<br>V3 | 0071<br>V1 | 0072<br>V3 | 0074<br>V1 | 0075<br>V3 | 0077<br>V1 | 0079<br>V3 |
+| Feature | heated_pipe<br>V1 | heated_rod<br>V1 | layered_conduction<br>V1 | poiseuille<br>V1 | rect_duct<br>V1 | stenosis<br>V2 | stenosis_pulsatile<br>V2 | womersley<br>V1 | 0049<br>V2 | 0050<br>V3 | 0072<br>V3 | 0074<br>V1 | 0075<br>V3 | 0077<br>V1 | 0079<br>V3 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `section:circle` | ● | ● | ● | ● | ● | ● | ● | ○ | ○ |  |  | ○ | ○ | ○ | ○ |
-| `section:rect` |  |  |  |  |  |  |  |  |  | ○ | ○ | ○ |  |  |  |
+| `section:circle` | ● | ● | ● | ● |  | ● | ● | ● | ○ | ○ |  | ○ | ○ | ○ | ○ |
+| `section:rect` |  |  |  |  | ● |  |  |  |  |  | ○ | ○ |  |  |  |
 | `layers` | ● |  | ● |  |  |  |  |  |  |  |  | ○ |  |  |  |
-| `straight` | ● | ● | ● | ● | ● | ● | ● | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
-| `bend` |  |  |  |  |  |  |  |  | ○ |  | ○ | ○ |  | ○ |  |
+| `straight` | ● | ● | ● | ● | ● | ● | ● | ● | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
+| `bend` |  |  |  |  |  |  |  |  |  | ○ | ○ | ○ |  | ○ |  |
 | `miter` |  |  |  |  |  |  |  |  |  |  |  | ○ |  |  |  |
 | `spline` |  |  |  |  |  |  |  |  |  |  |  | ○ | ○ |  |  |
-| `profiled-reducer` |  |  |  |  | ● | ● |  |  |  |  |  | ○ |  |  |  |
+| `profiled-reducer` |  |  |  |  |  | ● | ● |  |  |  |  | ○ |  |  |  |
 | `transition` |  |  |  |  |  |  |  |  |  |  |  | ○ |  |  |  |
 | `tee` |  |  |  |  |  |  |  |  |  |  |  | ○ |  | ○ |  |
 | `duct-tap` |  |  |  |  |  |  |  |  |  |  |  | ○ |  |  |  |

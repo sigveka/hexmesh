@@ -1796,6 +1796,158 @@
     "predicted": 414072,
     "meshed": 414072
    }
+  },
+  "rect_duct": {
+   "ar1_k1": {
+    "fittings": 4,
+    "fitting_types": {
+     "Straight": 4
+    },
+    "volumes": 20,
+    "materials": [
+     "fluid"
+    ],
+    "min_sicn": 0.27932266718137494,
+    "mean_sicn": 0.34454557700659344,
+    "min_sj": 0.7071067811865435,
+    "min_sj_fitting": "#0 Straight",
+    "max_aspect": 7.500000000000128,
+    "groups": {
+     "open_end": [
+      "fluid_inlet",
+      "fluid_outlet"
+     ],
+     "wall": [
+      "fluid_wall"
+     ],
+     "interface": [],
+     "volume": [
+      "fluid"
+     ]
+    },
+    "predicted": 2160,
+    "meshed": 2160
+   },
+   "ar2_k1": {
+    "fittings": 4,
+    "fitting_types": {
+     "Straight": 4
+    },
+    "volumes": 20,
+    "materials": [
+     "fluid"
+    ],
+    "min_sicn": 0.2132227038371102,
+    "mean_sicn": 0.2885717981856925,
+    "min_sj": 0.7071067811865422,
+    "min_sj_fitting": "#0 Straight",
+    "max_aspect": 10.000000000000112,
+    "groups": {
+     "open_end": [
+      "fluid_inlet",
+      "fluid_outlet"
+     ],
+     "wall": [
+      "fluid_wall"
+     ],
+     "interface": [],
+     "volume": [
+      "fluid"
+     ]
+    },
+    "predicted": 3600,
+    "meshed": 3600
+   },
+   "ar4_k1": {
+    "fittings": 4,
+    "fitting_types": {
+     "Straight": 4
+    },
+    "volumes": 20,
+    "materials": [
+     "fluid"
+    ],
+    "min_sicn": 0.17894675453761572,
+    "mean_sicn": 0.2538469925281152,
+    "min_sj": 0.7071067811865425,
+    "min_sj_fitting": "#0 Straight",
+    "max_aspect": 12.00000000000025,
+    "groups": {
+     "open_end": [
+      "fluid_inlet",
+      "fluid_outlet"
+     ],
+     "wall": [
+      "fluid_wall"
+     ],
+     "interface": [],
+     "volume": [
+      "fluid"
+     ]
+    },
+    "predicted": 6480,
+    "meshed": 6480
+   },
+   "ar1_k2": {
+    "fittings": 4,
+    "fitting_types": {
+     "Straight": 4
+    },
+    "volumes": 20,
+    "materials": [
+     "fluid"
+    ],
+    "min_sicn": 0.27932266718137383,
+    "mean_sicn": 0.34893497509292504,
+    "min_sj": 0.7071067811865422,
+    "min_sj_fitting": "#3 Straight",
+    "max_aspect": 7.500000000000231,
+    "groups": {
+     "open_end": [
+      "fluid_inlet",
+      "fluid_outlet"
+     ],
+     "wall": [
+      "fluid_wall"
+     ],
+     "interface": [],
+     "volume": [
+      "fluid"
+     ]
+    },
+    "predicted": 17280,
+    "meshed": 17280
+   },
+   "ar1_k4": {
+    "fittings": 4,
+    "fitting_types": {
+     "Straight": 4
+    },
+    "volumes": 20,
+    "materials": [
+     "fluid"
+    ],
+    "min_sicn": 0.27932266718137194,
+    "mean_sicn": 0.3509237649430274,
+    "min_sj": 0.7071067811865351,
+    "min_sj_fitting": "#0 Straight",
+    "max_aspect": 7.500000000000571,
+    "groups": {
+     "open_end": [
+      "fluid_inlet",
+      "fluid_outlet"
+     ],
+     "wall": [
+      "fluid_wall"
+     ],
+     "interface": [],
+     "volume": [
+      "fluid"
+     ]
+    },
+    "predicted": 138240,
+    "meshed": 138240
+   }
   }
  }
 }

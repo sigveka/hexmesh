@@ -1,6 +1,6 @@
 # 0071 — Validation (V1): fully developed laminar flow in rectangular ducts
 
-- **Status:** in progress
+- **Status:** done
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (category V1); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V1 (exact: rectangular-duct series)
 - **Features:** `section:rect`, `straight`
@@ -83,7 +83,17 @@ developing flow.
 
 ## Agent notes
 
-_None yet._
+- Step 2: the exact inlet profile as a nonuniform `fixedValue` at the
+  face centres, scaled to the discrete flow rate, and the same profile as
+  the initial field.  The duct is developed end to end, 10 D_h long.
+- Step 5: the control is a four-block `blockMesh` split at the three
+  planes.  It has `nz` × `nz`·(a/b) square cells per section, with `nz`
+  = round(√(O-H section cells / (a/b))): 100 / 162 / 324 against the
+  O-H's 108 / 180 / 324.  It has the same axial cells and is selected
+  by `--meshes`.
+- `extrapolate()` flags `differences_grow`.  Poiseuille's `richardson()`
+  takes |log(ε32/ε21)|, so growing differences still give a positive
+  order (0.24 on the O-H square).
 
 ## Questions for design
 
@@ -91,4 +101,59 @@ _None._
 
 ## Outcome
 
-_Not done._
+Accepted on the Cartesian control (2026-11-02, v2406 in Docker, gmsh
+4.12.1; O-H at 1063b15, control at 6309d2c, no code change between).
+
+**Files.**
+- `validation/rect_duct/`: `run.py` (exact series,
+  `--check-series`, O-H and control levels, Richardson,
+  `versus_control`, `meshes()`), `README.md`, `RESULTS.md`,
+  `case.json` (accepted) and `img/`.
+- Tests: `tests/test_validation.py` has `test_rect_duct_coarse`
+  (O-H regression) and `test_rect_duct_control_coarse`; both pass, 17 s.
+  `tests/test_validation_meta.py` passes (5).
+- `docs/GALLERY.md` and `docs/gallery/metrics.json` are regenerated.
+
+**Series.**  f·Re 56.908 / 62.192 / 72.931 (Shah & London 56.91 /
+62.19 / 72.93); a/b = 1000 gives 95.87 (plates: 96).
+
+**For RESEARCH (signed f·Re error; k = 1 / 2 / 4; order;
+extrapolated − exact):**
+
+| a/b | Cartesian control | p | ext. | O-H | p | O-H ÷ control at k = 4 |
+|---|---|---|---|---|---|---|
+| 1 | −3.92 / −1.02 / −0.26 % | 1.93 | +0.011 % | +2.65 / +1.97 / +1.16 % | none (differences grow) | 4.50 |
+| 2 | −3.09 / −0.80 / −0.20 % | 1.94 | +0.008 % | +0.45 / +0.70 / +0.48 % | none (non-monotone) | 2.36 |
+| 4 | −2.65 / −0.68 / −0.17 % | 1.95 | +0.006 % | −0.66 / +0.08 / +0.15 % | none (sign change) | 0.85 |
+
+- **u_c, control:**
+  - fine-level errors −0.11 / −0.04 / −0.02 %; order 1.90–1.91;
+  - extrapolated +0.080 / +0.096 / +0.083 %, which passes the 0.1 %
+    gate;
+  - the centre fit's own bias (+0.06–0.09 %, measured on the exact
+    field) is almost all of that.  Net of it: +0.012 / +0.006 /
+    +0.003 %.
+- **u_c, O-H:** oscillatory at every ratio.  At k = 4 it is 3–9× the
+  control's error.
+- **Max field error at k = 4:** O-H 1.0–1.2 %, control 0.10–0.18 %.
+
+**Surprises.**
+- The O-H a/b = 2, k = 1 level ran to the 20 000-iteration cap.  Ux and p
+  had settled (2.6e-7, 3.5e-5).  Uy and Uz, whose exact values are zero,
+  stayed at normalised residuals ~1e-3.
+- At coarse levels the O-H looks better than the control: the two errors
+  have opposite signs, so the corners' error cancels part of the
+  discretisation error.
+
+**Proposed follow-ups.**
+- Fix Poiseuille's `richardson()` to report growing differences (no
+  order, no extrapolation) instead of |log|.  Poiseuille's own numbers
+  are unaffected.
+- Replace the centre fit with a direct estimate of u_c, or at least gate
+  u_c net of the fit's measured bias, before the H series (task 0084)
+  is gated like the control.
+- Convergence on the transverse velocity components: base it on Ux and p,
+  or on absolute residuals.
+- Cost: the finest levels took 28 min (O-H) and 18 min (control) serial
+  at 415k cells.  A parallel runner (`decomposePar`) would help 0072 and
+  0084.

@@ -102,7 +102,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0050](0050-validation-turbulent-bend.md) | Validation: turbulent flow in a 90° bend (Sudo et al. 1998) | V3 | ready (after 0049) | 0012, 0015 |
 | [0067](0067-validation-womersley.md) | Validation: Womersley flow (pulsatile laminar pipe flow, exact solution) | V1 | done | 0012, 0015 |
 | [0068](0068-validation-pulsatile-stenosis.md) | Validation: pulsatile flow through the cosine stenosis (Varghese et al., Part 2) | V2 | done | 0012, 0015 |
-| [0071](0071-validation-rectangular-duct.md) | Validation: fully developed laminar flow in rectangular ducts | V1 | in progress | 0012, 0015 |
+| [0071](0071-validation-rectangular-duct.md) | Validation: fully developed laminar flow in rectangular ducts | V1 | done | 0012, 0015 |
 | [0072](0072-validation-laminar-square-bend.md) | Validation: laminar 90° square-duct bend (Taylor et al., Re 790) | V3 | ready (after 0071, 0084: runs on the H section) | 0012, 0015 |
 | [0074](0074-validation-mms-conduction.md) | Verification: manufactured solutions for conduction on every fitting's mesh | V1 | ready (v2406 runner) | 0012, 0015 |
 | [0075](0075-validation-helical-pipe.md) | Validation: laminar flow in a helical pipe (spline pipe) | V3 | ready (v2406 runner) | 0012, 0015 |

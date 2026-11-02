@@ -238,3 +238,41 @@ def test_pulsatile_stenosis_one_period(pulsatile_stenosis):
     assert len(r["comparison"]) == 12                      # 6 files × 2 phase sets
     c = next(c for c in r["comparison"] if c["file"] == "vel_p2.dat" and c["kind"] == "flow_rate")
     assert 3.0 < c["stations"]["0.0"]["centre"] < 6.0      # a throat jet at peak flow
+
+
+@pytest.fixture(scope="module")
+def rect_duct(tmp_path_factory):
+    """Task 0071's coarse square duct, O-H and Cartesian control, on v2406
+    in Docker (about 20 s)."""
+    if not _have_v2406():
+        pytest.skip("no opencfd/openfoam-default:2406 image")
+    work = tmp_path_factory.mktemp("rect_duct")
+    out = work / "results.json"
+    run = subprocess.run([sys.executable, str(ROOT / "validation/rect_duct/run.py"),
+                          "--ratios", "1", "--levels", "1", "--work", str(work),
+                          "--json", str(out)], capture_output=True, text=True)
+    assert run.returncode == 0, run.stdout[-3000:] + run.stderr[-3000:]
+    return json.loads(out.read_text())
+
+
+def test_rect_duct_coarse(rect_duct):
+    """The coarse square's measured values (RESULTS.md), with margin, and
+    the exact series' checks."""
+    r = next(r for r in rect_duct["levels"] if r["mesh"] == "oh")
+    assert r["check_mesh_ok"] and r["check_cells_foam"] == r["cells"]
+    assert r["converged"] and r["mass_err"] < 1e-8 and abs(r["area_err_signed"]) < 1e-12
+    assert 0.02 < r["fRe_err_signed"] < 0.03                 # +2.6 % measured
+    assert abs(r["u_c_err_signed"]) < 0.003 and r["profile_max_err"] < 0.03
+    s = rect_duct["series"]["1"]
+    assert abs(s["fRe"] - 56.908) < 1e-3 and s["terms_change"] < 1e-12
+
+
+def test_rect_duct_control_coarse(rect_duct):
+    """The coarse Cartesian control (RESULTS.md): its error has the
+    opposite sign to the O-H's."""
+    r = next(r for r in rect_duct["levels"] if r["mesh"] == "cartesian")
+    assert r["check_mesh_ok"] and r["check_cells_foam"] == r["cells"] == 2000
+    assert r["check_max_non_orthogonality"] < 1e-6
+    assert r["converged"] and r["mass_err"] < 1e-8
+    assert -0.045 < r["fRe_err_signed"] < -0.035               # -3.92 % measured
+    assert -0.030 < r["u_c_err_signed"] < -0.022               # -2.62 % measured
