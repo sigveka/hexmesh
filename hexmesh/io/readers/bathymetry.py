@@ -3,12 +3,11 @@ Bathymetry reader — pipeline route on a surveyed seabed surface.
 
 Takes a bathymetric surface (XYZ point cloud or DEM raster) and a 2-D
 pipeline route (list of waypoints or a Shapefile), projects the route
-onto the surface, and returns a NetworkSpec of straight segments.
-
-The resulting NetworkSpec carries the 3-D centreline of the pipe as a
-sequence of ``ComponentSpec(kind="pipe")`` objects.  Build it with
-``NetworkSpec.to_assembly(pipe_spec, kinks="spline")``: the route bends at
-its vertices without fittings, so the pipes are joined into a spline.
+onto the surface, and returns a network model (decision 0032) holding one
+``Polyline`` part: the 3-D centreline of the pipe through the projected
+waypoints.  Build it with ``model.to_assembly(pipe_spec, kinks="spline")``:
+the route bends at its vertices without fittings, so its segments are
+joined into a spline.
 
 Supported input formats
 -----------------------
@@ -32,7 +31,7 @@ from typing import Sequence
 
 import numpy as np
 
-from .pcf import NetworkSpec, ComponentSpec, _unit, _perpendicular
+from ...interchange.model import NetworkModel, Polyline, Provenance
 
 
 # ---------------------------------------------------------------------------
@@ -47,8 +46,8 @@ def read_bathymetry(
     route_format:   str | None = None,
     unit_scale:     float = 1.0,
     max_segment_length: float | None = None,
-) -> NetworkSpec:
-    """Build a NetworkSpec by projecting a pipeline route onto bathymetry.
+) -> NetworkModel:
+    """A network model of a pipeline route projected onto bathymetry.
 
     The pipe centreline is placed at depth ``burial_depth`` below the
     interpolated seabed surface (positive = deeper).  For an exposed
@@ -76,7 +75,10 @@ def read_bathymetry(
 
     Returns
     -------
-    NetworkSpec
+    NetworkModel
+        One ``Polyline`` (named ``PIPE``; its segments label as ``PIPE_1``,
+        ``PIPE_2``, …) through the projected waypoints; no sizes (the
+        spec sets them).
     """
     surface_path = Path(surface_path)
 
@@ -97,17 +99,12 @@ def read_bathymetry(
     if max_segment_length is not None:
         xyz = _subdivide_route(xyz, max_segment_length, interp, burial_depth)
 
-    # --- Build NetworkSpec ---
-    spec = NetworkSpec(source=str(surface_path))
-    for i in range(len(xyz) - 1):
-        spec.components.append(ComponentSpec(
-            kind  = "pipe",
-            start = xyz[i].copy(),
-            end   = xyz[i + 1].copy(),
-            bore  = 0.0,   # caller sets via pipe_spec
-        ))
-
-    return spec
+    # --- The model: one polyline through the waypoints ---
+    model = NetworkModel()
+    model.add_part(Polyline, [p.copy() for p in xyz], id="route", name="PIPE",
+                   type="PIPE", provenance=Provenance(source=str(surface_path),
+                                                      format="bathymetry", record="route"))
+    return model
 
 
 # ---------------------------------------------------------------------------

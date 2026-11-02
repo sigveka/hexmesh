@@ -321,7 +321,7 @@ TEE-SET-ON
     ("""OLET
     CENTRE-POINT 1500 700 0
     BRANCH1-POINT 1500 900 0 25
-""", r"OLET OLET_1.*no PIPE passes through its CENTRE-POINT"),
+""", r"OLET OLET_1.*no straight pipe passes through its centre"),
     ("""Y-PIECE-FABRICATED
     CENTRE-POINT 1000 0 0
     BRANCH1-POINT 1346.41 200 0 100

@@ -3,8 +3,10 @@
 ## Role
 
 **Input format.**  Plant piping data (Isogen/Spoolgen, exported by most
-plant-design systems) read by `hexmesh/io/readers/pcf.py` into the
-Intent layer (`NetworkSpec.to_assembly()` → `Assembly`).
+plant-design systems) read by `hexmesh/io/readers/pcf.py`, translated
+into the network model (`NetworkSpec.to_model()`, decision 0032) and
+built by `hexmesh.interchange.build` (`NetworkSpec.to_assembly()` →
+`Assembly`).
 
 ## Versions
 

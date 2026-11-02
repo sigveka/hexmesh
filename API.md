@@ -785,7 +785,21 @@ one network: components in list order, each file with its own units.
 - Other unsupported types are listed in `NetworkSpec.skipped`, with one
   warning each.
 
+### `NetworkSpec.to_model() -> interchange.NetworkModel`
+
+The file as a network model (see [Network interchange](#network-interchange-hexmeshinterchange)):
+one part per component (part id = component index; `Straight`,
+`InlineEquipment`, `Bend` with `ANGLE` / `BEND-RADIUS` as stated values,
+`Reducer`, `Joint`, `Junction` "tee" / "tap" / "wye" / "cross"), one
+`Terminal` per equipment connection, pipelines as `Network`s
+(`kind="pipeline"`, with their insulation thickness), `FLOW` as port flow,
+keypoint insulation on the ports, and `END-CONNECTION-PIPELINE` points as
+declared connections.  Messages name parts as `component <n> (<TYPE>
+<label>[, SKEY …] at <point>)`.  A fresh model per call.
+
 ### `NetworkSpec.to_assembly(spec, *, axial_cell=None, kinks="error", tol=None, lc=None, inlet=None, insulation=False, insulation_nrad=2) -> Assembly`
+
+`interchange.build(self.to_model(), spec, …)`; kept so no caller breaks.
 
 **Mapping**
 
@@ -881,12 +895,85 @@ to the piece it sits at.  `report["pieces"]` holds each piece's report.
 Unsupported components anywhere in the file (crosses, angled inline
 components) raise before any piece is built.
 
-### `bathymetry.read_bathymetry(surface_path, route, burial_depth=0.0, surface_format="xyz", route_format=None, unit_scale=1.0, max_segment_length=None) -> NetworkSpec`
+### `bathymetry.read_bathymetry(surface_path, route, burial_depth=0.0, surface_format="xyz", route_format=None, unit_scale=1.0, max_segment_length=None) -> interchange.NetworkModel`
 
-Projects a 2-D route onto a seabed surface (XYZ, GeoTIFF or NetCDF). Build the
-result with `to_assembly(spec, kinks="spline")`. GeoTIFF and NetCDF surfaces
+Projects a 2-D route onto a seabed surface (XYZ, GeoTIFF or NetCDF): a
+model holding one `Polyline` (`PIPE`; segments `PIPE_1`, `PIPE_2`, …)
+with no sizes. Build it with `to_assembly(spec, kinks="spline")`. GeoTIFF and NetCDF surfaces
 and shapefile / GeoPackage routes need the `bathymetry` extra
 (`pip install -e ".[bathymetry]"`: rasterio, xarray, fiona, shapely).
+
+---
+
+## Network interchange (`hexmesh.interchange`)
+
+Decision 0032: importers → a format-neutral **network model** → one
+builder.  The builder never looks at the source format; what a format
+says reaches it as model content (stated bend angles, `reject` reasons,
+flow directions, equipment tags) and through the importer's message
+formatter.  `read_pcf(...).to_model()` and `read_bathymetry(...)` give
+models; a model can also be written by hand.
+
+The part classes share names with the assembly's fittings
+(`interchange.Straight` is a part, `assembly.Straight` a fitting): use
+them through the module, `from hexmesh import interchange as ix`.
+
+```python
+from hexmesh import interchange as ix
+
+m = ix.NetworkModel()
+m.networks["L-1"] = ix.Network("L-1")
+a = m.add_part(ix.Straight, [(0, 0, 0), (1, 0, 0)], system="L-1")
+m.ports[a.ports[0]].section = ix.Section(nominal=0.1)
+m.add_part(ix.Bend, [(1, 0, 0), (1.3, 0.3, 0)], corner=(1.3, 0, 0), system="L-1")
+m.add_part(ix.Straight, [(1.3, 0.3, 0), (1.3, 1, 0)], system="L-1")
+asm = ix.build(m, pipe)            # or m.to_assembly(pipe)
+```
+
+### The model (`hexmesh.interchange.model`)
+
+| Class | Fields |
+|---|---|
+| `NetworkModel` | `ports` (id → `Port`), `parts` (id → `Part`, in order), `connections`, `networks` (name → `Network`), `report`; `add_port(position, **kw)`, `add_part(cls, positions_or_ports, **kw)`, `to_assembly`, `to_assemblies` |
+| `Port` | `id`, `position`, `direction`, `flow` ("in" / "out" / None), `section`, `insulation` ("on" / "off" / None: the part's), `equipment` (`{"tag", "nozzle"}`), `provenance` |
+| `Part` | `id`, `ports` (ids, in order), `name` (the fitting's label; default `<TYPE>_<id>`), `type`, `system` (its network), `insulation`, `attributes`, `provenance`, `reject` (why it can't be built) |
+| `Straight`, `InlineEquipment` | two ports; meshed as a straight |
+| `Bend` | two ports; `corner` (where the tangent legs meet), `stated_angle` (°), `stated_radius` (m), `stated_names` (how messages name them) |
+| `Reducer` (`eccentric`), `Transition` | two ports, sizes from their sections |
+| `Junction` | `form`: "tee" (run in, run out, branch), "tap" (point on the host straight, branch), "wye" (stem, right daughter, left daughter), "cross" (rejected); `centre`; `offset` (a tangential or off-centre tap: rejected) |
+| `Joint` | two ports; absorbed into the adjacent straight run |
+| `Terminal` | one port: names the open end there and marks it as equipment; `check_point` must agree with it |
+| `Polyline` | ports in order: straights, or a spline with `kinks="spline"` |
+| `Connection` | `a`, `b` (port ids), `origin` ("declared" / "inferred"), `distance`.  Recorded; the builder still joins parts by position within the tolerance |
+| `Network` | `name`, `parts`, `kind` ("pipeline", "system": for messages), `insulation_thickness`, `attributes` |
+| `Section` | `shape` ("circle" / "rect"), `nominal`, `diameter`, `width`, `height`; `bore` = `nominal` |
+| `Provenance` | `source`, `format`, `record`, `record_id`, `line`, `guid`, `attributes` |
+
+`register_formatter(format, fn)`: messages name a part whose provenance
+has that format as `fn(part, at, name)`; `describe(part, at=None,
+name=None)` applies it (default `part <id> (<TYPE> <name> at <point>)`).
+
+### `build(model, spec, selection=None, *, axial_cell=None, kinks="error", tol=None, lc=None, inlet=None, insulation=False, insulation_nrad=2) -> Assembly`
+
+What `NetworkSpec.to_assembly` documents above, for any model: the parts
+are joined into a graph where their ports meet within `tol`, which must be
+one tree; the root is the first open end (ports with `flow="in"` first)
+that enters every junction through its inlet; each part is placed from
+the previous outlet and checked against its ports.  Open ends are named
+`<network>_end<k>`, or by a `Terminal`.  Insulation comes from the parts'
+and ports' status and the network's thickness.
+
+- `spec`: a `PipeSpec`, or a callable.  A callable whose first parameter
+  is named `section` or annotated `Section` gets the port's `Section`;
+  any other gets its nominal size in metres (`spec(bore)`, 0 if unknown).
+- `selection`: the part ids to build (default all).
+- `model.report`: the tolerance, the joints absorbed or dropped, the
+  largest lateral offset.
+
+### `build_pieces(model, spec, *, …) -> dict[str, Assembly]`
+
+`build` per connected piece, named after its first network (`piece<k>`
+without one), as `NetworkSpec.to_assemblies` above.
 
 ---
 

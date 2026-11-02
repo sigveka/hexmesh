@@ -232,7 +232,7 @@ def test_insulated_tee(tmp_path):
 
 @pytest.mark.parametrize("text, match", [
     (VALVE_LINE.replace("    INSULATION-THICKNESS 50\n", ""),
-     r"pipeline 'L-1'.*component 0 \(PIPE PIPE_1.*no INSULATION-THICKNESS"),
+     r"pipeline 'L-1'.*component 0 \(PIPE PIPE_1.*the pipeline has no insulation thickness"),
     (HEADER + """\
 PIPELINE-REFERENCE L-1
     INSULATION-THICKNESS 50
