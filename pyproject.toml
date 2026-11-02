@@ -12,18 +12,31 @@ license-files = ["LICENSE"]
 requires-python = ">=3.10"
 dependencies = [
     "numpy>=1.24",
+    "scipy>=1.10",      # spline stations (assembly/blocks.py)
+    "gmsh>=4.12",       # an existing system gmsh satisfies this
 ]
 
 [project.optional-dependencies]
-io = [
-    "scipy>=1.10",      # bathymetry interpolation
-    "numpy>=1.24",
+bathymetry = [          # io/readers/bathymetry.py, imported when used
+    "rasterio>=1.3",    # GeoTIFF surfaces
+    "xarray>=2023.1",   # NetCDF surfaces
+    "fiona>=1.9",       # shapefile / GeoPackage routes
+    "shapely>=2.0",
+]
+gallery = [             # docs/gallery/build.py; tests/test_validation_meta.py
+    "vtk>=9.2",
+    "Pillow>=10",
+    "jsonschema>=4.10",
 ]
 dev = [
     "pytest>=7",
     "pytest-cov",
     "pytest-xdist>=3",
+    "jsonschema>=4.10", # case.json schema tests (skipped without)
 ]
+
+[project.scripts]
+hexmesh-study = "hexmesh.study.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
@@ -33,8 +46,9 @@ include = ["hexmesh*"]
 testpaths = ["tests"]
 # Parallel by default (pytest-xdist, one process per core; each test has its
 # own gmsh session, see tests/conftest.py).  Serial: -n 0.
-# OpenFOAM tests are opt-in: -m openfoam.
-addopts = "-n auto -m 'not openfoam'"
+# OpenFOAM and slow tests are opt-in: -m openfoam, -m slow.
+addopts = "-n auto -m 'not openfoam and not slow'"
 markers = [
     "openfoam: needs an OpenFOAM installation (gmshToFoam, splitMeshRegions, ...); opt-in with -m openfoam",
+    "slow: builds the package and installs it into a venv (tests/test_install.py); opt-in with -m slow",
 ]

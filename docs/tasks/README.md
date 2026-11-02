@@ -88,6 +88,7 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0076](0076-second-order-export.md) | Second-order mesh export: `Assembly.mesh(order=2)` | ready | 0034, 0029 |
 | [0077](0077-validation-fenicsx-second-order.md) | Verification (V1): FEniCSx toolchain, and second-order export checked end to end | ready (step 1 any time; 2–4 after 0076) | 0034, 0012, 0015 |
 | [0078](0078-readme-generated-sections.md) | README: generated numbers, validation table, hero image and checks | ready | — |
+| [0080](0080-installable-package.md) | Installable package: extras, version, console command, install smoke test | done | — |
 
 **Current order (2026-10-28, design, revised):** finish the task in
 progress (0034), then **multi-layer junctions: 0051 → 0052 → 0056 → 0053 →

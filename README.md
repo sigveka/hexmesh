@@ -137,12 +137,16 @@ More in [Why hexmesh?](docs/WHY.md).
 ## Install
 
 ```bash
-pip install gmsh numpy
-pip install -e .              # from the repo root
+pip install -e .              # from a checkout; brings gmsh, numpy, scipy
+pip install -e ".[dev]"       # + pytest, for the test suite
+pip install hexmesh           # once it is on PyPI (not yet)
 ```
 
-Python ≥ 3.10, gmsh 4.12.  OpenFOAM is only needed to run the cases;
-hexmesh writes them without it.
+Python ≥ 3.10, gmsh ≥ 4.12.  An existing gmsh installation (e.g. from
+your system's package manager) is used as is.  Extras: `[bathymetry]`
+(GeoTIFF / NetCDF surfaces and shapefile routes), `[gallery]` (the
+gallery images).  OpenFOAM is only needed to run the cases; hexmesh
+writes them without it.
 
 ---
 

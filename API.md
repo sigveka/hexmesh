@@ -884,8 +884,9 @@ components) raise before any piece is built.
 ### `bathymetry.read_bathymetry(surface_path, route, burial_depth=0.0, surface_format="xyz", route_format=None, unit_scale=1.0, max_segment_length=None) -> NetworkSpec`
 
 Projects a 2-D route onto a seabed surface (XYZ, GeoTIFF or NetCDF). Build the
-result with `to_assembly(spec, kinks="spline")`. Needs `scipy`
-(`pip install -e ".[io]"`).
+result with `to_assembly(spec, kinks="spline")`. GeoTIFF and NetCDF surfaces
+and shapefile / GeoPackage routes need the `bathymetry` extra
+(`pip install -e ".[bathymetry]"`: rasterio, xarray, fiona, shapely).
 
 ---
 

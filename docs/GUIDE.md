@@ -36,12 +36,20 @@ construction.
 ## Installation
 
 ```bash
-pip install gmsh numpy
-pip install -e .              # from the repo root
-pip install -e ".[io]"        # + scipy, for the bathymetry reader
+pip install -e .                  # from a checkout; brings gmsh, numpy, scipy
+pip install -e ".[dev]"           # + pytest, for the test suite
+pip install -e ".[bathymetry]"    # + rasterio, xarray, fiona, shapely: GeoTIFF / NetCDF
+                                  #   surfaces and shapefile / GeoPackage routes
+pip install -e ".[gallery]"       # + vtk, Pillow, jsonschema: docs/gallery/build.py
+pip install hexmesh               # once it is on PyPI (not yet)
 ```
 
-Python ≥ 3.10. Developed and tested with GMSH 4.12.
+Python ≥ 3.10.  Developed and tested with GMSH 4.12; a clean install
+from PyPI gets the current gmsh (4.15.2 on 2026-11-02), with which the
+examples mesh as predicted too.  An existing gmsh installation (e.g. from
+your system's package manager) is used as is.  `hexmesh.__version__`
+gives the version; `hexmesh-study` is the study runner's command
+(`python3 -m hexmesh.study` in a checkout that isn't installed).
 
 ---
 

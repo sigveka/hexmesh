@@ -1,4 +1,5 @@
-"""Command line: ``python3 -m hexmesh.study run|status|export study.json``."""
+"""Command line: ``hexmesh-study run|status|export study.json``, or
+``python3 -m hexmesh.study …`` from a checkout."""
 
 from __future__ import annotations
 
@@ -15,7 +16,9 @@ def main(argv=None) -> int:
         from .stages import mesh_worker
         d, fmt, walls = argv[1:4]
         return mesh_worker(Path(d), fmt, walls == "1")
-    ap = argparse.ArgumentParser(prog="python3 -m hexmesh.study",
+    prog = ("python3 -m hexmesh.study" if Path(sys.argv[0]).name == "__main__.py"
+            else Path(sys.argv[0]).name)
+    ap = argparse.ArgumentParser(prog=prog,
                                  description="Run a hexmesh parameter study (decision 0025).")
     sub = ap.add_subparsers(dest="command", required=True)
     r = sub.add_parser("run", help="preflight, then mesh, every variant")
