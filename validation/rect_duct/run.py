@@ -27,8 +27,12 @@ end to end and can be short.  Three levels by ``Assembly.refined(k)``,
 k = 1, 2, 4 (constant ratio 2).  Usage::
 
     python3 validation/rect_duct/run.py [--ratios 1 2 4] [--levels 1 2 4]
-        [--work DIR] [--json FILE] [--openfoam native|docker:IMAGE]
+        [--work DIR] [--json FILE] [--keep-work] [--openfoam native|docker:IMAGE]
     python3 validation/rect_duct/run.py --check-series
+
+Results go to ``results.json`` here (task 0093): levels already in it are
+reused, and each level's case directory is deleted once its results are
+stored.
 
 OpenFOAM v2406 in Docker by default (decision 0012's toolchain).
 """
@@ -62,6 +66,9 @@ _spec = importlib.util.spec_from_file_location("convergence",
                                                ROOT / "validation/tools/convergence.py")
 conv = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(conv)       # richardson() (task 0089)
+_spec = importlib.util.spec_from_file_location("stored", ROOT / "validation/tools/results.py")
+stored = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(stored)                # results.json (task 0093)
 
 # --- physics -----------------------------------------------------------------
 DH = 0.02                 # hydraulic diameter, every aspect ratio [m]
@@ -208,7 +215,7 @@ def write_case(case: Path, end_time: int, ratio: float) -> None:
         "0/p": H("volScalarField", "p", "0") + pois.P0,
     }
     for name, text in files.items():
-        (case / name).write_text(text)
+        (case / name).write_text(text, encoding="utf-8")
 
 
 def exact_inlet(case: Path, ratio: float) -> float:
@@ -237,10 +244,10 @@ def exact_inlet(case: Path, ratio: float) -> float:
             f"({x:.15g} 0 0)" for x in v) + "\n)"
     path = case / "0/U"
     text = re.sub(r"fluid_inlet\s*\{[^}]*\}",
-                  f"fluid_inlet {{ type fixedValue; value {vectors(u)}; }}", path.read_text())
+                  f"fluid_inlet {{ type fixedValue; value {vectors(u)}; }}", path.read_text(encoding="utf-8"))
     text = text.replace("internalField   uniform (0 0 0);", f"internalField   {vectors(uc)};")
     assert "nonuniform" in text.split("boundaryField")[0], "initial field not written"
-    path.write_text(text)
+    path.write_text(text, encoding="utf-8")
     return scale
 
 
@@ -393,7 +400,7 @@ def run_control(ratio: int, k: int, work: Path, end_time: int) -> dict:
     print(f"[{name}] {ny} × {nz} per section, predicted cells: {cells}", flush=True)
     write_case(case, end_time, ratio)
     (case / "system/blockMeshDict").write_text(
-        H("dictionary", "blockMeshDict", "system") + block_mesh_dict(ratio, k))
+        H("dictionary", "blockMeshDict", "system") + block_mesh_dict(ratio, k), encoding="utf-8")
     of.foam("blockMesh", case, "log.blockMesh")
     return _solve(case, ratio, {"mesh": "cartesian", "ratio": ratio, "k": k, "cells": cells,
                                 "section": [ny, nz]})
@@ -442,6 +449,11 @@ def versus_control(rows: list[dict]) -> list[dict]:
     return out
 
 
+def level_name(mesh: str, ratio: int, k: int) -> str:
+    """The level's name in results.json: its case directory's."""
+    return f"{'cart_' if mesh == 'cartesian' else ''}ar{ratio}_k{k}"
+
+
 def main(argv=None) -> dict:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--ratios", nargs="+", type=int, default=list(RATIOS))
@@ -450,7 +462,7 @@ def main(argv=None) -> dict:
                     help="hexmesh's O-H section, the Cartesian control, or both")
     ap.add_argument("--work", type=Path, default=HERE / "work")
     ap.add_argument("--end-time", type=int, default=20000)
-    ap.add_argument("--json", type=Path)
+    stored.add_arguments(ap, HERE)
     ap.add_argument("--openfoam", default=of.V2406,
                     help="runner: native, or docker:IMAGE (default: v2406 in Docker)")
     ap.add_argument("--check-series", action="store_true",
@@ -461,34 +473,64 @@ def main(argv=None) -> dict:
         print(json.dumps(data, indent=1))
         return data
     of.set_runner(args.openfoam)
-    # levels already in --json are reused, so they can run separately
-    old = {}
-    if args.json and args.json.exists():
-        old = {(r.get("mesh", "oh"), r["ratio"], r["k"]): {"mesh": "oh", **r}
-               for r in json.loads(args.json.read_text())["levels"]}
+    # levels already in results.json are reused, so they can run separately
+    store = stored.Store(args.json, "rect_duct")
+    store.put_extra("exact", {r: exact(r) for r in RATIOS})
+    store.put_extra("series", check_series())
     rows = []
     for mesh in args.meshes:
         for ratio in args.ratios:
             for k in args.levels:
-                if (mesh, ratio, k) in old:
-                    print(f"[{mesh} ar{ratio}_k{k}] reused from {args.json}", flush=True)
-                    rows.append(old[(mesh, ratio, k)])
-                    continue
+                name = level_name(mesh, ratio, k)
                 run = run_level if mesh == "oh" else run_control
-                r = run(ratio, k, args.work, args.end_time)
+                r = stored.run_level(
+                    store, name, lambda run=run, ratio=ratio, k=k: run(ratio, k, args.work,
+                                                                       args.end_time),
+                    args.work / name, args.keep_work)
                 print(json.dumps(r, default=float), flush=True)
                 rows.append(r)
-                if args.json:
-                    args.json.write_text(json.dumps({"versions": pois.versions(), "levels": rows},
-                                                    indent=1, default=float))
-    data = {"versions": pois.versions(), "levels": rows, "richardson": extrapolate(rows),
-            "versus_control": versus_control(rows),
-            "exact": {r: exact(r) for r in args.ratios}, "series": check_series()}
+    data = {"levels": rows, "richardson": extrapolate(rows),
+            "versus_control": versus_control(rows)}
     print(json.dumps(data["richardson"], indent=1, default=float))
-    if args.json:
-        args.json.write_text(json.dumps(data, indent=1, default=float))
     return data
 
+
+#: "observed order near 2 (else the setup is suspect)": within 0.2
+#: (task 0093's reading)
+ORDER_TOL = 0.2
+
+
+def recheck(data: dict) -> list[dict]:
+    """Every Richardson row and gate from ``results.json`` (task 0093;
+    decision 0015 amendments 2 and 3), per aspect ratio: the Cartesian
+    control's extrapolated f·Re and u_c (net of the centre fit's bias)
+    within 0.1 % of exact, its finest |error| < 1 % and its observed order
+    near 2; the O-H rows reported."""
+    rich = extrapolate(data["levels"])
+    out = []
+    for ratio in RATIOS:
+        c = rich["cartesian"][ratio]
+        fine = stored.series(data, name=level_name("cartesian", ratio, LEVELS[-1]))[0]
+        for key, what in (("fRe", "f·Re"), ("u_c_net", "u_c, net of the fit's bias")):
+            r = c[key]
+            ok, why = (conv.gate_extrapolated(r, 0.0, 1e-3, relative=False) if key == "u_c_net"
+                       else conv.gate_extrapolated(r, exact(ratio)["fRe"], 1e-3))
+            out.append(stored.row(f"{what}, extrapolated (control, a/b {ratio})", rich=r,
+                                  gate="within 0.1 % of exact", ok=ok,
+                                  value="" if r["ext_err_signed"] is None
+                                  else f"{r['ext_err_signed']:+.3%}", note=why))
+        for key in ("fRe", "u_c"):
+            err = fine[f"{key}_err_signed"]
+            out.append(stored.row(f"{key}, finest |error| (control, a/b {ratio})", gate="< 1 %",
+                                  ok=abs(err) < 0.01, value=f"{err:+.3%}"))
+            r = c[key]
+            ok = r["status"] == "converging" and abs(r["order"] - 2) <= ORDER_TOL
+            out.append(stored.row(f"{key}, observed order (control, a/b {ratio})", rich=r,
+                                  gate=f"near 2 (± {ORDER_TOL})", ok=ok, value=conv.describe(r)))
+        for key in ("fRe", "u_c", "u_c_net"):
+            out.append(stored.row(f"{key} (O-H, a/b {ratio})", rich=rich["oh"][ratio][key],
+                                  note="reported against the control (amendment 2)"))
+    return out
 
 if __name__ == "__main__":
     main()

@@ -26,7 +26,11 @@ T∞ (``convection``).  Three levels, ``nang`` 6 / 12 / 24 with every
 problem is axially uniform).  Usage::
 
     python3 validation/layered_conduction/run.py [--levels 1 2 4]
-        [--variants fixed convection] [--work DIR] [--json FILE]
+        [--variants fixed convection] [--work DIR] [--json FILE] [--keep-work]
+
+Results go to ``results.json`` here (task 0093): levels already in it are
+reused, and each level's case directory is deleted once its results are
+stored.
 """
 
 from __future__ import annotations
@@ -62,6 +66,9 @@ _spec = importlib.util.spec_from_file_location("convergence",
                                                ROOT / "validation/tools/convergence.py")
 conv = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(conv)                  # richardson() (task 0089)
+_spec = importlib.util.spec_from_file_location("stored", ROOT / "validation/tools/results.py")
+stored = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(stored)                # results.json (task 0093)
 
 # --- physics -----------------------------------------------------------------
 R1, R2, R3 = 0.010, 0.012, 0.020             # rod, steel, insulation outer radii [m]
@@ -207,11 +214,11 @@ def write_dicts(case: Path, end_time: int) -> None:
     files["system/rod/fvOptions"] = H("dictionary", "fvOptions", "system/rod") + FVOPTIONS
     for name, text in files.items():
         (case / name).parent.mkdir(parents=True, exist_ok=True)
-        (case / name).write_text(text)
+        (case / name).write_text(text, encoding="utf-8")
 
 
 def patches(case: Path, region: str) -> list[str]:
-    text = (case / f"constant/{region}/polyMesh/boundary").read_text()
+    text = (case / f"constant/{region}/polyMesh/boundary").read_text(encoding="utf-8")
     return re.findall(r"^\s{4}(\w+)\s*\n\s*\{", text, re.M)
 
 
@@ -236,11 +243,11 @@ def write_fields(case: Path, variant: str) -> None:
         (case / f"0/{r}/T").write_text(
             H("volScalarField", "T", f"0/{r}")
             + f"dimensions [0 0 0 1 0 0 0];\ninternalField uniform {T_OUT};\n"
-              f"boundaryField\n{{\n{body}\n}}\n")
+              f"boundaryField\n{{\n{body}\n}}\n", encoding="utf-8")
         (case / f"0/{r}/p").write_text(
             H("volScalarField", "p", f"0/{r}")
             + "dimensions [1 -1 -2 0 0 0 0];\ninternalField uniform 1e5;\n"
-              "boundaryField\n{\n    \".*\" { type calculated; value uniform 1e5; }\n}\n")
+              "boundaryField\n{\n    \".*\" { type calculated; value uniform 1e5; }\n}\n", encoding="utf-8")
 
 
 # --- post-processing ---------------------------------------------------------
@@ -366,13 +373,19 @@ def main(argv=None) -> dict:
     ap.add_argument("--end-time", type=int, default=75000,
                     help="iterations at level 1; level k runs k times as many (the "
                          "coupling's iteration count doubles per level)")
-    ap.add_argument("--json", type=Path)
+    stored.add_arguments(ap, HERE)
     args = ap.parse_args(argv)
-    data = {"versions": pois.versions(), "variants": {}}
+    store = stored.Store(args.json, "layered_conduction")
+    store.put_extra("exact", {v: {k: x for k, x in exact(v).items() if k != "profile"}
+                              for v in ("fixed", "convection")})
+    data = {"variants": {}}
     for variant in args.variants:
         rows = []
         for k in args.levels:
-            r = run_level(variant, k, args.work, args.end_time * k)
+            r = stored.run_level(
+                store, f"{variant}-{k}",
+                lambda v=variant, k=k: run_level(v, k, args.work, args.end_time * k),
+                args.work / f"{variant}-{k}", args.keep_work)
             print(json.dumps({key: v for key, v in r.items() if key != "checks"}), flush=True)
             rows.append(r)
         rich = {}
@@ -380,9 +393,55 @@ def main(argv=None) -> dict:
             for key in ("t0", "t1", "t2") + (("t3",) if variant == "convection" else ()):
                 rich[key] = conv.richardson(*(r[key] for r in rows))
         data["variants"][variant] = {"levels": rows, "richardson": rich}
-    if args.json:
-        args.json.write_text(json.dumps(data, indent=1, default=float))
     return data
+
+
+#: largest |imbalance| through an interface or the outer wall: "balanced"
+#: has no tolerance set in advance (case.json); 1e-8 covers the measured
+#: 1.2e-9 (task 0093's reading)
+BALANCE_TOL = 1e-8
+#: "L2 order ≈ 2": within 0.2 (task 0093's reading)
+ORDER_TOL = 0.2
+
+
+def _balance(r: dict) -> float:
+    keys = [k for k in ("balance_rod", "balance_steel", "balance_outer") if k in r]
+    return max(abs(r[k]) for k in keys) if keys else abs(r["balance_max"])
+
+
+def recheck(data: dict) -> list[dict]:
+    """Every Richardson row and gate from ``results.json`` (task 0093):
+    Mesh OK, the energy balance, extrapolated T₀, T(r₁), T(r₂) within
+    0.1 % of the rise, and the L2 order ≈ 2 per region; per variant."""
+    out = []
+    for variant in ("fixed", "convection"):
+        lv = sorted(stored.series(data, variant=variant), key=lambda r: r["k"])
+        out.append(stored.row(f"Mesh OK, every region ({variant})", gate="every level",
+                              ok=all(r["mesh_ok"] for r in lv)))
+        worst = max(_balance(r) for r in lv)
+        out.append(stored.row(f"energy balance ({variant})", gate=f"≤ {BALANCE_TOL:g}",
+                              ok=worst <= BALANCE_TOL, value=f"≤ {worst:.1e}"))
+        keys = ("t0", "t1", "t2") + (("t3",) if variant == "convection" else ())
+        for key in keys:
+            # signed error as a fraction of the rise: exact 0, absolute GCI
+            rich = conv.richardson(*(r[f"{key}_err"] for r in lv), scale=1.0)
+            if key == "t3":
+                out.append(stored.row(f"{key} ({variant})", rich=rich,
+                                      value="" if rich["extrapolated"] is None
+                                      else f"{rich['extrapolated']:+.5%}"))
+                continue
+            ok, why = conv.gate_extrapolated(rich, 0.0, 1e-3, relative=False)
+            out.append(stored.row(f"{key} ({variant}), extrapolated", rich=rich,
+                                  gate="within 0.1 % of the rise", ok=ok,
+                                  value="" if rich["extrapolated"] is None
+                                  else f"{rich['extrapolated']:+.5%}", note=why))
+        orders = {reg: [math.log2(a["l2"][reg] / b["l2"][reg]) for a, b in zip(lv, lv[1:])]
+                  for reg in REGIONS}
+        ok = all(abs(o - 2) <= ORDER_TOL for os_ in orders.values() for o in os_)
+        out.append(stored.row(f"L2 order per region ({variant})", gate=f"≈ 2 (± {ORDER_TOL})",
+                              ok=ok, value="; ".join(f"{reg} {', '.join(f'{o:.2f}' for o in os_)}"
+                                                    for reg, os_ in orders.items())))
+    return out
 
 
 if __name__ == "__main__":

@@ -83,7 +83,7 @@ BINARY_OPENERS = {"gzip", "bz2", "lzma", "tarfile", "zipfile", "wave", "dbm", "s
                   "rasterio", "fiona", "gmsh", "Image"}
 #: besides ``hexmesh/``, the trees whose text I/O the encoding rule
 #: checks: the suite runs them on Windows too (task 0092's CI)
-ENCODING_TREES = ("tests", "docs")
+ENCODING_TREES = ("tests", "docs", "validation")         # validation/: task 0093
 
 
 # --- the module tree -----------------------------------------------------------

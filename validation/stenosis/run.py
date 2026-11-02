@@ -35,7 +35,11 @@ measure).  Richardson extrapolation at the non-constant ratios 4/3 and 3/2
 
     python3 validation/stenosis/run.py [--levels k2 k3 k4] [--np N]
         [--end-time T] [--reference vel.dat | --no-reference]
-        [--work DIR] [--json FILE]
+        [--work DIR] [--json FILE] [--keep-work]
+
+Results go to ``results.json`` here (task 0093): levels already in it are
+reused, and each level's case directory is deleted once its results are
+stored (the downloaded reference stays in the work directory).
 
 The reference is the database's Re = 500 axisymmetric steady file
 (``Axi_stdy/Re500/vel.dat``).  It carries no licence, so it is not in the
@@ -79,6 +83,7 @@ def _load(name: str, path: str):
 # version record (task 0020); OpenFOAM itself through hexmesh.study.openfoam.
 pois = _load("poiseuille_run", "validation/poiseuille/run.py")
 conv = _load("convergence", "validation/tools/convergence.py")       # task 0089
+stored = _load("stored", "validation/tools/results.py")              # task 0093
 
 REFERENCE_URL = ("https://engineering.purdue.edu/CFDLAB/DNS_stenoticflow_database/"
                  "Axi_stdy/Re500/vel.dat")
@@ -244,13 +249,13 @@ def write_case(case: Path, end_time: float, n_proc: int, delta_t: float) -> None
             + f"numberOfSubdomains {n_proc};\nmethod          simple;\n"
             f"simpleCoeffs {{ n ({n_proc} 1 1); delta 0.001; }}\n")
     for name, text in files.items():
-        (case / name).write_text(text)
+        (case / name).write_text(text, encoding="utf-8")
 
 
 def set_end_time(case: Path, end_time: float) -> None:
     path = case / "system/controlDict"
     path.write_text(re.sub(r"^endTime\s+\S+;", f"endTime         {end_time:g};",
-                           path.read_text(), flags=re.M))
+                           path.read_text(encoding="utf-8"), flags=re.M), encoding="utf-8")
 
 
 def parabolic_inlet(case: Path) -> float:
@@ -268,11 +273,11 @@ def parabolic_inlet(case: Path) -> float:
     u *= scale
     values = "\n".join(f"({v:.12g} 0 0)" for v in u)
     path = case / "0/U"
-    text = path.read_text()
+    text = path.read_text(encoding="utf-8")
     text = re.sub(r"fluid_inlet\s*\{[^}]*\}",
                   f"fluid_inlet  {{ type fixedValue; value nonuniform List<vector>\n"
                   f"{len(u)}\n(\n{values}\n); }}", text)
-    path.write_text(text)
+    path.write_text(text, encoding="utf-8")
     return scale
 
 
@@ -413,7 +418,7 @@ def read_reference(path: Path) -> dict:
     D = 1, axial velocity w normalised by 0.5."""
     zones: dict[float, list] = {}
     cur = None
-    for line in path.read_text().splitlines():
+    for line in path.read_text(encoding="utf-8").splitlines():
         m = re.search(r"Z =\s*([-+\d.Ee]+)", line)
         if m:
             cur = float(m.group(1))
@@ -623,35 +628,46 @@ def main(argv=None) -> dict:
                     help="stop here if not steady before (time units, D / U)")
     ap.add_argument("--np", type=int, default=1, dest="n_proc",
                     help="MPI processes for pimpleFoam (levels other than coarse)")
-    ap.add_argument("--json", type=Path, help="write all results as JSON")
-    ap.add_argument("--repost", type=Path, metavar="JSON",
-                    help="don't run: measure the latest fields of the levels in this "
-                         "earlier --json output again (cases in --work)")
+    stored.add_arguments(ap, HERE)
+    ap.add_argument("--repost", action="store_true",
+                    help="don't run: measure the latest fields of the stored levels again "
+                         "(their cases in --work, kept with --keep-work)")
     args = ap.parse_args(argv)
     ref = (None if args.no_reference
            else read_reference(reference(args.reference, args.work)))
     ref_att = reference_reattachment(ref) if ref else None
-    earlier = ({r["level"]: r for r in json.loads(args.repost.read_text())["levels"]}
-               if args.repost else {})
-    rows = []
-    for name in (list(earlier) if earlier else args.levels):
-        n = 1 if name == "coarse" else args.n_proc
-        if earlier:
-            case = args.work / name
-            r = {**earlier[name], **results(geometry(case), of.latest_time(case))}
-        else:
-            r = run_level(name, LEVELS[name], args.work, args.end_time, n)
+    store = stored.Store(args.json, "stenosis")
+    if ref:
+        store.put_extra("reference", {
+            "reattachment": ref_att,
+            "centre": {str(z): v["centre"] for z, v in sorted(ref.items())}})
+
+    def measured(r: dict) -> dict:
         if ref:
             r["compare"] = compare(r, ref)
             for key in ("x_reattachment", "x_reattachment_probe"):
                 r[key + "_err"] = ((r[key] - ref_att) / ref_att
                                    if r[key] is not None else None)
+        return r
+
+    rows = []
+    for name in args.levels:
+        n = 1 if name == "coarse" else args.n_proc
+        case = args.work / name
+        if args.repost:
+            old = store.level(name)
+            r = store.put(name, measured({**old, **results(geometry(case), of.latest_time(case))}),
+                          env=old["environment"])
+        else:
+            r = stored.run_level(
+                store, name,
+                lambda name=name, n=n: measured(run_level(name, LEVELS[name], args.work,
+                                                          args.end_time, n)),
+                case, args.keep_work)
         print(json.dumps({k: v for k, v in r.items()
                           if k not in ("centreline", "wall_shear", "probe", "compare",
                                        "residual_history")}), flush=True)
         rows.append(r)
-        if args.json:      # after every level: the fine level takes hours
-            write_json(args.json, rows, {}, ref, ref_att)
     if ref:
         print(f"\nDNS: peak centreline u/U = {max(v['centre'] for v in ref.values()):.4f}, "
               f"reattachment x/D = {ref_att:.3f}\n")
@@ -659,19 +675,38 @@ def main(argv=None) -> dict:
     rich = extrapolate(rows, ref) if len(rows) == 3 else {}
     if rich:
         print("\n" + json.dumps(rich, indent=1))
-    if args.json:
-        write_json(args.json, rows, rich, ref, ref_att)
     return {"levels": rows, "richardson": rich}
 
 
-def write_json(path: Path, rows, rich, ref, ref_att) -> None:
-    path.write_text(json.dumps({
-        "versions": pois.versions(), "levels": rows, "richardson": rich,
-        "reference": None if not ref else {
-            "reattachment": ref_att,
-            "centre": {str(z): v["centre"] for z, v in sorted(ref.items())}},
-    }, indent=1))
+#: reattachment within 5 % of the database's, the centreline within 2 %
+#: of the DNS peak (decision 0012 as revised in task 0032)
+REATTACHMENT_TOL, CENTRELINE_TOL = 0.05, 0.02
 
+
+def recheck(data: dict) -> list[dict]:
+    """Every Richardson row and gate from ``results.json`` (task 0093):
+    both reattachment measures at the finest level within 5 % of the
+    database's, and the centreline (extrapolated where converging, else
+    the finest level) within 2 % of the DNS peak."""
+    rows = [stored.series(data, name=n)[0] for n in DEFAULT_LEVELS]
+    rich = extrapolate(rows, data["extra"].get("reference"))
+    out = [stored.row(key, rich=rich[key]) for key in
+           ("u_peak", "x_separation", "x_reattachment", "x_reattachment_probe")]
+    fine = rows[-1]
+    for key, what in (("x_reattachment_probe", "u(0.48 D) = 0"), ("x_reattachment", "τ_w = 0")):
+        err = fine[f"{key}_err"]
+        out.append(stored.row(f"reattachment, {what} ({fine['name']})",
+                              gate=f"within {REATTACHMENT_TOL:.0%} of the database's",
+                              ok=err is not None and abs(err) <= REATTACHMENT_TOL,
+                              value=f"{fine[key]:.3f} D, {err:+.2%}"))
+    c = rich["centreline"]
+    out.append(stored.row("centreline, x/D = −2 … 15",
+                          gate=f"within {CENTRELINE_TOL:.0%} of the DNS peak",
+                          ok=c["max_err"] <= CENTRELINE_TOL,
+                          value=f"{c['max_err']:.2%} at {c['max_err_x']:g} D "
+                                f"({c['extrapolated_stations']} of {len(c['stations'])} "
+                                "stations extrapolated)"))
+    return out
 
 if __name__ == "__main__":
     main()

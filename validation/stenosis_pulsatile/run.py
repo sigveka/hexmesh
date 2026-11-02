@@ -36,7 +36,11 @@ notes*).  Usage::
 
     python3 validation/stenosis_pulsatile/run.py [--levels coarse k2 k3] [--np N]
         [--dt-halved [LEVEL]] [--periods-max N] [--work DIR] [--json FILE]
-        [--reference DIR] [--openfoam native|docker:IMAGE]
+        [--keep-work] [--reference DIR] [--openfoam native|docker:IMAGE]
+
+Results go to ``results.json`` here (task 0093): levels already in it are
+reused, and each level's case directory is deleted once its results are
+stored (the downloaded reference stays in the work directory).
 
 The reference files carry no licence: without ``--reference`` they are
 downloaded into the work directory (git-ignored) once.
@@ -80,6 +84,7 @@ def _load(name: str, path: str):
 # the Womersley inlet and schemes (task 0067).
 sten = _load("stenosis_run", "validation/stenosis/run.py")
 conv = _load("convergence", "validation/tools/convergence.py")       # task 0089
+stored = _load("stored", "validation/tools/results.py")              # task 0093
 wom = _load("womersley_run", "validation/womersley/run.py")
 
 REFERENCE_URL = ("https://engineering.purdue.edu/CFDLAB/DNS_stenoticflow_database/"
@@ -184,7 +189,7 @@ boundaryField
 def write_control(case: Path, end: float, write: float, dt: float, co: float) -> None:
     (case / "system/controlDict").write_text(
         of.header("dictionary", "controlDict", "system")
-        + CONTROL.format(end=end, dt=dt, co=co, write=write, sets=sets_text()))
+        + CONTROL.format(end=end, dt=dt, co=co, write=write, sets=sets_text()), encoding="utf-8")
 
 
 def write_case(case: Path, n_proc: int, dt: float) -> None:
@@ -211,7 +216,7 @@ def write_case(case: Path, n_proc: int, dt: float) -> None:
             + f"numberOfSubdomains {n_proc};\nmethod          simple;\n"
             f"simpleCoeffs {{ n ({n_proc} 1 1); delta 0.001; }}\n")
     for name, text in files.items():
-        (case / name).write_text(text)
+        (case / name).write_text(text, encoding="utf-8")
     write_control(case, end=dt, write=dt, dt=dt, co=MAX_CO)
 
 
@@ -232,7 +237,7 @@ def write_inlet(case: Path, xi: np.ndarray, t0: float, t1: float) -> None:
     pts = bd / "points"
     if not pts.exists():
         pts.write_text(wom._header("vectorField", "points") + f"{len(xi)}\n(\n"
-                       + wom._vectors(xi) + "\n)\n")
+                       + wom._vectors(xi) + "\n)\n", encoding="utf-8")
     h = PERIOD / INLET_SAMPLES
     i0, i1 = math.floor(t0 / h) - 1, math.ceil(t1 / h) + 1
     keep = {wom.time_name(max(i, 0) * h) for i in range(i0, i1 + 1)}
@@ -249,7 +254,7 @@ def write_inlet(case: Path, xi: np.ndarray, t0: float, t1: float) -> None:
         u = np.zeros_like(xi)
         u[:, 0] = wom.exact_u(r, t)
         (d / "U").write_text(wom._header("vectorField", "U") + f"{len(u)}\n(\n"
-                             + wom._vectors(u) + "\n)\n")
+                             + wom._vectors(u) + "\n)\n", encoding="utf-8")
 
 
 # --- reference ---------------------------------------------------------------
@@ -259,7 +264,7 @@ def read_reference(path: Path) -> dict[float, dict]:
     and the axial velocity w, in u_c units."""
     zones: dict[float, list] = {}
     cur = None
-    for line in path.read_text().splitlines():
+    for line in path.read_text(encoding="utf-8").splitlines():
         m = re.search(r"Z =\s*([-+\d.Ee]+)", line)
         if m:
             cur = float(m.group(1))
@@ -557,6 +562,11 @@ def summarise(rows: list[dict]) -> dict:
     return out
 
 
+def level_name(level: str, co: float = MAX_CO) -> str:
+    """The level's name in results.json, like its case directory."""
+    return level if co == MAX_CO else f"{level}-co{co:g}"
+
+
 def main(argv=None) -> dict:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--levels", nargs="+", default=DEFAULT_LEVELS, choices=list(LEVELS))
@@ -566,7 +576,7 @@ def main(argv=None) -> dict:
                          "warm-started from its periodic state")
     ap.add_argument("--periods-max", type=int, default=MAX_PERIODS)
     ap.add_argument("--work", type=Path, default=HERE / "work")
-    ap.add_argument("--json", type=Path)
+    stored.add_arguments(ap, HERE)
     ap.add_argument("--reference", type=Path, help="folder with vel_p1…6.dat")
     ap.add_argument("--openfoam", default=of.V2406)
     args = ap.parse_args(argv)
@@ -576,52 +586,91 @@ def main(argv=None) -> dict:
     refs = reference(args.reference, args.work)
     phases = reference_phases(refs)
     targets = sorted({round(p["phase"], 6) for p in phases} | {round(p, 6) for p in NOMINAL})
-    import gmsh
-    meta = {"date": time.strftime("%Y-%m-%d"),
-            "commit": subprocess.run(["git", "describe", "--always", "--dirty"], cwd=HERE,
-                                     capture_output=True, text=True).stdout.strip(),
-            "gmsh": gmsh.__version__, "openfoam": of.openfoam_version(), "runner": of.runner(),
-            "phases": phases, "targets": targets}
     print(json.dumps({"phases": [(p["file"], round(p["nominal"], 4), round(p["phase"], 4))
                                  for p in phases]}), flush=True)
+    store = stored.Store(args.json, "stenosis_pulsatile")
+    store.put_extra("phases", phases)
+    store.put_extra("targets", targets)
 
-    rows = []
-    if args.json and args.json.exists():
-        rows = json.loads(args.json.read_text())["levels"]
-
-    def save():
-        if args.json:
-            args.json.write_text(json.dumps({"meta": meta, "levels": rows,
-                                             "summary": summarise(rows)}, indent=1))
-
-    def have(name, co):
-        return any(r["level"] == name and r["max_co"] == co for r in rows)
-
-    for r in rows:
-        case = args.work / (r["level"] if r["max_co"] == MAX_CO else f"{r['level']}-co{r['max_co']:g}")
-        if (case / "postProcessing/sample").exists():
+    # stored levels whose cases are still here (--keep-work) are sampled again
+    for r in store.levels():
+        case = args.work / r["name"]
+        if r["precision"] == stored.FULL and (case / "postProcessing/sample").exists():
             resample(case, r)
             r["comparison"] = evaluate(r, refs, phases)
-    for name in args.levels:
-        if have(name, MAX_CO):
-            print(f"[{name}] reused from {args.json}", flush=True)
-            continue
-        r = run_level(name, LEVELS[name], args.work, args.np, targets,
-                      max_periods=args.periods_max)
-        r["comparison"] = evaluate(r, refs, phases)
-        rows.append(r)
-        save()
-    name = args.levels[-1] if args.dt_halved == "last" else args.dt_halved
-    if args.dt_halved and not have(name, MAX_CO / 2):
-        r = run_level(name, LEVELS[name], args.work, args.np, targets, co=MAX_CO / 2,
-                      warm_from=args.work / name, max_periods=args.periods_max)
-        r["comparison"] = evaluate(r, refs, phases)
-        rows.append(r)
-        save()
-    save()
-    print(json.dumps(summarise(rows), indent=1), flush=True)
-    return {"meta": meta, "levels": rows, "summary": summarise(rows)}
+            store.put(r["name"], r, env=r["environment"])
 
+    def run(name, co=MAX_CO, warm_from=None):
+        r = run_level(name, LEVELS[name], args.work, args.np, targets, co=co,
+                      warm_from=warm_from, max_periods=args.periods_max)
+        r["comparison"] = evaluate(r, refs, phases)
+        return r
+
+    halved = args.levels[-1] if args.dt_halved == "last" else args.dt_halved
+    full = {lv["name"] for lv in store.levels() if lv["precision"] == stored.FULL}
+    rows = []
+    for name in args.levels:
+        # the Δt-halved run warm-starts from this level's case: keep it until then
+        keep = args.keep_work or (name == halved and level_name(halved, MAX_CO / 2) not in full)
+        rows.append(stored.run_level(store, name, lambda name=name: run(name),
+                                     args.work / name, keep))
+    if halved:
+        tag = level_name(halved, MAX_CO / 2)
+        rows.append(stored.run_level(
+            store, tag, lambda: run(halved, MAX_CO / 2, args.work / halved),
+            args.work / tag, args.keep_work))
+        if not args.keep_work:
+            stored.remove_work(args.work / halved)
+    summary = summarise(rows)
+    print(json.dumps(summary, indent=1), flush=True)
+    return {"meta": {"phases": phases, "targets": targets}, "levels": rows, "summary": summary}
+
+
+def _throat(r: dict) -> tuple[float, float]:
+    """(ours, the DNS's) centreline velocity at x = 0, p2, flow-rate phase;
+    stored as such where the level is rounded from RESULTS.md."""
+    if "throat_peak" in r:
+        return r["throat_peak"], r["dns_throat_peak"]
+    c = next(c for c in r["comparison"] if c["file"] == "vel_p2.dat" and c["kind"] == "flow_rate")
+    s = c["stations"]["0.0"]
+    return s["centre"], s["dns_centre"]
+
+
+#: gate 1 (task 0068 Q2): within 5 % of the DNS, and above 3.65 u_c
+THROAT_TOL, THROAT_MIN = 0.05, 3.65
+
+
+def recheck(data: dict) -> list[dict]:
+    """Every Richardson row and gate from ``results.json`` (task 0093):
+    the throat peak at peak flow (finest level) within 5 % of the DNS and
+    above 3.65 u_c; the flow features of the paper's §3.1, as judged in
+    RESULTS.md (``extra.feature_verdicts``); the three-level Richardson
+    and the time-step change, reported."""
+    space = sorted((r for r in data["levels"] if r["max_co"] == MAX_CO), key=lambda r: r["factor"])
+    vals = [_throat(r)[0] for r in space]
+    ks = [r["factor"] for r in space]
+    out = [stored.row("throat peak (p2, x = 0)",
+                      rich=conv.richardson(*vals, ks[2] / ks[1], ks[1] / ks[0]),
+                      note="reported: the coarse level is outside the asymptotic range")]
+    ours, dns = _throat(space[-1])
+    err = (ours - dns) / dns
+    out.append(stored.row(f"throat peak, {space[-1]['name']}",
+                          gate=f"within {THROAT_TOL:.0%} of the DNS and above {THROAT_MIN} u_c",
+                          ok=abs(err) <= THROAT_TOL and ours > THROAT_MIN,
+                          value=f"{ours:.3f}, {err:+.1%}"))
+    for h in (r for r in data["levels"] if r["max_co"] != MAX_CO):
+        base = next(r for r in space if r["level"] == h["level"])
+        change = (h["throat_peak_change"] if "throat_peak_change" in h
+                  else abs(_throat(h)[0] - _throat(base)[0]))
+        out.append(stored.row(f"time step ({h['name']})",
+                              value=f"throat peak change {change:.4f} u_c"))
+    verdicts = data["extra"].get("feature_verdicts", [])
+    out.append(stored.row("flow features of §3.1", gate="present, as in the DNS",
+                          ok=bool(verdicts) and all(v["verdict"] == "present" for v in verdicts),
+                          value=f"{sum(v['verdict'] == 'present' for v in verdicts)} of "
+                                f"{len(verdicts)} present",
+                          note="the verdicts are RESULTS.md's judgement, stored, not recomputed"))
+    return out
 
 if __name__ == "__main__":
     main()

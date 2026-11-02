@@ -28,8 +28,11 @@ non-orthogonality and skewness grow with ``nang``.  Usage::
 
     python3 validation/poiseuille/run.py [--levels coarse medium fine]
                                          [--work DIR] [--json FILE] [--no-trend]
+                                         [--keep-work]
 
-Prints one JSON object per level, and the convergence tables.
+Prints one JSON object per level, and the convergence tables.  Results go
+to ``results.json`` here (task 0093): levels already in it are reused,
+and each level's case directory is deleted once its results are stored.
 """
 
 from __future__ import annotations
@@ -66,6 +69,9 @@ _spec = importlib.util.spec_from_file_location("convergence",
                                                HERE.parent / "tools/convergence.py")
 conv = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(conv)
+_spec = importlib.util.spec_from_file_location("stored", HERE.parent / "tools/results.py")
+stored = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(stored)                # results.json (task 0093)
 
 # --- physics -----------------------------------------------------------------
 D = 0.02                  # pipe diameter [m]
@@ -223,7 +229,7 @@ def write_case(case: Path, end_time: int) -> None:
         "0/p": _header("volScalarField", "p", "0") + P0,
     }
     for name, text in files.items():
-        (case / name).write_text(text)
+        (case / name).write_text(text, encoding="utf-8")
 
 
 # --- post-processing ---------------------------------------------------------
@@ -331,7 +337,7 @@ def run_level(name: str, factor: int, work: Path, end_time: int) -> dict:
         "cells_foam": int(re.search(r"cells:\s+(\d+)", check).group(1)),
         "mesh_ok": "Mesh OK." in check, "retyped": retyped,
         "patches": sorted(re.findall(r"^\s+(fluid_\w+)\s*$",
-                                     (case / "constant/polyMesh/boundary").read_text(), re.M)),
+                                     (case / "constant/polyMesh/boundary").read_text(encoding="utf-8"), re.M)),
         "min_scaled_jacobian": sj,
         "max_non_orthogonality": float(
             re.search(r"non-orthogonality Max: ([\d.e+-]+)", check).group(1)),
@@ -350,7 +356,7 @@ def orders(rows: list[dict], key: str) -> list[float]:
 TREND_NANG = (6, 12, 24, 48, 96)
 
 
-def nonorth_trend(work: Path, nangs=TREND_NANG) -> list[dict]:
+def nonorth_trend(work: Path, nangs=TREND_NANG, keep_work: bool = False) -> list[dict]:
     """checkMesh only, on a 2 D pipe with this case's cross-section
     (``nrad`` = ``nang`` / 2) and 4 axial layers."""
     rows = []
@@ -376,6 +382,8 @@ def nonorth_trend(work: Path, nangs=TREND_NANG) -> list[dict]:
             "max_skewness": float(re.search(r"Max skewness = ([\d.e+-]+)", check).group(1)),
         })
         print(f"[trend] nang {nang}: {rows[-1]}", flush=True)
+        if not keep_work:
+            stored.remove_work(case)
     return rows
 
 
@@ -441,13 +449,17 @@ def main(argv=None) -> list[dict]:
     ap.add_argument("--levels", nargs="+", default=list(LEVELS), choices=list(LEVELS))
     ap.add_argument("--work", type=Path, default=HERE / "work")
     ap.add_argument("--end-time", type=int, default=20000)
-    ap.add_argument("--json", type=Path, help="write all results as JSON")
+    stored.add_arguments(ap, HERE)
     ap.add_argument("--no-trend", action="store_true",
                     help="skip the checkMesh-only non-orthogonality sweep")
     args = ap.parse_args(argv)
+    store = stored.Store(args.json, "poiseuille")
+    store.put_extra("exact", {"dp": DP_EXACT, "u_max": U_MAX_EXACT})
     rows = []
     for name in args.levels:
-        r = run_level(name, LEVELS[name], args.work, args.end_time)
+        r = stored.run_level(store, name,
+                             lambda n=name: run_level(n, LEVELS[n], args.work, args.end_time),
+                             args.work / name, args.keep_work)
         print(json.dumps({k: v for k, v in r.items() if k != "profile"}), flush=True)
         rows.append(r)
     print(f"\nexact: dp = {DP_EXACT:.6e}, u_max = {U_MAX_EXACT:.6e}\n")
@@ -459,15 +471,41 @@ def main(argv=None) -> list[dict]:
     if len(rows) == 3:
         rich = {k: conv.richardson(*(r[k] for r in rows)) for k in ("dp", "u_max")}
         print("\n" + richardson_table(rich))
-    trend = [] if args.no_trend else nonorth_trend(args.work)
+    trend = [] if args.no_trend else store.data["extra"].get("trend")
+    if trend is None:
+        trend = nonorth_trend(args.work, keep_work=args.keep_work)
+        store.put_extra("trend", trend)
     if trend:
         print("\n" + trend_table(trend))
-    if args.json:
-        args.json.write_text(json.dumps({"versions": versions(), "levels": rows,
-                                         "richardson": rich, "trend": trend,
-                                         "exact": {"dp": DP_EXACT, "u_max": U_MAX_EXACT}},
-                                        indent=1))
     return rows
+
+
+def recheck(data: dict) -> list[dict]:
+    """Every Richardson row and gate from ``results.json`` (task 0093;
+    decision 0015): extrapolated Δp and u_max within 0.1 %, fine |error|
+    < 1 %, monotonic decrease, u_max order ≥ 1.5."""
+    lv = [stored.series(data, name=n)[0] for n in LEVELS]
+    exact = {"dp": DP_EXACT, "u_max": U_MAX_EXACT}
+    out = []
+    for key in ("dp", "u_max"):
+        rich = conv.richardson(*(r[key] for r in lv))
+        ok, why = conv.gate_extrapolated(rich, exact[key], 1e-3)
+        err = "" if rich["extrapolated"] is None else \
+            f"{(rich['extrapolated'] - exact[key]) / exact[key]:+.3%}"
+        out.append(stored.row(f"{key}, extrapolated", rich=rich,
+                              gate="within 0.1 % of exact", ok=ok, value=err, note=why))
+        fine = lv[-1][f"{key}_err"]
+        out.append(stored.row(f"{key}, fine |error|", gate="< 1 %", ok=fine < 0.01,
+                              value=f"{fine:.3%}"))
+        errs = [r[f"{key}_err"] for r in lv]
+        out.append(stored.row(f"{key}, error over levels", gate="decreases monotonically",
+                              ok=all(a > b for a, b in zip(errs, errs[1:])),
+                              value=", ".join(f"{e:.3%}" for e in errs)))
+        if key == "u_max":
+            ok = rich["status"] == "converging" and rich["order"] >= 1.5
+            out.append(stored.row("u_max, observed order", rich=rich, gate="≥ 1.5", ok=ok,
+                                  value=conv.describe(rich)))
+    return out
 
 
 if __name__ == "__main__":

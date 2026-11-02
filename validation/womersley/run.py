@@ -28,8 +28,11 @@ says otherwise.  Usage::
 
     python3 validation/womersley/run.py [--levels k1 k2 k4] [--dt-halved]
                                         [--np N] [--work DIR] [--json FILE]
+                                        [--keep-work]
 
-Prints one JSON object per level, and the convergence tables.
+Prints one JSON object per level, and the convergence tables.  Results go
+to ``results.json`` here (task 0093): levels already in it are reused,
+and each level's case directory is deleted once its results are stored.
 """
 
 from __future__ import annotations
@@ -64,6 +67,9 @@ from hexmesh.study.openfoam import (                           # noqa: E402
 _spec = importlib.util.spec_from_file_location("convergence", HERE.parent / "tools/convergence.py")
 conv = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(conv)                  # richardson() (task 0089)
+_spec = importlib.util.spec_from_file_location("stored", HERE.parent / "tools/results.py")
+stored = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(stored)                # results.json (task 0093)
 
 # --- physics (the stenosis paper's inlet, varghese_and_frankel_etal_2007b eq. 2.1) --
 D = 1.0
@@ -253,7 +259,7 @@ def write_case(case: Path, factor: int, dt: float, end: float, inlet_times) -> d
         + "simulationType  laminar;\n",
     }
     for name, text in files.items():
-        (case / name).write_text(text)
+        (case / name).write_text(text, encoding="utf-8")
     mesh, pts, faces, owner, neigh, fc, sf = mesh_geometry(case)
     cc, _ = cell_geometry(fc, sf, owner, neigh, int(owner.max()) + 1)
     u0 = np.zeros_like(cc)
@@ -261,14 +267,14 @@ def write_case(case: Path, factor: int, dt: float, end: float, inlet_times) -> d
     start = case / time_name(T0)
     start.mkdir(exist_ok=True)
     (start / "U").write_text(_header("volVectorField", "U", time_name(T0))
-                             + U0.format(n=len(u0), values=_vectors(u0)))
-    (start / "p").write_text(_header("volScalarField", "p", time_name(T0)) + P0)
+                             + U0.format(n=len(u0), values=_vectors(u0)), encoding="utf-8")
+    (start / "p").write_text(_header("volScalarField", "p", time_name(T0)) + P0, encoding="utf-8")
     inlet = np.array(read_patch_faces(mesh / "boundary", "fluid_inlet"))
     xi = fc[inlet]
     bd = case / "constant/boundaryData/fluid_inlet"
     bd.mkdir(parents=True, exist_ok=True)
     (bd / "points").write_text(_header("vectorField", "points") + f"{len(xi)}\n(\n"
-                               + _vectors(xi) + "\n)\n")
+                               + _vectors(xi) + "\n)\n", encoding="utf-8")
     write_inlet(case, xi, inlet_times)
     return {"inlet_faces": len(xi), "inlet_centres": xi}
 
@@ -283,7 +289,7 @@ def write_inlet(case: Path, xi, times) -> None:
         d.mkdir()
         u = np.zeros_like(xi)
         u[:, 0] = exact_u(r, t)
-        (d / "U").write_text(_header("vectorField", "U") + f"{len(u)}\n(\n" + _vectors(u) + "\n)\n")
+        (d / "U").write_text(_header("vectorField", "U") + f"{len(u)}\n(\n" + _vectors(u) + "\n)\n", encoding="utf-8")
 
 
 # --- post-processing ---------------------------------------------------------
@@ -321,7 +327,7 @@ def sample(case: Path, t_dir: Path, geom) -> dict:
 def patch_vectors(path: Path, patch: str) -> np.ndarray:
     """A patch's nonuniform vector ``value`` list (``read_patch_values``
     reads scalars only)."""
-    text = of._strip_header(path.read_text())
+    text = of._strip_header(path.read_text(encoding="utf-8"))
     j = text.index("boundaryField")
     j += re.search(rf"^\s*{patch}\s*\{{", text[j:], re.M).end()
     k = re.compile(r"(?<!\w)value\s").search(text, j).start()
@@ -377,8 +383,8 @@ def warm_start(src: Path, case: Path, dt: float) -> float:
     tfile = case / last.name / "uniform/time"
     # a restart takes deltaT from uniform/time, not controlDict; deltaT0
     # stays the old step, which backward handles
-    tfile.write_text(re.sub(r"^(deltaT\s+)[^;]+;", rf"\g<1>{dt!r};", tfile.read_text(),
-                            count=1, flags=re.M))
+    tfile.write_text(re.sub(r"^(deltaT\s+)[^;]+;", rf"\g<1>{dt!r};", tfile.read_text(encoding="utf-8"),
+                            count=1, flags=re.M), encoding="utf-8")
     return float(last.name)
 
 
@@ -403,9 +409,9 @@ def run_level(name: str, factor: int, work: Path, n_proc: int, dt_factor: float 
     times_1 = [T0 + i * dt for i in range(steps + 1)]
     (case / "system").mkdir(exist_ok=True)       # gmshToFoam needs the dictionaries
     (case / "system/controlDict").write_text(_header("dictionary", "controlDict", "system")
-                                             + CONTROL.format(t0=T0, end=T0, dt=dt, write=1))
-    (case / "system/fvSchemes").write_text(_header("dictionary", "fvSchemes", "system") + SCHEMES)
-    (case / "system/fvSolution").write_text(_header("dictionary", "fvSolution", "system") + SOLUTION)
+                                             + CONTROL.format(t0=T0, end=T0, dt=dt, write=1), encoding="utf-8")
+    (case / "system/fvSchemes").write_text(_header("dictionary", "fvSchemes", "system") + SCHEMES, encoding="utf-8")
+    (case / "system/fvSolution").write_text(_header("dictionary", "fvSolution", "system") + SOLUTION, encoding="utf-8")
     foam(f"gmshToFoam {msh.name}", case, "log.gmshToFoam")
     retyped = apply_boundary_roles(case, roles_path(msh))
     check = foam("checkMesh", case, "log.checkMesh")
@@ -435,11 +441,11 @@ def run_periods(name, factor, case, n_proc, dt_factor, steps, dt, start, warm=Fa
         write_inlet(case, centres, [start + i * dt for i in range(p * steps + 1)])
         (case / "system/controlDict").write_text(
             _header("dictionary", "controlDict", "system")
-            + CONTROL.format(t0=start, end=end, dt=dt, write=steps // SAMPLES))
+            + CONTROL.format(t0=start, end=end, dt=dt, write=steps // SAMPLES), encoding="utf-8")
         if n_proc > 1:
             (case / "system/decomposeParDict").write_text(
                 _header("dictionary", "decomposeParDict", "system")
-                + f"numberOfSubdomains {n_proc};\nmethod scotch;\n")
+                + f"numberOfSubdomains {n_proc};\nmethod scotch;\n", encoding="utf-8")
             foam("decomposePar -force -latestTime", case, f"log.decomposePar.{p}")
             log = foam(f"mpirun -np {n_proc} pimpleFoam -parallel", case, f"log.pimpleFoam.{p}")
             foam("reconstructPar -newTimes", case, f"log.reconstructPar.{p}")
@@ -537,7 +543,12 @@ def summarise(rows: list[dict]) -> dict:
     return out
 
 
-def main() -> None:
+def level_name(level: str, dt_factor: float = 1.0) -> str:
+    """The level's name in results.json, like its case directory."""
+    return level if dt_factor == 1 else f"{level}-dt{dt_factor:g}"
+
+
+def main(argv=None) -> dict:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--levels", nargs="+", default=list(LEVELS), choices=list(LEVELS))
     ap.add_argument("--dt-halved", nargs="?", const="last", metavar="LEVEL",
@@ -545,49 +556,97 @@ def main() -> None:
                          "warm-started from its periodic state")
     ap.add_argument("--np", type=int, default=1, help="MPI processes (levels k2 and up)")
     ap.add_argument("--work", type=Path, default=HERE / "work")
-    ap.add_argument("--json", type=Path)
+    stored.add_arguments(ap, HERE)
     ap.add_argument("--openfoam", default=of.V2406,
                     help="runner: 'native' or 'docker:<image>' (default v2406 in Docker)")
-    args = ap.parse_args()
+    args = ap.parse_args(argv)
     of.set_runner(args.openfoam)
-    import gmsh
-    meta = {"date": datetime.date.today().isoformat(),
-            "commit": subprocess.run(["git", "describe", "--always", "--dirty"], cwd=HERE,
-                                     capture_output=True, text=True).stdout.strip(),
-            "gmsh": gmsh.__version__, "openfoam": of.openfoam_version(), "runner": of.runner()}
-    print(json.dumps(meta), flush=True)
-    # levels already in --json (same level and time step) are reused, so a
-    # stopped series resumes; the file is rewritten after every level
+    # levels already in results.json (same level and time step) are reused,
+    # so a stopped series resumes; the file is rewritten after every level
+    store = stored.Store(args.json, "womersley")
+    halved = args.levels[-1] if args.dt_halved == "last" else args.dt_halved
     rows = []
-    if args.json and args.json.exists():
-        rows = json.loads(args.json.read_text())["levels"]
-
-    def save():
-        if args.json:
-            args.json.write_text(json.dumps({"meta": meta, "levels": rows,
-                                             "summary": summarise(rows)}, indent=1))
-
-    def have(name, dt_factor):
-        return any(r["level"] == name and r["dt_factor"] == dt_factor for r in rows)
-
     for name in args.levels:
-        if have(name, 1.0):
-            print(f"[{name}] reused from {args.json}", flush=True)
-            continue
         n = args.np if LEVELS[name] > 1 else 1
-        rows.append(run_level(name, LEVELS[name], args.work, n))
+        # the Δt-halved run warm-starts from this level's case: keep it until then
+        keep = args.keep_work or (name == halved and level_name(halved, 2.0)
+                                  not in {lv["name"] for lv in store.levels()
+                                          if lv["precision"] == stored.FULL})
+        rows.append(stored.run_level(
+            store, name, lambda name=name, n=n: run_level(name, LEVELS[name], args.work, n),
+            args.work / name, keep))
         print(json.dumps({k: v for k, v in rows[-1].items() if k != "phases"}), flush=True)
-        save()
-    name = args.levels[-1] if args.dt_halved == "last" else args.dt_halved
-    if args.dt_halved and not have(name, 2.0):
-        # warm from the level's periodic state: the time error alone
-        rows.append(run_level(name, LEVELS[name], args.work, args.np, dt_factor=2.0,
-                              warm_from=args.work / name))
+    if halved:
+        rows.append(stored.run_level(
+            store, level_name(halved, 2.0),
+            lambda: run_level(halved, LEVELS[halved], args.work, args.np, dt_factor=2.0,
+                              warm_from=args.work / halved),
+            args.work / f"{halved}-dt2", args.keep_work))
         print(json.dumps({k: v for k, v in rows[-1].items() if k != "phases"}), flush=True)
-        save()
+        if not args.keep_work:
+            stored.remove_work(args.work / halved)
     summary = summarise(rows)
     print(json.dumps(summary, indent=1), flush=True)
-    save()
+    return summary
+
+
+def _centre_err(r: dict) -> float:
+    """Signed centreline error at peak flow, in u_c (stored as such where
+    the level is rounded from RESULTS.md)."""
+    if "u_axis_peak_err" in r:
+        return r["u_axis_peak_err"]
+    return (r["u_axis_peak"] - r["u_axis_peak_exact"]) / U_C
+
+
+def recheck(data: dict) -> list[dict]:
+    """Every Richardson row and gate from ``results.json`` (task 0093):
+    max profile error ≤ 1 % of u_c at every phase (finest level), the
+    centreline error and pressure-gradient amplitude extrapolated within
+    0.3 %, amplitude within 1 % and phase within 2° (finest), the
+    time-step split, and periodicity."""
+    space = sorted((r for r in data["levels"] if r["dt_factor"] == 1), key=lambda r: r["factor"])
+    fine = space[-1]
+    out = [stored.row("max profile error, every phase (finest)", gate="≤ 1 % of u_c",
+                      ok=fine["profile_max_all"] <= 1e-2, value=f"{fine['profile_max_all']:.2%}")]
+    rich = richardson(*(_centre_err(r) for r in space))
+    ok, why = conv.gate_extrapolated(rich, 0.0, 3e-3, relative=False)
+    out.append(stored.row("centreline error at peak (u_c), extrapolated", rich=rich,
+                          gate="within 0.3 %", ok=ok,
+                          value="" if rich["extrapolated"] is None else f"{rich['extrapolated']:+.1e}",
+                          note=why))
+    rich = richardson(*(r["dpdx_amplitude"] for r in space))
+    ok, why = conv.gate_extrapolated(rich, DPDX_AMPLITUDE, 3e-3)
+    out.append(stored.row("pressure-gradient amplitude, extrapolated", rich=rich,
+                          gate="within 0.3 %", ok=ok,
+                          value="" if rich["extrapolated"] is None else
+                          f"{(rich['extrapolated'] - DPDX_AMPLITUDE) / DPDX_AMPLITUDE:+.3%}",
+                          note=why))
+    out.append(stored.row("pressure-gradient amplitude (finest)", gate="within 1 %",
+                          ok=abs(fine["dpdx_amplitude_err"]) <= 1e-2,
+                          value=f"{fine['dpdx_amplitude_err']:+.3%}"))
+    out.append(stored.row("pressure-gradient phase (finest)", gate="within 2°",
+                          ok=abs(fine["dpdx_phase_deg"]) <= 2,
+                          value=f"{fine['dpdx_phase_deg']:.3f}°"))
+    for h in (r for r in data["levels"] if r["dt_factor"] != 1):
+        base = next(r for r in space if r["level"] == h["level"])
+        change = (h["u_axis_peak_change"] if "u_axis_peak_change" in h
+                  else abs(_centre_err(h) - _centre_err(base)))
+        space_err = abs(_centre_err(base))
+        out.append(stored.row(f"time step ({h['level']}): centreline", gate="time error < space error",
+                              ok=4 / 3 * change < space_err,
+                              value=f"{4 / 3 * change:.1e} vs {space_err:.2e}"))
+        change = (h["dpdx_amplitude_change"] if "dpdx_amplitude_change" in h
+                  else abs(h["dpdx_amplitude"] - base["dpdx_amplitude"]) / DPDX_AMPLITUDE)
+        space_err = abs(base["dpdx_amplitude_err"])
+        out.append(stored.row(f"time step ({h['level']}): amplitude", gate="time error < space error",
+                              ok=4 / 3 * change < space_err,
+                              value=f"{4 / 3 * change:.2e} vs {space_err:.2e}"))
+    worst = max(r["periodic_change"] for r in data["levels"])
+    out.append(stored.row("periodicity", gate="change < 0.1 % between periods",
+                          ok=worst < PERIODIC_TOL,
+                          value=f"≤ {worst:.1e}; periods "
+                                + ", ".join(str(r["periods"]) for r in data["levels"])))
+    return out
 
 
 if __name__ == "__main__":

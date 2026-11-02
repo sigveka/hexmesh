@@ -28,7 +28,11 @@ cells of the same growth).  The axial count stays at 2: the problem is
 axially uniform.  Usage::
 
     python3 validation/heated_rod/run.py [--levels 1 2 4 8 16] [--series uniform graded]
-                                         [--work DIR] [--json FILE]
+                                         [--work DIR] [--json FILE] [--keep-work]
+
+Results go to ``results.json`` here (task 0093): levels already in it are
+reused, and each level's case directory is deleted once its results are
+stored.
 """
 
 from __future__ import annotations
@@ -68,6 +72,9 @@ _spec = importlib.util.spec_from_file_location("convergence",
                                                ROOT / "validation/tools/convergence.py")
 conv = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(conv)                  # richardson() (task 0089)
+_spec = importlib.util.spec_from_file_location("stored", ROOT / "validation/tools/results.py")
+stored = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(stored)                # results.json (task 0093)
 
 # --- physics -----------------------------------------------------------------
 
@@ -185,7 +192,7 @@ def write_case(case: Path, end_time: int) -> None:
         "0/T": H("volScalarField", "T", "0") + T0,
     }
     for name, text in files.items():
-        (case / name).write_text(text)
+        (case / name).write_text(text, encoding="utf-8")
 
 
 def results(case: Path) -> dict:
@@ -318,11 +325,17 @@ def main(argv=None) -> dict:
     ap.add_argument("--series", nargs="+", default=list(SERIES), choices=SERIES)
     ap.add_argument("--work", type=Path, default=HERE / "work")
     ap.add_argument("--end-time", type=int, default=200)
-    ap.add_argument("--json", type=Path, help="write all results as JSON")
+    stored.add_arguments(ap, HERE)
     args = ap.parse_args(argv)
-    data = {"versions": pois.versions(), "exact": {"dt0": DT0_EXACT}, "series": {}}
+    store = stored.Store(args.json, "heated_rod")
+    store.put_extra("exact", {"dt0": DT0_EXACT})
+    data = {"exact": {"dt0": DT0_EXACT}, "series": {}}
     for series in args.series:
-        rows = [run_level(series, k, args.work, args.end_time) for k in args.levels]
+        rows = [stored.run_level(
+                    store, f"{series}-{k}",
+                    lambda s=series, k=k: run_level(s, k, args.work, args.end_time),
+                    args.work / f"{series}-{k}", args.keep_work)
+                for k in args.levels]
         data["series"][series] = {"levels": rows, "analysis": analyse(rows) if len(rows) > 1 else {}}
         print(f"\n{series}:\n" + table(rows))
         a = data["series"][series]["analysis"]
@@ -339,9 +352,23 @@ def main(argv=None) -> dict:
                 print(f"ΔT₀ Richardson (last three): order {rd['order']:.2f}, extrapolated "
                       f"{rd['extrapolated']:.8f} ({rd['extrapolated_err']:+.4%} vs exact), "
                       f"GCI fine {rd['gci_fine']:.3%}")
-    if args.json:
-        args.json.write_text(json.dumps(data, indent=1))
     return data
+
+
+def recheck(data: dict) -> list[dict]:
+    """Every Richardson row and gate from ``results.json`` (task 0093):
+    ΔT₀ over the three finest levels of each series, extrapolated within
+    0.1 % of exact (decision 0015)."""
+    out = []
+    for s in SERIES:
+        lv = sorted(stored.series(data, series=s), key=lambda r: r["k"])[-3:]
+        rich = conv.richardson(*(r["dt0"] for r in lv))
+        ok, why = conv.gate_extrapolated(rich, DT0_EXACT, 1e-3)
+        err = "" if rich["extrapolated"] is None else f"{(rich['extrapolated'] - DT0_EXACT) / DT0_EXACT:+.3%}"
+        out.append(stored.row(f"ΔT₀ ({s}, k = {', '.join(str(r['k']) for r in lv)})", rich=rich,
+                               gate="extrapolated ΔT₀ within 0.1 % of exact", ok=ok,
+                               value=err, note=why))
+    return out
 
 
 if __name__ == "__main__":

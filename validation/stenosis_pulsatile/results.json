@@ -1,0 +1,140 @@
+{
+ "case": "stenosis_pulsatile",
+ "extra": {
+  "feature_verdicts": [
+   {
+    "feature": "jet and vortex ring in acceleration",
+    "phase": "p1, p2",
+    "verdict": "present"
+   },
+   {
+    "feature": "separation over the whole post-stenotic section, late deceleration",
+    "phase": "p3, p4, p5",
+    "verdict": "present"
+   },
+   {
+    "feature": "upstream separation at -1 D and -2 D, deceleration",
+    "phase": "p4, p5",
+    "verdict": "present"
+   },
+   {
+    "feature": "no permanent recirculation",
+    "phase": "p6",
+    "verdict": "present"
+   },
+   {
+    "feature": "laminar and axisymmetric",
+    "phase": "all",
+    "verdict": "present"
+   }
+  ]
+ },
+ "format": "hexmesh.validation.results",
+ "levels": [
+  {
+   "cells": 15336,
+   "cells_foam": 15336,
+   "dns_throat_peak": 4.625,
+   "environment": {
+    "date": "2026-10-31",
+    "gmsh": "4.12.1",
+    "hexmesh": "2ca8836",
+    "openfoam": "v2406",
+    "python": null,
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "exec_time_per_period": 150,
+   "factor": 1,
+   "level": "coarse",
+   "max_co": 0.5,
+   "max_non_orthogonality": 24.8,
+   "mesh_ok": true,
+   "min_scaled_jacobian": 0.772,
+   "name": "coarse",
+   "periodic_change": 0.00027,
+   "periods": 3,
+   "precision": "rounded from RESULTS.md",
+   "steps_per_period": 1730,
+   "throat_peak": 4.363
+  },
+  {
+   "cells": 122688,
+   "cells_foam": 122688,
+   "dns_throat_peak": 4.625,
+   "environment": {
+    "date": "2026-10-31",
+    "gmsh": "4.12.1",
+    "hexmesh": "2ca8836",
+    "openfoam": "v2406",
+    "python": null,
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "exec_time_per_period": 2880,
+   "factor": 2,
+   "level": "k2",
+   "max_co": 0.5,
+   "max_non_orthogonality": 34.7,
+   "mesh_ok": true,
+   "min_scaled_jacobian": 0.732,
+   "name": "k2",
+   "periodic_change": 4.8e-05,
+   "periods": 3,
+   "precision": "rounded from RESULTS.md",
+   "steps_per_period": 3980,
+   "throat_peak": 4.517
+  },
+  {
+   "cells": 414072,
+   "cells_foam": 414072,
+   "dns_throat_peak": 4.625,
+   "environment": {
+    "date": "2026-10-31",
+    "gmsh": "4.12.1",
+    "hexmesh": "2ca8836",
+    "openfoam": "v2406",
+    "python": null,
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "exec_time_per_period": 24480,
+   "factor": 3,
+   "level": "k3",
+   "max_co": 0.5,
+   "max_non_orthogonality": 38.3,
+   "mesh_ok": true,
+   "min_scaled_jacobian": 0.718,
+   "name": "k3",
+   "periodic_change": 0.00018,
+   "periods": 3,
+   "precision": "rounded from RESULTS.md",
+   "steps_per_period": 6120,
+   "throat_peak": 4.566
+  },
+  {
+   "cells": 122688,
+   "cells_foam": 122688,
+   "dns_throat_peak": 4.625,
+   "environment": {
+    "date": "2026-10-31",
+    "gmsh": "4.12.1",
+    "hexmesh": "2ca8836",
+    "openfoam": "v2406",
+    "python": null,
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "exec_time_per_period": 5700,
+   "factor": 2,
+   "level": "k2",
+   "max_co": 0.25,
+   "mesh_ok": true,
+   "name": "k2-co0.25",
+   "periodic_change": 0.0029,
+   "periods": 2,
+   "precision": "rounded from RESULTS.md",
+   "steps_per_period": 8160,
+   "throat_peak": 4.516,
+   "throat_peak_change": 0.0003,
+   "warm_start": true
+  }
+ ],
+ "version": 1
+}

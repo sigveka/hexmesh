@@ -1,0 +1,151 @@
+{
+ "case": "poiseuille",
+ "extra": {
+  "exact": {
+   "dp": 7.999999999999998e-05,
+   "u_max": 0.009999999999999998
+  },
+  "trend": [
+   {
+    "cells": 432,
+    "max_non_orthogonality": 23.5,
+    "max_skewness": 0.422,
+    "mesh_ok": true,
+    "nang": 6,
+    "nrad": 3
+   },
+   {
+    "cells": 1728,
+    "max_non_orthogonality": 33.2,
+    "max_skewness": 0.484,
+    "mesh_ok": true,
+    "nang": 12,
+    "nrad": 6
+   },
+   {
+    "cells": 6912,
+    "max_non_orthogonality": 38.9,
+    "max_skewness": 0.515,
+    "mesh_ok": true,
+    "nang": 24,
+    "nrad": 12
+   },
+   {
+    "cells": 27648,
+    "max_non_orthogonality": 41.9,
+    "max_skewness": 0.53,
+    "mesh_ok": true,
+    "nang": 48,
+    "nrad": 24
+   },
+   {
+    "cells": 110592,
+    "max_non_orthogonality": 43.4,
+    "max_skewness": 0.538,
+    "mesh_ok": true,
+    "nang": 96,
+    "nrad": 48
+   }
+  ]
+ },
+ "format": "hexmesh.validation.results",
+ "levels": [
+  {
+   "area_err_signed": -0.01138,
+   "cells": 5184,
+   "cells_foam": 5184,
+   "converged": true,
+   "dp": 8.036058e-05,
+   "dp_err": 0.004507250000000211,
+   "dp_err_mesh": -0.0069299999999999995,
+   "dp_err_signed": 0.004507250000000211,
+   "environment": {
+    "date": "2026-10-26",
+    "gmsh": "4.12.1",
+    "hexmesh": "4ba565b",
+    "openfoam": "v1912",
+    "python": null,
+    "runner": "native"
+   },
+   "factor": 1,
+   "iterations": 125,
+   "level": "coarse",
+   "mass_err": 1.2e-11,
+   "max_non_orthogonality": 23.5,
+   "max_skewness": 0.422,
+   "mesh_ok": true,
+   "min_scaled_jacobian": 0.793,
+   "name": "coarse",
+   "precision": "rounded from RESULTS.md",
+   "u_max": 0.009906548,
+   "u_max_err": 0.00934519999999991,
+   "u_max_err_mesh": -0.00934519999999991,
+   "u_max_err_signed": -0.00934519999999991
+  },
+  {
+   "area_err_signed": -0.0028499999999999997,
+   "cells": 41472,
+   "cells_foam": 41472,
+   "converged": true,
+   "dp": 8.016547e-05,
+   "dp_err": 0.0020683750000001907,
+   "dp_err_mesh": -0.00079,
+   "dp_err_signed": 0.0020683750000001907,
+   "environment": {
+    "date": "2026-10-26",
+    "gmsh": "4.12.1",
+    "hexmesh": "4ba565b",
+    "openfoam": "v1912",
+    "python": null,
+    "runner": "native"
+   },
+   "factor": 2,
+   "iterations": 333,
+   "level": "medium",
+   "mass_err": 1.1e-10,
+   "max_non_orthogonality": 33.2,
+   "max_skewness": 0.484,
+   "mesh_ok": true,
+   "min_scaled_jacobian": 0.752,
+   "name": "medium",
+   "precision": "rounded from RESULTS.md",
+   "u_max": 0.009974559,
+   "u_max_err": 0.0025440999999999316,
+   "u_max_err_mesh": -0.0025440999999999316,
+   "u_max_err_signed": -0.0025440999999999316
+  },
+  {
+   "area_err_signed": -0.0007099999999999999,
+   "cells": 331776,
+   "cells_foam": 331776,
+   "converged": true,
+   "dp": 8.008353e-05,
+   "dp_err": 0.0010441250000001975,
+   "dp_err_mesh": 0.00033,
+   "dp_err_signed": 0.0010441250000001975,
+   "environment": {
+    "date": "2026-10-26",
+    "gmsh": "4.12.1",
+    "hexmesh": "4ba565b",
+    "openfoam": "v1912",
+    "python": null,
+    "runner": "native"
+   },
+   "factor": 4,
+   "iterations": 1092,
+   "level": "fine",
+   "mass_err": 6.9e-11,
+   "max_non_orthogonality": 38.9,
+   "max_skewness": 0.515,
+   "mesh_ok": true,
+   "min_scaled_jacobian": 0.73,
+   "name": "fine",
+   "precision": "rounded from RESULTS.md",
+   "u_max": 0.009992713,
+   "u_max_err": 0.0007286999999998185,
+   "u_max_err_mesh": -0.0007286999999998185,
+   "u_max_err_signed": -0.0007286999999998185
+  }
+ ],
+ "version": 1
+}

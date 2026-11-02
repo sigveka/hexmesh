@@ -1,0 +1,232 @@
+{
+ "case": "womersley",
+ "extra": {},
+ "format": "hexmesh.validation.results",
+ "levels": [
+  {
+   "cells": 7680,
+   "cells_foam": 7680,
+   "dpdx_amplitude": 0.250854,
+   "dpdx_amplitude_err": 0.0029145427286356,
+   "dpdx_phase_deg": 0.35,
+   "dt_factor": 1.0,
+   "environment": {
+    "date": "2026-10-30",
+    "gmsh": "4.12.1",
+    "hexmesh": "75e9f27",
+    "openfoam": "v2406",
+    "python": null,
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "factor": 1,
+   "inlet_applied_err": 2.4e-10,
+   "level": "k1",
+   "max_non_orthogonality": 28.1,
+   "mesh_ok": true,
+   "min_scaled_jacobian": 0.773,
+   "name": "k1",
+   "periodic_change": 3.7e-08,
+   "periods": 3,
+   "phases": [
+    {
+     "profile_max": 0.0091,
+     "profile_rms": 0.0036,
+     "t_over_T": 0.09,
+     "u_axis_err": 0.0091
+    },
+    {
+     "profile_max": 0.0163,
+     "profile_rms": 0.0069,
+     "t_over_T": 0.26,
+     "u_axis_err": 0.0053
+    },
+    {
+     "profile_max": 0.021099999999999997,
+     "profile_rms": 0.0103,
+     "t_over_T": 0.42,
+     "u_axis_err": 0.0053
+    },
+    {
+     "profile_max": 0.014199999999999999,
+     "profile_rms": 0.0076,
+     "t_over_T": 0.59,
+     "u_axis_err": 0.0035
+    },
+    {
+     "profile_max": 0.0087,
+     "profile_rms": 0.004,
+     "t_over_T": 0.76,
+     "u_axis_err": 0.0017
+    },
+    {
+     "profile_max": 0.0089,
+     "profile_rms": 0.0048,
+     "t_over_T": 0.92,
+     "u_axis_err": 0.0034
+    }
+   ],
+   "precision": "rounded from RESULTS.md",
+   "profile_max_all": 0.021099999999999997,
+   "steps_per_period": 240,
+   "u_axis_peak_err": 0.00532
+  },
+  {
+   "cells": 61440,
+   "cells_foam": 61440,
+   "dpdx_amplitude": 0.250327,
+   "dpdx_amplitude_err": 0.0008075962018989703,
+   "dpdx_phase_deg": 0.089,
+   "dt_factor": 1.0,
+   "environment": {
+    "date": "2026-10-30",
+    "gmsh": "4.12.1",
+    "hexmesh": "75e9f27",
+    "openfoam": "v2406",
+    "python": null,
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "factor": 2,
+   "inlet_applied_err": 2.4e-10,
+   "level": "k2",
+   "max_non_orthogonality": 36.0,
+   "mesh_ok": true,
+   "min_scaled_jacobian": 0.741,
+   "name": "k2",
+   "periodic_change": 3.5e-08,
+   "periods": 3,
+   "phases": [
+    {
+     "profile_max": 0.0025,
+     "profile_rms": 0.0009,
+     "t_over_T": 0.09,
+     "u_axis_err": 0.0025
+    },
+    {
+     "profile_max": 0.0053,
+     "profile_rms": 0.002,
+     "t_over_T": 0.26,
+     "u_axis_err": 0.0014
+    },
+    {
+     "profile_max": 0.006500000000000001,
+     "profile_rms": 0.0027,
+     "t_over_T": 0.42,
+     "u_axis_err": 0.0014
+    },
+    {
+     "profile_max": 0.0051,
+     "profile_rms": 0.0018,
+     "t_over_T": 0.59,
+     "u_axis_err": 0.00074
+    },
+    {
+     "profile_max": 0.0040999999999999995,
+     "profile_rms": 0.001,
+     "t_over_T": 0.76,
+     "u_axis_err": 0.00013000000000000002
+    },
+    {
+     "profile_max": 0.003,
+     "profile_rms": 0.0012,
+     "t_over_T": 0.92,
+     "u_axis_err": 0.00057
+    }
+   ],
+   "precision": "rounded from RESULTS.md",
+   "profile_max_all": 0.006500000000000001,
+   "steps_per_period": 480,
+   "u_axis_peak_err": 0.00142
+  },
+  {
+   "cells": 491520,
+   "cells_foam": 491520,
+   "dpdx_amplitude": 0.250174,
+   "dpdx_amplitude_err": 0.00019590204897537524,
+   "dpdx_phase_deg": 0.022,
+   "dt_factor": 1.0,
+   "environment": {
+    "date": "2026-10-30",
+    "gmsh": "4.12.1",
+    "hexmesh": "75e9f27",
+    "openfoam": "v2406",
+    "python": null,
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "factor": 4,
+   "inlet_applied_err": 1.9e-10,
+   "level": "k4",
+   "max_non_orthogonality": 40.4,
+   "mesh_ok": true,
+   "min_scaled_jacobian": 0.724,
+   "name": "k4",
+   "periodic_change": 0.00067,
+   "periods": 2,
+   "phases": [
+    {
+     "profile_max": 0.0007000000000000001,
+     "profile_rms": 0.0002,
+     "t_over_T": 0.09,
+     "u_axis_err": 0.0005
+    },
+    {
+     "profile_max": 0.0015,
+     "profile_rms": 0.0005,
+     "t_over_T": 0.26,
+     "u_axis_err": 0.00035999999999999997
+    },
+    {
+     "profile_max": 0.0026,
+     "profile_rms": 0.0007000000000000001,
+     "t_over_T": 0.42,
+     "u_axis_err": 0.00035
+    },
+    {
+     "profile_max": 0.0031,
+     "profile_rms": 0.0005,
+     "t_over_T": 0.59,
+     "u_axis_err": 0.00014000000000000001
+    },
+    {
+     "profile_max": 0.0023,
+     "profile_rms": 0.0003,
+     "t_over_T": 0.76,
+     "u_axis_err": -5e-05
+    },
+    {
+     "profile_max": 0.0011,
+     "profile_rms": 0.0003,
+     "t_over_T": 0.92,
+     "u_axis_err": 3e-05
+    }
+   ],
+   "precision": "rounded from RESULTS.md",
+   "profile_max_all": 0.0031,
+   "steps_per_period": 960,
+   "u_axis_peak_err": 0.000363
+  },
+  {
+   "cells": 61440,
+   "dpdx_amplitude_change": 4.2e-05,
+   "dt_factor": 2.0,
+   "environment": {
+    "date": "2026-10-30",
+    "gmsh": "4.12.1",
+    "hexmesh": "75e9f27",
+    "openfoam": "v2406",
+    "python": null,
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "factor": 2,
+   "level": "k2",
+   "name": "k2-dt2",
+   "periodic_change": 0.00037,
+   "periods": 2,
+   "precision": "rounded from RESULTS.md",
+   "profile_max_all": 0.00649,
+   "steps_per_period": 960,
+   "u_axis_peak_change": 2.1e-05,
+   "warm_start": true
+  }
+ ],
+ "version": 1
+}

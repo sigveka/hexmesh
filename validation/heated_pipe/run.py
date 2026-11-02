@@ -28,7 +28,12 @@ solid layer's temperature drop is q′/(2π k) ln(r_out/r_in).  Three
 levels by ``Assembly.refined(k)``, k = 1 / 2 / 3 (k = 4 would take about 37 h here).  Usage::
 
     python3 validation/heated_pipe/run.py [--levels 1 2 3] [--np N]
-        [--end-time N] [--work DIR] [--json FILE] [--openfoam native|docker:IMAGE]
+        [--end-time N] [--work DIR] [--json FILE] [--keep-work]
+        [--openfoam native|docker:IMAGE]
+
+Results go to ``results.json`` here (task 0093): levels already in it are
+reused, and each level's case directory is deleted once its results are
+stored.
 
 OpenFOAM v2406 in Docker by default (decision 0012's toolchain): v1912's
 buoyant and CHT solvers diverge on non-orthogonal meshes, which every
@@ -65,6 +70,9 @@ _spec = importlib.util.spec_from_file_location("convergence",
                                                ROOT / "validation/tools/convergence.py")
 conv = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(conv)
+_spec = importlib.util.spec_from_file_location("stored", ROOT / "validation/tools/results.py")
+stored = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(stored)                # results.json (task 0093)
 
 # --- physics -----------------------------------------------------------------
 R1, R2, R3 = 0.010, 0.012, 0.020             # fluid, steel, insulation outer radii [m]
@@ -285,14 +293,14 @@ def write_dicts(case: Path, end_time: int, n_proc: int) -> None:
               f"simpleCoeffs {{ n ({n_proc} 1 1); delta 0.001; }}\n")
     for name, text in files.items():
         (case / name).parent.mkdir(parents=True, exist_ok=True)
-        (case / name).write_text(text)
+        (case / name).write_text(text, encoding="utf-8")
     if n_proc > 1:
         for r in REGIONS:
             shutil.copy(case / "system/decomposeParDict", case / f"system/{r}/decomposeParDict")
 
 
 def patches(case: Path, region: str) -> list[str]:
-    text = (case / f"constant/{region}/polyMesh/boundary").read_text()
+    text = (case / f"constant/{region}/polyMesh/boundary").read_text(encoding="utf-8")
     return re.findall(r"^\s{4}(\w+)\s*\n\s*\{", text, re.M)
 
 
@@ -306,7 +314,7 @@ def write_fields(case: Path) -> None:
         (case / f"0/{region}").mkdir(parents=True, exist_ok=True)
         (case / f"0/{region}/{name}").write_text(
             H(cls, name, f"0/{region}") + f"dimensions {dims};\ninternalField {internal};\n"
-            f"boundaryField\n{{\n{body}\n}}\n")
+            f"boundaryField\n{{\n{body}\n}}\n", encoding="utf-8")
 
     fp = patches(case, "fluid")
     wall = [p for p in fp if "_to_" in p]
@@ -371,9 +379,9 @@ def parabolic_inlet(case: Path) -> float:
             f"({x:.15g} 0 0)" for x in v) + "\n)"
     path = case / "0/fluid/U"
     text = re.sub(r"fluid_inlet\s*\{[^}]*\}",
-                  f"fluid_inlet {{ type fixedValue; value {vectors(u)}; }}", path.read_text())
+                  f"fluid_inlet {{ type fixedValue; value {vectors(u)}; }}", path.read_text(encoding="utf-8"))
     text = text.replace("internalField uniform (0 0 0);", f"internalField {vectors(uc)};")
-    path.write_text(text)
+    path.write_text(text, encoding="utf-8")
     return scale
 
 
@@ -516,7 +524,7 @@ def run_level(k: int, work: Path, end_time: int, n_proc: int) -> dict:
     while end < end_time:
         end += CHUNK
         control.write_text(re.sub(r"^endTime\s+\S+;", f"endTime         {end};",
-                                  control.read_text(), flags=re.M))
+                                  control.read_text(encoding="utf-8"), flags=re.M), encoding="utf-8")
         if n_proc > 1:
             logs.append(of.foam(f"mpirun -np {n_proc} chtMultiRegionSimpleFoam -parallel",
                                 case, f"log.chtMultiRegionSimpleFoam.{end}"))
@@ -569,34 +577,50 @@ def main(argv=None) -> dict:
     ap.add_argument("--end-time", type=int, default=20000)
     ap.add_argument("--np", type=int, default=1, dest="n_proc",
                     help="MPI processes (levels above 1)")
-    ap.add_argument("--json", type=Path)
+    stored.add_arguments(ap, HERE)
     ap.add_argument("--openfoam", default=of.V2406,
                     help="runner: native, or docker:IMAGE (default: v2406 in Docker)")
     args = ap.parse_args(argv)
     of.set_runner(args.openfoam)
-    # levels already in --json are reused, so the levels can run separately
-    old = {}
-    if args.json and args.json.exists():
-        old = {r["k"]: r for r in json.loads(args.json.read_text())["levels"]}
+    # levels already in results.json are reused, so the levels can run separately
+    store = stored.Store(args.json, "heated_pipe")
     rows = []
     for k in args.levels:
-        if k in old:
-            print(f"[k{k}] reused from {args.json}", flush=True)
-            rows.append(old[k])
-            continue
-        r = run_level(k, args.work, args.end_time, 1 if k == 1 else args.n_proc)
+        r = stored.run_level(
+            store, f"k{k}",
+            lambda k=k: run_level(k, args.work, args.end_time, 1 if k == 1 else args.n_proc),
+            args.work / f"k{k}", args.keep_work)
         print(json.dumps({key: v for key, v in r.items()
                           if key not in ("checks", "residual_history")}, default=float),
               flush=True)
         rows.append(r)
-        if args.json:
-            args.json.write_text(json.dumps({"versions": pois.versions(), "levels": rows},
-                                            indent=1, default=float))
-    rich = extrapolate(rows)
-    data = {"versions": pois.versions(), "levels": rows, "richardson": rich}
-    if args.json:
-        args.json.write_text(json.dumps(data, indent=1, default=float))
-    return data
+    return {"levels": rows, "richardson": extrapolate(rows)}
+
+
+def recheck(data: dict) -> list[dict]:
+    """Every Richardson row and gate from ``results.json`` (task 0093):
+    Mesh OK and the energy balance within 0.1 % at every level;
+    extrapolated Nu within 1 % of 48/11 and the solid ΔTs within 0.5 % of
+    their mesh-exact values (the finest level's)."""
+    lv = sorted(data["levels"], key=lambda r: r["k"])
+    out = [stored.row("Mesh OK per region", gate="every level", ok=all(r["mesh_ok"] for r in lv),
+                      value=", ".join("yes" if r["mesh_ok"] else "no" for r in lv)),
+           stored.row("energy balance", gate="within 0.1 % at every level",
+                      ok=all(abs(r["energy_err"]) <= 1e-3 for r in lv),
+                      value=f"≤ {max(abs(r['energy_err']) for r in lv):.1e}")]
+    rich = extrapolate(lv)
+    limits = {"nu": 1e-2, "dt_steel": 5e-3, "dt_insulation": 5e-3, "dtb_dx": None}
+    for key, limit in limits.items():
+        exact = NU_EXACT if key == "nu" else lv[-1][key] / (1 + lv[-1][f"{key}_err"])
+        r = rich[key]
+        if limit is None:
+            out.append(stored.row(key, rich=r))
+            continue
+        ok, why = conv.gate_extrapolated(r, exact, limit)
+        err = "" if r["extrapolated"] is None else f"{(r['extrapolated'] - exact) / exact:+.4%}"
+        out.append(stored.row(f"{key}, extrapolated", rich=r,
+                              gate=f"within {limit:.1%} of exact", ok=ok, value=err, note=why))
+    return out
 
 
 if __name__ == "__main__":

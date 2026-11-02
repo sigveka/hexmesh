@@ -97,20 +97,22 @@ def test_fine_level_within_one_percent(levels, key):
 def test_extrapolated_within_a_tenth_percent(data, key):
     """Richardson-extrapolated value within 0.1 % of exact, on a converging
     series only (task 0089)."""
-    ok, why = conv.gate_extrapolated(data["richardson"][key], data["exact"][key], 1e-3)
+    rich = conv.richardson(*(r[key] for r in data["levels"]))
+    ok, why = conv.gate_extrapolated(rich, data["extra"]["exact"][key], 1e-3)
     assert ok, why
 
 
 def test_u_max_observed_order(data):
     """Gated for u_max only; Δp's order competes with the polygon's
     geometric error and is reported, not gated (RESEARCH §7.4)."""
-    rich = data["richardson"]["u_max"]
+    rich = conv.richardson(*(r["u_max"] for r in data["levels"]))
     assert rich["status"] == "converging" and rich["order"] >= 1.5, rich
 
 
 def test_nonorthogonality_trend_meshes_ok(data):
     """checkMesh-only sweep; the trend itself is reported in RESULTS.md."""
-    assert data["trend"] and all(t["mesh_ok"] for t in data["trend"])
+    trend = data["extra"]["trend"]
+    assert trend and all(t["mesh_ok"] for t in trend)
 
 
 # ---------------------------------------------------------------------------
@@ -132,7 +134,7 @@ def rod(tmp_path_factory):
 
 @pytest.mark.parametrize("series", ["uniform", "graded"])
 def test_heated_rod_coarse(rod, series):
-    r, = rod["series"][series]["levels"]
+    r, = [lv for lv in rod["levels"] if lv["series"] == series]
     assert r["mesh_ok"] and r["cells_foam"] == r["cells"] == 216
     assert r["fvoptions_read"] and r["converged"]
     assert r["energy_err"] < 1e-10                     # heat out = q''' · V_mesh
@@ -155,7 +157,7 @@ def layers(tmp_path_factory):
 @pytest.mark.parametrize("variant", ["fixed", "convection"])
 def test_layered_conduction_coarse(layers, variant):
     """Task 0034: three solid regions coupled by chtMultiRegionSimpleFoam."""
-    r, = layers["variants"][variant]["levels"]
+    r, = [lv for lv in layers["levels"] if lv["variant"] == variant]
     assert r["mesh_ok"] and r["cells_foam"] == r["cells"] == 456
     assert r["mapped_pairs_equal"] and r["converged"]
     for key in ("balance_rod", "balance_steel", "balance_outer"):
@@ -251,9 +253,9 @@ def test_pulsatile_stenosis_one_period(pulsatile_stenosis):
     r = pulsatile_stenosis["levels"][0]
     assert r["mesh_ok"] and r["cells_foam"] == r["cells"]
     assert r["periods"] == 1
-    phases = [p["phase"] for p in pulsatile_stenosis["meta"]["phases"]]
+    phases = [p["phase"] for p in pulsatile_stenosis["extra"]["phases"]]
     assert [round(p, 2) for p in phases] == [0.05, 0.26, 0.42, 0.56, 0.75, 0.89]
-    assert len(r["rows"]) == len(pulsatile_stenosis["meta"]["targets"]) == 12
+    assert len(r["rows"]) == len(pulsatile_stenosis["extra"]["targets"]) == 12
     assert len(r["comparison"]) == 12                      # 6 files × 2 phase sets
     c = next(c for c in r["comparison"] if c["file"] == "vel_p2.dat" and c["kind"] == "flow_rate")
     assert 3.0 < c["stations"]["0.0"]["centre"] < 6.0      # a throat jet at peak flow
@@ -282,7 +284,7 @@ def test_rect_duct_coarse(rect_duct):
     assert r["converged"] and r["mass_err"] < 1e-8 and abs(r["area_err_signed"]) < 1e-12
     assert 0.02 < r["fRe_err_signed"] < 0.03                 # +2.6 % measured
     assert abs(r["u_c_err_signed"]) < 0.003 and r["profile_max_err"] < 0.03
-    s = rect_duct["series"]["1"]
+    s = rect_duct["extra"]["series"]["1"]
     assert abs(s["fRe"] - 56.908) < 1e-3 and s["terms_change"] < 1e-12
 
 

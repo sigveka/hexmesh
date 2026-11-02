@@ -1,0 +1,243 @@
+{
+ "case": "layered_conduction",
+ "extra": {
+  "exact": {
+   "convection": {
+    "q_prime": 314.1592653589793,
+    "rise": 637.2579453227846,
+    "t0": 937.2579453227846,
+    "t1": 936.0079453227846,
+    "t2": 935.8256237659907,
+    "t3": 425.0
+   },
+   "fixed": {
+    "q_prime": 314.1592653589793,
+    "rise": 512.2579453227846,
+    "t0": 812.2579453227846,
+    "t1": 811.0079453227846,
+    "t2": 810.8256237659907,
+    "t3": 300.0
+   }
+  }
+ },
+ "format": "hexmesh.validation.results",
+ "levels": [
+  {
+   "balance_max": 5.1e-12,
+   "cells": 456,
+   "cells_foam": 456,
+   "converged": true,
+   "converged_at": 47076,
+   "environment": {
+    "date": "2026-10-28",
+    "gmsh": "4.12.1",
+    "hexmesh": "91c897a",
+    "openfoam": "v1912",
+    "python": null,
+    "runner": "native"
+   },
+   "iterations": 60000,
+   "k": 1,
+   "l2": {
+    "insulation": 0.0284,
+    "rod": 0.0095,
+    "steel": 0.00948
+   },
+   "mapped_pairs_equal": true,
+   "mesh_ok": true,
+   "name": "fixed-1",
+   "nang": 6,
+   "precision": "rounded from RESULTS.md",
+   "t0": 807.3909825842728,
+   "t0_err": -0.009500999999999999,
+   "t1": 806.1578870964685,
+   "t1_err": -0.009467999999999999,
+   "t2": 805.9786390873466,
+   "t2_err": -0.009462,
+   "t3": 300.0,
+   "t3_err": 0.0,
+   "variant": "fixed"
+  },
+  {
+   "balance_max": 1.8e-12,
+   "cells": 1824,
+   "cells_foam": 1824,
+   "converged": true,
+   "converged_at": 91960,
+   "environment": {
+    "date": "2026-10-28",
+    "gmsh": "4.12.1",
+    "hexmesh": "91c897a",
+    "openfoam": "v1912",
+    "python": null,
+    "runner": "native"
+   },
+   "iterations": 120000,
+   "k": 2,
+   "l2": {
+    "insulation": 0.00713,
+    "rod": 0.00236,
+    "steel": 0.00235
+   },
+   "mapped_pairs_equal": true,
+   "mesh_ok": true,
+   "name": "fixed-2",
+   "nang": 12,
+   "precision": "rounded from RESULTS.md",
+   "t0": 811.0479920559322,
+   "t0_err": -0.002362,
+   "t1": 809.8036268933307,
+   "t1_err": -0.0023510000000000002,
+   "t2": 809.6223298524275,
+   "t2_err": -0.002349,
+   "t3": 300.0,
+   "t3_err": 0.0,
+   "variant": "fixed"
+  },
+  {
+   "balance_max": 2.7e-12,
+   "cells": 7296,
+   "cells_foam": 7296,
+   "converged": true,
+   "converged_at": 181188,
+   "environment": {
+    "date": "2026-10-28",
+    "gmsh": "4.12.1",
+    "hexmesh": "91c897a",
+    "openfoam": "v1912",
+    "python": null,
+    "runner": "native"
+   },
+   "iterations": 240000,
+   "k": 4,
+   "l2": {
+    "insulation": 0.00179,
+    "rod": 0.00059,
+    "steel": 0.000588
+   },
+   "mapped_pairs_equal": true,
+   "mesh_ok": true,
+   "name": "fixed-4",
+   "nang": 24,
+   "precision": "rounded from RESULTS.md",
+   "t0": 811.9552008770988,
+   "t0_err": -0.0005909999999999999,
+   "t1": 810.7072499088802,
+   "t1_err": -0.0005870000000000001,
+   "t2": 810.5254406100315,
+   "t2_err": -0.000586,
+   "t3": 300.0,
+   "t3_err": 0.0,
+   "variant": "fixed"
+  },
+  {
+   "balance_max": 1.2e-09,
+   "cells": 456,
+   "cells_foam": 456,
+   "converged": true,
+   "converged_at": 58605,
+   "environment": {
+    "date": "2026-10-28",
+    "gmsh": "4.12.1",
+    "hexmesh": "91c897a",
+    "openfoam": "v1912",
+    "python": null,
+    "runner": "native"
+   },
+   "iterations": 60000,
+   "k": 1,
+   "l2": {
+    "insulation": 0.0245,
+    "rod": 0.00931,
+    "steel": 0.0093
+   },
+   "mapped_pairs_equal": true,
+   "mesh_ok": true,
+   "name": "convection-1",
+   "nang": 6,
+   "precision": "rounded from RESULTS.md",
+   "t0": 931.3212503041576,
+   "t0_err": -0.009316,
+   "t1": 930.0884562686813,
+   "t1_err": -0.009288999999999999,
+   "t2": 929.909321001614,
+   "t2_err": -0.009284,
+   "t3": 423.9306811677484,
+   "t3_err": -0.001678,
+   "variant": "convection"
+  },
+  {
+   "balance_max": 8.4e-10,
+   "cells": 1824,
+   "cells_foam": 1824,
+   "converged": true,
+   "converged_at": 114474,
+   "environment": {
+    "date": "2026-10-28",
+    "gmsh": "4.12.1",
+    "hexmesh": "91c897a",
+    "openfoam": "v1912",
+    "python": null,
+    "runner": "native"
+   },
+   "iterations": 120000,
+   "k": 2,
+   "l2": {
+    "insulation": 0.00615,
+    "rod": 0.00232,
+    "steel": 0.00231
+   },
+   "mapped_pairs_equal": true,
+   "mesh_ok": true,
+   "name": "convection-2",
+   "nang": 12,
+   "precision": "rounded from RESULTS.md",
+   "t0": 935.780144147581,
+   "t0_err": -0.002319,
+   "t1": 934.535879469089,
+   "t1_err": -0.00231,
+   "t2": 934.3548324281858,
+   "t2_err": -0.002308,
+   "t3": 424.73235166296445,
+   "t3_err": -0.00042,
+   "variant": "convection"
+  },
+  {
+   "balance_max": 7.7e-10,
+   "cells": 7296,
+   "cells_foam": 7296,
+   "converged": true,
+   "converged_at": 225605,
+   "environment": {
+    "date": "2026-10-28",
+    "gmsh": "4.12.1",
+    "hexmesh": "91c897a",
+    "openfoam": "v1912",
+    "python": null,
+    "runner": "native"
+   },
+   "iterations": 240000,
+   "k": 4,
+   "l2": {
+    "insulation": 0.00154,
+    "rod": 0.000579,
+    "steel": 0.000577
+   },
+   "mapped_pairs_equal": true,
+   "mesh_ok": true,
+   "name": "convection-4",
+   "nang": 24,
+   "precision": "rounded from RESULTS.md",
+   "t0": 936.8883357144974,
+   "t0_err": -0.00058,
+   "t1": 935.6402474883333,
+   "t1_err": -0.000577,
+   "t2": 935.4585631894848,
+   "t2_err": -0.000576,
+   "t3": 424.9330879157411,
+   "t3_err": -0.000105,
+   "variant": "convection"
+  }
+ ],
+ "version": 1
+}

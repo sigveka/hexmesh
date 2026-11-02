@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "validation/results.schema.json",
+  "title": "hexmesh validation results",
+  "description": "validation/<case>/results.json: every level's numbers at full precision, or rounded from RESULTS.md where the run's own output is lost (task 0093; validation/tools/results.py).  No fields: nothing per cell.",
+  "type": "object",
+  "required": ["format", "version", "case", "levels", "extra"],
+  "additionalProperties": false,
+  "properties": {
+    "format": {"const": "hexmesh.validation.results"},
+    "version": {"const": 1},
+    "case": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+    "levels": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "precision", "environment"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1},
+          "precision": {"enum": ["full", "rounded from RESULTS.md"]},
+          "environment": {
+            "type": "object",
+            "description": "the run's versions; for rounded levels, those RESULTS.md names",
+            "properties": {
+              "hexmesh": {"type": ["string", "null"]},
+              "gmsh": {"type": ["string", "null"]},
+              "openfoam": {"type": ["string", "null"]},
+              "runner": {"type": ["string", "null"]},
+              "python": {"type": ["string", "null"]},
+              "date": {"type": ["string", "null"]}
+            }
+          }
+        }
+      }
+    },
+    "extra": {"type": "object", "description": "case-wide values that belong to no level"}
+  }
+}
