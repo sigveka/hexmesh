@@ -186,9 +186,9 @@ accepts H ports:
   `OH_RATIO` sweep); that the 2-D O-H meshes match checkMesh's
   non-orthogonality; that pillowing a Cartesian face gives the 5-patch
   O-H face (combinatorial argument, RESEARCH §7.11).
+  The 3-D Cartesian control converges at order 1.93–1.95 in OpenFOAM
+  (task 0071, 2026-11-02).
 - **Assumed:**
-  - the 3-D Cartesian control converges at order ≈ 2 in OpenFOAM (to be
-    measured by task 0071's control);
   - sweeps need no O-H knowledge beyond the face (one reference in
     `sweep.py`);
   - the switch's pillow cells reach acceptable quality (task 0069's

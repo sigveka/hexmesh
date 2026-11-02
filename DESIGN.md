@@ -334,7 +334,7 @@ period P**: the smallest roll that maps the section's mesh onto itself.
 
 | Section | Corner *k* | P |
 |---|---|---|
-| Circular O-H | at angle `π/4 + rot + k · 2π / n_outer` from `frame.right` | `2π / n_outer` |
+| Circular O-H | at angle `π/4 + rot + k · 2π / n_outer` from `frame.right` | π/2 for every `n_outer` (the mesh repeats every 90°; `n_outer` only partitions it, [decision 0005](docs/decisions/0005-n-outer-as-sub-partition.md)) |
 | Square | *k*-th corner (NE, NW, SW, SE), rotated by `rot` | π/2 |
 | Rectangle, w ≠ h | *k*-th corner (NE, NW, SW, SE), rotated by `rot` | π |
 
@@ -391,11 +391,16 @@ blocks (stub, saddle, T-zone) are private to it.  Neighbouring fittings see
 only its port faces.
 
 Junction port frames must place structural corners where the junction
-template needs them.  This is why `n_outer = 8` is the target topology:
-it puts corners at 0°/90°/180°/270° so tee tips and wye split planes fall
-on structural corners rather than arc midpoints.  The literature suggests
-`n_outer = 4` with a π/4 interface roll may also suffice; see
-[RESEARCH §4.4](docs/RESEARCH.md#44-what-this-means-for-stage-6-y-junction-redesign).
+template needs them.  `n_outer` is a **partition** of the O-H face, not
+a different mesh ([decision 0005](docs/decisions/0005-n-outer-as-sub-partition.md)):
+`n_outer = 4m` cuts each ring patch into m and the core into m × m
+along existing grid lines, with identical connectivity and node
+positions.  So a template that needs corners at 0°/90°/180°/270° asks
+for `n_outer = 8` at no mesh cost.  An interface carries the finest
+partition any fitting on it needs.  The tee (§7.1) and the wye
+(decision 0017) work with `n_outer = 4`.
+[RESEARCH §4.4](docs/RESEARCH.md#44-what-this-means-for-stage-6-y-junction-redesign),
+[§9.2](docs/RESEARCH.md#92-n_outer-as-a-sub-partition-no-mesh-change).
 Tee side corners land at ±arcsin(r/R) for any `n_outer`
 ([RESEARCH §3.2](docs/RESEARCH.md#32-consequences-for-block-topology)).
 
@@ -482,7 +487,7 @@ Known deviations of the current code (refreshed 2026-11-02 by decision
 | Rectangular cores have only the O-H layout; the H layout is the default (decision 0036) | A4, §6.1 Sections, §7.1 | `faces/oh_rect.py`, `core/spec.py`, duct fittings | tasks 0084–0087 |
 | Readers sit in `io`, above the assembly | §3.1 | `io/readers/` | task 0066 |
 | The duct taps' front end (geometry, resolution, checks) is a special case inside the pipe tee's class | §6 | `assembly/tee.py` (`_duct_geometry`, `_resolve_duct`, `_check_duct`, `_tap`) | tasks 0060–0063 (split when touched) |
-| `n_outer = 8` core cannot be filled: its 8-sided centre patch does not bound a transfinite hex block (needs splitting into 4 blocks) | §7 | `faces/oh_circle.build_oh_circle8`; rejected in validation by `hexmesh/assembly` | decision 0005 (proposed) |
+| `n_outer = 8` builds a different face (one 8-sided centre patch that can't bound a hex block) instead of the sub-partition of decision 0005; rejected in validation | §7 | `faces/oh_circle.build_oh_circle8`; `interface.check_supported` | task 0088 |
 | Tee limited to a perpendicular, centred branch with circular shells copied from the main (multi-layer since task 0052; roll in 90° steps since task 0040) | §7.1 | `hexmesh/assembly/tee.py` | tasks 0060–0062 |
 
 New code must not add to this table.
@@ -494,10 +499,6 @@ New code must not add to this table.
 - **Library or tool?** A scripting library for engineers, or a tool that
   takes plant data and returns a mesh.  Determines how much investment
   goes into readers and automatic sizing.
-- **`n_outer` per network or per interface?** One value per network is
-  simplest; mixed values require transition templates.  Evidence on
-  whether junctions need `n_outer = 8`:
-  [RESEARCH §4.4](docs/RESEARCH.md#44-what-this-means-for-stage-6-y-junction-redesign).
 - **Reject or degrade?** When quality limits cannot be met, should
   validation fail, or warn and continue?  Published structured
   bifurcations reach min scaled Jacobian ≈ 0.49

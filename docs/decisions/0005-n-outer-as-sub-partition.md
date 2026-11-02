@@ -1,8 +1,9 @@
 # 0005 — `n_outer = 8` as a sub-partition of the 4-corner grid
 
-- **Status:** proposed
-- **Date:** 2026-10-24
-- **Tasks:** none (proposed decisions get no tasks)
+- **Status:** accepted (2026-11-02 by the user: "accept 0005")
+- **Date:** 2026-10-24 (accepted 2026-11-02, after the two experiments
+  below were run in the design session)
+- **Tasks:** 0088
 
 ## Context
 
@@ -46,49 +47,100 @@ and the 0° positions can't have them.
 
 ## Decision
 
-Not decided.  **Recommendation: B.**  It makes `n_outer` a block-partition
-choice instead of a mesh-topology parameter, removes the §9 deviation,
-and settles §10.
+**Accepted 2026-11-02: B.**  `n_outer = 4m` is the 4-corner O-H face
+cut along existing grid lines: each ring patch into m, the core into
+m × m.  It is a block partition, not a different mesh.
 
-To settle first:
-1. **Connectivity check.**  Mesh one face as the 4-corner face and as its
-   8-corner sub-partition (same `nang`, `nrad`, grading).  Compare node
-   count, element count and element→node connectivity after canonical
-   ordering.  Also report the largest node displacement.
-2. **Node positions.**  By symmetry, the cut lines are straight radial
-   lines along the axes for uniform or bump angular grading.  Check that
-   gmsh's transfinite interpolation on the half-patches puts interior
-   nodes where the full patch did, or measure the shift.
+**The two experiments** (RESEARCH §9.2, measured 2026-11-02):
+1. **Connectivity: identical** at `nang` 4 to 24, with and without
+   radial grading.  Same node and element counts; element→node sets
+   equal after matching nodes by position.
+2. **Node positions:**
+   - **ring cuts: exact** (2e-15 R);
+   - **core cuts: not with straight, uniformly meshed cut lines.**  The
+     core's middle isoline is straight, but its nodes are not uniform
+     (the inner sides are bulged arcs).  The miss is up to 0.0043 R,
+     a fixed absolute offset, so 2 % of the local spacing at `nang` 4
+     and 10 % at `nang` 24.
 
-Both are experiments, not production code.  They can be run in a design
-session, or as a spike task if spike tasks are allowed for proposed
-decisions (currently they are not).
+**Condition from experiment 2 (part of this decision):** the core
+cut-line nodes are placed on the full core patch's discrete TFI
+isoline.
+- That isoline is computable before GMSH from the boundary nodes, for
+  any O-H shape (circle, rectangle, blend).  For the circle it has a
+  closed form (RESEARCH §9.2).
+- A Coons patch restricted to a sub-rectangle is the Coons patch of
+  that sub-rectangle, so exact cut-line nodes give exact interior nodes.
+- With that, an `n_outer = 8` face reproduces the `n_outer = 4` mesh to
+  round-off, and B's "no mesh change" holds.
 
-## Consequences (if B is accepted)
+**Rules:**
+- An interface carries the **finest partition any fitting on it
+  needs**.  This answers DESIGN §10's "`n_outer` per network or per
+  interface?": per interface, resolved like density.
+- The symmetry period P of a circular O-H section is **π/2 for every
+  `n_outer`**.
+- `n_outer` is an O-H layout parameter.  The H layout (decision 0036)
+  has 4 corners and no partition; `n_outer ≠ 4` with `layout="h"` is an
+  error.
 
-- **A4 port type** compares the mesh-level type (boundary kind, layer
-  stack, `rot`, `nang`, `nrad`).  The partition is chosen per interface,
-  as the finest any fitting on it needs.  Every fitting must accept a
-  port face with a finer partition than its own template, by splitting
-  its blocks along the same grid lines.  Sweeps carry the finer partition
-  along their whole length.
-- **DESIGN §6.1 corner identity** is unchanged.  Corner k at
-  `π/4 + rot + k·2π/n_outer` includes the 4-corner positions as every
-  other corner.
-- **DESIGN §6.1/§8:** since decision 0010, roll is absorbed modulo the
-  section's symmetry period P.  Under B, the circular row's P becomes
-  π/2 for every `n_outer` (the mesh repeats every 90°).  Twist never
-  exceeds π/4.
-- **DESIGN §9:** remove the `n_outer = 8` row once
-  `build_oh_circle8` is replaced.
-- **DESIGN §10:** remove "`n_outer` per network or per interface?".
-- **DESIGN §7:** the reason for `n_outer = 8` becomes "partition the
-  junction needs", at no mesh cost.
+**Scope now (DESIGN §6.1, "not built on speculation"):** no fitting
+needs `n_outer = 8` today.  The tee works with 4 (§7.1), and decision
+0017 found the wye doesn't need 8.  So task 0088:
+- builds the sub-partition in the O-H layout;
+- replaces `build_oh_circle8`;
+- lets sweeps carry `n_outer = 8`;
+- proves mesh equality with `n_outer = 4`.
+
+**Deferred** until the first junction template that needs a finer
+partition: fittings accepting a port partition finer than their own
+template, and the assembler resolving the partition per interface.
+Until then, both sides of an interface have the same `n_outer`, as
+today.
+
+## Consequences
+
+- **DESIGN.md (applied 2026-11-02):**
+  - §6.1 corner table: circular P = π/2 for every `n_outer`;
+  - §7: `n_outer` described as a partition at no mesh cost, with the
+    interface rule;
+  - §9: the `n_outer = 8` row now names the sub-partition as the target
+    and task 0088;
+  - §10: "`n_outer` per network or per interface?" removed (answered).
+- **CLAUDE.md:** the open question becomes the decision; the table row
+  ("rejected") changes when task 0088 lands.
+- **Decision 0010:** P for circular O-H sections changes from 2π/`n_outer`
+  to π/2.  Roll handling is otherwise unchanged; twist never exceeds
+  π/4.
+- **Harder:** the core cut lines need exact node placement, a
+  pre-computed distribution that gmsh's transfinite laws (Progression,
+  Bump) can't express.  Task 0088 finds the mechanism; relocation
+  between 1-D and 2-D meshing (as decision 0029 relocates wall nodes) is
+  the first candidate.
+- **Effect on future expansions:**
+  - 0018 (vascular): bifurcation split planes can land on block corners
+    without a π/4 roll, at no mesh cost, once a template asks for it.
+  - 0019 (agent SDK): none (`n_outer` stays a spec field).
+  - 0021 (flow restrictions): none.
+  - 0030 (simulation suite): none.
+  - 0035 (multi-core): "a partition along existing grid lines" is a
+    general section-layout operation; the shared section interface (task
+    0084) should allow a layout to offer partitions.
 
 ## Verified vs. assumed
 
-- Verified: `build_oh_circle8`'s 8-sided centre patch
-  (`oh_circle.py:34–36`).  The dual-view statement comes from
-  `harris_and_benzley_etal_2004` §4.1.
-- Assumed, to be checked as above: identical connectivity in gmsh, and
-  small or zero node displacement.
+- **Verified (2026-11-02):**
+  - connectivity identity;
+  - ring-cut exactness;
+  - the core-cut offset and where it peaks (scripts in the design
+    session's scratchpad; method and table in RESEARCH §9.2);
+  - the closed form of the circle's core isoline, which matches the
+    measured peak;
+  - `build_oh_circle8`'s 8-sided centre patch (`oh_circle.py:34–36`).
+- **Assumed:**
+  - that relocating cut-line nodes before 2-D/3-D meshing makes gmsh's
+    transfinite fill reproduce the full-patch nodes in 3-D slabs, as the
+    Coons argument says;
+  - that rectangle and blend O-H cores behave like the circle (their
+    ring isolines are straight and linear, so likely; task 0088
+    measures them).

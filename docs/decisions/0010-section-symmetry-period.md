@@ -3,6 +3,9 @@
 - **Status:** accepted
 - **Date:** 2026-10-25
 - **Tasks:** none now (see Consequences)
+- **Amended by:** decision 0005 (accepted 2026-11-02): for circular O-H
+  sections P = π/2 for every `n_outer`, since `n_outer` only partitions
+  the face.  Task 0088 changes `frame_offset` accordingly.
 
 ## Context
 

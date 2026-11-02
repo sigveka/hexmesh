@@ -115,6 +115,26 @@ differences, and a/b = 2 is non-monotone (RESEARCH §7.11).  For
 Circular sections are unchanged (amendment 1).  The control is decision
 0022's option B for rectangles.
 
+**Amendment 3 (2026-11-02, accepted by the user, option A; task 0071).**
+Some point quantities are not mesh values: a centre or centreline
+velocity where no face centre lies, extracted by a fit or an
+interpolation F from the sampled field.  For these, F has a bias of its
+own.  On task 0071's control, the centre fit's bias (+0.06–0.09 %) was
+almost all of the extrapolated u_c error (+0.08–0.10 %).
+- **Gate the discretisation error only:** e = (F(u_h) − F(u_exact)) /
+  u_ref, with F applied to the exact solution at the same sample points
+  on every level.  Richardson runs on F(u_h) − F(u_exact) (it tends to
+  zero), and the extrapolated-value gate applies to it.
+- **Report F's own bias separately:** F(u_exact) − u_exact(point), per
+  level.  It isn't gated, but the report states it whenever it exceeds
+  a tenth of the gate.
+- Where F reproduces the exact solution exactly (Poiseuille's
+  c₀ − c₂r² fit on a parabolic profile), the bias is zero and nothing
+  changes.
+- This applies to every validation case that extracts a point value
+  this way.  Field norms and integrals (Δp, flow rate, L2) are
+  unchanged.
+
 ### DESIGN §6 amendment (applied 2026-10-26)
 
 Appended to "Exactness lives in curves and nodes":

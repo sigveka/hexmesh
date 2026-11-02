@@ -409,6 +409,19 @@ All v1912, gmsh 4.12.1, 2026-10-25.
     0034).
 
 
+- **`residualControl` on `U` never triggers when the exact transverse
+  velocity is zero** (v2406 in Docker, `simpleFoam`, task 0071,
+  2026-11-02; recorded by the design session from the task's Outcome).
+  - Setup: fully developed duct flow with the exact profile as inlet and
+    initial field.
+  - On the O-H a/b = 2, k = 1 level, `Ux` and `p` settled (initial
+    residuals 2.6e-7, 3.5e-5), but `Uy` and `Uz` stayed near 1e-3.  Their
+    normalisation is by a field that is ~0 everywhere.
+  - So `residualControl { U 1e-7; }` (any vector limit) ran to the
+    20 000-iteration cap.
+  - For cases whose exact solution has zero components, gate convergence
+    on `p` and the axial component, or on the measured quantities
+    between output times (as the heated-pipe driver does), not on `U`.
 
 ## Gaps in hexmesh's OpenFOAM support
 

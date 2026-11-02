@@ -971,13 +971,41 @@ Fully developed laminar flow, Re 100 on D_h, exact inlet profile;
 |---|---|---|---|---|
 | 1 | +2.65 % | +1.97 % | **+1.16 %** | undefined: differences grow (0.39, 0.46) |
 | 2 | +0.45 % | +0.70 % | +0.48 % | undefined: non-monotone |
-| 4 | −0.66 % | +0.08 % | (running) | sign change |
+| 4 | −0.66 % | +0.08 % | +0.15 % | sign change |
 
 - Max non-orthogonality 39.8° / 42.5° / 43.8° (square): it doesn't fall
   with refinement.  Min scaled Jacobian 0.707 at every level (the 45°
   corner cells).
 - The square fails task 0071's fine-level gate (< 1 %), and Richardson
   extrapolation (decision 0015) has no asymptotic range to work with.
+
+**OpenFOAM Cartesian control** (task 0071, accepted 2026-11-02; a
+four-block `blockMesh` with square cells, about the O-H's cells per
+section: 100 / 162 / 324 against 108 / 180 / 324 at k = 1; the same
+axial cells):
+
+| a/b | control, k = 1 / 2 / 4 | p | extrapolated − exact | O-H ÷ control at k = 4 |
+|---|---|---|---|---|
+| 1 | −3.92 / −1.02 / −0.26 % | 1.93 | +0.011 % | 4.50 |
+| 2 | −3.09 / −0.80 / −0.20 % | 1.94 | +0.008 % | 2.36 |
+| 4 | −2.65 / −0.68 / −0.17 % | 1.95 | +0.006 % | 0.85 |
+
+- The control converges at second order in 3-D as in the 2-D model, so
+  the case setup is verified and the O-H behaviour is the section's.
+- **u_c:**
+  - Control: order 1.90–1.91.  Extrapolated +0.080 / +0.096 /
+    +0.083 %, just inside the 0.1 % gate.  Almost all of it is the
+    centre fit's own bias (+0.06–0.09 % when applied to the exact
+    field); net of it, +0.012 / +0.006 / +0.003 %.
+  - O-H: oscillatory at every ratio, and 3–9× the control's error at
+    k = 4.
+- **Max field error at k = 4:** O-H 1.0–1.2 % of u_c, control
+  0.10–0.18 %.
+- At coarse levels the O-H looks better than the control: its corner
+  error has the opposite sign and cancels part of the discretisation
+  error.  That's luck, not accuracy; it doesn't survive refinement.
+- **Cost:** the finest levels (415 k cells) took 28 min (O-H) and 18 min
+  (control), serial.
 
 **Controlled comparison (2-D).**  The fully developed problem is the
 2-D Poisson problem ∇²u = −G/ν with u = 0 on the walls.  A Python
@@ -1100,8 +1128,45 @@ If `n_outer = 8` is defined as the sub-partition:
 - tee tips and wye split planes land on block corners without a
   π/4 roll.
 
-Status: reasoning, not tested.  The test is to mesh both partitions of
-one face and compare node counts and connectivity.
+**Measured 2026-11-02** (design session; gmsh 4.12.1, hexmesh
+`6309d2c`).  Reference: `build_oh_circle` (`OH_RATIO` 0.6, bulged inner
+sides), meshed in 2-D.  Candidate: the same face cut along the 0°/90°/
+180°/270° grid lines into 8 ring patches and a 2×2 core, every cut a
+straight line, counts and grading as the full patches imply.  Nodes
+matched by position, then element→node sets compared.
+
+| `nang` / `nrad` / `mprg` | nodes, quads | connectivity | max shift, core | max shift, ring |
+|---|---|---|---|---|
+| 4 / 2 / 1.0 | 57, 48 (both) | identical | 4.2e-3 R | — |
+| 8 / 4 / 1.2 | 209, 192 | identical | 4.2e-3 R | 2e-15 R |
+| 16 / 8 / 1.1 | 801, 768 | identical | 4.2e-3 R | 2e-15 R |
+| 24 / 12 / 1.05 | 1 777, 1 728 | identical | 4.3e-3 R | 2e-15 R |
+| 48 / 24 / 1.0 | | | 4.3e-3 R | 2e-15 R |
+
+- **Connectivity is identical** at every resolution: the sub-partition
+  adds no twist planes, as §9.1 predicts.
+- **The ring cuts are exact.**  A ring patch's middle isoline is the
+  straight radial on the axis, with the radials' own distribution
+  (progression included), so a straight cut line meshed like the
+  radials reproduces it.
+- **The core cuts are not.**  The core's middle isoline is straight but
+  its nodes aren't uniform: with the bulged sides (arc radius ρ about
+  the opposite axis point, half-angle θ₀, corner half-width
+  c = `OH_RATIO`·R/√2, side midpoint x_m), the isoline is
+  y(s) = ρ sin(θ₀ s) + s (x_m − c), s ∈ [−1, 1].
+  A uniform straight cut misses it by up to 0.0043 R (s ≈ 0.57).  That
+  is a fixed absolute offset: 2 % of the local spacing at `nang` 4,
+  10 % at `nang` 24.
+- **Placing the cut nodes exactly is enough.**  A Coons patch restricted
+  to a sub-rectangle is the Coons patch of that sub-rectangle (the
+  part not interpolated from the u-boundaries is linear in u).  So
+  with the cut-line nodes on the full patch's isoline, every interior
+  node matches.  The ring halves, whose cuts are exact, confirm it to
+  round-off.
+
+So decision 0005 B holds, on one condition: the core cut-line nodes are
+placed at the full patch's (discrete) TFI isoline.  That isoline is
+known before GMSH from the boundary nodes, for any O-H shape.
 
 ### 9.3 Node-count changes: twist-plane insertion [`harris_and_benzley_etal_2004`]
 

@@ -81,13 +81,16 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0076](0076-second-order-export.md) | Second-order mesh export: `Assembly.mesh(order=2)` | ready | 0034, 0029 |
 | [0078](0078-readme-generated-sections.md) | README: generated numbers, validation table, hero image and checks | ready | — |
 | [0080](0080-installable-package.md) | Installable package: extras, version, console command, install smoke test | done | — |
-| [0081](0081-architecture-tests-and-contracts.md) | Architecture tests (DESIGN §3.1), and the cross-package leaks | ready | 0037 |
+| [0081](0081-architecture-tests-and-contracts.md) | Architecture tests (DESIGN §3.1), and the cross-package leaks | in progress | 0037 |
 | [0082](0082-sections-package-oh-layout.md) | `hexmesh.sections`: the O-H layout described once | ready (after 0081) | 0037 |
 | [0083](0083-shape-protocol.md) | Shapes own their behaviour: the shape protocol | ready (after 0082) | 0037 |
 | [0084](0084-h-section-layout-and-sweeps.md) | The H section: the layout, `layout=` on the spec, and every sweep | ready (after 0082, 0083) | 0036, 0037 |
 | [0085](0085-oh-h-switch-and-transition.md) | The O-H ↔ H switch, and `Transition` to an H rectangle | ready (after 0084) | 0036, 0011 |
 | [0086](0086-h-ports-on-duct-junctions-and-shells.md) | H ports on duct junctions, and shells around an H core | ready (after 0085) | 0036, 0026 |
 | [0087](0087-h-default-flip.md) | Make H the default rectangular core (version 0.4.0) | ready (after 0086) | 0036 |
+| [0088](0088-n-outer-sub-partition.md) | `n_outer = 8` as a sub-partition of the O-H face (exact core cuts) | ready (after 0082; not alongside 0084) | 0005, 0010 |
+| [0089](0089-richardson-growing-differences.md) | `richardson()`: no order when differences grow; recheck accepted cases | ready | 0015 |
+| [0090](0090-shared-parallel-openfoam-runs.md) | Parallel OpenFOAM runs in the shared helpers, used by every driver | ready | 0012, 0025 |
 
 ### Validation
 
@@ -121,6 +124,15 @@ identical meshes, task 0065's method.
 after 0082 and 0083.  The default flips only in 0087 (version 0.4.0, a
 breaking change for `nrad` on rectangular cores).  0072 (square bend)
 waits for 0084 so it runs on the H section.
+
+**`n_outer` sub-partition (2026-11-02, decision 0005):** 0088 after 0082,
+not at the same time as 0084 (both edit `sections/oh.py`).  Low
+priority: no fitting needs `n_outer = 8` yet.  Do it before the next
+junction template that wants corners at 0°/90°.
+
+**After task 0071 (2026-11-02):** 0089 soon: it may change an accepted
+case's gate, and 0084 gates its H series with it.  0090 before 0084's
+OpenFOAM levels and 0072.
 
 **Current order (2026-10-28, design, revised):** finish the task in
 progress (0034), then **multi-layer junctions: 0051 → 0052 → 0056 → 0053 →

@@ -3,7 +3,8 @@
 - **Status:** ready (after 0082, 0083)
 - **Decision:** [0036 — Cartesian (H) rectangular section](../decisions/0036-cartesian-rectangular-section.md) (items 2–4, rollout step 1); [0037](../decisions/0037-capability-boundaries.md) (the shared section interface); DESIGN A4, §6.1 "Sections"
 - **Depends on:** 0082 (the O-H layout in `sections`), 0083 (the shape
-  protocol).
+  protocol); 0089 (Richardson) before step 8; 0090 (parallel runs)
+  helps step 8.
 
 Ground rules for all tasks: [README](README.md#ground-rules).  This task
 works in `sections/`, `core/` and `assembly/`, and in
@@ -77,7 +78,16 @@ stays `"oh"` until task 0087.
    - RESULTS.md: control, H and O-H side by side;
    - `case.json`: the H series becomes the accepted hexmesh result.
 
-   If task 0071 is still in progress, coordinate in its *Agent notes*.
+   - Task 0071 is done: extend its driver, which already has the
+     control at these levels, and reuse the control results.
+   - Convergence: don't gate on `residualControl` for `U`.  Its
+     transverse components never settle when they are exactly zero
+     (`docs/integrations/openfoam.md`, 2026-11-02).  Use `p` and the
+     axial component, or the measured quantities.
+   - Richardson through task 0089's shared function (do 0089 first).
+   - The u_c gate is net of the centre fit's bias: decision 0015
+     amendment 3.  Compare F(u_h) against F(u_exact) at the same faces.
+     The driver already computes F(u_exact) (`u_c_sampling_err`).
 
 **Accept.**
 - The kit passes for every sweep on H; the agreement test from 0082

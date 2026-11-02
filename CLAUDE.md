@@ -93,8 +93,10 @@ radii only.  Topology and density must match.
 - **Why `n_outer = 8` is rejected:** today's `build_oh_circle8` makes one
   8-sided centre patch, which can't bound a transfinite hex block
   (DESIGN §9).
-- **Open question:** whether `n_outer = 8` should instead be a
-  sub-partition of the 4-corner grid is decision 0005 (proposed).
+- **Decided (decision 0005, accepted 2026-11-02):** `n_outer = 8` is a
+  sub-partition of the 4-corner grid: the same mesh, cut along the
+  0°/90°/180°/270° grid lines.  Task 0088 replaces `build_oh_circle8`;
+  until then `check_supported` still rejects it.
 - **Junction relevance:** junctions need corners at 0°/90°/180°/270°
   (DESIGN §7).  The wye's background is in `docs/RESEARCH.md` §4.
 

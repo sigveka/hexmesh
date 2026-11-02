@@ -19,7 +19,7 @@ rejected.  Records are written in design sessions, and they are the only way
 | [0002](0002-equipment-nozzle-boundaries.md) | Equipment nozzles as network boundaries | accepted |
 | [0003](0003-drum-body-and-shell-nozzles.md) | Drum bodies, shell nozzles and density changes | proposed |
 | [0004](0004-retire-legacy-api.md) | Retire the legacy API | accepted |
-| [0005](0005-n-outer-as-sub-partition.md) | `n_outer = 8` as a sub-partition of the 4-corner grid | proposed |
+| [0005](0005-n-outer-as-sub-partition.md) | `n_outer = 8` as a sub-partition of the 4-corner grid | accepted (exact core cuts required) |
 | [0006](0006-layer-stack-changes-in-sweeps.md) | Layer-stack changes inside sweep fittings | accepted |
 | [0007](0007-alternative-realisation-backends.md) | Alternative realisation backends (Cubit rejected) | proposed |
 | [0008](0008-profiled-sweep.md) | Profiled sweep: a varying-radius fitting | accepted |
