@@ -60,6 +60,26 @@ re-importing.
 recorded in the model now, serialised later); cross-document
 references.
 
+**Design note (2026-11-02, decision 0037 items 4–5; DESIGN §3.1).**  Two
+additions while you're in the interchange:
+1. **Readers move to `hexmesh.interchange.importers`** (decision 0032
+   §8).  Today `io.readers` imports `interchange.build`, which puts
+   `io` on both sides of the assembly.
+   - Keep `hexmesh.io.readers` as a re-export, since it's public in
+     API.md ("Readers"): plain re-export, no warning yet.
+   - Update API.md's heading to name the new home.
+   - Remove the `io.readers` → `interchange` entry from
+     `tests/test_architecture.py`'s allowlist (task 0081, if done).
+2. **Split `interchange/build.py` along its concerns** as you add the
+   selections: parts-graph analysis (pieces, tree checks, roots, ends),
+   insulation planning, and the mapping to fittings.  No behaviour
+   change in the split itself; keep it a separate commit from the
+   operations.
+
+Both are covered by the existing "no behaviour change" method (task
+0065).  If they make this task too large, do them as a separate task
+right after it and say so in *Outcome*.
+
 ## Agent notes
 
 _None yet._

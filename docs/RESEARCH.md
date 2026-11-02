@@ -712,6 +712,9 @@ objects abort on the local OpenFOAM build (`docs/integrations/openfoam.md`).
 | Laminar helical pipe | De Amicis et al. 2014; Manlapaz & Churchill 1980 (§7.9) | `SplinePipe` | task 0075 |
 | FDA benchmark nozzle | three-laboratory PIV (Hariharan et al. 2011; §7.9) | flow restrictions (decision 0021 stage 1), stack changes | planned, after stage 1 |
 | Symmetric bifurcation (Zhao & Lieber 1994) | LDA, Re 518–2089 (§7.9) | `Wye` with unequal daughters | planned, after the wye redesign |
+| Taylor bubble, stagnant liquid (VOF) | Nogueira et al. 2004 (UB, δ); Viana et al. 2003 correlation (§7.10) | straight pipe, closed end; interface on an O-H mesh | task 0079 |
+| Vertical bubbly pipe (Euler–Euler) | Hibiki et al. 2001; HZDR MT-Loop (§7.10) | straight pipe; tests closures more than the mesh | planned, later |
+| Gas–liquid phase split at a tee | Conte 2000 and others (§7.10) | `Tee` | planned, later |
 | Laminar 90° square bend, Re 790 | LDA profiles (Taylor, Whitelaw & Yianneskis 1982; §7.8) | duct bends | task 0072 |
 | Circle-to-rectangle transition duct (turbulent) | Davis & Gessner 1992 (§7.8) | `Transition` | planned, after 0049 |
 | Square-duct turbulence | KIT DNS (Pinelli et al. 2010; §7.8) | straight ducts; tests the turbulence model | planned, later |
@@ -865,6 +868,169 @@ decision 0012):
 4. **Zhao & Lieber** (V3, wye; after the redesign adds unequal
    daughters);
 5. **tee and duct-tap loss coefficients** (V4, after the RANS cases).
+
+### 7.10 Multiphase validation references (surveyed 2026-11-01, design session)
+
+**Order:**
+1. **Interface-resolving (VOF), no closures:** tests the mesh.  First.
+2. **Euler–Euler bubbly flow:** tests drag, lift and wall-lubrication
+   closures more than the mesh, as RANS does for secondary flows (§7.8).
+3. **Junction and bend phase split:** regime-dependent.  Last.
+
+No open, downloadable pipe dataset was found.  The data below are
+tables or figures in papers.
+
+**1. A Taylor bubble rising in stagnant liquid** (a long gas bubble in a
+closed vertical tube; `interFoam`).
+
+- **Rise velocity, V4:** [`viana_and_pardo_etal_2003`] (*JFM* 494; PDF
+  in `docs/papers/`).
+  - 262 experiments, viscosities 1–3900 mPa s.
+  - Variables: Fr = U/√(gD); buoyancy Reynolds number
+    R = √(D³g(ρl−ρg)ρl)/μ; Eo = ρl g D²/σ.
+  - **The correlation:**
+
+    $$\mathrm{Fr} = \frac{A}{\left(1 + (R/B)^C\right)^{G}}, \qquad
+    G = m/C,$$
+
+    each of A, B, C being $L[\mathrm{Eo}; \cdot] = a/(1 + (\mathrm{Eo}/b)^c)^d$, with:
+    - A: (0.34, 14.793, −3.06, 0.58);
+    - B: (31.08, 29.868, −1.96, −0.49);
+    - C: (−1.45, 24.867, −9.93, −0.094);
+    - m = −1.0295.
+  - **Limits:** for R > 200, Fr = 0.34/(1 + 3805/Eo^3.06)^0.58.  Above
+    Eo ≈ 40, surface tension doesn't matter.
+  - **Accuracy:** most data within 10 %, all within 20 %.
+  - **Classical inviscid values:** Fr = 0.351 (Dumitrescu 1943) and
+    0.328 [`davies_and_taylor_1950`].
+  - **Model:** an ellipsoidal-cap model reproduces the rise velocity
+    [`funada_and_joseph_etal_2005`] (PDF).
+- **Rise velocity and film thickness, V3:**
+  [`nogueira_and_riethmuller_etal_2004`] (ENCIT 2004; PDF).
+  - 32 mm acrylic column, 6 m tall; aqueous glycerol.
+  - Rise velocity UB timed by two photocells 0.25 m apart.
+  - PIV plus pulsed shadowgraphy of the nose; the film thickness δ
+    measured.
+  - **Table 1, stagnant cases** (ρ in kg/m³; R and Fr computed here;
+    Viana evaluated at σ = 0.065 N/m, which hardly matters at Eo ≈ 155–195):
+
+  | μ (Pa s) | ρ | UB (m/s) | δ (mm) | δ/D | R | Fr measured | Fr Viana | Viana − measured |
+  |---|---|---|---|---|---|---|---|---|
+  | 1.500 | 1262.0 | 0.120 | 5.14 | 0.161 | 15 | 0.214 | 0.129 | −40 % |
+  | 0.200 | 1232.8 | 0.188 | 3.84 | 0.120 | 111 | 0.336 | 0.306 | −9 % |
+  | 0.109 | 1221.8 | 0.197 | 3.27 | 0.102 | 201 | 0.352 | 0.324 | −8 % |
+  | 0.043 | 1199.9 | 0.197 | 2.40 | 0.075 | 500 | 0.352 | 0.336 | −5 % |
+  | 0.014 | 1169.9 | 0.197 | 1.84 | 0.058 | 1500 | 0.352 | 0.339 | −4 % |
+  | 0.001 | 1000.0 | 0.197 | 1.17 | 0.037 | 17 900 | 0.352 | 0.340 | −3 % |
+
+  - **The two references disagree at 1.5 Pa s by 40 %**, far outside
+    Viana's stated scatter.  Unresolved: check Viana's data near
+    R ≈ 15, Eo ≈ 200, and Nogueira's viscosity.
+  - In the inertial range they agree within 3–9 %, Viana lower.
+  - Four stagnant cases give UB = 0.197 m/s (Fr 0.352), Dumitrescu's
+    value.  They are measured, not assumed.
+  - The co-current cases test UB = c·UL + Fr√(gD) with c ≈ 2.0
+    (laminar).
+- **Local field, V3:** [`bugg_and_saad_2002`] (*IJMF* 28; paywalled).
+  - PIV ahead of the bubble, in the falling film and in the wake; olive
+    oil, Eo 100, Mo 0.015, Re 27.
+  - The bubble shape was traced by hand from the PIV images, so the
+    near-interface velocities and the shape are uncertain (as Nogueira
+    et al. note).
+  - Figures only: digitise if used.
+- **Turbulent counterpart (later):** van Hout et al. 2002, in water at
+  Re ≈ 4350.
+
+**2. Vertical bubbly pipe flow, Euler–Euler** (later).
+- [`hibiki_and_ishii_etal_2001`] (*IJHMT* 44; paywalled): air–water,
+  50.8 mm, upflow; void fraction, interfacial area, bubble size and
+  liquid velocity at 15 radial positions on 3 axial stations.
+- HZDR MT-Loop and TOPFLOW (wire-mesh sensors, 50 and 200 mm): the
+  basis of HZDR's baseline closures.  The RODARE record 2578 is
+  restricted: ask HZDR.
+
+**3. Tees and bends** (later).
+- **Tee phase split:** Conte (PhD, Nottingham 2000; core.ac.uk blocked
+  the download); an inclined air–water tee with PIV (Loureiro, UFRJ
+  2019; the link now returns an HTML page); a UTP CFD study validated
+  on Wren's data.
+- **90° bend:** an IAEA gamma-CT study (Euler–Euler with k-ε); an RMIT
+  thesis (150 mm vertical-to-horizontal bend, tomography).  The Zakho
+  bend record on Zenodo (3510163) holds only the paper, no data.
+
+### 7.11 Rectangular duct: the O-H face against a Cartesian grid (task 0071)
+
+Measured 2026-11-02 (design session): hexmesh `8b0dc98` plus the
+uncommitted task 0071 driver, gmsh 4.12.1, OpenFOAM v2406 (Docker).
+Fully developed laminar flow, Re 100 on D_h, exact inlet profile;
+`nang_h` 6 · k, `nang_w` = `nang_h` · a/b, `nrad` 3 · k, k = 1, 2, 4.
+
+**OpenFOAM, the O-H section (signed f·Re error against Shah & London):**
+
+| a/b | k = 1 | k = 2 | k = 4 | three-level order |
+|---|---|---|---|---|
+| 1 | +2.65 % | +1.97 % | **+1.16 %** | undefined: differences grow (0.39, 0.46) |
+| 2 | +0.45 % | +0.70 % | +0.48 % | undefined: non-monotone |
+| 4 | −0.66 % | +0.08 % | (running) | sign change |
+
+- Max non-orthogonality 39.8° / 42.5° / 43.8° (square): it doesn't fall
+  with refinement.  Min scaled Jacobian 0.707 at every level (the 45°
+  corner cells).
+- The square fails task 0071's fine-level gate (< 1 %), and Richardson
+  extrapolation (decision 0015) has no asymptotic range to work with.
+
+**Controlled comparison (2-D).**  The fully developed problem is the
+2-D Poisson problem ∇²u = −G/ν with u = 0 on the walls.  A Python
+finite-volume solver with OpenFOAM's `Gauss linear corrected` Laplacian
+(over-relaxed, explicit non-orthogonal correction iterated to
+convergence, boundary `nonOrthDeltaCoeffs`) was run on the O-H face
+(`build_oh_rect`'s geometry: uniform ring, `OH_RATIO` 0.6) and on a
+uniform Cartesian grid with the same cell count.  It reproduces
+checkMesh's non-orthogonality exactly (39.8°, 42.5°, 43.8°) and
+OpenFOAM's f·Re errors in sign and trend (+2.2 / +1.8 / +1.1 % against
++2.65 / +1.97 / +1.16 %); the 3-D runs add p–U coupling.
+
+Square, f·Re error and observed order per refinement:
+
+| cells | O-H | p | Cartesian | p |
+|---|---|---|---|---|
+| ~110 | +2.23 % | | −3.65 % | |
+| ~440 | +1.77 % | 0.33 | −0.86 % | 2.08 |
+| ~1 750 | +1.06 % | 0.74 | −0.22 % | 1.99 |
+| ~6 900 | +0.58 % | 0.88 | −0.06 % | 1.96 |
+| ~27 600 | +0.30 % | 0.94 | −0.014 % | 2.00 |
+
+- a/b = 2 and 4: the O-H errors are smaller when coarse (cancellation:
+  +0.19 %, −0.78 %) but change direction under refinement (p = −1.5,
+  −2.3, as OpenFOAM shows); Cartesian p = 2.00 at every ratio.
+- `OH_RATIO` 0.4 / 0.6 / 0.8: order 0.50 → 0.92 / 0.33 → 0.88 / erratic
+  (4.0, −0.5, 0.2).  The inner-square size doesn't fix it.
+- Cost: the Cartesian grid at ~1 750 cells is more accurate than the
+  O-H face at ~27 600 (16× the section cells; more in 3-D).
+
+**Why.**  The O-H face on a rectangle has 8 irregular vertices (4
+interior, valence 3; 4 wall corners split 45/45) that a rectangle
+doesn't need.  The faces along the corner diagonals stay ~45°
+non-orthogonal at every level, so the corrected scheme's error there is
+not second order.  This is decision 0022's option B (a corner-free
+control) obtained for free: same solver, same cell count, the only
+difference is the corners, and the order goes from ≈ 0.3–0.9 to 2.  It
+supports, for rectangles, the corner explanation that decision 0022
+left as a correlation for circles.  It does not prove that the circle's
+order 1.25–1.5 has the same cause (the circle's corners are 135°
+kinks, not 45° diagonals).
+
+**The O-H face is a pillowed Cartesian face.**  Pillowing an nx × ny
+grid along its whole boundary inserts one ring of cells with a diagonal
+edge at each corner: exactly the 5-patch O-H face with `nang_w` = nx,
+`nang_h` = ny, `nrad` = 1.  So H ↔ O-H is a class-1 change (§9.6): the
+O-H face has `nrad` closed chords (the ring) on top of the H face's
+open ones.  In 3-D the ring's tube sheets end in the switch fitting,
+capped (a cup open toward the O-H side) or turned out to the wall.
+
+**For hexmesh.**  Decision 0015 amendment 2 (rectangular sections are
+gated on a Cartesian control mesh); decision 0036 (proposed: a Cartesian
+rectangular section and an O-H ↔ H switch).
 
 ## 8. Proposed hexmesh actions
 
@@ -1375,6 +1541,265 @@ marked where they rest on snippets.
    CFD literature found: an opportunity, but low priority.
 
 ---
+
+## 11. Pipe-in-pipe, umbilicals and rod bundles (surveyed 2026-11-01, design session)
+
+Three cross-sections beyond a single pipe with concentric shells.  No
+published method gives a conformal all-hex 3-D mesh of an umbilical.
+Rod bundles have one: slice-and-stack, then mesh deformation.
+
+### 11.1 Two topologies
+
+- **Concentric (pipe-in-pipe):** one core, nested annuli.  The layer
+  stack covers it.
+- **Multi-core:** N circular inclusions inside one outer boundary.
+  - The region between the inclusions is multiply connected.
+  - The 5-patch O-H face can't represent it: it needs a new section
+    type.
+  - Umbilicals, nuclear rod bundles, tube-bundle heat exchangers and
+    multi-core cables are all this topology.  **What differs is which
+    regions are fluid:**
+
+| | inclusions | between them | outer boundary | axial features |
+|---|---|---|---|---|
+| **Umbilical** | tubes: **fluid** inside a steel wall; cables: solid layered | solid filler (PVC, PE profiles) | circular sheath | helical lay; terminations, bend stiffeners |
+| **Rod bundle** (nuclear fuel) | solid rods (fuel, gap, cladding) | **fluid**: coolant in narrow gaps (pitch/diameter 1.1–1.3) | hexagonal or square duct (wrapper) | helical wire wraps or spacer grids |
+| **Tube-bundle heat exchanger** | fluid (tube side) | fluid (shell side) | circular shell | baffles |
+
+### 11.2 Pipe-in-pipe
+
+**Construction:**
+- an inner flowline;
+- an annulus: air, a partial vacuum, a different gas, or microporous
+  insulation;
+- an outer carrier pipe.
+
+**Axial features:** bulkheads seal the annulus at intervals, and
+spacers or centralisers carry the inner pipe; they are designed to
+limit heat transfer ([USPTO 10221983], [USPTO 11280442]).
+
+**Performance:** an overall U of 0.5–1 W/m²K, below 0.5 with a partial
+vacuum or another annulus gas (OE Digital, "Pipe-in-pipe solutions").
+
+**Bundles:** a carrier pipe may hold several inner pipes and
+umbilicals, free to slide axially.  Subsea 7 quotes depths of about
+1100 m with a carrier and 1400+ m for open carrierless bundles (*Deep7*,
+May 2013).  A carrier bundle is multi-core.
+
+**Fit with hexmesh:**
+- the section is a layer stack;
+- a gas annulus is a second fluid region (CHT with two fluids; check
+  that a shell may be a fluid);
+- a bulkhead is a layer changing material along the run (decision 0021
+  stage 1: layer name vs material);
+- spacers are local features.
+
+### 11.3 Umbilicals
+
+**Thermal analysis is 2-D:**
+- coupled electro-thermal-fluid models, where the fluid inside the
+  tubes changes the section temperature strongly; insulation ageing
+  mainly shifts the maximum temperature (CAST journal);
+- steady thermal analysis, then thermo-elastic, which differs from a
+  purely mechanical one (OMAE 2019-96195);
+- finite elements over a central pipe, a PVC matrix, metal tubes, power
+  and fibre-optic cables (IEEE ECCE 2015);
+- J-tube studies improve with convection inside the filler (OMAE
+  session 04-01-05).
+
+**Tools:** COMSOL cable cross-sections (JDR); SINTEF UFLEX for stress.
+
+**Mechanics:**
+- helical armours and tubes as slender beams with penalty contact,
+  validated against tests (Sævik & Gjøsteen, *J. Appl. Math.* 2012);
+- full 3-D FE with friction and contact (Lu et al., ASME 2017, DUT);
+- the lay angle controls tensile and torsional stiffness, friction the
+  bending stiffness (power-umbilical sensitivity study);
+- CableCAD auto-meshes cable sections; large lay angles make
+  non-circular "bean" sections (Sea Technology reprint).
+
+**Helical geometry in general meshers:**
+- pre-processors fall back to free triangulation (Edinburgh, helical
+  shells, *Computers & Structures* 2014);
+- long-pitch helices give huge tet meshes (eng-tips);
+- sweep meshing can follow a helix when the section is constant
+  (COMSOL, ANSYS forums).
+
+### 11.4 Rod bundles
+
+**Hex meshing methods:**
+- **slice-and-stack:** a structured 2-D cross-section, extruded and
+  stacked axially (KNS, M&C 2017);
+- **straight first, then deform:** mesh the bare-rod bundle, then
+  deform the mesh to follow the helical wire with radial basis
+  functions.  Wire-wrapped assemblies are hard to mesh with good
+  quality (*Front. Energy Res.* 2020, 10.3389/fenrg.2020.616890);
+- **marked-and-separated:** the wire is described by locus equations
+  rather than meshed geometry (sodium-cooled fast-reactor literature).
+
+**DNS:** Nek5000 in hexagonal subchannels (arXiv 2308.15561) and a 5×5
+square bundle at Re 19 000.  High-resolution validation data for
+wire-wrapped bundles is scarce (INL NEUP abstract CFA-17-12502).
+
+**What sets rod bundles apart from umbilicals:**
+- the fluid is the narrow gaps, needing near-wall resolution on every
+  rod, in every gap;
+- the outer boundary is a polygon;
+- lattices are large (37–271 rods);
+- wire contact points are singular;
+- spacer grids aren't sweepable at all.
+
+It's a mature field with established tools and its own benchmarks.
+
+### 11.5 Proposed hexmesh method (design session; not from the literature)
+
+**Cell-decomposed sections:**
+- give each inclusion a cell: the Voronoi cell of the inclusion
+  centres, clipped by the outer boundary;
+- mesh each cell as an O-grid around its circular inclusion, with the
+  cell polygon as its outer outline.  That generalises decision 0026's
+  circle-in-rectangle to circle-in-polygon;
+- neighbouring cells share edges with equal counts, so the section is
+  conformal by construction.
+
+For a lattice the cells are the regular polygons: hexagons for a
+triangular lattice, squares for a square lattice.  These are the
+*rod-centred* cells.  Subchannel-centred cells are the dual.
+
+**Helical lay as a twist:**
+- every axial station is rotated by 2π per lay length;
+- umbilical lay lengths of about 5–30 m against 0.1–0.3 m diameters
+  give little skew;
+- per-station frames already carry a roll.
+
+**Scope:**
+- umbilicals need straights, bends and splines, but no tees;
+- rod bundles need straights only, but wire wraps (contact) and spacer
+  grids are out of reach of a sweep.
+
+**The hard part:** fittings sweep the 5-patch O-H face today.  A
+multi-core section needs fittings that sweep **any** blocked section:
+new port signatures, and the "topology must match" rule generalised to
+a section's block graph.
+
+### 11.6 Assessment
+
+- **Pipe-in-pipe:** near-term, on the layer stack plus decision 0021
+  stage 1 (bulkheads).
+- **Umbilical bundles:** a new capability with no published competitor
+  for 3-D conformal hex meshes.  3-D matters at terminations, bend
+  stiffeners, J-tube entries and burial transitions; elsewhere 2-D is
+  industry practice.
+- **Rod bundles:** the same section machinery, but a crowded field.
+  The value is narrower: bare or helically twisted bundles, for
+  verification and teaching.  The production cases (wire contact,
+  spacer grids) are beyond sweeping.  Nek5000 users are the audience
+  (decision 0034).
+
+## 12. Code structure: coupling and cohesion (surveyed 2026-11-02, design session)
+
+hexmesh `8b0dc98`, 16 900 lines in `hexmesh/`, 671 tests.  Measured
+with an AST import graph (module and package edges, cycles, fan-in and
+fan-out, function-level imports, private names imported across
+modules) and greps for shape-specific code.  The target is loosely
+coupled capabilities, each with high cohesion.
+
+### 12.1 What holds
+
+- **The package graph is layered.**  `core` (shapes, specs, cross
+  sections) depends on nothing above it: `core.shape` has fan-out 0 and
+  fan-in 16.  `faces` → `core`; `assembly` → `core`, `faces`;
+  `interchange` → `assembly`; `study` → `assembly`, `io`.  No two
+  packages import each other.
+- **GMSH is confined.**  The fitting descriptions (`fittings.py`,
+  `tee.py`, `wye.py`, `duct_tap.py`) make no `gmsh` calls; they describe
+  sweeps and `BlockLayout`s, and shared builders realise them (DESIGN
+  §6.1).  `core` makes none.  GMSH calls live in `assembler.py` (30),
+  `_occ.py` (15), `blocks.py`, `corners.py`, `faces/`.
+- **The fitting contract is duck-typed** (`resolve`, `validate`,
+  `cell_count`, `fill`): new fittings don't edit the assembler, with
+  one exception (§12.2, item 6).
+
+### 12.2 Where it doesn't hold (ranked by what it blocks)
+
+1. **Section topology is not a capability.**  The O-H face is described
+   in nine places that must agree:
+   - `core/shape.py`: `OH_RATIO`, `oh_core_wall_span`, `ring_corners`;
+   - `core/cross_section.py`: `CrossSection` *is* the O-H face (inner
+     points, radials, corner angles: 22 references);
+   - `faces/oh_circle.py`, `oh_rect.py`, `oh_blend.py`, `annulus.py`:
+     one GMSH builder per shape, each rebuilding the layout;
+   - `assembly/interface.build_face`: `isinstance` dispatch to builders;
+   - `assembly/blocks.face_vertices`, `_rect_face_vertices`,
+     `face_patches`: a **second, independent** description of the same
+     face for block fittings.  The rectangle's ring inset
+     `(1 − ratio) · min(half_w, half_h)` is written twice, in
+     `oh_rect.py` and `blocks.py`;
+   - `assembly/corners.py`, `assembly/signature.py` (`"oh_core"`),
+     `core/spec.py` (`n_outer`, the `nang` constraint).
+
+   A new section type (decision 0036's H face, decision 0035's
+   multi-core sections) touches all nine.
+
+2. **Shape behaviour is switched on type, not owned by the shape.**
+   About 108 shape-specific sites in 17 modules (`isinstance` on
+   shapes, `shape.radius` / `half_w` / `nang_w` reach-ins); 89 of them
+   outside the shape and face builders.  Most: `interchange/build.py`
+   25, `assembly/tee.py` 15, `core/spec.py` 13, `assembly/wye.py` 8,
+   `io/readers/pcf.py` 6, `assembly/interface.py` 6.  Questions a shape
+   should answer (outer radius, half extent at an angle, hydraulic
+   diameter, side counts) are free functions in `interface.py`.
+
+3. **Contracts leak across packages.**  `interchange/build.py` imports
+   `assembly.fittings._with_radii` and `assembly.wye._IN_MARGIN`;
+   `blocks.py` imports `sweep._ruled`; `fittings.py` imports
+   `sweep._check_n_layers`.  `hexmesh._occ` is imported by 8 modules in
+   two packages: shared, so it is a public internal API in all but
+   name.
+
+4. **`io` straddles the layers.**  `assembly.assembler` imports
+   `io.writers.openfoam_boundary` (below the assembly), while
+   `io.readers.pcf` imports `interchange.build` (above it).  At package
+   level that is the cycle `assembly → io → interchange → assembly`;
+   only the readers/writers split keeps the modules acyclic.  Decision
+   0032 §8 already places importers with the interchange.
+
+5. **Low-cohesion modules.**
+   - `interchange/build.py`, 1 309 lines, ~45 private functions: parts
+     graph analysis, insulation planning, equipment ends, junction
+     choice and the mapping to fittings in one module.
+   - `assembly/fittings.py`, 1 033 lines: seven fittings plus spline
+     maths and layer-stack helpers.
+   - `Assembly`, 45 methods: graph editing, validation, GMSH build,
+     physical groups, wall projection, meshing, output and quality.
+     A façade is right; doing the work itself (30 GMSH calls) is not.
+   - `assembly/tee.py`: the duct taps' blocks are in `duct_tap.py`, but
+     their front end (geometry, resolution, checks) is methods of the
+     pipe tee's class, branching on shape 15 times.  DESIGN §6: "new
+     fitting variants are new templates, not special cases inside
+     existing ones."
+
+6. **Smaller.**
+   - Two module cycles, hidden by function-level imports:
+     `assembler` ↔ `intent`, `interchange.build` ↔ `interchange.model`.
+     Further function-level imports `blocks` → `corners`, `intent` →
+     `equipment`, `interface` → `limits` are worth checking for the
+     same.
+   - The assembler names fitting types (`isinstance(fitting, (Bend,
+     Elbow, MiterBend))` for the radians warning; `prepend` takes
+     `Straight` only).
+   - DESIGN §9's deviations table lists legacy modules deleted in task
+     0017 (`Network.add`, `y_block.py`, `connect()`), and none of the
+     deviations above, so it no longer tracks the code.
+
+### 12.3 Assessment
+
+Not spaghetti: the layering, the GMSH boundary and the fitting contract
+hold.  The weakness is concentrated: a missing **section** capability
+(items 1–2), which every planned section type runs into, and two
+oversized modules at the edges (`interchange/build.py`,
+`fittings.py`).  Items 3–4 are cheap to fix and stop the leaks from
+growing.  Decision 0037 (proposed) sets the boundaries.
 
 ## Source availability
 

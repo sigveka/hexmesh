@@ -963,6 +963,7 @@ Planned:
 | [0050: Validation: turbulent flow in a 90° bend (Sudo et al. 1998)](tasks/0050-validation-turbulent-bend.md) | ready (after 0049) |
 | [0072: Validation (V3): laminar flow in a 90° square-duct bend (Taylor, Whitelaw & Yianneskis, Re 790)](tasks/0072-validation-laminar-square-bend.md) | ready (after 0071) |
 | [0075: Validation (V3): laminar flow in a helical pipe (spline pipe)](tasks/0075-validation-helical-pipe.md) | ready (on the v2406 runner) |
+| [0079: Validation (V3): a Taylor bubble rising in stagnant liquid (VOF)](tasks/0079-validation-taylor-bubble.md) | ready (on the v2406 runner) |
 
 ### V4: correlation or standard
 
@@ -972,22 +973,22 @@ _No cases yet._
 
 Which hexmesh features each case exercises (decision 0012's fixed list). Marks: ● accepted, ◐ in progress, ○ planned, ✗ rejected; planned cases are named by task.  Rows marked *(none)* have no validation case, existing or planned.
 
-| Feature | heated_pipe<br>V1 | heated_rod<br>V1 | layered_conduction<br>V1 | poiseuille<br>V1 | stenosis<br>V2 | stenosis_pulsatile<br>V2 | womersley<br>V1 | 0049<br>V2 | 0050<br>V3 | 0071<br>V1 | 0072<br>V3 | 0074<br>V1 | 0075<br>V3 | 0077<br>V1 |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `section:circle` | ● | ● | ● | ● | ● | ● | ● | ○ | ○ |  |  | ○ | ○ | ○ |
-| `section:rect` |  |  |  |  |  |  |  |  |  | ○ | ○ | ○ |  |  |
-| `layers` | ● |  | ● |  |  |  |  |  |  |  |  | ○ |  |  |
-| `straight` | ● | ● | ● | ● | ● | ● | ● | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
-| `bend` |  |  |  |  |  |  |  |  | ○ |  | ○ | ○ |  | ○ |
-| `miter` |  |  |  |  |  |  |  |  |  |  |  | ○ |  |  |
-| `spline` |  |  |  |  |  |  |  |  |  |  |  | ○ | ○ |  |
-| `profiled-reducer` |  |  |  |  | ● | ● |  |  |  |  |  | ○ |  |  |
-| `transition` |  |  |  |  |  |  |  |  |  |  |  | ○ |  |  |
-| `tee` |  |  |  |  |  |  |  |  |  |  |  | ○ |  | ○ |
-| `duct-tap` |  |  |  |  |  |  |  |  |  |  |  | ○ |  |  |
-| `wye` |  |  |  |  |  |  |  |  |  |  |  | ○ |  |  |
-| `stack-changes` |  |  |  |  |  |  |  |  |  |  |  | ○ |  |  |
-| `projection` |  |  |  |  |  |  |  |  |  |  |  | ○ |  | ○ |
+| Feature | heated_pipe<br>V1 | heated_rod<br>V1 | layered_conduction<br>V1 | poiseuille<br>V1 | stenosis<br>V2 | stenosis_pulsatile<br>V2 | womersley<br>V1 | 0049<br>V2 | 0050<br>V3 | 0071<br>V1 | 0072<br>V3 | 0074<br>V1 | 0075<br>V3 | 0077<br>V1 | 0079<br>V3 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `section:circle` | ● | ● | ● | ● | ● | ● | ● | ○ | ○ |  |  | ○ | ○ | ○ | ○ |
+| `section:rect` |  |  |  |  |  |  |  |  |  | ○ | ○ | ○ |  |  |  |
+| `layers` | ● |  | ● |  |  |  |  |  |  |  |  | ○ |  |  |  |
+| `straight` | ● | ● | ● | ● | ● | ● | ● | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
+| `bend` |  |  |  |  |  |  |  |  | ○ |  | ○ | ○ |  | ○ |  |
+| `miter` |  |  |  |  |  |  |  |  |  |  |  | ○ |  |  |  |
+| `spline` |  |  |  |  |  |  |  |  |  |  |  | ○ | ○ |  |  |
+| `profiled-reducer` |  |  |  |  | ● | ● |  |  |  |  |  | ○ |  |  |  |
+| `transition` |  |  |  |  |  |  |  |  |  |  |  | ○ |  |  |  |
+| `tee` |  |  |  |  |  |  |  |  |  |  |  | ○ |  | ○ |  |
+| `duct-tap` |  |  |  |  |  |  |  |  |  |  |  | ○ |  |  |  |
+| `wye` |  |  |  |  |  |  |  |  |  |  |  | ○ |  |  |  |
+| `stack-changes` |  |  |  |  |  |  |  |  |  |  |  | ○ |  |  |  |
+| `projection` |  |  |  |  |  |  |  |  |  |  |  | ○ |  | ○ |  |
 
 ---
 

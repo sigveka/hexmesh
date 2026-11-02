@@ -7,6 +7,12 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 
 ## Index
 
+Two tables.  A task is **validation** when its file carries a
+`- **Category:** Vn` line (decision 0012; the gallery's coverage matrix
+reads it); everything else is **development**.  Numbers are shared.
+
+### Development
+
 | Task | Title | Status | Decision |
 |---|---|---|---|
 | [0000](0000-keep-face-grading.md) | Keep face-builder grading through meshing (bug fix) | done | 0001 |
@@ -29,7 +35,6 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0017](0017-delete-legacy.md) | Delete the legacy code | done | 0004 |
 | [0018](0018-layer-termination-in-sweep.md) | Layer termination in `Sweep` (insulation stops and starts) | done | 0006 |
 | [0019](0019-port-face-signatures-and-classifier.md) | Port-face signatures and the topology-switch classifier | done | 0011 |
-| [0020](0020-validation-poiseuille.md) | Validation: laminar Hagen–Poiseuille pipe, three refinement levels | done | 0012, 0015 |
 | [0021](0021-pcf-reader-spec-conformance.md) | PCF reader: conform to the PCF reference guide (bug fixes) | done | 0004 |
 | [0022](0022-rename-interface-groups.md) | Rename material-interface groups to `interface_<inner>_<outer>` | done | 0013 |
 | [0023](0023-boundary-role-manifest-and-retyping.md) | Boundary-role manifest and OpenFOAM patch retyping | done | 0013 |
@@ -41,10 +46,6 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0029](0029-transition-circle-rectangle.md) | `Transition`: circle ↔ rectangle and rectangle ↔ rectangle sweeps | done | 0009 |
 | [0030](0030-wye-prototype.md) | Wye prototype: symmetric Y-junction as a block layout | done | 0017 |
 | [0031](0031-profiled-reducer.md) | Profiled `Reducer`: constrictions, venturis and nozzles | done | 0008 |
-| [0032](0032-validation-stenosis.md) | Validation: smooth cosine constriction (Varghese et al.), Re = 500 | done | 0008, 0012 |
-| [0033](0033-validation-heated-rod.md) | Validation: solid rod with uniform heat generation | done | 0012, 0015 |
-| [0034](0034-validation-layered-conduction.md) | Validation: conduction through a heated multi-layer cylinder (CHT, solids) | done | 0012 |
-| [0035](0035-validation-heated-pipe-cht.md) | Validation: heated multi-layer pipe with laminar flow (full CHT) | done | 0012 |
 | [0036](0036-linear-build-time.md) | Linear build time: fewer `synchronize` calls, and a build benchmark | done | 0020 |
 | [0037](0037-pcf-branched-networks.md) | PCF reader: branched networks and junctions | done | 0023 |
 | [0038](0038-pcf-insulation-and-equipment.md) | PCF reader: insulation and equipment connections | done | 0023 |
@@ -58,8 +59,6 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0046](0046-multi-layer-transition.md) | Multi-layer `Transition`: every outline blends along the axis | done | 0026 |
 | [0047](0047-skewed-rectangle-quality-limit.md) | Quality limit for rings with skewed corner lines (aspect-ratio sweep) | done | 0026 |
 | [0048](0048-layer-outline-examples.md) | Examples for layer outlines and multi-layer transitions | done | 0026 |
-| [0049](0049-validation-turbulent-pipe.md) | Validation: fully developed turbulent pipe flow (RANS, k-ω SST) | ready (after 0043) | 0012, 0015 |
-| [0050](0050-validation-turbulent-bend.md) | Validation: turbulent flow in a 90° bend (Sudo et al. 1998) | ready (after 0049) | 0012, 0015 |
 | [0051](0051-exact-junction-walls.md) | Exact junction walls (tee and wye) | done | 0028, 0029 |
 | [0052](0052-multi-layer-tee.md) | Multi-layer tee: shells as offset levels of the junction | done | 0028 |
 | [0053](0053-multi-layer-wye.md) | Multi-layer wye: shells as offset level sets | done | 0028 |
@@ -76,19 +75,43 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0064](0064-pcf-reader-robustness.md) | PCF reader robustness: annotations, unknown inline components, several networks | done | 0023 |
 | [0065](0065-network-model-and-builder.md) | Network interchange 1a: the network model, and the builder out of `pcf.py` | done | 0032 |
 | [0066](0066-network-model-operations.md) | Network interchange 1b: select, cut, join, merge, and the public API | ready (after 0065) | 0032 |
-| [0067](0067-validation-womersley.md) | Validation: Womersley flow (pulsatile laminar pipe flow, exact solution) | done | 0012, 0015 |
-| [0068](0068-validation-pulsatile-stenosis.md) | Validation: pulsatile flow through the cosine stenosis (Varghese et al., Part 2) | done | 0012, 0015 |
 | [0069](0069-duct-tap-pillow-prototype.md) | Prototype: duct tap with a pillowed ring (hole on the wall) | done (Q1 answered: B adopted, decision 0033) | 0033 |
 | [0070](0070-duct-tap-merge-into-tee.md) | Duct taps: the pillowed tap in `Tee` | done | 0033, 0027 |
-| [0071](0071-validation-rectangular-duct.md) | Validation (V1): fully developed laminar flow in rectangular ducts | ready | 0012, 0015 |
-| [0072](0072-validation-laminar-square-bend.md) | Validation (V3): laminar 90° square-duct bend (Taylor et al., Re 790) | ready (after 0071) | 0012, 0015 |
 | [0073](0073-validation-metadata-and-coverage.md) | Validation metadata (`case.json`), categories and a coverage matrix in the gallery | done (Q1, not blocking: `conduction` tag) | 0012 |
-| [0074](0074-validation-mms-conduction.md) | Verification (V1): manufactured solutions for conduction on every fitting's mesh | ready (v2406 runner) | 0012, 0015 |
-| [0075](0075-validation-helical-pipe.md) | Validation (V3): laminar flow in a helical pipe (spline pipe) | ready (v2406 runner) | 0012, 0015 |
 | [0076](0076-second-order-export.md) | Second-order mesh export: `Assembly.mesh(order=2)` | ready | 0034, 0029 |
-| [0077](0077-validation-fenicsx-second-order.md) | Verification (V1): FEniCSx toolchain, and second-order export checked end to end | ready (step 1 any time; 2–4 after 0076) | 0034, 0012, 0015 |
 | [0078](0078-readme-generated-sections.md) | README: generated numbers, validation table, hero image and checks | ready | — |
 | [0080](0080-installable-package.md) | Installable package: extras, version, console command, install smoke test | done | — |
+| [0081](0081-architecture-tests-and-contracts.md) | Architecture tests (DESIGN §3.1), and the cross-package leaks | ready | 0037 |
+| [0082](0082-sections-package-oh-layout.md) | `hexmesh.sections`: the O-H layout described once | ready (after 0081) | 0037 |
+| [0083](0083-shape-protocol.md) | Shapes own their behaviour: the shape protocol | ready (after 0082) | 0037 |
+
+### Validation
+
+| Task | Title | Category | Status | Decision |
+|---|---|---|---|---|
+| [0020](0020-validation-poiseuille.md) | Validation: laminar Hagen–Poiseuille pipe, three refinement levels | V1 | done | 0012, 0015 |
+| [0032](0032-validation-stenosis.md) | Validation: smooth cosine constriction (Varghese et al.), Re = 500 | V2 | done | 0008, 0012 |
+| [0033](0033-validation-heated-rod.md) | Validation: solid rod with uniform heat generation | V1 | done | 0012, 0015 |
+| [0034](0034-validation-layered-conduction.md) | Validation: conduction through a heated multi-layer cylinder (CHT, solids) | V1 | done | 0012 |
+| [0035](0035-validation-heated-pipe-cht.md) | Validation: heated multi-layer pipe with laminar flow (full CHT) | V1 | done | 0012 |
+| [0049](0049-validation-turbulent-pipe.md) | Validation: fully developed turbulent pipe flow (RANS, k-ω SST) | V2 | ready (after 0043) | 0012, 0015 |
+| [0050](0050-validation-turbulent-bend.md) | Validation: turbulent flow in a 90° bend (Sudo et al. 1998) | V3 | ready (after 0049) | 0012, 0015 |
+| [0067](0067-validation-womersley.md) | Validation: Womersley flow (pulsatile laminar pipe flow, exact solution) | V1 | done | 0012, 0015 |
+| [0068](0068-validation-pulsatile-stenosis.md) | Validation: pulsatile flow through the cosine stenosis (Varghese et al., Part 2) | V2 | done | 0012, 0015 |
+| [0071](0071-validation-rectangular-duct.md) | Validation: fully developed laminar flow in rectangular ducts | V1 | in progress | 0012, 0015 |
+| [0072](0072-validation-laminar-square-bend.md) | Validation: laminar 90° square-duct bend (Taylor et al., Re 790) | V3 | ready (after 0071) | 0012, 0015 |
+| [0074](0074-validation-mms-conduction.md) | Verification: manufactured solutions for conduction on every fitting's mesh | V1 | ready (v2406 runner) | 0012, 0015 |
+| [0075](0075-validation-helical-pipe.md) | Validation: laminar flow in a helical pipe (spline pipe) | V3 | ready (v2406 runner) | 0012, 0015 |
+| [0077](0077-validation-fenicsx-second-order.md) | Verification: FEniCSx toolchain, and second-order export checked end to end | V1 | ready (step 1 any time; 2–4 after 0076) | 0034, 0012, 0015 |
+| [0079](0079-validation-taylor-bubble.md) | Validation: a Taylor bubble rising in stagnant liquid (VOF) | V3 | ready (v2406 runner) | 0012, 0015 |
+
+
+**Capability boundaries (2026-11-02, decision 0037):** 0081 → 0082 → 0083,
+as a track of its own.  0081 can go any time and should come before
+0060 and 0066, which carry design notes for it (the duct-tap front end
+leaves `Tee`; the readers move to `interchange.importers`).  0082 comes
+before any work on decision 0036 (H rectangular section, proposed) or
+0035.  These are refactors: identical meshes, task 0065's method.
 
 **Current order (2026-10-28, design, revised):** finish the task in
 progress (0034), then **multi-layer junctions: 0051 → 0052 → 0056 → 0053 →
@@ -149,7 +172,8 @@ These apply to every task.
 
 - Read `DESIGN.md` first.  Changes must follow it and must **not** add rows
   to its "Current deviations" table.
-- Work only in `hexmesh/assembly/` (and `hexmesh/core/` where stated).
+- Work only in `hexmesh/assembly/` (and other packages where the task
+  states them).  Respect the capability order and rules of DESIGN §3.1.
 - Anything computable without GMSH must be computed without GMSH (DESIGN
   P3/P4): in `ports()`, `validate()` or `Assembly.validate()`, never in
   `fill()`.

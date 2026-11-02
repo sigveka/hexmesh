@@ -57,6 +57,24 @@ DESIGN §7.1 (design applies the wording).
 **Out of scope.**  Offsets (0061), twist (0062), ducts (0063), equal
 tees, crosses.
 
+**Design note (2026-11-02, decision 0037 item 5; DESIGN §6, §9).**
+The duct taps' block layouts are already in `duct_tap.py`, but their
+front end lives inside the pipe tee's class.  `Tee` carries
+`_duct_geometry`, `_full_width`, `_tap`, `_resolve_duct`, `_check_duct`
+and `meshed_sj_check`'s duct case: 15 shape switches in `tee.py`.
+DESIGN §6: "new fitting variants are new templates, not special cases
+inside existing ones".
+- **Before adding `angle`**, move the duct-tap front end into
+  `duct_tap.py`, so `Tee` only picks the template (pipe tee or duct
+  tap) and delegates.  Keep the shared helpers (`thicknesses`,
+  `branch_spec`, `tee_wall`) public in `tee.py` or a small shared
+  module.
+- `Tee(...)` stays the one user-facing entry point (decision 0027).
+- No behaviour change in the split (task 0065's method over the tee and
+  duct-tap tests' builds).  Make it a separate commit before the
+  lateral work.
+- Lower `tests/test_architecture.py`'s shape-site cap by what leaves.
+
 ## Agent notes
 
 _None yet._

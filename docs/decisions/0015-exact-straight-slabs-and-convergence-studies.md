@@ -96,6 +96,25 @@ core square.  Gates are the extrapolated value against the exact one
 and the fine-level error, with GCI reported.  Use the observed order in
 GCI (not an assumed 2).  Cause and remedies: decision 0022 (proposed).
 
+**Amendment 2 (2026-11-02, accepted by the user; task 0071).**  On
+rectangular O-H sections the extrapolated-value gate can't be applied:
+the square duct's f·Re errors are +2.65 / +1.97 / +1.16 %, with growing
+differences, and a/b = 2 is non-monotone (RESEARCH §7.11).  For
+**rectangular sections**:
+- the V1 gates (extrapolated value within 0.1 %, fine level below 1 %,
+  observed order reported) apply to a **Cartesian control mesh** of the
+  same duct, made outside hexmesh (`blockMesh`), with the same case
+  setup and refinement ratio.  This verifies the case;
+- the hexmesh O-H levels are **reported, not gated**: signed errors per
+  level, the observed order where defined, and the error ratio against
+  the control at matching cell counts.  This measures what the section
+  costs;
+- a hexmesh rectangular section that is not O-H (decision 0036, if
+  accepted) is gated like the control.
+
+Circular sections are unchanged (amendment 1).  The control is decision
+0022's option B for rectangles.
+
 ### DESIGN §6 amendment (applied 2026-10-26)
 
 Appended to "Exactness lives in curves and nodes":

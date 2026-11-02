@@ -27,6 +27,14 @@ both point at the O-H core:
 
 This is a correlation, not a proven cause.
 
+**Update (2026-11-02, RESEARCH §7.11).**  For rectangles, option B's
+control exists for free: a Cartesian grid.  At the same cell count and
+with the same scheme, the O-H rectangle converges at order 0.3–0.9
+(non-monotone at a/b = 2 and 4); the Cartesian grid at 2.00.  So for
+rectangles the corners are the cause.  For circles it remains a
+correlation: their corners are 135° kinks, not 45° diagonals ending at
+wall corners.  Rectangles: decisions 0015 amendment 2 and 0036.
+
 ## Options
 
 ### A. Accept the O-H order; judge on extrapolated values

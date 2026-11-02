@@ -116,6 +116,9 @@ factor).
 - **physics:** `flow`, `cht`, `conduction` (solids only, no fluid:
   added by task 0073 and kept, 2026-10-30, since a case without a fluid
   isn't conjugate);
+  `multiphase` added 2026-11-01 (the user: a multiphase validation
+  case, task 0079), with the method in the regime tags (`vof`,
+  `euler-euler`);
 - **features:** the hexmesh features a case exercises, from a fixed
   list: `section:circle`, `section:rect`, `layers`, `straight`, `bend`,
   `miter`, `spline`, `profiled-reducer`, `transition`, `tee`,

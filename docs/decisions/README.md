@@ -49,6 +49,9 @@ rejected.  Records are written in design sessions, and they are the only way
 | [0032](0032-network-interchange.md) | Network interchange: importers, a network model, a network document, one builder | proposed (work in progress) |
 | [0033](0033-duct-tap-topology.md) | Junction layout for duct taps narrower than their face (and round taps on ducts) | accepted (B, pillowed tap) |
 | [0034](0034-secondary-solvers.md) | Secondary solvers for code-to-code comparison (FEniCSx, Nek5000/NekRS), and second-order mesh export | accepted in part (FEniCSx, second-order export; Nek proposed) |
+| [0035](0035-future-pipe-in-pipe-and-multi-core-sections.md) | Future expansion: pipe-in-pipe and multi-core sections (umbilicals, bundles) | proposed (future) |
+| [0036](0036-cartesian-rectangular-section.md) | A Cartesian (H) rectangular section, and the O-H ↔ H switch | proposed |
+| [0037](0037-capability-boundaries.md) | Capability boundaries: sections own their layout, shapes own their behaviour | accepted (`sections` its own package) |
 
 ## Future expansions
 
@@ -62,6 +65,7 @@ against (template, *Consequences*).
 | [0019](0019-future-agent-sdk.md) | Agent SDK: tool interface over the network JSON (schema, structured errors, preview, build jobs) |
 | [0021](0021-future-flow-restrictions.md) | Flow restrictions, staged: profiles (stage 0) → orifice plates → bevels and rounded entries → eccentric, segmental, cone meters → non-swept devices |
 | [0030](0030-future-simulation-suite.md) | A multi-domain study and surrogate suite with hexmesh as one generator (layers: generators, solver adapters, study engine, datasets, surrogates, V&V; versioned contracts) |
+| [0035](0035-future-pipe-in-pipe-and-multi-core-sections.md) | Pipe-in-pipe (second fluid layer, bulkheads) → multi-core sections (cell-decomposed, per-inclusion stacks) → routes and helical lay; no junctions |
 
 On hold, not yet recorded (discussed 2026-10-26): drum heads and closed
 vessels (a `Head` fitting as half a cubed-sphere O-grid; spheres as two

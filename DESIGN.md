@@ -67,6 +67,39 @@ Each layer only consumes the one above it.  The turtle-style `Network.add()`
 API is a front end to the Intent layer: it records nodes and edges, it
 does not build geometry.
 
+### 3.1 Capabilities
+
+The layers above say *when* work happens.  The packages say *who owns*
+it.  Each package is one capability.  It depends only on capabilities
+to its left, and it reaches them only through their public names
+([decision 0037](docs/decisions/0037-capability-boundaries.md)).
+
+`core` → `sections` → `assembly` → `interchange` → `study`
+
+| Capability | Owns | Calls GMSH |
+|---|---|---|
+| `core` | shapes, specs, grading: pure data and geometry | No |
+| `sections` | section layouts: how a cross-section is blocked, its signature, its corner and patch description, its GMSH face | Realisation part only |
+| `assembly` | fittings, interfaces, the graph, validation, realisation, meshing | Realisation part only |
+| `interchange` | the network model, importers, the builder | No |
+| `study` | studies, solver stages | Through `assembly` |
+
+`io.writers` is a leaf used by `assembly` and `study`.  `_occ` is the
+shared OCC helper for `sections` and `assembly`.
+
+Rules:
+- **Shapes and section layouts own their behaviour.**  Code outside
+  `core.shape` and `sections` asks a shape or layout; it doesn't switch
+  on its type or read its fields to work out a shape-specific answer.
+- **No private name crosses a package.**  If another capability needs
+  it, it is public in its owner.
+- **One description per concept.**  A layout's corners, edges and
+  patches are declared once, and both the GMSH face and the block
+  layouts use that declaration.
+- `tests/test_architecture.py` checks the dependency order, private
+  names and module cycles.  It also caps the number of shape-specific
+  sites outside `core.shape` and `sections`.  The cap only goes down.
+
 ---
 
 ## 4. Assembly rules
@@ -237,7 +270,22 @@ The prototype in `hexmesh/assembly/` implements this pipeline for
 ### 6.1 Shared fitting infrastructure
 
 Fittings are thin: they describe *what* to build, and a small set of
-shared builders does the building.  Four pieces, each with one rule.
+shared builders does the building.  Five pieces, each with one rule.
+
+**Sections — a cross-section's layout is described once, in `sections`.**
+A section layout (today the 5-patch O-H face, with circle, rectangle
+and blend shapes) owns:
+- its blocking;
+- its port signature;
+- its corner and patch declaration (pure, used by block layouts);
+- its GMSH face.
+
+Fittings and the assembler use the layout; they don't re-describe it.
+A new layout is one new module in `sections`.  The interface all
+layouts share is derived once a second layout exists
+([decision 0037](docs/decisions/0037-capability-boundaries.md);
+[decision 0036](docs/decisions/0036-cartesian-rectangular-section.md)
+proposes the H face).
 
 **Sweeps — every single-path fitting is a sweep.**
 A fitting with one inlet and one outlet is defined only by its *path* —
@@ -405,21 +453,18 @@ Implementation (`Assembly.close(source, target, fitting)`):
 
 ## 9. Current deviations
 
-The present code predates these rules.  Known deviations:
+Known deviations of the current code (refreshed 2026-11-02 by decision
+0037; the legacy connector rows went with the legacy API, task 0017):
 
-| Deviation | Rule | Where |
-|---|---|---|
-| Fittings create their own outlet faces (producer-owns) | A1, A2 | all connectors via `connect(inlet, cursor)` |
-| Relative (cursor-chained) placement; no graph | §3, A3 | `Network.add()` |
-| OCC `extrude` / `revolve` used for fills | A2 | `straight.py`, `bend.py` |
-| `occ.fragment()` + bbox surface recovery | P2 | `y_block.py`, `junction.py` |
-| `removeDuplicateNodes()` | P2 | `model.py`, `network.py` |
-| Geometry built inside `connect()`; no pre-GMSH validation | P3, P4 | all connectors |
-| Topology detected from surface count | A4 | `straight.py`, `bend.py`, `fittings.py` |
-| `nang` checked per connector, not resolved across the network | A5 | `fittings.py`, `spec.py` |
-| Corner correspondence between two faces found by nearest-distance search, not from interface frames | A3, §6.1 | `fittings._connect_layer` — legacy connectors only; `hexmesh/assembly` uses `corners.frame_offset` |
-| `n_outer = 8` core cannot be filled: its 8-sided centre patch does not bound a transfinite hex block (needs splitting into 4 blocks) | §7 | `faces/oh_circle.build_oh_circle8`; rejected in validation by `hexmesh/assembly` |
-| Tee limited to a perpendicular, centred branch with circular shells copied from the main (multi-layer since task 0052; roll in 90° steps since task 0040) | §7.1 | `hexmesh/assembly/tee.py` |
+| Deviation | Rule | Where | Removed by |
+|---|---|---|---|
+| The O-H face is described in nine modules, twice: GMSH builders and an independent block-layout declaration; the rectangle's ring inset is written in both | §3.1, §6.1 Sections | `core/shape.py`, `core/cross_section.py`, `faces/*`, `assembly/interface.build_face`, `assembly/blocks.face_vertices` / `_rect_face_vertices` / `face_patches`, `assembly/corners.py`, `assembly/signature.py` | task 0082 |
+| Type switches on shapes outside `core.shape` and the face builders (89 sites, RESEARCH §12) | §3.1 | most in `interchange/build.py`, `assembly/tee.py`, `core/spec.py`, `assembly/wye.py`, `io/readers/pcf.py`, `assembly/interface.py` | task 0083, then the cap in task 0081 |
+| Private names imported across packages | §3.1 | `interchange/build.py` (`fittings._with_radii`, `wye._IN_MARGIN`) | task 0081 |
+| Readers sit in `io`, above the assembly | §3.1 | `io/readers/` | task 0066 |
+| The duct taps' front end (geometry, resolution, checks) is a special case inside the pipe tee's class | §6 | `assembly/tee.py` (`_duct_geometry`, `_resolve_duct`, `_check_duct`, `_tap`) | tasks 0060–0063 (split when touched) |
+| `n_outer = 8` core cannot be filled: its 8-sided centre patch does not bound a transfinite hex block (needs splitting into 4 blocks) | §7 | `faces/oh_circle.build_oh_circle8`; rejected in validation by `hexmesh/assembly` | decision 0005 (proposed) |
+| Tee limited to a perpendicular, centred branch with circular shells copied from the main (multi-layer since task 0052; roll in 90° steps since task 0040) | §7.1 | `hexmesh/assembly/tee.py` | tasks 0060–0062 |
 
 New code must not add to this table.
 

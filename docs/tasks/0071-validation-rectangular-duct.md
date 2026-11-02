@@ -1,6 +1,6 @@
 # 0071 — Validation (V1): fully developed laminar flow in rectangular ducts
 
-- **Status:** ready
+- **Status:** in progress
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (category V1); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V1 (exact: rectangular-duct series)
 - **Features:** `section:rect`, `straight`
@@ -47,10 +47,32 @@ with the v2406 runner.
 4. **Convergence:** three levels with `refined(k)`; Richardson / GCI on
    f·Re and the centre velocity.
 
-**Accept** (V1 gates, as Poiseuille):
+5. **Cartesian control** (added by the design session, 2026-11-02;
+   decision 0015 amendment 2).  The same case, the same three levels
+   (ratio 2), on a uniform Cartesian `blockMesh` of the same duct, at
+   about the hexmesh level's cell count per section and the same axial
+   spacing.  Same inlet, planes, post-processing and Richardson.
+   - Planes: put `blockMesh` block boundaries at the Δp and profile
+     stations, so they're planes of faces, as in the hexmesh case.
+   - Report per level and ratio: control error, O-H error, and their
+     ratio at matching cell count.
+
+**Design note (2026-11-02).**  The O-H levels measured so far fail the
+original gates for reasons of the section, not the case: square f·Re
++2.65 / +1.97 / +1.16 % with growing differences (no Richardson
+estimate); a/b = 2 non-monotone.  A 2-D control at the same cell count
+converges at order 2 (RESEARCH §7.11).  So the gates move to the
+control (decision 0015 amendment 2), and the O-H levels are reported.
+A non-O-H hexmesh section is decision 0036 (proposed).  RESULTS.md
+should present both side by side.
+
+**Accept** (V1 gates, as Poiseuille, **on the Cartesian control**; decision 0015 amendment 2):
 - extrapolated f·Re and centre velocity within **0.1 %** of exact;
 - finest-level errors below 1 %;
-- observed order reported (decision 0015: not gated on O-H sections);
+- observed order reported, and near 2 on the control (if not, the case
+  setup is suspect: stop and report);
+- the hexmesh O-H levels **reported, not gated**: signed errors, the
+  observed order where defined, the ratio to the control;
 - `case.json` (category V1, tags `laminar`, `flow`, `section:rect`,
   `straight`); RESULTS.md; *Outcome* table for RESEARCH.
 
