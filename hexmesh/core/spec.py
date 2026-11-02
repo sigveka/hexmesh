@@ -373,6 +373,22 @@ class PipeSpec:
                                       mprg=1.0 if mprg is None else mprg, outer=outer))
         return self
 
+    def with_radii(self, radii: list[float], mprgs: list[float] | None = None) -> "PipeSpec":
+        """This spec with core radius ``radii[0]`` and shell thicknesses
+        ``radii[1:]``, and, if given, radial gradings *mprgs* (core first).
+        Circular stacks of ``dR`` shells only."""
+        name, shape = self._core
+        if any(sh.dR is None for sh in self.shells):
+            raise ValueError("PipeSpec.with_radii needs dR shells")
+        if mprgs is None:
+            mprgs = [self._core_mprg] + [sh.mprg for sh in self.shells]
+        out = (PipeSpec(nang=self.nang, n_outer=self.n_outer, rot=self.rot, mbmp=self.mbmp)
+               .core(name, CircleShape(radius=radii[0], nang=shape.nang),
+                     nrad=self._core_nrad, mprg=mprgs[0]))
+        for sh, dR, m in zip(self.shells, radii[1:], mprgs[1:]):
+            out = out.shell(sh.name, dR=dR, nrad=sh.nrad, mprg=m)
+        return out
+
     def _check_counts(self, name: str, outline: Shape) -> None:
         """Equal counts per side through a stack with a rectangle
         (decision 0026, item 3)."""

@@ -73,6 +73,12 @@ def register_formatter(fmt: str, fn: Callable) -> None:
     FORMATTERS[fmt] = fn
 
 
+#: ``"build"`` and ``"build_pieces"``: the builder registers them when it is
+#: imported (``hexmesh.interchange`` imports it), so the model doesn't
+#: import the module that imports it (no module cycle; DESIGN §3.1).
+BUILDERS: dict[str, Callable] = {}
+
+
 def describe(part: "Part", at=None, name: str | None = None) -> str:
     """The part as messages name it: by its importer's formatter, or
     ``part <id> (<type> <name> at <point>)``."""
@@ -301,11 +307,9 @@ class NetworkModel:
 
     def to_assembly(self, spec, **options):
         """``hexmesh.interchange.build(self, spec, **options)``."""
-        from .build import build
-        return build(self, spec, **options)
+        return BUILDERS["build"](self, spec, **options)
 
     def to_assemblies(self, spec, **options) -> dict:
         """``hexmesh.interchange.build_pieces(self, spec, **options)``: one
         ``Assembly`` per connected piece."""
-        from .build import build_pieces
-        return build_pieces(self, spec, **options)
+        return BUILDERS["build_pieces"](self, spec, **options)

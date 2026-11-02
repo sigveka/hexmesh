@@ -33,15 +33,14 @@ import gmsh
 
 from .. import _occ
 from ..core.spec import PipeSpec
-from ..faces._gmsh_helpers import add_physical_group
+from ..faces import add_physical_group
 from ..quality_hex import METRICS, hex_vertices, min_scaled_jacobians
 from . import intent
 from ..io.writers.openfoam_boundary import roles_path, write_roles
 from .signature import check_port_pairs, classify, signature
 from .corners import transfinite_surface_corners, transfinite_volume_corners
-from .fittings import Bend, Elbow, FillResult, MiterBend, Straight
+from .fittings import FillResult, Straight
 from . import limits
-from .limits import RADIANS_WARNING_BELOW
 from .quality import QualityReport, RegionQuality
 from .section_quality import check_section_quality
 from .interface import (
@@ -405,8 +404,8 @@ class Assembly:
 
     def _resolved(self, fitting, source: Interface, target: Interface | None = None):
         """*fitting* with input-only fields resolved at *source* (and
-        *target*, for ``close``); warns on a bend angle that looks like
-        radians (decision 0024)."""
+        *target*, for ``close``).  Angled fittings warn from their
+        ``resolve`` on an angle that looks like radians (decision 0024)."""
         resolve = getattr(fitting, "resolve", None)
         if resolve is not None:
             try:
@@ -414,12 +413,6 @@ class Assembly:
                                   None if target is None else target.frame)
             except ValueError as e:
                 raise AssemblyError(f"{fitting!r} at {source}: {e}") from None
-        if (isinstance(fitting, (Bend, Elbow, MiterBend))
-                and 0 < abs(fitting.angle) < RADIANS_WARNING_BELOW):
-            warnings.warn(
-                f"{type(fitting).__name__} angle {fitting.angle:g}° is below "
-                f"{RADIANS_WARNING_BELOW:.3g}°: angles are in degrees "
-                f"(looks like radians?)", UserWarning, stacklevel=3)
         return fitting
 
     @staticmethod

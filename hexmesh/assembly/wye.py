@@ -66,6 +66,13 @@ _F_FRACTION = 0.65      # hub front corners at fraction · R cot h along d
 _KINK = 45.0            # crotch top/bottom edges cross the crease this high (degrees)
 
 
+def inlet_clearance(half: float) -> float:
+    """How far behind the junction O a wye's inlet station sits, in units
+    of the inlet radius, for daughters *half* radians each side of the
+    axis: tan(half) + margin, so the station is clear of the daughters."""
+    return math.tan(half) + _IN_MARGIN
+
+
 def _hermite(p, q, tp, tq, n=_SAMPLES):
     """Interior points of the cubic Hermite curve p → q with unit end
     tangents *tp*, *tq* scaled by |q − p| (Marcinnó et al.)."""
@@ -233,7 +240,7 @@ class Wye:
         c, s = math.cos(h), math.sin(h)
         t_apex = radius * c / s                      # the crotch generators meet here
         t_crotch = radius * (_W_OFFSET + c / math.sqrt(2)) / s
-        return {"s_in": radius * (s / c + _IN_MARGIN),
+        return {"s_in": radius * inlet_clearance(h),
                 "s_out": t_apex + radius * _OUT_MARGIN,
                 "t_crotch": t_crotch,
                 "t_bulge": max(t_crotch, t_apex) + radius * _BULGE,

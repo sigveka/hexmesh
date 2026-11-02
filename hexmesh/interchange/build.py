@@ -22,7 +22,7 @@ from dataclasses import dataclass, field, replace
 import numpy as np
 
 from .model import (
-    Bend, InlineEquipment, Joint, Junction, NetworkModel, Part, Polyline, Reducer,
+    BUILDERS, Bend, InlineEquipment, Joint, Junction, NetworkModel, Part, Polyline, Reducer,
     Section, Straight, Terminal, describe,
 )
 
@@ -318,7 +318,7 @@ def _split_hosts(comps, labels, tol, seton_run):
     ``r·(tan h + margin + 0.5)``, ``r`` the stem's nominal radius and ``h``
     half the daughters' angle."""
     from ..assembly import AssemblyError
-    from ..assembly.wye import _IN_MARGIN
+    from ..assembly.wye import inlet_clearance
     comps, labels = list(comps), list(labels)
     while True:
         todo = [i for i, c in enumerate(comps) if c.kind in ("seton", "ypiece")]
@@ -377,7 +377,7 @@ def _split_hosts(comps, labels, tol, seton_run):
             d1, d2 = _unit(j_c.branch - c), _unit(j_c.branch2 - c)
             half = math.acos(float(np.clip(np.dot(d1, n), -1, 1)))
             R = 0.5 * host.bore
-            run = R * (math.tan(half) + _IN_MARGIN + 0.5)
+            run = R * (inlet_clearance(half) + 0.5)
             if run >= L - tol:
                 raise AssemblyError(
                     f"{what}: stem pipe {labels[h]} ({L:.4g} m) is shorter than the "
@@ -628,11 +628,10 @@ def _junction_thickness(ts, what: str) -> float:
 def _dressed(spec, t: float, nrad: int):
     """*spec* without its ``insulation`` shell, plus one of thickness *t*
     (none if ``t`` is 0)."""
-    from ..assembly.fittings import _with_radii
     shells = spec.shells
     if shells and shells[-1].name == INSULATION:
         shells = shells[:-1]
-    bare = _with_radii(spec, [spec.core_shape.radius] + [sh.dR for sh in shells])
+    bare = spec.with_radii([spec.core_shape.radius] + [sh.dR for sh in shells])
     return bare.shell(INSULATION, dR=t, nrad=nrad) if t > 0 else bare
 
 
@@ -1158,7 +1157,6 @@ def _place_chain(asm, iface, chain, end_dir, spec, kinks, tol, ins, to_junction,
     *iface*; return the last interface.  *end_dir* is the direction of the
     junction that follows, if any (a spline's end tangent)."""
     from ..assembly import AssemblyError, Bend, Reducer, SplinePipe, Straight
-    from ..assembly.fittings import _with_radii
 
     comps = [c for c, _ in chain]
     labels = {id(c): l for c, l in chain if l is not None}
@@ -1270,7 +1268,7 @@ def _place_chain(asm, iface, chain, end_dir, spec, kinks, tol, ins, to_junction,
             else:
                 cur = iface.spec
                 radii = [cur.core_shape.radius * c.end_bore / c.bore] + [sh.dR for sh in cur.shells]
-                outlet = _with_radii(cur, radii)
+                outlet = cur.with_radii(radii)
             if not straight_on(k, frame):
                 raise AssemblyError(f"{label(k)}: reducer axis is not the incoming direction")
             ax, lat = along(frame, c.end)
@@ -1307,3 +1305,6 @@ def _cross_check_elbow(c: _Comp, g: ElbowGeometry, label: str) -> None:
         what = said.get("radius", "stated radius")
         raise AssemblyError(f"{label}: {what} ({r:.6g} m) disagrees "
                             f"with the {g.radius:.6g} m from {geometry}")
+
+
+BUILDERS.update(build=build, build_pieces=build_pieces)

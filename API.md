@@ -297,6 +297,12 @@ supported (`TypeError`).
 stored as resolved, so a spec built with `first_cell=` reloads with the
 same grading.
 
+`spec.with_radii(radii, mprgs=None)` gives the same circular stack
+with core radius `radii[0]` and shell thicknesses `radii[1:]` (and,
+if given, radial gradings `mprgs`, core first).  Every count, name and
+the topology stay.  Stacks of `dR` shells only; extra shells beyond
+`radii` are dropped.
+
 The assembly supports any stack of circle and rectangle outlines through
 the sweep fittings (`Straight`, `Bend`, `MiterBend`, `SplinePipe`,
 `Closure`, `Reducer`); bend radii are checked against the outermost

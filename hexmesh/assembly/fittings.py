@@ -17,6 +17,7 @@ its ``Path`` and inherits ``validate`` / ``fill`` from ``Sweep``.
 
 from __future__ import annotations
 import math
+import warnings
 from dataclasses import dataclass, field, replace
 
 import numpy as np
@@ -25,6 +26,7 @@ from ..core.shape import BlendShape, CircleShape, RectShape
 from ..core.spec import PipeSpec
 from .interface import (Frame, check_outlines, half_extent, outer_radius, roll_mismatch,
                         rotate, toward_roll)
+from .limits import RADIANS_WARNING_BELOW
 from .profile import CHORD_TOL, Profile
 from .sweep import MAX_CHORD_TURN, Arc, FillResult, Path, Sweep, _check_n_layers
 
@@ -39,7 +41,8 @@ def _input_field():
 
 class _Toward:
     """``toward=``: an absolute direction to turn toward, resolved to
-    ``roll`` from the inlet frame by :meth:`resolve` (decision 0024)."""
+    ``roll`` from the inlet frame by :meth:`resolve` (decision 0024).
+    :meth:`resolve` also warns on an angle that looks like radians."""
 
     def resolve(self, inlet: Frame, spec: PipeSpec, axial_cell: float | None = None,
                 outlet: Frame | None = None):
@@ -52,7 +55,14 @@ class _Toward:
                 raise ValueError(f"{name}: toward needs a positive angle (a negative "
                                  f"angle turns away from it), got {self.angle!r}")
             fitting = replace(self, roll=toward_roll(inlet, self.toward), toward=None)
-        return super(_Toward, fitting).resolve(inlet, spec, axial_cell, outlet)
+        fitting = super(_Toward, fitting).resolve(inlet, spec, axial_cell, outlet)
+        if 0 < abs(fitting.angle) < RADIANS_WARNING_BELOW:
+            # stacklevel: here, Assembly._resolved, Assembly.add/close, the caller
+            warnings.warn(
+                f"{type(fitting).__name__} angle {fitting.angle:g}° is below "
+                f"{RADIANS_WARNING_BELOW:.3g}°: angles are in degrees "
+                f"(looks like radians?)", UserWarning, stacklevel=4)
+        return fitting
 
     def check_resolved(self) -> None:
         if self.toward is not None:
@@ -403,24 +413,6 @@ class Elbow(_Toward, Sweep):
 # ---------------------------------------------------------------------------
 # Reducer
 # ---------------------------------------------------------------------------
-
-def _with_radii(spec: PipeSpec, radii: list[float],
-                mprgs: list[float] | None = None) -> PipeSpec:
-    """*spec* with core radius ``radii[0]`` and shell thicknesses ``radii[1:]``,
-    and, if given, radial gradings *mprgs* (core first).  Circular stacks
-    of ``dR`` shells only; ``_with_layers`` takes any."""
-    name, shape = spec._core
-    if any(sh.dR is None for sh in spec.shells):
-        raise ValueError("_with_radii needs dR shells; use _with_layers")
-    if mprgs is None:
-        mprgs = [spec._core_mprg] + [sh.mprg for sh in spec.shells]
-    out = (PipeSpec(nang=spec.nang, n_outer=spec.n_outer, rot=spec.rot, mbmp=spec.mbmp)
-           .core(name, CircleShape(radius=radii[0], nang=shape.nang),
-                 nrad=spec._core_nrad, mprg=mprgs[0]))
-    for sh, dR, m in zip(spec.shells, radii[1:], mprgs[1:]):
-        out = out.shell(sh.name, dR=dR, nrad=sh.nrad, mprg=m)
-    return out
-
 
 def _layers(spec: PipeSpec) -> list:
     """Each layer's size as the user gave it: the core shape, then each

@@ -81,7 +81,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0076](0076-second-order-export.md) | Second-order mesh export: `Assembly.mesh(order=2)` | ready | 0034, 0029 |
 | [0078](0078-readme-generated-sections.md) | README: generated numbers, validation table, hero image and checks | ready | — |
 | [0080](0080-installable-package.md) | Installable package: extras, version, console command, install smoke test | done | — |
-| [0081](0081-architecture-tests-and-contracts.md) | Architecture tests (DESIGN §3.1), and the cross-package leaks | in progress | 0037 |
+| [0081](0081-architecture-tests-and-contracts.md) | Architecture tests (DESIGN §3.1), and the cross-package leaks | done | 0037 |
 | [0082](0082-sections-package-oh-layout.md) | `hexmesh.sections`: the O-H layout described once | ready (after 0081) | 0037 |
 | [0083](0083-shape-protocol.md) | Shapes own their behaviour: the shape protocol | ready (after 0082) | 0037 |
 | [0084](0084-h-section-layout-and-sweeps.md) | The H section: the layout, `layout=` on the spec, and every sweep | ready (after 0082, 0083) | 0036, 0037 |
