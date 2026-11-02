@@ -94,6 +94,23 @@ _NON_COMPONENTS = {"PIPELINE-REFERENCE", "END-CONNECTION-PIPELINE",
                    "END-CONNECTION-EQUIPMENT", "EQUIPMENT-REFERENCE", "MATERIALS",
                    "NOZZLE"}       # column-1 NOZZLE: the guide's equipment connection form
 
+#: Information items of the PCF guide ("Information Items", "End Connection
+#: and Position Types"): drawing annotations with no geometry.  Read and
+#: ignored quietly, counted in ``NetworkSpec.report["ignored"]``.  A WELD
+#: given only by ``CO-ORDS`` (a weld marker, no END-POINTs) counts too.
+ANNOTATION_TYPES = {
+    "MESSAGE", "MESSAGE-SQUARE", "MESSAGE-POINTED", "MESSAGE-ROUND", "MESSAGE-CIRCLE",
+    "MESSAGE-TRIANGLE", "MESSAGE-DIAMOND", "MESSAGE-DOUBLE-CIRCLE", "MESSAGE-ELLIPSE",
+    "TEXT", "REFERENCE-DIMENSION", "TML", "FLOOR-SYMBOL", "WALL-SYMBOL", "FLOW-ARROW",
+    "INSULATION-SYMBOL", "INDUCTION-START", "INDUCTION-END", "ISO-SPLIT-POINT",
+    "LOCATION-POINT", "PIPE-BREAK", "SPOOL-IDENTIFIER", "SYSTEM-SPLIT",
+    "END-POSITION-OPEN", "END-POSITION-CLOSED", "END-POSITION-VENT",
+    "END-POSITION-DRAIN", "END-POSITION-NULL",
+}
+#: An unknown inline component whose legs (END-POINT → CENTRE-POINT →
+#: END-POINT) turn by more than this, in degrees, is rejected (angle valves).
+INLINE_ANGLE_TOL = 1.0
+
 
 # ---------------------------------------------------------------------------
 # Data model
@@ -192,8 +209,10 @@ class NetworkSpec:
     coord_scale : float
         Metres per coordinate unit used.
     report : dict
-        Filled by ``to_assembly``: the tolerance used, the joints absorbed
-        or dropped, and the largest lateral offset absorbed.
+        ``"ignored"``: record type → count of the non-geometric records
+        read and ignored (annotations, supports, …).  ``to_assembly`` adds
+        the tolerance used, the joints absorbed or dropped, and the largest
+        lateral offset absorbed.
     """
 
     components: list[ComponentSpec] = field(default_factory=list)
@@ -215,7 +234,8 @@ class NetworkSpec:
         The components form a graph, joined where their end points meet
         (within *tol*), across every pipeline and file.  It must be one
         tree: three components at one point, a disconnected part or a loop
-        raises ``AssemblyError`` naming a component.  The network is placed
+        raises ``AssemblyError`` naming a component (a file of several
+        unconnected pipelines: ``to_assemblies``).  The network is placed
         from a root open end, depth first.  Each component is placed from
         the previous outlet, and its PCF end points (and branch points) are
         then checked against the placed ports; a gap or a change of
@@ -305,6 +325,59 @@ class NetworkSpec:
         return _build_assembly(self, spec, axial_cell, kinks, tol, lc, inlet,
                                insulation, insulation_nrad)
 
+    def to_assemblies(self, spec, *, axial_cell: float | None = None,
+                      kinks: str = "error", tol: float | None = None,
+                      lc: float | None = None, insulation: bool = False,
+                      insulation_nrad: int = 2) -> dict:
+        """One ``Assembly`` per connected piece, for a file holding several
+        pipelines that don't connect.
+
+        Returns ``{name: Assembly}`` in file order (of each piece's first
+        component), named after the piece's first ``PIPELINE-REFERENCE``
+        (``piece<k>`` without one; a repeat gets ``_2``, …).  Each piece is
+        built as ``to_assembly`` builds a whole file (same arguments; the
+        root is chosen per piece), and fittings keep their whole-file
+        labels.  Equipment connections go to the piece whose open end they
+        sit at.  ``self.report["pieces"]`` holds each piece's report.  The
+        file's unsupported components (crosses, angled inline components)
+        raise before any piece is built.
+        """
+        from ...assembly import AssemblyError
+        if not self.components:
+            raise ValueError("NetworkSpec has no components to build.")
+        if tol is None:
+            tol = _model_tolerance(self.components)
+        labels = _labels(self.components)
+        for i, c in enumerate(self.components):
+            c.index = i
+        _reject_unsupported(self.components, labels)
+        out, reports = {}, {}
+        for k, ks in enumerate(_pieces(self.components, tol), start=1):
+            comps = [self.components[i] for i in ks]
+            pts = [x for c in comps for x in (c.start, c.end, c.branch, c.branch2)
+                   if x is not None]
+            conns = [(t, a) for t, a in self.connections
+                     if _connection_point(a) is None
+                     or min(np.linalg.norm(x - _connection_point(a)) for x in pts) <= tol]
+            sub = NetworkSpec(components=comps, source=self.source, header=self.header,
+                              pipelines=self.pipelines, connections=conns,
+                              insulation_thickness=self.insulation_thickness,
+                              coord_scale=self.coord_scale)
+            pipe = next((_name(c.pipeline) for c in comps if _name(c.pipeline)), "")
+            name, n = pipe or f"piece{k}", 2
+            while name in out:
+                name, n = f"{pipe or f'piece{k}'}_{n}", n + 1
+            try:
+                out[name] = _build_assembly(sub, spec, axial_cell, kinks, tol, lc, None,
+                                            insulation, insulation_nrad,
+                                            labels=[labels[i] for i in ks])
+            except AssemblyError as e:
+                raise AssemblyError(f"{name}: {e}") from None
+            reports[name] = sub.report
+        self.report = {"ignored": self.report.get("ignored", {}), "tolerance": tol,
+                       "pieces": reports}
+        return out
+
 
 # ---------------------------------------------------------------------------
 # Parser
@@ -345,9 +418,12 @@ def read_pcf(
         parts = [read_pcf(p, unit_scale, ignore_types, joint_max) for p in path]
         net = NetworkSpec(source=", ".join(n.source for n in parts),
                           header=dict(parts[0].header), coord_scale=parts[0].coord_scale)
+        ignored = net.report["ignored"] = {}
         for n in parts:
             net.components += n.components
             net.skipped += n.skipped
+            for t, k in n.report["ignored"].items():
+                ignored[t] = ignored.get(t, 0) + k
             net.pipelines.update(n.pipelines)
             net.insulation_thickness.update(n.insulation_thickness)
             net.connections += n.connections
@@ -363,12 +439,19 @@ def read_pcf(
     records = list(_iter_records(path, spec))
     spec.coord_scale = scale = _coord_scale(spec.header, unit_scale)
     bore_scale = _bore_scale(spec.header)
+    ignored = spec.report["ignored"] = {}
+    inline_warned: set[str] = set()
 
     for record_type, attrs, pipeline in records:
         rtype = record_type.upper()
-        if rtype in ignore_types:
+        n_end = len(attrs.get("END-POINT", []))
+        if rtype in ignore_types or rtype in ANNOTATION_TYPES \
+                or (rtype == "WELD" and n_end == 0 and "CO-ORDS" in attrs):
+            ignored[rtype] = ignored.get(rtype, 0) + 1
             continue
         kind = _classify(rtype)
+        if kind is None and n_end == 2:
+            kind = _inline_kind(rtype, attrs, inline_warned)
         if kind is None:
             spec.skipped.append((record_type, attrs))
             warnings.warn(f"Unsupported PCF component type '{record_type}' — skipped.",
@@ -520,6 +603,35 @@ def _classify(record_type: str) -> str | None:
     return _COMPONENT_MAP.get(record_type.upper())
 
 
+def _inline_kind(rtype: str, attrs: dict, warned: set[str]) -> str:
+    """The kind of an unknown record with two END-POINTs: an inline
+    straight (same sizes), a reducer (different sizes), or ``"angled"``
+    when its legs turn at CENTRE-POINT (rejected by ``to_assembly``).  One
+    warning per type, in *warned*."""
+    a, b = (np.array(e[:3], dtype=float) for e in attrs["END-POINT"])
+    c = attrs.get("CENTRE-POINT")
+    if c is not None and len(c) >= 3:
+        c = np.array(c[:3], dtype=float)
+        u, v = c - a, b - c
+        if np.linalg.norm(u) > 1e-12 and np.linalg.norm(v) > 1e-12 \
+                and _angle(u, v) > INLINE_ANGLE_TOL:
+            return "angled"
+    sizes = [e[3] if len(e) > 3 else None for e in attrs["END-POINT"]]
+    kind = "reducer" if None not in sizes and not math.isclose(*sizes) else "fitting"
+    if rtype not in warned:
+        warned.add(rtype)
+        what = "a reducer" if kind == "reducer" else "an inline straight"
+        warnings.warn(f"{rtype} treated as {what} (not a PCF type hexmesh knows; "
+                      f"two END-POINTs)", stacklevel=3)
+    return kind
+
+
+def _angle(u: np.ndarray, v: np.ndarray) -> float:
+    """Angle between *u* and *v*, degrees."""
+    cos = float(np.dot(u, v) / (np.linalg.norm(u) * np.linalg.norm(v)))
+    return math.degrees(math.acos(max(-1.0, min(1.0, cos))))
+
+
 # A signed decimal number; the keywords themselves contain hyphens
 # ("END-POINT"), so a bare character class would match them.
 _NUMBER = re.compile(r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?")
@@ -572,7 +684,8 @@ def _iter_records(path: Path, net: NetworkSpec) -> Iterator[tuple[str, dict, str
                     pipeline = value
                     block, attrs, endpoints = ("pipeline", value), {}, []
                     continue
-                if in_header and key not in _COMPONENT_MAP and key not in _NON_COMPONENTS:
+                if in_header and key not in _COMPONENT_MAP and key not in _NON_COMPONENTS \
+                        and key not in ANNOTATION_TYPES:
                     net.header[key] = value
                     continue
                 yield from flush()
@@ -938,7 +1051,17 @@ def _joints_from(joints: list[ComponentSpec], x: np.ndarray) -> list[ComponentSp
     return out
 
 
-def _check_tree(parts, nodes) -> None:
+def _pieces_hint(comps: list[ComponentSpec], tol: float) -> str:
+    """For a network that isn't one piece: its pieces, and what to do."""
+    pieces = _pieces(comps, tol)
+    if len(pieces) < 2:
+        return ""
+    return (f".  The file holds {len(pieces)} unconnected pieces: "
+            + "; ".join(_describe_piece(comps, ks) for ks in pieces)
+            + "; read each with to_assemblies(), or close the gap")
+
+
+def _check_tree(parts, nodes, hint=lambda: "") -> None:
     from ...assembly import AssemblyError
     seen, stack = {0}, [(0, None)]
     while stack:
@@ -965,7 +1088,7 @@ def _check_tree(parts, nodes) -> None:
         raise AssemblyError(
             f"{_describe(parts[j].comp, parts[j].label)}: starts {gap:.3g} m from the "
             f"open end of {_describe(parts[k].comp, parts[k].label)}; the network "
-            f"must be one connected piece")
+            f"must be one connected piece" + hint())
 
 
 def _entries(parts, nodes, root: tuple[int, int]) -> str | None:
@@ -1189,6 +1312,14 @@ def _stack_changes(pattern, length, axial_cell, base, nrad):
     return n, tuple(changes)
 
 
+def _connection_point(a: dict):
+    """A connection block's position (metres), or its first nozzle's."""
+    for n in [a] + a.get("NOZZLES", []):
+        if n.get("_point") is not None:
+            return n["_point"]
+    return None
+
+
 def _equipment_ends(net, parts, nodes, names, tol, describe) -> set[int]:
     """Name the open ends attached to equipment ``<equipment>_<nozzle>``
     and return their nodes.  ``END-CONNECTION-EQUIPMENT`` (and column-1
@@ -1246,8 +1377,78 @@ def _equipment_ends(net, parts, nodes, names, tol, describe) -> set[int]:
     return set(marked)
 
 
+def _reject_unsupported(comps: list[ComponentSpec], labels: list[str]) -> None:
+    """Raise for the component kinds that are read but never built."""
+    from ...assembly import AssemblyError
+    for c, l in zip(comps, labels):
+        if c.kind == "junction?":
+            raise AssemblyError(
+                f"{_describe(c, l)}: crosses and Y-PIECE-FITTING are not supported "
+                f"(decision 0023)")
+        if c.kind == "angled":
+            raise AssemblyError(
+                f"{_describe(c, l)}: its ends turn "
+                f"{_angle(c.centre - c.start, c.end - c.centre):.1f}° at CENTRE-POINT; "
+                f"angle valves and other angled inline components are out of scope")
+
+
+def _pieces(comps: list[ComponentSpec], tol: float) -> list[list[int]]:
+    """The connected pieces, as component indices in file order, pieces in
+    the order of their first component.  Components connect where their
+    points meet within *tol*; a set-on or Y piece also connects to a pipe
+    its CENTRE-POINT lies on."""
+    pts, owner = [], []
+    for k, c in enumerate(comps):
+        centre = c.centre if c.kind in ("seton", "ypiece") else None
+        for x in (c.start, c.end, c.branch, c.branch2, centre):
+            if x is not None:
+                pts.append(x)
+                owner.append(k)
+    root = list(range(len(comps)))
+
+    def find(i):
+        while root[i] != i:
+            root[i] = root[root[i]]
+            i = root[i]
+        return i
+    pts = np.array(pts)
+    for i in range(len(pts)):
+        near = np.flatnonzero(np.linalg.norm(pts[:i] - pts[i], axis=1) <= tol)
+        for j in near:
+            root[find(owner[i])] = find(owner[j])
+    for k, c in enumerate(comps):
+        if c.kind not in ("seton", "ypiece") or c.centre is None:
+            continue
+        for h, hc in enumerate(comps):
+            d = hc.end - hc.start
+            L = float(np.linalg.norm(d))
+            if hc.kind != "pipe" or L == 0:
+                continue
+            t = float(np.dot(c.centre - hc.start, d)) / L
+            if -tol <= t <= L + tol and np.linalg.norm(hc.start + t * d / L - c.centre) <= tol:
+                root[find(k)] = find(h)
+    out: dict[int, list[int]] = {}
+    for k in range(len(comps)):
+        out.setdefault(find(k), []).append(k)
+    return list(out.values())
+
+
+def _describe_piece(comps: list[ComponentSpec], ks: list[int]) -> str:
+    """``pipeline A-100 (components 0–5, 8)``."""
+    runs, start = [], ks[0]
+    for a, b in zip(ks, ks[1:] + [None]):
+        if b != a + 1:
+            runs.append(f"{start}" if start == a else f"{start}–{a}")
+            start = b
+    pipes = list(dict.fromkeys(comps[k].pipeline for k in ks if comps[k].pipeline))
+    what = f"pipeline {', '.join(pipes)}" if pipes else "no pipeline reference"
+    return f"{what} (components {', '.join(runs)})"
+
+
 def _build_assembly(net: NetworkSpec, spec, axial_cell, kinks, tol, lc, inlet=None,
-                    insulation=False, insulation_nrad=2):
+                    insulation=False, insulation_nrad=2, labels=None):
+    """*labels*: given by ``to_assemblies`` for one piece, whose components
+    keep their whole-file labels and indices (and are already checked)."""
     from ...assembly import AssemblyError
 
     if kinks not in ("error", "spline"):
@@ -1256,14 +1457,11 @@ def _build_assembly(net: NetworkSpec, spec, axial_cell, kinks, tol, lc, inlet=No
         raise ValueError("NetworkSpec has no components to build.")
     if tol is None:
         tol = _model_tolerance(net.components)
-    labels = _labels(net.components)
-    for i, c in enumerate(net.components):
-        c.index = i
-    for c, l in zip(net.components, labels):
-        if c.kind == "junction?":
-            raise AssemblyError(
-                f"{_describe(c, l)}: crosses and Y-PIECE-FITTING are not supported "
-                f"(decision 0023)")
+    if labels is None:
+        labels = _labels(net.components)
+        for i, c in enumerate(net.components):
+            c.index = i
+        _reject_unsupported(net.components, labels)
     if insulation:
         sample = spec(net.components[0].bore or 0.1) if callable(spec) else spec
         if any(sh.name == INSULATION for sh in sample.shells):
@@ -1296,7 +1494,7 @@ def _build_assembly(net: NetworkSpec, spec, axial_cell, kinks, tol, lc, inlet=No
     if not parts:
         raise ValueError("NetworkSpec has only joints.")
     nodes, at_node = _graph(parts, joints, tol)
-    _check_tree(parts, nodes)
+    _check_tree(parts, nodes, lambda: _pieces_hint(net.components, tol))
     names = _end_names(parts, nodes)
     equipment = _equipment_ends(net, parts, nodes, names, tol,
                                 lambda p: _describe(p.comp, p.label))
@@ -1320,7 +1518,8 @@ def _place(net, parts, nodes, at_node, names, root, spec, axial_cell, kinks, tol
     from ...assembly import Assembly, AssemblyError, Tee, Wye
     from ...assembly.interface import outer_radius, rotate, toward_roll
 
-    report = net.report = {"tolerance": tol, "joints": [], "max_offset": 0.0}
+    report = net.report = {"ignored": net.report.get("ignored", {}), "tolerance": tol,
+                           "joints": [], "max_offset": 0.0}
     k0, q0, n0 = root
     first = _orient(parts[k0].comp, q0)
     current = base = spec(first.bore) if callable(spec) else spec
@@ -1395,9 +1594,9 @@ def _place(net, parts, nodes, at_node, names, root, spec, axial_cell, kinks, tol
             R = _radius(iface.spec)
             rb = _branch_radius(spec, R, c.branch_bore, main_bore)
             if not rb < R:
-                raise AssemblyError(f"{what}: equal tees are not supported (branch "
-                                    f"radius {rb:.4g} must be below the main radius "
-                                    f"{R:.4g})")
+                raise AssemblyError(f"{what}: equal tees (branch radius {rb:.4g}, main "
+                                    f"radius {R:.4g}) are planned through the wye-family "
+                                    f"layout; not available yet")
             fitting = Tee(run, blen, rb, toward=tuple(_unit(b)))
             outs_at = [c.end, c.branch]
         else:

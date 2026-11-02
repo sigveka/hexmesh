@@ -1,6 +1,6 @@
 # 0064 — PCF reader robustness: annotations, unknown inline components, several networks
 
-- **Status:** ready
+- **Status:** done (2026-11-02)
 - **Decision:** [0023 — PCF input](../decisions/0023-pcf-branched-networks-insulation-equipment.md) (reader behaviour)
 - **Depends on:** —  (independent of the junction work)
 
@@ -71,7 +71,34 @@ equivalent (record what the reader does today).
 
 ## Agent notes
 
-_None yet._
+- **Annotation list** from the guide's "Information Items" (messages,
+  reference dimensions, TML, other information items) and "End Connection
+  and Position Types": `pcf.ANNOTATION_TYPES`, recorded in `pcf.md`.
+  Also a `WELD` with `CO-ORDS` and no `END-POINT`s.  The existing
+  `ignore_types` (supports, bolts, …) are counted in `report["ignored"]`
+  too, since they are the same kind of record.  An annotation before the
+  first `PIPELINE-REFERENCE` was read as a header keyword; now it isn't.
+- **`report["ignored"]`** is filled by `read_pcf` (summed over a list of
+  files) and kept through `to_assembly`, which used to replace the report.
+- **Unknown inline components** are classified at read time
+  (`_inline_kind`): `"fitting"` (a straight), `"reducer"`, or
+  `"angled"` when the legs turn at `CENTRE-POINT` by more than
+  `INLINE_ANGLE_TOL` (1°).  Without a `CENTRE-POINT` there is no angle to
+  see: the two end points make a straight chord, and a turn shows up as a
+  kink against the next component (the existing check).
+- **Several pieces.**  `_pieces` finds them by end points (and a set-on's
+  or Y piece's CENTRE-POINT on its host pipe), before any host is split.
+  `to_assembly` keeps its existing gap message (tests rely on it, and it
+  names the nearest gap, which is right for a single pipeline with a
+  real gap) and appends the piece list and `to_assemblies`.  I first
+  checked for pieces before the graph; that hid the set-on and elbow
+  errors, so it moved into the tree check.
+- **`to_assemblies` returns `{name: Assembly}`**: the task asks for each
+  to be named after its pipeline, and `Assembly` has no name.  Each
+  piece's fittings keep their whole-file labels and indices (a
+  `labels=` argument to `_build_assembly`).
+- **Equal tees:** the message now says they're planned.  The τ hint
+  (task's last paragraph) waits for τ in `limits.py`; there is none yet.
 
 ## Questions for design
 
@@ -79,4 +106,30 @@ _None._
 
 ## Outcome
 
-_Not done._
+Done 2026-11-02.
+
+- **Files:** `hexmesh/io/readers/pcf.py` (`ANNOTATION_TYPES`,
+  `INLINE_ANGLE_TOL`, `_inline_kind`, `_reject_unsupported`, `_pieces`,
+  `NetworkSpec.to_assemblies`, the equal-tee message);
+  `tests/test_pcf_robustness.py` (new: 11 tests, plus one that runs local
+  sample files when `HEXMESH_PCF_SAMPLES` is set); `API.md`;
+  `docs/integrations/pcf.md` (the annotation list; the spoolyard table
+  after this task).
+- **Tests:** the 76 existing PCF tests pass unchanged.  Full suite 2156
+  passed, 15 skipped (the local-samples test skips without its directory).
+- **Spoolyard fixtures** (local only, `pcf.md`):
+  - imperial: the only error is the equal tee; no annotation warnings.
+    One warning remains: a `CAP` with one `END-POINT` is skipped;
+  - metric: `FROBNICATOR`, `UNION` and `MISC-COMPONENT` become straights
+    with one warning each; **the angle-valve error comes first**, naming
+    `VALVE-ANGLE` and 90.0°.  Cut before the angle valve, `to_assembly`
+    lists the two pieces and `to_assemblies` builds both, once the bend's
+    `ANGLE 90.0` is corrected to the guide's hundredths (`9000`).
+- **Surprise:** spoolyard writes `ANGLE` in degrees (`90.0`); the guide
+  says hundredths.  Our cross-check rejects it, naming the bend and both
+  angles, which is right by the guide.
+- **Proposed follow-ups (for design):**
+  - a one-`END-POINT` `CAP` (or `FLANGE-BLIND`) at an open end could
+    mark the end closed (a wall patch) instead of warning;
+  - `ANGLE` given with a decimal point: read as degrees, or keep
+    rejecting?  The guide shows only integers.

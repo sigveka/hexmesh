@@ -73,7 +73,7 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0061](0061-tee-offset-taps.md) | General branches, stage 2: `Tee(offset=…)`, tangential and offset taps | ready (after 0060) | 0031, 0023 |
 | [0062](0062-straight-twist.md) | General branches, stage 3: `Straight(twist=…)`, and `toward=` at any roll | ready (after 0060) | 0031, 0029 |
 | [0063](0063-duct-shoe-taps.md) | General branches, stage 4: shoe taps on ducts | ready (after 0057, 0060; round or narrow shoes after 0033) | 0031, 0027 |
-| [0064](0064-pcf-reader-robustness.md) | PCF reader robustness: annotations, unknown inline components, several networks | ready | 0023 |
+| [0064](0064-pcf-reader-robustness.md) | PCF reader robustness: annotations, unknown inline components, several networks | done | 0023 |
 | [0065](0065-network-model-and-builder.md) | Network interchange 1a: the network model, and the builder out of `pcf.py` | ready (after 0064) | 0032 |
 | [0066](0066-network-model-operations.md) | Network interchange 1b: select, cut, join, merge, and the public API | ready (after 0065) | 0032 |
 | [0067](0067-validation-womersley.md) | Validation: Womersley flow (pulsatile laminar pipe flow, exact solution) | done | 0012, 0015 |

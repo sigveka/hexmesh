@@ -769,6 +769,19 @@ one network: components in list order, each file with its own units.
   `Y-PIECE-FABRICATED` (`"ypiece"`) are read with `branch`, `branch2`,
   their bores and `skey`.  Crosses and `Y-PIECE-FITTING` are read as
   `"junction?"` and rejected by `to_assembly`.
+- **Annotations.**  The guide's information items (`MESSAGE`,
+  `MESSAGE-SQUARE` and the other boxes, `TEXT`, `REFERENCE-DIMENSION`,
+  `TML`, `FLOW-ARROW`, `ISO-SPLIT-POINT`, `LOCATION-POINT`, `PIPE-BREAK`,
+  `SPOOL-IDENTIFIER`, `SYSTEM-SPLIT`, the `END-POSITION-*` records, …;
+  `pcf.ANNOTATION_TYPES`), a `WELD` given only by `CO-ORDS`, and the
+  `ignore_types` (supports, bolts) have no geometry.  They are ignored
+  without a warning and counted by type in `NetworkSpec.report["ignored"]`.
+- **Unknown inline components** (a type the reader doesn't know, with two
+  `END-POINT`s, e.g. `UNION`, `MISC-COMPONENT`): a straight fitting, or a
+  reducer if the two sizes differ, with one warning per type.  If its legs
+  turn at `CENTRE-POINT` by more than `pcf.INLINE_ANGLE_TOL` (1°), e.g.
+  `VALVE-ANGLE`, it is read as `kind="angled"` and rejected by
+  `to_assembly`, naming it and the angle.
 - Other unsupported types are listed in `NetworkSpec.skipped`, with one
   warning each.
 
@@ -834,7 +847,9 @@ within `tol` raises `AssemblyError`.  No equipment geometry is built.
 Components join where their end points meet within `tol`, across
 pipelines and files (`END-CONNECTION-PIPELINE` is informational).  The
 network must be one tree: three components at one point, a loop or a
-disconnected part raises `AssemblyError` naming a component.  Joints are
+disconnected part raises `AssemblyError` naming a component.  For a
+disconnected file the error also lists its pieces (pipelines and
+component ranges) and points to `to_assemblies`.  Joints are
 absorbed on the run they sit on.
 
 Every junction must be entered through its inlet (a tee's run end, a Y
@@ -854,6 +869,17 @@ Every component is checked against its PCF end points (and branch points), and a
 accepted, a documented deviation: exporters offset components by up to the
 weld gap.  `NetworkSpec.report` records the tolerance, the joints absorbed or
 dropped, and the largest lateral offset absorbed.
+
+### `NetworkSpec.to_assemblies(spec, *, axial_cell=None, kinks="error", tol=None, lc=None, insulation=False, insulation_nrad=2) -> dict[str, Assembly]`
+
+One `Assembly` per connected piece, for a file holding pipelines that
+don't connect.  The result is `{name: Assembly}` in file order, named
+after each piece's first `PIPELINE-REFERENCE` (`piece<k>` without one).
+Each piece is built as `to_assembly` builds a file, with its own root;
+fittings keep their whole-file labels, and an equipment connection goes
+to the piece it sits at.  `report["pieces"]` holds each piece's report.
+Unsupported components anywhere in the file (crosses, angled inline
+components) raise before any piece is built.
 
 ### `bathymetry.read_bathymetry(surface_path, route, burial_depth=0.0, surface_format="xyz", route_format=None, unit_scale=1.0, max_segment_length=None) -> NetworkSpec`
 

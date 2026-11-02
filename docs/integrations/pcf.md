@@ -200,6 +200,27 @@ GitHub code search for PCF keywords (`ISOGEN-FILES`, `UNITS-CO-ORDS`,
 
 Follow-ups: task 0064.
 
+**After task 0064** (2026-11-02, coding session; fixtures re-extracted
+from commit `6f595f4` into the session scratchpad, not committed):
+
+| Fixture | Result |
+|---|---|
+| standalone line | unchanged: 8 fittings, validates; no warnings |
+| imperial line | the only error is the **equal tee** ("planned through the wye-family layout; not available yet").  Ignored quietly: `MESSAGE-SQUARE`, `SUPPORT`, the `WELD` given by `CO-ORDS`, `BOLT`, `END-POSITION-OPEN`, `ISO-SPLIT-POINT`.  One warning left: the `CAP` has one `END-POINT` (skipped; a cap closes an end, nothing to mesh) |
+| metric, CRLF | `FROBNICATOR`, `UNION` and `MISC-COMPONENT` become straights, one warning each; `TEXT` ignored.  **The angle-valve error comes first**: "VALVE-ANGLE … its ends turn 90.0° at CENTRE-POINT; angle valves … out of scope".  With the file cut before the angle valve, `to_assembly` lists the two pieces (750-CW-001, components 0–6; 25-IA-200, 7–11) and `to_assemblies` stops at the bend: **`ANGLE 90.0` disagrees with the corner geometry**, because the guide's `ANGLE` is in hundredths of a degree (0.9°); spoolyard writes degrees.  With `ANGLE 9000` both pieces build and validate (7 and 5 fittings) |
+
+**Annotation records the reader ignores** (the guide's "Information
+Items" and "End Connection and Position Types"; `pcf.ANNOTATION_TYPES`):
+`MESSAGE` and its boxed forms (`-SQUARE`, `-POINTED`, `-ROUND`,
+`-CIRCLE`, `-TRIANGLE`, `-DIAMOND`, `-DOUBLE-CIRCLE`, `-ELLIPSE`),
+`TEXT`, `REFERENCE-DIMENSION`, `TML` (thickness measurement location),
+`FLOOR-SYMBOL`, `WALL-SYMBOL`, `FLOW-ARROW`, `INSULATION-SYMBOL`,
+`INDUCTION-START` / `-END`, `ISO-SPLIT-POINT`, `LOCATION-POINT`,
+`PIPE-BREAK`, `SPOOL-IDENTIFIER`, `SYSTEM-SPLIT`, and `END-POSITION-OPEN`
+/ `-CLOSED` / `-VENT` / `-DRAIN` / `-NULL`.  Also a `WELD` with `CO-ORDS`
+and no `END-POINT`s (a weld marker).  `TEXT` as a column-1 record isn't
+in the guide (it's an attribute there); spoolyard writes it.
+
 ## Other readers and sample files (surveyed 2026-10-25)
 
 **Not the same format.**  `pySourceSDK/ValvePCF` (GPL-3.0, last push
