@@ -1,7 +1,7 @@
 {
  "meta": {
-  "date": "2026-10-30",
-  "commit": "eb8f72a + uncommitted changes",
+  "date": "2026-11-02",
+  "commit": "cbe19dc + uncommitted changes",
   "gmsh": "4.12.1",
   "python": "3.12.3",
   "cpus": 8,
@@ -1041,6 +1041,43 @@
    "predicted": 18012,
    "meshed": 18012,
    "build_s": 9.02
+  },
+  "applications.hvac_branched": {
+   "fittings": 14,
+   "fitting_types": {
+    "Straight": 9,
+    "Transition": 1,
+    "Tee": 3,
+    "Bend": 1
+   },
+   "volumes": 235,
+   "materials": [
+    "air"
+   ],
+   "min_sicn": 0.16602956209659922,
+   "mean_sicn": 0.5044443943712623,
+   "min_sj": 0.4211716995160839,
+   "min_sj_fitting": "#6 Tee",
+   "max_aspect": 9.36550311212969,
+   "groups": {
+    "open_end": [
+     "air_inlet",
+     "air_main_end",
+     "air_supply_down",
+     "air_supply_side",
+     "air_supply_up"
+    ],
+    "wall": [
+     "air_wall"
+    ],
+    "interface": [],
+    "volume": [
+     "air"
+    ]
+   },
+   "predicted": 33472,
+   "meshed": 33472,
+   "build_s": 5.52
   }
  },
  "validation": {

@@ -45,6 +45,7 @@ What each example shows, what its mesh looks like, and how good the cells are.  
 | **Applications: equipment and engineering cases** | | | | | |
 | [drum_nozzle](#drum_nozzle) | Line from a drum nozzle: a horizontal drum with a top nozzle, a riser, an elbow, a tee and CFD extensions on the open ends. | 10 272 | 0.150 | 0.331 | 2.9 s |
 | [hvac_supply](#hvac_supply) | Ventilation supply run: a fan's round outlet, a flat duct through the building, and a square terminal. | 15 360 | 0.121 | 0.627 | 3.8 s |
+| [hvac_branched](#hvac_branched) | Branched ventilation supply: a fan's round outlet, a flat main duct with three taps, and a bend at the end of the run. | 33 472 | 0.166 | 0.421 | 5.5 s |
 | [cooling_channels](#cooling_channels) | Cooling channels: a supply pipe split by a wye into two flat rectangular channels, each returning to a round outlet. | 10 152 | 0.152 | 0.204 | 4.7 s |
 
 ## Fittings: one building block each
@@ -780,6 +781,44 @@ python3 -m hexmesh.examples.applications.hvac_supply
 - **Walls:** `air_wall`
 - **Colours:** air blue; walls grey.
 
+### hvac_branched
+
+**Branched ventilation supply: a fan's round outlet, a flat main duct with three taps, and a bend at the end of the run.**
+
+<p><img src="gallery/img/hvac_branched.png" width="68%" alt="hvac_branched"> <img src="gallery/img/hvac_branched_section.png" width="29%" alt="hvac_branched, inlet section"></p>
+
+- A `Transition` takes the round fan outlet (Ø 0.3) to a 0.5 × 0.25
+  duct.  Every section has `N` cells per side, which the duct taps need
+  too: a tap keeps the main's counts, so its port is class 0.
+- Three duct taps (decision 0033): a rectangular tap on the top (wide)
+  face and a round tap on the bottom, each pillowed into its face
+  (`add()` resolves the layout's tunables and the run length), and a
+  full-width tap on the side (narrow) face, as tall as the duct, whose
+  walls are all planes.  A pillowed tap on the narrow face of a 2:1 duct
+  predicts a corner scaled Jacobian below 0.3 at any size and warns.
+- The main turns sideways, away from the side tap, with a hard-way bend
+  (its radius is checked against the half-width), and ends at `main_end`.
+  Axial cells come from `axial_cell`; the taps' branches are named
+  `supply_up`, `supply_down` and `supply_side`.
+
+Limits: single-layer ducts only (no lagging through a tap); taps are
+perpendicular.
+
+Patches: `air_inlet`, `air_main_end`, `air_supply_up`,
+`air_supply_down`, `air_supply_side`, `air_wall`.
+
+```bash
+python3 -m hexmesh.examples.applications.hvac_branched
+```
+
+| Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
+|---|---|---|---|---|---|---|---|
+| 14: Straight ×9, Transition, Tee ×3, Bend | 235 | 33 472 | 0.166 | 0.504 | 0.421 (#6 Tee) | 9.4 | 5.5 s |
+
+- **Open ends:** `air_inlet`, `air_main_end`, `air_supply_down`, `air_supply_side`, `air_supply_up`
+- **Walls:** `air_wall`
+- **Colours:** air blue; walls grey.
+
 ### cooling_channels
 
 **Cooling channels: a supply pipe split by a wye into two flat rectangular channels, each returning to a round outlet.**
@@ -952,4 +991,4 @@ Which hexmesh features each case exercises (decision 0012's fixed list). Marks: 
 
 ---
 
-Generated 2026-10-30 from hexmesh eb8f72a + uncommitted changes, gmsh 4.12.1, Python 3.12.3, 8 CPUs, 1 job(s).
+Generated 2026-11-02 from hexmesh cbe19dc + uncommitted changes, gmsh 4.12.1, Python 3.12.3, 8 CPUs, 1 job(s).

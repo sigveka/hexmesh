@@ -68,7 +68,7 @@ an **accepted** decision in [`../decisions/`](../decisions/) or to a rule in
 | [0056](0056-projection-limits-and-wye-axial-counts.md) | Projection follow-ups: inversion check, move warning, wye axial counts | done | 0029 |
 | [0057](0057-duct-tee-rectangular-tap.md) | Duct tee: full-width rectangular tap on a rectangular duct | done | 0027 |
 | [0058](0058-duct-tee-round-tap.md) | Duct tee: round tap on a rectangular duct | superseded by 0070 | 0027 |
-| [0059](0059-branched-hvac-example.md) | Example: a branched HVAC supply | ready (after 0070, 0057) | 0027 |
+| [0059](0059-branched-hvac-example.md) | Example: a branched HVAC supply | done | 0027 |
 | [0060](0060-tee-angle-laterals.md) | General branches, stage 1: `Tee(angle=…)`, laterals | ready (after 0056, 0053, 0054) | 0031 |
 | [0061](0061-tee-offset-taps.md) | General branches, stage 2: `Tee(offset=…)`, tangential and offset taps | ready (after 0060) | 0031, 0023 |
 | [0062](0062-straight-twist.md) | General branches, stage 3: `Straight(twist=…)`, and `toward=` at any roll | ready (after 0060) | 0031, 0029 |

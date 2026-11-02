@@ -23,7 +23,7 @@ CATEGORIES: dict[str, list[str]] = {
                  "insulated_transition", "insulated_tee", "insulated_network"],
     "networks": ["pipe_network", "pipe_rack", "distribution_tree",
                  "bifurcation_tree", "skewed_network"],
-    "applications": ["drum_nozzle", "hvac_supply", "cooling_channels"],
+    "applications": ["drum_nozzle", "hvac_supply", "hvac_branched", "cooling_channels"],
 }
 
 #: Every example as ``"<category>.<name>"``, in reading order.

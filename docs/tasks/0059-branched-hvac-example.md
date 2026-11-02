@@ -1,6 +1,6 @@
 # 0059 — Example: a branched HVAC supply
 
-- **Status:** ready (after the duct-tap layout: 0069 and its follow-up, or 0057 if it returns)
+- **Status:** done (2026-11-02)
 - **Decision:** [0027 — Tees in rectangular ducts](../decisions/0027-duct-tees.md)
 - **Depends on:** 0057, 0058.
 
@@ -29,7 +29,19 @@ or extend `hvac_supply` if it reads better), `hexmesh/examples/__init__.py`
 
 ## Agent notes
 
-_None yet._
+- **Where:** a new example, `applications/hvac_branched.py`;
+  `hvac_supply` stays the single-run example.
+- **The narrow-face tap is full-width.**  A pillowed tap on the narrow
+  face of the 2:1 duct (0.5 × 0.25) predicts a corner scaled Jacobian of
+  0.19–0.28 at every size tried (half-extents 0.06–0.16 along, 0.04–0.10
+  across), so it always warns (0070's table: 2:1 narrow ≤ 0.20 at ratio
+  0.9).  The full-width tap (as tall as the duct, task 0057) at 0.1
+  along the main doesn't warn; at 0.04 it does (0.21), as 0057's p/t
+  rule says.  The wide-face rectangular (0.15 × 0.1) and round (r 0.1)
+  pillowed taps don't warn at any size tried.
+- **`axial_cell`** (0.08) replaces every `n_layers`.  `toward=` isn't
+  used: a duct tap rejects it, and the bend's `roll=-90` is shorter
+  than a direction vector here.
 
 ## Questions for design
 
@@ -37,4 +49,21 @@ _None._
 
 ## Outcome
 
-_Not done._
+Done 2026-11-02.
+
+- **Files:** `hexmesh/examples/applications/hvac_branched.py` (new);
+  `hexmesh/examples/__init__.py` (`CATEGORIES`); `docs/GUIDE.md`
+  (examples table; the README has no examples table any more);
+  `docs/GALLERY.md`, `docs/gallery/metrics.json`, two images.
+- **The example:** fan Ø 0.3 → `Transition` → 0.5 × 0.25 duct; a
+  rectangular tap on the top face, a round tap on the bottom, a
+  full-width rectangular tap on the side face; a hard-way bend away from
+  the side tap; outlets `supply_up`, `supply_down`, `supply_side`,
+  `main_end`.  33 472 cells, meshed = predicted, min SICN 0.166, min SJ
+  0.421, 5.5 s; no warnings.
+- **Tests:** `test_example[applications.hvac_branched]` passes (with
+  `-W error::UserWarning`); full suite 2145 passed, 14 skipped.
+- **Follow-up (for design):** pillowed narrow-face taps on a 2:1 duct
+  always warn, so an example wanting a small tap on a narrow face has
+  only the full-width form.  If that is common in HVAC, a better
+  narrow-face layout is worth a look.
