@@ -815,13 +815,15 @@ Each case lives in `validation/<case>/`: `case.json` gives its category, referen
 
 #### Heated multi-layer pipe with laminar flow (full CHT)
 
-**Status:** in progress (task 0035).  **Reference:** exact: fully developed $\mathrm{Nu} = 48/11$ (uniform flux), radial conduction through the shells.
+**Status:** accepted (task 0035).  **Reference:** exact: fully developed $\mathrm{Nu} = 48/11$ (uniform flux), radial conduction through the shells.
 
 Tags: `laminar`, `flow`, `cht`, `section:circle`, `layers`, `straight`, `OpenFOAM v2406 (docker)`.
 
 Gates: checkMesh: Mesh OK per region, every level; energy balance: within 0.1 % at every level; extrapolated $\mathrm{Nu}$: within 1 % of $48/11$; extrapolated solid $\Delta T$s: within 0.5 %.
 
-Case: `validation/heated_pipe/`: [case.json](../validation/heated_pipe/case.json).
+<p><img src="../validation/heated_pipe/img/k1.png" width="68%"> <img src="../validation/heated_pipe/img/k1_section.png" width="29%"></p>
+
+Case: `validation/heated_pipe/`: [README.md](../validation/heated_pipe/README.md), [RESULTS.md](../validation/heated_pipe/RESULTS.md), [case.json](../validation/heated_pipe/case.json).
 
 #### Solid rod with uniform heat generation
 
@@ -893,12 +895,25 @@ Gates: reattachment, by $u(0.48\,D) = 0$ and by wall shear stress: within 5 % of
 
 Case: `validation/stenosis/`: [README.md](../validation/stenosis/README.md), [RESULTS.md](../validation/stenosis/RESULTS.md), [case.json](../validation/stenosis/case.json).
 
+#### Pulsatile flow through the cosine constriction (Varghese et al., Part 2)
+
+**Status:** accepted (task 0068).  **Reference:** DNS, Part 2: axial velocity profiles at six phases, x/D -2 ... 15 (Purdue CFD Lab database, Axi_puls) [`varghese_and_frankel_etal_2007b`].
+
+Tags: `laminar`, `transient`, `flow`, `section:circle`, `straight`, `profiled-reducer`, `OpenFOAM v2406 (docker)`.
+
+Gates: throat centreline velocity at peak flow (p2, $x = 0$): within 5 % of the DNS, and above $3.65\,u_c$; flow features of the paper's §3.1 (jet in acceleration, post-stenotic separation in late deceleration, upstream separation at $-1\,D$ and $-2\,D$, no permanent recirculation, laminar and axisymmetric): present, as in the DNS.
+
+**Note:** Inlet: eq. 2.1 of the paper (Womersley), as stated.  The database's own x = -2D profiles differ from it by up to 0.145 u_c at the phases their flow rates give, so the station-by-station profile RMS is reported, not gated (design answer to task 0068's Q1-Q2).
+
+<p><img src="../validation/stenosis_pulsatile/img/coarse.png" width="68%"> <img src="../validation/stenosis_pulsatile/img/coarse_section.png" width="29%"></p>
+
+Case: `validation/stenosis_pulsatile/`: [README.md](../validation/stenosis_pulsatile/README.md), [RESULTS.md](../validation/stenosis_pulsatile/RESULTS.md), [case.json](../validation/stenosis_pulsatile/case.json).
+
 Planned:
 
 | Task | Status |
 |---|---|
 | [0049: Validation: fully developed turbulent pipe flow (RANS, k-ω SST)](tasks/0049-validation-turbulent-pipe.md) | ready (after 0043) |
-| [0068: Validation: pulsatile flow through the cosine stenosis (Varghese et al., Part 2)](tasks/0068-validation-pulsatile-stenosis.md) | ready (design answered Q1–Q3, 2026-10-31: eq |
 
 ### V3: experiment
 
@@ -918,16 +933,16 @@ _No cases yet._
 
 Which hexmesh features each case exercises (decision 0012's fixed list). Marks: ● accepted, ◐ in progress, ○ planned, ✗ rejected; planned cases are named by task.  Rows marked *(none)* have no validation case, existing or planned.
 
-| Feature | heated_pipe<br>V1 | heated_rod<br>V1 | layered_conduction<br>V1 | poiseuille<br>V1 | stenosis<br>V2 | womersley<br>V1 | 0049<br>V2 | 0050<br>V3 | 0068<br>V2 | 0071<br>V1 | 0072<br>V3 | 0074<br>V1 | 0075<br>V3 | 0077<br>V1 |
+| Feature | heated_pipe<br>V1 | heated_rod<br>V1 | layered_conduction<br>V1 | poiseuille<br>V1 | stenosis<br>V2 | stenosis_pulsatile<br>V2 | womersley<br>V1 | 0049<br>V2 | 0050<br>V3 | 0071<br>V1 | 0072<br>V3 | 0074<br>V1 | 0075<br>V3 | 0077<br>V1 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `section:circle` | ◐ | ● | ● | ● | ● | ● | ○ | ○ | ○ |  |  | ○ | ○ | ○ |
+| `section:circle` | ● | ● | ● | ● | ● | ● | ● | ○ | ○ |  |  | ○ | ○ | ○ |
 | `section:rect` |  |  |  |  |  |  |  |  |  | ○ | ○ | ○ |  |  |
-| `layers` | ◐ |  | ● |  |  |  |  |  |  |  |  | ○ |  |  |
-| `straight` | ◐ | ● | ● | ● | ● | ● | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
-| `bend` |  |  |  |  |  |  |  | ○ |  |  | ○ | ○ |  | ○ |
+| `layers` | ● |  | ● |  |  |  |  |  |  |  |  | ○ |  |  |
+| `straight` | ● | ● | ● | ● | ● | ● | ● | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
+| `bend` |  |  |  |  |  |  |  |  | ○ |  | ○ | ○ |  | ○ |
 | `miter` |  |  |  |  |  |  |  |  |  |  |  | ○ |  |  |
 | `spline` |  |  |  |  |  |  |  |  |  |  |  | ○ | ○ |  |
-| `profiled-reducer` |  |  |  |  | ● |  |  |  | ○ |  |  | ○ |  |  |
+| `profiled-reducer` |  |  |  |  | ● | ● |  |  |  |  |  | ○ |  |  |
 | `transition` |  |  |  |  |  |  |  |  |  |  |  | ○ |  |  |
 | `tee` |  |  |  |  |  |  |  |  |  |  |  | ○ |  | ○ |
 | `duct-tap` |  |  |  |  |  |  |  |  |  |  |  | ○ |  |  |

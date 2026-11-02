@@ -106,6 +106,7 @@ convergence against gates set in advance.
 | Multi-layer conduction (rod, steel, insulation) | exact (V1) | temperatures within 0.001 %, second order | ✅ accepted |
 | Womersley pulsatile flow | exact (V1) | profile error ≤ 1 % of u_c at every phase | ✅ accepted |
 | Cosine stenosis, Re 500 | DNS (V2), Varghese et al. 2007 | reattachment 11.12 D vs 11.03 D (+0.9 %) | ✅ accepted |
+| Cosine stenosis, pulsatile (Womersley, α 7.5) | DNS (V2), Varghese et al. 2007 | throat peak at peak flow −1.3 % of the DNS; separation and recirculation as in the DNS at all six phases | ✅ accepted |
 | Heated insulated pipe, full CHT | exact (V1) | Nu extrapolated within 0.08 % of 48/11; shell ΔTs within 0.001 % | ✅ accepted |
 | Rectangular duct; square-duct bend; turbulent pipe and bend; helical pipe | exact, experiment, DNS | | 📋 planned |
 <!-- readme:validation:end -->

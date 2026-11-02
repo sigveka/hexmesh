@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "title": "Pulsatile flow through the cosine constriction (Varghese et al., Part 2)",
+  "category": "V2",
+  "references": [
+    {
+      "key": "varghese_and_frankel_etal_2007b",
+      "source": "DNS, Part 2: axial velocity profiles at six phases, x/D -2 ... 15 (Purdue CFD Lab database, Axi_puls)",
+      "role": "primary"
+    }
+  ],
+  "tags": {
+    "regime": [
+      "laminar",
+      "transient"
+    ],
+    "physics": [
+      "flow"
+    ],
+    "features": [
+      "section:circle",
+      "straight",
+      "profiled-reducer"
+    ],
+    "toolchain": {
+      "openfoam": "v2406",
+      "runner": "docker"
+    }
+  },
+  "status": "accepted",
+  "task": "0068",
+  "gates": [
+    {
+      "quantity": "throat centreline velocity at peak flow (p2, $x = 0$)",
+      "limit": "within 5 % of the DNS, and above $3.65\\,u_c$"
+    },
+    {
+      "quantity": "flow features of the paper's §3.1 (jet in acceleration, post-stenotic separation in late deceleration, upstream separation at $-1\\,D$ and $-2\\,D$, no permanent recirculation, laminar and axisymmetric)",
+      "limit": "present, as in the DNS"
+    }
+  ],
+  "notes": "Inlet: eq. 2.1 of the paper (Womersley), as stated.  The database's own x = -2D profiles differ from it by up to 0.145 u_c at the phases their flow rates give, so the station-by-station profile RMS is reported, not gated (design answer to task 0068's Q1-Q2)."
+}

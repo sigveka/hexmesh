@@ -207,3 +207,34 @@ def test_womersley_coarse(womersley):
     assert abs(r["dpdx_amplitude_err"]) < 0.01 and abs(r["dpdx_phase_deg"]) < 2
     assert r["q_err_max"] < 1e-3
     assert [round(p["t_over_T"], 2) for p in r["phases"]] == [0.09, 0.26, 0.42, 0.59, 0.76, 0.92]
+
+
+@pytest.fixture(scope="module")
+def pulsatile_stenosis(tmp_path_factory):
+    """Task 0068's coarsest level, one period from rest, on v2406 in
+    Docker (about 5 min; downloads the DNS files once into the work
+    directory)."""
+    if not _have_v2406():
+        pytest.skip("no opencfd/openfoam-default:2406 image")
+    work = tmp_path_factory.mktemp("stenosis_pulsatile")
+    out = work / "results.json"
+    run = subprocess.run([sys.executable, str(ROOT / "validation/stenosis_pulsatile/run.py"),
+                          "--levels", "coarse", "--periods-max", "1", "--work", str(work),
+                          "--json", str(out)], capture_output=True, text=True)
+    assert run.returncode == 0, run.stdout[-3000:] + run.stderr[-3000:]
+    return json.loads(out.read_text())
+
+
+def test_pulsatile_stenosis_one_period(pulsatile_stenosis):
+    """The pipeline end to end: mesh, the Womersley inlet on boundaryData,
+    the sampled sets at every target phase, the DNS comparison.  One
+    period from rest isn't periodic, so no accuracy is asserted."""
+    r = pulsatile_stenosis["levels"][0]
+    assert r["mesh_ok"] and r["cells_foam"] == r["cells"]
+    assert r["periods"] == 1
+    phases = [p["phase"] for p in pulsatile_stenosis["meta"]["phases"]]
+    assert [round(p, 2) for p in phases] == [0.05, 0.26, 0.42, 0.56, 0.75, 0.89]
+    assert len(r["rows"]) == len(pulsatile_stenosis["meta"]["targets"]) == 12
+    assert len(r["comparison"]) == 12                      # 6 files × 2 phase sets
+    c = next(c for c in r["comparison"] if c["file"] == "vel_p2.dat" and c["kind"] == "flow_rate")
+    assert 3.0 < c["stations"]["0.0"]["centre"] < 6.0      # a throat jet at peak flow

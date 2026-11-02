@@ -1,6 +1,6 @@
 # 0068 — Validation: pulsatile flow through the cosine stenosis (Varghese et al., Part 2)
 
-- **Status:** ready (design answered Q1–Q3, 2026-10-31: eq. 2.1 inlet; profiles reported, throat peak and flow features gated; levels k1–k3)
+- **Status:** done (2026-11-02; accepted: every gate passes)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V2 (DNS: Varghese et al. Part 2)
 - **Features:** `section:circle`, `straight`, `profiled-reducer`
@@ -135,6 +135,29 @@ mode) or `validation/stenosis_pulsatile/`; say which.
   periods per level: k3 ≈ 11 h, k4 ≈ 35 h; Δt halved at k4, 2 periods
   warm, ≈ 46 h.  The whole task as written ≈ 4 days of this machine.
 
+- **2026-11-02, after design's answers.**
+  - Ran coarse (k1) and k3, then k2 with Δt halved, per Q3.  All from
+    rest except the halved-Δt run, which starts warm from k2's periodic
+    state and needs 2 periods.
+  - **Bug, found and fixed:** the warm start began its periods at the
+    restart time (49.0), not on a period boundary, so its targets sat
+    0.04–0.07 T off their phases.  Its features gave it away (p6
+    separated, against no reverse flow at k2 and in the DNS).  Fixed in
+    `run_level` (the next period boundary), the run discarded and redone.
+  - **k3 cost** 6.8 h per period, not the 3.6 h estimated: the steps per
+    period grow 1.54× from k2 (the Courant limit at the throat), on top
+    of 3.4× the cells.
+  - **The coarse level** finished during a niced full-suite run
+    (06:43–06:58 on 10-31); its third period's wall time (192 s against
+    134 and 159 s) is inflated.
+  - **The upstream reverse flow** at p4 and p5 is the Womersley inlet's
+    own: at r = 0.48 D eq. 2.1 gives −0.078 and −0.047 u_c.  It is
+    present in ours and the DNS, but doesn't test the stenosis's
+    upstream influence (RESULTS.md).
+  - **Opt-in test:** `test_pulsatile_stenosis_one_period`, the coarse
+    level for one period from rest (5.7 min): the pipeline end to end,
+    no accuracy (one period isn't periodic).
+
 ## Questions for design
 
 **Q1 (blocking): the database's inlet is not eq. 2.1 as we read it.**
@@ -230,4 +253,63 @@ doesn't reproduce, or a database artefact.
 
 ## Outcome
 
-_Not done._
+**Accepted** (V2): every gate design set (Q2) passes.  Full numbers in
+`validation/stenosis_pulsatile/RESULTS.md`.
+
+**Files.**  `validation/stenosis_pulsatile/{run.py, README.md,
+RESULTS.md, case.json}` (new); `tests/test_validation.py`
+(`test_pulsatile_stenosis_one_period`, opt-in); README validation row;
+`docs/GALLERY.md` regenerated; mesh images.  Full suite 2144 passed,
+14 skipped; the opt-in test passes (5.7 min).
+
+**Levels** (v2406 Docker, 4 processes, periodic after 3 periods from
+rest at every level):
+
+| Level | Cells | steps / period | wall time / period | throat peak, p2 (DNS 4.625) |
+|---|---|---|---|---|
+| coarse | 15 336 | 1 730 | 2.5 min | 4.363 (−5.7 %) |
+| k2 | 122 688 | 3 980 | 48 min | 4.517 (−2.3 %) |
+| k3 | 414 072 | 6 120 | 6.8 h | 4.566 (−1.3 %) |
+| k2, Δt halved | 122 688 | 8 160 | 95 min | 4.516 (change 0.006 %) |
+
+**Gates.**
+- Throat peak within 5 % of the DNS and above 3.65 u_c: k3 −1.3 %;
+  **pass**.  The coarse level is outside the asymptotic range (observed
+  order 1.05; no post-stenotic reverse flow at peak flow), so per Q3 the
+  convergence result is the k2–k3 band, 4.566 ± 0.050 (1.1 %).  Formal
+  Richardson for the record: 4.661 (+0.8 %), GCI 2.6 %.  The time-step
+  error is 0.5 % of the space change.
+- Flow features (§3.1), at the flow-rate phases, k2 and k3 alike:
+  jet and near-wall reverse flow in acceleration (p1, p2); reverse flow
+  over the whole post-stenotic section in late deceleration (p3–p5);
+  upstream reverse flow at −2.5 to −1 D (p4, p5); none at p6 (no
+  permanent recirculation); asymmetry ≤ 1.2e-3 u_c.  All as in the DNS;
+  **pass**.
+
+**Reported.**
+- x = −2 D against eq. 2.1, max: coarse 0.04–0.10, k2 0.009–0.028, k3
+  0.004–0.013 u_c (order about 2); the DNS 0.03–0.145.
+- Profiles against the DNS, k3, 1–10 D: RMS 0.005–0.149 u_c; 37 of 42
+  station–phase pairs below 5 % of u_c, the rest p2 at 1–6 D.
+- Recirculation ends: p2 8.23 D, p3 13.37 D (k2 to k3: 0.02, 0.04 D);
+  DNS between its stations 7–8 D and 13–14 D.
+
+**Surprises.**
+- **Refinement moves the p2 jet away from the DNS at 3–6 D:** our jet
+  decays more slowly (centreline at 6 D: k2 4.14, k3 4.20, DNS 3.93).
+  Whether the DNS's different upstream flow explains it isn't resolved.
+- The upstream reverse flow, a gated feature, is the Womersley inlet's
+  own near-wall reversal at α 7.5, not the stenosis's upstream influence.
+- k3 cost twice the per-period estimate (steps per period grow with the
+  throat's Courant limit).
+
+**Proposed follow-ups (for design).**
+- **For RESEARCH §7.3:** the k2 cost (48 min per period on 4 cores, 3
+  periods from rest) is the budget for a pulsatile surrogate study; k3 is
+  8.5× that.
+- **The jet decay:** the database can't supply the DNS's own inlet (six
+  phases are too few; Q1's answer).  If the authors' actual inlet
+  becomes available, rerun k2 and k3 with it.
+- **The gated upstream separation** could be restated as "upstream
+  near-wall reverse flow, as the inlet's", or replaced by the reverse
+  flow at −1 D relative to the inlet's at the same phase.
