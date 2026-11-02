@@ -33,7 +33,8 @@ ROOT = Path(__file__).resolve().parents[1]
 #: capabilities in dependency order (DESIGN §3.1)
 ORDER = ("core", "sections", "assembly", "interchange", "study")
 #: shared leaves: anyone may import them; they import only leaves
-LEAVES = {"hexmesh._occ", "hexmesh.session", "hexmesh.quality_hex"}
+LEAVES = {"hexmesh._occ", "hexmesh.session", "hexmesh.quality_hex",
+          "hexmesh.version"}            # task 0091: assembly stamps the version
 #: which capabilities may import ``io.writers``
 WRITERS_USERS = {"assembly", "study"}
 #: may import anything
@@ -188,7 +189,8 @@ def private_violations(root: Path) -> list[str]:
         if capability(imp.module) == capability(imp.target) or imp.target in PRIVATE_OK:
             continue
         private_module = any(p.startswith("_") for p in imp.target.split("."))
-        names = [n for n in imp.names if n.startswith("_")]
+        names = [n for n in imp.names                      # dunders are public
+                 if n.startswith("_") and not (n.startswith("__") and n.endswith("__"))]
         if private_module or names:
             what = ", ".join(names) if names else "the module"
             out.append(f"{imp.where(root)}: {imp.module} imports {what} from {imp.target}")
@@ -394,8 +396,9 @@ def test_planted_private_name(tmp_path, text):
 
 def test_planted_private_inside_a_package_is_fine(tmp_path):
     root = _tree(tmp_path, {"hexmesh/assembly/wye.py": "from .fittings import _with_radii\n"
-                                                       "from hexmesh import _occ\n",
-                            "hexmesh/assembly/fittings.py": ""})
+                                                       "from hexmesh import _occ\n"
+                                                       "from hexmesh.version import __version__\n",
+                            "hexmesh/assembly/fittings.py": "", "hexmesh/version.py": ""})
     assert private_violations(root) == []
 
 

@@ -115,6 +115,15 @@ All *verified* on v1912, 2026-10-25, on `examples/insulated_pipe`
     the file.
   - It finds sections by lines starting with `$`; keep every content
     line of such a block from starting with `$` (assumed, not tested).
+- **`gmshToFoam` crashes on a missing input file** instead of saying it
+  is missing (v1912 native, v2406 in Docker, 2026-11-02, task 0091).
+  - v1912 segfaults after "Create time" (exit 139).  v2406 aborts with
+    "Cannot dereference nullptr at index -1 in range [0,0)" and a stack
+    trace.
+  - With the Docker runner, a `.msh` outside the case directory is
+    missing unless its directory is mounted: pass `mounts=[msh.parent]`
+    to `foam()`, as `convert()` does.  Read the crash above as "file not
+    found" first.
 
 All v1912, gmsh 4.12.1, 2026-10-25.
 

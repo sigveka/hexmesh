@@ -60,6 +60,13 @@ gmsh 4.12.1, 2026-11-02, design session (scripts in its scratchpad).
   only if the reader joins its lines again.
 - A `$Comments` block inserted into a 4.1 *binary* file (after the text
   `$EndMeshFormat`) is read too.
+- **The binary header** (gmsh 4.12.1, 2026-11-02, task 0091): in
+  `Mesh.Binary = 1` gmsh writes `$MeshFormat\n4.1 1 8\n`, then the
+  integer 1 as 4 bytes (endianness marker, `01 00 00 00` here) and `\n`,
+  then `$EndMeshFormat\n`.  The same in MSH 2.2 binary.  So "insert after
+  `$EndMeshFormat\n`" places the block after the marker in both ASCII and
+  binary files.  gmsh reads the result with identical nodes, hexes and
+  physical groups (`tests/test_msh_recipe.py`).
 
 ### OCC `getBoundary` returns curve end points in tag order — *verified*
 For a curve, `gmsh.model.getBoundary([(1, c)], oriented=False)` lists its

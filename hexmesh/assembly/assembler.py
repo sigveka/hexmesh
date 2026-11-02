@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Assembly — interface-first network assembly (DESIGN.md §5).
 
@@ -36,7 +48,9 @@ from ..core.spec import PipeSpec
 from ..faces import add_physical_group
 from ..quality_hex import METRICS, hex_vertices, min_scaled_jacobians
 from . import intent
+from ..io.writers import msh_comments
 from ..io.writers.openfoam_boundary import roles_path, write_roles
+from ..version import __version__
 from .signature import check_port_pairs, classify, signature
 from .corners import transfinite_surface_corners, transfinite_volume_corners
 from .fittings import FillResult, Straight
@@ -343,6 +357,16 @@ class Assembly:
     def from_dict(cls, d: dict) -> "Assembly":
         """Rebuild an assembly from :meth:`to_dict` output."""
         return intent.from_dict(cls, d)
+
+    @classmethod
+    def from_msh(cls, path) -> "Assembly":
+        """Rebuild the assembly a ``.msh`` was written from, by the recipe
+        in its ``$Comments`` block (decision 0038)."""
+        recipe = msh_comments.read_recipe(path)
+        if recipe is None:
+            raise ValueError(f"{path}: no hexmesh recipe (written with provenance=False, "
+                             "by another tool, or from an assembly to_dict can't describe)")
+        return cls.from_dict(recipe)
 
     def refined(self, k: int) -> "Assembly":
         """A new assembly at k× the resolution in every direction.
@@ -843,12 +867,29 @@ class Assembly:
             msh.setTransfiniteVolume(tag, cornerTags=transfinite_volume_corners(tag))
             msh.setRecombine(3, tag)
 
-    def write(self, path: str, dim: int = 3, *, walls_by_fitting: bool = False) -> None:
+    def write(self, path: str, dim: int = 3, *, walls_by_fitting: bool = False,
+              provenance: bool = True) -> None:
+        """Mesh and write *path* in the format its extension names.  A
+        ``.msh`` carries the recipe block unless *provenance* is false
+        (:meth:`_stamp`)."""
         self.mesh(dim, walls_by_fitting=walls_by_fitting)
         gmsh.write(path)
+        if provenance and str(path).endswith(".msh"):
+            self._stamp(path, f"write dim={dim} walls_by_fitting={walls_by_fitting}")
+
+    def _stamp(self, path, write: str) -> None:
+        """Insert the ``$Comments`` block (decision 0038): logo, versions,
+        *write* options and :meth:`to_dict`, or why there is none."""
+        try:
+            recipe, error = self.to_dict(), None
+        except TypeError as e:
+            recipe, error = None, str(e)
+        msh_comments.insert(path, msh_comments.block(
+            f"hexmesh {__version__}", write, recipe, tool=f"gmsh {gmsh.__version__}",
+            msh=msh_comments.msh_format(path), error=error))
 
     def write_openfoam(self, path: str, *, interfaces: bool = False,
-                       walls_by_fitting: bool = False) -> None:
+                       walls_by_fitting: bool = False, provenance: bool = True) -> None:
         """Mesh and write a ``.msh`` file for OpenFOAM's ``gmshToFoam``.
 
         Writes MSH 2.2 ASCII (``Mesh.MshFileVersion = 2.2``,
@@ -871,6 +912,9 @@ class Assembly:
         the file (``pipe.msh`` → ``pipe.roles.json``), which
         ``hexmesh.io.writers.openfoam_boundary.apply_boundary_roles`` uses
         to retype the walls of the converted case.
+
+        The ``.msh`` carries the recipe block unless *provenance* is false;
+        ``gmshToFoam`` skips it (docs/integrations/openfoam.md).
         """
         if not str(path).endswith(".msh"):
             raise ValueError(f"write_openfoam writes a .msh file, got {path!r}")
@@ -893,6 +937,9 @@ class Assembly:
             gmsh.option.setNumber("Mesh.MshFileVersion", 2.2)
             gmsh.option.setNumber("Mesh.Binary", 0)
             gmsh.write(str(path))
+            if provenance:
+                self._stamp(path, f"write_openfoam dim=3 interfaces={interfaces} "
+                                  f"walls_by_fitting={walls_by_fitting}")
         finally:
             for k, v in options.items():
                 gmsh.option.setNumber(k, v)
