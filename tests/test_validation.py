@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Validation against an exact solution (decision 0012, docs/tasks/0020).
 
@@ -6,6 +18,7 @@ and checks the acceptance criteria.  Opt-in: ``-m openfoam``; skipped
 without OpenFOAM.
 """
 
+import importlib.util
 import json
 import subprocess
 import sys
@@ -15,6 +28,10 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "validation" / "poiseuille" / "run.py"
+_spec = importlib.util.spec_from_file_location("convergence",
+                                               ROOT / "validation/tools/convergence.py")
+conv = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(conv)
 OPENFOAM_RC = Path("/usr/share/openfoam/etc/bashrc")
 
 
@@ -78,15 +95,17 @@ def test_fine_level_within_one_percent(levels, key):
 
 @pytest.mark.parametrize("key", ["dp", "u_max"])
 def test_extrapolated_within_a_tenth_percent(data, key):
-    """Richardson-extrapolated value within 0.1 % of exact."""
-    ext, exact = data["richardson"][key]["extrapolated"], data["exact"][key]
-    assert abs(ext - exact) / exact < 1e-3, (ext, exact)
+    """Richardson-extrapolated value within 0.1 % of exact, on a converging
+    series only (task 0089)."""
+    ok, why = conv.gate_extrapolated(data["richardson"][key], data["exact"][key], 1e-3)
+    assert ok, why
 
 
 def test_u_max_observed_order(data):
     """Gated for u_max only; Δp's order competes with the polygon's
     geometric error and is reported, not gated (RESEARCH §7.4)."""
-    assert data["richardson"]["u_max"]["order"] >= 1.5
+    rich = data["richardson"]["u_max"]
+    assert rich["status"] == "converging" and rich["order"] >= 1.5, rich
 
 
 def test_nonorthogonality_trend_meshes_ok(data):

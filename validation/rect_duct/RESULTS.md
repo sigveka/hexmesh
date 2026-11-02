@@ -20,7 +20,7 @@ unlike the pipe.
 | Gate | a/b = 1 | a/b = 2 | a/b = 4 | |
 |---|---|---|---|---|
 | extrapolated f·Re within 0.1 % | +0.011 % | +0.008 % | +0.006 % | **pass** |
-| extrapolated u_c within 0.1 % | +0.080 % | +0.096 % | +0.083 % | **pass** (see the centre fit, below) |
+| extrapolated u_c, net of the fit's bias, within 0.1 % (amendment 3) | +0.012 % | +0.006 % | +0.003 % | **pass** |
 | finest f·Re error < 1 % | −0.258 % | −0.202 % | −0.171 % | **pass** |
 | finest u_c error < 1 % | −0.110 % | −0.040 % | −0.022 % | **pass** |
 | observed order near 2: f·Re | 1.93 | 1.94 | 1.95 | **pass** |
@@ -29,14 +29,14 @@ unlike the pipe.
 Monotone in every quantity at every ratio, so the setup (exact inlet,
 planes, post-processing, Richardson) is sound.
 
-**The centre fit.**  u_c comes from a fit to the plane's face values
-(README), and the same fit applied to the exact solution at the same
-faces is off by +0.06 to +0.09 % at the fine levels (last column of the
-field table).  That bias, not the solver, is almost all of the
-extrapolated u_c error.  Subtracting it level by level, the control's
-extrapolated u_c is +0.012 / +0.006 / +0.003 % (order 1.91 / 1.94 /
-1.96).  The gate passes as measured.  The margin is thin only because
-of the fit.
+**The centre fit** (reported, not gated; decision 0015 amendment 3).
+u_c comes from a fit to the plane's face values (README).  The same fit
+applied to the exact solution at the same faces is off by +0.06 to
++0.09 % at the fine levels (last column of the field table).  So the
+gate is on u_c net of that bias: order 1.91 / 1.94 / 1.96, extrapolated
++0.012 / +0.006 / +0.003 %.  The raw u_c extrapolates to +0.080 /
++0.096 / +0.083 %, almost all of it the fit's bias (task 0089 changed
+the gate; the run is the same).
 
 ### Errors side by side
 
@@ -54,20 +54,32 @@ of the fit.
 
 ### Richardson extrapolation (k = 1, 2, 4; ratio 2)
 
-| a/b | quantity | mesh | observed order | extrapolated − exact | GCI fine | oscillatory | differences grow |
-|---|---|---|---|---|---|---|---|
-| 1 | f·Re | Cartesian | 1.93 | +0.011 % | 0.338 % | False | False |
-| 1 | f·Re | O-H | 0.24 (not meaningful) | -3.263 % | 5.467 % | False | True |
-| 1 | u_c | Cartesian | 1.91 | +0.080 % | 0.238 % | False | False |
-| 1 | u_c | O-H | 1.97 (not meaningful) | +0.314 % | 0.037 % | True | False |
-| 2 | f·Re | Cartesian | 1.94 | +0.008 % | 0.262 % | False | False |
-| 2 | f·Re | O-H | 0.13 (not meaningful) | -1.894 % | 2.949 % | True | False |
-| 2 | u_c | Cartesian | 1.90 | +0.096 % | 0.169 % | False | False |
-| 2 | u_c | O-H | 1.50 (not meaningful) | +0.276 % | 0.055 % | True | False |
-| 4 | f·Re | Cartesian | 1.95 | +0.006 % | 0.222 % | False | False |
-| 4 | f·Re | O-H | 3.44 | +0.153 % | 0.009 % | False | False |
-| 4 | u_c | Cartesian | 1.91 | +0.083 % | 0.131 % | False | False |
-| 4 | u_c | O-H | 2.44 (not meaningful) | +0.181 % | 0.012 % | True | False |
+Shared function (`validation/tools/convergence.py`, task 0089): an order
+and an extrapolation only on a converging series.  "u_c net of the fit"
+is the fit applied to the solution minus the fit applied to the exact
+field at the same faces, over u_c (exact limit 0; decision 0015
+amendment 3); its extrapolated value and GCI are in units of u_c.
+
+| a/b | quantity | mesh | status | observed order | extrapolated − exact | GCI fine |
+|---|---|---|---|---|---|---|
+| 1 | f·Re | Cartesian | converging | 1.93 | +0.011 % | 0.338 % |
+| 1 | f·Re | O-H | diverging | — | — | — |
+| 1 | u_c | Cartesian | converging | 1.91 | +0.080 % | 0.238 % |
+| 1 | u_c | O-H | oscillatory | — | — | — |
+| 1 | u_c net of the fit | Cartesian | converging | 1.91 | +0.012 % | 0.234 % |
+| 1 | u_c net of the fit | O-H | oscillatory | — | — | — |
+| 2 | f·Re | Cartesian | converging | 1.94 | +0.008 % | 0.262 % |
+| 2 | f·Re | O-H | oscillatory | — | — | — |
+| 2 | u_c | Cartesian | converging | 1.90 | +0.096 % | 0.169 % |
+| 2 | u_c | O-H | oscillatory | — | — | — |
+| 2 | u_c net of the fit | Cartesian | converging | 1.94 | +0.005 % | 0.162 % |
+| 2 | u_c net of the fit | O-H | oscillatory | — | — | — |
+| 4 | f·Re | Cartesian | converging | 1.95 | +0.006 % | 0.222 % |
+| 4 | f·Re | O-H | converging | 3.44 | +0.153 % | 0.009 % |
+| 4 | u_c | Cartesian | converging | 1.91 | +0.083 % | 0.131 % |
+| 4 | u_c | O-H | oscillatory | — | — | — |
+| 4 | u_c net of the fit | Cartesian | converging | 1.96 | +0.003 % | 0.120 % |
+| 4 | u_c net of the fit | O-H | oscillatory | — | — | — |
 
 ### Velocity field on the 5 D_h plane (fraction of exact u_c)
 
@@ -125,7 +137,7 @@ The control has the same axial cells and about the same section cells:
     O-H f·Re is still slightly closer (0.85×), because its error is
     passing through zero, not converging.
 - **u_c oscillates at every ratio** (O-H +0.09 → +0.43 → +0.34 % on the
-  square), so its Richardson orders aren't meaningful either.  At the
+  square), so it has no Richardson order either.  At the
   finest level the control's u_c is 3–9× more accurate.
 - **The field.**  The O-H max error falls about 1.4× per level (2.4 →
   1.7 → 1.2 %), the control's about 4× (2.6 → 0.69 → 0.18 %).  The O-H
@@ -135,10 +147,12 @@ The control has the same axial cells and about the same section cells:
     42.5 → 43.8° on the square; 44.7° at a/b = 4, k = 4).
   - Min scaled Jacobian is 0.707 at every level (the 45° corner cells).
   - This matches the design session's 2-D control, RESEARCH §7.11.
-- **Richardson caveat.**  Poiseuille's `richardson()` takes |log(ε32/ε21)|,
-  so growing differences still give an order > 0, here 0.24 for the
-  square, with an extrapolation in the wrong direction (−3.26 %).
-  `extrapolate()` now flags this as `differences_grow`.
+- **Richardson** (task 0089).  The square's f·Re is diverging (the
+  differences grow), a/b = 2's oscillatory, and u_c oscillatory at
+  every ratio, so none has an order.  The old shared function took
+  |log(ε32/ε21)| and gave the square "order 0.24", extrapolating the
+  wrong way (−3.26 %).  a/b = 4's f·Re is formally converging (order
+  3.44), but through a sign change of the error, not asymptotically.
 
 ## Solver notes
 

@@ -1,4 +1,16 @@
 #!/usr/bin/env python3
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Solid rod with uniform heat generation (decision 0012, docs/tasks/0033).
 
@@ -46,12 +58,16 @@ from hexmesh.assembly import intent                            # noqa: E402
 from hexmesh.core.shape import OH_RATIO                        # noqa: E402
 from hexmesh.study.openfoam import cell_geometry, face_geometry   # noqa: E402
 
-# The Poiseuille case's Richardson analysis and versions, and (through it)
-# the shared OpenFOAM runner and readers of hexmesh.study.openfoam.
+# The Poiseuille case's versions, and (through it) the shared OpenFOAM
+# runner and readers of hexmesh.study.openfoam.
 _spec = importlib.util.spec_from_file_location("poiseuille_run",
                                                ROOT / "validation/poiseuille/run.py")
 pois = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(pois)
+_spec = importlib.util.spec_from_file_location("convergence",
+                                               ROOT / "validation/tools/convergence.py")
+conv = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(conv)                  # richardson() (task 0089)
 
 # --- physics -----------------------------------------------------------------
 
@@ -276,8 +292,9 @@ def analyse(rows: list[dict]) -> dict:
            "order_dt0": orders(rows, "dt0_err_signed") if all(
                r["dt0_err_signed"] for r in rows) else None}
     if len(rows) >= 3:
-        rich = pois.richardson(*(r["dt0"] for r in rows[-3:]))
-        rich["extrapolated_err"] = (rich["extrapolated"] - DT0_EXACT) / DT0_EXACT
+        rich = conv.richardson(*(r["dt0"] for r in rows[-3:]))
+        rich["extrapolated_err"] = (None if rich["extrapolated"] is None
+                                    else (rich["extrapolated"] - DT0_EXACT) / DT0_EXACT)
         out["richardson_dt0"] = rich
     return out
 
@@ -316,6 +333,9 @@ def main(argv=None) -> dict:
                 print(f"observed order, L2 {k}: " + ", ".join(f"{v:.2f}" for v in o))
             if "richardson_dt0" in a:
                 rd = a["richardson_dt0"]
+                if rd["status"] != "converging":
+                    print(f"ΔT₀ Richardson (last three): {rd['status']}: {rd['note']}")
+                    continue
                 print(f"ΔT₀ Richardson (last three): order {rd['order']:.2f}, extrapolated "
                       f"{rd['extrapolated']:.8f} ({rd['extrapolated_err']:+.4%} vs exact), "
                       f"GCI fine {rd['gci_fine']:.3%}")

@@ -1,4 +1,16 @@
 #!/usr/bin/env python3
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Smooth cosine constriction, steady laminar flow at Re = 500 (decision 0012,
 docs/tasks/0032), against the DNS of Varghese, Frankel & Fischer (2007),
@@ -36,7 +48,6 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
-import math
 import re
 import shutil
 import urllib.request
@@ -67,6 +78,7 @@ def _load(name: str, path: str):
 # The Poiseuille case's simpleFoam dictionaries, Richardson analysis and
 # version record (task 0020); OpenFOAM itself through hexmesh.study.openfoam.
 pois = _load("poiseuille_run", "validation/poiseuille/run.py")
+conv = _load("convergence", "validation/tools/convergence.py")       # task 0089
 
 REFERENCE_URL = ("https://engineering.purdue.edu/CFDLAB/DNS_stenoticflow_database/"
                  "Axi_stdy/Re500/vel.dat")
@@ -442,30 +454,6 @@ def compare(row: dict, ref: dict) -> dict:
 
 # --- driver ------------------------------------------------------------------
 
-def richardson(f3: float, f2: float, f1: float, r21: float, r32: float) -> dict:
-    """Three-level Richardson extrapolation at non-constant refinement
-    ratios [celik_and_ghia_etal_2008], §2.1, steps 3–5: f1 the finest
-    level, r21 = h2/h1, r32 = h3/h2.  The observed order solves
-    p = |ln|ε32/ε21| + q(p)| / ln r21 by fixed-point iteration."""
-    e21, e32 = f2 - f1, f3 - f2
-    if e21 == 0 or e32 == 0:
-        raise ValueError("two levels agree exactly")
-    s = 1.0 if e32 / e21 > 0 else -1.0
-    p = abs(math.log(abs(e32 / e21))) / math.log(r21)
-    for _ in range(100):
-        q = math.log((r21 ** p - s) / (r32 ** p - s))
-        p_new = abs(math.log(abs(e32 / e21)) + q) / math.log(r21)
-        if abs(p_new - p) < 1e-10:
-            break
-        p = p_new
-    rp = r21 ** p
-    ext = (rp * f1 - f2) / (rp - 1)
-    e_a = abs((f1 - f2) / f1)
-    return {"order": p, "extrapolated": ext, "e_a": e_a,
-            "e_ext": abs((ext - f1) / ext), "gci_fine": 1.25 * e_a / (rp - 1),
-            "oscillatory": s < 0}
-
-
 def run_level(name: str, k: int, work: Path, max_time: float, n_proc: int) -> dict:
     case = work / name
     if case.exists():
@@ -596,26 +584,23 @@ def table(rows: list[dict]) -> str:
 
 def extrapolate(rows: list[dict], ref: dict | None) -> dict:
     """Richardson over three levels: each scalar, and the centreline at
-    every database station (the extrapolated value where the order is
-    defined and not oscillatory, else the finest level's)."""
+    every database station (the extrapolated value where the series is
+    converging, else the finest level's)."""
     ks = [r["factor"] for r in rows]
     r21, r32 = ks[2] / ks[1], ks[1] / ks[0]
     rich = {"ratios": [r21, r32]}
     for key in ("u_peak", "x_separation", "x_reattachment", "x_reattachment_probe"):
         try:
-            rich[key] = richardson(*(r[key] for r in rows), r21, r32)
-        except (TypeError, ValueError, ZeroDivisionError) as e:
+            rich[key] = conv.richardson(*(r[key] for r in rows), r21, r32)
+        except TypeError as e:                      # a level without the value
             rich[key] = {"error": str(e)}
     if ref:
         zs = rows[-1]["compare"]["stations"]
         vals = np.array([r["compare"]["centre"] for r in rows])
         best, used = [], 0
         for i in range(len(zs)):
-            try:
-                e = richardson(*vals[:, i], r21, r32)
-                ok = not e["oscillatory"] and math.isfinite(e["extrapolated"])
-            except (ValueError, ZeroDivisionError):
-                ok = False
+            e = conv.richardson(*vals[:, i], r21, r32)
+            ok = e["status"] == "converging"
             best.append(e["extrapolated"] if ok else float(vals[2, i]))
             used += ok
         dns = np.array(rows[-1]["compare"]["dns_centre"])

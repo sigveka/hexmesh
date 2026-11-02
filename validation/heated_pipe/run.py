@@ -1,4 +1,16 @@
 #!/usr/bin/env python3
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Heated multi-layer pipe with laminar flow, full conjugate heat transfer
 (decision 0012, docs/tasks/0035): Poiseuille flow in a fluid core inside
@@ -48,11 +60,11 @@ _spec = importlib.util.spec_from_file_location("poiseuille_run",
                                                ROOT / "validation/poiseuille/run.py")
 pois = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(pois)                  # versions()
-# the non-constant-ratio Richardson extrapolation (levels 1, 2, 3)
-_spec = importlib.util.spec_from_file_location("stenosis_run",
-                                               ROOT / "validation/stenosis/run.py")
-sten = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(sten)
+# Richardson at non-constant ratios (levels 1, 2, 3), shared (task 0089)
+_spec = importlib.util.spec_from_file_location("convergence",
+                                               ROOT / "validation/tools/convergence.py")
+conv = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(conv)
 
 # --- physics -----------------------------------------------------------------
 R1, R2, R3 = 0.010, 0.012, 0.020             # fluid, steel, insulation outer radii [m]
@@ -546,10 +558,7 @@ def extrapolate(rows: list[dict]) -> dict:
     c, m, f = sorted(rows, key=lambda r: r["k"])
     out = {}
     for key in ("nu", "dt_steel", "dt_insulation", "dtb_dx"):
-        try:
-            out[key] = sten.richardson(c[key], m[key], f[key], f["k"] / m["k"], m["k"] / c["k"])
-        except (ValueError, ZeroDivisionError) as e:
-            out[key] = {"error": str(e)}
+        out[key] = conv.richardson(c[key], m[key], f[key], f["k"] / m["k"], m["k"] / c["k"])
     return out
 
 

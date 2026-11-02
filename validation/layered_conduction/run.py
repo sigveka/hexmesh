@@ -1,4 +1,16 @@
 #!/usr/bin/env python3
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Conduction through a heated, multi-layer cylinder (decision 0012,
 docs/tasks/0034): a rod with uniform heat generation in a steel shell
@@ -45,7 +57,11 @@ from hexmesh.study import openfoam as of                       # noqa: E402
 _spec = importlib.util.spec_from_file_location("poiseuille_run",
                                                ROOT / "validation/poiseuille/run.py")
 pois = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(pois)                  # richardson(), versions()
+_spec.loader.exec_module(pois)                  # versions()
+_spec = importlib.util.spec_from_file_location("convergence",
+                                               ROOT / "validation/tools/convergence.py")
+conv = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(conv)                  # richardson() (task 0089)
 
 # --- physics -----------------------------------------------------------------
 R1, R2, R3 = 0.010, 0.012, 0.020             # rod, steel, insulation outer radii [m]
@@ -362,10 +378,7 @@ def main(argv=None) -> dict:
         rich = {}
         if len(rows) == 3:
             for key in ("t0", "t1", "t2") + (("t3",) if variant == "convection" else ()):
-                try:
-                    rich[key] = pois.richardson(*(r[key] for r in rows))
-                except (ValueError, ZeroDivisionError) as e:
-                    rich[key] = {"error": str(e)}
+                rich[key] = conv.richardson(*(r[key] for r in rows))
         data["variants"][variant] = {"levels": rows, "richardson": rich}
     if args.json:
         args.json.write_text(json.dumps(data, indent=1, default=float))

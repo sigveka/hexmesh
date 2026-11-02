@@ -1,4 +1,16 @@
 #!/usr/bin/env python3
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Laminar Hagen–Poiseuille validation (decision 0012, docs/tasks/0020).
 
@@ -24,6 +36,7 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import importlib.util
 import json
 import math
 import re
@@ -47,6 +60,12 @@ from hexmesh.study.openfoam import (                           # noqa: E402
     read_faces, read_internal, read_labels, read_patch_faces, read_patch_values,
     openfoam_version, read_points, read_zone, runner,
 )
+
+# Richardson / GCI, shared by every case (task 0089).
+_spec = importlib.util.spec_from_file_location("convergence",
+                                               HERE.parent / "tools/convergence.py")
+conv = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(conv)
 
 # --- physics -----------------------------------------------------------------
 D = 0.02                  # pipe diameter [m]
@@ -328,25 +347,6 @@ def orders(rows: list[dict], key: str) -> list[float]:
     return [math.log2(a[key] / b[key]) for a, b in zip(rows, rows[1:])]
 
 
-def richardson(coarse: float, medium: float, fine: float, ratio: float = 2.0) -> dict:
-    """Three-level Richardson extrapolation with a constant refinement ratio
-    [celik_and_ghia_etal_2008], §2.1, steps 3–5 (q(p) = 0 for constant r).
-
-    ``fine``/``medium``/``coarse`` are f1/f2/f3.  Returns the observed order,
-    the extrapolated value, the approximate and extrapolated relative errors
-    of the fine level, the fine-level GCI (safety factor 1.25), and whether
-    convergence is oscillatory (ε32/ε21 < 0).
-    """
-    e21, e32 = medium - fine, coarse - medium
-    p = abs(math.log(abs(e32 / e21))) / math.log(ratio)
-    rp = ratio ** p
-    ext = (rp * fine - medium) / (rp - 1)
-    e_a = abs((fine - medium) / fine)
-    return {"order": p, "extrapolated": ext, "e_a": e_a,
-            "e_ext": abs((ext - fine) / ext), "gci_fine": 1.25 * e_a / (rp - 1),
-            "oscillatory": e32 / e21 < 0}
-
-
 TREND_NANG = (6, 12, 24, 48, 96)
 
 
@@ -415,12 +415,15 @@ def table(rows: list[dict]) -> str:
 
 def richardson_table(rich: dict) -> str:
     exact = {"dp": DP_EXACT, "u_max": U_MAX_EXACT}
-    lines = ["| Quantity | observed order | extrapolated | extrapolated − exact "
-             "| GCI fine | oscillatory |", "|---|---|---|---|---|---|"]
+    lines = ["| Quantity | status | observed order | extrapolated | extrapolated − exact "
+             "| GCI fine |", "|---|---|---|---|---|---|"]
     for k, r in rich.items():
-        lines.append(f"| {k} | {r['order']:.2f} | {r['extrapolated']:.6e} "
+        if r["status"] != "converging":
+            lines.append(f"| {k} | {r['status']} | — | — | — | — |")
+            continue
+        lines.append(f"| {k} | {r['status']} | {r['order']:.2f} | {r['extrapolated']:.6e} "
                      f"| {(r['extrapolated'] - exact[k]) / exact[k]:+.3%} "
-                     f"| {r['gci_fine']:.3%} | {r['oscillatory']} |")
+                     f"| {r['gci_fine']:.3%} |")
     return "\n".join(lines)
 
 
@@ -454,7 +457,7 @@ def main(argv=None) -> list[dict]:
         print(f"\nerror ratio order, dp:    {orders(rows, 'dp_err')}")
         print(f"error ratio order, u_max: {orders(rows, 'u_max_err')}")
     if len(rows) == 3:
-        rich = {k: richardson(*(r[k] for r in rows)) for k in ("dp", "u_max")}
+        rich = {k: conv.richardson(*(r[k] for r in rows)) for k in ("dp", "u_max")}
         print("\n" + richardson_table(rich))
     trend = [] if args.no_trend else nonorth_trend(args.work)
     if trend:

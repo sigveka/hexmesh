@@ -50,21 +50,24 @@ slightly faster than the DNS at every level.
 Richardson extrapolation [celik_and_ghia_etal_2008], ratios 4/3 and 3/2
 (the non-constant-ratio form, §2.1):
 
-| Quantity | observed order | extrapolated | GCI fine | oscillatory |
+| Quantity | status | observed order | extrapolated | GCI fine |
 |---|---|---|---|---|
-| u_peak | 2.84 | 4.7113 | 0.14 % | True |
-| x_sep | 3.53 | 0.2093 | 0.81 % | False |
-| x_reatt, τ_w = 0 | (10.8) | 11.4017 | 0.002 % | True |
-| x_reatt, u(0.48 D) = 0 | 1.18 | 10.849 | 1.4 % | True |
+| u_peak | oscillatory | — | — (range 4.7038–4.7237) | — |
+| x_sep | converging | 3.53 | 0.2093 | 0.81 % |
+| x_reatt, τ_w = 0 | oscillatory | — | — (range 11.123–11.405) | — |
+| x_reatt, u(0.48 D) = 0 | oscillatory | — | — (range 10.970–11.019) | — |
 
-Most quantities converge oscillatorily (k3 overshoots k2 → k4), so the
-extrapolated values are reported, not used, except the separation point.
-- **τ_w = 0 reattachment** has converged: k3 and k4 agree to 0.03 %.
-  The "order" 10.8 only says the k3–k4 change is tiny.
+Statuses from the shared function (task 0089, recomputed from the
+stored k2–k4 fields): an order and an extrapolation only on a
+converging series.  Before it, the oscillatory rows showed formal
+orders (2.84, 10.8, 1.18) and extrapolated values; none was gated.
+Most quantities converge oscillatorily (k3 overshoots k2 → k4), so only
+the separation point is extrapolated.
+- **τ_w = 0 reattachment** has settled: k3 and k4 agree to 0.03 %.
 - **u(0.48 D) = 0 reattachment** varies within ±0.025 D (0.2 %) over
   the three levels.
-- **Centreline:** extrapolated at the 3 stations where the order is
-  defined and not oscillatory, the finest level elsewhere: largest
+- **Centreline:** extrapolated at the 3 stations where the series is
+  converging, the finest level elsewhere (unchanged by task 0089): largest
   error 0.93 % of the DNS peak, at x = 3 D.
 
 ## Gates

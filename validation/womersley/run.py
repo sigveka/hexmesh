@@ -1,4 +1,16 @@
 #!/usr/bin/env python3
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Womersley flow: pulsatile laminar flow in a straight pipe, against the
 exact solution (decision 0012, docs/tasks/0067).
@@ -24,6 +36,7 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import importlib.util
 import json
 import math
 import re
@@ -47,6 +60,10 @@ from hexmesh.study.openfoam import (                           # noqa: E402
     cell_geometry, face_geometry, foam, header as _header, read_faces, read_internal,
     read_labels, read_patch_faces, read_points, read_zone,
 )
+
+_spec = importlib.util.spec_from_file_location("convergence", HERE.parent / "tools/convergence.py")
+conv = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(conv)                  # richardson() (task 0089)
 
 # --- physics (the stenosis paper's inlet, varghese_and_frankel_etal_2007b eq. 2.1) --
 D = 1.0
@@ -479,17 +496,9 @@ def run_periods(name, factor, case, n_proc, dt_factor, steps, dt, start, warm=Fa
 
 
 def richardson(f1, f2, f3, r=2.0) -> dict:
-    """Coarse → fine values f1, f2, f3; observed order, extrapolated value
-    and fine-level GCI (celik_and_ghia_etal_2008, safety factor 1.25)."""
-    e21, e32 = f2 - f1, f3 - f2
-    if e21 == 0 or e32 == 0 or e21 * e32 < 0:
-        return {"order": None, "extrapolated": None, "gci_fine": None,
-                "note": "non-monotone or exact"}
-    order = math.log(abs(e21 / e32)) / math.log(r)
-    ext = f3 + (f3 - f2) / (r**order - 1)
-    return {"order": order, "extrapolated": ext,
-            # relative GCI, or absolute for a quantity whose exact value is 0
-            "gci_fine": 1.25 * abs(f3 - f2) / (abs(f3) if abs(f3) > 1e-2 else 1.0) / (r**order - 1)}
+    """Coarse → fine values f1, f2, f3, by the shared function (task 0089);
+    the GCI is absolute for a quantity whose exact value is 0 (|f3| ≤ 0.01)."""
+    return conv.richardson(f1, f2, f3, r, scale=None if abs(f3) > 1e-2 else 1.0)
 
 
 def summarise(rows: list[dict]) -> dict:

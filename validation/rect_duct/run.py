@@ -1,4 +1,16 @@
 #!/usr/bin/env python3
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Fully developed laminar flow in rectangular ducts (decision 0012, V1;
 docs/tasks/0071): aspect ratios 1, 2 and 4, Re 100 on the hydraulic
@@ -45,7 +57,11 @@ from hexmesh.study import openfoam as of                       # noqa: E402
 _spec = importlib.util.spec_from_file_location("poiseuille_run",
                                                ROOT / "validation/poiseuille/run.py")
 pois = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(pois)       # dictionaries, richardson(), versions()
+_spec.loader.exec_module(pois)       # dictionaries, versions()
+_spec = importlib.util.spec_from_file_location("convergence",
+                                               ROOT / "validation/tools/convergence.py")
+conv = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(conv)       # richardson() (task 0089)
 
 # --- physics -----------------------------------------------------------------
 DH = 0.02                 # hydraulic diameter, every aspect ratio [m]
@@ -385,7 +401,10 @@ def run_control(ratio: int, k: int, work: Path, end_time: int) -> dict:
 
 def extrapolate(rows: list[dict]) -> dict:
     """Richardson per mesh and aspect ratio over k = 1, 2, 4 (ratio 2)
-    [celik_and_ghia_etal_2008]."""
+    [celik_and_ghia_etal_2008], on f·Re, u_c, and u_c net of the centre
+    fit's own bias (decision 0015 amendment 3): the fit applied to the
+    solution minus the fit applied to the exact field at the same faces,
+    over u_c, whose exact limit is 0."""
     out = {}
     for mesh in MESHES:
         for ratio in sorted({r["ratio"] for r in rows if r.get("mesh", "oh") == mesh}):
@@ -396,16 +415,15 @@ def extrapolate(rows: list[dict]) -> dict:
             e = exact(ratio)
             out.setdefault(mesh, {})[ratio] = {}
             for key, ref in (("fRe", e["fRe"]), ("u_c", e["u_c"])):
-                f3, f2, f1 = (r[key] for r in lv)
-                try:
-                    rich = pois.richardson(f3, f2, f1)
-                    rich["ext_err_signed"] = (rich["extrapolated"] - ref) / ref
-                    # richardson() takes |log|, so growing differences still
-                    # give an order > 0: no asymptotic range then
-                    rich["differences_grow"] = abs(f2 - f1) > abs(f3 - f2)
-                except (ValueError, ZeroDivisionError) as err:
-                    rich = {"error": str(err)}
+                rich = conv.richardson(*(r[key] for r in lv))
+                rich["ext_err_signed"] = (None if rich["extrapolated"] is None
+                                          else (rich["extrapolated"] - ref) / ref)
                 out[mesh][ratio][key] = rich
+            net = conv.richardson(*(r["u_c_err_signed"] - r["u_c_sampling_err"] for r in lv),
+                                  scale=1.0)
+            net["ext_err_signed"] = net["extrapolated"]
+            net["fit_bias_fine"] = lv[-1]["u_c_sampling_err"]
+            out[mesh][ratio]["u_c_net"] = net
     return out
 
 

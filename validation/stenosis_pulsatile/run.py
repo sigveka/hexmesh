@@ -1,4 +1,16 @@
 #!/usr/bin/env python3
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Pulsatile flow through the smooth cosine constriction (decision 0012,
 docs/tasks/0068), against the DNS of Varghese, Frankel & Fischer (2007),
@@ -64,9 +76,10 @@ def _load(name: str, path: str):
     return mod
 
 
-# The steady case's geometry, levels and Richardson analysis (task 0032);
+# The steady case's geometry and levels (task 0032);
 # the Womersley inlet and schemes (task 0067).
 sten = _load("stenosis_run", "validation/stenosis/run.py")
+conv = _load("convergence", "validation/tools/convergence.py")       # task 0089
 wom = _load("womersley_run", "validation/womersley/run.py")
 
 REFERENCE_URL = ("https://engineering.purdue.edu/CFDLAB/DNS_stenoticflow_database/"
@@ -532,10 +545,7 @@ def summarise(rows: list[dict]) -> dict:
     if len(space) >= 3:
         f3, f2, f1 = (out["throat_peak"][r["level"]] for r in space[-3:])
         k3, k2, k1 = (r["factor"] for r in space[-3:])
-        try:
-            out["throat_peak_richardson"] = sten.richardson(f3, f2, f1, k1 / k2, k2 / k3)
-        except ValueError as e:
-            out["throat_peak_richardson"] = {"error": str(e)}
+        out["throat_peak_richardson"] = conv.richardson(f3, f2, f1, k1 / k2, k2 / k3)
     for h in (r for r in rows if r["max_co"] != MAX_CO):
         base = next((r for r in space if r["level"] == h["level"]), None)
         if base is not None:
