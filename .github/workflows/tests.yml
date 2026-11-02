@@ -1,0 +1,50 @@
+# The test suite on Linux, macOS and Windows (decision 0039; task 0092).
+# OpenFOAM tests are excluded by default (pyproject addopts); Linux runs
+# the quick Docker ones against opencfd/openfoam-default:2406 as well.
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  suite:
+    name: ${{ matrix.os }}, Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ["3.10", "3.x"]           # the oldest supported and the newest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: gmsh's system libraries (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libglu1-mesa libxrender1 libxcursor1 libxft2 libxinerama1
+      - name: Install
+        run: python -m pip install -e ".[dev,study]"
+      - name: Versions
+        run: python -c "import sys, gmsh, hexmesh; print(sys.version, gmsh.__version__, hexmesh.__version__)"
+      - name: Test
+        run: python -m pytest -q
+
+  openfoam-docker:
+    name: OpenFOAM v2406 in Docker (Linux)
+    runs-on: ubuntu-latest
+    env:
+      HEXMESH_OPENFOAM: docker:opencfd/openfoam-default:2406
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - run: sudo apt-get update && sudo apt-get install -y libglu1-mesa libxrender1 libxcursor1 libxft2 libxinerama1
+      - run: python -m pip install -e ".[dev,study]"
+      - run: docker pull opencfd/openfoam-default:2406
+      # The runner and recipe-block tests take seconds; the validation
+      # cases take hours and stay on a workstation.
+      - run: python -m pytest -q -m openfoam tests/test_openfoam_runner.py tests/test_msh_recipe.py
