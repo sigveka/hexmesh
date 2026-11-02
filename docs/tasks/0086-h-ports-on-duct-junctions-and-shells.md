@@ -1,0 +1,66 @@
+# 0086 — H ports on duct junctions, and shells around an H core
+
+- **Status:** ready (after 0085)
+- **Decision:** [0036 — Cartesian (H) rectangular section](../decisions/0036-cartesian-rectangular-section.md) (item 5, rollout step 3); [0026](../decisions/0026-layer-outlines.md) (layer outlines); DESIGN §7.1 ("Duct junctions and the H layout")
+- **Depends on:** 0085 (the switch builder); 0060's split of the
+  duct-tap front end out of `Tee`, if done by then.  Otherwise do that
+  split first, as described in 0060's design note.
+
+Ground rules for all tasks: [README](README.md#ground-rules).
+
+**Why.**  Before the default flips (0087), every rectangular fitting must
+accept H ports.  Duct junctions keep their O-H blocks and embed the
+switch in their legs, so users never place switches around them
+(decision 0036 item 5).  Lagged ducts need shells around an H core.
+
+**Where.**  `assembly/duct_tap.py` (and `tee.py`'s dispatch);
+`sections/` (shells around `h`); `faces`/ring builders as moved by
+0082; the conformance kit; the HVAC examples.
+
+**Do.**
+1. **Duct taps and duct tees on H mains and branches.**
+   - When a duct junction's port is H, its leg next to that port
+     includes the switch slab(s) from 0085.  The junction's internal
+     blocks stay O-H.
+   - The junction declares the class-1 strategy for those ports.
+   - Cover round and rectangular branches, wide and narrow faces, and
+     full-width taps.
+   - The leg length grows by the switch's length rule; `validate()`
+     reports it in the room checks.
+2. **Shells around an H core** (lagged ducts, decision 0026):
+   - The first shell's ring takes the H core's four corners as its
+     inner corners.  The corner diagonals then lie in the shell (solid)
+     and the fluid stays Cartesian (decision 0036, option B).
+   - Support the outline combinations that rectangular O-H cores
+     support today: rectangle in rectangle, rectangle in circle, and
+     the kit's `_rect3` / `_in_rect` / `_rect_in_circle` cases.  Any
+     other combination is rejected with a named error.
+   - Measure the corner-cell quality of the first shell against the
+     O-H equivalent.  Check it against the skewed-ring limit from task
+     0047 (`limits.py`).
+3. **`Transition` with shells and an H end**: lift 0085's rejection,
+   once step 2 works.
+4. **Examples:** build the HVAC examples (`hvac_supply`,
+   `hvac_branched`) and `lagged_duct` with `layout="h"` explicitly, in
+   a test (not in the examples yet; 0087 changes them).  Record cell
+   counts and min SJ against the O-H versions.
+
+**Accept.**
+- The conformance kit passes for every duct-tap case in
+  `tests/test_fitting_conformance.py` (`_duct_tap`), now with H ports,
+  and for every layered duct spec with an H core.
+- No fitting that takes rectangular ports rejects `layout="h"` any
+  more.  List any exceptions under *Questions for design*.
+- The H builds of the three examples mesh; *Outcome* has the cell-count
+  and quality table against O-H.
+- Every existing mesh unchanged (the default is still `"oh"`).
+- Full suite: no new failures.
+
+**Out of scope.**  Junction layouts native to the H face (a later
+decision, only if these measure badly); the default flip (0087).
+
+## Agent notes
+
+## Questions for design
+
+## Outcome

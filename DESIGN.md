@@ -132,6 +132,7 @@ never of the assembler.
 An interface type consists of:
 
 - boundary kind (circular / rectangular / square shell)
+- section layout of the core (`oh`, or `h` for rectangular cores)
 - layer stack (material names and order)
 - `n_outer` and `rot`
 - `nang` (or `nang_w`, `nang_h`) and per-layer `nrad`
@@ -153,6 +154,9 @@ one layout, and the signature's symmetry period is the combinatorial one
 (from the counts).  Roll handling uses the geometric P of §6.1.  So a
 circle ↔ rectangle transition with equal counts is class 0
 ([decision 0009](docs/decisions/0009-rectangular-sections-and-transitions.md)).
+The layout is topology: a rectangular O-H face is a pillowed H face, so
+O-H ↔ H on a rectangle with equal `nang_w`, `nang_h` is class 1
+([decision 0036](docs/decisions/0036-cartesian-rectangular-section.md)).
 
 So type changes (diameter, layer stack, boundary kind) still happen
 *inside* a fitting, never across an interface.  Outermost layers
@@ -273,19 +277,26 @@ Fittings are thin: they describe *what* to build, and a small set of
 shared builders does the building.  Five pieces, each with one rule.
 
 **Sections — a cross-section's layout is described once, in `sections`.**
-A section layout (today the 5-patch O-H face, with circle, rectangle
-and blend shapes) owns:
+A section layout owns:
 - its blocking;
 - its port signature;
 - its corner and patch declaration (pure, used by block layouts);
 - its GMSH face.
 
+There are two layouts ([decision 0036](docs/decisions/0036-cartesian-rectangular-section.md)):
+
+| Layout | Shapes | Use |
+|---|---|---|
+| `oh`: the 5-patch O-H face | circle, rectangle, blend | every circular core; rectangular cores on request |
+| `h`: one Cartesian patch, graded to the walls | rectangle | **the default for rectangular cores** |
+
+The layout is chosen on the core (`PipeSpec.core(..., layout=)`), not on
+the shape.  A saved description without a layout reads as `oh`.
+
 Fittings and the assembler use the layout; they don't re-describe it.
 A new layout is one new module in `sections`.  The interface all
-layouts share is derived once a second layout exists
-([decision 0037](docs/decisions/0037-capability-boundaries.md);
-[decision 0036](docs/decisions/0036-cartesian-rectangular-section.md)
-proposes the H face).
+layouts share is derived from `oh` and `h` (task 0084;
+[decision 0037](docs/decisions/0037-capability-boundaries.md)).
 
 **Sweeps — every single-path fitting is a sweep.**
 A fitting with one inlet and one outlet is defined only by its *path* —
@@ -418,6 +429,13 @@ Measured on the prototype (single layer, nang = 4): all-hex, no bad
 cells for r/R from 0.3 to 0.95, minimum SICN rising from 0.16 to 0.38
 with r/R.
 
+**Duct junctions and the H layout.**  Duct tees and taps keep O-H
+blocks inside.  They accept H ports by embedding the O-H ↔ H switch in
+their duct legs, a class-1 strategy they declare (A4,
+[decision 0036](docs/decisions/0036-cartesian-rectangular-section.md)).
+`Transition` does the same at its rectangular end.  Users don't place
+switches around junctions.
+
 ---
 
 ## 8. Loops
@@ -461,6 +479,7 @@ Known deviations of the current code (refreshed 2026-11-02 by decision
 | The O-H face is described in nine modules, twice: GMSH builders and an independent block-layout declaration; the rectangle's ring inset is written in both | §3.1, §6.1 Sections | `core/shape.py`, `core/cross_section.py`, `faces/*`, `assembly/interface.build_face`, `assembly/blocks.face_vertices` / `_rect_face_vertices` / `face_patches`, `assembly/corners.py`, `assembly/signature.py` | task 0082 |
 | Type switches on shapes outside `core.shape` and the face builders (89 sites, RESEARCH §12) | §3.1 | most in `interchange/build.py`, `assembly/tee.py`, `core/spec.py`, `assembly/wye.py`, `io/readers/pcf.py`, `assembly/interface.py` | task 0083, then the cap in task 0081 |
 | Private names imported across packages | §3.1 | `interchange/build.py` (`fittings._with_radii`, `wye._IN_MARGIN`) | task 0081 |
+| Rectangular cores have only the O-H layout; the H layout is the default (decision 0036) | A4, §6.1 Sections, §7.1 | `faces/oh_rect.py`, `core/spec.py`, duct fittings | tasks 0084–0087 |
 | Readers sit in `io`, above the assembly | §3.1 | `io/readers/` | task 0066 |
 | The duct taps' front end (geometry, resolution, checks) is a special case inside the pipe tee's class | §6 | `assembly/tee.py` (`_duct_geometry`, `_resolve_duct`, `_check_duct`, `_tap`) | tasks 0060–0063 (split when touched) |
 | `n_outer = 8` core cannot be filled: its 8-sided centre patch does not bound a transfinite hex block (needs splitting into 4 blocks) | §7 | `faces/oh_circle.build_oh_circle8`; rejected in validation by `hexmesh/assembly` | decision 0005 (proposed) |

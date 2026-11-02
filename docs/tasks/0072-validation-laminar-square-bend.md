@@ -1,6 +1,6 @@
 # 0072 — Validation (V3): laminar flow in a 90° square-duct bend (Taylor, Whitelaw & Yianneskis, Re 790)
 
-- **Status:** ready (after 0071)
+- **Status:** ready (after 0071 and 0084)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (category V3); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V3 (experiment: Taylor, Whitelaw & Yianneskis 1982)
 - **Features:** `section:rect`, `straight`, `bend`
@@ -56,6 +56,13 @@ v2406.
 
 **Out of scope.**  The turbulent Re 40 000 case (after 0049/0050's RANS
 setup); the S-duct.
+
+**Design note (2026-11-02, decision 0036).**  Run this case on hexmesh's
+**H** rectangular section (`layout="h"`, task 0084), not the O-H face.
+On a rectangle the O-H face converges at order 0.3–0.9 (RESEARCH
+§7.11), and a bend would inherit that.  Wall-grade the H face for the
+secondary-flow boundary layers (`first_cell=`).  If a reviewer asks,
+the O-H mesh can be added as a reported, ungated comparison.
 
 ## Agent notes
 

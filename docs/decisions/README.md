@@ -50,7 +50,7 @@ rejected.  Records are written in design sessions, and they are the only way
 | [0033](0033-duct-tap-topology.md) | Junction layout for duct taps narrower than their face (and round taps on ducts) | accepted (B, pillowed tap) |
 | [0034](0034-secondary-solvers.md) | Secondary solvers for code-to-code comparison (FEniCSx, Nek5000/NekRS), and second-order mesh export | accepted in part (FEniCSx, second-order export; Nek proposed) |
 | [0035](0035-future-pipe-in-pipe-and-multi-core-sections.md) | Future expansion: pipe-in-pipe and multi-core sections (umbilicals, bundles) | proposed (future) |
-| [0036](0036-cartesian-rectangular-section.md) | A Cartesian (H) rectangular section, and the O-H ↔ H switch | proposed |
+| [0036](0036-cartesian-rectangular-section.md) | A Cartesian (H) rectangular section, and the O-H ↔ H switch | accepted (H the default duct face) |
 | [0037](0037-capability-boundaries.md) | Capability boundaries: sections own their layout, shapes own their behaviour | accepted (`sections` its own package) |
 
 ## Future expansions

@@ -1,11 +1,12 @@
 # 0036 — A Cartesian (H) rectangular section, and the O-H ↔ H switch
 
-- **Status:** proposed (2026-11-02; no tasks until the questions below
-  are settled)
+- **Status:** accepted (2026-11-02 by the user: "accept 0036 with H as
+  the default duct face")
 - **Date:** 2026-11-02
-- **Tasks:** none.  Related: task 0071 (the finding), decision 0015
-  amendment 2 (how rectangular sections are gated meanwhile), decision
-  0037 (where a new section type lives in the code).
+- **Tasks:** 0084, 0085, 0086, 0087; 0072 now runs on the H section.
+  Related: task 0071 (the finding), decision 0015 amendment 2 (how
+  rectangular sections are gated meanwhile), decision 0037 (where a new
+  section type lives in the code; task 0082 comes first).
 
 ## Context
 
@@ -83,63 +84,100 @@ the diagonals still end at the wall corners and split them 45/45.  The
 `OH_RATIO` sweep (RESEARCH §7.11) didn't help.  Not measured with
 smoothing; not recommended for rectangles.
 
-## Decision (recommended)
+## Decision
 
-**B, prototype first**, after task 0082 (decision 0037, accepted
-2026-11-02).  It puts the O-H layout in `sections`, so the H face becomes
-the second layout there, and the shared section interface is derived from
-the two.  Otherwise the H face would be a tenth place to describe a section
-(RESEARCH §12.2, item 1).
+**Accepted 2026-11-02: B, with the H face as the default for rectangular
+cores.**  The O-H face stays available on request.  The work starts
+after task 0082 (decision 0037), which puts the O-H layout in
+`sections`.  The H face is the second layout there, and the interface
+the two share is derived from both.
 
-To settle before any task:
-1. **Default port face of a rectangular duct**, O-H or H.  This sets
-   where the switches go:
-   - **H by default:** runs, bends and reducers are H; switches sit at
-     circle ↔ rectangle transitions and at junctions that need O-H
-     ports.  Fewest switches in HVAC-style networks (mostly duct).
-   - **O-H by default, H opt-in:** no change for existing users; H only
-     where requested (validation, long runs).
-   Recommendation: H by default for new rectangular specs, with the
-   O-H face selectable (`RectShape(..., layout="oh")`), once the switch
-   is measured.
-2. **Junctions on H ducts:** duct tees and taps (decisions 0027, 0033)
-   are built on O-H ports.  Either they keep O-H ports (a switch on
-   each side), or they get H versions.  On an H face the tap's edges
-   could fall on any grid line, which may simplify decision 0033's
-   sizing rule (unverified).
-3. **Switch construction:** turned out vs capped, by measured quality
-   (min SJ, max non-orthogonality) at aspect ratios 1 / 2 / 4 and
-   `nrad` 1 / 3 / 6.
+**Settled at acceptance:**
+1. **Default: H.**  Runs, bends, reducers and closures of rectangular
+   ducts use the H face unless asked otherwise.  Switches sit where a
+   duct meets something that needs the O-H face.
+2. **Where the setting lives: the core, not the shape.**  The layout is
+   a topology parameter of the section, next to `n_outer`, `rot` and
+   the layer stack.  So it goes on the spec,
+   `PipeSpec.core(name, shape, layout="h" | "oh")`, not on `RectShape`.
+   - The proposal sketched `RectShape(..., layout=...)`.  But
+     `RectShape` is also a shell outline and a tee branch, and DESIGN
+     §3.1 keeps shapes as geometry; layouts belong to `sections`.
+   - Circular cores have the O-H layout only; `layout="h"` on a circle
+     is an error.
+   - The layout is part of the port type (A4) and the signature (kind
+     `h_core`).
+3. **Old saved files keep their meshes.**  A saved assembly or study
+   with no layout field loads as `"oh"`.  The new default applies only
+   to specs built in code.
+4. **`nrad` on an H core is an error.**  An H core has no ring; its
+   near-wall resolution comes from wall grading (`first_cell=` or a
+   two-sided progression).  The message names both fixes: drop `nrad`
+   and grade the wall, or pass `layout="oh"`.
+   - This makes the default flip (task 0087) a **breaking change** for
+     scripts that pass `nrad` on a rectangular core.  Bump the version
+     (0.3.0 → 0.4.0) and say so in the release notes.
+5. **Junctions keep O-H blocks inside and accept H ports.**  Duct
+   tees and taps (decisions 0027, 0033) embed the switch in their duct
+   legs, declared as a class-1 strategy (decision 0011, item 3).
+   `Transition` does the same at its rectangular end.  Users don't
+   place switches by hand around junctions.  A standalone `Switch`
+   fitting exists too, for O-H ducts placed on purpose.
+   - Junction layouts native to the H face (taps on grid lines, which
+     may simplify decision 0033's sizing rule) are a later decision,
+     taken only if the embedded switch measures badly.
+6. **The switch construction** (turned out to the wall, as decision
+   0033 B's dome, or capped) is chosen by measurement in task 0085: min
+   SJ and max non-orthogonality at a/b 1 / 2 / 4 and `nrad` 1 / 3 / 6.
+   If neither meets the quality limits, the task stops for design.
 
-Prototype scope, when tasked: the H face builder behind the section
-abstraction; `Straight` and `Bend` on it; the switch; task 0071's case
-rerun on the H section (gated like the control, decision 0015
-amendment 2).
+**Rollout.**  The default flips last, once every rectangular fitting
+accepts H ports:
+- **0084:** the H layout in `sections`, the shared section interface,
+  `layout=` on the spec (default still `"oh"`), every sweep on H, and
+  task 0071's case on hexmesh's H face (gated like the control).
+- **0085:** the switch (prototype both constructions, choose, build
+  `Switch`), and `Transition` with an H rectangular end.
+- **0086:** duct junctions accept H ports (embedded switch legs); shells
+  around an H core (lagged ducts, decision 0026).
+- **0087:** flip the default; version 0.4.0; examples, docs and gallery.
+- **0072** (laminar square bend, V3) runs on the H section, after
+  0084.
 
 ## Consequences
 
-- **DESIGN.md:** §5 / §6.1 (section families, not one O-H face), A4
-  (port kind `h_core`), §7.1 (which junction ports are O-H).  Wording
-  when accepted.
-- **Decision 0009:** option D (single patch) revived in a different
-  role: superseded in part.
-- **Decision 0011:** first use of the class-1 strategy between core
-  layouts (not just outer shells).
-- **Harder:** every rectangular fitting needs an H version or a switch
-  on each side.  Conformance kit and examples gain H cases.
+- **DESIGN.md (applied 2026-11-02):**
+  - A4: the section layout is part of the port type; O-H ↔ H on a
+    rectangle is class 1;
+  - §6.1 "Sections": two layouts, H the default for rectangular cores;
+  - §7.1: duct junctions keep O-H blocks inside and accept H ports
+    through embedded switches;
+  - §9: a deviation row (rectangular cores have only the O-H layout),
+    removed by tasks 0084–0087.
+- **CLAUDE.md:** `layout` added to the topology parameters.
+- **Decision 0009:** option D (single patch) revived as the default
+  rectangular core; superseded in part.
+- **Decision 0011:** first use of class 1 between core layouts, and the
+  first fittings (`Switch`, duct junctions, `Transition`) to declare a
+  class-1 strategy.
+- **Harder:**
+  - every rectangular fitting needs H ports, or a switch inside it;
+  - the conformance kit and examples gain H cases;
+  - scripts passing `nrad` on rectangular cores break at 0.4.0 (clear
+    error, two named fixes).
 - **Effect on future expansions:**
   - 0018 (vascular): none (circular sections).
-  - 0019 (agent SDK): the section layout must be a data field in the
-    network JSON and the spec (`layout`), with structured errors when a
-    fitting doesn't support it.
+  - 0019 (agent SDK): `layout` is a data field in the spec and the
+    network JSON; unsupported combinations give structured errors that
+    name the layout and the fix.
   - 0021 (flow restrictions): none directly; rectangular orifices are
-    rare.  Constraint 4 (one section-geometry abstraction) is met only
+    rare.  Constraint 4 (one section-geometry abstraction) is met
     through decision 0037.
   - 0030 (simulation suite): V1 duct cases become gateable on hexmesh
     meshes.
   - 0035 (multi-core): the H face is the first section kind that isn't
-    O-H; its constraint 1 (don't hard-wire the O-H face) is what this
-    decision exercises.
+    O-H.  Task 0084 derives the shared section interface from two real
+    layouts, which multi-core sections then implement.
 
 ## Verified vs. assumed
 

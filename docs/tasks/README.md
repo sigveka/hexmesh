@@ -84,6 +84,10 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0081](0081-architecture-tests-and-contracts.md) | Architecture tests (DESIGN §3.1), and the cross-package leaks | ready | 0037 |
 | [0082](0082-sections-package-oh-layout.md) | `hexmesh.sections`: the O-H layout described once | ready (after 0081) | 0037 |
 | [0083](0083-shape-protocol.md) | Shapes own their behaviour: the shape protocol | ready (after 0082) | 0037 |
+| [0084](0084-h-section-layout-and-sweeps.md) | The H section: the layout, `layout=` on the spec, and every sweep | ready (after 0082, 0083) | 0036, 0037 |
+| [0085](0085-oh-h-switch-and-transition.md) | The O-H ↔ H switch, and `Transition` to an H rectangle | ready (after 0084) | 0036, 0011 |
+| [0086](0086-h-ports-on-duct-junctions-and-shells.md) | H ports on duct junctions, and shells around an H core | ready (after 0085) | 0036, 0026 |
+| [0087](0087-h-default-flip.md) | Make H the default rectangular core (version 0.4.0) | ready (after 0086) | 0036 |
 
 ### Validation
 
@@ -99,7 +103,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0067](0067-validation-womersley.md) | Validation: Womersley flow (pulsatile laminar pipe flow, exact solution) | V1 | done | 0012, 0015 |
 | [0068](0068-validation-pulsatile-stenosis.md) | Validation: pulsatile flow through the cosine stenosis (Varghese et al., Part 2) | V2 | done | 0012, 0015 |
 | [0071](0071-validation-rectangular-duct.md) | Validation: fully developed laminar flow in rectangular ducts | V1 | in progress | 0012, 0015 |
-| [0072](0072-validation-laminar-square-bend.md) | Validation: laminar 90° square-duct bend (Taylor et al., Re 790) | V3 | ready (after 0071) | 0012, 0015 |
+| [0072](0072-validation-laminar-square-bend.md) | Validation: laminar 90° square-duct bend (Taylor et al., Re 790) | V3 | ready (after 0071, 0084: runs on the H section) | 0012, 0015 |
 | [0074](0074-validation-mms-conduction.md) | Verification: manufactured solutions for conduction on every fitting's mesh | V1 | ready (v2406 runner) | 0012, 0015 |
 | [0075](0075-validation-helical-pipe.md) | Validation: laminar flow in a helical pipe (spline pipe) | V3 | ready (v2406 runner) | 0012, 0015 |
 | [0077](0077-validation-fenicsx-second-order.md) | Verification: FEniCSx toolchain, and second-order export checked end to end | V1 | ready (step 1 any time; 2–4 after 0076) | 0034, 0012, 0015 |
@@ -110,8 +114,13 @@ reads it); everything else is **development**.  Numbers are shared.
 as a track of its own.  0081 can go any time and should come before
 0060 and 0066, which carry design notes for it (the duct-tap front end
 leaves `Tee`; the readers move to `interchange.importers`).  0082 comes
-before any work on decision 0036 (H rectangular section, proposed) or
-0035.  These are refactors: identical meshes, task 0065's method.
+before decision 0036's tasks or any 0035 stage.  These are refactors:
+identical meshes, task 0065's method.
+
+**H duct section (2026-11-02, decision 0036):** 0084 → 0085 → 0086 → 0087,
+after 0082 and 0083.  The default flips only in 0087 (version 0.4.0, a
+breaking change for `nrad` on rectangular cores).  0072 (square bend)
+waits for 0084 so it runs on the H section.
 
 **Current order (2026-10-28, design, revised):** finish the task in
 progress (0034), then **multi-layer junctions: 0051 → 0052 → 0056 → 0053 →

@@ -66,6 +66,9 @@ Two kinds of parameters govern a `PipeSpec` cross-section.
 without rebuilding geometry:
 - `n_outer`: number of outer structural corners;
 - `rot`: rotation of the outer corner frame;
+- `layout`: the core's section layout, `oh` (5-patch O-H) or `h`
+  (one Cartesian patch; the default for rectangular cores, decision
+  0036);
 - the layer stack: which materials, in what order.
 
 **Density** is resolution only, and can be scaled without changing

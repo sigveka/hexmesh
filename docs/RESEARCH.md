@@ -1029,8 +1029,9 @@ open ones.  In 3-D the ring's tube sheets end in the switch fitting,
 capped (a cup open toward the O-H side) or turned out to the wall.
 
 **For hexmesh.**  Decision 0015 amendment 2 (rectangular sections are
-gated on a Cartesian control mesh); decision 0036 (proposed: a Cartesian
-rectangular section and an O-H ↔ H switch).
+gated on a Cartesian control mesh); decision 0036 (accepted
+2026-11-02: a Cartesian rectangular section, the default for ducts, and
+an O-H ↔ H switch; tasks 0084–0087).
 
 ## 8. Proposed hexmesh actions
 

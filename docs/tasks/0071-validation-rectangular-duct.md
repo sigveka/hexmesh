@@ -63,7 +63,9 @@ original gates for reasons of the section, not the case: square f·Re
 estimate); a/b = 2 non-monotone.  A 2-D control at the same cell count
 converges at order 2 (RESEARCH §7.11).  So the gates move to the
 control (decision 0015 amendment 2), and the O-H levels are reported.
-A non-O-H hexmesh section is decision 0036 (proposed).  RESULTS.md
+A non-O-H hexmesh section is decision 0036 (accepted; the H face is the
+default for ducts).  Task 0084 adds an H series to this case, gated like
+the control.  RESULTS.md
 should present both side by side.
 
 **Accept** (V1 gates, as Poiseuille, **on the Cartesian control**; decision 0015 amendment 2):

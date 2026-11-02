@@ -94,8 +94,8 @@ interface shared by all layouts is derived when the H face exists.
   places a new layout must now touch (it should be `sections/` plus
   any fitting that builds junction blocks).
 
-**Out of scope.**  A generic section interface; the H face (decision
-0036, proposed); `n_outer = 8`; the shape protocol (0083).
+**Out of scope.**  A generic section interface; the H face (task
+0084); `n_outer = 8`; the shape protocol (0083).
 
 ## Agent notes
 
