@@ -68,6 +68,9 @@ but re-wraps lines longer than 255 characters.
 - The same after a gmsh re-save in 2.2 ASCII, 4.1 ASCII and 4.1 binary:
   `read_recipe` returns the same dict.
 - `provenance=False` gives the same bytes as today's writer.
+- A block with an extra, unknown line (outside the recipe markers)
+  gives the same `read_recipe` result.  Decision 0038's deferred points
+  will arrive as extra lines.
 - `gmshToFoam` gives the same `polyMesh` with and without the block
   (`-m openfoam`, v2406; v1912 if installed).
 - An unserialisable assembly writes, with the "not serialisable" line.
