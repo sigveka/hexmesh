@@ -996,7 +996,8 @@ axial cells):
   - Control: order 1.90–1.91.  Extrapolated +0.080 / +0.096 /
     +0.083 %, just inside the 0.1 % gate.  Almost all of it is the
     centre fit's own bias (+0.06–0.09 % when applied to the exact
-    field); net of it, +0.012 / +0.006 / +0.003 %.
+    field); net of it, +0.012 / +0.006 / +0.003 %.  Gated net since
+    task 0089 (decision 0015 amendment 3; §7.12).
   - O-H: oscillatory at every ratio, and 3–9× the control's error at
     k = 4.
 - **Max field error at k = 4:** O-H 1.0–1.2 % of u_c, control
@@ -1060,6 +1061,66 @@ capped (a cup open toward the O-H side) or turned out to the wall.
 gated on a Cartesian control mesh); decision 0036 (accepted
 2026-11-02: a Cartesian rectangular section, the default for ducts, and
 an O-H ↔ H switch; tasks 0084–0087).
+
+### 7.12 Judging convergence: one Richardson with a status (task 0089)
+
+Task 0089 (done 2026-11-02, `4938e32`) replaced the validation cases'
+Richardson extrapolation with one shared function,
+`validation/tools/convergence.py`, used by all eight cases.
+
+**The fault.**  Three implementations (poiseuille's, stenosis's,
+womersley's) turned growing differences into a positive order.  Two
+took |ln|e32/e21||; womersley's extrapolated with a negative order.
+When |e32| ≤ |e21| there is no asymptotic range, but they reported one
+and extrapolated in the wrong direction.  Task 0071 met it: the O-H
+square duct's "order 0.24" came from differences 0.39 → 0.46.
+
+**The rule now** [`celik_and_ghia_etal_2008`]:
+- the function returns a status: `converging` (same sign, |e32| >
+  |e21|), `oscillatory` (opposite signs) or `diverging` (same sign,
+  |e32| ≤ |e21|), and says so for a zero difference;
+- only `converging` gives an order, an extrapolated value and a GCI;
+- an extrapolated-value gate on any other status fails with that
+  reason.  Report-only rows show the status.
+
+**Recheck of every accepted case** from stored results (31 rows; the
+table is in task 0089's Outcome):
+- **No gate flips.**  Every gated row is `converging`, with the same
+  order as before.
+- **Report-only rows that change:**
+  - stenosis u_peak, and both reattachment points (wall shear and
+    u(0.48 D)), are oscillatory.  They had shown orders 2.84, 11.3 and
+    1.17;
+  - rect_duct's O-H rows: f·Re diverging (a/b 1) and oscillatory
+    (a/b 2); converging through a sign change (a/b 4); u_c oscillatory.
+- Stenosis's centreline gate, rebuilt from its stored fields: the same
+  3 of 18 stations, the same 0.929 %.
+
+**Point values net of their extraction bias** (decision 0015
+amendment 3):
+
+| case | quantity | extraction | bias |
+|---|---|---|---|
+| rect_duct (control) | u_c | quadratic centre fit | +0.065 / +0.085 / +0.072 % at k = 4 (a/b 1 / 2 / 4) |
+| poiseuille | u_max | c₀ of c₀ + c₂r² | 0 (≤ 4.4e-16): exact on the parabola |
+| heated_rod | ΔT₀ | c₀ of c₀ + c₂r² | 0 (≤ 2.2e-16) |
+| layered_conduction | T₀ | c₀ of c₀ + c₂r² | 0 (≤ 2.2e-16) |
+| womersley | centreline | mean of 4 faces | already gated against the exact profile at the same faces |
+| stenosis, stenosis_pulsatile | centreline | interpolation to DNS stations | n/a: V2, no exact field |
+
+- rect_duct's control u_c, net: +0.012 / +0.006 / +0.003 %, against
+  +0.080 / +0.096 / +0.083 % raw.  The gate now has a margin of 8× or
+  more, where before it had almost none.
+
+**Lessons.**
+- **Rounded tables aren't enough for a recheck.**  heated_pipe's
+  dT_b/dx gives order 1.54 from RESULTS.md's rounded errors (−0.0074,
+  −0.0014 %) against 2.03 measured.  It is converging either way and not
+  gated.  The coding session proposes storing each case's results JSON
+  next to RESULTS.md (pending with the user).
+- **Not rerun:** Poiseuille's three-level OpenFOAM test (over 30 min).
+  Its gate path is covered by the unit tests and the recheck of stored
+  values.
 
 ## 8. Proposed hexmesh actions
 
