@@ -482,8 +482,7 @@ Known deviations of the current code (refreshed 2026-11-02 by decision
 | Deviation | Rule | Where | Removed by |
 |---|---|---|---|
 | The O-H face is described in nine modules, twice: GMSH builders and an independent block-layout declaration; the rectangle's ring inset is written in both | §3.1, §6.1 Sections | `core/shape.py`, `core/cross_section.py`, `faces/*`, `assembly/interface.build_face`, `assembly/blocks.face_vertices` / `_rect_face_vertices` / `face_patches`, `assembly/corners.py`, `assembly/signature.py` | task 0082 |
-| Type switches on shapes outside `core.shape` and the face builders (89 sites, RESEARCH §12) | §3.1 | most in `interchange/build.py`, `assembly/tee.py`, `core/spec.py`, `assembly/wye.py`, `io/readers/pcf.py`, `assembly/interface.py` | task 0083, then the cap in task 0081 |
-| Private names imported across packages | §3.1 | `interchange/build.py` (`fittings._with_radii`, `wye._IN_MARGIN`) | task 0081 |
+| Type switches on shapes outside `core.shape` and the face builders: 69 sites by `tests/test_architecture.py`'s definition (cap 69) | §3.1 | `assembly/tee.py` 17, `core/spec.py` 14, `assembly/interface.py` 9, `assembly/wye.py` 8, `assembly/corners.py` 6, `assembly/section_quality.py` 6, others 9 | task 0083 (lowers the cap); tee's share with 0060 |
 | Rectangular cores have only the O-H layout; the H layout is the default (decision 0036) | A4, §6.1 Sections, §7.1 | `faces/oh_rect.py`, `core/spec.py`, duct fittings | tasks 0084–0087 |
 | Readers sit in `io`, above the assembly | §3.1 | `io/readers/` | task 0066 |
 | The duct taps' front end (geometry, resolution, checks) is a special case inside the pipe tee's class | §6 | `assembly/tee.py` (`_duct_geometry`, `_resolve_duct`, `_check_duct`, `_tap`) | tasks 0060–0063 (split when touched) |

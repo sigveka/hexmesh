@@ -1865,7 +1865,30 @@ hold.  The weakness is concentrated: a missing **section** capability
 (items 1–2), which every planned section type runs into, and two
 oversized modules at the edges (`interchange/build.py`,
 `fittings.py`).  Items 3–4 are cheap to fix and stop the leaks from
-growing.  Decision 0037 (proposed) sets the boundaries.
+growing.  Decision 0037 (accepted 2026-11-02) sets the boundaries.
+
+### 12.4 After task 0081 (2026-11-02)
+
+`tests/test_architecture.py` now enforces DESIGN §3.1 (task 0081,
+`942184c`).
+- **Shape sites: 69** by the test's AST definition (§12.2's grep said 89).
+  - By file: tee 17, spec 14, interface 9, wye 8, corners 6,
+    section_quality 6, fittings 3, interchange.build 3, blocks 2,
+    equipment 1.
+  - The cap is 69.  `core/spec.py`'s 14 count: they ask a shape about
+    itself, which task 0083's protocol removes (design answer,
+    2026-11-02).
+- **Private crossings:** the two of §12.2 item 3, plus one the survey
+  missed (`assembler` → `faces._gmsh_helpers.add_physical_group`).  All
+  three are fixed.  A `_`-prefixed *module* imported from another
+  package now counts too; `_occ` is exempt.
+- **Cycles:**
+  - `interchange.build` ↔ `model` is removed: the model calls the
+    builder through `model.BUILDERS`.
+  - `intent` ↔ `assembler` was type-only (`TYPE_CHECKING`).  The cycle
+    rule ignores such imports; the other rules still count them.
+- **No behaviour change:** 28 examples and 93 interchange calls were
+  identical.  Suite 2189 passed (+24).
 
 ## Source availability
 
