@@ -253,7 +253,7 @@ def _digest(*parts) -> str:
 
 def _tree_digest(root: Path) -> str:
     files = sorted(p for p in root.rglob("*") if p.is_file())
-    return _digest(*[x for p in files for x in (str(p.relative_to(root)), p.read_bytes())])
+    return _digest(*[x for p in files for x in (p.relative_to(root).as_posix(), p.read_bytes())])
 
 
 def case_fingerprint(study: Study, row: dict) -> str:

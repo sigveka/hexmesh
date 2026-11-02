@@ -54,7 +54,7 @@ def data(tmp_path_factory):
     run = subprocess.run([sys.executable, str(SCRIPT), "--work", str(work), "--json", str(out)],
                          capture_output=True, text=True)
     assert run.returncode == 0, run.stdout[-3000:] + run.stderr[-3000:]
-    return json.loads(out.read_text())
+    return json.loads(out.read_text(encoding="utf-8"))
 
 
 @pytest.fixture(scope="module")
@@ -127,7 +127,7 @@ def rod(tmp_path_factory):
     run = subprocess.run([sys.executable, str(ROD_SCRIPT), "--levels", "1", "--work", str(work),
                           "--json", str(out)], capture_output=True, text=True)
     assert run.returncode == 0, run.stdout[-3000:] + run.stderr[-3000:]
-    return json.loads(out.read_text())
+    return json.loads(out.read_text(encoding="utf-8"))
 
 
 @pytest.mark.parametrize("series", ["uniform", "graded"])
@@ -149,7 +149,7 @@ def layers(tmp_path_factory):
     run = subprocess.run([sys.executable, str(LAYERS_SCRIPT), "--levels", "1", "--work",
                           str(work), "--json", str(out)], capture_output=True, text=True)
     assert run.returncode == 0, run.stdout[-3000:] + run.stderr[-3000:]
-    return json.loads(out.read_text())
+    return json.loads(out.read_text(encoding="utf-8"))
 
 
 @pytest.mark.parametrize("variant", ["fixed", "convection"])
@@ -176,7 +176,7 @@ def stenosis(tmp_path_factory):
                           "--json", str(out)],
                          capture_output=True, text=True)
     assert run.returncode == 0, run.stdout[-3000:] + run.stderr[-3000:]
-    return json.loads(out.read_text())
+    return json.loads(out.read_text(encoding="utf-8"))
 
 
 def test_stenosis_coarse(stenosis):
@@ -211,7 +211,7 @@ def womersley(tmp_path_factory):
                           "--levels", "k1", "--work", str(work), "--json", str(out)],
                          capture_output=True, text=True)
     assert run.returncode == 0, run.stdout[-3000:] + run.stderr[-3000:]
-    return json.loads(out.read_text())["levels"][0]
+    return json.loads(out.read_text(encoding="utf-8"))["levels"][0]
 
 
 def test_womersley_coarse(womersley):
@@ -241,7 +241,7 @@ def pulsatile_stenosis(tmp_path_factory):
                           "--levels", "coarse", "--periods-max", "1", "--work", str(work),
                           "--json", str(out)], capture_output=True, text=True)
     assert run.returncode == 0, run.stdout[-3000:] + run.stderr[-3000:]
-    return json.loads(out.read_text())
+    return json.loads(out.read_text(encoding="utf-8"))
 
 
 def test_pulsatile_stenosis_one_period(pulsatile_stenosis):
@@ -271,7 +271,7 @@ def rect_duct(tmp_path_factory):
                           "--ratios", "1", "--levels", "1", "--work", str(work),
                           "--json", str(out)], capture_output=True, text=True)
     assert run.returncode == 0, run.stdout[-3000:] + run.stderr[-3000:]
-    return json.loads(out.read_text())
+    return json.loads(out.read_text(encoding="utf-8"))
 
 
 def test_rect_duct_coarse(rect_duct):

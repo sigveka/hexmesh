@@ -80,7 +80,10 @@ RULE_ENCODING = "decision 0039, text I/O names its encoding"
 #: ``X.open(...)`` on these modules is not a text-file open (binary by
 #: default, or a dataset or model)
 BINARY_OPENERS = {"gzip", "bz2", "lzma", "tarfile", "zipfile", "wave", "dbm", "shelve",
-                  "rasterio", "fiona", "gmsh"}
+                  "rasterio", "fiona", "gmsh", "Image"}
+#: besides ``hexmesh/``, the trees whose text I/O the encoding rule
+#: checks: the suite runs them on Windows too (task 0092's CI)
+ENCODING_TREES = ("tests", "docs")
 
 
 # --- the module tree -----------------------------------------------------------
@@ -124,7 +127,7 @@ class Import:
     type_only: bool = False   # under ``if TYPE_CHECKING:``
 
     def where(self, root: Path) -> str:
-        return f"{self.path.relative_to(root)}:{self.lineno}"
+        return f"{self.path.relative_to(root).as_posix()}:{self.lineno}"
 
 
 def _type_checking_nodes(tree: ast.AST) -> set[int]:
@@ -149,7 +152,7 @@ def imports(root: Path, mods: dict[str, Path] | None = None) -> list[Import]:
     out = []
     for mod, path in mods.items():
         is_pkg = path.name == "__init__.py"
-        tree = ast.parse(path.read_text(), str(path))
+        tree = ast.parse(path.read_text(encoding="utf-8"), str(path))
         typing_only = _type_checking_nodes(tree)
         for node in ast.walk(tree):
             tc = id(node) in typing_only
@@ -304,8 +307,8 @@ def shape_sites(root: Path) -> list[str]:
     for mod, path in modules(root).items():
         if not _shape_checked(mod):
             continue
-        for node in ast.walk(ast.parse(path.read_text(), str(path))):
-            where = f"{path.relative_to(root)}:{getattr(node, 'lineno', 0)}"
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"), str(path))):
+            where = f"{path.relative_to(root).as_posix()}:{getattr(node, 'lineno', 0)}"
             if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
                     and node.func.id in ("isinstance", "issubclass") and len(node.args) == 2
                     and _names_shape_type(node.args[1])):
@@ -328,8 +331,9 @@ def _mode(node: ast.Call, position: int) -> ast.expr | None:
     return node.args[position] if len(node.args) > position else None
 
 
-def encoding_violations(root: Path) -> list[str]:
-    """Text I/O without ``encoding=`` anywhere in ``hexmesh/``:
+def encoding_violations(root: Path, trees: tuple[str, ...] = ()) -> list[str]:
+    """Text I/O without ``encoding=`` anywhere in ``hexmesh/``, and in the
+    ``.py`` files under each of *trees*:
 
     - ``open(...)`` / ``io.open(...)`` / ``os.fdopen(...)`` /
       ``X.open(...)`` (a ``Path``) whose mode is not a string constant
@@ -340,11 +344,13 @@ def encoding_violations(root: Path) -> list[str]:
     argument and ``write_text``'s second.  ``X.open`` on ``gzip``,
     ``tarfile`` and the like is skipped (binary by default)."""
     out = []
-    for mod, path in modules(root).items():
+    paths = [*modules(root).values(),
+             *(p for tree in trees for p in sorted((root / tree).rglob("*.py")))]
+    for path in paths:
         for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"), str(path))):
             if not isinstance(node, ast.Call):
                 continue
-            f, where = node.func, f"{path.relative_to(root)}:{node.lineno}"
+            f, where = node.func, f"{path.relative_to(root).as_posix()}:{node.lineno}"
             has = any(kw.arg == "encoding" for kw in node.keywords)
             if isinstance(f, ast.Attribute) and f.attr in ("read_text", "write_text"):
                 has = has or len(node.args) > (0 if f.attr == "read_text" else 1)
@@ -410,7 +416,7 @@ def test_shape_sites_cap():
 
 
 def test_text_io_names_its_encoding():
-    bad = encoding_violations(ROOT)
+    bad = encoding_violations(ROOT, ENCODING_TREES)
     assert not bad, (f"{RULE_ENCODING}; pass encoding=\"utf-8\" (and newline=\"\\n\" for "
                      "files OpenFOAM or a shell reads):\n  " + "\n  ".join(bad))
 
@@ -425,7 +431,7 @@ def _tree(tmp_path: Path, files: dict[str, str]) -> Path:
     for rel, text in {**base, **files}.items():
         p = tmp_path / rel
         p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(text)
+        p.write_text(text, encoding="utf-8")
     return tmp_path
 
 
@@ -516,10 +522,12 @@ def test_planted_shape_sites(tmp_path, text, n):
     ("open(p, 'w', encoding='utf-8')\n", 0),
     ("p.read_text('utf-8') + p.write_text(s, 'utf-8')\n", 0),    # positional encoding
     ("gzip.open(p) and gmsh.open(p) and rasterio.open(p)\n", 0),  # not text-file opens
+    ("Image.open(p)\n", 0),                                       # PIL: binary
     ("p.read_bytes() and p.write_bytes(b)\n", 0),
 ])
 def test_planted_encoding(tmp_path, text, n):
-    root = _tree(tmp_path, {"hexmesh/study/x.py": text})
-    bad = encoding_violations(root)
-    assert len(bad) == n, bad
-    assert all(b.startswith("hexmesh/study/x.py:1: ") for b in bad)
+    root = _tree(tmp_path, {"hexmesh/study/x.py": text, "tests/test_x.py": text})
+    bad = encoding_violations(root, ("tests",))
+    assert len(bad) == 2 * n, bad
+    assert sorted(bad) == sorted(b for f in ("hexmesh/study/x.py", "tests/test_x.py")
+                                 for b in bad if b.startswith(f"{f}:1: "))

@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Save and load the network description (Intent layer, docs/tasks/0006).
 
@@ -59,7 +71,7 @@ def test_file_is_readable_json(tmp_path):
     a = CASES["tee-0.5"]()
     path = tmp_path / "net.json"
     a.save(path)
-    text = path.read_text()
+    text = path.read_text(encoding="utf-8")
     assert text == json.dumps(json.loads(text), indent=2, sort_keys=True) + "\n"
     assert '"type": "Tee"' in text
     assert Assembly.load(path).to_dict() == a.to_dict()

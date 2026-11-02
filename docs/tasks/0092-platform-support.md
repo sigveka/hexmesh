@@ -127,9 +127,48 @@ gallery's rendering on Windows (a follow-up if CI shows it fails).
 
 ## Outcome
 
-Code done 2026-11-02; **CI not yet run**.  The workflow is written but
-neither committed nor pushed: pushing it publishes to GitHub Actions, so
-it waits for the user.  The task stays in progress until CI has run.
+Code done 2026-11-02.  The workflow was pushed (e54faae, with the
+user's go-ahead), and its first run found Windows-only failures.  They
+are fixed in the commit after it; the task stays in progress until a
+second run is green.
+
+**CI run 1** (GitHub Actions 41537461766, 2026-11-02, commit e54faae):
+
+| job | result |
+|---|---|
+| ubuntu-latest, Python 3.10 / 3.x | pass |
+| macos-latest, Python 3.10 / 3.x | pass |
+| OpenFOAM v2406 in Docker (Linux) | pass |
+| windows-latest, Python 3.10 | 97 failed, 2167 passed, 17 skipped |
+| windows-latest, Python 3.x (3.15.2) | 104 failed, 2160 passed, 17 skipped |
+
+Windows causes, all recorded in `docs/integrations/platforms.md` and
+`gmsh.md`:
+1. **gmsh writes ASCII `.msh` with CRLF** (C text mode).  The recipe
+   stamp searched for `$EndMeshFormat\n`, so every write failed: all of
+   `test_examples`, `test_msh_recipe` and the meshing `test_study` and
+   `test_openfoam_*` tests (about 85).  Fix: `msh_comments.to_lf`
+   rewrites gmsh's ASCII output to LF right after `gmsh.write`, in
+   `Assembly.write` and `write_openfoam`.  The `.msh` is then
+   byte-identical to Linux's, and `gmshToFoam` reads LF (decision 0039).
+   `insert` also follows a file's own line ending.  Two new tests
+   simulate Windows' gmsh (CRLF) and fail without `to_lf`.
+2. **Default encoding cp1252:** tests and `docs/gallery/build.py` read
+   UTF-8 sources with `read_text()` (test_architecture,
+   test_convergence, test_validation_meta).  Fix: `encoding="utf-8"` at
+   72 sites.  The architecture rule now also covers `tests/` and `docs/`
+   (`ENCODING_TREES`), with planted cases in `tests/`.  PIL's
+   `Image.open` was added to the binary openers.
+3. **`\` in paths turned into text:** the architecture checker's
+   messages (the planted tests) and `apply_case_template`'s
+   unknown-placeholder message and changed-file list.  Fix:
+   `.as_posix()`.  The same applies to `stages._tree_digest`: it hashed
+   `str(relative path)`, so a template tree's digest differed between
+   Windows and Linux.  No test caught that; it is the same on Linux.
+4. **CRLF checkout:** no `.gitattributes`, so `docs/ascii-logo.txt` came
+   out CRLF and didn't match the shipped logo.  Fix: `* text=auto
+   eol=lf`.  Every committed text file was already LF (`git ls-files
+   --eol`), so nothing is renormalised.
 
 **Files.**
 - `hexmesh/study/openfoam.py`: `container_paths`, `container_command` and
@@ -156,7 +195,8 @@ it waits for the user.  The task stays in progress until CI has run.
     test is skipped off POSIX;
   - `tests/test_openfoam_output.py`: LF endings under simulated Windows
     text mode.
-- `.github/workflows/tests.yml`: uncommitted, pending the user.
+- `.github/workflows/tests.yml` (e54faae).
+- After CI run 1: `hexmesh/io/writers/msh_comments.py` (`to_lf`, CRLF-aware `insert`), `hexmesh/assembly/assembler.py`, `hexmesh/study/openfoam.py` and `stages.py` (`as_posix`), `.gitattributes`, `encoding=` in 14 test files and `docs/gallery/build.py`, `tests/test_architecture.py` (`ENCODING_TREES`), `tests/test_msh_recipe.py` (2 CRLF tests), `docs/integrations/platforms.md` (new), `gmsh.md`, `README.md` there.
 
 **Acceptance.**
 - **Encoding rule:** passes on the tree.  The 13 planted cases fail and
@@ -171,7 +211,7 @@ it waits for the user.  The task stays in progress until CI has run.
   a `Path.write_text` patched to Windows text mode.  The same check on a
   copy of the writer without `newline=` finds `\r` in all 9, so the test
   discriminates.
-- **CI:** not run (see above).
+- **CI:** run 1 green on Linux, macOS and Docker; Windows failures listed above with their causes and fixes.  Run 2 waits for the user to push the fixes.
 - **Full suite on Linux:** 2266 passed, 15 skipped (+21), no failures.
   The touched test files pass again (106) after the logo headers.
 - **One Docker case unchanged:** rect_duct a/b 1, k = 1, both meshes,

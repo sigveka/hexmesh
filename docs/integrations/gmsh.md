@@ -369,6 +369,19 @@ Probe: examples meshed with `Assembly.mesh(3)`, then
   the corners.  It isn't comparable to hexmesh's corner SJ (smooth
   bend: 0.809 linear vs 0.184 second order, both valid).
 
+### ASCII `.msh` on Windows has CRLF line endings — *verified*
+gmsh 4.12.1 (pip wheel) on `windows-latest` writes ASCII `.msh` with
+`\r\n`: it opens the file in C text mode.  Binary `.msh` is written in
+binary mode, so its header lines end in `\n`.  Evidence: task 0092's
+first CI run (GitHub Actions run 41537461766, 2026-11-02).  Every write
+that then searched for `b"$EndMeshFormat\n"` failed ("no
+$EndMeshFormat"): 97 and 104 failures on Python 3.10 and 3.x, out of
+about 2280.  hexmesh now rewrites gmsh's ASCII output to LF right after
+`gmsh.write` (`msh_comments.to_lf`), so the file is byte-identical to
+Linux's and `gmshToFoam` gets LF (decision 0039).  `msh_comments.insert`
+also follows a file's own line ending, for CRLF files hexmesh didn't
+write.
+
 ## Open questions
 
 - ~~Does `gmsh.write` keep physical names and element orientation the way

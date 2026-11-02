@@ -1,0 +1,3 @@
+# Every text file in the repository is LF (decision 0039): Windows
+# checkouts too, so byte comparisons and OpenFOAM inputs match Linux.
+* text=auto eol=lf

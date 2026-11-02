@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Example gallery: meshes every example, renders it, measures it, and writes
 ``docs/GALLERY.md``.  Not part of the test suite.
@@ -254,7 +266,7 @@ def worker(qualname: str, out: Path) -> None:
     m = captured["metrics"]
     m.update(predicted=result.predicted, meshed=result.meshed,
              build_s=round(build, 2))
-    out.write_text(json.dumps(m, indent=1))
+    out.write_text(json.dumps(m, indent=1), encoding="utf-8")
 
 
 def load_case(case: str):
@@ -288,14 +300,14 @@ def validation_worker(case: str, label: str, out: Path) -> None:
         render(overview, img / f"{label}.png", (1000, 600), "overview", fit=True)
     render(section, img / f"{label}_section.png", (420, 420), "section")
     m.update(predicted=predicted, meshed=meshed)
-    out.write_text(json.dumps(m, indent=1))
+    out.write_text(json.dumps(m, indent=1), encoding="utf-8")
 
 
 def validation_cases() -> list[str]:
     """Cases whose run.py defines meshes()."""
     found = []
     for run in sorted((ROOT / "validation").glob("*/run.py")):
-        if re.search(r"^def meshes\(", run.read_text(), re.M):
+        if re.search(r"^def meshes\(", run.read_text(encoding="utf-8"), re.M):
             found.append(run.parent.name)
     return found
 
@@ -315,7 +327,7 @@ def run_validation(cases: list[str], jobs: int) -> dict:
             if p.returncode:
                 print(f"{case}/{label}: FAILED\n{p.stderr[-2000:]}", flush=True)
                 return item, {"error": p.stderr.strip().splitlines()[-1]}
-            m = json.loads(out.read_text())
+            m = json.loads(out.read_text(encoding="utf-8"))
             print(f"{case}/{label}: {m['meshed']} cells, min SICN {m['min_sicn']:.3f}",
                   flush=True)
             return item, m
@@ -370,7 +382,7 @@ def overview_width(case: str, label: str) -> str:
 def update_readme(case: str, block: str) -> None:
     """Replace the marked block, or insert it after the "## Case" section."""
     path = ROOT / "validation" / case / "README.md"
-    text = path.read_text()
+    text = path.read_text(encoding="utf-8")
     if MESH_START in text and MESH_END in text:
         a, b = text.index(MESH_START), text.index(MESH_END) + len(MESH_END)
         text = text[:a] + block + text[b:]
@@ -378,7 +390,7 @@ def update_readme(case: str, block: str) -> None:
         m = re.search(r"^## Case\b.*?(?=^## )", text, re.M | re.S)
         at = m.end() if m else len(text)
         text = text[:at] + block + "\n\n" + text[at:]
-    path.write_text(text)
+    path.write_text(text, encoding="utf-8")
 
 
 # --------------------------------------------------------------------------
@@ -396,7 +408,7 @@ def run_examples(names: list[str], jobs: int) -> dict:
             if p.returncode:
                 print(f"{qualname}: FAILED\n{p.stderr[-2000:]}", flush=True)
                 return qualname, {"error": p.stderr.strip().splitlines()[-1]}
-            m = json.loads(out.read_text())
+            m = json.loads(out.read_text(encoding="utf-8"))
             print(f"{qualname}: {m['meshed']} cells, min SICN {m['min_sicn']:.3f}, "
                   f"{m['build_s']} s", flush=True)
             return qualname, m
@@ -491,7 +503,7 @@ STATUS_MARK = {"accepted": "●", "in progress": "◐", "planned": "○", "rejec
 
 
 def case_schema() -> dict:
-    return json.loads((ROOT / "validation" / "case.schema.json").read_text())
+    return json.loads((ROOT / "validation" / "case.schema.json").read_text(encoding="utf-8"))
 
 
 def case_meta(case: str) -> dict:
@@ -503,7 +515,7 @@ def case_meta(case: str) -> dict:
         raise SystemExit(f"{path.relative_to(ROOT)}: missing (every validation case "
                          f"ships a case.json, docs/tasks/README.md)")
     try:
-        meta = json.loads(path.read_text())
+        meta = json.loads(path.read_text(encoding="utf-8"))
         jsonschema.validate(meta, case_schema())
     except (json.JSONDecodeError, jsonschema.ValidationError) as e:
         msg = e.message if isinstance(e, jsonschema.ValidationError) else str(e)
@@ -525,7 +537,7 @@ def planned_cases(done_tasks: set[str]) -> list[dict]:
         task = t.name[:4]
         if task in done_tasks:
             continue
-        text = t.read_text()
+        text = t.read_text(encoding="utf-8")
         cat = re.search(r"^- \*\*Category:\*\* (V[1-4])", text, re.M)
         if not cat:
             continue
@@ -680,7 +692,7 @@ def write_markdown(metrics: dict, meta: dict) -> None:
                   f"{meta['cpus']} CPUs, {meta['jobs']} job(s).", ""]
     else:
         lines += ["_Examples not measured yet: run `python3 docs/gallery/build.py`._", ""]
-    GALLERY.write_text("\n".join(lines))
+    GALLERY.write_text("\n".join(lines), encoding="utf-8")
 
 
 def main() -> None:
@@ -705,7 +717,7 @@ def main() -> None:
         return
 
     from hexmesh.examples import ALL
-    saved = json.loads(METRICS.read_text()) if METRICS.exists() else {}
+    saved = json.loads(METRICS.read_text(encoding="utf-8")) if METRICS.exists() else {}
     metrics = saved.get("examples", {})
     meta = saved.get("meta", {})
     if args.validation is not None:
@@ -716,7 +728,7 @@ def main() -> None:
             update_readme(case, mesh_md(case, vmetrics.get(case, {})))
             print(f"wrote validation/{case}/README.md")
         saved["validation"] = vmetrics
-        METRICS.write_text(json.dumps(saved, indent=1))
+        METRICS.write_text(json.dumps(saved, indent=1), encoding="utf-8")
         write_markdown(metrics, meta)
         print(f"wrote {GALLERY.relative_to(ROOT)}")
         return
@@ -730,7 +742,7 @@ def main() -> None:
                 "gmsh": gmsh.__version__, "python": sys.version.split()[0],
                 "cpus": os.cpu_count(), "jobs": args.jobs}
         METRICS.write_text(json.dumps({**saved, "meta": meta, "examples": metrics},
-                                      indent=1))
+                                      indent=1), encoding="utf-8")
     write_markdown(metrics, meta)
     print(f"wrote {GALLERY.relative_to(ROOT)}")
 

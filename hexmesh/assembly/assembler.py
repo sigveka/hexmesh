@@ -874,8 +874,10 @@ class Assembly:
         (:meth:`_stamp`)."""
         self.mesh(dim, walls_by_fitting=walls_by_fitting)
         gmsh.write(path)
-        if provenance and str(path).endswith(".msh"):
-            self._stamp(path, f"write dim={dim} walls_by_fitting={walls_by_fitting}")
+        if str(path).endswith(".msh"):
+            msh_comments.to_lf(path)
+            if provenance:
+                self._stamp(path, f"write dim={dim} walls_by_fitting={walls_by_fitting}")
 
     def _stamp(self, path, write: str) -> None:
         """Insert the ``$Comments`` block (decision 0038): logo, versions,
@@ -937,6 +939,7 @@ class Assembly:
             gmsh.option.setNumber("Mesh.MshFileVersion", 2.2)
             gmsh.option.setNumber("Mesh.Binary", 0)
             gmsh.write(str(path))
+            msh_comments.to_lf(path)
             if provenance:
                 self._stamp(path, f"write_openfoam dim=3 interfaces={interfaces} "
                                   f"walls_by_fitting={walls_by_fitting}")

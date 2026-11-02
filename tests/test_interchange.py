@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 The network model and its builder (task 0065, decision 0032): a model built
 by hand, with no importer; the spec callable's two forms; the builder's
@@ -148,7 +160,7 @@ def test_model_rejects_foreign_classes_and_reused_ids():
 def test_builder_imports_no_importer():
     """Constraint 1: the builder and the model know no source format."""
     for f in ("build.py", "model.py"):
-        tree = ast.parse((ROOT / "hexmesh" / "interchange" / f).read_text())
+        tree = ast.parse((ROOT / "hexmesh" / "interchange" / f).read_text(encoding="utf-8"))
         mods = [n.module or "" for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)] + \
                [a.name for n in ast.walk(tree) if isinstance(n, ast.Import) for a in n.names]
         assert not [x for x in mods if "readers" in x or "pcf" in x or "bathymetry" in x], f
@@ -187,7 +199,7 @@ END-CONNECTION-EQUIPMENT
 def test_pcf_importer_fills_the_model(tmp_path):
     from hexmesh.io.readers.pcf import read_pcf
     p = tmp_path / "l.pcf"
-    p.write_text(PCF)
+    p.write_text(PCF, encoding="utf-8")
     net = read_pcf(p)
     m = net.to_model()
     parts = list(m.parts.values())

@@ -404,11 +404,11 @@ def substitute_case(case: Path, params: dict) -> list[str]:
 
         new = _TOKEN.sub(value, work).replace("\0", "$")
         if missing:
-            raise ValueError(f"{rel}: unknown placeholder(s) "
+            raise ValueError(f"{rel.as_posix()}: unknown placeholder(s) "
                              + ", ".join(f"${n}" for n in dict.fromkeys(missing)))
         if new != text:
             path.write_text(new, encoding="utf-8", newline="\n")
-            changed.append(str(rel))
+            changed.append(rel.as_posix())
     return changed
 
 

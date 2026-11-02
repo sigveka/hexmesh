@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Validation metadata (task 0073, decision 0012's categories): every case's
 ``case.json`` is valid against ``validation/case.schema.json``, and the
@@ -32,7 +44,7 @@ def test_every_case_has_a_valid_case_json(build):
 
 
 def test_schema_rejects_bad_fields(build):
-    good = json.loads((ROOT / "validation/poiseuille/case.json").read_text())
+    good = json.loads((ROOT / "validation/poiseuille/case.json").read_text(encoding="utf-8"))
     schema = build.case_schema()
     jsonschema.validate(good, schema)
     for bad in ({"category": "V5"},
@@ -47,11 +59,11 @@ def test_missing_or_invalid_case_json_stops_the_gallery(build, monkeypatch, tmp_
     root = tmp_path
     (root / "validation" / "x").mkdir(parents=True)
     (root / "validation" / "case.schema.json").write_text(
-        (ROOT / "validation/case.schema.json").read_text())
+        (ROOT / "validation/case.schema.json").read_text(encoding="utf-8"), encoding="utf-8")
     monkeypatch.setattr(build, "ROOT", root)
     with pytest.raises(SystemExit, match="case.json: missing"):
         build.case_meta("x")
-    (root / "validation" / "x" / "case.json").write_text('{"schemaVersion": 1}')
+    (root / "validation" / "x" / "case.json").write_text('{"schemaVersion": 1}', encoding="utf-8")
     with pytest.raises(SystemExit, match="invalid"):
         build.case_meta("x")
 

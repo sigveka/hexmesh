@@ -47,14 +47,14 @@ def foam_case(case):
     (case / "system" / "controlDict").write_text(
         "FoamFile { version 2.0; format ascii; class dictionary; object controlDict; }\n"
         "application none; startFrom startTime; startTime 0; stopAt endTime;\n"
-        "endTime 1; deltaT 1; writeControl timeStep; writeInterval 1;\n")
+        "endTime 1; deltaT 1; writeControl timeStep; writeInterval 1;\n", encoding="utf-8")
     header = "FoamFile { version 2.0; format ascii; class dictionary; object %s; }\n"
     (case / "system" / "fvSchemes").write_text(
         header % "fvSchemes" +
         "ddtSchemes { default steadyState; } gradSchemes { default Gauss linear; }\n"
         "divSchemes { default none; } laplacianSchemes { default Gauss linear corrected; }\n"
-        "interpolationSchemes { default linear; } snGradSchemes { default corrected; }\n")
-    (case / "system" / "fvSolution").write_text(header % "fvSolution")
+        "interpolationSchemes { default linear; } snGradSchemes { default corrected; }\n", encoding="utf-8")
+    (case / "system" / "fvSolution").write_text(header % "fvSolution", encoding="utf-8")
     return case
 
 
@@ -65,14 +65,14 @@ def run_foam(script):
 
 
 def _mesh_format(path):
-    lines = pathlib.Path(path).read_text().splitlines()
+    lines = pathlib.Path(path).read_text(encoding="utf-8").splitlines()
     assert lines[0] == "$MeshFormat"
     version, binary, size = lines[1].split()
     return version, binary, size
 
 
 def _physical_names(path):
-    text = pathlib.Path(path).read_text()
+    text = pathlib.Path(path).read_text(encoding="utf-8")
     block = text.split("$PhysicalNames")[1].split("$EndPhysicalNames")[0]
     return sorted(re.findall(r'"([^"]+)"', block))
 
@@ -114,7 +114,7 @@ def test_single_material_keeps_every_group(gmsh_session, tmp_path):
     asm.add(Straight(0.3, n_layers=4))
     asm.write_openfoam(out)
     assert _physical_names(out) == ["fluid", "fluid_inlet", "fluid_outlet", "fluid_wall"]
-    text = out.read_text()
+    text = out.read_text(encoding="utf-8")
     elements = text.split("$Elements")[1].split("$EndElements")[0].split("\n")[2:-1]
     assert all(int(line.split()[3]) > 0 for line in elements), "element in no group"
     assert len(gmsh.model.getPhysicalGroups()) == 4
@@ -153,7 +153,7 @@ def test_openfoam_cht_split(gmsh_session, tmp_path, interfaces):
     assert run.stdout.count("Mesh OK.") == 3
 
     def patches(region):
-        text = (case / "constant" / region / "polyMesh" / "boundary").read_text()
+        text = (case / "constant" / region / "polyMesh" / "boundary").read_text(encoding="utf-8")
         return {m[0]: (m[1], int(m[2])) for m in re.findall(
             r"(\w+)\s*\{\s*type\s+(\w+);[^}]*?nFaces\s+(\d+);", text)}
 
@@ -168,7 +168,7 @@ def test_openfoam_cht_split(gmsh_session, tmp_path, interfaces):
     assert insulation["insulation_wall"] == ("patch", n)
 
     zones_file = case / "constant" / "polyMesh" / "faceZones"
-    zones = zones_file.read_text() if zones_file.exists() else ""
+    zones = zones_file.read_text(encoding="utf-8") if zones_file.exists() else ""
     kept = "interface_fluid_steel" in zones and "interface_steel_insulation" in zones
     assert kept == interfaces
 

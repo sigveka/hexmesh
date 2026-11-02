@@ -153,6 +153,40 @@ def test_binary_block_follows_the_marker_line(tmp_path):
     assert _without_block(data) == (tmp_path / "b_off.msh").read_bytes()
 
 
+@pytest.mark.parametrize("openfoam", [False, True])
+def test_windows_crlf_output_becomes_lf(tmp_path, monkeypatch, openfoam):
+    """gmsh on Windows writes ASCII files with CRLF (task 0092's CI):
+    simulated here, the written file is Linux's, byte for byte."""
+    _write(tmp_path / "lf.msh", openfoam=openfoam)
+    real = gmsh.write
+
+    def crlf(path):
+        real(path)
+        p = Path(path)
+        p.write_bytes(p.read_bytes().replace(b"\n", b"\r\n"))
+
+    monkeypatch.setattr(gmsh, "write", crlf)
+    recipe = _write(tmp_path / "crlf.msh", openfoam=openfoam)
+    data = (tmp_path / "crlf.msh").read_bytes()
+    assert b"\r" not in data
+    assert data == (tmp_path / "lf.msh").read_bytes()
+    assert read_recipe(tmp_path / "crlf.msh") == recipe
+
+
+def test_block_keeps_a_crlf_files_line_ending(tmp_path):
+    """A CRLF file not written by hexmesh (a Windows gmsh re-save) gets the
+    block with CRLF too, and reads back."""
+    recipe = _write(tmp_path / "a.msh")
+    p = tmp_path / "a.msh"
+    p.write_bytes(_without_block(p.read_bytes()).replace(b"\n", b"\r\n"))
+    msh_comments.insert(p, msh_comments.block("hexmesh test", "w", recipe, tool="gmsh test",
+                                              msh=msh_comments.msh_format(p)))
+    data = p.read_bytes()
+    assert b"$EndMeshFormat\r\n$Comments\r\n" in data
+    assert data.count(b"\n") == data.count(b"\r\n")
+    assert read_recipe(p) == recipe
+
+
 def _nodes_and_hexes(path):
     with Session("read"):
         gmsh.open(str(path))

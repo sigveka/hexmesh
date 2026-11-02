@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 PCF and bathymetry readers build an Assembly (docs/tasks/0015, 0021).
 
@@ -57,7 +69,7 @@ PIPE
 
 def _pcf(tmp_path, text, **kw):
     path = tmp_path / "line.pcf"
-    path.write_text(textwrap.dedent(text))
+    path.write_text(textwrap.dedent(text), encoding="utf-8")
     with warnings.catch_warnings():
         warnings.simplefilter("error")          # a valid file reads without warnings
         return read_pcf(path, **kw)
@@ -272,7 +284,7 @@ def test_bore_units_are_independent_of_coordinates(tmp_path, unit, value, metres
 
 def test_no_header_reads_mm_and_warns_once(tmp_path):
     path = tmp_path / "bare.pcf"
-    path.write_text("PIPE\n    END-POINT 0 0 0 100\n    END-POINT 1000 0 0 100\n")
+    path.write_text("PIPE\n    END-POINT 0 0 0 100\n    END-POINT 1000 0 0 100\n", encoding="utf-8")
     with pytest.warns(UserWarning, match="no UNITS-CO-ORDS") as rec:
         net = read_pcf(path)
     assert len(rec) == 1
@@ -282,7 +294,7 @@ def test_no_header_reads_mm_and_warns_once(tmp_path):
 
 def test_unit_scale_overrides_header(tmp_path):
     path = tmp_path / "p.pcf"
-    path.write_text(_one_pipe("INCH", "INCH", 60, 4))
+    path.write_text(_one_pipe("INCH", "INCH", 60, 4), encoding="utf-8")
     with pytest.warns(UserWarning, match="overrides UNITS-CO-ORDS INCH"):
         net = read_pcf(path, unit_scale=1e-3)
     np.testing.assert_allclose(net.components[0].end, [0.06, 0, 0])
@@ -293,7 +305,7 @@ def test_unit_scale_overrides_header(tmp_path):
 
 def test_unknown_units_rejected(tmp_path):
     path = tmp_path / "p.pcf"
-    path.write_text(_one_pipe("FEET", "MM", 1, 100))
+    path.write_text(_one_pipe("FEET", "MM", 1, 100), encoding="utf-8")
     with pytest.raises(ValueError, match="UNITS-CO-ORDS 'FEET'"):
         read_pcf(path)
 
@@ -443,7 +455,7 @@ def test_spool_set_on_on_layered_spec(tmp_path):
 def _read_spool(tmp_path, text, name="spool.pcf"):
     """The set-on tee is read (task 0037): no warnings."""
     path = tmp_path / name
-    path.write_text(text)
+    path.write_text(text, encoding="utf-8")
     with warnings.catch_warnings():
         warnings.simplefilter("error")
         net = read_pcf(path)

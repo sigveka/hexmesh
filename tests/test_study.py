@@ -48,11 +48,11 @@ def build(p):
 
 
 def _study(tmp_path, name="study.json", **fields):
-    (tmp_path / "bends.py").write_text(TEMPLATE)
+    (tmp_path / "bends.py").write_text(TEMPLATE, encoding="utf-8")
     body = {"template": {"python": "bends:build"}, "output": "out"}
     body.update(fields)
     path = tmp_path / name
-    path.write_text(json.dumps(body))
+    path.write_text(json.dumps(body), encoding="utf-8")
     return load_study(path)
 
 
@@ -100,12 +100,12 @@ class TestGrid:
 
     def test_manifest(self, grid):
         study, _, rows, _ = grid
-        with open(study.output / "study.csv") as f:
+        with open(study.output / "study.csv", encoding="utf-8") as f:
             table = list(csv.DictReader(f))
         assert [t["hash"] for t in table] == [r["hash"] for r in rows]
         assert table[0]["radius"] == "0.15" and table[0]["angle"] == "45"
         assert {t["topology"] for t in table} == {rows[0]["topology"]}
-        data = json.loads((study.output / "study.json").read_text())
+        data = json.loads((study.output / "study.json").read_text(encoding="utf-8"))
         assert data["study"]["sampling"] == GRID
         assert set(data["versions"]) == {"hexmesh", "gmsh", "python"}
         assert status(study) == {"meshed": 9}
@@ -192,10 +192,10 @@ def build(p):
     asm = Assembly(spec)
     asm.add(Straight(0.3, n_layers=2))
     return asm
-''')
+''', encoding="utf-8")
         (tmp_path / "s.json").write_text(json.dumps({
             "template": {"python": "block:build"},
-            "sampling": {"grid": {"w": [0.15, 0.26]}}}))
+            "sampling": {"grid": {"w": [0.15, 0.26]}}}), encoding="utf-8")
         rows = preflight(load_study(tmp_path / "s.json"))
         assert rows[0]["warnings"] == []
         assert rows[1]["status"] == "checked" and "PREDICTED_SJ_WARN" in rows[1]["warnings"][0]
@@ -210,7 +210,7 @@ class TestJsonTemplate:
         d = a.to_dict()
         d["edges"][1]["fitting"]["radius"] = "$radius"
         d["edges"][1]["fitting"]["angle"] = "$angle"
-        (tmp_path / "net.json").write_text(json.dumps(d))
+        (tmp_path / "net.json").write_text(json.dumps(d), encoding="utf-8")
 
     def test_substitutes_whole_values(self, tmp_path):
         self._network(tmp_path)
@@ -261,7 +261,7 @@ class TestDefinition:
         assert strata == list(range(8))
 
     def test_csv_table_and_fixed_parameters(self, tmp_path):
-        (tmp_path / "rows.csv").write_text("radius,angle,label\n0.2,90,a\n0.3,45.5,b\n")
+        (tmp_path / "rows.csv").write_text("radius,angle,label\n0.2,90,a\n0.3,45.5,b\n", encoding="utf-8")
         study = _study(tmp_path, sampling={"table": {"csv": "rows.csv"}},
                        parameters={"n": 4, "radius": 9})
         assert variants(study) == [{"n": 4, "radius": 0.2, "angle": 90, "label": "a"},
@@ -274,7 +274,7 @@ class TestDefinition:
         ({"template": {"python": "bends:build"}, "budget": {"cells": 1}}, "unknown budget"),
     ])
     def test_bad_study_files(self, tmp_path, body, message):
-        (tmp_path / "s.json").write_text(json.dumps(body))
+        (tmp_path / "s.json").write_text(json.dumps(body), encoding="utf-8")
         with pytest.raises(StudyError, match=message):
             load_study(tmp_path / "s.json")
 
@@ -374,13 +374,13 @@ def _template(root, header):
     }
     for name, text in files.items():
         (root / name).parent.mkdir(parents=True, exist_ok=True)
-        (root / name).write_text(text)
+        (root / name).write_text(text, encoding="utf-8")
 
 
 def _pipe_study(tmp_path, rows, **fields):
     from hexmesh.study.openfoam import header
-    (tmp_path / "pipe.py").write_text(PIPE)
-    (tmp_path / "post.py").write_text(POST)
+    (tmp_path / "pipe.py").write_text(PIPE, encoding="utf-8")
+    (tmp_path / "post.py").write_text(POST, encoding="utf-8")
     _template(tmp_path / "case", header)
     body = {"template": {"python": "pipe:build"}, "output": "out", "format": "openfoam",
             "sampling": {"table": {"rows": rows}},
@@ -388,7 +388,7 @@ def _pipe_study(tmp_path, rows, **fields):
             "run": {"command": "simpleFoam > log.simpleFoam 2>&1", "post": "post:dp",
                     "cores_per_job": 1}}
     body.update(fields)
-    (tmp_path / "study.json").write_text(json.dumps(body))
+    (tmp_path / "study.json").write_text(json.dumps(body), encoding="utf-8")
     return load_study(tmp_path / "study.json")
 
 
@@ -398,11 +398,11 @@ class TestCaseTemplates:
         (tmp_path / "0").mkdir()
         (tmp_path / "0/U").write_text(
             "inletValue uniform ($U 0 0);\nin { value $inletValue; }\n"
-            "a $Umax; cost $$5; path $FOAM_CASE;\n")
+            "a $Umax; cost $$5; path $FOAM_CASE;\n", encoding="utf-8")
         with pytest.raises(ValueError, match=r"0/U: unknown placeholder\(s\) \$Umax"):
             substitute_case(tmp_path, {"U": 0.5})
         assert substitute_case(tmp_path, {"U": 0.5, "Umax": 2}) == ["0/U"]
-        assert (tmp_path / "0/U").read_text() == (
+        assert (tmp_path / "0/U").read_text(encoding="utf-8") == (
             "inletValue uniform (0.5 0 0);\nin { value $inletValue; }\n"
             "a 2; cost $5; path $FOAM_CASE;\n")
 
@@ -514,7 +514,7 @@ def test_pipe_study_case_and_run(tmp_path):
         assert r["run_exit"] == 0 and r["run_time"] > 0
     assert out[1]["result"]["dp"] == pytest.approx(2 * out[0]["result"]["dp"], rel=0.02)
     assert out[2]["run_exit"] != 0
-    with open(study.output / "study.csv") as f:
+    with open(study.output / "study.csv", encoding="utf-8") as f:
         table = list(csv.DictReader(f))
     assert float(table[0]["result.dp"]) == pytest.approx(out[0]["result"]["dp"])
     logs = [(variant_dir(study, r["hash"]) / "run.json").stat().st_mtime_ns for r in out]

@@ -38,6 +38,7 @@ A leaf (DESIGN §3.1): plain dicts and strings, nothing about assemblies.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 BEGIN, END = "hexmesh-recipe-begin", "hexmesh-recipe-end"
@@ -90,17 +91,32 @@ def block(generator: str, write: str, recipe: dict | None, *, tool: str,
     return lines + ["$EndComments"]
 
 
-def insert(path, lines: list[str]) -> None:
-    """Insert the block right after ``$EndMeshFormat`` in the file at
-    *path* (ASCII or binary)."""
+def to_lf(path) -> None:
+    """Rewrite an ASCII ``.msh`` with ``\\n`` line endings.  gmsh on
+    Windows writes ``\\r\\n`` (C text mode; docs/integrations/gmsh.md);
+    gmshToFoam reads the file, so it is LF on every platform (decision
+    0039), and byte-identical to Linux's.  Binary files are left alone:
+    gmsh writes them in binary mode, and their data may hold the bytes."""
+    if msh_format(path)[1]:
+        return
     p = Path(path)
     data = p.read_bytes()
-    marker = b"$EndMeshFormat\n"
-    i = data.find(marker)
-    if i < 0:
+    if b"\r\n" in data:
+        p.write_bytes(data.replace(b"\r\n", b"\n"))
+
+
+def insert(path, lines: list[str]) -> None:
+    """Insert the block right after ``$EndMeshFormat`` in the file at
+    *path* (ASCII or binary), with the file's own line ending: gmsh on
+    Windows writes ASCII files with ``\\r\\n`` (docs/integrations/gmsh.md)."""
+    p = Path(path)
+    data = p.read_bytes()
+    m = re.search(rb"^\$EndMeshFormat(\r?\n)", data, re.M)
+    if m is None:
         raise ValueError(f"{path}: no $EndMeshFormat")
-    i += len(marker)
-    p.write_bytes(data[:i] + "".join(f"{l}\n" for l in lines).encode("ascii") + data[i:])
+    eol = m.group(1).decode("ascii")
+    i = m.end()
+    p.write_bytes(data[:i] + "".join(f"{l}{eol}" for l in lines).encode("ascii") + data[i:])
 
 
 def read_recipe(path) -> dict | None:

@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 PCF reader robustness (task 0064): annotation records, inline components
 the reader doesn't know, and files holding several unconnected pipelines.
@@ -32,7 +44,7 @@ def _spec(bore=0.1):
 
 def _read(tmp_path, text):
     p = tmp_path / "net.pcf"
-    p.write_text(HEADER + text)
+    p.write_text(HEADER + text, encoding="utf-8")
     return read_pcf(p)
 
 

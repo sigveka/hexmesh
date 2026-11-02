@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Boundary-role manifest and OpenFOAM patch retyping (decision 0013,
 docs/tasks/0023).
@@ -127,7 +139,7 @@ class TestRetypeText:
 def _case(tmp_path, text=BOUNDARY, region=None):
     d = tmp_path / "constant" / (region or "") / "polyMesh"
     d.mkdir(parents=True)
-    (d / "boundary").write_text(text)
+    (d / "boundary").write_text(text, encoding="utf-8")
     return d / "boundary"
 
 
@@ -138,7 +150,7 @@ def test_apply_writes_file_and_warns_once(tmp_path):
     with pytest.warns(UserWarning, match="fluid_inlet, fluid_wall_Bend2") as rec:
         assert apply_boundary_roles(tmp_path, roles) == ["fluid_wall"]
     assert len(rec) == 1
-    assert "type            wall;" in _entry(path.read_text(), "fluid_wall")
+    assert "type            wall;" in _entry(path.read_text(encoding="utf-8"), "fluid_wall")
     assert not list(path.parent.glob(".boundary.*"))      # no temp file left
 
 
@@ -146,7 +158,7 @@ def test_apply_from_manifest_file_and_regions(tmp_path):
     for region in ("fluid", "steel"):
         _case(tmp_path, region=region)
     manifest = tmp_path / "pipe.roles.json"
-    manifest.write_text(json.dumps(ROLES))
+    manifest.write_text(json.dumps(ROLES), encoding="utf-8")
     with warnings.catch_warnings():
         warnings.simplefilter("error")
         done = apply_boundary_roles_to_regions(tmp_path, manifest)
@@ -199,7 +211,7 @@ needs_openfoam = pytest.mark.skipif(not OPENFOAM_RC.exists() or shutil.which("ba
 def _types(case, region=None):
     """patch → type, as foamDictionary reads it."""
     boundary = case / "constant" / (region or "") / "polyMesh" / "boundary"
-    names = re.findall(r"^    (\w+)\s*\n\s*\{", boundary.read_text(), re.M)
+    names = re.findall(r"^    (\w+)\s*\n\s*\{", boundary.read_text(encoding="utf-8"), re.M)
     script = "; ".join(
         f"echo {n} $(foamDictionary {boundary} -entry entry0/{n}/type -value)" for n in names)
     run = run_foam(script)
