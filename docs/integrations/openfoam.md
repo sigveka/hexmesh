@@ -106,6 +106,16 @@ All *verified* on v1912, 2026-10-25, on `examples/insulated_pipe`
 
 ## Known quirks
 
+- **`gmshToFoam` skips a `$Comments` section** (v1912 native and v2406
+  in Docker, MSH 2.2 ASCII, 2026-11-02, design session).
+  - The log says "Skipping tag $Comments at line N".
+  - The `polyMesh` (points, faces, owner, neighbour, boundary) is
+    byte-identical to the one from the same file without the section,
+    per version.  Same whether the block follows `$MeshFormat` or ends
+    the file.
+  - It finds sections by lines starting with `$`; keep every content
+    line of such a block from starting with `$` (assumed, not tested).
+
 All v1912, gmsh 4.12.1, 2026-10-25.
 
 - **MSH 4.1 is read too.**  `gmshToFoam` v1912 reads MSH 4.1 ASCII as well

@@ -46,6 +46,21 @@ Deliberately **not** used, because DESIGN P2 forbids it: `occ.fragment`,
 
 ## Known quirks
 
+### A `$Comments` section is read, kept, and re-wrapped at 255 characters — *verified*
+gmsh 4.12.1, 2026-11-02, design session (scripts in its scratchpad).
+- gmsh skips an unknown section; a `$Comments` … `$EndComments` block
+  after `$MeshFormat` or at the end of the file is read without error.
+  Nodes, hexes and physical groups are identical to the file without
+  it.
+- **On re-save it keeps the block**, in MSH 2.2 ASCII, 4.1 ASCII and
+  4.1 binary.  It moves the block near the end of the file and breaks
+  every line longer than 255 characters into ≤ 255-character lines.
+- Nothing is lost: the block's text with the newlines removed is
+  identical before and after.  A one-line JSON value therefore survives
+  only if the reader joins its lines again.
+- A `$Comments` block inserted into a 4.1 *binary* file (after the text
+  `$EndMeshFormat`) is read too.
+
 ### OCC `getBoundary` returns curve end points in tag order — *verified*
 For a curve, `gmsh.model.getBoundary([(1, c)], oriented=False)` lists its
 two end points in **ascending tag order**, not start → end.  Read the
