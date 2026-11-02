@@ -89,7 +89,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0086](0086-h-ports-on-duct-junctions-and-shells.md) | H ports on duct junctions, and shells around an H core | ready (after 0085) | 0036, 0026 |
 | [0087](0087-h-default-flip.md) | Make H the default rectangular core (version 0.4.0) | ready (after 0086) | 0036 |
 | [0088](0088-n-outer-sub-partition.md) | `n_outer = 8` as a sub-partition of the O-H face (exact core cuts) | ready (after 0082; not alongside 0084) | 0005, 0010 |
-| [0089](0089-richardson-growing-differences.md) | `richardson()`: no order when differences grow; recheck accepted cases | ready | 0015 |
+| [0089](0089-richardson-growing-differences.md) | `richardson()`: no order when differences grow; recheck accepted cases | in progress | 0015 |
 | [0090](0090-shared-parallel-openfoam-runs.md) | Parallel OpenFOAM runs in the shared helpers, used by every driver | ready | 0012, 0025 |
 
 ### Validation
@@ -232,6 +232,21 @@ These apply to every task.
   gates) and in example docstrings are LaTeX math (`$…$`), so
   `docs/GALLERY.md` typesets them; module docstrings with backslashes
   are raw strings (`r"""…"""`).  (2026-10-31, the user.)
+- **The logo header** (since 2026-11-02, the user).  Every `.py` file
+  in `hexmesh/`, `validation/`, `tests/` and `docs/gallery/` carries
+  `docs/ascii-logo.txt` as a header.  Add it to each file you create or
+  edit that lacks it.  Don't sweep untouched files.
+  - A block of `# ` comment lines (`# ` + the logo line, no trailing
+    spaces), then one blank `#` line, at the very top.  The only lines
+    above it are a `#!` shebang and a `coding:` line, which must stay
+    first.
+  - Never in a docstring.  Its backslashes give `SyntaxWarning` in a plain
+    one, and in a raw one it would become the module docstring, which
+    eleven scripts use for `--help`.
+  - Not in Markdown, generated output (OpenFOAM dictionaries, `.msh`) or
+    data files.
+  - Copy it byte for byte from `docs/ascii-logo.txt`, so a future check
+    can match it exactly.
 - Keep each task a separate, reviewable change.  Match the surrounding code
   style: dataclasses, numpy, short docstrings that cite DESIGN rules.
 
