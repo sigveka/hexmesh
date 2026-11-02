@@ -35,6 +35,19 @@ cross-sections (fluid, pipe wall, insulation) for conjugate heat transfer.
 If a geometry cannot be meshed under these rules, hexmesh rejects it with
 an error that names the offending fitting or interface.
 
+**Platforms** (decision 0039)
+
+| layer | Linux | macOS | Windows |
+|---|---|---|---|
+| meshing (`core`, `sections`, `assembly`, `interchange`, `io`) | yes | yes | yes |
+| studies and validation, Docker runner | yes | yes | yes (Docker Desktop) |
+| studies and validation, native OpenFOAM runner | yes | — | WSL only |
+
+Files meant for OpenFOAM or a shell are written with `\n` line endings
+on every host.  Text I/O names its encoding (UTF-8).  POSIX-only calls
+have a fallback and never crash elsewhere.  CI checks the meshing
+claim on all three.
+
 ---
 
 ## 2. Core principles

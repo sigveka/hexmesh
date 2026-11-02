@@ -1,0 +1,115 @@
+# 0039 — Platform support: meshing everywhere, OpenFOAM through Linux or Docker
+
+- **Status:** accepted
+- **Date:** 2026-11-02 (accepted 2026-11-02 by the user: "I agree with your recommendations, go ahead")
+- **Tasks:** 0092
+
+## Context
+
+The user asked whether hexmesh works on Windows ("I think I saw some
+hardcoded paths").  No platform is stated anywhere: not in DESIGN.md,
+the README or a decision.  Everything has been developed and run on
+Linux.
+
+A read of the code (design session, 2026-11-02, hexmesh `4938e32`; not
+run on Windows):
+
+- **Meshing is portable.**  `core`, `sections`/`faces`, `assembly`,
+  `interchange`, `io.readers` and the `.msh` output make no POSIX
+  calls, and gmsh ships Windows and macOS wheels.  `Assembly.save` /
+  `load` set UTF-8.  One read without `encoding=`
+  (`io/readers/pcf.py:655`).
+- **The OpenFOAM and study layers are Linux-only, and some of them crash
+  elsewhere:**
+  - The Docker runner calls `os.getuid()` / `os.getgid()`, which don't
+    exist on Windows (`study/openfoam.py:73`).
+  - It mounts host paths at the same path in the container
+    (`-v C:\…:C:\…`, `-w C:\…`), which is not a valid Linux path.
+  - The native runner and `run_stage` source
+    `/usr/share/openfoam/etc/bashrc` through `bash`.  That's expected:
+    OpenFOAM's native builds are Linux.
+  - `other_runs()` reads `/proc` (`study/stages.py:321–327`), so
+    `run_stage` crashes on Windows **and macOS** unless `--force`.
+  - `io/writers/openfoam.py` writes text in text mode, so on Windows
+    every line ends in CRLF.  `Allrun`'s `#!/bin/sh\r` then fails under
+    bash, and `chmod(0o755)` does nothing.
+- **Encodings:** about 46 text reads and writes in `hexmesh/` don't pass
+  `encoding=`.  Windows Pythons before 3.15 then use the locale code
+  page.  Most of these files are ASCII (JSON is written with
+  `ensure_ascii`), so this is a latent risk, not a known failure.
+- **No CI** runs the suite anywhere, so no platform claim is checked.
+
+## Options
+
+### A. Linux only, stated
+Cheapest.  But meshing is already portable, and users who want a mesh
+for their own OpenFOAM, Fluent or STAR-CCM+ setup are often on Windows.
+
+### B. Meshing on every platform; OpenFOAM through Linux, WSL or Docker (recommended)
+- Meshing: Linux, macOS, Windows.
+- Studies and validation: Linux, WSL, or Windows / macOS through the
+  Docker runner.
+- Native OpenFOAM runner: Linux only.
+- Fix the crashes above, and check the claim with CI.
+
+### C. Everything on every platform, natively
+OpenFOAM's Windows builds (MSYS2 / blueCFD) are a separate toolchain,
+and the project has no way to test them.  Not worth it.
+
+## Decision
+
+**B** (the user, 2026-11-02).
+
+| layer | Linux | macOS | Windows |
+|---|---|---|---|
+| meshing (`core`, `sections`, `assembly`, `interchange`, `io`) | yes | yes | yes |
+| studies and validation, Docker runner | yes | yes | yes (Docker Desktop) |
+| studies and validation, native runner | yes | — | WSL only |
+
+Rules that follow:
+- **Files OpenFOAM or a shell reads are written with `\n` line endings**
+  on every platform (`newline="\n"`).  They are Linux-side files
+  whatever the host.
+- **Every text read and write in `hexmesh/` names its encoding**
+  (UTF-8).  The architecture test enforces it.
+- **No POSIX-only call without a fallback** in `hexmesh/`: `os.getuid`,
+  `/proc`, `fcntl` and the like are guarded and degrade with a clear
+  message, never crash.
+- **The Docker runner maps host paths to container paths** (`/work/0`,
+  …) and does not assume they are the same.
+- **CI proves it:** the suite without OpenFOAM on Linux, macOS and
+  Windows.  OpenFOAM tests stay on Linux (and the Docker runner where a
+  CI host has Docker).
+
+## Consequences
+
+- **DESIGN.md §1:** a "Platforms" paragraph with the table above.
+- **README "Install":** the same, briefly.
+- **Task 0092:** the fixes, the encoding rule, CI.
+- **Task 0091 (in progress):** its `.msh` post-processing keeps the
+  file's own line endings (binary read and write, or `newline=""`), so
+  it doesn't turn LF into CRLF on Windows.
+- **Harder:** the Docker runner's path mapping means every absolute
+  path in a command must be rewritten.  Drivers that pass absolute
+  paths in `cmd` need checking.
+- **Validation drivers** inherit the runner.  They aren't promised on
+  Windows beyond what the runner gives them.
+
+**Future expansions:**
+- **0019 (agent SDK):** helps.  Agents and their hosts are often not
+  Linux; meshing works there.
+- **0030 (simulation suite):** consistent.  Its solver adapters run in
+  containers; the path mapping here is what they need.
+- **0018, 0021, 0035:** none.
+
+## Verified vs. assumed
+
+- **Verified:** the code sites listed (read, 2026-11-02);
+  `os.getuid` is absent from Windows Python (documented: "Availability:
+  Unix").
+- **Assumed, to be checked by task 0092's CI:**
+  - that meshing runs on Windows and macOS (gmsh wheels, OCC);
+  - that OpenFOAM reads CRLF dictionaries badly or not at all (moot
+    after the `\n` rule);
+  - that Docker Desktop accepts `C:\…` host paths in `-v` with the
+    container side mapped (`/work/0`).
