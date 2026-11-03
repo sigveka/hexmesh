@@ -263,8 +263,8 @@ def test_pulsatile_stenosis_one_period(pulsatile_stenosis):
 
 @pytest.fixture(scope="module")
 def rect_duct(tmp_path_factory):
-    """Task 0071's coarse square duct, O-H and Cartesian control, on v2406
-    in Docker (about 20 s)."""
+    """Task 0071's coarse square duct, O-H, Cartesian control and H
+    (task 0084), on v2406 in Docker (about 30 s)."""
     if not _have_v2406():
         pytest.skip("no opencfd/openfoam-default:2406 image")
     work = tmp_path_factory.mktemp("rect_duct")
@@ -297,3 +297,15 @@ def test_rect_duct_control_coarse(rect_duct):
     assert r["converged"] and r["mass_err"] < 1e-8
     assert -0.045 < r["fRe_err_signed"] < -0.035               # -3.92 % measured
     assert -0.030 < r["u_c_err_signed"] < -0.022               # -2.62 % measured
+
+
+def test_rect_duct_h_coarse(rect_duct):
+    """The coarse H section (task 0084): uniform, the control's counts,
+    so the control's grid and the control's answer (RESULTS.md: 1.1e-9
+    relative over every level)."""
+    h = next(r for r in rect_duct["levels"] if r["mesh"] == "h")
+    c = next(r for r in rect_duct["levels"] if r["mesh"] == "cartesian")
+    assert h["check_mesh_ok"] and h["check_cells_foam"] == h["cells"] == c["cells"]
+    assert h["check_max_non_orthogonality"] < 1e-6 and h["converged"]
+    for q in ("fRe", "u_c"):
+        assert abs(h[q] - c[q]) < 1e-6 * abs(c[q])

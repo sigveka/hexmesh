@@ -84,7 +84,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0081](0081-architecture-tests-and-contracts.md) | Architecture tests (DESIGN §3.1), and the cross-package leaks | done | 0037 |
 | [0082](0082-sections-package-oh-layout.md) | `hexmesh.sections`: the O-H layout described once | done | 0037 |
 | [0083](0083-shape-protocol.md) | Shapes own their behaviour: the shape protocol | done | 0037 |
-| [0084](0084-h-section-layout-and-sweeps.md) | The H section: the layout, `layout=` on the spec, and every sweep | in progress (steps 1–7 done; step 8 waits for 0090) | 0036, 0037 |
+| [0084](0084-h-section-layout-and-sweeps.md) | The H section: the layout, `layout=` on the spec, and every sweep | done | 0036, 0037 |
 | [0085](0085-oh-h-switch-and-transition.md) | The O-H ↔ H switch, and `Transition` to an H rectangle | ready (after 0084) | 0036, 0011 |
 | [0086](0086-h-ports-on-duct-junctions-and-shells.md) | H ports on duct junctions, and shells around an H core | ready (after 0085) | 0036, 0026 |
 | [0087](0087-h-default-flip.md) | Make H the default rectangular core (version 0.4.0) | ready (after 0086) | 0036 |

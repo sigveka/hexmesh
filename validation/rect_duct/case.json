@@ -40,6 +40,18 @@
       "limit": "$2 \\pm 0.2$, status converging (else the setup is suspect)"
     },
     {
+      "quantity": "hexmesh H section (the accepted hexmesh result, task 0084): extrapolated $f\\,\\mathrm{Re}$ and $u_c$, every aspect ratio",
+      "limit": "within 0.1 % of exact"
+    },
+    {
+      "quantity": "hexmesh H section: finest-level |error|",
+      "limit": "< 1 %"
+    },
+    {
+      "quantity": "hexmesh H section: observed order",
+      "limit": "$2 \\pm 0.2$, status converging"
+    },
+    {
       "quantity": "hexmesh O-H levels",
       "limit": "reported against the control, not gated (decision 0015 amendment 2)"
     }

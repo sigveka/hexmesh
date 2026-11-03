@@ -166,11 +166,17 @@ def check_series() -> dict:
 
 # --- mesh ----------------------------------------------------------------------
 
-def assembly(ratio: float, k: int = 1) -> Assembly:
+def assembly(ratio: float, k: int = 1, layout: str = "oh") -> Assembly:
+    """The duct at level *k*: the O-H section (``layout="oh"``), or the H
+    section (task 0084) with the control's counts per section, uniform."""
     a, b = half_sides(ratio)
-    nh = BASE["nang_h"]
-    nw = int(round(nh * ratio))           # cells roughly square in the core
-    spec = PipeSpec(nang=nh).core("fluid", RectShape(a, b, nw, nh), nrad=BASE["nrad"])
+    if layout == "h":
+        nw, nh = control_cells(ratio)
+        spec = PipeSpec(nang_w=nw, nang_h=nh).core("fluid", RectShape(a, b, nw, nh), layout="h")
+    else:
+        nh = BASE["nang_h"]
+        nw = int(round(nh * ratio))           # cells roughly square in the core
+        spec = PipeSpec(nang=nh).core("fluid", RectShape(a, b, nw, nh), nrad=BASE["nrad"])
     asm = Assembly(spec, position=[0, 0, 0], direction=[1, 0, 0], up=[0, 0, 1])
     lengths = (X_A, X_M - X_A, X_B - X_M, LENGTH - X_B)
     for i, (L, n) in enumerate(zip(lengths, BASE["n_layers"])):
@@ -317,7 +323,7 @@ def results(case: Path, ratio: float) -> dict:
 # The same duct, inlet, planes and post-processing on a uniform blockMesh
 # grid: no O-H corners, so a second-order reference for the setup.
 
-MESHES = ("oh", "cartesian")
+MESHES = ("oh", "cartesian", "h")
 
 
 def control_cells(ratio: int) -> tuple[int, int]:
@@ -377,11 +383,13 @@ def _solve(case: Path, ratio: float, out: dict, n_proc: int = 1) -> dict:
     return out
 
 
-def run_level(ratio: float, k: int, work: Path, end_time: int, n_proc: int = 1) -> dict:
-    name = f"ar{ratio}_k{k}"
+def run_level(ratio: float, k: int, work: Path, end_time: int, n_proc: int = 1,
+              mesh: str = "oh") -> dict:
+    """A hexmesh level: the O-H section, or the H one (*mesh* ``"h"``)."""
+    name = level_name(mesh, ratio, k)
     case = _new_case(work, name)
     with Session(f"rect-duct-{name}"):
-        asm = assembly(ratio, k)
+        asm = assembly(ratio, k, layout=mesh)
         cells = asm.cell_count()
         print(f"[{name}] predicted cells: {cells}", flush=True)
         msh = case / "duct.msh"
@@ -389,7 +397,7 @@ def run_level(ratio: float, k: int, work: Path, end_time: int, n_proc: int = 1) 
         sj = asm.check_quality("scaled_jacobian").worst
     write_case(case, end_time, ratio)
     retyped = of.convert(case, msh)
-    return _solve(case, ratio, {"mesh": "oh", "ratio": ratio, "k": k, "cells": cells,
+    return _solve(case, ratio, {"mesh": mesh, "ratio": ratio, "k": k, "cells": cells,
                                 "min_scaled_jacobian": sj, "retyped": retyped}, n_proc)
 
 
@@ -436,23 +444,24 @@ def extrapolate(rows: list[dict]) -> dict:
 
 
 def versus_control(rows: list[dict]) -> list[dict]:
-    """The O-H error over the control's, per ratio and level (about the
-    same cells per section, the same axial cells)."""
+    """Each hexmesh section's error (O-H, H) over the control's, per ratio
+    and level (about the same cells per section, the same axial cells)."""
     by = {(r.get("mesh", "oh"), r["ratio"], r["k"]): r for r in rows}
     out = []
-    for (mesh, ratio, k), oh in sorted(by.items()):
+    for (mesh, ratio, k), hm in sorted(by.items()):
         cart = by.get(("cartesian", ratio, k))
-        if mesh != "oh" or cart is None:
+        if mesh == "cartesian" or cart is None:
             continue
-        out.append({"ratio": ratio, "k": k, "cells_oh": oh["cells"], "cells_cartesian": cart["cells"],
-                    **{f"{q}_ratio": abs(oh[f"{q}_err_signed"]) / abs(cart[f"{q}_err_signed"])
+        out.append({"mesh": mesh, "ratio": ratio, "k": k, f"cells_{mesh}": hm["cells"],
+                    "cells_cartesian": cart["cells"],
+                    **{f"{q}_ratio": abs(hm[f"{q}_err_signed"]) / abs(cart[f"{q}_err_signed"])
                        for q in ("fRe", "u_c")}})
     return out
 
 
 def level_name(mesh: str, ratio: int, k: int) -> str:
     """The level's name in results.json: its case directory's."""
-    return f"{'cart_' if mesh == 'cartesian' else ''}ar{ratio}_k{k}"
+    return f"{ {'cartesian': 'cart_', 'h': 'h_'}.get(mesh, '')}ar{ratio}_k{k}"
 
 
 def main(argv=None) -> dict:
@@ -460,7 +469,8 @@ def main(argv=None) -> dict:
     ap.add_argument("--ratios", nargs="+", type=int, default=list(RATIOS))
     ap.add_argument("--levels", nargs="+", type=int, default=list(LEVELS))
     ap.add_argument("--meshes", nargs="+", choices=MESHES, default=list(MESHES),
-                    help="hexmesh's O-H section, the Cartesian control, or both")
+                    help="hexmesh's O-H section, the Cartesian control, hexmesh's H "
+                         "section (task 0084); default all")
     ap.add_argument("--work", type=Path, default=HERE / "work")
     ap.add_argument("--end-time", type=int, default=20000)
     ap.add_argument("--np", type=int, default=1, dest="n_proc",
@@ -486,10 +496,11 @@ def main(argv=None) -> dict:
         for ratio in args.ratios:
             for k in args.levels:
                 name = level_name(mesh, ratio, k)
-                run = run_level if mesh == "oh" else run_control
                 r = stored.run_level(
-                    store, name, lambda run=run, ratio=ratio, k=k: run(
-                        ratio, k, args.work, args.end_time, args.n_proc),
+                    store, name, lambda mesh=mesh, ratio=ratio, k=k: (
+                        run_control(ratio, k, args.work, args.end_time, args.n_proc)
+                        if mesh == "cartesian" else
+                        run_level(ratio, k, args.work, args.end_time, args.n_proc, mesh)),
                     args.work / name, args.keep_work)
                 print(json.dumps(r, default=float), flush=True)
                 rows.append(r)
@@ -504,33 +515,42 @@ def main(argv=None) -> dict:
 ORDER_TOL = 0.2
 
 
+def _gates(data: dict, rich: dict, mesh: str, label: str, ratio: int) -> list[dict]:
+    """The V1 gates on one mesh series at one aspect ratio."""
+    c = rich[mesh][ratio]
+    fine = stored.series(data, name=level_name(mesh, ratio, LEVELS[-1]))[0]
+    out = []
+    for key, what in (("fRe", "f·Re"), ("u_c_net", "u_c, net of the fit's bias")):
+        r = c[key]
+        ok, why = (conv.gate_extrapolated(r, 0.0, 1e-3, relative=False) if key == "u_c_net"
+                   else conv.gate_extrapolated(r, exact(ratio)["fRe"], 1e-3))
+        out.append(stored.row(f"{what}, extrapolated ({label}, a/b {ratio})", rich=r,
+                              gate="within 0.1 % of exact", ok=ok,
+                              value="" if r["ext_err_signed"] is None
+                              else f"{r['ext_err_signed']:+.3%}", note=why))
+    for key in ("fRe", "u_c"):
+        err = fine[f"{key}_err_signed"]
+        out.append(stored.row(f"{key}, finest |error| ({label}, a/b {ratio})", gate="< 1 %",
+                              ok=abs(err) < 0.01, value=f"{err:+.3%}"))
+        r = c[key]
+        ok = r["status"] == "converging" and abs(r["order"] - 2) <= ORDER_TOL
+        out.append(stored.row(f"{key}, observed order ({label}, a/b {ratio})", rich=r,
+                              gate=f"near 2 (± {ORDER_TOL})", ok=ok, value=conv.describe(r)))
+    return out
+
+
 def recheck(data: dict) -> list[dict]:
     """Every Richardson row and gate from ``results.json`` (task 0093;
-    decision 0015 amendments 2 and 3), per aspect ratio: the Cartesian
-    control's extrapolated f·Re and u_c (net of the centre fit's bias)
-    within 0.1 % of exact, its finest |error| < 1 % and its observed order
-    near 2; the O-H rows reported."""
+    decision 0015 amendments 2 and 3), per aspect ratio.  The Cartesian
+    control and hexmesh's H section (the accepted hexmesh result, task
+    0084), each: extrapolated f·Re and u_c (net of the centre fit's bias)
+    within 0.1 % of exact, finest |error| < 1 %, observed order near 2.
+    The O-H rows reported."""
     rich = extrapolate(data["levels"])
     out = []
     for ratio in RATIOS:
-        c = rich["cartesian"][ratio]
-        fine = stored.series(data, name=level_name("cartesian", ratio, LEVELS[-1]))[0]
-        for key, what in (("fRe", "f·Re"), ("u_c_net", "u_c, net of the fit's bias")):
-            r = c[key]
-            ok, why = (conv.gate_extrapolated(r, 0.0, 1e-3, relative=False) if key == "u_c_net"
-                       else conv.gate_extrapolated(r, exact(ratio)["fRe"], 1e-3))
-            out.append(stored.row(f"{what}, extrapolated (control, a/b {ratio})", rich=r,
-                                  gate="within 0.1 % of exact", ok=ok,
-                                  value="" if r["ext_err_signed"] is None
-                                  else f"{r['ext_err_signed']:+.3%}", note=why))
-        for key in ("fRe", "u_c"):
-            err = fine[f"{key}_err_signed"]
-            out.append(stored.row(f"{key}, finest |error| (control, a/b {ratio})", gate="< 1 %",
-                                  ok=abs(err) < 0.01, value=f"{err:+.3%}"))
-            r = c[key]
-            ok = r["status"] == "converging" and abs(r["order"] - 2) <= ORDER_TOL
-            out.append(stored.row(f"{key}, observed order (control, a/b {ratio})", rich=r,
-                                  gate=f"near 2 (± {ORDER_TOL})", ok=ok, value=conv.describe(r)))
+        for mesh, label in (("cartesian", "control"), ("h", "H")):
+            out += _gates(data, rich, mesh, label, ratio)
         for key in ("fRe", "u_c", "u_c_net"):
             out.append(stored.row(f"{key} (O-H, a/b {ratio})", rich=rich["oh"][ratio][key],
                                   note="reported against the control (amendment 2)"))

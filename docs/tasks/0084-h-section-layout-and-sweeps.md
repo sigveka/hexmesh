@@ -1,6 +1,6 @@
 # 0084 — The H section: the layout, `layout=` on the spec, and every sweep
 
-- **Status:** in progress (steps 1–7 done; step 8 waits for 0090)
+- **Status:** done
 - **Decision:** [0036 — Cartesian (H) rectangular section](../decisions/0036-cartesian-rectangular-section.md) (items 2–4, rollout step 1); [0037](../decisions/0037-capability-boundaries.md) (the shared section interface); DESIGN A4, §6.1 "Sections"
 - **Depends on:** 0082 (the O-H layout in `sections`), 0083 (the shape
   protocol); 0089 (Richardson) before step 8; 0090 (parallel runs)
@@ -217,6 +217,15 @@ the default flip (0087).
     orientation helpers down a layer as well.  A third layout would
     add a third branch to each: a candidate for decision 0035's
     multi-core work, not this task.
+  - **Step 8: a uniform H series, the control's counts** (coding
+    session, 2026-11-03).  "About the same cells per section as the
+    control" with no wall grading makes the H patch the control's own
+    grid, so the gates test the hexmesh route (gmsh, `gmshToFoam`,
+    boundary roles), not the graded H core.  A graded series needs a
+    first cell chosen: Question 2.  The driver gains `--meshes h`
+    (cases `h_ar<r>_k<k>`); `recheck` gates `h` like the control
+    (`_gates`, shared); `versus_control` covers H and O-H, its rows
+    gain `mesh` and `cells_<mesh>`.
 
 ## Questions for design
 
@@ -273,6 +282,16 @@ the default flip (0087).
    A description from e0e88dc that saved an H ratio as `mprg` still
    loads, resolving it the same way.  The nesting test covers
    `first_cell` and `mprg` (k = 2, 4, both sides, analytic nodes, 1e-12).
+
+2. **A wall-graded H series in the rect duct (not blocking).**  Step 8
+   ran H uniform, which is the control's grid (Agent notes).  A graded
+   series (`first_cell=` at k = 1, nested Bump at k = 2, 4) would test
+   `wall_bump` in OpenFOAM too, but would be gated against what?  The
+   exact solution needs no clustering at Re 100, so grading moves cells
+   away from the centre and the error may rise.  Options: (a) a
+   reported (not gated) H-graded series next to the uniform one, first
+   cell e.g. D_h/100; (b) leave it to a case that needs a wall layer
+   (heated or turbulent ducts); (c) nothing.  I'd take (b).
 
 ## Outcome
 
@@ -332,4 +351,32 @@ orders.  Commits 244a55b (steps 1, 3–7), 1668408 (step 2), e0e88dc
     names that exist (or run each driver's `--help` in CI).
   - API.md's rectangular-duct section still says `Tee` rejects ducts,
     which has been stale since the duct taps (task 0057).
+
+**Step 8 (coding session, 2026-11-03).**  The rect duct's H series on
+OpenFOAM v2406, 2 processes (task 0090).
+
+- **Files.**  `validation/rect_duct/{run.py, case.json, RESULTS.md,
+  README.md, results.json}`; `tests/test_validation.py`
+  (`test_rect_duct_h_coarse`).
+- **Result.**  H uniform with the control's counts is the control's
+  grid, cell for cell (2000 … 414 720; 0° non-orthogonality, min SJ
+  1.000).  f·Re agrees with the control's to 1.1e-9 relative over the
+  nine levels, u_c to 8e-11.  **The V1 gates pass at a/b = 1, 2, 4:**
+  extrapolated f·Re +0.011 / +0.008 / +0.006 %, u_c net of the fit
+  +0.012 / +0.005 / +0.003 %; finest |error| ≤ 0.26 %; observed order
+  1.93–1.95 (f·Re), 1.90–1.91 (u_c).  All nine levels converged.
+- **Tests.**  `-m openfoam -k rect_duct`: 3 passed (O-H, control, H).
+  `test_validation_meta`, the driver-import test and
+  `tests/test_validation.py`'s default set: 41 passed.  `recheck`:
+  every gate passes, 36 (18 control, 18 H), O-H 9 reported.
+- **Cost.**  ~20 min on 2 processes for the nine levels; solver time at
+  k = 4: 69 / 226 / 609 s against the control's 115 / 362 / 1099 s
+  serial.
+- **Surprise.**  None in the numbers.  As found: step 8's wording makes
+  the H series identical to the control, so it says nothing about the
+  graded H core (Question 2).
+- **Disk.**  The work directory (`/tmp/hexmesh-0084-h-*`) deleted;
+  results.json grew to 34 kB.
+- **Proposed follow-ups.**  Question 2.  The other two follow-ups above
+  were done in task 0090 (the driver-import test, the API.md line).
 

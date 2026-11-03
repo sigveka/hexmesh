@@ -6,18 +6,22 @@ solution at three refinement levels, for aspect ratios 1, 2 and 4
 (decision 0012, category V1; task 0071).  The same case on a uniform
 Cartesian `blockMesh` grid is the control: the V1 gates apply to it, and
 the O-H levels are reported against it (decision 0015 amendment 2).
+hexmesh's H section (`layout="h"`, task 0084) with the control's counts
+per section is gated like the control: it is the accepted hexmesh
+result.
 
 ```bash
 python3 validation/rect_duct/run.py --check-series          # the exact solution's checks (1 s)
-python3 validation/rect_duct/run.py --json out.json         # 3 ratios × 3 levels × 2 meshes
+python3 validation/rect_duct/run.py --json out.json         # 3 ratios × 3 levels × 3 meshes
 python3 validation/rect_duct/run.py --ratios 1 --levels 1   # one case per mesh (~10 s)
 python3 validation/rect_duct/run.py --meshes cartesian      # the control only
+python3 validation/rect_duct/run.py --meshes h --np 2       # the H series, on 2 processes
 python3 -m pytest -m openfoam tests/test_validation.py -k rect_duct
 ```
 
 OpenFOAM v2406 in Docker by default (`--openfoam native` for a local
-install).  Cases go to `validation/rect_duct/work/ar<a/b>_k<k>/`
-and `cart_ar<a/b>_k<k>/` (git-ignored), or to `--work DIR`.  Levels already in `--json` are
+install).  Cases go to `validation/rect_duct/work/ar<a/b>_k<k>/`,
+`cart_ar<a/b>_k<k>/` and `h_ar<a/b>_k<k>/` (git-ignored), or to `--work DIR`.  Levels already in `--json` are
 reused.
 
 ## Exact solution
@@ -103,8 +107,8 @@ In Python, from the ASCII case files (`hexmesh.study.openfoam`'s readers).
   plane, as a fraction of the exact u_c.
 - **Convergence:** three-level Richardson / GCI [celik_and_ghia_etal_2008]
   on f·Re and u_c, ratio 2, per mesh.
-- **Against the control:** |O-H error| / |control error| per ratio and
-  level (`versus_control`).
+- **Against the control:** |O-H error| / |control error|, and H's, per
+  ratio and level (`versus_control`).
 
 ## Results
 

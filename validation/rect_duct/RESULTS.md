@@ -1,9 +1,14 @@
 # Results: laminar flow in rectangular ducts
 
 **Status: accepted** on the Cartesian control (task 0071; gates of
-decision 0015 amendment 2).  The hexmesh O-H levels are reported, not
-gated: their f·Re error falls at order well below 2, and on the square it
-is still +1.16 % at 138k cells.
+decision 0015 amendment 2) and on hexmesh's **H section**, the accepted
+hexmesh result (task 0084): it passes the same gates at every aspect
+ratio.  The hexmesh O-H levels are reported, not gated: their f·Re error
+falls at order well below 2, and on the square it is still +1.16 % at
+138k cells.
+
+H levels: run 2026-11-03 at hexmesh 19f8e63 plus this driver's H series,
+same OpenFOAM and gmsh, on 2 MPI processes (task 0090's `run_solver`).
 
 Run 2026-11-02: OpenFOAM v2406 (Docker `opencfd/openfoam-default:2406`),
 gmsh 4.12.1.  O-H levels at hexmesh 1063b15, control at 6309d2c; the two
@@ -15,7 +20,9 @@ is meshed exactly (area − 4ab ≤ 2.4e-16 relative), so the exact solution
 is also the meshed geometry's: there's no geometric deficit to separate,
 unlike the pipe.
 
-## Gates (Cartesian control)
+## Gates (Cartesian control and H section)
+
+The control:
 
 | Gate | a/b = 1 | a/b = 2 | a/b = 4 | |
 |---|---|---|---|---|
@@ -28,6 +35,18 @@ unlike the pipe.
 
 Monotone in every quantity at every ratio, so the setup (exact inlet,
 planes, post-processing, Richardson) is sound.
+
+The H section (uniform, the control's counts per section; see "The H
+levels" below):
+
+| Gate | a/b = 1 | a/b = 2 | a/b = 4 | |
+|---|---|---|---|---|
+| extrapolated f·Re within 0.1 % | +0.011 % | +0.008 % | +0.006 % | **pass** |
+| extrapolated u_c, net of the fit's bias, within 0.1 % | +0.012 % | +0.005 % | +0.003 % | **pass** |
+| finest f·Re error < 1 % | −0.258 % | −0.202 % | −0.171 % | **pass** |
+| finest u_c error < 1 % | −0.110 % | −0.040 % | −0.022 % | **pass** |
+| observed order near 2: f·Re | 1.93 | 1.94 | 1.95 | **pass** |
+| observed order near 2: u_c | 1.91 | 1.90 | 1.91 | **pass** |
 
 **The centre fit** (reported, not gated; decision 0015 amendment 3).
 u_c comes from a fit to the plane's face values (README).  The same fit
@@ -64,22 +83,31 @@ amendment 3); its extrapolated value and GCI are in units of u_c.
 |---|---|---|---|---|---|---|
 | 1 | f·Re | Cartesian | converging | 1.93 | +0.011 % | 0.338 % |
 | 1 | f·Re | O-H | diverging | — | — | — |
+| 1 | f·Re | H | converging | 1.93 | +0.011 % | 0.338 % |
 | 1 | u_c | Cartesian | converging | 1.91 | +0.080 % | 0.238 % |
 | 1 | u_c | O-H | oscillatory | — | — | — |
+| 1 | u_c | H | converging | 1.91 | +0.080 % | 0.238 % |
 | 1 | u_c net of the fit | Cartesian | converging | 1.91 | +0.012 % | 0.234 % |
 | 1 | u_c net of the fit | O-H | oscillatory | — | — | — |
+| 1 | u_c net of the fit | H | converging | 1.91 | +0.012 % | 0.234 % |
 | 2 | f·Re | Cartesian | converging | 1.94 | +0.008 % | 0.262 % |
 | 2 | f·Re | O-H | oscillatory | — | — | — |
+| 2 | f·Re | H | converging | 1.94 | +0.008 % | 0.262 % |
 | 2 | u_c | Cartesian | converging | 1.90 | +0.096 % | 0.169 % |
 | 2 | u_c | O-H | oscillatory | — | — | — |
+| 2 | u_c | H | converging | 1.90 | +0.096 % | 0.169 % |
 | 2 | u_c net of the fit | Cartesian | converging | 1.94 | +0.005 % | 0.162 % |
 | 2 | u_c net of the fit | O-H | oscillatory | — | — | — |
+| 2 | u_c net of the fit | H | converging | 1.94 | +0.005 % | 0.162 % |
 | 4 | f·Re | Cartesian | converging | 1.95 | +0.006 % | 0.222 % |
 | 4 | f·Re | O-H | converging | 3.44 | +0.153 % | 0.009 % |
+| 4 | f·Re | H | converging | 1.95 | +0.006 % | 0.222 % |
 | 4 | u_c | Cartesian | converging | 1.91 | +0.083 % | 0.131 % |
 | 4 | u_c | O-H | oscillatory | — | — | — |
+| 4 | u_c | H | converging | 1.91 | +0.083 % | 0.131 % |
 | 4 | u_c net of the fit | Cartesian | converging | 1.96 | +0.003 % | 0.120 % |
 | 4 | u_c net of the fit | O-H | oscillatory | — | — | — |
+| 4 | u_c net of the fit | H | converging | 1.96 | +0.003 % | 0.120 % |
 
 ### Velocity field on the 5 D_h plane (fraction of exact u_c)
 
@@ -117,10 +145,43 @@ amendment 3); its extrapolated value and GCI are in units of u_c.
 | Cartesian | 4 | 1 | 6480 | True | 0.0 | 0.000 | 1 (uniform) | 125 | 1.2e-10 | +0.0e+00 | 3 |
 | Cartesian | 4 | 2 | 51840 | True | 0.0 | 0.000 | 1 (uniform) | 324 | 2.0e-12 | +0.0e+00 | 45 |
 | Cartesian | 4 | 4 | 414720 | True | 0.0 | 0.000 | 1 (uniform) | 1084 | 1.2e-11 | +0.0e+00 | 1099 |
+| H | 1 | 1 | 2000 | True | 0.0 | 0.000 | 1.000 | 102 | 1.1e-11 | -1.4e-16 | 0 (2 proc.) |
+| H | 1 | 2 | 16000 | True | 0.0 | 0.000 | 1.000 | 202 | 6.9e-12 | +1.4e-16 | 3 (2 proc.) |
+| H | 1 | 4 | 128000 | True | 0.0 | 0.000 | 1.000 | 458 | 2.0e-12 | +0.0e+00 | 69 (2 proc.) |
+| H | 2 | 1 | 3240 | True | 0.0 | 0.000 | 1.000 | 129 | 5.1e-12 | +0.0e+00 | 1 (2 proc.) |
+| H | 2 | 2 | 25920 | True | 0.0 | 0.000 | 1.000 | 250 | 3.4e-13 | +0.0e+00 | 7 (2 proc.) |
+| H | 2 | 4 | 207360 | True | 0.0 | 0.000 | 1.000 | 802 | 5.6e-13 | +0.0e+00 | 226 (2 proc.) |
+| H | 4 | 1 | 6480 | True | 0.0 | 0.000 | 1.000 | 125 | 7.2e-12 | +0.0e+00 | 1 (2 proc.) |
+| H | 4 | 2 | 51840 | True | 0.0 | 0.000 | 1.000 | 317 | 2.6e-12 | -1.7e-16 | 22 (2 proc.) |
+| H | 4 | 4 | 414720 | True | 0.0 | 0.000 | 1.000 | 1114 | 5.3e-13 | +0.0e+00 | 609 (2 proc.) |
 
 "O-H ÷ Cartesian" is |O-H error| / |control error| at the same level.
 The control has the same axial cells and about the same section cells:
 100 / 162 / 324 per section at k = 1, against the O-H's 108 / 180 / 324.
+
+## The H levels (gated)
+
+- **The H section here is the control's grid.**  Step 8 asks for about
+  the control's cells per section.  With no wall grading
+  (`PipeSpec(nang_w=ny, nang_h=nz).core(..., layout="h")`, the
+  control's `(ny, nz)`) the H patch is exactly the control's uniform
+  Cartesian section: the same cells at every level (2000 … 414 720),
+  0° non-orthogonality, min scaled Jacobian 1.000.
+- **The same answer as the control.**  f·Re differs from the control's
+  by at most 1.1e-9 relative over the nine levels, u_c by 8e-11.  The
+  field errors and the centre fit's faces and bias are identical.  So
+  the hexmesh route (gmsh export, `gmshToFoam`, boundary roles) adds
+  nothing to the error, and H passes the gates with the control's
+  numbers.
+- **What it doesn't test.**  A wall-graded H core (`first_cell=` or
+  `wall_bump=`, with task 0084's nested Bump series) isn't in this case.
+  The exact solution needs no wall clustering at Re 100, and the choice
+  of a first cell is left to the design session (task 0084, *Questions
+  for design* 2).
+- **Cost.**  Solver time at k = 4 on 2 processes: 69 / 226 / 609 s for
+  a/b = 1 / 2 / 4, against the control's 115 / 362 / 1099 s serial.
+  Iteration counts differ by up to 12 % (round-off in the parallel
+  sums); the results don't.
 
 ## The O-H levels (reported)
 
@@ -175,6 +236,7 @@ The control has the same axial cells and about the same section cells:
 ## Reproduce
 
 ```bash
-python3 validation/rect_duct/run.py --json out.json      # both meshes, ~75 min serial
+python3 validation/rect_duct/run.py --json out.json      # every mesh, ~100 min serial
+python3 validation/rect_duct/run.py --meshes h --np 2     # the H series, ~20 min
 python3 -m pytest -m openfoam tests/test_validation.py -k rect_duct
 ```
