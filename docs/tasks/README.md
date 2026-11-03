@@ -116,79 +116,38 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0079](0079-validation-taylor-bubble.md) | Validation: a Taylor bubble rising in stagnant liquid (VOF) | V3 | ready (v2406 runner) | 0012, 0015 |
 
 
-**Capability boundaries (2026-11-02, decision 0037):** 0081 → 0082 → 0083,
-as a track of its own.  0081 can go any time and should come before
-0060 and 0066, which carry design notes for it (the duct-tap front end
-leaves `Tee`; the readers move to `interchange.importers`).  0082 comes
-before decision 0036's tasks or any 0035 stage.  These are refactors:
-identical meshes, task 0065's method.
+### Order
 
-**H duct section (2026-11-02, decision 0036):** 0084 → 0085 → 0086 → 0087,
-after 0082 and 0083.  The default flips only in 0087 (version 0.4.0, a
-breaking change for `nrad` on rectangular cores).  0072 (square bend)
-waits for 0084 so it runs on the H section.
+**Current order (2026-11-03, design).**  It replaces the order notes of
+2026-10-25 to 2026-11-02; the tasks those named are done.  Work the
+first `ready` item whose prerequisites are done.  The tracks marked
+*alongside* may be picked up whenever the main track waits on the user
+or a long run.
 
-**`n_outer` sub-partition (2026-11-02, decision 0005):** 0088 after 0082,
-not at the same time as 0084 (both edit `sections/oh.py`).  Low
-priority: no fitting needs `n_outer = 8` yet.  Do it before the next
-junction template that wants corners at 0°/90°.
+1. **Capability boundaries, then the H section** (decisions 0037, 0036):
+   - **0083** (in progress; 0082 done).  A refactor: identical meshes,
+     task 0065's method.  It comes before any 0036 task or 0035 stage.
+   - **0090** before 0084's OpenFOAM levels and 0072.
+   - **0084 → 0085 → 0086 → 0087**, strictly in sequence.  The default
+     flips only in 0087 (version 0.4.0, a breaking change for `nrad` on
+     rectangular cores).
+   - **0072** (square-duct bend) after 0084, so it runs on the H section.
+2. **Alongside, no blockers:**
+   - general branches (decision 0031): **0060 → 0061 / 0062 → 0063**.
+     0060 carries a design note from 0081: the duct-tap front end leaves
+     `Tee`;
+   - network interchange: **0066**.  Its design note: the readers move
+     to `interchange.importers`;
+   - validation: **0049 → 0044 → 0050**; **0074 → 0075**; **0079**;
+   - second order: **0076**, with **0077**'s toolchain step in
+     parallel, then 0077's checks;
+   - **0078** (README generated sections), small, any time.
+3. **Low priority:** **0088** (`n_outer = 8`) after 0082, not alongside
+   0084 (both edit `sections/oh.py`).  No fitting needs it yet.  Do it
+   before the next junction template that wants corners at 0°/90°.
 
-**After task 0071 (2026-11-02):** 0089 soon: it may change an accepted
-case's gate, and 0084 gates its H series with it.  0090 before 0084's
-OpenFOAM levels and 0072.
-
-**Current order (2026-10-28, design, revised):** finish the task in
-progress (0034), then **multi-layer junctions: 0051 → 0052 → 0056 → 0053 →
-0054**, then 0055 → 0032 → 0067 → 0068 → 0035 → 0049 → 0044 → 0050.
-Validation bookkeeping 0073 any time (small); duct validation 0071 →
-0072 after 0035 (v2406 runner).  Feature coverage: 0074 (MMS, every
-fitting) and 0075 (helical pipe) after 0035's runner, 0074 first.
-Second order: 0076, with 0077's toolchain step in parallel, then
-0077's checks.  Duct tees
-(0069 prototype, done → 0070 merge → 0057 full-width → 0059) fit in whenever
-the junction work pauses; they don't depend on it.  General branches (decision 0031) follow the junction-shell
-work: 0060 → 0061 / 0062 → 0063 (0063 also after the duct tees).
-Network interchange (decision 0032, stage 1): 0064 → 0065 → 0066.  It
-doesn't depend on the junction work, so it can run whenever the
-agent switches tracks; it comes before the IFC importer (stage 3).
-- 0042 and 0043 are done; validation cases build on
-  `hexmesh.study.openfoam`.
-- Junctions come first at the user's request (decision 0028): insulation
-  and pipe walls through tees and wyes, before the agent SDK (decision
-  0019) is promoted.  0051 (exact junction walls) is a prerequisite:
-  shells can't sit on wall faces that are 2–5 % of R off.
-- After 0054, design opens the wye-layout redesign (creases on block
-  edges; decision 0029 item 5, triggered by task 0056).
-- 0055 (cosine bulges) is small; do it before 0032 so the stenosis
-  example covers the full range when the validation lands.
-- Then the stenosis (0032): the draft exists (paused during 0043), the
-  paper is in `docs/papers/` and the task's design note settles L, the
-  domain and the gates; it is laminar, validates the profiled reducer,
-  and anchors the `stenosis` example and a surrogate demo.
-- Then the heat-transfer chain (0035), the turbulent pipe (0049), the
-  demonstration study (0044), and the turbulent bend (0050).
-
-Decision 0004 (retire legacy) comes first: 0011 → 0012 / 0013 / 0014 →
-0015 → 0016 → 0017.  0017 waits for all the others.  Then the rest of
-decision 0001.
-
-Suggested order for decision 0001: 0000 → 0003 → 0001 → 0002 → 0004 → 0007 → 0006 → 0005 →
-0008 → 0009, then 0010 (after 0006, which it builds on).  0001, 0004 and
-0006 have the highest value.  0000 is a bug fix that 0001 and 0002 build on.
-
-0018 (decision 0006) can start now that 0013 is done; it touches the
-same sweep spec handling.  Prefer **0019 before 0018**: 0019 adds the
-port-pair classifier, and 0018 then declares class 1 for layer
-termination instead of adding its own check.
-
-**0025 first**: it changes node positions in every mesh with a
-multi-layer `Straight`, and 0020's re-run depends on it.  0026 is
-independent; do it before 0020's re-run if convenient.
-
-The multi-layer tee (needed for CHT networks with junctions) is not
-low-hanging fruit and has no task yet.  It needs a design decision first;
-it fits best after 0004, when first-cell grading and per-fitting quality
-can measure its wall layers.
+Runs that write more than ~1 GB follow CLAUDE.md's disk rule.  Long
+OpenFOAM runs follow its shared-machine rule (`pgrep -af pytest` first).
 
 ## Ground rules
 
@@ -250,6 +209,9 @@ These apply to every task.
     data files.
   - Copy it byte for byte from `docs/ascii-logo.txt`, so a future check
     can match it exactly.
+- **Disk space** (since 2026-11-02, the user): follow CLAUDE.md's
+  rule.  A task's *Outcome* states the disk space its runs used, and
+  that their outputs were removed.
 - Keep each task a separate, reviewable change.  Match the surrounding code
   style: dataclasses, numpy, short docstrings that cite DESIGN rules.
 

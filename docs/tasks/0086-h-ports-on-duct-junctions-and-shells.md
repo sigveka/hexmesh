@@ -40,7 +40,17 @@ switch in their legs, so users never place switches around them
      0047 (`limits.py`).
 3. **`Transition` with shells and an H end**: lift 0085's rejection,
    once step 2 works.
-4. **Examples:** build the HVAC examples (`hvac_supply`,
+4. **Junction blocks ask `sections.oh` for their inner square**
+   (design answer to task 0082's Question 2, 2026-11-03).  The tee
+   (`tee.py:340–341`), wye (`wye.py:374`) and duct tap
+   (`duct_tap.py:229`) still compute `OH_RATIO · R` and the ring inset
+   themselves.  Take the inner-square corners and the ring thickness
+   from the layout instead, so the face and the junction blocks share
+   one description (decision 0037).  Do this before step 1 adds H legs,
+   so that work starts from the shared form.  Accept: no `OH_RATIO` in
+   `assembly/`, and every existing junction mesh is unchanged (node
+   coordinates to 1e-12, the 0065 method).
+5. **Examples:** build the HVAC examples (`hvac_supply`,
    `hvac_branched`) and `lagged_duct` with `layout="h"` explicitly, in
    a test (not in the examples yet; 0087 changes them).  Record cell
    counts and min SJ against the O-H versions.

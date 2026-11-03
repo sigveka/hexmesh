@@ -1951,6 +1951,48 @@ growing.  Decision 0037 (accepted 2026-11-02) sets the boundaries.
 - **No behaviour change:** 28 examples and 93 interchange calls were
   identical.  Suite 2189 passed (+24).
 
+### 12.5 After task 0082 (2026-11-03)
+
+`hexmesh.sections` now describes the O-H layout once (task 0082,
+`26ccf2c`): `sections/oh.py` has the pure layout and
+`sections/oh_gmsh.py` the builders.  `hexmesh.faces` is removed.
+- **Shape sites: 69 → 59** (the architecture-test cap).
+- **Size:** the face code went from 1045 to 807 lines.  The modules
+  involved went from 3259 to 2942 lines in total.
+- **An agreement test** (`tests/test_sections.py`, 27 tests, 13 specs)
+  checks every declared corner, edge division and patch against the
+  gmsh face.
+- **A latent disagreement it found:** the old block declaration did not
+  match the face for mixed stacks.
+  - It put outline shells around a circle at `r + dR` along the core's
+    angle.
+  - It took every level's direction from the inner corners, where the
+    face chains from the previous ring.
+  - On a 2:1 duct in a circular casing, the casing corners were 0.0168
+    apart.
+  - No fitting built junction blocks on such a spec, so no mesh
+    changed.  The agreement test covers it now.
+- **Where a new layout must touch:** `sections/`, four adapter lines
+  (`blocks.face_vertices`, `face_patches`, `corner_shift`,
+  `corners.side_counts`), `signature.py`'s kinds, and the junction
+  fittings.  Before 0082 it touched nine modules.
+- **Drift:** two builds moved more than 1e-12.
+  - The oblique 3-layer tee in the kit moved 1.29e-10, and
+    `skewed_network` moved 1.23e-11.
+  - Cause: a circle vertex computed as `p + u·right + v·up` instead of
+    `p + r·(cos a·right + sin a·up)`.  The two differ by at most 9e-16.
+  - Design answer: restore the old expression, which gives 0.0 drift.
+    Refactor acceptance stays bit-exact.
+- **Open observation:** the oblique tee amplifies vertex round-off by
+  about 10⁵.  The source is not traced.  It matters if meshes must be
+  reproducible bit for bit across platforms (decision 0039).
+- **Design answers (2026-11-03):**
+  - The O-H formulas that 0082 left in `core/shape.py` move to
+    `sections` once the shape protocol (0083) lets `core` ask without
+    importing it.
+  - The junctions take their inner square from `sections.oh` (0086,
+    step 4).
+
 ## Source availability
 
 Downloaded to `papers/`: `bennett_2025`, `decroocq_and_frindel_etal_2023`

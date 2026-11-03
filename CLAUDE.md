@@ -44,6 +44,12 @@ at the same time on this machine.
   Don't start timing measurements while one is active.
 - Write scratch output to your own session's scratchpad or a
   `tmp_path`, never to shared fixed paths.
+- **Disk space is limited** (the user, 2026-11-02).  Delete large
+  outputs (OpenFOAM cases, meshes, renders) when the task or check that
+  made them is done.  Keep the numbers, not the runs: results go to
+  committed JSON or the task file.  Delete only your own outputs, by
+  exact path.  Before a run likely to write more than ~1 GB, check
+  free space (`df -h .`) and say so in the task.
 
 **Design session:** start by reading tasks that are `blocked` or newly
 `done`.  Move measurements into `RESEARCH.md` and answer questions.
