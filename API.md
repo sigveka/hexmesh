@@ -90,7 +90,7 @@ in degrees. The thresholds are data, in `hexmesh.assembly.limits`.
 | `to_dict()` / `Assembly.from_dict(d)` | The network description as plain JSON-serialisable data, and back |
 | `save(path)` / `Assembly.load(path)` | The same, as a JSON file (indented, sorted keys) |
 | `Assembly.from_msh(path)` | The assembly a `.msh` was written from, by its recipe block: `from_dict(read_recipe(path))`.  `ValueError` when the file has no recipe |
-| `refined(k)` | A new assembly at k× the resolution (integer k ≥ 1), built from `to_dict()`: `nang`, every `nrad`, every `n_layers`, a tee's `n_run` / `n_branch` / `n_turn` and a wye's `n_run` / `n_branch` × k (a wye's `n_split` × k up to `WYE_N_SPLIT_MAX` = 6, never below its own value: more turning layers fold the wye, task 0056), the axial cell index of each `stack_changes` entry × k, and `mprg` and `axial_grading` → their k-th root.  Geometry, topology and `mbmp` stay; `first_cell` specs keep their resolved `mprg`.  **k³× the cells.** |
+| `refined(k)` | A new assembly at k× the resolution (integer k ≥ 1), built from `to_dict()`: `nang`, every `nrad`, every `n_layers`, a tee's `n_run` / `n_branch` / `n_turn` and a wye's `n_run` / `n_branch` × k (a wye's `n_split` × k up to `WYE_N_SPLIT_MAX` = 6, never below its own value: more turning layers fold the wye, task 0056), the axial cell index of each `stack_changes` entry × k, and `mprg` and `axial_grading` → their k-th root.  Geometry, topology and `mbmp` stay; `first_cell` specs keep their resolved `mprg` (an H core: `wall_bump`), so the levels nest.  **k³× the cells.** |
 
 The file records how the network was built, not its geometry:
 - the pose and spec of the first interface;
@@ -209,11 +209,19 @@ inner side).
 `first_cell` replaces `mprg` with the largest radial height of a cell at
 the circle, the pipe wall. The core ring is thickest at mid-arc, 0.491 R
 from the inner arc to the circle
-(`hexmesh.core.shape.oh_core_wall_span`), and the progression is solved
+(`hexmesh.core.shape.core_wall_span`), and the progression is solved
 there. So no wall cell is larger than `first_cell`, and the cells at the
 corners (span 0.4 R) are about 0.81× it. It needs `n_outer = 4`. It raises
 `ValueError` if no progression fits (for example `first_cell` ≥ the span),
 and `TypeError` together with `mprg`.
+
+**`first_cell` under refinement** (O-H and H alike): `first_cell` is exact
+at the level where it is given.  It is resolved there, to `mprg` on an O-H
+layer and to `wall_bump` on an H core, and the spec stores the resolved
+grading.  `refined(k)` and `refine_spec_dict` keep it as stored, so the
+refined levels nest in the coarse one and their wall cell is the nested
+first cell, not `first_cell / k`.  Pass `first_cell=` again on a refined
+spec to pin the wall cell at that level instead.
 
 #### `.shell(name, dR=None, nrad, mprg=1.0, *, outer=None, first_cell=None)`
 
@@ -294,9 +302,32 @@ supported (`TypeError`).
   diameters, 4A / P_w = `4·half_w·half_h / (half_w + half_h)`.
 - **Cells.** `nang_w·nang_h + 2·(nang_w + nang_h)·nrad` per section.
 
+#### `.core(name, half_w=..., half_h=..., layout="h", first_cell=None, mprg=None, wall_bump=None)` — H duct
+
+The same rectangle as one Cartesian patch of `nang_w × nang_h` cells
+(decision 0036; task 0084).  The default stays `layout="oh"` until task
+0087.  An H core has no ring, so no `nrad` (`ValueError` naming both
+fixes).  Its sides are graded toward both walls by a two-sided `Bump`,
+given by one of:
+
+- `first_cell`: the end cell on every side, at all four walls, resolved
+  to one coefficient per side;
+- `wall_bump=(c_w, c_h)`: the coefficients themselves, for the `nang_w`
+  and `nang_h` sides (< 1 refines toward the walls; what `to_dict` stores);
+- `mprg`: the wall growth ratio, the second cell from a wall over the
+  first.  It refines as every `mprg` does, to its k-th root, which does
+  not nest exactly.
+
+Not yet on an H core: shells (task 0086), `Tee` / duct taps and `Wye`
+(0086), `Transition` and joining an O-H port (0085).  These raise
+`hexmesh.core.spec.LayoutNotSupported` (a `ValueError`) before GMSH,
+with attributes `where`, `layout` and `task`.  Cells: `nang_w·nang_h` per
+section.
+
 `spec.to_dict()` / `PipeSpec.from_dict(d)` serialise a spec.  `mprg` is
 stored as resolved, so a spec built with `first_cell=` reloads with the
-same grading.
+same grading.  The core's `layout` is written; a description without it
+loads as `"oh"`.
 
 `spec.with_radii(radii, mprgs=None)` gives the same circular stack
 with core radius `radii[0]` and shell thicknesses `radii[1:]` (and,

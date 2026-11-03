@@ -60,7 +60,10 @@ def test_nrad_on_h_names_both_fixes():
 @pytest.mark.parametrize("make, match", [
     (lambda: PipeSpec(nang=4).core("air", radius=0.1, layout="h"), "rectangular core"),
     (lambda: PipeSpec(nang=4).core("air", half_w=0.1, half_h=0.05, layout="x"), "layout must be"),
-    (lambda: _h(first_cell=0.002, mprg=1.2), "not both"),
+    (lambda: _h(first_cell=0.002, mprg=1.2), "one of"),
+    (lambda: _h(wall_bump=(0.5,)), "two positive"),
+    (lambda: PipeSpec(nang_w=4, nang_h=4).core("air", half_w=0.1, half_h=0.05, nrad=2,
+                                                wall_bump=(0.5, 0.5)), "H core"),
 ])
 def test_bad_layouts(make, match):
     with pytest.raises((ValueError, TypeError), match=match):
@@ -76,7 +79,10 @@ def test_shells_on_h_name_the_task():
 def test_wall_grading():
     assert _h().wall_grading is None
     assert _h(mprg=1.3).wall_grading == ("ratio", 1.3)
-    assert _h(first_cell=0.002).wall_grading == ("first_cell", 0.002)
+    kind, (cw, ch) = _h(first_cell=0.002).wall_grading
+    assert kind == "bump"
+    assert cw == bump_for_first_cell(0.2, 8, 0.002) and ch == bump_for_first_cell(0.1, 4, 0.002)
+    assert _h(wall_bump=(cw, ch)).wall_grading == ("bump", (cw, ch))
 
 
 @pytest.mark.parametrize("make", [_h, lambda: _h(first_cell=0.002), lambda: _h(mprg=1.2)])
@@ -84,6 +90,8 @@ def test_round_trip(make):
     s = make()
     d = s.to_dict()
     assert d["core"]["layout"] == "h"
+    assert ("wall_bump" in d["core"]) == (s.wall_grading is not None
+                                          and s.wall_grading[0] == "bump")
     assert PipeSpec.from_dict(d).to_dict() == d
     assert port_type(PipeSpec.from_dict(d)) == port_type(s)
 
@@ -187,7 +195,7 @@ def test_junctions_and_transitions_reject_h(fitting, task):
 def test_reducer_keeps_the_layout():
     with pytest.raises(AssemblyError, match="not layouts"):
         _validate(_h(), Reducer(_oh(0.07, 0.035), 0.2, n_layers=3))
-    with pytest.raises(AssemblyError, match="first_cell= at both"):
+    with pytest.raises(AssemblyError, match=r"first_cell= \(or wall_bump=\) at both"):
         _validate(_h(first_cell=0.003), Reducer(_h(0.07, 0.035), 0.2, n_layers=3))
 
 
@@ -201,5 +209,33 @@ def test_refinement_series():
     from hexmesh.assembly.intent import refine_spec_dict
     d = refine_spec_dict(_h().to_dict(), 2)
     assert (PipeSpec.from_dict(d).nang_w, PipeSpec.from_dict(d).layout) == (16, "h")
-    with pytest.raises(ValueError, match="graded H core"):
-        refine_spec_dict(_h(first_cell=0.002).to_dict(), 2)
+
+
+def _side_nodes(spec, k):
+    """Node fractions of side *k* (0: the nang_w side, 1: the nang_h side)."""
+    from hexmesh.sections import h
+    g = h.side_grading(spec, k)
+    n = spec.core_shape.side_count(k, 4)
+    return bump(n, g[1]) if g else np.arange(n + 1) / n
+
+
+@pytest.mark.parametrize("k", [2, 4])
+@pytest.mark.parametrize("side", [0, 1])
+def test_refined_first_cell_series_nests(k, side):
+    """A refined series keeps each side's Bump coefficient (design answer
+    to Question 1): every k-th fine node is a coarse node."""
+    from hexmesh.assembly.intent import refine_spec_dict
+    coarse = _h(0.2, 0.05, 16, 4, first_cell=0.004)
+    fine = PipeSpec.from_dict(refine_spec_dict(coarse.to_dict(), k))
+    assert fine.wall_grading == coarse.wall_grading
+    c, f = _side_nodes(coarse, side), _side_nodes(fine, side)
+    assert len(f) == k * (len(c) - 1) + 1
+    assert np.abs(f[::k] - c).max() <= 1e-12
+
+
+def test_ratio_grading_refines_as_mprg():
+    """An explicit ratio refines as every mprg does, ``mprg ** (1/k)``."""
+    from hexmesh.assembly.intent import refine_spec_dict
+    d = refine_spec_dict(_h(mprg=1.3).to_dict(), 2)
+    assert "wall_bump" not in d["core"]
+    assert PipeSpec.from_dict(d).wall_grading == ("ratio", pytest.approx(1.3 ** 0.5))

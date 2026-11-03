@@ -42,7 +42,7 @@ import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from .grading import progression_for_first_cell
+from .grading import bump_for_first_cell, progression_for_first_cell
 from .shape import (LAYOUTS, CircleShape, RectShape, Shape, longest_radial, core_wall_span,
                     ring_corners, shape_from_dict)
 from .region import MaterialGraph
@@ -194,7 +194,7 @@ class PipeSpec:
         self._core:   tuple[str, Shape] | None = None
         self._shells: list[LayerSpec] = []
         self._layout = "oh"
-        self._core_first_cell: float | None = None     # an H core's wall cell
+        self._core_wall_bump: tuple[float, float] | None = None   # an H core's (c_w, c_h)
         # Validate nang / n_outer constraint if nang is already known at init time.
         if nang is not None:
             divisor = n_outer // 4
@@ -220,6 +220,7 @@ class PipeSpec:
         half_h: float | None = None,
         first_cell: float | None = None,
         layout: str = "oh",
+        wall_bump: tuple[float, float] | None = None,
     ) -> "PipeSpec":
         """Set the innermost (core) layer.
 
@@ -268,7 +269,7 @@ class PipeSpec:
             *first_cell*; at the corners it is about 0.81 of it.  Circular,
             ``n_outer = 4`` cores only; mutually exclusive with ``mprg``
             (docs/tasks/0002).  On an H core: the end cell of every side,
-            at all four walls (a two-sided ``Bump``, task 0084).
+            at all four walls, resolved here to ``wall_bump`` (task 0084).
         layout : str
             The section layout (decision 0036): ``"oh"`` (the default), the
             5-patch O-H face; or ``"h"``, one Cartesian patch, for a
@@ -277,6 +278,12 @@ class PipeSpec:
             growth ratio, the second cell from each wall over the first
             (> 1 refines toward the walls), and ``first_cell`` its end
             cell.
+        wall_bump : (float, float), optional
+            An H core's ``Bump`` coefficients, ``(c_w, c_h)``: the sides
+            of ``nang_w`` and of ``nang_h`` divisions (< 1 refines toward
+            both walls; gmsh's two-sided law).  What ``first_cell=``
+            resolves to, and what ``to_dict`` stores, as O-H stores
+            ``mprg``: a k× refinement keeps them, so its nodes nest.
         """
         if self._core is not None:
             raise RuntimeError("PipeSpec.core() may only be called once.")
@@ -343,11 +350,23 @@ class PipeSpec:
                 raise ValueError(f"layout='h' needs a rectangular core, got a {shape.label}")
             if self._n_outer != 4:
                 raise ValueError("layout='h' needs n_outer = 4")
-            if first_cell is not None and mprg is not None:
-                raise TypeError("pass either mprg= or first_cell=, not both")
+            if sum(x is not None for x in (mprg, first_cell, wall_bump)) > 1:
+                raise TypeError("pass one of mprg=, first_cell= or wall_bump=")
+            if first_cell is not None:             # each side's coefficient
+                wall_bump = tuple(
+                    bump_for_first_cell(math.dist(shape.corner(k), shape.corner(k + 1)),
+                                        shape.side_count(k, 4), first_cell)
+                    for k in (0, 1))
+            if wall_bump is not None:
+                wall_bump = tuple(float(c) for c in wall_bump)
+                if len(wall_bump) != 2 or not all(c > 0 for c in wall_bump):
+                    raise ValueError(f"wall_bump must be two positive coefficients, "
+                                     f"got {wall_bump!r}")
             self._layout = "h"
-            self._core_first_cell = first_cell
+            self._core_wall_bump = wall_bump
             first_cell = None                      # the wall grading, not mprg
+        elif wall_bump is not None:
+            raise TypeError("wall_bump= is an H core's grading (layout='h')")
         if first_cell is not None:
             if not shape.is_round:
                 raise TypeError("first_cell= supports circular cores only")
@@ -520,13 +539,13 @@ class PipeSpec:
 
     @property
     def wall_grading(self) -> tuple | None:
-        """An H core's wall grading: ``("first_cell", h)``, ``("ratio", r)``
-        or ``None`` (uniform); ``None`` on an O-H core, whose grading is
-        ``mprg``."""
+        """An H core's wall grading: ``("bump", (c_w, c_h))``, ``("ratio",
+        r)`` or ``None`` (uniform); ``None`` on an O-H core, whose grading
+        is ``mprg``."""
         if self._layout != "h":
             return None
-        if self._core_first_cell is not None:
-            return ("first_cell", self._core_first_cell)
+        if self._core_wall_bump is not None:
+            return ("bump", self._core_wall_bump)
         return None if self._core_mprg == 1.0 else ("ratio", self._core_mprg)
 
     @property
@@ -644,8 +663,8 @@ class PipeSpec:
             "mbmp": self._mbmp, "rot": self._rot, "n_outer": self._n_outer,
             "core": {"name": name, "shape": shape_d, "layout": self._layout,
                      "nrad": self._core_nrad, "mprg": self._core_mprg,
-                     **({"first_cell": self._core_first_cell}
-                        if self._core_first_cell is not None else {})},
+                     **({"wall_bump": list(self._core_wall_bump)}
+                        if self._core_wall_bump is not None else {})},
             "shells": shells,
         }
 
@@ -659,9 +678,10 @@ class PipeSpec:
         shape = shape_from_dict(core["shape"])
         layout = core.get("layout", "oh")       # saved before task 0084: O-H
         if layout == "h":
-            fc = core.get("first_cell")
-            spec.core(core["name"], shape, layout="h", first_cell=fc,
-                      mprg=None if fc is not None else core.get("mprg", 1.0))
+            wb = core.get("wall_bump")
+            spec.core(core["name"], shape, layout="h",
+                      wall_bump=None if wb is None else tuple(wb),
+                      mprg=None if wb is not None else core.get("mprg", 1.0))
         else:
             spec.core(core["name"], shape, nrad=core["nrad"], mprg=core.get("mprg", 1.0))
         for sh in d.get("shells", []):

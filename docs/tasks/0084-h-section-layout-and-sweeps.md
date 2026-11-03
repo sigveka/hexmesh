@@ -155,8 +155,9 @@ the default flip (0087).
     `LayerSig.mprg` slot carries `PipeSpec.wall_grading`.
   - **Wall grading.**  `mprg` on an H core is the wall growth ratio
     (second cell over first); `first_cell` is the end cell at all four
-    walls.  Each side solves its own `Bump` coefficient
-    (`core.grading.bump_for_first_cell` / `bump_for_ratio`).
+    walls, resolved to one `Bump` coefficient per side, `wall_bump`
+    (`core.grading.bump_for_first_cell`; a ratio through
+    `bump_for_ratio`; see Question 1's answer).
     `Progression` and `Beta` are one-sided in gmsh 4.12.1
     (`docs/integrations/gmsh.md`).
   - **H-specific code the sweep needed** (step 4):
@@ -165,13 +166,13 @@ the default flip (0087).
     `connect_layer`; `face_grading` and `section_cells` delegate to
     `sections.h`.  `blocks.face_vertices`, `face_patches` and
     `corner_shift` now ask `sections.layout_of(spec)`.  `Reducer`
-    stations keep the layout and interpolate a first cell
-    geometrically, as `mprg`.  Its ends must both give `first_cell=`
-    or neither.
+    stations keep the layout and interpolate the wall coefficients
+    geometrically, as `mprg`.  Its ends must both have `wall_bump`
+    (from `first_cell=`) or neither.
   - **Elbow** stays round-only: its ASME schedules are for round
     pipe, so the kit has no H elbow case.
-  - **`refine_spec_dict` refuses a graded H core** (see Questions).
-    A uniform H core refines exactly.
+  - **`refine_spec_dict`** keeps `wall_bump`, so a series nests
+    (Question 1).
 - **Coding session, 2026-11-03: the section interface (step 2).**
   - **`sections.SectionLayout`**, a `runtime_checkable` `Protocol`.
     The layout modules `sections.oh` and `sections.h` implement it;
@@ -234,5 +235,33 @@ the default flip (0087).
    `mprg`; (b) refine by `first_cell / k` and accept non-nested grids;
    (c) per-side `first_cell`.  (a) mirrors O-H and keeps the series
    nested.  Not blocking steps 1–7.
+
+   **Answer (design session, 2026-11-03; the user agreed): (a).**  No
+   new decision; this sits inside 0001 and 0015.
+   - Store the per-side coefficients in the description, `wall_bump:
+     (c_w, c_h)`.  `first_cell=` only resolves them at `core()` time, as
+     O-H's `first_cell` resolves to `mprg`.  `to_dict` writes them;
+     `from_dict` and `refine_spec_dict` use them as stored.
+   - Refine with the same coefficients and k× the cells, so the series
+     nests exactly.  Lift `refine_spec_dict`'s raise.
+   - Why: decision 0015 needs geometrically similar levels for a clean
+     Richardson order (with (b), each level's grading change mixes into
+     the error, step 8 included); it is the same as O-H; the
+     description holds the grading actually used (decision 0001).
+   - API.md, next to `first_cell`: exact at the level where it is
+     given; refined levels get the nested first cell, not `first_cell
+     / k`.  Said once for O-H and H.
+   - Tests: a refined series nests (every k-th fine node is a coarse
+     node, to 1e-12, k = 2 and 4, both sides); `wall_bump` round-trips;
+     an explicit ratio still refines as today.
+
+   **Done (coding session, 2026-11-03).**  `PipeSpec.core(wall_bump=)`,
+   for H only.  `first_cell=` resolves to it from each side's length
+   (between `shape.corner(k)` and `corner(k + 1)`) and count;
+   `wall_grading` is `("bump", (c_w, c_h))`.  `Reducer` stations
+   interpolate the coefficients geometrically, side by side.  "As
+   today" for a ratio: `refine_spec_dict`'s `mprg ** (1/k)`, as every
+   `mprg`, which doesn't nest exactly (1.3 at n = 8 → 1.140 against a
+   nested 1.159); API.md says so.  Tests in `test_h_layout.py`.
 
 ## Outcome

@@ -32,7 +32,7 @@ import math
 import numpy as np
 
 from ..core.cross_section import BoundaryType, CrossSection
-from ..core.grading import bump, bump_for_first_cell, bump_for_ratio
+from ..core.grading import bump, bump_for_ratio
 from ..core.shape import RectShape
 from . import oh
 from ._gmsh_helpers import (add_line, add_line_loop, add_point, add_surface, plane,
@@ -58,19 +58,16 @@ def side_counts(shape, n_outer: int = 4) -> tuple[int, ...]:
 
 def side_grading(spec, k: int) -> tuple | None:
     """``("Bump", coef)`` of side *k* (corner k → k + 1), from the spec's
-    wall grading (``PipeSpec.wall_grading``), or ``None`` if uniform.  A
-    first cell gives each side its own coefficient, so every wall gets
-    the same end cell."""
+    wall grading (``PipeSpec.wall_grading``), or ``None`` if uniform.
+    Stored coefficients are per side (``wall_bump``, the sides of
+    ``nang_w`` then ``nang_h``); a ratio solves its coefficient here."""
     wall = spec.wall_grading
     if wall is None:
         return None
-    shape = spec.core_shape
-    n = shape.side_count(k, 4)
-    if wall[0] == "first_cell":
-        length = 2 * (shape.half_w if k % 2 == 0 else shape.half_h)
-        coef = bump_for_first_cell(length, n, wall[1])
+    if wall[0] == "bump":
+        coef = wall[1][k % 2]
     else:
-        coef = bump_for_ratio(n, wall[1])
+        coef = bump_for_ratio(spec.core_shape.side_count(k, 4), wall[1])
     return None if coef == 1.0 else ("Bump", coef)
 
 
