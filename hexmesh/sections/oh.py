@@ -61,10 +61,12 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from ..core.grading import bump, progression
 from ..core.shape import LAYOUTS, BlendShape, CircleShape, RectShape
 from ..core.shape import outline as outer_outline
 
 #: signature layout kinds (``assembly.signature``)
+NAME = "oh"
 CORE_KIND = "oh_core"
 
 #: Inner-square corner radius of the circular O-H face, as a fraction of
@@ -276,3 +278,70 @@ def patches(spec) -> list[tuple[str, tuple[tuple[int, int], ...]]]:
             j = (k + 1) % n
             out.append((name, ((lvl, k), (lvl, j), (lvl + 1, j), (lvl + 1, k))))
     return out
+
+# ---------------------------------------------------------------------------
+# Predicted section nodes (``assembly.section_quality``)
+# ---------------------------------------------------------------------------
+
+def _ring(inner: np.ndarray, outer: np.ndarray, t: np.ndarray) -> np.ndarray:
+    """Patch nodes (len(inner), len(t), 2): the two boundaries' linear blend."""
+    return inner[:, None, :] * (1 - t)[None, :, None] + outer[:, None, :] * t[None, :, None]
+
+
+def _chord_fractions(p: np.ndarray) -> np.ndarray:
+    d = np.concatenate([[0.0], np.cumsum(np.linalg.norm(np.diff(p, axis=0), axis=1))])
+    return d / d[-1]
+
+
+def _coons(bottom, top, left, right) -> np.ndarray:
+    """Transfinite patch nodes from four boundary node rows; *bottom* and
+    *top* run along u (left → right), *left* and *right* along v."""
+    u = _chord_fractions(bottom)[:, None, None]
+    v = _chord_fractions(left)[None, :, None]
+    B, T = bottom[:, None, :], top[:, None, :]
+    L, R = left[None, :, :], right[None, :, :]
+    return ((1 - v) * B + v * T + (1 - u) * L + u * R
+            - ((1 - u) * (1 - v) * bottom[0] + u * (1 - v) * bottom[-1]
+               + (1 - u) * v * top[0] + u * v * top[-1]))
+
+
+def node_grids(spec) -> list[tuple[int, np.ndarray]]:
+    """(layer index, node grid) of every patch of *spec*'s face, unrotated:
+    the centre patch as a Coons patch of the inner curves, every ring
+    the linear blend of its two boundaries at the radial grading."""
+    outlines = spec.outlines
+    corners = spec.corners()
+    core = outlines[0]
+    mb = spec.mbmp
+    counts = [core.side_count(k, 4) for k in range(4)]
+    s = [bump(c, mb) for c in counts]
+
+    # core: centre patch from the inner curves, then the four ring patches
+    inner = [outline(core, k, s[k], inner=True) for k in range(4)]
+    out = [(0, _coons(bottom=inner[2], top=inner[0][::-1],
+                      left=inner[1][::-1], right=inner[3]))]
+    t = progression(spec._core_nrad, spec._core_mprg)
+    prev = [outline(core, k, s[k]) for k in range(4)]
+    out += [(0, _ring(inner[k], prev[k], t)) for k in range(4)]
+
+    for i, (sh, o) in enumerate(zip(spec.shells, outlines[1:]), start=1):
+        t = progression(sh.nrad, sh.mprg)
+        c = corners[i]
+        cur = [o.side(c[k], c[(k + 1) % 4], s[k]) for k in range(4)]
+        out += [(i, _ring(prev[k], cur[k], t)) for k in range(4)]
+        prev = cur
+    return out
+
+
+def section_cells(spec) -> int:
+    """Quads in one O-H cross-section (pure; DESIGN P4).
+
+    With ``c = spec.side_counts`` (divisions per outer curve), the core is
+    a ``c[0] × c[1]`` centre patch plus one ring patch of ``c[k] × nrad``
+    per side; every shell adds the same ring again with its own ``nrad``.
+    A circle has ``c[k] = nang // (n_outer // 4)``; a rectangle
+    ``nang_w, nang_h, nang_w, nang_h``.
+    """
+    c = spec.side_counts
+    nrads = [spec._core_nrad] + [sh.nrad for sh in spec.shells]
+    return c[0] * c[1] + sum(c) * sum(nrads)

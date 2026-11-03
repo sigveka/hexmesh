@@ -148,3 +148,13 @@ def bump_for_ratio(n_cells: int, ratio: float) -> float:
         x = bump(n_cells, c)
         return float((x[2] - x[1]) / x[1])
     return _solve_bump(n_cells, lambda c: -growth(c), -ratio)
+
+
+def progression(n: int, ratio: float) -> np.ndarray:
+    """Fractions of the n + 1 nodes of a ``Progression`` curve: each cell
+    *ratio* times the previous."""
+    import numpy as np
+    i = np.arange(n + 1)
+    if abs(ratio - 1.0) < 1e-12:
+        return i / n
+    return (ratio ** i - 1.0) / (ratio ** n - 1.0)

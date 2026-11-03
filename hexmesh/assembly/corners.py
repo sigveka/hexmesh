@@ -115,16 +115,19 @@ def _oriented(curve: int, start: int, end: int) -> int:
 
 
 def canonical_geom(cs: CrossSection) -> dict:
-    """Signed entity tags of *cs* indexed by corner (keys ip, op, ic, oc, rc)."""
+    """Signed entity tags of *cs* indexed by corner: ``op`` and ``oc`` on
+    every face; ``ip``, ``ic``, ``rc`` on an O-H face
+    (``CrossSection.corner_entities``)."""
     n = cs.n_outer
-    op, ip = list(cs.outer_points), list(cs.inner_points)
-    return {
-        'op': op,
-        'ip': ip,
-        'oc': [_oriented(c, op[k], op[(k + 1) % n]) for k, c in enumerate(cs.outer_curves)],
-        'ic': [_oriented(c, ip[k], ip[(k + 1) % n]) for k, c in enumerate(cs.inner_curves)],
-        'rc': [_oriented(c, ip[k], op[k]) for k, c in enumerate(cs.radial_curves)],
-    }
+    e = cs.corner_entities()
+    op = e["op"]
+    g = {'op': op, 'oc': [_oriented(c, op[k], op[(k + 1) % n]) for k, c in enumerate(e["oc"])]}
+    if "ip" in e:
+        ip = e["ip"]
+        g |= {'ip': ip,
+              'ic': [_oriented(c, ip[k], ip[(k + 1) % n]) for k, c in enumerate(e["ic"])],
+              'rc': [_oriented(c, ip[k], op[k]) for k, c in enumerate(e["rc"])]}
+    return g
 
 
 def side_counts(cs: CrossSection) -> tuple[int, ...]:
@@ -170,11 +173,9 @@ def connect_layer(in_cs: CrossSection, out_cs: CrossSection, n_layers: int,
     """``connect_aligned`` with correspondence from frames (*offset*)."""
     n = in_cs.n_outer
     g_in, g_out = canonical_geom(in_cs), canonical_geom(out_cs)
-    if in_cs.layout == "h":                 # no inner boundary or corner lines
-        g_out = {key: [v[(i + offset) % n] for i in range(n)] if v else v
-                 for key, v in g_out.items()}
-        return connect_patch(in_cs, out_cs, g_in, g_out, n_layers, **kwargs)
     g_out = {key: [v[(i + offset) % n] for i in range(n)] for key, v in g_out.items()}
+    if in_cs.layout == "h":                 # no inner boundary or corner lines
+        return connect_patch(in_cs, out_cs, g_in, g_out, n_layers, **kwargs)
     off = 1 if len(in_cs.surfaces) == n + 1 else 0
     in_quads = [in_cs.surfaces[off + i] for i in range(n)]
     out_quads = [out_cs.surfaces[off + (i + offset) % n] for i in range(n)]

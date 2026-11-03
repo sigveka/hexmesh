@@ -172,6 +172,50 @@ the default flip (0087).
     pipe, so the kit has no H elbow case.
   - **`refine_spec_dict` refuses a graded H core** (see Questions).
     A uniform H core refines exactly.
+- **Coding session, 2026-11-03: the section interface (step 2).**
+  - **`sections.SectionLayout`**, a `runtime_checkable` `Protocol`.
+    The layout modules `sections.oh` and `sections.h` implement it;
+    `sections.LAYOUT_MODULES` maps a name to its module, and
+    `layout_of(spec)` looks it up.  Its members, and who asks for
+    them:
+
+    | member | asked by |
+    |--------|----------|
+    | `NAME` | `PipeSpec.core(layout=)`, the table |
+    | `CORE_KIND` | `assembly.signature`: kinds that differ never share nodes |
+    | `levels(spec)` | `blocks.face_vertices`; `test_sections` checks the GMSH face against it |
+    | `patches(spec)` | `blocks.face_patches`: port faces, cell zones |
+    | `corner0_angle(spec)` | `blocks.corner_shift`: corner matching between frames |
+    | `side_counts(shape, n_outer)` | sweep connections, face grading |
+    | `section_cells(spec)` | `Assembly.cell_count` (via `sweep.section_cells`) |
+    | `node_grids(spec)` | `section_quality`: predicted quality before GMSH |
+
+    The O-H node grids (`_ring`, `_coons`, the patch assembly) moved
+    from `section_quality` into `sections.oh.node_grids`, and the O-H
+    cell formula into `sections.oh.section_cells`, with the code
+    unchanged.  `progression` moved to `core.grading`, next to `bump`;
+    `section_quality` re-exports both.
+  - **Generic `CrossSection`** (`core.cross_section`).  It keeps what
+    every layout has: the patches, the outer corners and sides, the
+    shape, the plane, `lc` and `layout`.  The O-H anatomy (`center`,
+    `inner_points`, `inner_curves`, `radial_curves`, `nrad`,
+    `corner_angles`) moved to `sections.oh_gmsh.OHCrossSection`.
+    The assembly reads a face only through two methods, which the
+    subclass extends: `corner_entities()` (roles `op`, `oc`; plus
+    `ip`, `ic`, `rc` on O-H) and `point_tags()`.  The H face is the
+    base class as it is.
+  - **Not in the interface, and why.**  Two pieces in `assembly`
+    still branch on the layout:
+    - the slab connection (`corners.connect_patch` vs
+      `connect_aligned`);
+    - the face grading (`sweep.face_grading`).
+
+    Both build or tag GMSH entities from a built face, through
+    `assembly.corners.canonical_geom`.  `sections` can't import
+    `assembly`, so moving them there would mean moving the corner
+    orientation helpers down a layer as well.  A third layout would
+    add a third branch to each: a candidate for decision 0035's
+    multi-core work, not this task.
 
 ## Questions for design
 

@@ -72,21 +72,21 @@ class BoundaryType(Enum):
 
 @dataclass
 class CrossSection:
-    """GMSH entity tags for one layer of a pipe cross-section.
+    """GMSH entity tags for one layer of a pipe cross-section, as every
+    layout has them (task 0084): its patches, its outer corners and sides,
+    its shape and plane.
 
     The lists follow the corner order of the section's layout: corner *k*
-    of ``outer_points``, curve *k* from corner *k* to *k* + 1.  For the
-    O-H layout (``sections.oh``: NE, NW, SW, SE, …) the fields
-    ``inner_points``, ``inner_curves``, ``radial_curves``,
-    ``corner_angles`` and the order of ``surfaces`` are its anatomy, not
-    generic; a generic form is decided with the second layout (task 0082).
+    of ``outer_points``, curve *k* from corner *k* to *k* + 1.  A layout
+    with more anatomy subclasses this (``sections.oh_gmsh.OHCrossSection``:
+    the inner boundary, the corner lines, the centre) and extends
+    ``corner_entities`` and ``point_tags``, which is how the assembly
+    reads it.  The H face (``sections.h``) is this class as it is.
 
     Attributes
     ----------
     surfaces : list[int]
         GMSH surface tags, in the layout's patch order.
-    center : int
-        GMSH point tag of the pipe-axis centre point.
     outer_points : list[int]
         Corner point tags of the outer boundary.
     outer_curves : list[int]
@@ -105,10 +105,11 @@ class CrossSection:
     cx, cy, cz : float
         Centre coordinates.  Required by shell builders to position the
         outer boundary of the next layer.
+    layout : str
+        The section layout that built the face (``sections``): "oh", "h".
     """
 
     surfaces:      list[int]
-    center:        int
     outer_points:  list[int]
     outer_curves:  list[int]
     shape:         "Shape"
@@ -118,26 +119,9 @@ class CrossSection:
     cx:            float
     cy:            float
     cz:            float
-    # Inner boundary and corner lines (the O-H layout's, sections.oh);
-    # used to match corners between faces (assembly/corners.py).
-    # inner_points : inner corner point tags, in corner order
-    # inner_curves : signed inner-boundary curve tags, as outer_curves
-    # radial_curves: corner-line tags (inner → outer), in corner order
-    inner_points:  list[int]   = field(default_factory=list)
-    inner_curves:  list[int]   = field(default_factory=list)
-    radial_curves: list[int]   = field(default_factory=list)
-    # Number of transfinite node layers on radial lines.
-    nrad: int   = 4
+    layout:        str
     # GMSH characteristic mesh length used when this face was built.
     lc:   float = 0.1
-    # Angles (radians) of the outer corner points, in the same order as
-    # outer_points.  Stored by face builders so annulus layers can position
-    # their outer corners at matching angles without re-deriving them.
-    # Empty list = not set.
-    corner_angles: list[float] = field(default_factory=list)
-    # Section layout that built the face (``sections``): "oh" or "h".  An
-    # H face has one patch and no inner boundary, corner lines or centre.
-    layout: str = "oh"
     # Number of outer structural corners.  Automatically derived from
     # outer_points in __post_init__; do not pass explicitly.
     n_outer: int = field(default=0)
@@ -153,6 +137,16 @@ class CrossSection:
                 f"outer_points length ({len(self.outer_points)})."
             )
         self.n_outer = len(self.outer_points)
+
+    def corner_entities(self) -> dict[str, list[int]]:
+        """Entity tags by corner, keyed by role: ``op`` (outer corner
+        points) and ``oc`` (outer sides); a layout's subclass adds its
+        own (``assembly.corners.canonical_geom`` signs them)."""
+        return {"op": list(self.outer_points), "oc": list(self.outer_curves)}
+
+    def point_tags(self) -> list[int]:
+        """Every corner point tag of the face."""
+        return list(self.outer_points)
 
 
 @dataclass

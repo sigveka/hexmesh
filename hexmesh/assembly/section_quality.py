@@ -47,9 +47,8 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from ..core.grading import bump
-from ..sections import h
-from ..sections.oh import outline
+from ..core.grading import bump, progression      # noqa: F401 (re-exported)
+from ..sections import layout_of
 from ..core.spec import PipeSpec
 from .limits import OUTLINE_NONORTH_MAX, OUTLINE_NONORTH_WARN, PREDICTED_SJ_MIN, PREDICTED_SJ_WARN
 
@@ -71,68 +70,11 @@ class LayerQuality:
 # Node spacing along a transfinite curve (GMSH 4.12, meshGEdge.cpp)
 # ---------------------------------------------------------------------------
 
-def progression(n: int, ratio: float) -> np.ndarray:
-    """Fractions of the n + 1 nodes of a ``Progression`` curve: each cell
-    *ratio* times the previous."""
-    i = np.arange(n + 1)
-    if abs(ratio - 1.0) < 1e-12:
-        return i / n
-    return (ratio ** i - 1.0) / (ratio ** n - 1.0)
 
 
 # ---------------------------------------------------------------------------
 # The section's quads
 # ---------------------------------------------------------------------------
-
-def _ring(inner: np.ndarray, outer: np.ndarray, t: np.ndarray) -> np.ndarray:
-    """Patch nodes (len(inner), len(t), 2): the two boundaries' linear blend."""
-    return inner[:, None, :] * (1 - t)[None, :, None] + outer[:, None, :] * t[None, :, None]
-
-
-def _chord_fractions(p: np.ndarray) -> np.ndarray:
-    d = np.concatenate([[0.0], np.cumsum(np.linalg.norm(np.diff(p, axis=0), axis=1))])
-    return d / d[-1]
-
-
-def _coons(bottom, top, left, right) -> np.ndarray:
-    """Transfinite patch nodes from four boundary node rows; *bottom* and
-    *top* run along u (left → right), *left* and *right* along v."""
-    u = _chord_fractions(bottom)[:, None, None]
-    v = _chord_fractions(left)[None, :, None]
-    B, T = bottom[:, None, :], top[:, None, :]
-    L, R = left[None, :, :], right[None, :, :]
-    return ((1 - v) * B + v * T + (1 - u) * L + u * R
-            - ((1 - u) * (1 - v) * bottom[0] + u * (1 - v) * bottom[-1]
-               + (1 - u) * v * top[0] + u * v * top[-1]))
-
-
-def _patches(spec: PipeSpec) -> list[tuple[int, np.ndarray]]:
-    """(layer index, node grid) of every patch of *spec*'s face, unrotated."""
-    if spec.layout == "h":
-        return [(0, h.node_grid(spec))]
-    outlines = spec.outlines
-    corners = spec.corners()
-    core = outlines[0]
-    mb = spec.mbmp
-    counts = [core.side_count(k, 4) for k in range(4)]
-    s = [bump(c, mb) for c in counts]
-
-    # core: centre patch from the inner curves, then the four ring patches
-    inner = [outline(core, k, s[k], inner=True) for k in range(4)]
-    out = [(0, _coons(bottom=inner[2], top=inner[0][::-1],
-                      left=inner[1][::-1], right=inner[3]))]
-    t = progression(spec._core_nrad, spec._core_mprg)
-    prev = [outline(core, k, s[k]) for k in range(4)]
-    out += [(0, _ring(inner[k], prev[k], t)) for k in range(4)]
-
-    for i, (sh, o) in enumerate(zip(spec.shells, outlines[1:]), start=1):
-        t = progression(sh.nrad, sh.mprg)
-        c = corners[i]
-        cur = [o.side(c[k], c[(k + 1) % 4], s[k]) for k in range(4)]
-        out += [(i, _ring(prev[k], cur[k], t)) for k in range(4)]
-        prev = cur
-    return out
-
 
 def _quads(grid: np.ndarray) -> np.ndarray:
     """(n, 4, 2) quads of a node grid, counter-clockwise."""
@@ -175,7 +117,7 @@ def section_quality(spec: PipeSpec) -> list[LayerQuality]:
         raise NotImplementedError("section_quality needs circle and rectangle "
                                   "outlines and n_outer = 4")
     quads, layer = [], []
-    for i, grid in _patches(spec):
+    for i, grid in layout_of(spec).node_grids(spec):
         q = _quads(grid)
         quads.append(q)
         layer.append(np.full(len(q), i))

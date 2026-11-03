@@ -195,3 +195,17 @@ def test_every_layout_row_has_its_geometry():
     assert np.hypot(*np.transpose(centre)) == pytest.approx(LAYOUTS["oh"]["ratio"] * 0.05)
     assert LAYOUTS["h"] == {}                    # the wall span is the side itself
     assert len(h.levels(SPECS["h-2"]())) == 1
+
+
+def test_both_layouts_implement_the_section_interface():
+    """``sections.SectionLayout`` is what the assembly asks of a layout
+    (task 0084); every layout in ``core.shape.LAYOUTS`` has one."""
+    from hexmesh.core.shape import LAYOUTS
+    assert set(sections.LAYOUT_MODULES) == set(LAYOUTS)
+    for name, module in sections.LAYOUT_MODULES.items():
+        assert isinstance(module, sections.SectionLayout) and module.NAME == name
+    for name in ("rect-2", "h-2", "h-4-first-cell", "rect-3layer"):
+        spec = SPECS[name]()
+        grids = layout_of(spec).node_grids(spec)
+        quads = sum((g.shape[0] - 1) * (g.shape[1] - 1) for _, g in grids)
+        assert quads == layout_of(spec).section_cells(spec)

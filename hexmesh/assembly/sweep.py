@@ -31,7 +31,7 @@ import gmsh
 from .. import _occ
 from ..core.cross_section import LayeredCrossSection
 from ..core.spec import PipeSpec
-from ..sections import h
+from ..sections import h, layout_of
 from .corners import canonical_geom, connect_layer, curve_endpoints, frame_offset
 from .interface import Frame, build_face, outer_radius, roll_mismatch
 from .signature import check_port_pairs, classify, signature
@@ -95,20 +95,9 @@ def face_grading(face: LayeredCrossSection, spec: PipeSpec) -> dict[int, tuple[s
 
 
 def section_cells(spec: PipeSpec) -> int:
-    """Quads in one OH cross-section of *spec* (pure; DESIGN P4).
-
-    With ``c = spec.side_counts`` (divisions per outer curve), the core is
-    a ``c[0] × c[1]`` centre patch plus one ring patch of ``c[k] × nrad``
-    per side; every shell adds the same ring again with its own ``nrad``.
-    A circle has ``c[k] = nang // (n_outer // 4)``; a rectangle
-    ``nang_w, nang_h, nang_w, nang_h``.  An H core is the centre patch
-    alone (``sections.h.section_cells``).
-    """
-    if spec.layout == "h":
-        return h.section_cells(spec)
-    c = spec.side_counts
-    nrads = [spec._core_nrad] + [sh.nrad for sh in spec.shells]
-    return c[0] * c[1] + sum(c) * sum(nrads)
+    """Quads in one cross-section of *spec*: the layout's count (pure;
+    DESIGN P4; ``sections.oh.section_cells``, ``sections.h.section_cells``)."""
+    return layout_of(spec).section_cells(spec)
 
 
 def trim_spec(spec: PipeSpec, n: int) -> PipeSpec:
@@ -368,7 +357,7 @@ def _axial_mesh(curve: int, n_layers: int, ratio: float,
     if ratio == 1.0:
         return CurveMesh(curve, n_layers + 1)
     start, _ = curve_endpoints(curve)
-    inlet_pts = set(in_cs.inner_points) | set(in_cs.outer_points)
+    inlet_pts = set(in_cs.point_tags())
     return CurveMesh(curve, n_layers + 1, "Progression",
                      ratio if start in inlet_pts else 1.0 / ratio)
 

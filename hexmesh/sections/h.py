@@ -39,6 +39,7 @@ from ._gmsh_helpers import (add_line, add_line_loop, add_point, add_surface, pla
                             set_recombine_surface, set_transfinite_curve,
                             set_transfinite_surface)
 
+NAME = "h"
 #: signature layout kind (``assembly.signature``)
 CORE_KIND = "h_core"
 
@@ -102,6 +103,11 @@ def node_grid(spec) -> np.ndarray:
     return np.stack([x, y], axis=-1)
 
 
+def node_grids(spec) -> list[tuple[int, np.ndarray]]:
+    """(layer index, node grid) of every patch: the one patch."""
+    return [(0, node_grid(spec))]
+
+
 def section_cells(spec) -> int:
     """Quads in the section: ``nang_w · nang_h``."""
     c = side_counts(spec.core_shape)
@@ -135,7 +141,6 @@ def build_h_rect(spec, position, h_axis, v_axis, lc: float,
 
     return CrossSection(
         surfaces      = [surface],
-        center        = 0,                 # no centre entity: nothing is built on it
         outer_points  = P,
         outer_curves  = C,
         shape         = shape,
@@ -143,8 +148,6 @@ def build_h_rect(spec, position, h_axis, v_axis, lc: float,
         h_axis        = np.asarray(h_axis, dtype=float),
         v_axis        = np.asarray(v_axis, dtype=float),
         cx=cx, cy=cy, cz=cz,
-        nrad          = 0,
         lc            = lc,
-        corner_angles = [math.atan2(p[1], p[0]) for p in lvl.corners],
         layout        = "h",
     )

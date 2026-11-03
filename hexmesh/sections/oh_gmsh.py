@@ -40,6 +40,8 @@ import gmsh
 import numpy as np
 
 from .. import _occ
+from dataclasses import dataclass, field
+
 from ..core.cross_section import CrossSection, BoundaryType
 from ..core.shape import CircleShape, RectShape
 from . import oh
@@ -56,6 +58,38 @@ _SAMPLES = 24
 
 
 # --- the core ----------------------------------------------------------------
+
+@dataclass
+class OHCrossSection(CrossSection):
+    """An O-H face's tags (``sections.oh``): the generic ones, and its
+    anatomy, the inner boundary, the corner lines and the centre point."""
+
+    layout:        str = "oh"
+    # GMSH point tag of the pipe-axis centre point.
+    center:        int = 0
+    # inner_points : inner corner point tags, in corner order
+    # inner_curves : signed inner-boundary curve tags, as outer_curves
+    # radial_curves: corner-line tags (inner → outer), in corner order
+    inner_points:  list[int] = field(default_factory=list)
+    inner_curves:  list[int] = field(default_factory=list)
+    radial_curves: list[int] = field(default_factory=list)
+    # Number of transfinite node layers on radial lines.
+    nrad: int = 4
+    # Angles (radians) of the outer corner points, in the same order as
+    # outer_points.  Stored by face builders so annulus layers can position
+    # their outer corners at matching angles without re-deriving them.
+    # Empty list = not set.
+    corner_angles: list[float] = field(default_factory=list)
+
+    def corner_entities(self) -> dict[str, list[int]]:
+        """The generic roles, and ``ip`` (inner corners), ``ic`` (inner
+        sides), ``rc`` (corner lines, inner → outer)."""
+        return {**super().corner_entities(), "ip": list(self.inner_points),
+                "ic": list(self.inner_curves), "rc": list(self.radial_curves)}
+
+    def point_tags(self) -> list[int]:
+        return list(self.inner_points) + list(self.outer_points)
+
 
 def build_oh_circle(
     cx:     float,
@@ -121,7 +155,7 @@ def build_oh_circle(
     set_transfinite_surface(surfaces)
     set_recombine_surface(surfaces)
 
-    return CrossSection(
+    return OHCrossSection(
         surfaces      = surfaces,
         center        = center,
         outer_points  = [o1, o2, o3, o4],
@@ -191,7 +225,7 @@ def build_oh_circle8(
     set_transfinite_surface(s_ring)
     set_recombine_surface(surfaces)
 
-    return CrossSection(
+    return OHCrossSection(
         surfaces      = surfaces,
         center        = center,
         outer_points  = O,
@@ -265,7 +299,7 @@ def build_oh_rect(
     set_transfinite_surface(surfaces)
     set_recombine_surface(surfaces)
 
-    return CrossSection(
+    return OHCrossSection(
         surfaces     = surfaces,
         center       = center,
         outer_points = [o1, o2, o3, o4],
@@ -330,7 +364,7 @@ def build_oh_blend(
     set_transfinite_surface(surfaces)
     set_recombine_surface(surfaces)
 
-    return CrossSection(
+    return OHCrossSection(
         surfaces      = surfaces,
         center        = center,
         outer_points  = o,
@@ -435,7 +469,7 @@ def build_ring(
     set_transfinite_surface(surfaces)
     set_recombine_surface(surfaces)
 
-    return CrossSection(
+    return OHCrossSection(
         surfaces      = surfaces,
         center        = center,
         outer_points  = O,
