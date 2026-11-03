@@ -1,6 +1,6 @@
 # 0084 — The H section: the layout, `layout=` on the spec, and every sweep
 
-- **Status:** in progress
+- **Status:** in progress (steps 1–7 done; step 8 waits for 0090)
 - **Decision:** [0036 — Cartesian (H) rectangular section](../decisions/0036-cartesian-rectangular-section.md) (items 2–4, rollout step 1); [0037](../decisions/0037-capability-boundaries.md) (the shared section interface); DESIGN A4, §6.1 "Sections"
 - **Depends on:** 0082 (the O-H layout in `sections`), 0083 (the shape
   protocol); 0089 (Richardson) before step 8; 0090 (parallel runs)
@@ -265,3 +265,61 @@ the default flip (0087).
    nested 1.159); API.md says so.  Tests in `test_h_layout.py`.
 
 ## Outcome
+
+**Steps 1–7 (coding session, 2026-11-03).**  Step 8 (the rect duct H
+series on OpenFOAM) is not started: it waits for task 0090, as the index
+orders.  Commits 244a55b (steps 1, 3–7), 1668408 (step 2), e0e88dc
+(Question 1's answer), 912fe1c (the heated-rod import).
+
+- **Files.**
+  - New: `hexmesh/sections/h.py`, `tests/test_h_layout.py` (35 tests),
+    `tests/data/saved_before_0084.json`.
+  - Changed: `core/{spec,shape,grading,cross_section}.py`;
+    `sections/{__init__,oh,oh_gmsh,_gmsh_helpers}.py`;
+    `assembly/{blocks,corners,sweep,signature,interface,fittings,tee,
+    wye,duct_tap,section_quality,intent}.py`;
+    `validation/heated_rod/run.py`; `tests/test_sections.py`
+    (+5 H specs, +3 tests), `tests/test_fitting_conformance.py`
+    (+16 H cases), `tests/test_first_cell.py`; `API.md`;
+    `docs/integrations/gmsh.md`.
+- **Every existing mesh unchanged** (task 0065's method): full-suite
+  recordings at c92cbd6 and e0e88dc, compared with the new `"layout":
+  "oh"` key dropped from `to_dict`.  All 439 distinct meshes before
+  are in the after run, identical node for node.  The 50 new ones all
+  come from H cases (the kit, `test_build_sync`, `test_intent`,
+  `test_refined`, `test_h_layout`).  Messages: 634 before, all in the
+  after run, apart from one `SystemExit` of a test the import below
+  broke; 12 new, the H tests' expected raises.
+- **Tests.**  Full suite at e0e88dc: 2597 passed, 15 skipped, 2 failed.
+  The 2 (`test_validation_meta` recheck, heated_rod) were a real break:
+  `validation/heated_rod/run.py` imported `OH_RATIO` from `core.shape`.
+  Fixed in 912fe1c, and `test_validation_meta` passes (28).  Before:
+  2327 passed, 15 skipped; so +272 tests, mostly the kit's H cases ×
+  its 6 checks and the parametrised suites that iterate the kit.
+- **Measurements.**  The meshed H wall cell is the requested one to
+  2.5e-8 relative.  `core.grading.bump` matches gmsh's `Bump` to 1.3e-8
+  for coef 0.05–0.9, and to 3.3e-7 above 1 (gmsh.md).  A graded H
+  series nests to 1e-12 (k = 2, 4).  Cell counts are exact before GMSH
+  (`nang_w · nang_h` per section).  The predicted quality of a graded
+  H face is scaled Jacobian 1, non-orthogonality 0.
+- **Surprises.**
+  - Storing the O-H wall span as a fraction of R would have changed
+    the last bit of `first_cell`'s `mprg` for 86 % of radii, so the
+    table stores the ratio and `core_wall_span` keeps the formula.
+  - One `first_cell` can't give a nested refinement series (Question 1,
+    answered (a)).
+  - `Tee.resolve` runs at `add()`, before `check`, so the layout
+    rejection is in both.
+  - Renaming a `core` name breaks `validation/` drivers, which no
+    import-graph test covers.  Only the meta test caught it.
+- **Disk.**  Two recordings (152 MB, 158 MB) and a worktree, all in
+  the scratchpad; deleted.  Nothing kept outside the repo.
+- **Proposed follow-ups.**
+  - The slab connection and face grading still branch on the layout in
+    `assembly` (Agent notes, step 2).  Move them behind the interface
+    when a third layout or decision 0035's multi-core work needs it.
+  - An architecture check that `validation/*/run.py` imports only
+    names that exist (or run each driver's `--help` in CI).
+  - API.md's rectangular-duct section still says `Tee` rejects ducts,
+    which has been stale since the duct taps (task 0057).
+
