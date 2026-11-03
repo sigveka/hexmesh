@@ -127,7 +127,8 @@ def test_provenance_false_is_todays_file(tmp_path):
         gmsh.write(str(tmp_path / "plain.msh"))
     _write(tmp_path / "on.msh")
     off = (tmp_path / "off.msh").read_bytes()
-    assert off == (tmp_path / "plain.msh").read_bytes()
+    # gmsh's own file, with LF endings (it writes CRLF on Windows; to_lf)
+    assert off == (tmp_path / "plain.msh").read_bytes().replace(b"\r\n", b"\n")
     assert _without_block((tmp_path / "on.msh").read_bytes()) == off
     assert read_recipe(tmp_path / "off.msh") is None
 
@@ -162,8 +163,8 @@ def test_windows_crlf_output_becomes_lf(tmp_path, monkeypatch, openfoam):
 
     def crlf(path):
         real(path)
-        p = Path(path)
-        p.write_bytes(p.read_bytes().replace(b"\n", b"\r\n"))
+        p = Path(path)                 # CRLF, as gmsh on Windows writes (already, there)
+        p.write_bytes(p.read_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n"))
 
     monkeypatch.setattr(gmsh, "write", crlf)
     recipe = _write(tmp_path / "crlf.msh", openfoam=openfoam)
