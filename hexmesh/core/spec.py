@@ -42,7 +42,7 @@ import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from .grading import bump_for_first_cell, progression_for_first_cell
+from .grading import bump_for_first_cell, bump_for_ratio, progression_for_first_cell
 from .shape import (LAYOUTS, CircleShape, RectShape, Shape, longest_radial, core_wall_span,
                     ring_corners, shape_from_dict)
 from .region import MaterialGraph
@@ -277,13 +277,14 @@ class PipeSpec:
             core has no ring, so no ``nrad``; ``mprg`` is then the wall
             growth ratio, the second cell from each wall over the first
             (> 1 refines toward the walls), and ``first_cell`` its end
-            cell.
+            cell.  Both resolve here to ``wall_bump``.
         wall_bump : (float, float), optional
             An H core's ``Bump`` coefficients, ``(c_w, c_h)``: the sides
             of ``nang_w`` and of ``nang_h`` divisions (< 1 refines toward
             both walls; gmsh's two-sided law).  What ``first_cell=``
             resolves to, and what ``to_dict`` stores, as O-H stores
             ``mprg``: a k× refinement keeps them, so its nodes nest.
+            ``first_cell=`` and ``mprg=`` resolve to it.
         """
         if self._core is not None:
             raise RuntimeError("PipeSpec.core() may only be called once.")
@@ -357,6 +358,9 @@ class PipeSpec:
                     bump_for_first_cell(math.dist(shape.corner(k), shape.corner(k + 1)),
                                         shape.side_count(k, 4), first_cell)
                     for k in (0, 1))
+            elif mprg is not None and mprg != 1.0:   # a wall ratio, per side
+                wall_bump = tuple(bump_for_ratio(shape.side_count(k, 4), mprg) for k in (0, 1))
+            mprg = None                            # the grading is wall_bump, or uniform
             if wall_bump is not None:
                 wall_bump = tuple(float(c) for c in wall_bump)
                 if len(wall_bump) != 2 or not all(c > 0 for c in wall_bump):
@@ -539,14 +543,11 @@ class PipeSpec:
 
     @property
     def wall_grading(self) -> tuple | None:
-        """An H core's wall grading: ``("bump", (c_w, c_h))``, ``("ratio",
-        r)`` or ``None`` (uniform); ``None`` on an O-H core, whose grading
-        is ``mprg``."""
-        if self._layout != "h":
+        """An H core's wall grading: ``("bump", (c_w, c_h))``, or ``None``
+        (uniform); ``None`` on an O-H core, whose grading is ``mprg``."""
+        if self._layout != "h" or self._core_wall_bump is None:
             return None
-        if self._core_wall_bump is not None:
-            return ("bump", self._core_wall_bump)
-        return None if self._core_mprg == 1.0 else ("ratio", self._core_mprg)
+        return ("bump", self._core_wall_bump)
 
     @property
     def nang(self) -> int | None:
@@ -679,6 +680,7 @@ class PipeSpec:
         layout = core.get("layout", "oh")       # saved before task 0084: O-H
         if layout == "h":
             wb = core.get("wall_bump")
+            # an H ratio saved as mprg (e0e88dc) resolves to wall_bump here
             spec.core(core["name"], shape, layout="h",
                       wall_bump=None if wb is None else tuple(wb),
                       mprg=None if wb is not None else core.get("mprg", 1.0))

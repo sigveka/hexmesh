@@ -269,8 +269,9 @@ def refine_spec_dict(d: dict, k: int) -> dict:
     for layer in (d["core"], *d["shells"]):
         layer["nrad"] *= k
         layer["mprg"] = layer.get("mprg", 1.0) ** (1.0 / k)
-    # an H core's wall_bump is kept: a Bump at the same coefficient and k×
-    # the cells puts every k-th node on a coarse one (task 0084)
+    # an H core's wall_bump is kept (its first_cell= or mprg= resolved to
+    # it): a Bump at the same coefficient and k× the cells puts every k-th
+    # node on a coarse one (task 0084)
     return d
 
 

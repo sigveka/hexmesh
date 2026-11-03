@@ -218,10 +218,12 @@ and `TypeError` together with `mprg`.
 **`first_cell` under refinement** (O-H and H alike): `first_cell` is exact
 at the level where it is given.  It is resolved there, to `mprg` on an O-H
 layer and to `wall_bump` on an H core, and the spec stores the resolved
-grading.  `refined(k)` and `refine_spec_dict` keep it as stored, so the
-refined levels nest in the coarse one and their wall cell is the nested
-first cell, not `first_cell / k`.  Pass `first_cell=` again on a refined
-spec to pin the wall cell at that level instead.
+grading.  `refined(k)` and `refine_spec_dict` keep it nested: an O-H
+`mprg` → `mprg ** (1/k)`, which splits each one-sided cell into k of the
+same growth, and an H core's `wall_bump` as stored.  The refined levels'
+wall cell is the nested first cell, not `first_cell / k`.  Pass
+`first_cell=` again on a refined spec to pin the wall cell at that level
+instead.
 
 #### `.shell(name, dR=None, nrad, mprg=1.0, *, outer=None, first_cell=None)`
 
@@ -310,13 +312,15 @@ The same rectangle as one Cartesian patch of `nang_w × nang_h` cells
 fixes).  Its sides are graded toward both walls by a two-sided `Bump`,
 given by one of:
 
-- `first_cell`: the end cell on every side, at all four walls, resolved
-  to one coefficient per side;
-- `wall_bump=(c_w, c_h)`: the coefficients themselves, for the `nang_w`
-  and `nang_h` sides (< 1 refines toward the walls; what `to_dict` stores);
+- `first_cell`: the end cell on every side, at all four walls;
 - `mprg`: the wall growth ratio, the second cell from a wall over the
-  first.  It refines as every `mprg` does, to its k-th root, which does
-  not nest exactly.
+  first, on every side;
+- `wall_bump=(c_w, c_h)`: the coefficients themselves, for the `nang_w`
+  and `nang_h` sides (< 1 refines toward the walls).
+
+`first_cell` and `mprg` resolve to `wall_bump` when the spec is built,
+one coefficient per side, and `to_dict` stores that, so a refined series
+nests.
 
 Not yet on an H core: shells (task 0086), `Tee` / duct taps and `Wye`
 (0086), `Transition` and joining an O-H port (0085).  These raise

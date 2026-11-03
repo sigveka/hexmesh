@@ -155,9 +155,9 @@ the default flip (0087).
     `LayerSig.mprg` slot carries `PipeSpec.wall_grading`.
   - **Wall grading.**  `mprg` on an H core is the wall growth ratio
     (second cell over first); `first_cell` is the end cell at all four
-    walls, resolved to one `Bump` coefficient per side, `wall_bump`
-    (`core.grading.bump_for_first_cell`; a ratio through
-    `bump_for_ratio`; see Question 1's answer).
+    walls; both resolve to one `Bump` coefficient per side, `wall_bump`
+    (`core.grading.bump_for_first_cell` / `bump_for_ratio`; Question 1's
+    answer and its correction).
     `Progression` and `Beta` are one-sided in gmsh 4.12.1
     (`docs/integrations/gmsh.md`).
   - **H-specific code the sweep needed** (step 4):
@@ -259,10 +259,20 @@ the default flip (0087).
    for H only.  `first_cell=` resolves to it from each side's length
    (between `shape.corner(k)` and `corner(k + 1)`) and count;
    `wall_grading` is `("bump", (c_w, c_h))`.  `Reducer` stations
-   interpolate the coefficients geometrically, side by side.  "As
-   today" for a ratio: `refine_spec_dict`'s `mprg ** (1/k)`, as every
-   `mprg`, which doesn't nest exactly (1.3 at n = 8 → 1.140 against a
-   nested 1.159); API.md says so.  Tests in `test_h_layout.py`.
+   interpolate the coefficients geometrically, side by side.  Tests in
+   `test_h_layout.py`.
+
+   **Correction (design session, 2026-11-03; the user agreed):** an H
+   core's explicit `mprg` also resolves to `wall_bump` at `core()` time,
+   so its series nests too ("as today" withdrawn for H).  O-H is
+   unaffected: the design session measured one-sided `mprg ** (1/k)`
+   nesting at gmsh's ~1e-9 node floor (gmsh 4.12.1; Progression 1.3 and
+   0.85, k = 2 and 4: 2.6e-9 and 1.5e-9; Bump 0.2: 3–4.5e-9), so only
+   H's two-sided ratio didn't nest.  **Done:** `wall_grading` is now
+   `("bump", (c_w, c_h))` or `None`; `to_dict` stores `wall_bump` only.
+   A description from e0e88dc that saved an H ratio as `mprg` still
+   loads, resolving it the same way.  The nesting test covers
+   `first_cell` and `mprg` (k = 2, 4, both sides, analytic nodes, 1e-12).
 
 ## Outcome
 

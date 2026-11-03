@@ -454,13 +454,12 @@ def _with_layers(spec: PipeSpec, layers: list, mprgs: list[float],
                  wall_bump: tuple | None = None) -> PipeSpec:
     """*spec* with every layer's size replaced (``_layers`` form, core
     first) and radial gradings *mprgs*: a station of a ``Reducer``.  An H
-    core takes ``mprgs[0]`` as its wall ratio, or *wall_bump*."""
+    core takes *wall_bump* (``None``: uniform)."""
     name, _ = spec._core
     out = PipeSpec(nang=spec.nang, nang_w=spec.nang_w, nang_h=spec.nang_h,
                    n_outer=spec.n_outer, rot=spec.rot, mbmp=spec.mbmp)
     if spec.layout == "h":
-        return out.core(name, layers[0], layout="h", wall_bump=wall_bump,
-                        mprg=None if wall_bump is not None else mprgs[0])
+        return out.core(name, layers[0], layout="h", wall_bump=wall_bump)
     out = out.core(name, layers[0], nrad=spec._core_nrad, mprg=mprgs[0])
     for sh, x, m in zip(spec.shells, layers[1:], mprgs[1:]):
         if isinstance(x, (int, float)):
@@ -553,8 +552,8 @@ class Reducer(Sweep):
                              f"at the inlet, {self.outlet.layout!r} at the outlet")
         kinds = {(s.wall_grading or ("uniform",))[0] for s in (spec, self.outlet)}
         if spec.layout == "h" and "bump" in kinds and len(kinds) > 1:
-            raise ValueError("Reducer: give first_cell= (or wall_bump=) at both ends of "
-                             "an H duct, or at neither (the stations interpolate it)")
+            raise ValueError("Reducer: grade both ends of an H duct (first_cell=, mprg= "
+                             "or wall_bump=), or neither (the stations interpolate it)")
         if self.profile is not None:
             self._check_profile(spec)
 
