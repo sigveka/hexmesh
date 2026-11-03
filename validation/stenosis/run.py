@@ -222,7 +222,7 @@ PIMPLE
 """
 
 
-def write_case(case: Path, end_time: float, n_proc: int, delta_t: float) -> None:
+def write_case(case: Path, end_time: float, delta_t: float) -> None:
     """pimpleFoam, laminar, from rest (the inlet value is set by
     ``parabolic_inlet`` after conversion)."""
     for d in ("0", "constant", "system"):
@@ -241,13 +241,6 @@ def write_case(case: Path, end_time: float, n_proc: int, delta_t: float) -> None
         "0/U": of.header("volVectorField", "U", "0") + U0,
         "0/p": of.header("volScalarField", "p", "0") + pois.P0,
     }
-    if n_proc > 1:
-        files["system/decomposeParDict"] = (
-            of.header("dictionary", "decomposeParDict", "system")
-            # slabs along the pipe: this build's Scotch is a dummy
-            # (docs/integrations/openfoam.md)
-            + f"numberOfSubdomains {n_proc};\nmethod          simple;\n"
-            f"simpleCoeffs {{ n ({n_proc} 1 1); delta 0.001; }}\n")
     for name, text in files.items():
         (case / name).write_text(text, encoding="utf-8")
 
@@ -474,26 +467,19 @@ def run_level(name: str, k: int, work: Path, max_time: float, n_proc: int) -> di
     # first step well under Co 0.8 at the throat (u ≈ 8, cell ≈ L/(36k));
     # adjustTimeStep grows it
     first = min(CHUNK, max_time)
-    write_case(case, first, n_proc, delta_t=0.1 * L_STEN / (36 * k) / 8)
+    write_case(case, first, delta_t=0.1 * L_STEN / (36 * k) / 8)
     of.foam(f"gmshToFoam {msh.name}", case, "log.gmshToFoam")
     retyped = apply_boundary_roles(case, roles_path(msh))
     check = of.foam("checkMesh", case, "log.checkMesh")
     scale = parabolic_inlet(case)
     geo = geometry(case)
-    if n_proc > 1:
-        of.foam("decomposePar -force", case, "log.decomposePar")
 
     # march in chunks of CHUNK time units until two successive states agree
     logs, states, changes, steady = [], [], [], False
     end, wall = first, 0.0
     while True:
         set_end_time(case, end)
-        if n_proc > 1:
-            log = of.foam(f"mpirun -np {n_proc} pimpleFoam -parallel", case,
-                          f"log.pimpleFoam.{end:g}")
-            of.foam("reconstructPar -latestTime", case, f"log.reconstructPar.{end:g}")
-        else:
-            log = of.foam("pimpleFoam", case, f"log.pimpleFoam.{end:g}")
+        log = of.run_solver(case, "pimpleFoam", n_proc=n_proc, log=f"log.pimpleFoam.{end:g}")
         logs.append(log)
         wall += float(re.findall(r"ExecutionTime = ([\d.e+-]+) s", log)[-1])
         states.append(results(geo, of.latest_time(case)))

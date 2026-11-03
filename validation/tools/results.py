@@ -31,8 +31,9 @@ The file::
 - ``precision`` is ``"full"`` (written by a driver) or ``"rounded from
   RESULTS.md"`` (filled from the tables, task 0093 step 4).  A driver
   reuses full levels and reruns rounded ones.
-- No fields, nothing per cell: small profiles only.  1 MB per case at
-  most (:data:`MAX_BYTES`).
+- No fields, nothing per cell: small profiles only.  20 MB per case at
+  most (:data:`MAX_BYTES`; the user, 2026-11-03: 1 MB was too tight for
+  the pulsatile stenosis's sampled profiles, 4.5 MB).
 - Written deterministically: sorted keys, ``indent=1``, a trailing
   newline, UTF-8, ``\\n`` line endings (decision 0039).
 - ``validation/results.schema.json`` describes it.
@@ -52,7 +53,7 @@ FORMAT = "hexmesh.validation.results"
 VERSION = 1
 FULL = "full"
 ROUNDED = "rounded from RESULTS.md"
-MAX_BYTES = 1_000_000
+MAX_BYTES = 20_000_000
 
 
 def add_arguments(ap: argparse.ArgumentParser, here: Path) -> None:

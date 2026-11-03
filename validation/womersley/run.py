@@ -442,17 +442,7 @@ def run_periods(name, factor, case, n_proc, dt_factor, steps, dt, start, warm=Fa
         (case / "system/controlDict").write_text(
             _header("dictionary", "controlDict", "system")
             + CONTROL.format(t0=start, end=end, dt=dt, write=steps // SAMPLES), encoding="utf-8")
-        if n_proc > 1:
-            (case / "system/decomposeParDict").write_text(
-                _header("dictionary", "decomposeParDict", "system")
-                + f"numberOfSubdomains {n_proc};\nmethod scotch;\n", encoding="utf-8")
-            foam("decomposePar -force -latestTime", case, f"log.decomposePar.{p}")
-            log = foam(f"mpirun -np {n_proc} pimpleFoam -parallel", case, f"log.pimpleFoam.{p}")
-            foam("reconstructPar -newTimes", case, f"log.reconstructPar.{p}")
-            for d in case.glob("processor*"):
-                shutil.rmtree(d)
-        else:
-            log = foam("pimpleFoam", case, f"log.pimpleFoam.{p}")
+        log = of.run_solver(case, "pimpleFoam", n_proc=n_proc, log=f"log.pimpleFoam.{p}")
         if "FOAM FATAL" in log:
             raise RuntimeError(f"pimpleFoam failed in period {p}")
         written = [d for d in _time_dirs(case)

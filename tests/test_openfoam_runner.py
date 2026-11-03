@@ -128,3 +128,85 @@ def test_docker_container_stops_with_its_caller(tmp_path):
     left = subprocess.run(["docker", "ps", "-q", "--filter", "volume=" + str(tmp_path)],
                           capture_output=True, text=True).stdout.split()
     assert left == []
+
+
+# ---------------------------------------------------------------------------
+# Parallel runs (task 0090)
+# ---------------------------------------------------------------------------
+
+def test_cpuinfo_counts_cores_not_threads():
+    """Two hardware threads per core: 2 sockets × 2 cores × 2 threads."""
+    blocks = [f"processor\t: {i}\nphysical id\t: {i // 4}\ncore id\t\t: {(i // 2) % 2}\n"
+              for i in range(8)]
+    assert of.cpuinfo_cores("\n".join(blocks)) == 4
+    assert of.cpuinfo_cores("processor\t: 0\n") == 0
+
+
+def test_physical_cores_is_at_most_the_thread_count():
+    assert 1 <= of.physical_cores() <= (os.cpu_count() or 1)
+
+
+@pytest.mark.parametrize("axis, n", [(0, "(3 1 1)"), (1, "(1 3 1)"), (2, "(1 1 3)")])
+def test_decompose_dict_slabs_along_the_axis(axis, n):
+    text = of.decompose_dict(3, axis)
+    assert "numberOfSubdomains 3;" in text and "method          simple;" in text
+    assert f"n {n};" in text
+
+
+@pytest.mark.parametrize("n_proc, match", [(0, ">= 1"), (3, "more than this machine's 2 "
+                                                             "physical cores")])
+def test_run_solver_rejects_bad_process_counts(monkeypatch, tmp_path, n_proc, match):
+    """Rejected before any OpenFOAM command runs."""
+    monkeypatch.setattr(of, "physical_cores", lambda: 2)
+    monkeypatch.setattr(of, "foam", lambda *a, **k: pytest.fail("ran a command"))
+    with pytest.raises(ValueError, match=match):
+        of.run_solver(tmp_path, "simpleFoam", n_proc=n_proc)
+
+
+def _cavity(root: Path, name: str) -> Path:
+    of.foam(f"cp -r $FOAM_TUTORIALS/incompressible/icoFoam/cavity/cavity {name}", root,
+            f"log.cp.{name}")
+    case = root / name
+    of.foam("blockMesh", case, "log.blockMesh")
+    return case
+
+
+@pytest.mark.openfoam
+@pytest.mark.skipif(not _have_image(), reason="no opencfd/openfoam-default:2406 image")
+def test_run_solver_serial_and_two_processes(restore_runner, tmp_path):
+    """``n_proc`` 1 is ``foam``; 2 decomposes, runs under ``mpirun``,
+    reconstructs every written time and removes the processor
+    directories.  Decomposition changes round-off only: the fields agree
+    to the solver's tolerance (cavity tutorial, icoFoam, 1e-6)."""
+    if of.physical_cores() < 2:
+        pytest.skip("needs 2 physical cores")
+    of.set_runner(of.V2406)
+    serial, parallel = _cavity(tmp_path, "serial"), _cavity(tmp_path, "parallel")
+    log1 = of.run_solver(serial, "icoFoam")
+    log2 = of.run_solver(parallel, "icoFoam", n_proc=2)
+    assert "End" in log1 and "End" in log2
+    assert "Number of processors = 2" in log2 or "nProcs : 2" in log2
+    assert not list(parallel.glob("processor*"))
+    assert [d.name for d in sorted(parallel.glob("0.*"))] == [d.name for d in
+                                                               sorted(serial.glob("0.*"))]
+    u1 = of.read_internal(serial / "0.5" / "U", 3)
+    u2 = of.read_internal(parallel / "0.5" / "U", 3)
+    assert abs(u1 - u2).max() < 1e-5
+    # keep=True leaves the decomposed case, as decomposed
+    of.run_solver(parallel, "icoFoam", n_proc=2, keep=True, log="log.again")
+    assert sorted(d.name for d in parallel.glob("processor*")) == ["processor0", "processor1"]
+
+
+@pytest.mark.parametrize("control, want", [
+    ("startFrom latestTime;\nstartTime 0;\n", "-latestTime"),
+    ("startFrom startTime;\nstartTime 0.25;\n", "-time 0.25"),
+    ("startTime 0;\n", "-time 0"),                       # OpenFOAM's default startFrom
+    ("startFrom firstTime;\n", "-time 0.1"),
+])
+def test_decompose_the_time_the_solver_starts_from(tmp_path, control, want):
+    (tmp_path / "system").mkdir()
+    (tmp_path / "system/controlDict").write_text(
+        of.header("dictionary", "controlDict", "system") + control, encoding="utf-8")
+    for t in ("0.1", "0.5"):
+        (tmp_path / t).mkdir()
+    assert of.start_time_option(tmp_path) == want

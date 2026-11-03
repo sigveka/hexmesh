@@ -35,6 +35,12 @@ task 0092).  Pick it with
 toolchain per case: conversion and solvers in the same runner.
 ``foam()`` writes each command's output to its log as it runs, and stops
 the command (its container) if the caller is interrupted.
+
+**Parallel runs** (task 0090): ``run_solver(case, solver, n_proc=…)`` is
+the one place a case is decomposed, run under ``mpirun`` and
+reconstructed.  ``n_proc`` is capped at the machine's physical cores
+(``physical_cores``).  It doesn't look for other sessions' runs: that is
+the caller's duty on a shared machine (CLAUDE.md).
 """
 
 from __future__ import annotations
@@ -42,6 +48,7 @@ from __future__ import annotations
 import itertools
 import os
 import re
+import shutil
 import signal
 import subprocess
 import threading
@@ -206,6 +213,123 @@ def openfoam_version() -> str:
 
 
 # --- mesh conversion ----------------------------------------------------------
+
+def physical_cores() -> int:
+    """Physical cores of this machine: Open MPI's default slot count is
+    cores, not hardware threads (``docs/integrations/openfoam.md``).
+    ``psutil`` when installed, else ``/proc/cpuinfo``, else
+    ``os.cpu_count()``."""
+    try:
+        import psutil
+        n = psutil.cpu_count(logical=False)
+        if n:
+            return int(n)
+    except ImportError:
+        pass
+    try:
+        text = Path("/proc/cpuinfo").read_text(encoding="utf-8")
+    except OSError:
+        return os.cpu_count() or 1
+    return cpuinfo_cores(text) or os.cpu_count() or 1
+
+
+def cpuinfo_cores(text: str) -> int:
+    """Distinct (physical id, core id) pairs in a ``/proc/cpuinfo``; 0 if
+    it lists none (some virtual machines)."""
+    cores, phys = set(), "0"
+    for line in text.splitlines():
+        key, _, value = line.partition(":")
+        key, value = key.strip(), value.strip()
+        if key == "physical id":
+            phys = value
+        elif key == "core id":
+            cores.add((phys, value))
+    return len(cores)
+
+
+def _mesh_dirs(case: Path, regions) -> list[Path]:
+    return [case / "constant" / r / "polyMesh" for r in regions] or [case / "constant/polyMesh"]
+
+
+def long_axis(case: Path, regions=()) -> int:
+    """Index (0, 1, 2) of the coordinate along which the case's mesh is
+    longest: of its first region's, when it has regions."""
+    pts = read_points(_mesh_dirs(case, regions)[0] / "points")
+    return int(np.argmax(pts.max(axis=0) - pts.min(axis=0)))
+
+
+def decompose_dict(n_proc: int, axis: int = 0) -> str:
+    """``decomposeParDict``: *n_proc* slabs along coordinate *axis*,
+    ``method simple`` (``scotch`` is a dummy in the native v1912 build;
+    v2406's works, ``docs/integrations/openfoam.md``)."""
+    n = ["1", "1", "1"]
+    n[axis] = str(n_proc)
+    return (header("dictionary", "decomposeParDict", "system")
+            + f"numberOfSubdomains {n_proc};\nmethod          simple;\n"
+            f"simpleCoeffs {{ n ({' '.join(n)}); delta 0.001; }}\n")
+
+
+def start_time_option(case: Path) -> str:
+    """The ``decomposePar`` time option for the time *case*'s solver
+    starts from (``controlDict``'s ``startFrom``): ``-latestTime``, or
+    ``-time <t>`` for ``startTime`` (OpenFOAM's default) and
+    ``firstTime``.  Only that time is decomposed: the processor
+    directories need no other."""
+    text = _strip_header((Path(case) / "system/controlDict").read_text(encoding="utf-8"))
+    start = re.search(r"^\s*startFrom\s+(\w+)\s*;", text, re.M)
+    mode = start.group(1) if start else "startTime"
+    if mode == "latestTime":
+        return "-latestTime"
+    times = [d.name for d in Path(case).iterdir()
+             if d.is_dir() and re.fullmatch(r"[\d.e+-]+", d.name)]
+    if mode == "firstTime":
+        return f"-time {min(times, key=float)}"
+    value = re.search(r"^\s*startTime\s+(" + _NUM + r")\s*;", text, re.M)
+    return f"-time {value.group(1) if value else 0}"
+
+
+def run_solver(case: Path, solver: str, *, n_proc: int = 1, log: str | None = None,
+               regions=(), axis: int | None = None, keep: bool = False) -> str:
+    """Run *solver* in *case* and return its log, as ``foam(solver, …)``.
+
+    ``n_proc = 1`` is exactly ``foam``.  ``n_proc > 1``: write
+    ``decomposeParDict`` (slabs along *axis*, by default the mesh's
+    longest, ``long_axis``; also into ``system/<region>/`` for each of
+    *regions*), ``decomposePar -force`` of the time the solver starts
+    from (``start_time_option``), ``mpirun -np N
+    <solver> -parallel``, ``reconstructPar -newTimes`` (with
+    ``-allRegions`` when there are *regions*), then remove the
+    ``processor*`` directories unless *keep*.  The case is serial again
+    afterwards, so a driver that marches in chunks calls this per chunk:
+    decomposing and reconstructing map fields exactly.
+
+    Raises ``ValueError`` for ``n_proc`` < 1 or above ``physical_cores()``.
+    Doesn't check for other runs on the machine (the caller's duty).
+    """
+    case = Path(case)
+    log = log or f"log.{solver}"
+    if n_proc < 1:
+        raise ValueError(f"n_proc must be >= 1, got {n_proc!r}")
+    cores = physical_cores()
+    if n_proc > cores:
+        raise ValueError(f"n_proc={n_proc} is more than this machine's {cores} physical cores "
+                         f"(Open MPI places one rank per core, not per hardware thread)")
+    if n_proc == 1:
+        return foam(solver, case, log)
+    regions = tuple(regions)
+    text = decompose_dict(n_proc, long_axis(case, regions) if axis is None else axis)
+    for d in [case / "system"] + [case / "system" / r for r in regions]:
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "decomposeParDict").write_text(text, encoding="utf-8")
+    every = " -allRegions" if regions else ""
+    foam(f"decomposePar -force {start_time_option(case)}{every}", case, f"{log}.decomposePar")
+    out = foam(f"mpirun -np {n_proc} {solver} -parallel", case, log)
+    foam(f"reconstructPar -newTimes{every}", case, f"{log}.reconstructPar")
+    if not keep:
+        for d in case.glob("processor*"):
+            shutil.rmtree(d)
+    return out
+
 
 def convert(case: Path, msh: Path, split_regions: bool = False) -> list[str]:
     """``gmshToFoam`` *msh* into *case*, then retype the patches from the

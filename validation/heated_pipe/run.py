@@ -255,7 +255,7 @@ ZONE = """    {{ name {n}Set; type faceSet; action new; source boxToFace;
       faceSet {n}Set; }}"""
 
 
-def write_dicts(case: Path, end_time: int, n_proc: int) -> None:
+def write_dicts(case: Path, end_time: int) -> None:
     """The dictionaries splitMeshRegions and the solver need (no fields)."""
     files = {
         "system/controlDict": H("dictionary", "controlDict", "system")
@@ -284,19 +284,9 @@ def write_dicts(case: Path, end_time: int, n_proc: int) -> None:
         files[f"constant/{r}/thermophysicalProperties"] = (
             H("dictionary", "thermophysicalProperties", f"constant/{r}")
             + SOLID_THERMO.format(k=K[r], cp=CP_S, rho=RHO_S))
-    if n_proc > 1:
-        # slabs along the pipe: this build's Scotch is a dummy
-        # (docs/integrations/openfoam.md)
-        files["system/decomposeParDict"] = (
-            H("dictionary", "decomposeParDict", "system")
-            + f"numberOfSubdomains {n_proc};\nmethod          simple;\n"
-              f"simpleCoeffs {{ n ({n_proc} 1 1); delta 0.001; }}\n")
     for name, text in files.items():
         (case / name).parent.mkdir(parents=True, exist_ok=True)
         (case / name).write_text(text, encoding="utf-8")
-    if n_proc > 1:
-        for r in REGIONS:
-            shutil.copy(case / "system/decomposeParDict", case / f"system/{r}/decomposeParDict")
 
 
 def patches(case: Path, region: str) -> list[str]:
@@ -511,27 +501,20 @@ def run_level(k: int, work: Path, end_time: int, n_proc: int) -> dict:
         msh = case / "pipe.msh"
         asm.write_openfoam(str(msh))
         sj = asm.check_quality("scaled_jacobian").worst
-    write_dicts(case, end_time, n_proc)
+    write_dicts(case, end_time)
     retyped = of.convert(case, msh, split_regions=True)
     checks = {r: of.check_mesh(case, r) for r in REGIONS}
     write_fields(case)
     of.foam("topoSet -region fluid", case, "log.topoSet")
     scale = parabolic_inlet(case)
-    if n_proc > 1:
-        of.foam("decomposePar -allRegions -force", case, "log.decomposePar")
     logs, prev, changes, end = [], None, [], 0
     control = case / "system/controlDict"
     while end < end_time:
         end += CHUNK
         control.write_text(re.sub(r"^endTime\s+\S+;", f"endTime         {end};",
                                   control.read_text(encoding="utf-8"), flags=re.M), encoding="utf-8")
-        if n_proc > 1:
-            logs.append(of.foam(f"mpirun -np {n_proc} chtMultiRegionSimpleFoam -parallel",
-                                case, f"log.chtMultiRegionSimpleFoam.{end}"))
-            of.foam("reconstructPar -allRegions -latestTime", case, f"log.reconstructPar.{end}")
-        else:
-            logs.append(of.foam("chtMultiRegionSimpleFoam", case,
-                                f"log.chtMultiRegionSimpleFoam.{end}"))
+        logs.append(of.run_solver(case, "chtMultiRegionSimpleFoam", n_proc=n_proc,
+                                  log=f"log.chtMultiRegionSimpleFoam.{end}", regions=REGIONS))
         cur = results(case)
         if prev is not None:
             ch = max(abs(cur[q] - prev[q]) / abs(cur[q]) for q in QUANTITIES)

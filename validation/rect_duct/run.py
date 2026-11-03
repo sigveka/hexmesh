@@ -360,15 +360,16 @@ def _new_case(work: Path, name: str) -> Path:
     return case
 
 
-def _solve(case: Path, ratio: float, out: dict) -> dict:
-    """checkMesh, planes, exact inlet, simpleFoam and the results."""
+def _solve(case: Path, ratio: float, out: dict, n_proc: int = 1) -> dict:
+    """checkMesh, planes, exact inlet, simpleFoam (on *n_proc* processes,
+    ``of.run_solver``) and the results."""
     check = of.check_mesh(case)
     of.foam("topoSet", case, "log.topoSet")
     scale = exact_inlet(case, ratio)
-    solve = of.foam("simpleFoam", case, "log.simpleFoam")
+    solve = of.run_solver(case, "simpleFoam", n_proc=n_proc, log="log.simpleFoam")
     m = re.search(r"SIMPLE solution converged in (\d+) iterations", solve)
     times = re.findall(r"^Time = (\d+)$", solve, re.M)
-    out.update({"inlet_scale": scale, "converged": m is not None,
+    out.update({"inlet_scale": scale, "converged": m is not None, "n_proc": n_proc,
                 "iterations": int(m.group(1)) if m else int(times[-1]),
                 "exec_time": float(re.findall(r"ExecutionTime = ([\d.e+-]+) s", solve)[-1]),
                 **{f"check_{key}": v for key, v in check.items()}})
@@ -376,7 +377,7 @@ def _solve(case: Path, ratio: float, out: dict) -> dict:
     return out
 
 
-def run_level(ratio: float, k: int, work: Path, end_time: int) -> dict:
+def run_level(ratio: float, k: int, work: Path, end_time: int, n_proc: int = 1) -> dict:
     name = f"ar{ratio}_k{k}"
     case = _new_case(work, name)
     with Session(f"rect-duct-{name}"):
@@ -389,10 +390,10 @@ def run_level(ratio: float, k: int, work: Path, end_time: int) -> dict:
     write_case(case, end_time, ratio)
     retyped = of.convert(case, msh)
     return _solve(case, ratio, {"mesh": "oh", "ratio": ratio, "k": k, "cells": cells,
-                                "min_scaled_jacobian": sj, "retyped": retyped})
+                                "min_scaled_jacobian": sj, "retyped": retyped}, n_proc)
 
 
-def run_control(ratio: int, k: int, work: Path, end_time: int) -> dict:
+def run_control(ratio: int, k: int, work: Path, end_time: int, n_proc: int = 1) -> dict:
     name = f"cart_ar{ratio}_k{k}"
     case = _new_case(work, name)
     ny, nz = (n * k for n in control_cells(ratio))
@@ -403,7 +404,7 @@ def run_control(ratio: int, k: int, work: Path, end_time: int) -> dict:
         H("dictionary", "blockMeshDict", "system") + block_mesh_dict(ratio, k), encoding="utf-8")
     of.foam("blockMesh", case, "log.blockMesh")
     return _solve(case, ratio, {"mesh": "cartesian", "ratio": ratio, "k": k, "cells": cells,
-                                "section": [ny, nz]})
+                                "section": [ny, nz]}, n_proc)
 
 
 def extrapolate(rows: list[dict]) -> dict:
@@ -462,6 +463,9 @@ def main(argv=None) -> dict:
                     help="hexmesh's O-H section, the Cartesian control, or both")
     ap.add_argument("--work", type=Path, default=HERE / "work")
     ap.add_argument("--end-time", type=int, default=20000)
+    ap.add_argument("--np", type=int, default=1, dest="n_proc",
+                    help="MPI processes per solve (default 1; check other runs first, "
+                         "CLAUDE.md)")
     stored.add_arguments(ap, HERE)
     ap.add_argument("--openfoam", default=of.V2406,
                     help="runner: native, or docker:IMAGE (default: v2406 in Docker)")
@@ -484,8 +488,8 @@ def main(argv=None) -> dict:
                 name = level_name(mesh, ratio, k)
                 run = run_level if mesh == "oh" else run_control
                 r = stored.run_level(
-                    store, name, lambda run=run, ratio=ratio, k=k: run(ratio, k, args.work,
-                                                                       args.end_time),
+                    store, name, lambda run=run, ratio=ratio, k=k: run(
+                        ratio, k, args.work, args.end_time, args.n_proc),
                     args.work / name, args.keep_work)
                 print(json.dumps(r, default=float), flush=True)
                 rows.append(r)

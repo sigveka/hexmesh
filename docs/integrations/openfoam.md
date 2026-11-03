@@ -312,6 +312,11 @@ All v1912, gmsh 4.12.1, 2026-10-25.
   dummyScotchDecomp.C at line 112".  `method simple` works
   (`simpleCoeffs { n (N 1 1); delta 0.001; }`, slabs along a pipe's x
   axis), and needs no graph partitioner.
+  - **v2406's Scotch works** (`opencfd/openfoam-default:2406` Docker
+    image, 2026-11-03, task 0090): the cavity tutorial, `method scotch`,
+    2 subdomains, decomposes into 200 + 200 cells.  hexmesh still uses
+    `simple` along the mesh's longest axis (`study.openfoam.run_solver`),
+    which works in both builds.
 
 - **v1912's buoyant solvers fail on any non-orthogonal mesh** (Ubuntu
   package `1912.200626-2build3`, gmsh 4.12.1, found 2026-10-29, cause
@@ -411,7 +416,42 @@ All v1912, gmsh 4.12.1, 2026-10-25.
 - **Open MPI counts physical cores, not threads.**  `mpirun -np 6` in
   the v2406 image on this machine (4 cores, 8 threads) stops with "not
   enough slots".  Use `-np` ≤ cores (or `--oversubscribe`).  *Verified*
-  2026-10-30.
+  2026-10-30.  `study.openfoam.run_solver` rejects `n_proc` above
+  `physical_cores()` before running anything (task 0090).
+- **`decomposePar -latestTime` decomposes only that time** (v2406 in
+  Docker, 2026-11-03, task 0090).  A case whose `controlDict` has
+  `startFrom startTime` (OpenFOAM's default) then fails in parallel:
+  "cannot find file "…/processor0/0/p"".  The solver wants the start
+  time, which wasn't decomposed.  `run_solver` decomposes the time the
+  solver starts from (`start_time_option`: `-latestTime`, or `-time
+  <t>`).
+- **Serial and parallel agree to the written precision** (v2406 in
+  Docker, 2026-11-03, task 0090): cavity tutorial, `icoFoam` to t = 0.5,
+  `simple` slabs on 2 and 4 processes.  The largest differences from
+  serial are 1e-6 in U (the last digit at `writePrecision 6`; |U|max =
+  0.85) and 1–2e-5 in p.
+- **Speed-up of `run_solver` on this machine** (v2406 in Docker, 4
+  physical cores / 8 threads, nothing else running; 2026-11-03, task
+  0090).  `validation/rect_duct/run.py --ratios 1 --levels 4 --meshes oh
+  --np N`: the O-H a/b = 1, k = 4 level, 138 240 cells, `simpleFoam` to
+  `residualControl`, `simple` slabs along the duct.
+
+  | `--np` | solver time | iterations | per iteration | speed-up (solve) | speed-up (per iteration) | driver wall time |
+  |-------:|------------:|-----------:|--------------:|-----------------:|-------------------------:|-----------------:|
+  | 1 | 184.2 s | 494 | 0.373 s | 1 | 1 | 260 s |
+  | 2 | 106.5 s | 581 | 0.183 s | 1.73 | 2.03 | 185 s |
+  | 4 | 63.6 s | 476 | 0.134 s | 2.90 | 2.79 | 141 s |
+
+  - The iteration count changes with the decomposition: round-off moves
+    the step where `residualControl` trips.  The results don't: f·Re
+    57.569252 at all three (4e-9 relative), u_c to 1.4e-12.
+  - About 76 s of the driver's wall time is serial (meshing,
+    `gmshToFoam`, `checkMesh`, post-processing): wall minus solver time
+    is 75.8, 78.5 and 77.4 s.  So decomposing and reconstructing add
+    1.6–2.7 s.
+  - The driver comparison on the other cases, serial against 2
+    processes (task 0090's Outcome): every reported quantity within
+    3e-5 relative.
 
 - **`gmshToFoam` reads first-order elements only** (v1912 native and
   v2406 Docker; design session, 2026-10-31).

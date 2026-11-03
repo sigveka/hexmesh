@@ -192,7 +192,7 @@ def write_control(case: Path, end: float, write: float, dt: float, co: float) ->
         + CONTROL.format(end=end, dt=dt, co=co, write=write, sets=sets_text()), encoding="utf-8")
 
 
-def write_case(case: Path, n_proc: int, dt: float) -> None:
+def write_case(case: Path, dt: float) -> None:
     """Dictionaries (before gmshToFoam, which needs controlDict), from rest."""
     for d in ("0", "constant", "system"):
         (case / d).mkdir(parents=True, exist_ok=True)
@@ -210,11 +210,6 @@ def write_case(case: Path, n_proc: int, dt: float) -> None:
         "0/U": of.header("volVectorField", "U", "0") + U0,
         "0/p": of.header("volScalarField", "p", "0") + wom.P0,
     }
-    if n_proc > 1:
-        files["system/decomposeParDict"] = (
-            of.header("dictionary", "decomposeParDict", "system")
-            + f"numberOfSubdomains {n_proc};\nmethod          simple;\n"
-            f"simpleCoeffs {{ n ({n_proc} 1 1); delta 0.001; }}\n")
     for name, text in files.items():
         (case / name).write_text(text, encoding="utf-8")
     write_control(case, end=dt, write=dt, dt=dt, co=MAX_CO)
@@ -326,30 +321,27 @@ def _times(root: Path) -> list[float]:
                   and re.fullmatch(r"[\d.e+-]+", d.name) and d.name != "0")
 
 
-def current_time(case: Path, n_proc: int) -> float:
-    t = _times(case / "processor0" if n_proc > 1 else case)
+def current_time(case: Path) -> float:
+    t = _times(case)
     return t[-1] if t else 0.0
 
 
 def run_to(case: Path, n_proc: int, end: float, co: float, tag: str) -> tuple[float, int]:
     """Advance to *end*, writing there (and only there); returns the
     solver's execution time and its number of time steps."""
-    t = current_time(case, n_proc)
+    t = current_time(case)
     write_control(case, end=end, write=end - t, dt=PERIOD / INLET_SAMPLES / 20, co=co)
-    cmd = f"mpirun -np {n_proc} pimpleFoam -parallel" if n_proc > 1 else "pimpleFoam"
-    log = of.foam(cmd, case, f"log.pimpleFoam.{tag}")
+    log = of.run_solver(case, "pimpleFoam", n_proc=n_proc, log=f"log.pimpleFoam.{tag}")
     return float(re.findall(r"ExecutionTime = ([\d.e+-]+) s", log)[-1]), len(
         re.findall(r"^Time = ", log, re.M))
 
 
-def prune(case: Path, n_proc: int, keep: float) -> None:
+def prune(case: Path, keep: float) -> None:
     """Drop written times before *keep* (the period's start)."""
-    roots = [case / f"processor{i}" for i in range(n_proc)] if n_proc > 1 else [case]
-    for root in roots:
-        for d in root.iterdir():
-            if d.is_dir() and re.fullmatch(r"[\d.e+-]+", d.name) and d.name != "0" \
-                    and float(d.name) < keep - 1e-9:
-                shutil.rmtree(d)
+    for d in case.iterdir():
+        if d.is_dir() and re.fullmatch(r"[\d.e+-]+", d.name) and d.name != "0" \
+                and float(d.name) < keep - 1e-9:
+            shutil.rmtree(d)
 
 
 # --- sampling ----------------------------------------------------------------
@@ -455,7 +447,7 @@ def run_level(name: str, k: int, work: Path, n_proc: int, targets: list[float],
             msh = case / "stenosis.msh"
             asm.write_openfoam(msh)
             out["min_scaled_jacobian"] = asm.check_quality("scaled_jacobian").worst
-        write_case(case, n_proc, dt=PERIOD / INLET_SAMPLES / 20)
+        write_case(case, dt=PERIOD / INLET_SAMPLES / 20)
         of.foam(f"gmshToFoam {msh.name}", case, "log.gmshToFoam")
         out["retyped"] = apply_boundary_roles(case, roles_path(msh))
         check = of.foam("checkMesh", case, "log.checkMesh")
@@ -464,13 +456,11 @@ def run_level(name: str, k: int, work: Path, n_proc: int, targets: list[float],
             "mesh_ok": "Mesh OK." in check,
             "max_non_orthogonality": float(
                 re.search(r"non-orthogonality Max: ([\d.e+-]+)", check).group(1))})
-        if n_proc > 1:
-            of.foam("decomposePar -force", case, "log.decomposePar")
         start = 0.0
     else:
         # the level's periodic state, run on at a smaller Courant number
         shutil.copytree(warm_from, case, ignore=shutil.ignore_patterns("log.*", "postProcessing"))
-        out["warm_from"] = current_time(case, n_proc)
+        out["warm_from"] = current_time(case)
         # periods start on a period boundary, so the targets stay at their
         # phases: the next one after the restart time
         start = math.ceil(out["warm_from"] / PERIOD - 1e-9) * PERIOD
@@ -480,7 +470,7 @@ def run_level(name: str, k: int, work: Path, n_proc: int, targets: list[float],
     for p in range(1, max_periods + 1):
         t0 = start + (p - 1) * PERIOD
         # from the restart time: the previous period's last sample
-        write_inlet(case, xi, min(t0, current_time(case, n_proc)), t0 + PERIOD)
+        write_inlet(case, xi, min(t0, current_time(case)), t0 + PERIOD)
         rows, w0 = [], time.time()
         for ph in targets:
             t = t0 + ph * PERIOD
@@ -488,7 +478,7 @@ def run_level(name: str, k: int, work: Path, n_proc: int, targets: list[float],
             wall += ex
             steps += n
             rows.append(sample(case, t))
-        prune(case, n_proc, keep=t0 + targets[-1] * PERIOD)
+        prune(case, keep=t0 + targets[-1] * PERIOD)
         rec = {"period": p, "wall_time": time.time() - w0, "rows": rows}
         if prev is not None:
             rec["change"] = change(prev, rows)

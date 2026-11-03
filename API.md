@@ -297,9 +297,10 @@ supported (`TypeError`).
   roll 90). Splines and closures, whose bend plane varies, are checked
   against the half-diagonal.
 - **Fittings.** `Straight`, `Bend`, `MiterBend`, `SplinePipe`,
-  `Closure`, `Reducer` (to another size) and `Transition` (to a circle,
-  or to another rectangle). `Elbow` (ASME pipe schedules), `Tee` and
-  `Wye` reject ducts.
+  `Closure`, `Reducer` (to another size), `Transition` (to a circle,
+  or to another rectangle) and `Tee` as a duct tap (a rectangular or
+  round branch, or a full-width tap; tasks 0057, 0070, under `Tee`).
+  `Elbow` (ASME pipe schedules) and `Wye` reject ducts.
 - **Diameters.** `extend_open_ends` measures a duct in hydraulic
   diameters, 4A / P_w = `4·half_w·half_h / (half_w + half_h)`.
 - **Cells.** `nang_w·nang_h + 2·(nang_w + nang_h)·nrad` per section.
