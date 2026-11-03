@@ -148,6 +148,19 @@ relies on them.
 
    Every case passes with these readings, at margins of 0.07 or more.
    Confirm them, or set them, before a rerun relies on them.
+
+   **Design answer (2026-11-03): accepted as read** (the user: "accept
+   the 0093 gate readings").  They are now the gates, written as
+   numbers in `case.json` and so in `docs/GALLERY.md`:
+   - layered_conduction, L2 order per region: 2 ± 0.2;
+   - layered_conduction, energy balance: |imbalance| ≤ 1e-8, relative
+     to the heat in;
+   - rect_duct's control, observed order: 2 ± 0.2, with status
+     `converging` (task 0089).
+
+   `run.py`'s `BALANCE_TOL` and `ORDER_TOL` match.  Their comments still
+   call them a reading and say that no tolerance was set in advance;
+   update them when the files are next touched.
 2. **stenosis_pulsatile's feature gate** can't be recomputed from what is
    stored: it is RESULTS.md's judgement.  A rerun will store
    `comparison`, with `features` and `dns_features` per phase.  Should

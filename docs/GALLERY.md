@@ -882,7 +882,7 @@ Case: `validation/heated_rod/`: [README.md](../validation/heated_rod/README.md),
 
 Tags: `conduction`, `section:circle`, `layers`, `straight`, `OpenFOAM v1912 (native)`.
 
-Gates: checkMesh: Mesh OK, every region, every level; energy balance through every interface and the outer wall: balanced (no tolerance set in advance; measured $\le 1.2 \times 10^{-9}$); extrapolated $T_0$, $T(r_1)$, $T(r_2)$: within 0.1 % of exact; L2 order per region: $\approx 2$.
+Gates: checkMesh: Mesh OK, every region, every level; energy balance through every interface and the outer wall: $\le 10^{-8}$ (relative; measured $5 \times 10^{-12}$ to $1.2 \times 10^{-9}$); extrapolated $T_0$, $T(r_1)$, $T(r_2)$: within 0.1 % of exact; L2 order per region: $2 \pm 0.2$.
 
 <p><img src="../validation/layered_conduction/img/k1.png" width="68%"> <img src="../validation/layered_conduction/img/k1_section.png" width="29%"></p>
 
@@ -906,7 +906,7 @@ Case: `validation/poiseuille/`: [README.md](../validation/poiseuille/README.md),
 
 Tags: `laminar`, `flow`, `section:rect`, `straight`, `OpenFOAM v2406 (docker)`.
 
-Gates: Cartesian control: extrapolated $f\,\mathrm{Re}$ and $u_c$, every aspect ratio: within 0.1 % of exact; Cartesian control: finest-level |error|: < 1 %; Cartesian control: observed order: near 2 (else the setup is suspect); hexmesh O-H levels: reported against the control, not gated (decision 0015 amendment 2).
+Gates: Cartesian control: extrapolated $f\,\mathrm{Re}$ and $u_c$, every aspect ratio: within 0.1 % of exact; Cartesian control: finest-level |error|: < 1 %; Cartesian control: observed order: $2 \pm 0.2$, status converging (else the setup is suspect); hexmesh O-H levels: reported against the control, not gated (decision 0015 amendment 2).
 
 <p><img src="../validation/rect_duct/img/ar1_k1.png" width="68%"> <img src="../validation/rect_duct/img/ar1_k1_section.png" width="29%"></p>
 

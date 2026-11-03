@@ -37,7 +37,7 @@
     },
     {
       "quantity": "Cartesian control: observed order",
-      "limit": "near 2 (else the setup is suspect)"
+      "limit": "$2 \\pm 0.2$, status converging (else the setup is suspect)"
     },
     {
       "quantity": "hexmesh O-H levels",
