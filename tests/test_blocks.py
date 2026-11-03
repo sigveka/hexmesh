@@ -106,6 +106,26 @@ class TestValidation:
         with pytest.raises(LayoutError, match="port face .* not used"):
             lay.validate()
 
+    def test_messages_do_not_depend_on_the_hash_seed(self):
+        """The same bad layout gives the same message under any
+        ``PYTHONHASHSEED`` (vertex keys sorted, port faces checked in
+        order): agents read these messages (decision 0019)."""
+        import os
+        import subprocess
+        import sys
+        code = ("from tests.test_blocks import BlockStraight, A, B, _one\n"
+                "from hexmesh.assembly.blocks import LayoutError\n"
+                "lay = BlockStraight(0.3, 3).layout(A, B, _one()); lay.blocks.pop(0)\n"
+                "try:\n    lay.validate()\nexcept LayoutError as e:\n    print(e)\n")
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        out = {subprocess.run([sys.executable, "-c", code], capture_output=True, text=True,
+                              cwd=root, check=True,
+                              env={**os.environ, "PYTHONHASHSEED": seed}).stdout
+               for seed in ("0", "1", "2", "3")}
+        assert len(out) == 1, out
+        assert out.pop().strip() == ("port face {('A', 0, 0), ('A', 0, 1), ('A', 0, 2), "
+                                     "('A', 0, 3)} is not used by any block")
+
     def test_inverted_block(self):
         lay = BlockStraight(0.3, 3).layout(A, B, _one())
         ids, m = lay.blocks[1]

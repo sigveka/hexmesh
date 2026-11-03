@@ -107,6 +107,17 @@ def _key(*ids) -> frozenset:
     return frozenset(ids)
 
 
+def _show(k) -> str:
+    """An edge or face key for messages, its vertices sorted, so the text
+    doesn't depend on the hash seed (the agent SDK, decision 0019)."""
+    return "{" + ", ".join(sorted(map(repr, k))) + "}"
+
+
+def _ordered(keys):
+    """*keys* (edge or face keys) in a hash-seed-independent order."""
+    return sorted(keys, key=_show)
+
+
 def _level(cyc):
     """The common level of a face's vertices ``(prefix, level, k)``, or None."""
     if all(isinstance(v, tuple) and len(v) == 3 for v in cyc):
@@ -288,8 +299,8 @@ class BlockLayout:
             if r in root_count and root_count[r][0] != n:
                 other = root_count[r][1]
                 raise LayoutError(
-                    f"division conflict: edge {set(k)} needs {n} but parallel "
-                    f"edge {set(other)} needs {root_count[r][0]}"
+                    f"division conflict: edge {_show(k)} needs {n} but parallel "
+                    f"edge {_show(other)} needs {root_count[r][0]}"
                 )
             root_count[r] = (n, k)
 
@@ -306,8 +317,8 @@ class BlockLayout:
             if r in root_grading and not _same_grading(root_grading[r][0], g):
                 other = root_grading[r][1]
                 raise LayoutError(
-                    f"grading conflict: edge {set(k)} is graded {e.grading} but "
-                    f"parallel edge {set(other)} is graded "
+                    f"grading conflict: edge {_show(k)} is graded {e.grading} but "
+                    f"parallel edge {_show(other)} is graded "
                     f"{self.edges[other].grading} (directions compared along the class)"
                 )
             root_grading[r] = (g, k)
@@ -317,7 +328,7 @@ class BlockLayout:
             r = find(k)
             if r not in root_count:
                 raise LayoutError(
-                    f"edge {set(k)} has no division count (its parallel class "
+                    f"edge {_show(k)} has no division count (its parallel class "
                     f"reaches no edge with a fixed count)"
                 )
             g = root_grading.get(r, (("Progression", 1.0), None))[0]
@@ -344,12 +355,12 @@ class BlockLayout:
         use = self.face_use()
         for k, users in use.items():
             if len(users) > 2:
-                raise LayoutError(f"face {set(k)} is shared by {len(users)} blocks")
-        for k in self.port_faces:
+                raise LayoutError(f"face {_show(k)} is shared by {len(users)} blocks")
+        for k in _ordered(self.port_faces):
             if k not in use:
-                raise LayoutError(f"port face {set(k)} is not used by any block")
+                raise LayoutError(f"port face {_show(k)} is not used by any block")
             if len(use[k]) != 1:
-                raise LayoutError(f"port face {set(k)} is interior to the layout")
+                raise LayoutError(f"port face {_show(k)} is interior to the layout")
         self._classes = self._division_classes()
         sj = self.corner_jacobians()
         if sj.min() <= 0:
@@ -524,9 +535,9 @@ class BlockLayout:
                 for a, b in group:
                     self._curve(ids[a], ids[b])
 
-        unbound = [set(k) for k in self.port_faces if k not in self.faces]
+        unbound = [_show(k) for k in _ordered(self.port_faces) if k not in self.faces]
         if unbound:
-            raise LayoutError(f"port faces not bound before realise: {unbound[:2]}")
+            raise LayoutError(f"port faces not bound before realise: {', '.join(unbound[:2])}")
         result = FillResult()
         surf_of: dict[frozenset, int] = {}
         for k, users in use.items():
