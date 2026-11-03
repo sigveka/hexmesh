@@ -1981,8 +1981,10 @@ growing.  Decision 0037 (accepted 2026-11-02) sets the boundaries.
     `skewed_network` moved 1.23e-11.
   - Cause: a circle vertex computed as `p + u·right + v·up` instead of
     `p + r·(cos a·right + sin a·up)`.  The two differ by at most 9e-16.
-  - Design answer: restore the old expression, which gives 0.0 drift.
-    Refactor acceptance stays bit-exact.
+  - Design answer: restore the old expression.  Refactor acceptance
+    stays bit-exact.
+  - Done in `6546043`: both builds are back to 0.0.  All 473 meshes are
+    within 1.1e-15 of `8fc5a49`.
 - **Open observation:** the oblique tee amplifies vertex round-off by
   about 10⁵.  The source is not traced.  It matters if meshes must be
   reproducible bit for bit across platforms (decision 0039).
