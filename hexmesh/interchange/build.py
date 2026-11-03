@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 The builder (decision 0032): a network model → an ``Assembly``.
 
@@ -300,7 +312,8 @@ def _describe(c: _Comp, label: str) -> str:
 
 
 def _radius(spec) -> float:
-    return spec.core_shape.radius
+    """The core radius: pipe sections are round (``max_extent``)."""
+    return spec.core_shape.max_extent
 
 
 def _branch_radius(spec, R: float, branch: Section, main_bore: float) -> float:
@@ -631,7 +644,7 @@ def _dressed(spec, t: float, nrad: int):
     shells = spec.shells
     if shells and shells[-1].name == INSULATION:
         shells = shells[:-1]
-    bare = spec.with_radii([spec.core_shape.radius] + [sh.dR for sh in shells])
+    bare = spec.with_radii([_radius(spec)] + [sh.dR for sh in shells])
     return bare.shell(INSULATION, dR=t, nrad=nrad) if t > 0 else bare
 
 
@@ -1267,7 +1280,7 @@ def _place_chain(asm, iface, chain, end_dir, spec, kinks, tol, ins, to_junction,
                     outlet = _dressed(outlet, _thickness(iface.spec), ins["nrad"])
             else:
                 cur = iface.spec
-                radii = [cur.core_shape.radius * c.end_bore / c.bore] + [sh.dR for sh in cur.shells]
+                radii = [_radius(cur) * c.end_bore / c.bore] + [sh.dR for sh in cur.shells]
                 outlet = cur.with_radii(radii)
             if not straight_on(k, frame):
                 raise AssemblyError(f"{label(k)}: reducer axis is not the incoming direction")

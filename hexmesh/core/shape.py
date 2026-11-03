@@ -64,15 +64,66 @@ questions, so the ring builder and the checks never ask which shape it is
 ``period(n)``            smallest roll (radians) mapping it onto itself
                          with *n* corners;
 ``to_dict()``            JSON form, read back by ``shape_from_dict``.
+
+The shape protocol (task 0083)
+------------------------------
+``Shape`` is what callers outside the outline and section code ask of any
+shape, so they never ask which class it is.  All three shapes implement it.
+Circles and rectangles also have the ring and offset methods above
+(``ring_corner``, ``side``, ``distance``, ``grown``, ``scaled``, ``lerp``,
+``to_dict``); a ``BlendShape`` station is built from them and has none.
+
+``is_round``             a circle: what a fitting checks when its rule is
+                         "round pipes only" (the rule stays the fitting's);
+``is_station``           a ``Transition``'s blended station, not an
+                         outline a spec can be given;
+``hydraulic_diameter``   4A / P of the area inside it;
+``angular_counts``       the ``PipeSpec`` density parameters it sets, by
+                         name (``{"nang": …}`` or ``{"nang_w": …,
+                         "nang_h": …}``);
+``label``                a short description for messages (``"circle"``,
+                         ``"2:1 rectangle"``);
+plus ``side_curve``, ``max_extent``, ``counts``, ``corner``,
+``corners_from``, ``side_count``, ``extent`` and ``period`` above.  A
+round shape's radius is its ``max_extent``.
 """
 
 from __future__ import annotations
 import functools
 import math
 from dataclasses import dataclass
-from typing import Union
+from typing import Protocol, runtime_checkable
 
 import numpy as np
+
+
+@runtime_checkable
+class Shape(Protocol):
+    """What callers ask of any shape (module docstring, "The shape
+    protocol").  ``CircleShape``, ``RectShape`` and ``BlendShape``."""
+
+    side_curve: str
+
+    @property
+    def max_extent(self) -> float: ...
+    @property
+    def counts(self) -> tuple[int, int]: ...
+    @property
+    def is_round(self) -> bool: ...
+    @property
+    def is_station(self) -> bool: ...
+    @property
+    def hydraulic_diameter(self) -> float: ...
+    @property
+    def angular_counts(self) -> dict[str, int]: ...
+    @property
+    def label(self) -> str: ...
+
+    def corner(self, k: int) -> np.ndarray: ...
+    def corners_from(self, directions) -> list[np.ndarray]: ...
+    def side_count(self, k: int, n_corners: int) -> int: ...
+    def extent(self, angle): ...
+    def period(self, n_corners: int) -> float: ...
 
 
 @dataclass(frozen=True)
@@ -101,6 +152,20 @@ class CircleShape:
     def max_extent(self) -> float:
         """Maximum radial extent from centre (radius)."""
         return self.radius
+
+    # -- shape protocol (task 0083) ---------------------------------------
+
+    is_round = True
+    is_station = False
+    label = "circle"
+
+    @property
+    def hydraulic_diameter(self) -> float:
+        return 2.0 * self.radius
+
+    @property
+    def angular_counts(self) -> dict[str, int]:
+        return {"nang": self.nang}
 
     # -- outline protocol (decision 0026) ---------------------------------
 
@@ -194,6 +259,24 @@ class RectShape:
         """True when half_w == half_h and nang_w == nang_h."""
         return self.half_w == self.half_h and self.nang_w == self.nang_h
 
+    # -- shape protocol (task 0083) ---------------------------------------
+
+    is_round = False
+    is_station = False
+
+    @property
+    def hydraulic_diameter(self) -> float:
+        return 4 * self.half_w * self.half_h / (self.half_w + self.half_h)
+
+    @property
+    def angular_counts(self) -> dict[str, int]:
+        return {"nang_w": self.nang_w, "nang_h": self.nang_h}
+
+    @property
+    def label(self) -> str:
+        w, h = self.half_w, self.half_h
+        return f"{max(w, h) / min(w, h):.3g}:1 rectangle"
+
     # -- outline protocol (decision 0026) ---------------------------------
 
     side_curve = "line"
@@ -244,8 +327,6 @@ class RectShape:
         return {"type": "rect", "half_w": self.half_w, "half_h": self.half_h,
                 "nang_w": self.nang_w, "nang_h": self.nang_h}
 
-
-Shape = Union[CircleShape, RectShape]
 
 #: ``to_dict()`` type tag → outline class.
 SHAPES = {"circle": CircleShape, "rect": RectShape}
@@ -422,6 +503,24 @@ class BlendShape:
         def sq(s):
             return isinstance(s, CircleShape) or s.half_w == s.half_h
         return sq(self.inlet) and sq(self.outlet) and self.nang_w == self.nang_h
+
+    # -- shape protocol (task 0083) ---------------------------------------
+
+    is_round = False
+    is_station = True
+    label = "blended station"
+
+    @property
+    def hydraulic_diameter(self) -> float:
+        """4A / P of the sampled outline (``boundary``)."""
+        p = self.boundary
+        q = np.roll(p, -1, axis=0)
+        area = 0.5 * abs(float(np.sum(p[:, 0] * q[:, 1] - q[:, 0] * p[:, 1])))
+        return 4 * area / float(np.sum(np.linalg.norm(q - p, axis=1)))
+
+    @property
+    def angular_counts(self) -> dict[str, int]:
+        return {"nang_w": self.nang_w, "nang_h": self.nang_h}
 
     # -- outline protocol, as far as a station needs it -------------------
 

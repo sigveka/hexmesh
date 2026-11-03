@@ -35,7 +35,6 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from ..core.cross_section import LayeredCrossSection
-from ..core.shape import CircleShape, RectShape
 from ..core.spec import PipeSpec
 from .. import sections
 from .limits import OUTLINE_MIN_GAP
@@ -203,13 +202,8 @@ def half_extent(spec: PipeSpec, angle: float) -> float:
 
 
 def hydraulic_diameter(spec: PipeSpec) -> float:
-    """Hydraulic diameter 4A / P_w of the core (the flow passage): a
-    circle's diameter; ``4·hw·hh / (hw + hh)`` for a rectangle of
-    half-extents hw, hh."""
-    shape = spec.core_shape
-    if isinstance(shape, RectShape):
-        return 4 * shape.half_w * shape.half_h / (shape.half_w + shape.half_h)
-    return 2.0 * shape.radius
+    """Hydraulic diameter 4A / P_w of the core (the flow passage)."""
+    return spec.core_shape.hydraulic_diameter
 
 
 @dataclass(eq=False)
@@ -255,7 +249,7 @@ def build_face(spec: PipeSpec, frame: Frame, lc: float,
 def check_supported(spec: PipeSpec) -> None:
     """Raise if *spec* uses a cross-section the prototype cannot fill."""
     shape = spec.core_shape
-    if not isinstance(shape, (CircleShape, RectShape)):
+    if shape.is_station:
         raise NotImplementedError(
             f"assembly supports circular and rectangular cores, "
             f"got {type(shape).__name__}."

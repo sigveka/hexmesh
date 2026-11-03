@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Equipment nozzles as network boundaries (decision 0002, docs/tasks/0010).
 
@@ -42,7 +54,6 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from ..core.shape import CircleShape
 from ..core.spec import PipeSpec
 from .interface import Frame, outer_radius
 
@@ -239,7 +250,7 @@ class Drum:
         for n in self.nozzles:
             where = f"drum {self.name}, nozzle {n.name}"
             for lname, o in zip(n.spec.layer_names, n.spec.outlines):
-                if not isinstance(o, CircleShape):
+                if not o.is_round:
                     raise EquipmentError(f"{where}: drum nozzles are circular pipes, "
                                          f"layer `{lname}` is a {type(o).__name__}")
             r = outer_radius(n.spec)

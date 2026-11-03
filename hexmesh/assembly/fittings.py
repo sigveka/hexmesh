@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Fittings — fills between existing interface faces (DESIGN.md §6, rule A2).
 
@@ -22,7 +34,7 @@ from dataclasses import dataclass, field, replace
 
 import numpy as np
 
-from ..core.shape import BlendShape, CircleShape, RectShape
+from ..core.shape import BlendShape
 from ..core.spec import PipeSpec
 from .interface import (Frame, check_outlines, half_extent, outer_radius, roll_mismatch,
                         rotate, toward_roll)
@@ -631,10 +643,10 @@ class Transition(Sweep):
         a, b = spec, self.outlet
         for end, s in (("inlet", a), ("outlet", b)):
             for lname, o in zip(s.layer_names, s.outlines):
-                if not isinstance(o, (CircleShape, RectShape)):
+                if o.is_station:
                     raise ValueError(f"Transition joins circles and rectangles; layer "
                                      f"`{lname}` at the {end} is a {type(o).__name__}")
-        if all(isinstance(o, CircleShape) for o in a.outlines + b.outlines):
+        if all(o.is_round for o in a.outlines + b.outlines):
             raise ValueError("Transition changes outline shapes; for circles at both "
                              "ends (sizes only) use Reducer")
         # different layers are a class difference, named by the assembly's
@@ -707,9 +719,7 @@ def _points(corners) -> tuple:
 
 
 def _counts(s) -> str:
-    if isinstance(s, CircleShape):
-        return f"nang {s.nang}"
-    return f"nang_w {s.nang_w}, nang_h {s.nang_h}"
+    return ", ".join(f"{k} {v}" for k, v in s.angular_counts.items())
 
 
 # ---------------------------------------------------------------------------

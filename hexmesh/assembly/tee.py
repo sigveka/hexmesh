@@ -115,11 +115,11 @@ def _is_duct(spec: PipeSpec) -> bool:
 
 
 def _check_circle(spec: PipeSpec) -> None:
-    if not isinstance(spec.core_shape, CircleShape):
+    if not spec.core_shape.is_round:
         raise ValueError("Tee: a pipe tee needs a circular main; a rectangular "
                          "main is a duct tap (branch=, face=; decision 0033)")
     for sh, o in zip(spec.shells, spec.outlines[1:]):
-        if not isinstance(o, CircleShape):
+        if not o.is_round:
             raise ValueError(f"Tee: shell `{sh.name}` is not circular; junction "
                              f"shells are circular only (decisions 0026, 0028)")
 

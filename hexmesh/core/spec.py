@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Declarative pipe and bundle specifications.
 
@@ -295,13 +307,13 @@ class PipeSpec:
 
         self._validate_shape_nang(shape)
         if first_cell is not None:
-            if not isinstance(shape, CircleShape):
+            if not shape.is_round:
                 raise TypeError("first_cell= supports circular cores only")
             if self._n_outer != 4:
                 raise TypeError("first_cell= supports n_outer=4 cores only")
             # Solved on the thickest span (mid-arc), so first_cell is the
             # largest wall cell; at the corners it is 0.4/0.491 ≈ 0.81 of it.
-            mprg = _wall_progression(mprg, oh_core_wall_span(shape.radius),
+            mprg = _wall_progression(mprg, oh_core_wall_span(shape.max_extent),
                                      nrad, first_cell)
         _check_layer_name(name)
         self._core = (name, shape)
@@ -487,9 +499,8 @@ class PipeSpec:
         (NE→NW first): ``nang // (n_outer // 4)`` per arc of a circle;
         ``(nang_w, nang_h, nang_w, nang_h)`` for a rectangle."""
         shape = self.core_shape
-        if isinstance(shape, CircleShape):
-            return (shape.nang // (self._n_outer // 4),) * self._n_outer
-        return (shape.nang_w, shape.nang_h) * 2
+        n = self._n_outer if shape.is_round else 4
+        return tuple(shape.side_count(k, n) for k in range(n))
 
     @property
     def period(self) -> float:
@@ -516,15 +527,22 @@ class PipeSpec:
     # ------------------------------------------------------------------
 
     def _validate_shape_nang(self, shape: Shape) -> None:
-        """Check that shape angular divisions match PipeSpec-level values."""
-        if isinstance(shape, CircleShape):
-            if self._nang is not None and shape.nang != self._nang:
+        """Check that shape angular divisions match PipeSpec-level values.
+        A ``Transition`` station's come from its two ends, checked there."""
+        if shape.is_station:
+            return
+        counts = shape.angular_counts
+        for name, n in counts.items():
+            mine = getattr(self, f"_{name}")
+            if mine is not None and n != mine:
                 raise ValueError(
-                    f"CircleShape.nang={shape.nang} does not match "
-                    f"PipeSpec(nang={self._nang})."
+                    f"{type(shape).__name__}.{name}={n} does not match "
+                    f"PipeSpec({name}={mine})."
                 )
-            if self._nang is None:
-                self._nang = shape.nang
+        for name, n in counts.items():
+            if getattr(self, f"_{name}") is None:
+                setattr(self, f"_{name}", n)
+        if "nang" in counts:
             # Enforce nang % (n_outer // 4) == 0 once nang is resolved.
             divisor = self._n_outer // 4
             if self._nang % divisor != 0:
@@ -532,21 +550,6 @@ class PipeSpec:
                     f"PipeSpec nang={self._nang} must be divisible by "
                     f"n_outer//4={divisor} (n_outer={self._n_outer})."
                 )
-        elif isinstance(shape, RectShape):
-            if self._nang_w is not None and shape.nang_w != self._nang_w:
-                raise ValueError(
-                    f"{type(shape).__name__}.nang_w={shape.nang_w} does not match "
-                    f"PipeSpec(nang_w={self._nang_w})."
-                )
-            if self._nang_h is not None and shape.nang_h != self._nang_h:
-                raise ValueError(
-                    f"{type(shape).__name__}.nang_h={shape.nang_h} does not match "
-                    f"PipeSpec(nang_h={self._nang_h})."
-                )
-            if self._nang_w is None:
-                self._nang_w = shape.nang_w
-            if self._nang_h is None:
-                self._nang_h = shape.nang_h
 
     # ------------------------------------------------------------------
     # Serialisation (docs/tasks/0006)
@@ -643,7 +646,7 @@ class BundleSpec:
         if not self.pipe.shells:
             raise ValueError("BundleSpec.pipe has no shell layers defined.")
         outermost = self.pipe.outlines[-1]
-        if not isinstance(outermost, RectShape):
+        if outermost.side_curve != "line":           # cells tile on flat sides
             raise TypeError(
                 "BundleSpec.pipe must end with a rectangular shell "
                 f"(outer=RectShape); got {type(outermost).__name__}."

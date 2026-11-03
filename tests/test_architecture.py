@@ -66,9 +66,10 @@ ALLOWED_CYCLES: dict[frozenset, str] = {}
 
 #: shape-specific sites outside core/shape.py and sections: 69 at task 0081
 #: (RESEARCH §12's cruder grep found 89), 59 at task 0082 (the face
-#: dispatch, corner 0 and side counts moved into sections); task 0083
-#: replaces them with a shape protocol.  Only goes down.
-SHAPE_SITES_CAP = 59
+#: dispatch, corner 0 and side counts moved into sections), 15 at task
+#: 0083 (the shape protocol; all 15 in tee.py, left for the tee split,
+#: task 0060).  Only goes down.
+SHAPE_SITES_CAP = 15
 SHAPE_TYPES = {"CircleShape", "RectShape", "BlendShape"}
 SHAPE_FIELDS = {"radius", "half_w", "half_h", "nang_w", "nang_h"}
 SHAPE_VALUES = {"core_shape", "shape", "branch"}

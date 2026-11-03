@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Predicted cross-section quality, without GMSH (DESIGN P3; task 0047,
 decision 0026 item 4).
@@ -35,7 +47,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from ..core.shape import CircleShape, RectShape, outline
+from ..core.shape import outline
 from ..core.spec import PipeSpec
 from .limits import OUTLINE_NONORTH_MAX, OUTLINE_NONORTH_WARN, PREDICTED_SJ_MIN, PREDICTED_SJ_WARN
 
@@ -172,8 +184,7 @@ def section_quality(spec: PipeSpec) -> list[LayerQuality]:
     layer inside it.  Needs circle and rectangle outlines and
     ``n_outer = 4``, as ``check_supported``.
     """
-    if spec.n_outer != 4 or not all(isinstance(o, (CircleShape, RectShape))
-                                    for o in spec.outlines):
+    if spec.n_outer != 4 or any(o.is_station for o in spec.outlines):
         raise NotImplementedError("section_quality needs circle and rectangle "
                                   "outlines and n_outer = 4")
     quads, layer = [], []
@@ -224,14 +235,7 @@ def changes_shape(spec: PipeSpec, i: int) -> bool:
     inner, outer = spec.outlines[i - 1], spec.outlines[i]
     if spec.shells[i - 1].dR is not None:
         return False
-    return not (isinstance(inner, CircleShape) and isinstance(outer, CircleShape))
-
-
-def _describe(shape) -> str:
-    if isinstance(shape, CircleShape):
-        return "circle"
-    w, h = shape.half_w, shape.half_h
-    return f"{max(w, h) / min(w, h):.3g}:1 rectangle"
+    return not (inner.is_round and outer.is_round)
 
 
 def check_section_quality(spec: PipeSpec) -> list[str]:
@@ -249,8 +253,8 @@ def check_section_quality(spec: PipeSpec) -> list[str]:
     warn = []
     for i in shells:
         q = quality[i]
-        what = (f"layer `{q.name}` ({_describe(spec.outlines[i - 1])} in a "
-                f"{_describe(spec.outlines[i])})")
+        what = (f"layer `{q.name}` ({spec.outlines[i - 1].label} in a "
+                f"{spec.outlines[i].label})")
         if q.min_sj < PREDICTED_SJ_MIN:
             raise ValueError(f"{what}: predicted corner scaled Jacobian {q.min_sj:.3f} "
                              f"is below PREDICTED_SJ_MIN {PREDICTED_SJ_MIN:g}")

@@ -65,6 +65,54 @@ implementations), then the callers: `core/spec.py`,
 
 ## Agent notes
 
+- **Design refinement (design session, 2026-11-03, the user agreed;
+  answer to 0082's Q1).**  The O-H formulas move from `core` to
+  `sections` (decision 0037: sections own their layout).  DESIGN §3.1
+  doesn't make layout geometry part of `core`.  Once the shape protocol
+  exists, `core` asks the shape for shape geometry only.  Three places
+  get their layout-dependent part from `sections`, through the protocol
+  or a caller-supplied layout, not by importing it:
+  - `spec.corners()`;
+  - `first_cell`'s wall span;
+  - `BlendShape`'s inner outline.
+
+  The `core/shape.py` section "O-H face geometry" then moves to
+  `sections/oh.py`.  Any of the three that can't be done without `core`
+  importing `sections` goes under *Questions for design*.
+- **Step 1, the questions** (the 59 sites the cap counted at 0082):
+
+  | question | sites | answer |
+  |---|---|---|
+  | hydraulic diameter | `interface.hydraulic_diameter` (6) | `shape.hydraulic_diameter` |
+  | side counts of the core | `spec.side_counts` (3) | `shape.side_count(k, n)` (existed) |
+  | density parameters it sets | `spec._validate_shape_nang` (8), `fittings._counts` (1) | `shape.angular_counts` |
+  | is it round (a fitting's or option's rule) | `spec.core(first_cell=)` (1), `section_quality.changes_shape` (2), `equipment` (1), `Transition` "use Reducer" (1), wye (2), tee `_check_circle` (2) | `shape.is_round` |
+  | is it a `Transition` station | `interface.check_supported` (1), `section_quality` (1), `Transition.check` (1) | `shape.is_station` |
+  | a description for messages | `section_quality._describe` (3) | `shape.label` |
+  | flat sides (cells tile) | `BundleSpec` (1) | `side_curve == "line"` (existed) |
+  | the round core's radius | `first_cell` (1), wye (6), `interchange/build` (3) | `max_extent` (existed) |
+  | tee: branch and main dispatch, radii | `tee.py` (15) | left for the tee split (0060) |
+
+  `pcf.py` and `intent.py` had no sites left by 0082 (the cruder grep of
+  RESEARCH §12 counted them).  The area and the outline at a corner
+  parameter weren't asked anywhere outside the shape code, so the
+  protocol doesn't have them.
+- **Step 2:** `Shape` is a `typing.Protocol` (`runtime_checkable`) in
+  `core/shape.py`, replacing the `Union` alias of the same name.  Its
+  members are `is_round`, `is_station`, `hydraulic_diameter`,
+  `angular_counts`, `label`, and the existing `side_curve`,
+  `max_extent`, `counts`, `corner`, `corners_from`, `side_count`,
+  `extent` and `period`.  All three shapes implement it.  A blend's
+  `hydraulic_diameter` comes from its sampled `boundary`.  Circles and
+  rectangles also keep the ring and offset methods, which a blend
+  doesn't have.  The module docstring says so.
+- **Kept behaviour:**
+  - `_validate_shape_nang` skips stations (`is_station`), as the old
+    `isinstance` chain did implicitly.  Messages are unchanged, as
+    `f"{type(shape).__name__}.{name}=…"`.
+  - `spec.side_counts` uses `n_outer` on a round core and 4 otherwise,
+    as before.
+
 ## Questions for design
 
 ## Outcome

@@ -54,7 +54,7 @@ from dataclasses import dataclass, field, replace
 
 import numpy as np
 
-from ..core.shape import CircleShape, OH_RATIO
+from ..core.shape import OH_RATIO
 from ..core.spec import PipeSpec
 from . import limits
 from .blocks import (
@@ -226,7 +226,7 @@ class Wye:
         probe.check(spec)
         frames = [inlet] + [f for f, _ in probe.ports(inlet, spec)]
         lengths = probe.layout(frames, spec).edge_lengths().values()
-        h = 0.5 * math.pi * spec.core_shape.radius / spec.nang
+        h = 0.5 * math.pi * spec.core_shape.max_extent / spec.nang
         if axial_cell is not None:
             h = min(h, axial_cell)
         counts = {n: max(1, math.ceil(max(L for L, d in lengths if d == _SENTINELS[n]) / h - 1e-9))
@@ -263,12 +263,12 @@ class Wye:
         """The wall (or, with *radius*, an offset of it) as a projector: the
         union of the inlet and daughter tubes (decision 0029)."""
         o, n, _, dl, dr = self._axes(inlet)
-        rho = spec.core_shape.radius if radius is None else radius
+        rho = spec.core_shape.max_extent if radius is None else radius
         return TubeUnion([Tube(tuple(o), tuple(d), rho) for d in (-n, dl, dr)])
 
     def skeleton(self, inlet: Frame, spec: PipeSpec) -> Skeleton:
         o, n, _, dl, dr = self._axes(inlet)
-        return Skeleton(o, n, (dl, dr), spec.core_shape.radius)
+        return Skeleton(o, n, (dl, dr), spec.core_shape.max_extent)
 
     # -- ports --------------------------------------------------------
 
@@ -279,10 +279,10 @@ class Wye:
     # -- topology -----------------------------------------------------
 
     def check(self, spec: PipeSpec) -> None:
-        if not isinstance(spec.core_shape, CircleShape):
+        if not spec.core_shape.is_round:
             raise ValueError("Wye prototype supports circular cores only")
         for sh, outline in zip(spec.shells, spec.outlines[1:]):
-            if not isinstance(outline, CircleShape):
+            if not outline.is_round:
                 raise ValueError(f"Wye: shell `{sh.name}` is not circular; junction "
                                  f"shells are circular only (decisions 0026, 0028)")
         if spec.shells:
@@ -298,7 +298,7 @@ class Wye:
             raise ValueError(
                 f"Wye angle {self.angle:g}° is outside the prototype range "
                 f"{lo:g}°–{hi:g}°")
-        g = self.placement(spec.core_shape.radius)
+        g = self.placement(spec.core_shape.max_extent)
         if self.run_length <= g["s_in"]:
             raise ValueError(
                 f"run_length must exceed {g['s_in']:.4g} at {self.angle:g}° "
@@ -326,7 +326,7 @@ class Wye:
                 f"WYE_SHELL_MIN_ANGLE {limits.WYE_SHELL_MIN_ANGLE:g}°: the shell "
                 f"cells' quality collapses (single-layer wyes go down to "
                 f"{ANGLE_RANGE[0]:g}°)")
-        R = spec.core_shape.radius
+        R = spec.core_shape.max_extent
         T = spec.outlines[-1].radius - R
         h = math.radians(self.angle) / 2
         allowed = R * min(limits.WYE_SHELL_TAN_FACTOR * math.tan(h), limits.WYE_SHELL_MAX)
@@ -342,7 +342,7 @@ class Wye:
         # Declared in the rolled inlet frame; fill() binds the inlet face
         # (built unrolled) with the corner shift.  Outlets are rolled already.
         A, L, Rp = rolled(frames[0], self.roll), frames[1], frames[2]
-        R = spec.core_shape.radius
+        R = spec.core_shape.max_extent
         names = spec.layer_names
         levels = range(1, len(names) + 1)            # wall and shell boundaries
         Rl = {l: R + t for l, t in zip(levels, thicknesses(spec))}
