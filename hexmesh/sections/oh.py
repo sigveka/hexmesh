@@ -138,9 +138,16 @@ class Edge:
 class Level:
     """One corner level: its corners ``(u, v)`` with ``rot`` applied, and
     the edges declared with it (sides, then the corner lines from the
-    level below), in declaration order."""
+    level below), in declaration order.
+
+    On an all-round stack *polar* is the level's ``(radius, angles)``, the
+    same corners as ``position + r·(cos a·right + sin a·up)``: the form
+    the junction blocks were written against, which keeps their meshes
+    bit-identical (task 0082; ``u·right + v·up`` differs by round-off,
+    and the oblique tee amplifies that about 10⁵).  ``None`` otherwise."""
     corners: tuple[np.ndarray, ...]
     edges:   tuple[Edge, ...]
+    polar:   tuple[float, tuple[float, ...]] | None = None
 
 
 def levels(spec) -> list[Level]:
@@ -154,6 +161,12 @@ def levels(spec) -> list[Level]:
     for o in outlines[1:]:
         corners, angles = ring_corners(o, angles, rot)
         pts.append([rotated(p, rot) for p in corners])
+    polar = [None] * len(pts)
+    if all(isinstance(o, CircleShape) for o in outlines):
+        a0 = corner0_angle(spec)
+        ang = tuple(a0 + 2 * math.pi * k / n for k in range(n))
+        radii = [OH_RATIO * outlines[0].radius] + [o.radius for o in outlines]
+        polar = [(r, ang) for r in radii]
     nrads = [spec._core_nrad] + [sh.nrad for sh in spec.shells]
     mprgs = [spec._core_mprg] + [sh.mprg for sh in spec.shells]
     bump = ("Bump", spec.mbmp) if spec.mbmp != 1.0 else None
@@ -167,7 +180,7 @@ def levels(spec) -> list[Level]:
             if lvl:
                 edges.append(Edge((lvl - 1, k), (lvl, k), nrads[lvl - 1],
                                   ("Progression", mprgs[lvl - 1])))
-        out.append(Level(tuple(corners), tuple(edges)))
+        out.append(Level(tuple(corners), tuple(edges), polar[lvl]))
     return out
 
 

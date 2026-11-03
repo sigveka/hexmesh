@@ -584,7 +584,12 @@ def face_vertices(layout: BlockLayout, prefix, frame, spec, port: bool = True) -
     """
     for lvl, level in enumerate(oh.levels(spec)):
         for k, (u, v) in enumerate(level.corners):
-            layout.vertex((prefix, lvl, k), frame.position + u * frame.right + v * frame.up)
+            if level.polar:                       # bit-identical round stacks (Level)
+                r, a = level.polar[0], level.polar[1][k]
+                p = frame.position + r * (np.cos(a) * frame.right + np.sin(a) * frame.up)
+            else:
+                p = frame.position + u * frame.right + v * frame.up
+            layout.vertex((prefix, lvl, k), p)
         for e in level.edges:
             layout.edge((prefix, *e.a), (prefix, *e.b), divisions=e.divisions,
                         grading=e.grading)

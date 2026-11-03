@@ -207,8 +207,21 @@ Neither blocks.
   association only).  Restoring the old expression in `blocks.py` gave
   0.0 difference in both builds.  Placing ring corners by angle did not
   change it.  The oblique tee amplifies vertex round-off by about 10⁵;
-  I didn't trace where.  I kept the single form rather than a
-  circle-only special case in the adapter.
+  I didn't trace where.
+- **Follow-up (design answer, 2026-11-03): the old expression restored.**
+  Design kept the 1e-12 acceptance and asked for the round-stack vertex
+  expression back.  On an all-round stack, `sections.oh.Level` now
+  carries `polar = (radius, angles)`.  `blocks.face_vertices` places
+  those levels as `p + r·(cos a·right + sin a·up)`, with the same radii
+  (`OH_RATIO·r`, `r`, `r + dR`, …) and angles (`corner0 + 2πk/n`) as
+  before 0082.  Other stacks keep `u·right + v·up`.
+  - Checked against a worktree at 8fc5a49 (before 0082), over the same
+    test set: 473 meshes, warnings, tags, `to_dict` and cell counts
+    identical.  `tee-0.5-3layer-oblique` and `skewed_network` are back
+    to 0.0.  36 builds (ducts and transitions) differ by at most 1.1e-15,
+    which was already so in the first comparison (it listed only
+    differences above 1e-12).
+  - `test_sections`, `test_blocks` and `test_architecture`: 79 passed.
 - **Where a new layout must touch now**:
   - `sections/`: a module like `oh.py` (levels, patches, corner 0,
     kinds, side counts), its builders, and the dispatch in
