@@ -152,6 +152,19 @@ Neither blocks.
 
    I lean to (b), decided together with 0084.  It isn't something to
    build now.
+
+   **Design answer (2026-11-03; the user: "I agree"):** decide it in
+   0084, as (c) generalised to every layout.
+   - `core` keeps one table, keyed by layout name, of the scalars that
+     spec-level density needs: the core's wall span for `first_cell`
+     (`OH_RATIO` for `oh`, and whatever `h` needs).
+   - The geometry stays in `sections`.
+   - No registration hook, no global state, and `core` doesn't import
+     `sections`.  A few numbers per layout are spec data, not layout
+     geometry, so DESIGN §3.1 holds.
+   - `sections` tests that its geometry agrees with the table.
+   - It is a step of 0084 (sent to the coding session, which has the
+     task open).
 2. **Are a shape's own corners shape geometry or layout?**
    `shape.corner(k)` puts a circle's corners at 45° + k·90°, which is
    the O-H face's choice.  `spec.corners()` chains rings from there,
@@ -160,6 +173,16 @@ Neither blocks.
    nothing conflicts yet.  A layout with other corners would need
    `spec.corners()` to come from `sections`.  That runs into the same
    problem as Question 1, because the check runs inside `shell()`.
+
+   **Design answer (2026-11-03):** shape geometry.
+   - The structural corners follow from `n_outer` and `rot`, which are
+     spec topology (CLAUDE.md, "Parameter separation").  Every layout
+     must land on them, because junctions need them (DESIGN §7).
+   - A layout with other corners would really be a different `n_outer`
+     or `rot`, not a different layout.
+   - So `shape.corner(k)`, `spec.corners()` and `shell()`'s
+     ring-thickness check stay in `core`.  0084's H layout uses the
+     same corners.
 
 ## Outcome
 

@@ -1995,6 +1995,39 @@ growing.  Decision 0037 (accepted 2026-11-02) sets the boundaries.
   - The junctions take their inner square from `sections.oh` (0086,
     step 4).
 
+### 12.6 After task 0083 (2026-11-03)
+
+`Shape` is a `typing.Protocol`, implemented by all three shapes (task
+0083, `146bf9b`, `712e5a7`).  Its new members are `is_round`,
+`is_station`, `hydraulic_diameter`, `angular_counts` and `label`.
+- **Shape sites: 59 → 15**, all in `tee.py` (the duct-or-pipe dispatch,
+  the branch shorthand, main radius reads).  Task 0060's tee split
+  removes them.  Against the survey's starting count of 89 (§12.2,
+  grep) or 69 (§12.4, AST), this leaves the shape coupling in one
+  module.
+- **The O-H formulas moved to `sections.oh`:** ring thickness, inner
+  corners, inner arc centres, the inner outlines (the blend's
+  included).  `core` keeps the outer outlines, `OH_RATIO` and
+  `oh_core_wall_span`, which `first_cell` needs when the spec is built.
+- **Design answers:**
+  - The wall span becomes a per-layout table of scalars in `core`
+    (a step of 0084).
+  - A shape's structural corners are shape geometry.  They follow from
+    `n_outer` and `rot`, so they stay in `core`.
+- **No behaviour change**, by an extended 0065 method.  The recorder
+  also stored every exception a test expects (`pytest.raises`, 332) and
+  every warning.
+  - 1168 meshes, 439 distinct.  Nodes, tags, `to_dict` and cell counts
+    are identical.
+  - All 634 messages are identical, once temporary paths are masked
+    and sets sorted.
+- **Found:** two `LayoutError` messages in `assembly/blocks.py` print a
+  `set`, so their order follows `PYTHONHASHSEED`.  On unchanged code,
+  `test_port_not_tiled` reported five different port faces across
+  eight seeds.  Fix: sort them (a small commit).  Deterministic
+  messages matter to the agent SDK (decision 0019).
+- **Suite:** 2326 passed, 15 skipped.
+
 ## Source availability
 
 Downloaded to `papers/`: `bennett_2025`, `decroocq_and_frindel_etal_2023`
