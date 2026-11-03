@@ -46,7 +46,7 @@ import gmsh
 from scipy.interpolate import CubicSpline
 
 from .. import _occ
-from ..sections import oh
+from ..sections import layout_of
 from ..core.cross_section import interface_group_name
 from ..quality_hex import corner_scaled_jacobians
 from .corners import curve_endpoints
@@ -588,12 +588,12 @@ class BlockLayout:
 
 def face_vertices(layout: BlockLayout, prefix, frame, spec, port: bool = True) -> None:
     """Declare the corners and edges of *spec*'s face at *frame* (pure),
-    from ``sections.oh.levels``.
+    from the layout's ``levels`` (``sections.layout_of``).
 
     With ``port=False`` the face is an internal station: its patches are
     shared by two blocks and are not declared as port faces.
     """
-    for lvl, level in enumerate(oh.levels(spec)):
+    for lvl, level in enumerate(layout_of(spec).levels(spec)):
         for k, (u, v) in enumerate(level.corners):
             if level.polar:                       # bit-identical round stacks (Level)
                 r, a = level.polar[0], level.polar[1][k]
@@ -611,8 +611,8 @@ def face_vertices(layout: BlockLayout, prefix, frame, spec, port: bool = True) -
 
 def face_patches(prefix, spec) -> list[tuple[str, tuple]]:
     """(material, cyclic vertex ids) of every patch of the port face
-    (``sections.oh.patches``)."""
-    return [(name, tuple((prefix, *c) for c in cyc)) for name, cyc in oh.patches(spec)]
+    (the layout's ``patches``)."""
+    return [(name, tuple((prefix, *c) for c in cyc)) for name, cyc in layout_of(spec).patches(spec)]
 
 
 def corner_shift(layout_frame, frame, spec) -> int:
@@ -620,7 +620,7 @@ def corner_shift(layout_frame, frame, spec) -> int:
     of the section's period: corner *k* declared at *layout_frame* is
     corner ``(k + s) % n_outer`` of the face built at *frame* (pure)."""
     n = spec.n_outer
-    a0 = oh.corner0_angle(spec)
+    a0 = layout_of(spec).corner0_angle(spec)
     w = np.cos(a0) * layout_frame.right + np.sin(a0) * layout_frame.up
     a = math.atan2(np.dot(w, frame.up), np.dot(w, frame.right))
     steps = (a - a0) / (2 * math.pi / n)

@@ -11,9 +11,10 @@
 #        '---------'
 #
 """
-The O-H layout described once (task 0082): the pure declaration
-(``sections.oh.levels``, what block layouts use) and the GMSH face
-(``sections.build_face``) agree corner for corner and edge for edge.
+Each layout described once (tasks 0082, 0084): the pure declaration
+(``levels`` and ``patches`` of ``sections.oh`` / ``sections.h``, what
+block layouts use) and the GMSH face (``sections.build_face``) agree
+corner for corner and edge for edge.
 """
 
 import math
@@ -28,11 +29,16 @@ from hexmesh.assembly.interface import Frame
 from hexmesh.core.shape import CircleShape, RectShape
 from hexmesh.core.spec import PipeSpec
 from hexmesh import sections
-from hexmesh.sections import oh
+from hexmesh.sections import h, layout_of, oh
 
 
 def _rect(a, b, n=4, **kw):
     return PipeSpec(nang=n, **kw).core("fluid", RectShape(a, b, n, n), nrad=3)
+
+
+def _h(a, b, nw, nh, rot=0.0, **kw):
+    return PipeSpec(nang_w=nw, nang_h=nh, rot=rot).core(
+        "fluid", RectShape(a, b, nw, nh), layout="h", **kw)
 
 
 SPECS = {
@@ -60,6 +66,12 @@ SPECS = {
     "rect-rot-bump": lambda: (_rect(0.10, 0.05, rot=-17, mbmp=0.7)
                               .shell("wall", dR=0.01, nrad=2)),
     "circle8": lambda: PipeSpec(nang=4, n_outer=8).core("fluid", radius=0.05, nrad=3),
+    # the H layout (task 0084): one patch, graded to the walls
+    "h-1": lambda: _h(0.06, 0.06, 5, 5),
+    "h-2": lambda: _h(0.10, 0.05, 8, 4),
+    "h-4-first-cell": lambda: _h(0.20, 0.05, 16, 4, first_cell=0.003),
+    "h-2-ratio": lambda: _h(0.10, 0.05, 8, 4, mprg=1.25),
+    "h-rot-bump": lambda: _h(0.10, 0.05, 8, 4, first_cell=0.004, rot=-17),
 }
 
 #: an oblique frame, so no coordinate is trivially zero
@@ -71,6 +83,13 @@ def _realised(spec):
     face = sections.build_face(spec, FRAME.position, FRAME.right, FRAME.up, lc=0.1)
     gmsh.model.occ.synchronize()
     points, curves = {}, {}
+    if spec.layout == "h":                  # one level: the boundary
+        (_, cs), = face.layers
+        g = canonical_geom(cs)
+        for k in range(4):
+            points[(0, k)] = g["op"][k]
+            curves[((0, k), (0, (k + 1) % 4))] = g["oc"][k]
+        return face, points, curves
     for lvl, (_, cs) in enumerate(face.layers):
         g = canonical_geom(cs)
         n = cs.n_outer
@@ -89,7 +108,7 @@ def test_declared_corners_and_edges_are_the_gmsh_face(name):
     spec = SPECS[name]()
     with Session(f"sections-{name}"):
         face, points, curves = _realised(spec)
-        levels = oh.levels(spec)
+        levels = layout_of(spec).levels(spec)
         scale = max(o.max_extent for o in spec.outlines)
         declared = set()
         for lvl, level in enumerate(levels):
@@ -104,7 +123,7 @@ def test_declared_corners_and_edges_are_the_gmsh_face(name):
                 assert n == e.divisions + 1, (e, n)
                 assert grading == _uniform(e.grading), (e, grading)
         assert declared == set(curves)                          # every curve declared once
-        assert len(levels) == len(spec.layer_names) + 1
+        assert len(levels) == len(spec.layer_names) + (spec.layout == "oh")
 
 
 def _uniform(grading):
@@ -143,7 +162,7 @@ def test_patches_name_the_faces_surfaces(name):
     with Session(f"patches-{name}"):
         face, points, _ = _realised(spec)
         surfaces = [(mat, s) for mat, cs in face.layers for s in cs.surfaces]
-        for (mat, cyc), (smat, s) in zip(oh.patches(spec), surfaces, strict=True):
+        for (mat, cyc), (smat, s) in zip(layout_of(spec).patches(spec), surfaces, strict=True):
             assert mat == smat
             corners = {abs(t) for _, t in gmsh.model.getBoundary([(2, s)], recursive=True)}
             assert corners == {points[c] for c in cyc}, (mat, cyc)
@@ -155,3 +174,24 @@ def test_corner0_and_signature_kinds_come_from_the_layout():
     assert [l.kind for l in sig.layers] == [oh.CORE_KIND, oh.RING_KIND, oh.RING_KIND]
     assert oh.corner0_angle(SPECS["rect-2"]()) == pytest.approx(math.atan2(0.05, 0.10))
     assert oh.corner0_angle(SPECS["circle-rot"]()) == pytest.approx(math.pi / 4 + math.radians(30))
+
+
+def test_h_corner0_and_signature_kind():
+    from hexmesh.assembly.signature import signature
+    assert [l.kind for l in signature(SPECS["h-2"]()).layers] == [h.CORE_KIND]
+    assert h.corner0_angle(SPECS["h-rot-bump"]()) == pytest.approx(
+        math.atan2(0.05, 0.10) - math.radians(17))
+
+
+def test_every_layout_row_has_its_geometry():
+    """``core.shape.LAYOUTS`` holds the scalars ``core`` needs per layout
+    (task 0084): each row's layout exists in ``sections`` and its numbers
+    are the layout's geometry.  The O-H wall span itself is checked on
+    the built face in ``test_first_cell``."""
+    from hexmesh.core.shape import LAYOUTS
+    assert set(LAYOUTS) == {"oh", "h"}
+    assert oh.OH_RATIO == LAYOUTS["oh"]["ratio"]
+    centre = oh.levels(SPECS["circle"]())[0].corners
+    assert np.hypot(*np.transpose(centre)) == pytest.approx(LAYOUTS["oh"]["ratio"] * 0.05)
+    assert LAYOUTS["h"] == {}                    # the wall span is the side itself
+    assert len(h.levels(SPECS["h-2"]())) == 1

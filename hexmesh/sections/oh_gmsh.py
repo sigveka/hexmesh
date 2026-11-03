@@ -45,7 +45,7 @@ from ..core.shape import CircleShape, RectShape
 from . import oh
 from ._gmsh_helpers import (
     add_point, add_arc, add_conic_arc, add_line, add_line_loop, add_surface,
-    stretched,
+    plane, stretched,
     set_transfinite_line, set_transfinite_line_bump,
     set_transfinite_surface, set_recombine_surface,
 )
@@ -53,17 +53,6 @@ from ._gmsh_helpers import (
 # Interior samples per spline curve; the spline through them stands for the
 # station shape (one axial layer per slab, so no surface carries nodes).
 _SAMPLES = 24
-
-
-def _plane(cx, cy, cz, h_axis, v_axis, stretch):
-    """In-plane ``(u, v)``, ``rot`` applied (``sections.oh``) → 3-D tuple."""
-    centre = np.array([cx, cy, cz])
-    h, v = np.asarray(h_axis, dtype=float), np.asarray(v_axis, dtype=float)
-
-    def xyz(p):
-        q = stretched(centre + p[0] * h + p[1] * v, centre, stretch)
-        return float(q[0]), float(q[1]), float(q[2])
-    return xyz
 
 
 # --- the core ----------------------------------------------------------------
@@ -90,7 +79,7 @@ def build_oh_circle(
     *mbmp* the arcs' bump.  ``rot = -π/4`` aligns patch boundaries with the
     horizontal axis (half-buried pipes).
     """
-    xyz = _plane(cx, cy, cz, h_axis, v_axis, stretch)
+    xyz = plane(cx, cy, cz, h_axis, v_axis, stretch)
     inner, outer = oh.core_corners(shape, 4, rot)
     centre_uv = [oh.inner_arc_centre(shape.radius, k, rot) for k in range(4)]   # of inner arc k
 
@@ -178,7 +167,7 @@ def build_oh_circle8(
             f"build_oh_circle8 requires nang to be even (each 45° arc needs "
             f"nang//2 divisions); got nang={shape.nang}."
         )
-    xyz = _plane(cx, cy, cz, h_axis, v_axis, None)
+    xyz = plane(cx, cy, cz, h_axis, v_axis, None)
     inner, outer = oh.core_corners(shape, 8, rot)
 
     center = add_point(cx, cy, cz, lc)
@@ -241,7 +230,7 @@ def build_oh_rect(
     ``half_h``, ``nang_w`` (width sides) and ``nang_h`` (height sides);
     the other arguments are ``build_oh_circle``'s.  The stretch is
     affine, so the edges stay straight lines."""
-    xyz = _plane(cx, cy, cz, h_axis, v_axis, stretch)
+    xyz = plane(cx, cy, cz, h_axis, v_axis, stretch)
     inner, outer = oh.core_corners(shape, 4, rot)
 
     o1, o2, o3, o4 = (add_point(*xyz(p), lc) for p in outer)          # NE, NW, SW, SE
@@ -314,7 +303,7 @@ def build_oh_blend(
     lies between a circle and a rectangle.  *shape* needs
     ``outline(k, s, inner)``, ``nang_w`` and ``nang_h``."""
     geo = gmsh.model.occ
-    xyz = _plane(cx, cy, cz, h_axis, v_axis, stretch)
+    xyz = plane(cx, cy, cz, h_axis, v_axis, stretch)
     inner, outer = oh.core_corners(shape, 4, rot)
 
     center = add_point(cx, cy, cz, lc)
@@ -408,7 +397,7 @@ def build_ring(
     center = inner.center       # reuse — no new centre point
     si = inner.outer_points     # n inner corner tags
     ia = inner.outer_curves     # n inner side tags (CCW, k → k+1)
-    xyz = _plane(cx, cy, cz, inner.h_axis, inner.v_axis, stretch)
+    xyz = plane(cx, cy, cz, inner.h_axis, inner.v_axis, stretch)
 
     # The inner corners' directions, as the inner layer recorded them (rot
     # included); the default layout for CrossSections made by hand in tests.

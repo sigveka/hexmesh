@@ -94,6 +94,17 @@ def stretched(p, centre, stretch):
     return p + (s - 1.0) * b * float((p - centre) @ b)
 
 
+def plane(cx, cy, cz, h_axis, v_axis, stretch):
+    """In-plane ``(u, v)``, ``rot`` applied (``sections.oh``, ``sections.h``) → 3-D tuple."""
+    centre = np.array([cx, cy, cz])
+    h, v = np.asarray(h_axis, dtype=float), np.asarray(v_axis, dtype=float)
+
+    def xyz(p):
+        q = stretched(centre + p[0] * h + p[1] * v, centre, stretch)
+        return float(q[0]), float(q[1]), float(q[2])
+    return xyz
+
+
 def add_line_loop(tags: list[int]) -> int:
     return geo.addCurveLoop(tags)
 
@@ -121,6 +132,15 @@ def set_transfinite_line_bump(tags: list[int], n: int, bump: float = 1.0) -> Non
     geo.synchronize()
     for t in tags:
         mesh.setTransfiniteCurve(t, n + 1, "Bump", bump)
+
+
+def set_transfinite_curve(tag: int, n: int, kind: str = "Progression",
+                          coef: float = 1.0) -> None:
+    """Transfinite curve *tag* of *n* divisions, any gmsh law."""
+    if _occ.in_build:
+        return
+    geo.synchronize()
+    mesh.setTransfiniteCurve(tag, n + 1, kind, coef)
 
 
 def set_transfinite_surface(tags: list[int]) -> None:

@@ -64,9 +64,10 @@ from dataclasses import dataclass, field, replace
 
 import numpy as np
 
-from ..core.shape import CircleShape, OH_RATIO, RectShape
-from ..core.spec import PipeSpec
+from ..core.shape import CircleShape, RectShape
+from ..core.spec import LayoutNotSupported, PipeSpec
 from ..sections import oh
+from ..sections.oh import OH_RATIO
 from . import limits
 from .blocks import (
     ArcAbout, BlockLayout, LayoutError, Spline, bind_face, corner_shift,
@@ -109,6 +110,13 @@ def tee_wall(o, ex, ez, R: float, r: float) -> TubeUnion:
     as a wall projector (decision 0029)."""
     return TubeUnion([Tube(tuple(o), tuple(ex), R, ray=False),
                       Tube(tuple(o), tuple(ez), r)])
+
+
+def _check_layout(spec: PipeSpec) -> None:
+    if spec.layout != "oh":
+        raise LayoutNotSupported("Tee", spec.layout, "0086",
+                                 "the H duct junctions come with task 0086; "
+                                 "pass layout='oh' for a duct tap")
 
 
 def _is_duct(spec: PipeSpec) -> bool:
@@ -208,6 +216,7 @@ class Tee:
             raise TypeError("Tee: give branch_radius or branch, not both")
 
     def resolve(self, inlet: Frame, spec: PipeSpec, axial_cell=None, outlet=None) -> "Tee":
+        _check_layout(spec)                  # before the duct tap's own checks
         if _is_duct(spec):
             return self._resolve_duct(inlet, spec)
         if isinstance(self.branch, CircleShape):       # the shorthand's long form
@@ -297,6 +306,7 @@ class Tee:
     # -- topology -----------------------------------------------------
 
     def check(self, spec: PipeSpec) -> None:
+        _check_layout(spec)
         if _is_duct(spec):
             return self._check_duct(spec)
         _check_circle(spec)

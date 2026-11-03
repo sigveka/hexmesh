@@ -382,6 +382,27 @@ Linux's and `gmshToFoam` gets LF (decision 0039).  `msh_comments.insert`
 also follows a file's own line ending, for CRLF files hexmesh didn't
 write.
 
+### Transfinite laws: only `Bump` is two-sided (gmsh 4.12.1, task 0084, 2026-11-03) — *verified*
+Measured on a unit line, `setTransfiniteCurve(l, n + 1, kind, coef)`,
+n = 8:
+
+| law | coef | first cell | last cell | |
+|-----|------|-----------|-----------|---|
+| `Bump` | 0.2 | 0.05602 | 0.05602 | symmetric; mid cell 0.1934 |
+| `Progression` | 1.2 | 0.06061 | 0.21717 | one-sided, geometric |
+| `Progression` | −1.2 | 0.21717 | 0.06061 | sign flips the end |
+| `Beta` | 0.5 | 0.125 | 0.125 | uniform |
+| `Beta` | ±1.5 | 0.0895 / 0.1504 | 0.1504 / 0.0895 | one-sided |
+
+So a side graded toward both walls (the H section's wall grading) needs
+`Bump`: coef < 1 refines toward both ends, coef > 1 toward the middle.
+`core.grading.bump(n, coef)` models it (node density ∝ 1/(K ∓ x²)) to
+within 1.3e-8 for coef 0.05–0.9 and n = 4–33.  For coef 1.5 and 4 the
+error is up to 3.3e-7, probably gmsh's own integration.  hexmesh solves
+coef from a first cell or an end-cell ratio
+(`bump_for_first_cell`, `bump_for_ratio`); the meshed H face's wall cell
+is the requested one to 2.5e-8 relative.
+
 ## Open questions
 
 - ~~Does `gmsh.write` keep physical names and element orientation the way

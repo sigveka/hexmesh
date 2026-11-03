@@ -361,30 +361,35 @@ def shape_from_dict(d: dict) -> Shape:
     return SHAPES[kind](**d)
 
 # ---------------------------------------------------------------------------
-# The O-H core ratio and wall span (tasks 0082, 0083)
+# Section layouts: what core needs to know of each (tasks 0083, 0084)
 # ---------------------------------------------------------------------------
-# The O-H layout, its inner corners, inset and inner arcs are
-# ``hexmesh.sections.oh``.  These two stay in ``core`` because
-# ``PipeSpec.core(first_cell=)`` solves its grading from the wall span
-# when the spec is built, and ``core`` may not import ``sections``
-# (DESIGN §3.1; task 0083, Questions for design).
+# A layout's geometry is ``hexmesh.sections``'.  ``core`` keeps only the
+# numbers it needs when a spec is built, to size the core's wall cells
+# (``PipeSpec.core(first_cell=)``); ``sections`` reads them from here, and
+# tests check its geometry against them (design answer to task 0083's
+# Question 1).
 
-#: Inner-square corner radius of the circular O-H face, as a fraction of
-#: the core radius.  The core's radial curves run from there to the
-#: circle, so they are ``(1 - OH_RATIO) * r`` long.
-OH_RATIO = 0.6
+#: Per layout (``PipeSpec.core(layout=)``), the scalars of its wall span:
+#: ``"oh"``, the inner-square ratio (the core ring runs from ``ratio·R``
+#: to the circle); ``"h"``, none (its wall cells are each side's end cells).
+LAYOUTS: dict[str, dict[str, float]] = {"oh": {"ratio": 0.6}, "h": {}}
 
 
-def oh_core_wall_span(radius: float, ratio: float = OH_RATIO) -> float:
-    """Largest radial span of the 4-corner OH core ring, inner arc to circle.
+def core_wall_span(radius: float, layout: str = "oh") -> float:
+    """Largest radial span of a circular core's ring, inner arc to circle,
+    for *layout* (``"oh"``: its 4-corner face).
 
     The inner arcs are centred on the opposite inner-square point
     ``(-ρ, 0)``, ``ρ = ratio·radius``, through the corner
     ``(ρ/√2, ρ/√2)``, so they bulge toward the centre and the ring is
     thickest at mid-arc: ``radius - (|(-ρ, 0) - corner| - ρ)``, 0.491 R
-    for ``ratio = 0.6`` against 0.4 R at the corners.
+    for ``ratio = 0.6`` against 0.4 R at the corners.  The closed form
+    stays here, not as a stored fraction, so resolved gradings keep their
+    last bit (task 0084, Agent notes).
     """
-    rho = ratio * radius
+    if layout != "oh":
+        raise ValueError(f"layout {layout!r} has no core ring")
+    rho = LAYOUTS["oh"]["ratio"] * radius
     return radius - (math.hypot(rho + rho / math.sqrt(2), rho / math.sqrt(2)) - rho)
 
 

@@ -170,6 +170,10 @@ def connect_layer(in_cs: CrossSection, out_cs: CrossSection, n_layers: int,
     """``connect_aligned`` with correspondence from frames (*offset*)."""
     n = in_cs.n_outer
     g_in, g_out = canonical_geom(in_cs), canonical_geom(out_cs)
+    if in_cs.layout == "h":                 # no inner boundary or corner lines
+        g_out = {key: [v[(i + offset) % n] for i in range(n)] if v else v
+                 for key, v in g_out.items()}
+        return connect_patch(in_cs, out_cs, g_in, g_out, n_layers, **kwargs)
     g_out = {key: [v[(i + offset) % n] for i in range(n)] for key, v in g_out.items()}
     off = 1 if len(in_cs.surfaces) == n + 1 else 0
     in_quads = [in_cs.surfaces[off + i] for i in range(n)]
@@ -177,6 +181,37 @@ def connect_layer(in_cs: CrossSection, out_cs: CrossSection, n_layers: int,
     return connect_aligned(
         in_cs, out_cs, g_in, g_out, in_quads, out_quads, n_layers, **kwargs,
     )
+
+
+def connect_patch(in_cs: CrossSection, out_cs: CrossSection, g_in: dict, g_out: dict,
+                  n_layers: int, prev_outer_axial=None, prev_outer_side_surfs=None,
+                  planar_radial: bool = True, axial_curve=None, side_surface=None):
+    """One hex block between two one-patch faces (the H layout): an axial
+    curve at each corner, a side face on each side, the two patches.
+    Same return as ``connect_aligned``; the side faces are the walls.
+    *planar_radial* has nothing to apply to (no corner lines)."""
+    if prev_outer_axial is not None or prev_outer_side_surfs is not None:
+        raise ValueError("a one-patch face has no layers outside its core (task 0086)")
+    geo = gmsh.model.occ
+    axial_curve = axial_curve or _occ.line
+    side_surface = side_surface or geo.addSurfaceFilling
+    op_in, oc_in, op_out, oc_out = g_in['op'], g_in['oc'], g_out['op'], g_out['oc']
+    n = in_cs.n_outer
+    axial = [axial_curve(a, b) for a, b in zip(op_in, op_out)]
+    sides = [side_surface(geo.addCurveLoop([oc_in[i], axial[(i + 1) % n], -oc_out[i], -axial[i]]))
+             for i in range(n)]
+    vol = geo.addVolume([geo.addSurfaceLoop([in_cs.surfaces[0], out_cs.surfaces[0], *sides])])
+    counts = side_counts(in_cs)
+    arcs, seen = [], set()
+    for k in range(n):
+        for c in (oc_in[k], oc_out[k]):
+            if abs(c) not in seen:
+                seen.add(abs(c))
+                arcs.append((abs(c), counts[k] + 1))
+    deferred = {"curves": axial, "arc_curves": arcs,
+                "surfaces": sides + list(in_cs.surfaces) + list(out_cs.surfaces),
+                "volumes": [vol]}
+    return [vol], sides, axial, deferred
 
 
 def connect_aligned(

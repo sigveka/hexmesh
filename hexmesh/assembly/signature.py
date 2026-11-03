@@ -30,7 +30,11 @@ and nodes (task 0019), so it is placement, not connectivity.  Grading
 
 * **0**: equal;
 * **1**: they differ only by whole outermost layers present on one side
-  (layer termination: the ring's end face is exposed, so it ends on a wall);
+  (layer termination: the ring's end face is exposed, so it ends on a
+  wall; ``ends="wall"``), or only by the core's layout, O-H vs H on one
+  rectangle with equal counts (a rectangular O-H face is a pillowed H
+  face, decision 0036; ``ends="pillow"``).  Bridging a pillow needs a
+  fitting that declares ``pillows = True`` (the switch, task 0085);
 * **2**: same layers and layouts, different counts or grading.  When
   the only differences are per-layer radial ``mprg`` (all counts and
   ``mbmp`` equal), it is marked ``grading_only`` (decision 0016);
@@ -49,8 +53,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from ..core.spec import LayerSpec, PipeSpec
-from ..sections import oh
+from ..core.spec import LayerSpec, LayoutNotSupported, PipeSpec
+from ..sections import h, oh
 
 # What a class needs, for error messages.
 BRIDGES = {
@@ -63,9 +67,9 @@ BRIDGES = {
 @dataclass(frozen=True)
 class LayerSig:
     name:  str
-    kind:  str      # sections.oh.CORE_KIND | RING_KIND
+    kind:  str      # sections.oh.CORE_KIND | RING_KIND | sections.h.CORE_KIND
     nrad:  int
-    mprg:  float
+    mprg:  object   # radial mprg; an H core's wall grading (PipeSpec.wall_grading)
 
 
 @dataclass(frozen=True)
@@ -93,7 +97,7 @@ class Difference:
 class SwitchClass:
     cls:         int
     differences: tuple[Difference, ...] = ()
-    ends:        str | None = None   # class 1: "wall" (termination); see module doc
+    ends:        str | None = None   # class 1: "wall" (termination) or "pillow" (O-H ↔ H)
     grading_only: bool = False       # class 2: only radial mprg differs (decision 0016)
 
     def __int__(self) -> int:
@@ -103,7 +107,10 @@ class SwitchClass:
 def signature(spec: PipeSpec) -> Signature:
     """Connectivity signature of *spec* (pure Python, hashable)."""
     name, _ = spec._core
-    layers = [LayerSig(name, oh.CORE_KIND, spec._core_nrad, spec._core_mprg)]
+    if spec.layout == "h":
+        layers = [LayerSig(name, h.CORE_KIND, 0, spec.wall_grading)]
+    else:
+        layers = [LayerSig(name, oh.CORE_KIND, spec._core_nrad, spec._core_mprg)]
     for sh in spec.shells:
         if not isinstance(sh, LayerSpec):
             raise ValueError(f"no signature for a {type(sh).__name__} layer")
@@ -124,6 +131,14 @@ def classify(a: Signature, b: Signature) -> SwitchClass:
 
     la, lb = a.layers, b.layers
     common = min(len(la), len(lb))
+    # O-H ↔ H on one rectangle with equal counts: a rectangular O-H face is
+    # a pillowed H face, so they differ by a closed ring (decision 0036)
+    kinds = {la[0].kind, lb[0].kind}
+    if (kinds == {oh.CORE_KIND, h.CORE_KIND} and la[0].name == lb[0].name
+            and la[1:] == lb[1:] and (a.nang_w, a.nang_h, a.mbmp) == (b.nang_w, b.nang_h, b.mbmp)):
+        return SwitchClass(1, (Difference("core", la[0].kind, lb[0].kind,
+                                          f"core layout: {la[0].kind} vs {lb[0].kind}"),),
+                           ends="pillow")
     same_frame = all((x.name, x.kind) == (y.name, y.kind) for x, y in zip(la, lb))
     if not same_frame:
         diffs = []
@@ -198,6 +213,12 @@ def check_port_pairs(fitting, specs: list[PipeSpec]) -> None:
                 f"switch class 2 beyond radial grading (counts or mbmp), which "
                 f"needs {BRIDGES[2]}; {name} bridges grading-only class-2 pairs "
                 f"(radial mprg) only")
+        if c.cls == 1 and 1 in allowed and c.ends == "pillow" and not getattr(
+                fitting, "pillows", False):
+            raise LayoutNotSupported(
+                f"{name}: {port} spec differs from the inlet in {what}", "h", "0085",
+                f"switching between the O-H and H faces needs the switch fitting; "
+                f"{name} bridges layer termination only")
         if c.cls in allowed:
             continue
         raise ValueError(

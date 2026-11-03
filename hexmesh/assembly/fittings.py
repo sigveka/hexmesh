@@ -35,7 +35,7 @@ from dataclasses import dataclass, field, replace
 import numpy as np
 
 from ..core.shape import BlendShape
-from ..core.spec import PipeSpec
+from ..core.spec import LayoutNotSupported, PipeSpec
 from .interface import (Frame, check_outlines, half_extent, outer_radius, roll_mismatch,
                         rotate, toward_roll)
 from .limits import RADIANS_WARNING_BELOW
@@ -450,13 +450,18 @@ def _scale_layers(spec: PipeSpec, f: float) -> list:
     return [x * f if isinstance(x, (int, float)) else x.scaled(f) for x in _layers(spec)]
 
 
-def _with_layers(spec: PipeSpec, layers: list, mprgs: list[float]) -> PipeSpec:
+def _with_layers(spec: PipeSpec, layers: list, mprgs: list[float],
+                 first_cell: float | None = None) -> PipeSpec:
     """*spec* with every layer's size replaced (``_layers`` form, core
-    first) and radial gradings *mprgs*: a station of a ``Reducer``."""
+    first) and radial gradings *mprgs*: a station of a ``Reducer``.  An H
+    core takes ``mprgs[0]`` as its wall ratio, or *first_cell*."""
     name, _ = spec._core
-    out = (PipeSpec(nang=spec.nang, nang_w=spec.nang_w, nang_h=spec.nang_h,
-                    n_outer=spec.n_outer, rot=spec.rot, mbmp=spec.mbmp)
-           .core(name, layers[0], nrad=spec._core_nrad, mprg=mprgs[0]))
+    out = PipeSpec(nang=spec.nang, nang_w=spec.nang_w, nang_h=spec.nang_h,
+                   n_outer=spec.n_outer, rot=spec.rot, mbmp=spec.mbmp)
+    if spec.layout == "h":
+        return out.core(name, layers[0], layout="h", first_cell=first_cell,
+                        mprg=None if first_cell is not None else mprgs[0])
+    out = out.core(name, layers[0], nrad=spec._core_nrad, mprg=mprgs[0])
     for sh, x, m in zip(spec.shells, layers[1:], mprgs[1:]):
         if isinstance(x, (int, float)):
             out = out.shell(sh.name, dR=x, nrad=sh.nrad, mprg=m)
@@ -543,6 +548,13 @@ class Reducer(Sweep):
                     f"Reducer changes outline sizes, not shapes: layer `{name}` is a "
                     f"{type(a).__name__} at the inlet and a {type(b).__name__} at the "
                     f"outlet; use Transition")
+        if spec.layout != self.outlet.layout:
+            raise ValueError(f"Reducer changes sizes, not layouts: layout {spec.layout!r} "
+                             f"at the inlet, {self.outlet.layout!r} at the outlet")
+        kinds = {(s.wall_grading or ("uniform",))[0] for s in (spec, self.outlet)}
+        if spec.layout == "h" and "first_cell" in kinds and len(kinds) > 1:
+            raise ValueError("Reducer: give first_cell= at both ends of an H duct, or "
+                             "at neither (the stations interpolate it)")
         if self.profile is not None:
             self._check_profile(spec)
 
@@ -590,8 +602,11 @@ class Reducer(Sweep):
             layers = [_scale_layers(spec, float(rk)) for rk in prof(u)]
         frames = [a] + [Frame(a.position + (b.position - a.position) * u[k],
                               a.normal, a.up) for k in range(1, n)] + [b]
+        f0, f1 = spec._core_first_cell, self.outlet._core_first_cell
         specs = [spec] + [_with_layers(spec, layers[k],
-                                       list(m0 ** (1 - u[k]) * m1 ** u[k]))
+                                       list(m0 ** (1 - u[k]) * m1 ** u[k]),
+                                       None if f0 is None or f1 is None
+                                       else f0 ** (1 - u[k]) * f1 ** u[k])
                           for k in range(1, n)] + [self.outlet]
         return Path(frames, [1] * n, specs=specs)
 
@@ -640,6 +655,11 @@ class Transition(Sweep):
         super().check(spec)
         if self.length <= 0:
             raise ValueError(f"length must be positive, got {self.length!r}")
+        for end, s in (("inlet", spec), ("outlet", self.outlet)):
+            if s.layout != "oh":
+                raise LayoutNotSupported(f"Transition ({end})", s.layout, "0085",
+                                         "a transition blends O-H faces; switch layouts "
+                                         "with the switch fitting")
         a, b = spec, self.outlet
         for end, s in (("inlet", a), ("outlet", b)):
             for lname, o in zip(s.layer_names, s.outlines):

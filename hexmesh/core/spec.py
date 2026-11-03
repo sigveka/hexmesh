@@ -43,7 +43,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from .grading import progression_for_first_cell
-from .shape import (CircleShape, RectShape, Shape, longest_radial, oh_core_wall_span,
+from .shape import (LAYOUTS, CircleShape, RectShape, Shape, longest_radial, core_wall_span,
                     ring_corners, shape_from_dict)
 from .region import MaterialGraph
 
@@ -57,6 +57,17 @@ def _check_layer_name(name) -> None:
     if not isinstance(name, str) or not re.fullmatch(r"[A-Za-z0-9_]+", name):
         raise ValueError(f"layer name {name!r} must be letters, digits and _ only "
                          "(it becomes part of physical group names)")
+
+
+class LayoutNotSupported(ValueError):
+    """A section layout used where it isn't built yet (task 0084): names
+    *where* (a fitting or option), the *layout* and the *task* that adds
+    it, so a script or agent can act on it."""
+
+    def __init__(self, where: str, layout: str, task: str, hint: str = ""):
+        self.where, self.layout, self.task = where, layout, task
+        super().__init__(f"{where}: layout {layout!r} is not supported yet (task {task})"
+                         + (f"; {hint}" if hint else ""))
 
 
 def _wall_progression(mprg: float | None, thickness: float, nrad: int,
@@ -182,6 +193,8 @@ class PipeSpec:
         self._rot    = float(rot)    # degrees
         self._core:   tuple[str, Shape] | None = None
         self._shells: list[LayerSpec] = []
+        self._layout = "oh"
+        self._core_first_cell: float | None = None     # an H core's wall cell
         # Validate nang / n_outer constraint if nang is already known at init time.
         if nang is not None:
             divisor = n_outer // 4
@@ -206,6 +219,7 @@ class PipeSpec:
         half_w: float | None = None,
         half_h: float | None = None,
         first_cell: float | None = None,
+        layout: str = "oh",
     ) -> "PipeSpec":
         """Set the innermost (core) layer.
 
@@ -250,14 +264,32 @@ class PipeSpec:
         first_cell : float, optional
             Largest radial height of a cell at the core's outer wall (the
             circle); sets ``mprg`` (< 1).  The core ring is thickest at
-            mid-arc (``oh_core_wall_span``), where the wall cell equals
+            mid-arc (``core_wall_span``), where the wall cell equals
             *first_cell*; at the corners it is about 0.81 of it.  Circular,
             ``n_outer = 4`` cores only; mutually exclusive with ``mprg``
-            (docs/tasks/0002).
+            (docs/tasks/0002).  On an H core: the end cell of every side,
+            at all four walls (a two-sided ``Bump``, task 0084).
+        layout : str
+            The section layout (decision 0036): ``"oh"`` (the default), the
+            5-patch O-H face; or ``"h"``, one Cartesian patch, for a
+            rectangular core with no shells (shells: task 0086).  An H
+            core has no ring, so no ``nrad``; ``mprg`` is then the wall
+            growth ratio, the second cell from each wall over the first
+            (> 1 refines toward the walls), and ``first_cell`` its end
+            cell.
         """
         if self._core is not None:
             raise RuntimeError("PipeSpec.core() may only be called once.")
-        if nrad < 1:
+        if layout not in LAYOUTS:
+            raise ValueError(f"layout must be one of {sorted(LAYOUTS)}, got {layout!r}")
+        if layout == "h":
+            if nrad:
+                raise ValueError(
+                    f"nrad={nrad!r} on an H core: an H core has no ring, so its "
+                    "near-wall cells come from wall grading.  Drop nrad and grade "
+                    "the walls (first_cell= or mprg=), or pass layout='oh' to keep "
+                    "the O-H face (decision 0036)")
+        elif nrad < 1:
             raise ValueError(f"nrad must be >= 1, got {nrad!r}")
 
         # Resolve shape from shorthand geometry keywords
@@ -306,6 +338,16 @@ class PipeSpec:
                 )
 
         self._validate_shape_nang(shape)
+        if layout == "h":
+            if shape.is_round or shape.is_station:
+                raise ValueError(f"layout='h' needs a rectangular core, got a {shape.label}")
+            if self._n_outer != 4:
+                raise ValueError("layout='h' needs n_outer = 4")
+            if first_cell is not None and mprg is not None:
+                raise TypeError("pass either mprg= or first_cell=, not both")
+            self._layout = "h"
+            self._core_first_cell = first_cell
+            first_cell = None                      # the wall grading, not mprg
         if first_cell is not None:
             if not shape.is_round:
                 raise TypeError("first_cell= supports circular cores only")
@@ -313,7 +355,7 @@ class PipeSpec:
                 raise TypeError("first_cell= supports n_outer=4 cores only")
             # Solved on the thickest span (mid-arc), so first_cell is the
             # largest wall cell; at the corners it is 0.4/0.491 ≈ 0.81 of it.
-            mprg = _wall_progression(mprg, oh_core_wall_span(shape.max_extent),
+            mprg = _wall_progression(mprg, core_wall_span(shape.max_extent),
                                      nrad, first_cell)
         _check_layer_name(name)
         self._core = (name, shape)
@@ -366,6 +408,10 @@ class PipeSpec:
         """
         if self._core is None:
             raise RuntimeError("Call PipeSpec.core() before .shell().")
+        if self._layout != "oh":
+            raise LayoutNotSupported(f"PipeSpec.shell (`{name}`)", self._layout, "0086",
+                                     "shells around an H core come with the duct "
+                                     "junctions; pass layout='oh' for a shelled duct")
         if nrad is None:
             raise TypeError(f"shell `{name}`: nrad is required")
         _check_layer_name(name)
@@ -466,6 +512,22 @@ class PipeSpec:
     @property
     def n_outer(self) -> int:
         return self._n_outer
+
+    @property
+    def layout(self) -> str:
+        """The core's section layout, ``"oh"`` or ``"h"`` (decision 0036)."""
+        return self._layout
+
+    @property
+    def wall_grading(self) -> tuple | None:
+        """An H core's wall grading: ``("first_cell", h)``, ``("ratio", r)``
+        or ``None`` (uniform); ``None`` on an O-H core, whose grading is
+        ``mprg``."""
+        if self._layout != "h":
+            return None
+        if self._core_first_cell is not None:
+            return ("first_cell", self._core_first_cell)
+        return None if self._core_mprg == 1.0 else ("ratio", self._core_mprg)
 
     @property
     def nang(self) -> int | None:
@@ -580,8 +642,10 @@ class PipeSpec:
         return {
             "nang": self._nang, "nang_w": self._nang_w, "nang_h": self._nang_h,
             "mbmp": self._mbmp, "rot": self._rot, "n_outer": self._n_outer,
-            "core": {"name": name, "shape": shape_d,
-                     "nrad": self._core_nrad, "mprg": self._core_mprg},
+            "core": {"name": name, "shape": shape_d, "layout": self._layout,
+                     "nrad": self._core_nrad, "mprg": self._core_mprg,
+                     **({"first_cell": self._core_first_cell}
+                        if self._core_first_cell is not None else {})},
             "shells": shells,
         }
 
@@ -593,7 +657,13 @@ class PipeSpec:
                    n_outer=d.get("n_outer", 4))
         core = d["core"]
         shape = shape_from_dict(core["shape"])
-        spec.core(core["name"], shape, nrad=core["nrad"], mprg=core.get("mprg", 1.0))
+        layout = core.get("layout", "oh")       # saved before task 0084: O-H
+        if layout == "h":
+            fc = core.get("first_cell")
+            spec.core(core["name"], shape, layout="h", first_cell=fc,
+                      mprg=None if fc is not None else core.get("mprg", 1.0))
+        else:
+            spec.core(core["name"], shape, nrad=core["nrad"], mprg=core.get("mprg", 1.0))
         for sh in d.get("shells", []):
             sh = dict(sh)
             kind = sh.pop("type")

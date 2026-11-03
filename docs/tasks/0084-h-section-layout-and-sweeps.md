@@ -1,6 +1,6 @@
 # 0084 — The H section: the layout, `layout=` on the spec, and every sweep
 
-- **Status:** ready (after 0082, 0083)
+- **Status:** in progress
 - **Decision:** [0036 — Cartesian (H) rectangular section](../decisions/0036-cartesian-rectangular-section.md) (items 2–4, rollout step 1); [0037](../decisions/0037-capability-boundaries.md) (the shared section interface); DESIGN A4, §6.1 "Sections"
 - **Depends on:** 0082 (the O-H layout in `sections`), 0083 (the shape
   protocol); 0089 (Richardson) before step 8; 0090 (parallel runs)
@@ -109,6 +109,86 @@ the default flip (0087).
 
 ## Agent notes
 
+- **Design refinement to step 3 (design session, 2026-11-03, the user
+  agreed; answers to 0083's Questions):**
+  1. **The wall span for `first_cell`.**
+     - `core` keeps one table keyed by layout name.  Each row holds the
+       scalar(s) a layout needs for the core's wall span: `OH_RATIO`
+       for `"oh"`, and whatever `"h"` needs.
+     - The table replaces `OH_RATIO` / `oh_core_wall_span` in
+       `core/shape.py`.  The geometry stays in `sections`, and a
+       `sections` test checks each layout's geometry against its row.
+     - No registration hook and no global state; `core` doesn't import
+       `sections`.  A few numbers per layout are spec data, not layout
+       geometry, so DESIGN §3.1 holds.
+     - Any other layout-dependent read left in `core` goes under
+       *Questions for design*.
+  2. **`shape.corner(k)` is shape geometry.**  The structural corners
+     follow from `n_outer` and `rot`, and every layout must land on
+     them (DESIGN §7).  So `corner(k)`, `spec.corners()` and
+     `shell()`'s ring-thickness check stay in `core`.
+
+- **Coding session, 2026-11-03: how the refinement landed.**
+  - **The table.**  `core.shape.LAYOUTS = {"oh": {"ratio": 0.6}, "h": {}}`
+    and `core_wall_span(radius, layout="oh")`.  `sections.oh.OH_RATIO`
+    reads its row.  An H core needs no row: its wall span is the side
+    itself, so `first_cell` goes straight to the side's `Bump`.
+    `core_wall_span` keeps the old formula, `R − (hypot(ρ + ρ/√2, ρ/√2)
+    − ρ)` with ρ = 0.6 R.  It's bit-identical to `oh_core_wall_span`
+    over 10 000 radii.  Storing the span as one fraction of R would have
+    changed the last bit for 86 % of radii, and so meshes.
+    `test_sections.py::test_every_layout_row_has_its_geometry` ties each
+    row to its layout; `test_first_cell` checks the O-H span on the
+    built face.
+  - **Errors.** `core.spec.LayoutNotSupported(ValueError)`, with
+    attributes `where`, `layout` and `task`.  It is raised by
+    `PipeSpec.shell` on H (0086), `Tee` and duct taps (0086, from
+    `resolve`, before the duct tap's own checks), `Wye` (0086),
+    `Transition` (0085), and `check_port_pairs` for an O-H ↔ H pair
+    (0085).  Equipment needs no check: drum nozzles must be round, and
+    an H core is a rectangle.
+  - **Signature.**  O-H ↔ H on one rectangle with equal counts and
+    `mbmp` is class 1 with `ends="pillow"`.  Termination is
+    `ends="wall"`.  `Straight` and `Bend` declare class 1 for
+    termination, so `check_port_pairs` refuses a pillow unless the
+    fitting has `pillows = True`: the switch, task 0085.  The H core's
+    `LayerSig.mprg` slot carries `PipeSpec.wall_grading`.
+  - **Wall grading.**  `mprg` on an H core is the wall growth ratio
+    (second cell over first); `first_cell` is the end cell at all four
+    walls.  Each side solves its own `Bump` coefficient
+    (`core.grading.bump_for_first_cell` / `bump_for_ratio`).
+    `Progression` and `Beta` are one-sided in gmsh 4.12.1
+    (`docs/integrations/gmsh.md`).
+  - **H-specific code the sweep needed** (step 4):
+    `corners.connect_patch` (one hex block per slab: four corner lines,
+    four side faces, the two patches) behind a `layout` branch in
+    `connect_layer`; `face_grading` and `section_cells` delegate to
+    `sections.h`.  `blocks.face_vertices`, `face_patches` and
+    `corner_shift` now ask `sections.layout_of(spec)`.  `Reducer`
+    stations keep the layout and interpolate a first cell
+    geometrically, as `mprg`.  Its ends must both give `first_cell=`
+    or neither.
+  - **Elbow** stays round-only: its ASME schedules are for round
+    pipe, so the kit has no H elbow case.
+  - **`refine_spec_dict` refuses a graded H core** (see Questions).
+    A uniform H core refines exactly.
+
 ## Questions for design
+
+1. **Refinement series on a graded H core (needed by step 8).**  A
+   `Bump` with the same coefficient and k× the cells nests exactly:
+   every k-th node is a coarse node.  One `first_cell` gives each side
+   its own coefficient.  At k× it can't keep both: for a 0.4 × 0.1 duct,
+   16 × 4 cells, first cell 0.004, the nested first cells at k = 2 are
+   0.00175 on the wide side and 0.00071 on the narrow one.  `first_cell
+   / k` moves nodes by up to 2 % (k = 2) and 2.9 % (k = 4) of the side
+   from the nested ones.  A ratio doesn't nest either: 1.3 at n = 8
+   nests to 1.159, against 1.3^½ = 1.140.  `refine_spec_dict` raises
+   for now.  Options: (a) store the per-side coefficients in the spec's
+   description (`wall_bump: (c_w, c_h)`), and `first_cell=` only
+   resolves them at `core()` time, as O-H's `first_cell` resolves to
+   `mprg`; (b) refine by `first_cell / k` and accept non-nested grids;
+   (c) per-side `first_cell`.  (a) mirrors O-H and keeps the series
+   nested.  Not blocking steps 1–7.
 
 ## Outcome

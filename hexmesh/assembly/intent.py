@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Intent layer serialisation (DESIGN.md §3, docs/tasks/0006).
 
@@ -256,6 +268,14 @@ def refine_spec_dict(d: dict, k: int) -> dict:
     for layer in (d["core"], *d["shells"]):
         layer["nrad"] *= k
         layer["mprg"] = layer.get("mprg", 1.0) ** (1.0 / k)
+    core = d["core"]
+    if core.get("layout") == "h" and (core.get("first_cell") is not None
+                                      or core.get("mprg", 1.0) != 1.0):
+        # Bump nodes nest only at the same coefficient per side, which one
+        # first cell or ratio can't give both sides (task 0084, Questions)
+        raise ValueError("refining a graded H core is not defined yet: a nested series "
+                         "keeps each side's Bump coefficient, which one first_cell= "
+                         "or mprg= can't express (task 0084, Questions for design)")
     return d
 
 

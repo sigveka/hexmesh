@@ -99,7 +99,7 @@ def port_type(spec: PipeSpec) -> tuple:
     return (
         spec.n_outer, spec.rot, spec.nang, spec.nang_w, spec.nang_h, spec.mbmp,
         core_name, repr(core_shape), spec._core_nrad, spec._core_mprg,
-        tuple(spec.shells),
+        tuple(spec.shells), spec.layout, spec.wall_grading,
     )
 
 

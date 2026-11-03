@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Fitting conformance kit (DESIGN.md §6.1) — the design rules, checked for
 every fitting.
@@ -64,6 +76,13 @@ def _duct(half_w=0.1, half_h=0.05, nang_w=4, nang_h=2, name="air", nrad=2):
     """Single-layer rectangular duct, 2:1 by default (task 0028)."""
     return PipeSpec(nang_w=nang_w, nang_h=nang_h).core(
         name, half_w=half_w, half_h=half_h, nrad=nrad)
+
+
+def _hduct(half_w=0.1, half_h=0.05, nang_w=8, nang_h=4, first_cell=None, mprg=None):
+    """An H duct (decision 0036, task 0084): one Cartesian patch, graded to
+    the walls by *first_cell* or a wall growth ratio *mprg*."""
+    return PipeSpec(nang_w=nang_w, nang_h=nang_h).core(
+        "air", half_w=half_w, half_h=half_h, layout="h", first_cell=first_cell, mprg=mprg)
 
 
 def _flat(half_w=0.14, half_h=0.07):
@@ -314,6 +333,39 @@ OUTLINE_FITTINGS = {
 CASES.update({
     f"outline-{s}-{f}": (lambda s=s, f=f: _between(OUTLINE_STACKS[s](), OUTLINE_FITTINGS[f]()))
     for s in OUTLINE_STACKS for f in OUTLINE_FITTINGS
+})
+
+# H ducts (task 0084): every sweep on the one-patch face, a/b 1, 2, 4,
+# uniform and graded to the walls
+H_DUCTS = {
+    "1":        lambda: _hduct(0.06, 0.06, 6, 6),
+    "2":        lambda: _hduct(),
+    "4-graded": lambda: _hduct(0.2, 0.05, 16, 4, first_cell=0.004),
+    "2-ratio":  lambda: _hduct(mprg=1.3),
+}
+CASES.update({
+    f"h-{d}-straight": (lambda d=d: _between(H_DUCTS[d](), Straight(0.3, n_layers=3)))
+    for d in H_DUCTS
+})
+CASES.update({
+    "h-2-bend-easy":     lambda: _between(_hduct(), Bend(0.3, 90, n_layers=6)),
+    "h-2-bend-hard":     lambda: _between(_hduct(first_cell=0.003), Bend(0.3, 90, n_layers=6,
+                                                                       roll=90)),
+    "h-1-bend-rolled":   lambda: _between(H_DUCTS["1"](), Bend(0.3, -60, n_layers=4, roll=45)),
+    "h-4-bend-graded":   lambda: _between(H_DUCTS["4-graded"](), Bend(0.6, 90, n_layers=6)),
+    "h-2-rolled-180":    lambda: _rolled_outlet(_hduct(), Bend(0.3, 90, n_layers=4), 180),
+    "h-1-rolled-90":     lambda: _rolled_outlet(H_DUCTS["1"](), Straight(0.3, n_layers=3), 90),
+    "h-2-miter":         lambda: _between(_hduct(first_cell=0.003),
+                                          MiterBend(0.3, 90, n_cuts=2, roll=30)),
+    "h-2-closure":       lambda: _ring(_hduct(), [60, 0, 120], Closure(n_layers=12)),
+    "h-2-spline":        lambda: _spline(_hduct(first_cell=0.003), ((0, 0, 0), (0.1, 0.4, 0),
+                                                                   (0.4, 0.8, 0), (0.5, 1.2, 0))),
+    "h-2-reducer":       lambda: _between(_hduct(), Reducer(_hduct(0.07, 0.035), 0.2,
+                                                            n_layers=3)),
+    "h-2-reducer-graded": lambda: _between(_hduct(first_cell=0.003), Reducer(
+        _hduct(0.07, 0.035, first_cell=0.003), 0.2, n_layers=4, axial_grading=1.2)),
+    "h-2-profile-cosine": lambda: _between(_hduct(), Reducer(_hduct(), 0.4, n_layers=40,
+                                                             profile=("cosine", 0.25))),
 })
 
 

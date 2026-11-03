@@ -47,6 +47,8 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from ..core.grading import bump
+from ..sections import h
 from ..sections.oh import outline
 from ..core.spec import PipeSpec
 from .limits import OUTLINE_NONORTH_MAX, OUTLINE_NONORTH_WARN, PREDICTED_SJ_MIN, PREDICTED_SJ_WARN
@@ -78,23 +80,6 @@ def progression(n: int, ratio: float) -> np.ndarray:
     return (ratio ** i - 1.0) / (ratio ** n - 1.0)
 
 
-def bump(n: int, coef: float) -> np.ndarray:
-    """Fractions of the n + 1 nodes of a ``Bump`` curve.  GMSH places them
-    at equal steps of the integral of a node density ∝ 1 / (K ∓ x²),
-    x = t − ½: K = 1/(4(1 − coef)) refines toward both ends (coef < 1),
-    K = 1/(4(coef − 1)) toward the middle (coef > 1)."""
-    if abs(coef - 1.0) < 1e-12:
-        return np.arange(n + 1) / n
-    if coef < 1.0:
-        k = math.sqrt(1.0 / (4.0 * (1.0 - coef)))
-        F, Finv = (lambda x: np.arctanh(x / k)), (lambda y: k * np.tanh(y))
-    else:
-        k = math.sqrt(1.0 / (4.0 * (coef - 1.0)))
-        F, Finv = (lambda x: np.arctan(x / k)), (lambda y: k * np.tan(y))
-    lo, hi = F(-0.5), F(0.5)
-    return 0.5 + Finv(lo + (hi - lo) * np.arange(n + 1) / n)
-
-
 # ---------------------------------------------------------------------------
 # The section's quads
 # ---------------------------------------------------------------------------
@@ -123,6 +108,8 @@ def _coons(bottom, top, left, right) -> np.ndarray:
 
 def _patches(spec: PipeSpec) -> list[tuple[int, np.ndarray]]:
     """(layer index, node grid) of every patch of *spec*'s face, unrotated."""
+    if spec.layout == "h":
+        return [(0, h.node_grid(spec))]
     outlines = spec.outlines
     corners = spec.corners()
     core = outlines[0]

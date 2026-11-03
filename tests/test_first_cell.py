@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Radial grading from a first-cell height (docs/tasks/0002).
 
@@ -15,7 +27,8 @@ import pytest
 
 from hexmesh.assembly import Assembly, Straight
 from hexmesh.core.grading import first_cell_height, progression_for_first_cell
-from hexmesh.core.shape import OH_RATIO, oh_core_wall_span
+from hexmesh.core.shape import core_wall_span as oh_core_wall_span
+from hexmesh.sections.oh import OH_RATIO
 from hexmesh.core.spec import PipeSpec
 
 from tests import test_fitting_conformance as kit

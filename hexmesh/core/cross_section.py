@@ -135,6 +135,9 @@ class CrossSection:
     # their outer corners at matching angles without re-deriving them.
     # Empty list = not set.
     corner_angles: list[float] = field(default_factory=list)
+    # Section layout that built the face (``sections``): "oh" or "h".  An
+    # H face has one patch and no inner boundary, corner lines or centre.
+    layout: str = "oh"
     # Number of outer structural corners.  Automatically derived from
     # outer_points in __post_init__; do not pass explicitly.
     n_outer: int = field(default=0)

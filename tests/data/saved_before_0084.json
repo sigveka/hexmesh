@@ -1,0 +1,70 @@
+{
+ "edges": [
+  {
+   "fitting": {
+    "axial_grading": 1.0,
+    "length": 0.3,
+    "n_layers": 2,
+    "stack_changes": [],
+    "type": "Straight"
+   },
+   "source": 0
+  },
+  {
+   "fitting": {
+    "angle": 90,
+    "axial_grading": 1.0,
+    "n_layers": 4,
+    "radius": 0.15,
+    "roll": 0.0,
+    "stack_changes": [],
+    "type": "Bend"
+   },
+   "source": 1
+  }
+ ],
+ "format": "hexmesh.assembly",
+ "inlet": {
+  "normal": [
+   1.0,
+   0.0,
+   0.0
+  ],
+  "position": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "spec": {
+   "core": {
+    "mprg": 1.0,
+    "name": "air",
+    "nrad": 2,
+    "shape": {
+     "half_h": 0.05,
+     "half_w": 0.1,
+     "nang_h": 2,
+     "nang_w": 4,
+     "type": "rect"
+    }
+   },
+   "mbmp": 1.0,
+   "n_outer": 4,
+   "nang": null,
+   "nang_h": 2,
+   "nang_w": 4,
+   "rot": 0.0,
+   "shells": []
+  },
+  "up": [
+   0.0,
+   0.0,
+   1.0
+  ]
+ },
+ "names": {
+  "0": "inlet"
+ },
+ "tail": 2,
+ "version": 2
+}

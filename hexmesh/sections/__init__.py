@@ -12,14 +12,16 @@
 #
 """
 Cross-section layouts (DESIGN §6.1 "Sections"; decision 0037, item 1;
-task 0082).  One layout today, the 5-patch O-H face:
+tasks 0082, 0084).  Two layouts, chosen on the core
+(``PipeSpec.core(layout=)``, decision 0036):
 
-- ``sections.oh``: its pure description (corner levels, edges, patches,
-  corner order, signature kinds), used by the block layouts;
-- ``sections.oh_gmsh``: its GMSH faces.
+- ``sections.oh``: the 5-patch O-H face, pure (corner levels, edges,
+  patches, corner order, signature kinds), used by the block layouts;
+  ``sections.oh_gmsh``: its GMSH faces;
+- ``sections.h``: one Cartesian patch for a rectangular core, pure and
+  GMSH.
 
-The interface every layout shares is derived when the second one (the H
-face, decision 0036) exists.  ``sections`` sits between ``core`` and
+``layout_of(spec)`` gives a spec's layout module.  ``sections`` sits between ``core`` and
 ``assembly`` (DESIGN §3.1): it imports ``core``, never ``assembly``.
 """
 
@@ -27,13 +29,18 @@ from __future__ import annotations
 
 from ..core.cross_section import CrossSection, LayeredCrossSection
 from ..core.shape import BlendShape, RectShape
-from . import oh
+from . import h, oh
 from ._gmsh_helpers import add_physical_group
 from .oh_gmsh import (build_annulus, build_oh_blend, build_oh_circle, build_oh_circle8,
                       build_oh_rect, build_ring)
 
-__all__ = ["oh", "build_face", "add_physical_group", "build_oh_circle", "build_oh_circle8",
+__all__ = ["oh", "h", "layout_of", "build_face", "add_physical_group", "build_oh_circle", "build_oh_circle8",
            "build_oh_rect", "build_oh_blend", "build_ring", "build_annulus"]
+
+
+def layout_of(spec):
+    """*spec*'s section layout module, ``sections.oh`` or ``sections.h``."""
+    return h if spec.layout == "h" else oh
 
 
 def build_face(spec, position, h_axis, v_axis, lc: float,
@@ -44,6 +51,9 @@ def build_face(spec, position, h_axis, v_axis, lc: float,
     *v_axis*; *stretch* ``(b, s)`` scales it by ``s`` along the in-plane
     direction ``b`` (miter cut faces).
     """
+    if spec.layout == "h":
+        return LayeredCrossSection([(spec.layer_names[0],
+                                     h.build_h_rect(spec, position, h_axis, v_axis, lc, stretch))])
     cx, cy, cz = (float(c) for c in position)
     core_name, core_shape = spec._core
     if isinstance(core_shape, RectShape):

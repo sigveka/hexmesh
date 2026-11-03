@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Sweeps — every single-path fitting is a sweep (DESIGN.md §6.1).
 
@@ -19,6 +31,7 @@ import gmsh
 from .. import _occ
 from ..core.cross_section import LayeredCrossSection
 from ..core.spec import PipeSpec
+from ..sections import h
 from .corners import canonical_geom, connect_layer, curve_endpoints, frame_offset
 from .interface import Frame, build_face, outer_radius, roll_mismatch
 from .signature import check_port_pairs, classify, signature
@@ -61,7 +74,13 @@ def face_grading(face: LayeredCrossSection, spec: PipeSpec) -> dict[int, tuple[s
     end (the face-builder convention, ``core.spec.LayerSpec``); angular
     arcs carry ``mbmp`` as a bump.  Orientation comes from endpoint tags
     (``canonical_geom`` signs radials inner → outer), never from distance.
+    An H face's sides carry its wall grading, a symmetric ``Bump``
+    (``sections.h.side_grading``).
     """
+    if spec.layout == "h":
+        (_, cs), = face.layers
+        edges = h.levels(spec)[0].edges
+        return {abs(c): e.grading for c, e in zip(canonical_geom(cs)['oc'], edges) if e.grading}
     mprgs = [spec._core_mprg] + [getattr(sh, "mprg", 1.0) for sh in spec.shells]
     out: dict[int, tuple[str, float]] = {}
     for (_, cs), mprg in zip(face.layers, mprgs):
@@ -82,8 +101,11 @@ def section_cells(spec: PipeSpec) -> int:
     a ``c[0] × c[1]`` centre patch plus one ring patch of ``c[k] × nrad``
     per side; every shell adds the same ring again with its own ``nrad``.
     A circle has ``c[k] = nang // (n_outer // 4)``; a rectangle
-    ``nang_w, nang_h, nang_w, nang_h``.
+    ``nang_w, nang_h, nang_w, nang_h``.  An H core is the centre patch
+    alone (``sections.h.section_cells``).
     """
+    if spec.layout == "h":
+        return h.section_cells(spec)
     c = spec.side_counts
     nrads = [spec._core_nrad] + [sh.nrad for sh in spec.shells]
     return c[0] * c[1] + sum(c) * sum(nrads)

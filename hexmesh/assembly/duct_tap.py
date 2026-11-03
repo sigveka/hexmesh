@@ -56,9 +56,10 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from ..core.shape import CircleShape, OH_RATIO, RectShape
+from ..core.shape import CircleShape, RectShape
 from ..core.spec import PipeSpec
 from ..sections import oh
+from ..sections.oh import OH_RATIO
 from .blocks import ArcAbout, BlockLayout, LayoutError, face_patches, face_vertices
 from .interface import Frame
 

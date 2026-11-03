@@ -19,8 +19,8 @@ corner positions per level, edges with their division counts and
 grading, and patches with their materials.  Plain data only: ``sections``
 doesn't import ``assembly`` (DESIGN §3.1).  The 2-D formulas behind it
 (the rectangle's ring inset, the inner corners and arcs, the inner
-outlines) are here too (task 0083); ``OH_RATIO`` and the core wall span
-stay in ``core.shape``, which solves ``first_cell`` with them.
+outlines) are here too (task 0083).  ``OH_RATIO`` is read from
+``core.shape.LAYOUTS``, which ``first_cell`` also uses (task 0084).
 
 Topology, viewed from the extrusion direction::
 
@@ -61,11 +61,17 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from ..core.shape import BlendShape, CircleShape, OH_RATIO, RectShape
+from ..core.shape import LAYOUTS, BlendShape, CircleShape, RectShape
 from ..core.shape import outline as outer_outline
 
 #: signature layout kinds (``assembly.signature``)
 CORE_KIND = "oh_core"
+
+#: Inner-square corner radius of the circular O-H face, as a fraction of
+#: the core radius: ``core.shape.LAYOUTS``' row, which ``first_cell``
+#: sizes the wall cells with.  The core's radial curves run from there to
+#: the circle, so they are ``(1 - OH_RATIO) * r`` long.
+OH_RATIO = LAYOUTS["oh"]["ratio"]
 RING_KIND = "annulus"
 
 
