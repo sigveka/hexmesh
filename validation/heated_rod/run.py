@@ -59,7 +59,7 @@ import gmsh                                                    # noqa: E402
 
 from hexmesh import Assembly, PipeSpec, Session, Straight      # noqa: E402
 from hexmesh.assembly import intent                            # noqa: E402
-from hexmesh.core.shape import OH_RATIO                        # noqa: E402
+from hexmesh.sections.oh import OH_RATIO                       # noqa: E402
 from hexmesh.study.openfoam import cell_geometry, face_geometry   # noqa: E402
 
 # The Poiseuille case's versions, and (through it) the shared OpenFOAM
