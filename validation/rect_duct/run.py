@@ -495,8 +495,8 @@ def main(argv=None) -> dict:
     return data
 
 
-#: "observed order near 2 (else the setup is suspect)": within 0.2
-#: (task 0093's reading)
+#: case.json's Cartesian-control limit: observed order 2 ± 0.2, status
+#: converging (accepted 2026-11-03, task 0093)
 ORDER_TOL = 0.2
 
 

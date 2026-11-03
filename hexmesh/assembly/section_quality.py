@@ -47,7 +47,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from ..core.shape import outline
+from ..sections.oh import outline
 from ..core.spec import PipeSpec
 from .limits import OUTLINE_NONORTH_MAX, OUTLINE_NONORTH_WARN, PREDICTED_SJ_MIN, PREDICTED_SJ_WARN
 

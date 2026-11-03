@@ -361,45 +361,18 @@ def shape_from_dict(d: dict) -> Shape:
     return SHAPES[kind](**d)
 
 # ---------------------------------------------------------------------------
-# O-H face geometry: each formula once (task 0082)
+# The O-H core ratio and wall span (tasks 0082, 0083)
 # ---------------------------------------------------------------------------
-# The layout itself (levels, edges, patches, corner order) is
-# ``hexmesh.sections.oh``; these 2-D formulas stay here because ``core``
-# uses them too (``PipeSpec.core(first_cell=)``, ``BlendShape.outline``)
-# and may not import ``sections`` (DESIGN §3.1).
+# The O-H layout, its inner corners, inset and inner arcs are
+# ``hexmesh.sections.oh``.  These two stay in ``core`` because
+# ``PipeSpec.core(first_cell=)`` solves its grading from the wall span
+# when the spec is built, and ``core`` may not import ``sections``
+# (DESIGN §3.1; task 0083, Questions for design).
 
 #: Inner-square corner radius of the circular O-H face, as a fraction of
 #: the core radius.  The core's radial curves run from there to the
 #: circle, so they are ``(1 - OH_RATIO) * r`` long.
 OH_RATIO = 0.6
-
-
-def oh_ring_thickness(half_w: float, half_h: float) -> float:
-    """Ring thickness of a rectangle's O-H face, the same on every side:
-    ``(1 - OH_RATIO) · min(half_w, half_h)``.  A uniform ring puts each
-    corner radial at 45° to both walls, so the corner cells keep a scaled
-    Jacobian of about 0.71 at any aspect ratio; scaling the inner rectangle
-    instead gives sin(atan(h/w)), 0.45 for a 2:1 duct (task 0028)."""
-    return (1.0 - OH_RATIO) * min(half_w, half_h)
-
-
-def oh_inner_corner(shape, k: int) -> np.ndarray:
-    """Corner *k* (NE, NW, SW, SE) of the inner square (or rectangle) of
-    *shape*'s O-H face, in-plane ``(u, v)`` before ``rot``."""
-    if isinstance(shape, RectShape):
-        t = oh_ring_thickness(shape.half_w, shape.half_h)
-        su, sv = ((1, 1), (-1, 1), (-1, -1), (1, -1))[k % 4]
-        return np.array([su * (shape.half_w - t), sv * (shape.half_h - t)])
-    return OH_RATIO * shape.corner(k)
-
-
-def oh_inner_arc_centre(radius: float, k: int, rot: float = 0.0) -> np.ndarray:
-    """Centre of inner arc *k* (corner k → k + 1) of a circle's O-H face,
-    turned by *rot*: the inner-square point opposite the arc's middle
-    (S, E, N, W for k = 0…3), so the arcs bulge toward the centre."""
-    a = (k + 3) % 4 * math.pi / 2 + rot
-    rho = OH_RATIO * radius
-    return np.array([math.cos(a) * rho, math.sin(a) * rho])
 
 
 def oh_core_wall_span(radius: float, ratio: float = OH_RATIO) -> float:
@@ -416,49 +389,36 @@ def oh_core_wall_span(radius: float, ratio: float = OH_RATIO) -> float:
 
 
 # ---------------------------------------------------------------------------
-# Outlines: the O-H face of each shape as pure 2-D curves (task 0029)
+# Outlines: each shape's outer curves as pure 2-D curves (task 0029)
 # ---------------------------------------------------------------------------
 # In-plane (u, v) coordinates, u along ``frame.right``, v along ``up``,
 # before ``rot``.  Curve k runs from corner k to k + 1 (NE, NW, SW, SE), and
 # *s* in [0, 1] is the fraction of its arc length.  The face builders
 # (``sections.oh_gmsh``) use the same formulas: a transition's stations
-# blend these, and its end stations are those builders' faces.
+# blend these, and its end stations are those builders' faces.  The inner
+# curves are the layout's (``sections.oh.outline``).
 
-def _circle_outline(shape: CircleShape, k: int, s, inner: bool):
+def _circle_outline(shape: CircleShape, k: int, s):
     s = np.asarray(s, dtype=float)
     r = shape.radius
-    if not inner:
-        a = math.pi / 4 + math.pi / 2 * (k + s)
-        return np.stack([r * np.cos(a), r * np.sin(a)], axis=-1)
-    # inner arc k is centred on the inner-square point opposite its middle
-    rho = OH_RATIO * r
-    c = oh_inner_arc_centre(r, k)
-    ends = [rho * np.array([math.cos(math.pi / 4 + math.pi / 2 * j),
-                            math.sin(math.pi / 4 + math.pi / 2 * j)]) for j in (k, k + 1)]
-    a0, a1 = (math.atan2(*(e - c)[::-1]) for e in ends)
-    a1 = a0 + math.remainder(a1 - a0, 2 * math.pi)    # the short way (k = 1 crosses ±π)
-    a = a0 + (a1 - a0) * s
-    R = np.linalg.norm(ends[0] - c)
-    return c + R * np.stack([np.cos(a), np.sin(a)], axis=-1)
+    a = math.pi / 4 + math.pi / 2 * (k + s)
+    return np.stack([r * np.cos(a), r * np.sin(a)], axis=-1)
 
 
-def _rect_outline(shape: RectShape, k: int, s, inner: bool):
+def _rect_outline(shape: RectShape, k: int, s):
     s = np.asarray(s, dtype=float)[..., None]
     hw, hh = shape.half_w, shape.half_h
-    if inner:                       # uniform ring
-        t = oh_ring_thickness(hw, hh)
-        hw, hh = hw - t, hh - t
     corners = np.array([[hw, hh], [-hw, hh], [-hw, -hh], [hw, -hh]])
     return corners[k % 4] + (corners[(k + 1) % 4] - corners[k % 4]) * s
 
 
-def outline(shape, k: int, s, inner: bool = False) -> np.ndarray:
-    """Point(s) at arc-length fraction *s* along outer (or *inner*) curve
-    *k* of *shape*'s O-H face, in unrotated in-plane coordinates."""
+def outline(shape, k: int, s) -> np.ndarray:
+    """Point(s) at arc-length fraction *s* along outer curve *k* of
+    *shape*, in unrotated in-plane coordinates."""
     if isinstance(shape, CircleShape):
-        return _circle_outline(shape, k, s, inner)
+        return _circle_outline(shape, k, s)
     if isinstance(shape, RectShape):
-        return _rect_outline(shape, k, s, inner)
+        return _rect_outline(shape, k, s)
     raise TypeError(f"no outline for {type(shape).__name__}")
 
 
@@ -475,7 +435,8 @@ class BlendShape:
     each end (*corners_in*, *corners_out*, ``PipeSpec.corners()``): its
     sides blend the end rings' sides between those corners, so the corner
     lines of every station blend too and the layers stay nested.  A core
-    station has none and blends the O-H outlines (``outline``).
+    station has none and blends the outer curves (``outline``; its inner
+    ones are the layout's, ``sections.oh.outline``).
     """
 
     inlet:  object
@@ -531,9 +492,9 @@ class BlendShape:
     def period(self, n_corners: int) -> float:
         return math.pi / 2 if self.is_square else math.pi
 
-    def outline(self, k: int, s, inner: bool = False) -> np.ndarray:
-        a = outline(self.inlet, k, s, inner)
-        b = outline(self.outlet, k, s, inner)
+    def outline(self, k: int, s) -> np.ndarray:
+        a = outline(self.inlet, k, s)
+        b = outline(self.outlet, k, s)
         return (1.0 - self.u) * a + self.u * b
 
     def side_samples(self, k: int, s) -> np.ndarray:

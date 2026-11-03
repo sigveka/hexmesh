@@ -41,7 +41,7 @@ import numpy as np
 
 from .. import _occ
 from ..core.cross_section import CrossSection, BoundaryType
-from ..core.shape import CircleShape, RectShape, oh_inner_arc_centre
+from ..core.shape import CircleShape, RectShape
 from . import oh
 from ._gmsh_helpers import (
     add_point, add_arc, add_conic_arc, add_line, add_line_loop, add_surface,
@@ -92,7 +92,7 @@ def build_oh_circle(
     """
     xyz = _plane(cx, cy, cz, h_axis, v_axis, stretch)
     inner, outer = oh.core_corners(shape, 4, rot)
-    centre_uv = [oh_inner_arc_centre(shape.radius, k, rot) for k in range(4)]   # of inner arc k
+    centre_uv = [oh.inner_arc_centre(shape.radius, k, rot) for k in range(4)]   # of inner arc k
 
     center = add_point(cx, cy, cz, lc)
     o1, o2, o3, o4 = (add_point(*xyz(p), lc) for p in outer)          # NE, NW, SW, SE
@@ -237,7 +237,7 @@ def build_oh_rect(
 ) -> CrossSection:
     """Build a 5-patch O-H rectangle in GMSH: the circle's layout with
     lines for arcs, the inner rectangle inset by a uniform ring
-    (``core.shape.oh_ring_thickness``).  *shape* carries ``half_w``,
+    (``sections.oh.ring_thickness``).  *shape* carries ``half_w``,
     ``half_h``, ``nang_w`` (width sides) and ``nang_h`` (height sides);
     the other arguments are ``build_oh_circle``'s.  The stretch is
     affine, so the edges stay straight lines."""
@@ -323,7 +323,7 @@ def build_oh_blend(
     mid = np.linspace(0.0, 1.0, _SAMPLES + 2)[1:-1]
 
     def spline(k, a, b, inner):
-        pts = [geo.addPoint(*xyz(oh.rotated(p, rot))) for p in shape.outline(k, mid, inner)]
+        pts = [geo.addPoint(*xyz(oh.rotated(p, rot))) for p in oh.outline(shape, k, mid, inner)]
         return _occ.spline([a, *pts, b])
 
     oc = [spline(k, o[k], o[(k + 1) % 4], False) for k in range(4)]   # NE→NW, …

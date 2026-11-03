@@ -25,7 +25,8 @@ import pytest
 
 from hexmesh.assembly import Assembly, AssemblyError, Straight, Transition
 from hexmesh.assembly.signature import classify, signature
-from hexmesh.core.shape import BlendShape, CircleShape, RectShape, outline
+from hexmesh.core.shape import BlendShape, CircleShape, RectShape
+from hexmesh.sections.oh import outline
 from hexmesh.core.spec import PipeSpec
 
 
@@ -101,9 +102,9 @@ class TestStationShape:
         s = np.linspace(0, 1, 7)
         for k in range(4):
             for inner in (False, True):
-                np.testing.assert_allclose(BlendShape(c, r, 0.0).outline(k, s, inner),
+                np.testing.assert_allclose(outline(BlendShape(c, r, 0.0), k, s, inner),
                                            outline(c, k, s, inner), atol=1e-15)
-                np.testing.assert_allclose(BlendShape(c, r, 1.0).outline(k, s, inner),
+                np.testing.assert_allclose(outline(BlendShape(c, r, 1.0), k, s, inner),
                                            outline(r, k, s, inner), atol=1e-15)
 
     def test_outlines_match_face_builders(self, gmsh_session):

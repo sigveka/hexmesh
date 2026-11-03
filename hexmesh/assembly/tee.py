@@ -64,8 +64,9 @@ from dataclasses import dataclass, field, replace
 
 import numpy as np
 
-from ..core.shape import CircleShape, OH_RATIO, RectShape, oh_ring_thickness
+from ..core.shape import CircleShape, OH_RATIO, RectShape
 from ..core.spec import PipeSpec
+from ..sections import oh
 from . import limits
 from .blocks import (
     ArcAbout, BlockLayout, LayoutError, Spline, bind_face, corner_shift,
@@ -564,7 +565,7 @@ class Tee:
             return tee
         if tee.run_length is None:
             on_U, a, b, *_, reach_x, _ = tee._duct_geometry(spec)
-            t = oh_ring_thickness(a, b)
+            t = oh.ring_thickness(a, b)
             run = reach_x + (max(DuctTap.TUNING["margin"]) + 1) * t
             tee = replace(tee, run_length=run)
         tee._check_duct(spec, tuned=False)
@@ -606,7 +607,7 @@ class Tee:
         on_U, a, b, along, across, reach_x, reach_y = self._duct_geometry(spec)
         face = self.face or "wide"
         ratio = reach_y / a
-        t = oh_ring_thickness(a, b)
+        t = oh.ring_thickness(a, b)
         if self._full_width(spec):
             z1 = b + 0.5 * min(along, across)
             if self.run_length <= along:

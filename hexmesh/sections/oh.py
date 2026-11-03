@@ -18,8 +18,9 @@ One description of the 5-patch O-H face, used by the GMSH builders
 corner positions per level, edges with their division counts and
 grading, and patches with their materials.  Plain data only: ``sections``
 doesn't import ``assembly`` (DESIGN §3.1).  The 2-D formulas behind it
-(``OH_RATIO``, the rectangle's ring inset, the inner arcs) are in
-``core.shape``, which ``core`` uses too.
+(the rectangle's ring inset, the inner corners and arcs, the inner
+outlines) are here too (task 0083); ``OH_RATIO`` and the core wall span
+stay in ``core.shape``, which solves ``first_cell`` with them.
 
 Topology, viewed from the extrusion direction::
 
@@ -60,11 +61,85 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from ..core.shape import BlendShape, CircleShape, OH_RATIO, RectShape, oh_inner_corner
+from ..core.shape import BlendShape, CircleShape, OH_RATIO, RectShape
+from ..core.shape import outline as outer_outline
 
 #: signature layout kinds (``assembly.signature``)
 CORE_KIND = "oh_core"
 RING_KIND = "annulus"
+
+
+# ---------------------------------------------------------------------------
+# The face's 2-D formulas, each once (tasks 0082, 0083)
+# ---------------------------------------------------------------------------
+
+def ring_thickness(half_w: float, half_h: float) -> float:
+    """Ring thickness of a rectangle's O-H face, the same on every side:
+    ``(1 - OH_RATIO) · min(half_w, half_h)``.  A uniform ring puts each
+    corner radial at 45° to both walls, so the corner cells keep a scaled
+    Jacobian of about 0.71 at any aspect ratio; scaling the inner rectangle
+    instead gives sin(atan(h/w)), 0.45 for a 2:1 duct (task 0028)."""
+    return (1.0 - OH_RATIO) * min(half_w, half_h)
+
+
+def inner_corner(shape, k: int) -> np.ndarray:
+    """Corner *k* (NE, NW, SW, SE) of the inner square (or rectangle) of
+    *shape*'s O-H face, in-plane ``(u, v)`` before ``rot``."""
+    if isinstance(shape, RectShape):
+        t = ring_thickness(shape.half_w, shape.half_h)
+        su, sv = ((1, 1), (-1, 1), (-1, -1), (1, -1))[k % 4]
+        return np.array([su * (shape.half_w - t), sv * (shape.half_h - t)])
+    return OH_RATIO * shape.corner(k)
+
+
+def inner_arc_centre(radius: float, k: int, rot: float = 0.0) -> np.ndarray:
+    """Centre of inner arc *k* (corner k → k + 1) of a circle's O-H face,
+    turned by *rot*: the inner-square point opposite the arc's middle
+    (S, E, N, W for k = 0…3), so the arcs bulge toward the centre."""
+    a = (k + 3) % 4 * math.pi / 2 + rot
+    rho = OH_RATIO * radius
+    return np.array([math.cos(a) * rho, math.sin(a) * rho])
+
+
+def _circle_inner(shape: CircleShape, k: int, s):
+    s = np.asarray(s, dtype=float)
+    r = shape.radius
+    # inner arc k is centred on the inner-square point opposite its middle
+    rho = OH_RATIO * r
+    c = inner_arc_centre(r, k)
+    ends = [rho * np.array([math.cos(math.pi / 4 + math.pi / 2 * j),
+                            math.sin(math.pi / 4 + math.pi / 2 * j)]) for j in (k, k + 1)]
+    a0, a1 = (math.atan2(*(e - c)[::-1]) for e in ends)
+    a1 = a0 + math.remainder(a1 - a0, 2 * math.pi)    # the short way (k = 1 crosses ±π)
+    a = a0 + (a1 - a0) * s
+    R = np.linalg.norm(ends[0] - c)
+    return c + R * np.stack([np.cos(a), np.sin(a)], axis=-1)
+
+
+def _rect_inner(shape: RectShape, k: int, s):
+    s = np.asarray(s, dtype=float)[..., None]
+    t = ring_thickness(shape.half_w, shape.half_h)      # uniform ring
+    hw, hh = shape.half_w - t, shape.half_h - t
+    corners = np.array([[hw, hh], [-hw, hh], [-hw, -hh], [hw, -hh]])
+    return corners[k % 4] + (corners[(k + 1) % 4] - corners[k % 4]) * s
+
+
+def outline(shape, k: int, s, inner: bool = False) -> np.ndarray:
+    """Point(s) at arc-length fraction *s* along outer (or *inner*) curve
+    *k* of *shape*'s O-H face, in unrotated in-plane coordinates.  The
+    outer curves are the shape's (``core.shape.outline``); a
+    ``BlendShape`` station's inner curves blend its ends'."""
+    if not inner:
+        return shape.outline(k, s) if isinstance(shape, BlendShape) else outer_outline(shape, k, s)
+    if isinstance(shape, BlendShape):
+        a = outline(shape.inlet, k, s, True)
+        b = outline(shape.outlet, k, s, True)
+        return (1.0 - shape.u) * a + shape.u * b
+    if isinstance(shape, CircleShape):
+        return _circle_inner(shape, k, s)
+    if isinstance(shape, RectShape):
+        return _rect_inner(shape, k, s)
+    raise TypeError(f"no outline for {type(shape).__name__}")
 
 
 def corner0_angle(spec) -> float:
@@ -102,9 +177,9 @@ def core_corners(shape, n_outer: int, rot: float) -> tuple[list[np.ndarray], lis
         return ([polar(OH_RATIO * shape.radius, a) for a in d],
                 [polar(shape.radius, a) for a in d])
     if isinstance(shape, BlendShape):
-        return ([rotated(shape.outline(k, 0.0, inner=True), rot) for k in range(4)],
+        return ([rotated(outline(shape, k, 0.0, inner=True), rot) for k in range(4)],
                 [rotated(shape.outline(k, 0.0), rot) for k in range(4)])
-    return ([rotated(oh_inner_corner(shape, k), rot) for k in range(4)],
+    return ([rotated(inner_corner(shape, k), rot) for k in range(4)],
             [rotated(shape.corner(k), rot) for k in range(4)])
 
 

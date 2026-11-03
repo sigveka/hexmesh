@@ -396,11 +396,11 @@ def main(argv=None) -> dict:
     return data
 
 
-#: largest |imbalance| through an interface or the outer wall: "balanced"
-#: has no tolerance set in advance (case.json); 1e-8 covers the measured
-#: 1.2e-9 (task 0093's reading)
+#: largest |imbalance| through an interface or the outer wall, relative
+#: to the heat in: case.json's limit ≤ 1e-8 (accepted 2026-11-03, task
+#: 0093; measured 5e-12 to 1.2e-9)
 BALANCE_TOL = 1e-8
-#: "L2 order ≈ 2": within 0.2 (task 0093's reading)
+#: case.json's "L2 order per region": 2 ± 0.2
 ORDER_TOL = 0.2
 
 
