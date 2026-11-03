@@ -1,6 +1,6 @@
 # 0092 — Platform support: portable meshing, a portable Docker runner, CI on three systems
 
-- **Status:** in progress
+- **Status:** done
 - **Decision:** [0039 — Platform support](../decisions/0039-platform-support.md)
 - **Depends on:** 0091 (it edits `io/writers`; don't run both at once)
 
@@ -215,7 +215,7 @@ Windows causes, all recorded in `docs/integrations/platforms.md` and
   Run 2 (41590666205, a48e360): Windows 3 failed, 2288 passed, 17 skipped; everything else green.  All three were
   in the new tests, not the library: the CRLF simulation doubled gmsh's own `\r\n` on Windows (`\r\r\n`), and
   `test_provenance_false_is_todays_file` compared with gmsh's raw CRLF file.  Both tests now normalise first.
-  Run 3 waits for the push.
+  Run 3 (41662954221, 26ccf2c): all seven jobs green (Linux, macOS, Windows × Python 3.10 and 3.x; OpenFOAM in Docker).
 - **Full suite on Linux:** 2266 passed, 15 skipped (+21), no failures.
   The touched test files pass again (106) after the logo headers.
 - **One Docker case unchanged:** rect_duct a/b 1, k = 1, both meshes,

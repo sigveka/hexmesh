@@ -1,6 +1,6 @@
 # 0083 — Shapes own their behaviour: the shape protocol
 
-- **Status:** ready (after 0082)
+- **Status:** in progress
 - **Decision:** [0037 — Capability boundaries](../decisions/0037-capability-boundaries.md) (item 2); DESIGN §3.1 ("Shapes and section layouts own their behaviour")
 - **Depends on:** 0082 (both touch `interface.py` and `spec.py`; 0082
   moves the layout dispatch first).
