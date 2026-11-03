@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Named ports, absolute orientation and angle units (task 0040, decision 0024).
 
@@ -264,7 +276,7 @@ def test_version_1_file_converts_rot():
 
 def test_rot_45_turns_corners():
     """Corner 0 sits at 45° + rot from right: at rot = 45 it points along up."""
-    from hexmesh.assembly.corners import corner0_angle
+    from hexmesh.sections.oh import corner0_angle
     assert corner0_angle(_pipe(rot=45)) == pytest.approx(math.pi / 2)
 
 

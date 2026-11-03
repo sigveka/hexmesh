@@ -45,7 +45,7 @@ import gmsh
 
 from .. import _occ
 from ..core.spec import PipeSpec
-from ..faces import add_physical_group
+from ..sections import add_physical_group
 from ..quality_hex import METRICS, hex_vertices, min_scaled_jacobians
 from . import intent
 from ..io.writers import msh_comments

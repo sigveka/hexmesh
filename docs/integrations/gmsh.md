@@ -22,7 +22,7 @@ because OCC behaviour differs between versions (see quirks).
 
 ## Features used
 
-Only the assembly path (`hexmesh/assembly/`, `hexmesh/faces/`) exists; the
+Only the assembly path (`hexmesh/assembly/`, `hexmesh/sections/`) exists; the
 legacy connectors were deleted in task 0017 (decision 0004).
 
 - **Geometry (`gmsh.model.occ`):**
@@ -238,7 +238,7 @@ the surface tags but gives the transformed surface's points and curves
 new tags.  Tag-based corner identity (DESIGN §6.1) then breaks.  Found in
 task 0012 (stretched miter cut faces).  The fix: build stretched faces
 directly, through the `stretch=` argument of the face builders
-(`faces/_gmsh_helpers.add_conic_arc`).
+(`sections/_gmsh_helpers.add_conic_arc`).
 
 ### `addEllipseArc` rejects arcs symmetric about the major axis — *verified*
 4.12.1 / OCC 7.6.3.  `occ.addEllipseArc(start, centre, major, end)` fails

@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Blocks — every multi-port fitting is a layout of hex blocks (DESIGN.md §6.1).
 
@@ -34,7 +46,7 @@ import gmsh
 from scipy.interpolate import CubicSpline
 
 from .. import _occ
-from ..core.shape import OH_RATIO, RectShape   # OH_RATIO re-exported: inner-square scale of the OH face
+from ..sections import oh
 from ..core.cross_section import interface_group_name
 from ..quality_hex import corner_scaled_jacobians
 from .corners import curve_endpoints
@@ -556,105 +568,43 @@ class BlockLayout:
 
 
 # ---------------------------------------------------------------------------
-# OH port faces
+# Port faces: the section layout declared into a BlockLayout
 # ---------------------------------------------------------------------------
 #
-# Vertex ids of a port face are (prefix, level, k): level 0 is the core's
-# inner square, level l ≥ 1 the outer boundary of layer l-1; corner k is
-# named by the frame (corners.corner0_angle + k·2π/n_outer).
-
-
-
-def face_levels(spec) -> list[float]:
-    """Radius of every corner level of *spec* (level 0 = inner square)."""
-    r = [spec.core_shape.radius]
-    for sh in spec.shells:
-        r.append(r[-1] + sh.dR)
-    return [OH_RATIO * r[0], *r]
+# Vertex ids of a port face are (prefix, level, k): the layout's
+# (level, k) corners (``sections.oh``), placed at the frame.
 
 
 def face_vertices(layout: BlockLayout, prefix, frame, spec, port: bool = True) -> None:
-    """Declare the corners and edges of the OH face at *frame* (pure).
+    """Declare the corners and edges of *spec*'s face at *frame* (pure),
+    from ``sections.oh.levels``.
 
     With ``port=False`` the face is an internal station: its patches are
     shared by two blocks and are not declared as port faces.
     """
-    from .corners import corner0_angle
-    n = spec.n_outer
-    nrads = [spec._core_nrad] + [sh.nrad for sh in spec.shells]
-    mprgs = [spec._core_mprg] + [sh.mprg for sh in spec.shells]
-    bump = ("Bump", spec.mbmp) if spec.mbmp != 1.0 else None
-    if isinstance(spec.core_shape, RectShape):
-        _rect_face_vertices(layout, prefix, frame, spec, nrads, mprgs, bump)
-        if port:
-            for _, cyc in face_patches(prefix, spec):
-                layout.port_face(cyc)
-        return
-    a0 = corner0_angle(spec)
-    nang = spec.nang // (n // 4)
-    for lvl, rad in enumerate(face_levels(spec)):
-        for k in range(n):
-            ang = a0 + 2 * np.pi * k / n
-            layout.vertex((prefix, lvl, k), frame.position
-                          + rad * (np.cos(ang) * frame.right + np.sin(ang) * frame.up))
-        for k in range(n):
-            layout.edge((prefix, lvl, k), (prefix, lvl, (k + 1) % n),
-                        divisions=nang, grading=bump)
-            if lvl:
-                layout.edge((prefix, lvl - 1, k), (prefix, lvl, k),
-                            divisions=nrads[lvl - 1],
-                            grading=("Progression", mprgs[lvl - 1]))
+    for lvl, level in enumerate(oh.levels(spec)):
+        for k, (u, v) in enumerate(level.corners):
+            layout.vertex((prefix, lvl, k), frame.position + u * frame.right + v * frame.up)
+        for e in level.edges:
+            layout.edge((prefix, *e.a), (prefix, *e.b), divisions=e.divisions,
+                        grading=e.grading)
     if port:
         for _, cyc in face_patches(prefix, spec):
             layout.port_face(cyc)
 
 
-def _rect_face_vertices(layout, prefix, frame, spec, nrads, mprgs, bump) -> None:
-    """``face_vertices`` for a rectangular core (``build_oh_rect``): the
-    inner rectangle inset by the uniform ring thickness (1 − OH_RATIO)·
-    min(half_w, half_h), each layer's outline corner along the ring's
-    corner line (decision 0026), counts per side (task 0070)."""
-    sh = spec.core_shape
-    t = (1 - OH_RATIO) * min(sh.half_w, sh.half_h)
-    c, s = math.cos(spec.rot_rad), math.sin(spec.rot_rad)
-    inner = [np.array([su * (sh.half_w - t), sv * (sh.half_h - t)])
-             for su, sv in ((1, 1), (-1, 1), (-1, -1), (1, -1))]
-    levels = [inner] + [[o.ring_corner(math.atan2(p[1], p[0])) for p in inner]
-                        for o in spec.outlines]
-    counts = spec.side_counts
-    for lvl, corners in enumerate(levels):
-        for k, (u, v) in enumerate(corners):
-            layout.vertex((prefix, lvl, k), frame.position
-                          + (c * u - s * v) * frame.right + (s * u + c * v) * frame.up)
-        for k in range(4):
-            layout.edge((prefix, lvl, k), (prefix, lvl, (k + 1) % 4),
-                        divisions=counts[k], grading=bump)
-            if lvl:
-                layout.edge((prefix, lvl - 1, k), (prefix, lvl, k),
-                            divisions=nrads[lvl - 1],
-                            grading=("Progression", mprgs[lvl - 1]))
-
-
 def face_patches(prefix, spec) -> list[tuple[str, tuple]]:
-    """(material, cyclic vertex ids) of every patch of the OH port face."""
-    n = spec.n_outer
-    names = spec.layer_names
-    out = [(names[0], tuple((prefix, 0, k) for k in range(n)))]
-    for lvl, name in enumerate(names):
-        for k in range(n):
-            j = (k + 1) % n
-            out.append((name, ((prefix, lvl, k), (prefix, lvl, j),
-                               (prefix, lvl + 1, j), (prefix, lvl + 1, k))))
-    return out
+    """(material, cyclic vertex ids) of every patch of the port face
+    (``sections.oh.patches``)."""
+    return [(name, tuple((prefix, *c) for c in cyc)) for name, cyc in oh.patches(spec)]
 
 
 def corner_shift(layout_frame, frame, spec) -> int:
     """Index shift *s* between two frames of one face rolled by a multiple
     of the section's period: corner *k* declared at *layout_frame* is
     corner ``(k + s) % n_outer`` of the face built at *frame* (pure)."""
-    from .corners import corner0_angle
     n = spec.n_outer
-    a0 = corner0_angle(spec)
+    a0 = oh.corner0_angle(spec)
     w = np.cos(a0) * layout_frame.right + np.sin(a0) * layout_frame.up
     a = math.atan2(np.dot(w, frame.up), np.dot(w, frame.right))
     steps = (a - a0) / (2 * math.pi / n)

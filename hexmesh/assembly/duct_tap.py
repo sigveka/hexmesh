@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Duct tap: the block layout of a ``Tee`` on a rectangular main (decision
 0033 B; prototyped in task 0069, merged in task 0070): a perpendicular
@@ -12,8 +24,8 @@ Canonical frame
 x the main axis, z out of the tapped face, y = z × x.  The duct is
 |y| ≤ a, |z| ≤ b; the hole is |x| ≤ p, |y| ≤ q on the wall z = b (a
 rectangle, or the O-H outline of a circle of radius r).  The main face's
-inner rectangle is (±iw, ±ih), iw = a − t, ih = b − t, t = (1 − OH_RATIO)
-min(a, b) (``build_oh_rect``).
+inner rectangle is (±iw, ±ih), iw = a − t, ih = b − t, t =
+``core.shape.oh_ring_thickness(a, b)`` (the O-H layout, ``sections.oh``).
 
 Blocks
 ------
@@ -44,7 +56,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from ..core.shape import CircleShape, OH_RATIO, RectShape
+from ..core.shape import CircleShape, OH_RATIO, RectShape, oh_ring_thickness
 from ..core.spec import PipeSpec
 from .blocks import ArcAbout, BlockLayout, LayoutError, face_patches, face_vertices
 from .interface import Frame
@@ -163,7 +175,7 @@ class DuctTap:
         o, ex, ey, ez, a, b, on_U = self._basis(frames[0], spec)
         p, q = self._hole()
         sh = spec.core_shape
-        t = (1 - OH_RATIO) * min(a, b)
+        t = oh_ring_thickness(a, b)
         iw, ih = a - t, b - t
         extent = self.radius if self.radius is not None else p   # the hole's reach along x
         s = extent + self.margin * t
@@ -224,7 +236,7 @@ class DuctTap:
 
         # Hole levels.  W at z = b; C at z = ih (y scaled by iw/a); D the
         # dome bottom.  Ring 0 the branch's inner square, 1 its outline.
-        tb = (1 - OH_RATIO) * min(p, q)
+        tb = oh_ring_thickness(p, q)
         if self.radius is not None:
             inner = OH_RATIO * self.radius / math.sqrt(2)
             pc, qc = inner, inner
@@ -309,7 +321,7 @@ class DuctTap:
         sh = spec.core_shape
         on_U = (sh.half_w >= sh.half_h) == (self.face == "wide")
         a, b = (sh.half_w, sh.half_h) if on_U else (sh.half_h, sh.half_w)
-        t = (1 - OH_RATIO) * min(a, b)
+        t = oh_ring_thickness(a, b)
         p, _ = self._hole()
         extent = self.radius if self.radius is not None else p
         n_y, n_z = (sh.nang_w, sh.nang_h) if on_U else (sh.nang_h, sh.nang_w)
@@ -343,7 +355,7 @@ class FullWidthTap(DuctTap):
         o, ex, ey, ez, a, b, on_U = self._basis(frames[0], spec)
         p, _ = self._hole()
         sh = spec.core_shape
-        t = (1 - OH_RATIO) * min(a, b)
+        t = oh_ring_thickness(a, b)
         iw, ih = a - t, b - t
         # The stations' level-0 corners: the main's inner rectangle across,
         # inset min(t, p/2) from the hole along; the branch core tapers from

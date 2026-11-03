@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Transition: circle ↔ rectangle and rectangle ↔ rectangle sweeps
 (decision 0009 option B, task 0029).  Meshing in both fill orders is
@@ -96,8 +108,8 @@ class TestStationShape:
 
     def test_outlines_match_face_builders(self, gmsh_session):
         """The outline functions describe the faces the builders make."""
-        from hexmesh.faces.oh_circle import build_oh_circle
-        from hexmesh.faces.oh_rect import build_oh_rect
+        from hexmesh.sections import build_oh_circle
+        from hexmesh.sections import build_oh_rect
         h, v = np.array([1.0, 0, 0]), np.array([0, 1.0, 0])
         for shape, build in ((CircleShape(0.1, 6), build_oh_circle),
                              (RectShape(0.14, 0.07, 6, 6), build_oh_rect)):

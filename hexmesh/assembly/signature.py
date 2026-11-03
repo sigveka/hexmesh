@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Port-face signatures and the topology-switch classifier (DESIGN A4,
 decision 0011, docs/tasks/0019).
@@ -38,6 +50,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from ..core.spec import LayerSpec, PipeSpec
+from ..sections import oh
 
 # What a class needs, for error messages.
 BRIDGES = {
@@ -50,7 +63,7 @@ BRIDGES = {
 @dataclass(frozen=True)
 class LayerSig:
     name:  str
-    kind:  str      # "oh_core" | "annulus"
+    kind:  str      # sections.oh.CORE_KIND | RING_KIND
     nrad:  int
     mprg:  float
 
@@ -90,11 +103,11 @@ class SwitchClass:
 def signature(spec: PipeSpec) -> Signature:
     """Connectivity signature of *spec* (pure Python, hashable)."""
     name, _ = spec._core
-    layers = [LayerSig(name, "oh_core", spec._core_nrad, spec._core_mprg)]
+    layers = [LayerSig(name, oh.CORE_KIND, spec._core_nrad, spec._core_mprg)]
     for sh in spec.shells:
         if not isinstance(sh, LayerSpec):
             raise ValueError(f"no signature for a {type(sh).__name__} layer")
-        layers.append(LayerSig(sh.name, "annulus", sh.nrad, sh.mprg))
+        layers.append(LayerSig(sh.name, oh.RING_KIND, sh.nrad, sh.mprg))
     c = spec.side_counts
     period = 360.0 / spec.n_outer if c[0] == c[1] else 180.0
     return Signature(spec.n_outer, period, c[0], c[1], spec.mbmp, tuple(layers))

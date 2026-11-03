@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Wye — symmetric Y-junction as a block layout (DESIGN.md §6.1 "Blocks",
 §7; decision 0017; geometry notes in docs/RESEARCH.md §4).
@@ -42,11 +54,11 @@ from dataclasses import dataclass, field, replace
 
 import numpy as np
 
-from ..core.shape import CircleShape
+from ..core.shape import CircleShape, OH_RATIO
 from ..core.spec import PipeSpec
 from . import limits
 from .blocks import (
-    ArcAbout, BlockLayout, LayoutError, OH_RATIO, Polyline, Spline, bind_face,
+    ArcAbout, BlockLayout, LayoutError, Polyline, Spline, bind_face,
     corner_shift, face_patches, face_vertices,
 )
 from .interface import Frame, junction_roll, junction_toward, rolled

@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Corner identity — corners are named by the frame, never found by distance
 (DESIGN.md §6.1).
@@ -22,8 +34,8 @@ import numpy as np
 
 from .. import _occ
 from ..core.cross_section import CrossSection
-from ..core.shape import CircleShape, RectShape
 from ..core.spec import PipeSpec
+from ..sections import oh
 from .interface import Frame
 
 
@@ -115,21 +127,10 @@ def canonical_geom(cs: CrossSection) -> dict:
     }
 
 
-def corner0_angle(spec: PipeSpec) -> float:
-    """Angle of corner 0 (NE) from ``frame.right`` for faces built from *spec*."""
-    shape = spec.core_shape
-    if isinstance(shape, RectShape):
-        return math.atan2(shape.half_h, shape.half_w) + spec.rot_rad
-    return math.pi / 4 + spec.rot_rad
-
-
 def side_counts(cs: CrossSection) -> tuple[int, ...]:
     """Divisions of outer (and inner) curve *k* of a face, as
-    ``PipeSpec.side_counts``."""
-    n, shape = cs.n_outer, cs.shape
-    if isinstance(shape, CircleShape):
-        return (shape.nang // (n // 4),) * n
-    return (shape.nang_w, shape.nang_h) * 2
+    ``PipeSpec.side_counts`` (the layout's, ``sections.oh``)."""
+    return oh.side_counts(cs.shape, cs.n_outer)
 
 
 def frame_offset(a: Frame, b: Frame, spec: PipeSpec) -> int:

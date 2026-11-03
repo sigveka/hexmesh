@@ -1,9 +1,21 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 CrossSection — the result of building a 2-D face in GMSH.
 
-A CrossSection is the output of every face builder (build_oh_circle,
-build_oh_rect, build_annulus, build_ring).  It captures the GMSH
-entity tags that subsequent layers and fittings must reuse for conformality.
+A CrossSection is the output of every face builder (``hexmesh.sections``).
+It captures the GMSH entity tags that subsequent layers and fittings must
+reuse for conformality.
 
 Stacking protocol
 -----------------
@@ -23,7 +35,7 @@ BoundaryType
 Determines the curve type of the outer boundary and what may stack on top:
 
     CIRCULAR  outer_curves are Circle arcs.
-              Can be extended with build_annulus or build_ring.
+              Can be extended with a ring (``sections.build_ring``).
 
     SQUARE    outer_curves are Lines.
               Can tile with adjacent cells in a bundle.
@@ -62,30 +74,23 @@ class BoundaryType(Enum):
 class CrossSection:
     """GMSH entity tags for one layer of a pipe cross-section.
 
-    All list attributes follow the same NE / NW / SW / SE ordering that the
-    .geo function library uses:
-
-        outer_points[0]  NE corner   (angle  π/4 + rot for circles,
-        outer_points[1]  NW corner           3π/4 + rot, …)
-        outer_points[2]  SW corner
-        outer_points[3]  SE corner
-
-        outer_curves[0]  NE→NW  (top    arc or line)
-        outer_curves[1]  NW→SW  (left   arc or line)
-        outer_curves[2]  SW→SE  (bottom arc or line)
-        outer_curves[3]  SE→NE  (right  arc or line)
+    The lists follow the corner order of the section's layout: corner *k*
+    of ``outer_points``, curve *k* from corner *k* to *k* + 1.  For the
+    O-H layout (``sections.oh``: NE, NW, SW, SE, …) the fields
+    ``inner_points``, ``inner_curves``, ``radial_curves``,
+    ``corner_angles`` and the order of ``surfaces`` are its anatomy, not
+    generic; a generic form is decided with the second layout (task 0082).
 
     Attributes
     ----------
     surfaces : list[int]
-        GMSH surface tags.  5 tags for an OH core (centre + 4 quadrants),
-        4 tags for an annular or square shell.
+        GMSH surface tags, in the layout's patch order.
     center : int
         GMSH point tag of the pipe-axis centre point.
     outer_points : list[int]
-        Four corner point tags [NE, NW, SW, SE].
+        Corner point tags of the outer boundary.
     outer_curves : list[int]
-        Four arc or line tags following NE→NW / NW→SW / SW→SE / SE→NE.
+        Arc, line or spline tags, curve *k* from corner *k* to *k* + 1.
     shape : Shape
         Geometric and mesh parameters of *this* layer's outer boundary.
         Used for conformality checks when stacking.
@@ -113,12 +118,11 @@ class CrossSection:
     cx:            float
     cy:            float
     cz:            float
-    # Inner boundary — populated by face builders; used to match corners
-    # between faces (assembly/corners.py).
-    # inner_points : [NE, NW, SW, SE] inner corner point tags
-    # inner_curves : signed curve tags for the inner boundary loop in
-    #                NE→NW, NW→SW, SW→SE, SE→NE order (same as outer_curves)
-    # radial_curves: [NE, NW, SW, SE] radial line tags (inner→outer direction)
+    # Inner boundary and corner lines (the O-H layout's, sections.oh);
+    # used to match corners between faces (assembly/corners.py).
+    # inner_points : inner corner point tags, in corner order
+    # inner_curves : signed inner-boundary curve tags, as outer_curves
+    # radial_curves: corner-line tags (inner → outer), in corner order
     inner_points:  list[int]   = field(default_factory=list)
     inner_curves:  list[int]   = field(default_factory=list)
     radial_curves: list[int]   = field(default_factory=list)

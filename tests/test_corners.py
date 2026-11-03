@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Corner identity from frames (DESIGN.md §6.1) — corners are named by the
 frame, never found by distance.
@@ -10,8 +22,9 @@ import numpy as np
 import pytest
 
 from hexmesh.assembly import Assembly, AssemblyError, Closure, Straight, Bend
+from hexmesh.sections.oh import corner0_angle
 from hexmesh.assembly.corners import (
-    canonical_geom, corner0_angle, curve_endpoints, frame_offset,
+    canonical_geom, curve_endpoints, frame_offset,
 )
 from hexmesh.assembly.interface import Frame, build_face
 from hexmesh.assembly.interface import rotate

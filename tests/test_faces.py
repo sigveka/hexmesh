@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Tests for 2-D face builders:
   build_oh_circle, build_oh_rect, build_annulus, build_ring.
@@ -19,10 +31,10 @@ import numpy as np
 from hexmesh.core.cross_section import BoundaryType
 from hexmesh.assembly.interface import Frame
 from hexmesh.core.shape import CircleShape, RectShape
-from hexmesh.faces.oh_circle import build_oh_circle, build_oh_circle8
-from hexmesh.faces.oh_rect import build_oh_rect
-from hexmesh.faces.annulus import build_annulus
-from hexmesh.faces.annulus import build_ring
+from hexmesh.sections import build_oh_circle, build_oh_circle8
+from hexmesh.sections import build_oh_rect
+from hexmesh.sections import build_annulus
+from hexmesh.sections import build_ring
 
 
 # ---------------------------------------------------------------------------

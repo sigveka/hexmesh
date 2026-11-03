@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Interfaces — first-class shared faces between fittings (DESIGN.md §4, A1/A3/A4).
 
@@ -22,13 +34,10 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from ..core.cross_section import CrossSection, LayeredCrossSection
-from ..core.shape import BlendShape, CircleShape, RectShape
+from ..core.cross_section import LayeredCrossSection
+from ..core.shape import CircleShape, RectShape
 from ..core.spec import PipeSpec
-from ..faces.oh_circle import build_oh_circle, build_oh_circle8
-from ..faces.oh_rect import build_oh_rect
-from ..faces.oh_blend import build_oh_blend
-from ..faces.annulus import build_ring
+from .. import sections
 from .limits import OUTLINE_MIN_GAP
 
 
@@ -237,34 +246,10 @@ def build_face(spec: PipeSpec, frame: Frame, lc: float,
     Used both by the assembler (interface faces) and by fittings for their
     own *internal* stations.  *stretch* ``(b, s)`` scales an internal
     station by ``s`` along the in-plane direction ``b`` (miter cut faces);
-    interfaces are never stretched.
+    interfaces are never stretched.  The section layout builds it
+    (``sections.build_face``).
     """
-    cx, cy, cz = (float(c) for c in frame.position)
-    h_axis, v_axis = frame.right, frame.up
-
-    core_name, core_shape = spec._core
-    if isinstance(core_shape, RectShape):
-        builder = build_oh_rect
-    elif isinstance(core_shape, BlendShape):    # a Transition's stations
-        builder = build_oh_blend
-    else:
-        builder = build_oh_circle8 if spec.n_outer == 8 else build_oh_circle
-    cs: CrossSection = builder(
-        cx=cx, cy=cy, cz=cz,
-        shape=core_shape, h_axis=h_axis, v_axis=v_axis, lc=lc,
-        nrad=spec._core_nrad, mprg=spec._core_mprg,
-        mbmp=spec.mbmp, rot=spec.rot_rad,
-        **({'stretch': stretch} if stretch is not None else {}),
-    )
-    layers = [(core_name, cs)]
-    for shell, outline in zip(spec.shells, spec.outlines[1:]):
-        cs = build_ring(
-            inner=cs, outer=outline, lc=lc,
-            nrad=shell.nrad, mprg=shell.mprg, mbmp=spec.mbmp, rot=spec.rot_rad,
-            stretch=stretch,
-        )
-        layers.append((shell.name, cs))
-    return LayeredCrossSection(layers)
+    return sections.build_face(spec, frame.position, frame.right, frame.up, lc, stretch)
 
 
 def check_supported(spec: PipeSpec) -> None:

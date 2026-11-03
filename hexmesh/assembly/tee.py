@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Tee — perpendicular, centred side-branch junction as a block layout
 (DESIGN.md §6.1 "Blocks", §7; geometry in docs/RESEARCH.md §3).
@@ -52,11 +64,11 @@ from dataclasses import dataclass, field, replace
 
 import numpy as np
 
-from ..core.shape import CircleShape, RectShape
+from ..core.shape import CircleShape, OH_RATIO, RectShape, oh_ring_thickness
 from ..core.spec import PipeSpec
 from . import limits
 from .blocks import (
-    ArcAbout, BlockLayout, LayoutError, OH_RATIO, Spline, bind_face, corner_shift,
+    ArcAbout, BlockLayout, LayoutError, Spline, bind_face, corner_shift,
     face_patches, face_vertices,
 )
 from .duct_tap import DuctTap, FullWidthTap
@@ -552,7 +564,7 @@ class Tee:
             return tee
         if tee.run_length is None:
             on_U, a, b, *_, reach_x, _ = tee._duct_geometry(spec)
-            t = (1 - OH_RATIO) * min(a, b)
+            t = oh_ring_thickness(a, b)
             run = reach_x + (max(DuctTap.TUNING["margin"]) + 1) * t
             tee = replace(tee, run_length=run)
         tee._check_duct(spec, tuned=False)
@@ -594,7 +606,7 @@ class Tee:
         on_U, a, b, along, across, reach_x, reach_y = self._duct_geometry(spec)
         face = self.face or "wide"
         ratio = reach_y / a
-        t = (1 - OH_RATIO) * min(a, b)
+        t = oh_ring_thickness(a, b)
         if self._full_width(spec):
             z1 = b + 0.5 * min(along, across)
             if self.run_length <= along:
