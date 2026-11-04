@@ -2070,9 +2070,34 @@ rect-duct series on OpenFOAM, waits for task 0090.
     +0.011, +0.008 and +0.006 % from exact, and the order is 1.93–1.95.
   - `case.json` now gates H as hexmesh's accepted rectangular result;
     O-H stays reported.
-  - Open: a graded H core (`wall_bump`) has not been run in a solver.
-    Step 9 (the user: "Let us do a") adds a reported graded series at
-    a/b = 2.
+- **Step 9: a graded H core in OpenFOAM** (`6570b8b`; a/b = 2, reported,
+  not gated; the user: "Let us do a").
+  - Setup: `first_cell` = D_h/30 = 6.67e-4 m at k = 1, which is 0.40 of
+    the uniform wall cell, giving `wall_bump` (0.2223, 0.1751).
+    Refined with `refined(k)` to k = 1, 2 and 4 (3 240, 25 920 and
+    207 360 cells).
+  - The nested wall cell is 0.37 / 0.36 of the uniform level's at
+    k = 2 / 4 on the wide side, and 0.34 / 0.32 on the narrow one.
+    `first_cell` is exact only at the level where it's given, as API.md
+    says.
+
+  | quantity | status | order | extrapolated vs exact | uniform H |
+  |---|---|---|---|---|
+  | f·Re | converging | 1.93 | +0.014 % | 1.94, +0.008 % |
+  | u_c, raw | converging | 2.03 | +0.117 % | |
+  | u_c, net of the fit's bias | converging | 1.97 | −0.0002 % | |
+
+  - **The stored grading nests and converges cleanly** in a solver,
+    which is what storing `wall_bump` was for.
+  - f·Re's error is about 8 % larger than uniform at each level, because
+    the centre cells are wider.  The field's largest error is half the
+    uniform one's (0.062 % against 0.124 % at k = 4).
+  - **The u_c fit's bias grows on graded grids.**  The centre fit sees
+    fewer faces (12 / 40 / 200 against 24 / 112 / 392), and its bias
+    reaches +0.12 % at k = 4.  The raw u_c then extrapolates to
+    +0.117 %, against −0.0002 % net.  This is the case decision 0015
+    amendment 3 (gate net of the fit's bias) was written for.  A gate
+    on raw u_c would have failed on a correct solution.
 
 ## Source availability
 
