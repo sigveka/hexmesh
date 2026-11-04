@@ -407,6 +407,20 @@ All v1912, gmsh 4.12.1, 2026-10-25.
   its convergence controls was not investigated.  The heated-pipe driver
   runs in chunks of 500 iterations and stops on the measured quantities
   instead.
+- **`simpleFoam` can stall above `residualControl` on a steady field**
+  (v2406, task 0085, 2026-11-04).  This was the laminar rect duct with a
+  `Switch` (47 376 cells, max skewness 1.52, 2 processes), with
+  `residualControl { p 1e-6; U 1e-7; }`.  It ran to `endTime` 20 000.
+  - From iteration 1000 on, the initial residuals stayed the same to 9
+    digits: Ux 2.61e-7, Uy 2.96e-5, Uz 3.64e-5, p 7.32e-6.
+  - Fields written every 2500 iterations gave the same plane pressures,
+    f·Re and profiles to every reported digit.
+  - So the solution is steady and the residuals sit on a floor.  That is
+    probably because the transverse velocities are near zero, but this
+    was not investigated.
+  - The plain O-H and H ducts of the same series converge in 180–250
+    iterations.  Judge such runs by their measured quantities between
+    written times, not by `converged`.
 - **A Docker container outlives its client.**  Killing the `docker run`
   client's parent (e.g. a driver stopped by `timeout`) leaves the
   container running, and its output goes nowhere.  `foam()` names each

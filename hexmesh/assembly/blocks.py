@@ -23,7 +23,10 @@ Pipeline (mirrors the assembly)
 ``validate()``  Pure numpy.  Face sharing, port binding, edge division
                 classes (opposite edges of a block must have equal
                 divisions; classes are solved by union-find and must each
-                get exactly one count) and corner Jacobians.
+                get exactly one count) and corner Jacobians.  A class has
+                one grading, except on edges declared ``own_grading``,
+                which keep theirs (GMSH's transfinite volumes need equal
+                node counts on opposite edges, not equal grading).
 ``realise()``   GMSH.  Points, curves, surfaces, volumes and transfinite
                 constraints; bound entities are reused, never recreated.
 
@@ -139,6 +142,7 @@ class _Edge:
     tag: int | None = None          # bound or realised curve tag (unsigned)
     start: object = None            # vertex id at the curve's parametric start
     grading: tuple = ("Progression", 1.0)   # oriented a → b
+    own_grading: bool = False       # keeps *grading* inside its class
 
 
 # ---------------------------------------------------------------------------
@@ -180,14 +184,19 @@ class BlockLayout:
         return vid
 
     def edge(self, a, b, geom=None, curve: int | None = None,
-             divisions: int | None = None, grading: tuple | None = None) -> None:
+             divisions: int | None = None, grading: tuple | None = None,
+             own_grading: bool = False) -> None:
         """Declare the edge *a*–*b* (straight by default).
 
         *curve* binds an existing curve tag; *divisions* fixes the edge's
         division class; *grading* is a ``(kind, coef)`` transfinite grading
-        oriented from *a* to *b* (default uniform).
+        oriented from *a* to *b* (default uniform).  With *own_grading*
+        the edge keeps *grading* although its class (its parallel edges)
+        has another: a port face whose sides are graded unlike the face
+        opposite (the O-H ↔ H switch, task 0085).
         """
-        e = _Edge(a, b, geom or Line(), grading=grading or ("Progression", 1.0))
+        e = _Edge(a, b, geom or Line(), grading=grading or ("Progression", 1.0),
+                  own_grading=own_grading)
         if curve is not None:
             e.tag = abs(curve)
             t0, _ = curve_endpoints(abs(curve))
@@ -310,7 +319,7 @@ class BlockLayout:
 
         root_grading: dict[frozenset, tuple[tuple, frozenset]] = {}
         for k, e in self.edges.items():
-            if e.grading == ("Progression", 1.0) or k not in parent:
+            if e.grading == ("Progression", 1.0) or k not in parent or e.own_grading:
                 continue
             r = find(k)
             g = to_root(e.grading, parity[k])
@@ -331,6 +340,10 @@ class BlockLayout:
                     f"edge {_show(k)} has no division count (its parallel class "
                     f"reaches no edge with a fixed count)"
                 )
+            e = self.edges.get(k)
+            if e is not None and e.own_grading:
+                result[k] = (root_count[r][0], e.grading)
+                continue
             g = root_grading.get(r, (("Progression", 1.0), None))[0]
             result[k] = (root_count[r][0], to_root(g, parity[k]))
         return result
@@ -586,12 +599,15 @@ class BlockLayout:
 # (level, k) corners (``sections.oh``), placed at the frame.
 
 
-def face_vertices(layout: BlockLayout, prefix, frame, spec, port: bool = True) -> None:
+def face_vertices(layout: BlockLayout, prefix, frame, spec, port: bool = True,
+                  own_grading: bool = False) -> None:
     """Declare the corners and edges of *spec*'s face at *frame* (pure),
     from the layout's ``levels`` (``sections.layout_of``).
 
     With ``port=False`` the face is an internal station: its patches are
-    shared by two blocks and are not declared as port faces.
+    shared by two blocks and are not declared as port faces.  With
+    *own_grading* the face's edges keep their grading against their
+    parallel edges' (``BlockLayout.edge``).
     """
     for lvl, level in enumerate(layout_of(spec).levels(spec)):
         for k, (u, v) in enumerate(level.corners):
@@ -603,7 +619,7 @@ def face_vertices(layout: BlockLayout, prefix, frame, spec, port: bool = True) -
             layout.vertex((prefix, lvl, k), p)
         for e in level.edges:
             layout.edge((prefix, *e.a), (prefix, *e.b), divisions=e.divisions,
-                        grading=e.grading)
+                        grading=e.grading, own_grading=own_grading)
     if port:
         for _, cyc in face_patches(prefix, spec):
             layout.port_face(cyc)
@@ -642,6 +658,16 @@ def bind_face(layout: BlockLayout, prefix, face, shift: int = 0) -> None:
     for lvl, (_, cs) in enumerate(face.layers):
         n = cs.n_outer
         g = canonical_geom(cs)
+        if "ip" not in g:              # an H face: one patch on the outer corners
+            if lvl:
+                raise LayoutError("bind_face: an H face has no shells (task 0086)")
+            at = lambda k: (k + shift) % n
+            for k in range(n):
+                layout.bind_point((prefix, 0, k), g['op'][at(k)])
+            for k in range(n):
+                layout.bind_edge((prefix, 0, k), (prefix, 0, (k + 1) % n), g['oc'][at(k)])
+            layout.port_face(tuple((prefix, 0, k) for k in range(n)), cs.surfaces[0])
+            continue
         at = lambda k: (k + shift) % n
         for k in range(n):
             layout.bind_point((prefix, lvl, k), g['ip'][at(k)])

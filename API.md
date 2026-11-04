@@ -35,7 +35,7 @@ An interface-first pipe network ([DESIGN.md](DESIGN.md) §5).
 | `position`, `direction`, `up` | inlet pose; defaults are the origin, +x and +z. `up` fixes the roll of the cross-section and is made orthogonal to `direction` |
 | `lc` | GMSH characteristic length; defaults to outer radius / 4 (it doesn't affect the structured mesh) |
 | `inlet_name` | patch name of the inlet |
-| `axial_cell` | target axial cell length. A sweep fitting added with `n_layers=None` (`Straight`, `Bend`, `Elbow`, `MiterBend`, `Reducer`, `Transition`, `SplinePipe`, `Closure`) gets `ceil(L / axial_cell)` layers, `L` its centreline length (for `MiterBend`, one end leg, since `n_layers` counts those), or the fewest above that which pass its own checks: a bend's turn below 180° per layer, a spline's or closure's 30° per layer, a profiled reducer's `chord_tol`. Resolved in `add()` (in `close()` for `Closure`) and stored in the fitting, so `to_dict()`, `cell_count()` and `refined(k)` see an ordinary count. `n_layers=None` without `axial_cell` is an `AssemblyError` naming the fitting, and so are `stack_changes` with `n_layers=None` (their indices need the count). Saved in the file; `refined(k)` divides it by k |
+| `axial_cell` | target axial cell length. A sweep fitting added with `n_layers=None` (`Straight`, `Bend`, `Elbow`, `MiterBend`, `Reducer`, `Transition`, `SplinePipe`, `Closure`, `Switch`) gets `ceil(L / axial_cell)` layers, `L` its centreline length (for `MiterBend`, one end leg, since `n_layers` counts those), or the fewest above that which pass its own checks: a bend's turn below 180° per layer, a spline's or closure's 30° per layer, a profiled reducer's `chord_tol`. Resolved in `add()` (in `close()` for `Closure`) and stored in the fitting, so `to_dict()`, `cell_count()` and `refined(k)` see an ordinary count. `n_layers=None` without `axial_cell` is an `AssemblyError` naming the fitting, and so are `stack_changes` with `n_layers=None` (their indices need the count). Saved in the file; `refined(k)` divides it by k |
 
 **Building the graph (pure Python, no GMSH)**
 
@@ -323,11 +323,15 @@ given by one of:
 one coefficient per side, and `to_dict` stores that, so a refined series
 nests.
 
+An H port joins an O-H port only through a `Switch` (or a `Transition`
+with an H end, which embeds one; task 0085).  Joined directly, the
+assembly rejects the pair before GMSH as switch class 1, a pillow, and
+names `Switch`.
+
 Not yet on an H core: shells (task 0086), `Tee` / duct taps and `Wye`
-(0086), `Transition` and joining an O-H port (0085).  These raise
-`hexmesh.core.spec.LayoutNotSupported` (a `ValueError`) before GMSH,
-with attributes `where`, `layout` and `task`.  Cells: `nang_w·nang_h` per
-section.
+(0086).  These raise `hexmesh.core.spec.LayoutNotSupported` (a
+`ValueError`) before GMSH, with attributes `where`, `layout` and `task`.
+Cells: `nang_w·nang_h` per section.
 
 `spec.to_dict()` / `PipeSpec.from_dict(d)` serialise a spec.  `mprg` is
 stored as resolved, so a spec built with `first_cell=` reloads with the
@@ -532,6 +536,38 @@ rectangle (either way), or a rectangle to one of another size or aspect
   ends nest, the blend has kept every station nested.)
 - **Corners.** Corner k meets corner k: a circle's corners at 45° + k·90°
   go to the rectangle's corners, with no twist.
+- **An H end** (task 0085). One end may be an H duct (`layout="h"`)
+  with the other end's counts per side, single-layer stacks only (shells:
+  task 0086). The transition blends to the O-H face of that rectangle
+  (the other end's `nrad` and `mprg`) and embeds a `Switch` in the slabs
+  at the H end: the fewest of the `n_layers` that give it 1.25 ring
+  thicknesses (`limits.SWITCH_MIN_LENGTH`), at equal shares of the
+  length. At least one layer stays for the blend, else a `ValueError`
+  names the `n_layers` needed. The same rectangle at both ends is a
+  `Switch`.
+
+### `Switch(length, n_layers=None, outlet=None)`
+
+Changes a rectangular duct between the O-H and H sections (decision
+0036, task 0085): switch class 1, a pillow (DESIGN A4), in either
+direction. The rectangle, counts, `mbmp`, `rot` and name stay.
+
+- **`outlet`.** The outlet spec. From an O-H inlet it defaults to the
+  ungraded H face; give it to grade the H walls (`first_cell=`,
+  `wall_bump=`). From an H inlet it is required (it carries `nrad` and
+  the ring's `mprg`).
+- **Blocks.** Six (the capped construction): the ring sheets close as a
+  cup across the duct, open toward the O-H port. A core block runs from
+  the O-H face's centre rectangle to a level one ring thickness t before
+  the H face, a frustum cap joins it to the whole H face, and four side
+  blocks fill the ring. The H grading starts at that level.
+- **`length`.** At least `limits.SWITCH_MIN_LENGTH` = 1.25 ring
+  thicknesses, checked before GMSH. `n_layers` counts the core's cells
+  (and the wall's); `None` resolves from `axial_cell` over `length − t`.
+- **Quality.** Min scaled Jacobian 1/√3 = 0.577 at any aspect ratio,
+  `nrad` and length (predicted and meshed, a/b 1–4, `nrad` 1–6),
+  non-orthogonality up to about 54°.
+- **Cells.** `nang_w·nang_h·(n_layers + nrad) + 2·(nang_w + nang_h)·nrad·n_layers`.
 
 ### `SplinePipe(points, n_layers=None, end_tangent=None, axial_grading=1.0)`
 

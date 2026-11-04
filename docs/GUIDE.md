@@ -130,6 +130,7 @@ surface, up to 0.7 % of the radius off. This is an open follow-up
 | `MiterBend(radius, angle, n_cuts=1, n_layers=2, roll=0, toward=None)` | Segmented bend of straight pieces. Same ports as `Bend(radius, angle)`; each cut turns ≤ 90° |
 | `Reducer(outlet, length, n_layers, axial_grading=1)` | Concentric cone to another radius (reducer or expander). Only radii may change |
 | `Transition(outlet, length, n_layers, axial_grading=1)` | Circle ↔ rectangle, or rectangle ↔ rectangle, in every layer; equal counts per side |
+| `Switch(length, n_layers=None, outlet=None)` | A duct's O-H section ↔ its H (Cartesian) section, either way; the rectangle stays |
 | `SplinePipe(points, n_layers, end_tangent=None, axial_grading=1)` | Pipe along a cubic spline; `points[0]` is the inlet position |
 | `Tee(run_length, branch_length, branch_radius, n_run=3, n_branch=3, n_turn=2, roll=0, toward=None)` | Perpendicular side-branch tee, block layout; returns `(main, branch)`. The branch points along `up`, rolled by a multiple of 90°, or `toward` a direction |
 | `Wye(angle, run_length, branch_length, n_run=None, n_branch=None, n_split=None, roll=0, toward=None)` | Symmetric Y-junction, block layout; returns `(left, right)`. Unset layer counts follow the angular cell (`n_split` capped at 6). `roll` (a multiple of 90°) turns its plane |
@@ -242,7 +243,9 @@ with a rectangle has the same count on every side.
 `Transition` joins a duct to a circular pipe, or to a duct of another size,
 when the counts per side match: a circle's `nang` equals the duct's
 `nang_w` and `nang_h`.  It changes every layer of a stack together, so an
-insulated pipe can become an insulated duct.
+insulated pipe can become an insulated duct.  A single-layer transition
+may also end on an H duct (`layout="h"`, API.md); it then embeds a
+`Switch`.  Between an O-H and an H duct of the same size, put a `Switch`.
 
 `up` decides which side is the height, and a bend's `roll` decides its
 plane. `Bend(..., roll=0)` turns toward `up`, across the height: the

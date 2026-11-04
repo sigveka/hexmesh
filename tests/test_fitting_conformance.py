@@ -43,7 +43,7 @@ import numpy as np
 import pytest
 
 from hexmesh.assembly import (
-    Assembly, Bend, Closure, Elbow, MiterBend, Reducer, SplinePipe, Straight, Tee,
+    Assembly, Bend, Closure, Elbow, MiterBend, Reducer, SplinePipe, Straight, Switch, Tee,
     Transition, Wye,
 )
 from hexmesh.core.shape import CircleShape, RectShape
@@ -369,6 +369,50 @@ CASES.update({
 })
 
 
+def _switch_oblique():
+    """O-H → H on an oblique axis (the frame's right and up both off-axis)."""
+    asm = Assembly(_duct(0.1, 0.05, 8, 4), direction=[1, 1, 0.2], up=[0, 0, 1], lc=0.1)
+    asm.add(Straight(0.2, n_layers=2))
+    asm.add(Switch(0.1, n_layers=3))
+    asm.add(Straight(0.2, n_layers=2))
+    return asm
+
+
+# The O-H ↔ H switch (task 0085), both ways: a/b 1, 2, 4; nrad 1–3; the H
+# end uniform or graded to the walls
+CASES.update({
+    "switch-2-oh-h":        lambda: _between(_duct(0.1, 0.05, 8, 4), Switch(0.1, n_layers=3)),
+    "switch-2-h-oh":        lambda: _between(_hduct(), Switch(0.1, n_layers=3,
+                                                              outlet=_duct(0.1, 0.05, 8, 4))),
+    "switch-1-oh-h-graded": lambda: _between(_duct(0.06, 0.06, 6, 6, nrad=3), Switch(
+        0.08, n_layers=3, outlet=_hduct(0.06, 0.06, 6, 6, first_cell=0.003))),
+    "switch-4-h-oh-graded": lambda: _between(H_DUCTS["4-graded"](), Switch(
+        0.1, n_layers=4, outlet=_duct(0.2, 0.05, 16, 4, nrad=1))),
+    "switch-2-oh-h-ratio":  lambda: _between(_duct(0.1, 0.05, 8, 4, nrad=3), Switch(
+        0.1, n_layers=3, outlet=_hduct(mprg=1.3))),
+    "switch-2-oblique":     _switch_oblique,
+})
+
+
+def _hflat(half_w=0.14, half_h=0.07, **kw):
+    """An H duct with ``_one()``'s counts and name: a transition's H partner."""
+    return PipeSpec(nang_w=4, nang_h=4).core("fluid", RectShape(half_w, half_h, 4, 4),
+                                             layout="h", **kw)
+
+
+# Transition with an H rectangular end (task 0085): the blend to the O-H
+# rectangle, and a switch embedded at the H end; a/b 1 and 2, both ways
+CASES.update({
+    "transition-circle-hsquare":    lambda: _between(_one(), Transition(_hflat(0.09, 0.09),
+                                                                        0.3, 6)),
+    "transition-hsquare-circle":    lambda: _between(_hflat(0.09, 0.09), Transition(_one(),
+                                                                                0.3, 6)),
+    "transition-circle-h2to1-graded": lambda: _between(_one(), Transition(
+        _hflat(first_cell=0.01), 0.3, 6)),
+    "transition-h2to1-circle":      lambda: _between(_hflat(), Transition(_one(), 0.3, 6)),
+})
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -507,6 +551,7 @@ def wall_deviations(asm) -> dict[str, float]:
       stations blend two shapes): no closed form; they must
       have one axial layer per slab, so no surface carries interior nodes
       (asserted), and they are not measured;
+    * ``Switch``: the duct's four planes (one rectangle, end to end);
     * ``Tee``: the union of the main and branch cylinders, per layer;
       ``Wye``: the level sets ``Skeleton.distance = R + T_l`` (tasks 0051,
       0052, 0053; their nodes are projected, decision 0029).
@@ -530,6 +575,12 @@ def wall_deviations(asm) -> dict[str, float]:
             continue
         if isinstance(e.fitting, Tee):
             out[e.name] = _tee_deviation(e.fitting, frames[0], spec, x)
+            continue
+        if isinstance(e.fitting, Switch):           # the duct's planes, end to end
+            f = frames[0]
+            w = x - f.position
+            out[e.name] = float(_outline_dev(w @ f.right, w @ f.up, spec).max()
+                                / _extent(spec))
             continue
         if isinstance(e.fitting, Wye):
             R = spec.core_shape.radius

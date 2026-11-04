@@ -60,6 +60,7 @@ from .fittings import (
     Bend, Closure, Elbow, MiterBend, Reducer, SplinePipe, Straight, Transition,
 )
 from .interface import Frame
+from .switch import Switch
 from .tee import Tee
 from .wye import Wye
 
@@ -72,6 +73,7 @@ VERSION = 2          # 2: PipeSpec.rot in degrees (1: radians)
 # Explicit registry: no plugins or entry points (DESIGN §6.1).
 FITTING_TYPES = {cls.__name__: cls for cls in (
     Straight, Bend, MiterBend, Elbow, Reducer, Transition, SplinePipe, Closure, Tee, Wye,
+    Switch,
 )}
 
 

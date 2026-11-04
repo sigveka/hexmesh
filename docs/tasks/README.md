@@ -85,7 +85,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0082](0082-sections-package-oh-layout.md) | `hexmesh.sections`: the O-H layout described once | done | 0037 |
 | [0083](0083-shape-protocol.md) | Shapes own their behaviour: the shape protocol | done | 0037 |
 | [0084](0084-h-section-layout-and-sweeps.md) | The H section: the layout, `layout=` on the spec, and every sweep | done | 0036, 0037 |
-| [0085](0085-oh-h-switch-and-transition.md) | The O-H ↔ H switch, and `Transition` to an H rectangle | ready (after 0084) | 0036, 0011 |
+| [0085](0085-oh-h-switch-and-transition.md) | The O-H ↔ H switch, and `Transition` to an H rectangle | done | 0036, 0011 |
 | [0086](0086-h-ports-on-duct-junctions-and-shells.md) | H ports on duct junctions, and shells around an H core | ready (after 0085) | 0036, 0026 |
 | [0087](0087-h-default-flip.md) | Make H the default rectangular core (version 0.4.0) | ready (after 0086) | 0036 |
 | [0088](0088-n-outer-sub-partition.md) | `n_outer = 8` as a sub-partition of the O-H face (exact core cuts) | ready (after 0082; not alongside 0084) | 0005, 0010 |

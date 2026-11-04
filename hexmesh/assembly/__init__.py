@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Interface-first network assembly — prototype of the DESIGN.md assembly rules.
 
@@ -12,6 +24,7 @@ from .fittings  import (
 )
 from .assembler import Assembly, AssemblyError
 from .tee       import Tee
+from .switch    import Switch
 from .wye       import Wye
 from .equipment import Drum, Nozzle, OnHead, OnShell, EquipmentError
 
@@ -19,6 +32,6 @@ __all__ = [
     "Frame", "Interface", "port_type",
     "Straight", "Bend", "MiterBend", "Elbow", "Reducer", "Transition", "SplinePipe", "Closure",
     "FillResult",
-    "Assembly", "AssemblyError", "Tee", "Wye",
+    "Assembly", "AssemblyError", "Tee", "Wye", "Switch",
     "Drum", "Nozzle", "OnShell", "OnHead", "EquipmentError",
 ]

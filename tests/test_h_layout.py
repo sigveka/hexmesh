@@ -24,8 +24,7 @@ import numpy as np
 import pytest
 
 from hexmesh import Session
-from hexmesh.assembly import (Assembly, AssemblyError, Bend, Reducer, Straight, Tee,
-                              Transition, Wye)
+from hexmesh.assembly import Assembly, AssemblyError, Bend, Reducer, Straight, Tee, Wye
 from hexmesh.assembly.interface import port_type
 from hexmesh.assembly.signature import check_port_pairs, classify, signature
 from hexmesh.core.grading import bump, bump_for_first_cell, bump_for_ratio
@@ -134,9 +133,10 @@ def test_oh_to_h_is_class_1_pillow():
 
 
 def test_layer_termination_fittings_do_not_bridge_a_pillow():
-    with pytest.raises(LayoutNotSupported, match="0085") as e:
+    """O-H straight into H with no switch: class 1 named, Switch the fix."""
+    with pytest.raises(ValueError, match=r"class 1, a pillow.*Switch") as e:
         check_port_pairs(Straight(0.3, n_layers=2), [_oh(), _h()])
-    assert e.value.task == "0085"
+    assert not isinstance(e.value, LayoutNotSupported)
 
 
 # ---------------------------------------------------------------------------
@@ -185,7 +185,6 @@ def _validate(spec, fitting):
 @pytest.mark.parametrize("fitting, task", [
     (lambda: Tee(run_length=0.2, branch_length=0.25, branch_radius=0.03), "0086"),
     (lambda: Wye(60, run_length=0.25, branch_length=0.4), "0086"),
-    (lambda: Transition(_oh(), 0.3, 4), "0085"),
 ])
 def test_junctions_and_transitions_reject_h(fitting, task):
     with pytest.raises(AssemblyError, match=rf"layout 'h' is not supported yet \(task {task}\)"):

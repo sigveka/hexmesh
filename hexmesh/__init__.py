@@ -40,7 +40,7 @@ See ``README.md`` and ``API.md``; the design rules are in ``DESIGN.md``.
 
 from .assembly import (
     Assembly, AssemblyError, Bend, Closure, Elbow, Frame, Interface,
-    MiterBend, Reducer, SplinePipe, Straight, Tee, Transition, Wye,
+    MiterBend, Reducer, SplinePipe, Straight, Switch, Tee, Transition, Wye,
     Drum, Nozzle, OnShell, OnHead, EquipmentError,
 )
 from .assembly.quality import QualityReport, RegionQuality
@@ -52,7 +52,7 @@ from .session import Session
 __all__ = [
     "Assembly", "AssemblyError", "Frame", "Interface",
     "Straight", "Bend", "Elbow", "MiterBend", "Reducer", "Transition", "SplinePipe",
-    "Closure", "Tee", "Wye",
+    "Closure", "Tee", "Wye", "Switch",
     "Drum", "Nozzle", "OnShell", "OnHead", "EquipmentError",
     "PipeSpec", "CircleShape",
     "QualityReport", "RegionQuality", "HexVolumeQuality", "hex_all_metrics",

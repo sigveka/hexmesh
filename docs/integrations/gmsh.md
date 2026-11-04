@@ -403,6 +403,16 @@ coef from a first cell or an end-cell ratio
 (`bump_for_first_cell`, `bump_for_ratio`); the meshed H face's wall cell
 is the requested one to 2.5e-8 relative.
 
+### Opposite edges of a transfinite block may differ in grading (gmsh 4.12.1, task 0085, 2026-11-04) — *verified*
+A transfinite volume needs equal node counts on opposite edges, not the
+same law or coefficient.  The `Switch` core block has uniform edges on
+its O-H face and `Bump` edges (the H grading) on the opposite face.  It
+meshes, its nodes lie on each face's own curves (to 6e-10), and its min
+scaled Jacobian is 0.547–0.577 with a graded H end.  hexmesh's
+`BlockLayout` used to force one grading on each class of opposite edges.
+An edge marked `own_grading` now keeps its own and joins its class for
+the count only.
+
 ## Open questions
 
 - ~~Does `gmsh.write` keep physical names and element orientation the way

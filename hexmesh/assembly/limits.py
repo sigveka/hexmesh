@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Input limits and tolerances, as data (decision 0019, constraint 6;
 decision 0024).
@@ -50,6 +62,12 @@ DUCT_TAP_MAX_RATIO = 0.93
 #: A tap on the narrow face of a duct at least this deep (depth/width)
 #: warns: the dome reaches into a deep, thin core (task 0069, 3:1).
 DUCT_TAP_NARROW_ASPECT_WARN = 3.0
+
+#: Shortest ``Switch`` (task 0085), in ring thicknesses t: the cap is one
+#: t deep, and the core block between the O-H port and the cap must have a
+#: length.  Measured from 1.25 t to 6 t (a/b 1–4, nrad 1–6): min corner SJ
+#: 1/√3 throughout, max non-orthogonality ≤ 54° (task 0085's table).
+SWITCH_MIN_LENGTH = 1.25
 
 #: ``("cosine", s0)`` profile severity (decision 0008, amended 2026-10-28;
 #: task 0055): s0 > 0 a constriction with throat ``(1 − 2·s0)·R``, s0 = 0 a

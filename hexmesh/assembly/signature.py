@@ -34,7 +34,7 @@ and nodes (task 0019), so it is placement, not connectivity.  Grading
   wall; ``ends="wall"``), or only by the core's layout, O-H vs H on one
   rectangle with equal counts (a rectangular O-H face is a pillowed H
   face, decision 0036; ``ends="pillow"``).  Bridging a pillow needs a
-  fitting that declares ``pillows = True`` (the switch, task 0085);
+  fitting that declares ``pillows = True`` (``Switch``, task 0085);
 * **2**: same layers and layouts, different counts or grading.  When
   the only differences are per-layer radial ``mprg`` (all counts and
   ``mbmp`` equal), it is marked ``grading_only`` (decision 0016);
@@ -53,7 +53,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from ..core.spec import LayerSpec, LayoutNotSupported, PipeSpec
+from ..core.spec import LayerSpec, PipeSpec
 from ..sections import h, oh
 
 # What a class needs, for error messages.
@@ -213,12 +213,12 @@ def check_port_pairs(fitting, specs: list[PipeSpec]) -> None:
                 f"switch class 2 beyond radial grading (counts or mbmp), which "
                 f"needs {BRIDGES[2]}; {name} bridges grading-only class-2 pairs "
                 f"(radial mprg) only")
-        if c.cls == 1 and 1 in allowed and c.ends == "pillow" and not getattr(
-                fitting, "pillows", False):
-            raise LayoutNotSupported(
-                f"{name}: {port} spec differs from the inlet in {what}", "h", "0085",
-                f"switching between the O-H and H faces needs the switch fitting; "
-                f"{name} bridges layer termination only")
+        if c.cls == 1 and c.ends == "pillow" and not getattr(fitting, "pillows", False):
+            raise ValueError(
+                f"{name}: {port} spec differs from the inlet in {what}. That is switch "
+                f"class 1, a pillow (a rectangular O-H face is a pillowed H face): put a "
+                f"Switch between them (decision 0036, task 0085)"
+                + (f"; {name} bridges layer termination only" if 1 in allowed else ""))
         if c.cls in allowed:
             continue
         raise ValueError(
