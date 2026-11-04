@@ -58,6 +58,13 @@ A structured error:
 
 ## What hexmesh would need (likely order)
 
+**Stage 1 taken by decision 0040** (accepted 2026-11-04): items 1, 3, 4
+and 5 below, plus a `hexmesh` CLI, a resolution advisor and a Claude
+Code plugin, for network design and resolution.  Item 2 (named
+references) is met by writing the network model (decision 0032) rather
+than the `Assembly` JSON.  Item 7 (the MCP server) comes later, over the
+same tool layer.
+
 1. **Error codes and fields** on `AssemblyError` (and `EquipmentError`,
    reader errors): code, location (edge, label, interface, field),
    value, limit, message, hint.  Useful to people too; the one piece

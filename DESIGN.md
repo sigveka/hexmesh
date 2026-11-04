@@ -511,6 +511,12 @@ New code must not add to this table.
 - **Library or tool?** A scripting library for engineers, or a tool that
   takes plant data and returns a mesh.  Determines how much investment
   goes into readers and automatic sizing.
+  - **Partly settled by decision 0040:** both.  A library, with an
+    agent tool layer, `hexmesh.agent` and the `hexmesh` CLI, over its
+    public API.  It is a leaf that nothing in the library imports, and
+    its functions are pure JSON-in, JSON-out except `build`.  Automatic
+    sizing is `hexmesh.agent.advise`: flow conditions in, a resolution
+    with its reasons out, wall-resolved first.
 - **Reject or degrade?** When quality limits cannot be met, should
   validation fail, or warn and continue?  Published structured
   bifurcations reach min scaled Jacobian ≈ 0.49
