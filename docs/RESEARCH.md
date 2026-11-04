@@ -1057,6 +1057,30 @@ O-H face has `nrad` closed chords (the ring) on top of the H face's
 open ones.  In 3-D the ring's tube sheets end in the switch fitting,
 capped (a cup open toward the O-H side) or turned out to the wall.
 
+**Turned out is impossible on a flat wall** (task 0085's question;
+design session, 2026-11-04; decision 0036 amendment).
+- Call a wall edge regular when two hexes meet at it.  On a flat wall
+  with only regular edges, two neighbouring wall hexes share a face
+  normal to the wall.  That face's two wall-normal edges are wall-normal
+  edges of both hexes, so both hexes lie in the same wall-normal sheet.
+- By induction, all hexes along one flat side are in one wall-normal
+  sheet.
+- On the O-H side that sheet is the outer ring, so the outer ring stays
+  the wall layer through the whole switch.
+- A ring sheet can leave the wall only at an irregular wall edge: three
+  hexes (60° wedges against the wall) or one (a 180° angle).
+- Task 0069's dome is not a counterexample: its sheets end on the edge
+  of the hole, a real wall feature.
+- What remains:
+  - **capped:** the outer ring stays the wall layer to the H port and
+    closes as a cup through a frustum end block;
+  - **hybrid** (`nrad` ≥ 2): inner sheets cross the outer one and end
+    crosswise on the wall, which is valid; the outer sheet is capped.
+- Corollary: any fitting that changes which sheet lies along a flat wall
+  needs irregular wall edges.  The O-H ↔ H change can sit only at a
+  wall feature (a junction's hole edge), or be capped away from the
+  wall.
+
 **For hexmesh.**  Decision 0015 amendment 2 (rectangular sections are
 gated on a Cartesian control mesh); decision 0036 (accepted
 2026-11-02: a Cartesian rectangular section, the default for ducts, and

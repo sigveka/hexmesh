@@ -131,6 +131,50 @@ the two share is derived from both.
    SJ and max non-orthogonality at a/b 1 / 2 / 4 and `nrad` 1 / 3 / 6.
    If neither meets the quality limits, the task stops for design.
 
+**Amendment (2026-11-04, accepted by the user: "yes, send (a) and
+write the amendment"; task 0085).**  Item 6 is settled without
+measurement: **the switch is capped.  A turned-out switch can't be
+built on a straight duct.**
+- **Why** (task 0085's question, checked by the design session;
+  RESEARCH §7.11).
+  - Take a flat wall where every wall edge has two hexes (the regular
+    case).  Two neighbouring hexes there share a face standing up from
+    the wall, and that face's wall-normal edges belong to both hexes.
+  - So every hex on that wall is in the same wall-normal sheet, from
+    one end of the switch to the other.
+  - On the O-H side that sheet is the outer ring.  So the outer ring
+    stays the wall layer for the whole length of the switch.  It can't
+    end on the wall, and it can't leave the wall to cap in the core.
+  - The only escapes are irregular wall edges on the flat wall: three
+    hexes at one edge (60° wedges against the wall) or one hex with a
+    180° angle.  Either breaks the near-wall layer, where the grading
+    matters.
+  - Decision 0033 B's dome doesn't carry over.  Its sheets end on the
+    edge of the hole in the wall, a real wall feature that supplies the
+    irregular edges.  A straight duct has none.
+- **The construction:** capped.
+  - The outer ring stays the wall layer up to the H port.  Its sheet
+    closes as a cup through the end block, a frustum whose downstream
+    face is the H port.  The side blocks run from the O-H port to the
+    H port's wall edges.
+  - Quality depends on the slope of the slanted faces only, not on
+    the switch length.  Task 0085 measured it at a/b 2, `nrad` 3:
+    min SJ is 0.577 at 45° (cap depth d equal to the ring thickness t),
+    and falls on either side.  So the cap is d = t, and the switch
+    length is L ≥ 1.25 t (`limits.SWITCH_MIN_LENGTH`).  It meets
+    `limits.py` across a/b 1 / 2 / 4 and `nrad` 1 / 3 / 6, so the
+    hybrid isn't needed.
+- **Fallback, only if capped misses `limits.py` or needs an
+  impractical length at `nrad` = 6:** the hybrid.  For `nrad` ≥ 2, the
+  inner ring sheets cross the outer one and end crosswise on the wall,
+  and the outer one is capped.  It is valid, because the wall layer
+  doesn't change.
+- **Task 0085 step 2** now asks only whether capped meets `limits.py`.
+  The tie-break toward turned out goes.  If capped fails, the hybrid is
+  prototyped before the task stops for design.
+- **Junctions (item 5, task 0086)** embed the capped switch the same
+  way.
+
 **Rollout.**  The default flips last, once every rectangular fitting
 accepts H ports:
 - **0084:** the H layout in `sections`, the shared section interface,

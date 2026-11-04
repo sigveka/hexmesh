@@ -124,14 +124,12 @@ first `ready` item whose prerequisites are done.  The tracks marked
 *alongside* may be picked up whenever the main track waits on the user
 or a long run.
 
-1. **Capability boundaries, then the H section** (decisions 0037, 0036):
-   - **0083** (in progress; 0082 done).  A refactor: identical meshes,
-     task 0065's method.  It comes before any 0036 task or 0035 stage.
-   - **0090** before 0084's OpenFOAM levels and 0072.
-   - **0084 → 0085 → 0086 → 0087**, strictly in sequence.  The default
-     flips only in 0087 (version 0.4.0, a breaking change for `nrad` on
-     rectangular cores).
-   - **0072** (square-duct bend) after 0084, so it runs on the H section.
+1. **The H section** (decision 0036; 0082, 0083, 0084 and 0090 done):
+   - **0085 → 0086 → 0087**, strictly in sequence.  0085 (in progress)
+     builds the capped switch (decision 0036 amendment, 2026-11-04).
+     The default flips only in 0087 (version 0.4.0, a breaking change
+     for `nrad` on rectangular cores).
+   - **0072** (square-duct bend), ready: it runs on the H section.
 2. **Alongside, no blockers:**
    - general branches (decision 0031): **0060 → 0061 / 0062 → 0063**.
      0060 carries a design note from 0081: the duct-tap front end leaves
@@ -142,8 +140,8 @@ or a long run.
    - second order: **0076**, with **0077**'s toolchain step in
      parallel, then 0077's checks;
    - **0078** (README generated sections), small, any time.
-3. **Low priority:** **0088** (`n_outer = 8`) after 0082, not alongside
-   0084 (both edit `sections/oh.py`).  No fitting needs it yet.  Do it
+3. **Low priority:** **0088** (`n_outer = 8`), not alongside another
+   task that edits `sections/oh.py`.  No fitting needs it yet.  Do it
    before the next junction template that wants corners at 0°/90°.
 
 Runs that write more than ~1 GB follow CLAUDE.md's disk rule.  Long
