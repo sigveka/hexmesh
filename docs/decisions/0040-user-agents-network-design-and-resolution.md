@@ -5,8 +5,8 @@
 - **Date:** 2026-11-04 (the user: "I am thinking network designer and
   resolution is where I want to start", for agents that serve users of
   the framework, not its development)
-- **Tasks:** to be written: the foundations (A–D below), then the
-  plugin (E).
+- **Tasks:** 0094 (foundation A, structured errors).  To be written:
+  foundations B–D, then the plugin (E).
 - **Builds on:** decision 0019 (agent SDK, proposed): this decision is
   its first stage.  Decision 0032 (network interchange): the network
   model is what an agent writes.
