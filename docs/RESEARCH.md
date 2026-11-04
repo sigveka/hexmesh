@@ -2028,6 +2028,52 @@ growing.  Decision 0037 (accepted 2026-11-02) sets the boundaries.
   messages matter to the agent SDK (decision 0019).
 - **Suite:** 2326 passed, 15 skipped.
 
+### 12.7 After task 0084, steps 1–7 (2026-11-03)
+
+The H section is a second layout in `sections` (`sections/h.py`; task
+0084, `244a55b` … `52ffc40`).  `SectionLayout` is the interface both
+layouts implement, and `CrossSection` is now generic.  Step 8, the
+rect-duct series on OpenFOAM, waits for task 0090.
+- **No behaviour change for O-H.**  All 439 distinct meshes from before
+  are identical, node for node.  The 50 new meshes all come from H
+  cases.  The suite grew by 272 tests, to 2597, mostly the kit's H
+  cases.
+- **Measured:**
+  - The meshed H wall cell is the requested `first_cell` to 2.5e-8,
+    relative.
+  - `core.grading.bump` matches gmsh's `Bump` to 1.3e-8 for
+    coefficients 0.05–0.9.  Above 1 it matches to 3.3e-7.
+  - A graded H face predicts scaled Jacobian 1 and non-orthogonality 0.
+- **Refinement of a graded H core** (0084's Question 1):
+  - The grading is stored as per-side `Bump` coefficients
+    (`wall_bump`), which `first_cell=` and an explicit `mprg` resolve to
+    at `core()` time.
+  - Refining keeps the coefficients, so the series nests to 1e-12.
+  - O-H's one-sided `mprg ** (1/k)` already nested: the design session
+    measured it at gmsh's ~1e-9 node floor (gmsh 4.12.1, Progression 1.3
+    and 0.85, k = 2 and 4).  Only H's two-sided ratio did not.
+- **The wall-span table** (0083's Question 1) stores the O-H ratio, not
+  a fraction of R.  A fraction of R would have changed the last bit of
+  `first_cell`'s `mprg` for 86 % of radii.
+- **The known remainder:** `assembly` still branches on the layout in
+  two places, the slab connection and the face grading.  They move
+  behind `SectionLayout` when a third layout or decision 0035's
+  multi-core sections need them.
+- **Gap found:** `validation/heated_rod/run.py` imported a renamed
+  `core` name, and only the validation meta test caught it.  Task 0090
+  adds an import test for every driver.
+- **Step 8: the rect duct on H** (`73ec9da`; v2406, 2 processes; uniform
+  H at the control's counts per section).
+  - The H mesh is the control's grid cell for cell.  f·Re agrees with
+    the control to 1.1e-9 over all nine levels.
+  - The V1 gates pass at a/b = 1, 2 and 4.  Extrapolated f·Re is
+    +0.011, +0.008 and +0.006 % from exact, and the order is 1.93–1.95.
+  - `case.json` now gates H as hexmesh's accepted rectangular result;
+    O-H stays reported.
+  - Open: a graded H core (`wall_bump`) has not been run in a solver.
+    Step 9 (the user: "Let us do a") adds a reported graded series at
+    a/b = 2.
+
 ## Source availability
 
 Downloaded to `papers/`: `bennett_2025`, `decroocq_and_frindel_etal_2023`

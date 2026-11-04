@@ -37,7 +37,11 @@ amendments) should never need an OpenFOAM rerun.
    - `environment`: hexmesh commit (`hexmesh.study.manifest`'s helper),
      gmsh, OpenFOAM version and runner, Python, date of each level;
    - `format` and `version`, with `validation/results.schema.json`.
-   - Size cap: 1 MB per case.  If a case needs more, stop and ask
+   - Size cap: 1 MB per case.  **Raised to 20 MB** (the user,
+     2026-11-03: "do not be extremely literal about the result size
+     limit.  Let us keep it below 20MB").  `test_pulsatile_stenosis_one_period`
+     writes 4.5 MB.  `MAX_BYTES` in `validation/tools/results.py`; task
+     0090's Outcome.  If a case needs more, stop and ask
      under *Questions for design*.
    - JSON written deterministically: sorted keys, `indent=1`, a
      trailing newline, `encoding="utf-8"` and `newline="\n"` (decision
