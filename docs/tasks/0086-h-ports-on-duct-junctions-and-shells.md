@@ -50,7 +50,26 @@ switch in their legs, so users never place switches around them
    so that work starts from the shared form.  Accept: no `OH_RATIO` in
    `assembly/`, and every existing junction mesh is unchanged (node
    coordinates to 1e-12, the 0065 method).
-5. **Examples:** build the HVAC examples (`hvac_supply`,
+5. **The switch's loss defect, separated** (design, 2026-11-04, from
+   task 0085's flow check; the user agreed).  0085 measured K = −0.073
+   over a `Switch` (a/b 2, Re 100): the switch loses less than developed
+   flow.  The likely cause is the change between the O-H and H
+   discrete developed profiles, whose f·Re differ by 2.4 %.  Before
+   switches go into every duct-junction leg, check that:
+   - From the two plain runs' developed outlet planes (O-H and H, the
+     counts of 0085's check), compute the momentum-flux coefficient
+     β = ∫u² dA / (U² A) of each.  Also compute the kinetic-energy
+     coefficient α = ∫u³ dA / (U³ A).
+   - Predict the pressure-line shift from the momentum balance,
+     Δp_shift = ρ U² (β_H − β_OH), and compare it with 0085's
+     −0.12 D_h-equivalent defect.
+   - Report both under *Outcome*.  If β accounts for the defect within
+     about 20 %, say so: the switch itself adds no measurable loss.  If
+     it doesn't, put the numbers under *Questions for design* before
+     the junction flow work relies on switches.
+   - Small: reuse 0085's setup, or a 2-D-equivalent short duct.  Delete
+     the runs, keep the numbers.
+6. **Examples:** build the HVAC examples (`hvac_supply`,
    `hvac_branched`) and `lagged_duct` with `layout="h"` explicitly, in
    a test (not in the examples yet; 0087 changes them).  Record cell
    counts and min SJ against the O-H versions.

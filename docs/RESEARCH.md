@@ -1081,6 +1081,63 @@ design session, 2026-11-04; decision 0036 amendment).
   wall feature (a junction's hole edge), or be capped away from the
   wall.
 
+**The capped switch, measured** (task 0085, `07c38de`, 2026-11-04).
+- **Construction: 6 blocks.**
+  - A core: the O-H face's centre rectangle, extruded to a level C at
+    L − t, where t is the ring thickness.
+  - A cap: a frustum from C to the whole H face, `nrad` cells along the
+    axis.  All `nrad` ring sheets close in it: its axial cell layers are
+    the sheets.
+  - Four side blocks: the ring patches, running along the wall to the H
+    port and closed by the slants from C.
+  - Cells: `nw·nh·(n + nrad) + 2(nw + nh)·nrad·n`.
+- **Quality depends on the slant alone.**  Three slants meet at each
+  corner of C, as at a cube O-grid's corner.  At 45° the corner's min SJ
+  is 1/√3 = 0.577, whatever a/b, `nrad` or the length.
+
+  | d / t (cap depth / ring thickness) | slant | min SJ | max non-orth |
+  |---|---|---|---|
+  | 0.5 | 63.4° | 0.333 | 68.0° |
+  | 0.75 | 53.1° | 0.469 | 58.8° |
+  | **1** | **45°** | **0.577** | **51.1°** |
+  | 1.5 | 33.7° | 0.485 | 55.4–57.2° |
+  | 2 | 26.6° | 0.408 | 60.4–63.2° |
+  | 3 | 18.4° | 0.302 | 69.4–70.7° |
+
+  (a/b 2, `nrad` 3, graded ring and H end.)  Over a/b 1 / 2 / 4 and
+  `nrad` 1 / 3 / 6 at d = t, min SJ is 0.577 everywhere and max non-orth
+  is 39–52°.  Max skewness is 0.84–2.50 and grows with `nrad` and a
+  graded ring.
+- **Length rule:** `L ≥ 1.25 t` (`limits.SWITCH_MIN_LENGTH`): the cap is
+  d = t plus a short core.  The rule scales with the ring thickness, not
+  with `nrad` or a/b.  From 1.25 t to 5 t the quality doesn't change.
+  Skewness grows 1.64 → 2.18 as the core's cells lengthen.
+- **Graded H end:** the grading change goes in the core, so that C
+  already carries the H side grading.  Min SJ is then 0.547–0.577.  In
+  the cap it would be 0.39–0.49.
+- **gmsh:** opposite transfinite edges may differ in grading, as long
+  as their node counts match (`docs/integrations/gmsh.md`).  hexmesh's
+  edge classes had forced one grading; the `own_grading` flag in
+  `blocks.py` lifts that.
+- **`Transition` to an H rectangle** embeds a `Switch` at its
+  rectangular end: min SJ 0.577 and non-orth 46.7° at a/b 1 and 2.
+- **Flow check** (v2406, simpleFoam, laminar Re 100, a/b 2).
+  - Setup: 10 D_h of O-H (`nang_w` 24, `nang_h` 12, `nrad` 6), then a
+    switch of 0.3 D_h, then 14 D_h of H; 47 376 cells.
+  - f·Re matches each mesh's plain run.  O-H: 62.627 against 62.627.
+    H: 61.122 against 61.082 (exact 62.192).
+  - The velocity profile recovers within about 3 D_h.  The RMS error
+    against exact is 1.85 % at 0.5 D_h past the switch, 0.98 % at 1,
+    0.62 % at 3, and 0.60 % beyond, against 0.59 % for the plain H run.
+  - **The loss defect is negative:** K = −0.073 on ½U², or −0.12 D_h of
+    duct (−39 % of the developed Δp over the switch).  That is about the
+    2.4 % gap between the two meshes' pressure gradients.  The likely
+    cause is the change between the two discrete developed profiles,
+    not a physical effect.  Task 0086 step 5 checks this against the
+    momentum-flux coefficients.
+  - simpleFoam never met `residualControl`, but the fields were frozen
+    from iteration 2500 (`docs/integrations/openfoam.md`).
+
 **For hexmesh.**  Decision 0015 amendment 2 (rectangular sections are
 gated on a Cartesian control mesh); decision 0036 (accepted
 2026-11-02: a Cartesian rectangular section, the default for ducts, and
