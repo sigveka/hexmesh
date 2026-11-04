@@ -90,6 +90,19 @@ def ring_thickness(half_w: float, half_h: float) -> float:
     return (1.0 - OH_RATIO) * min(half_w, half_h)
 
 
+def inner_radius(radius: float) -> float:
+    """Distance from the centre to a corner of the inner square of a
+    circle's O-H face: ``OH_RATIO · radius``."""
+    return OH_RATIO * radius
+
+
+def inner_half_side(radius: float) -> float:
+    """Half the side of the inner square of a circle's O-H face: each
+    inner corner is this far along both axes of the 45° frame (the
+    junction blocks' inner-square corners, task 0086)."""
+    return OH_RATIO * radius / math.sqrt(2)
+
+
 def inner_corner(shape, k: int) -> np.ndarray:
     """Corner *k* (NE, NW, SW, SE) of the inner square (or rectangle) of
     *shape*'s O-H face, in-plane ``(u, v)`` before ``rot``."""
@@ -105,7 +118,7 @@ def inner_arc_centre(radius: float, k: int, rot: float = 0.0) -> np.ndarray:
     turned by *rot*: the inner-square point opposite the arc's middle
     (S, E, N, W for k = 0…3), so the arcs bulge toward the centre."""
     a = (k + 3) % 4 * math.pi / 2 + rot
-    rho = OH_RATIO * radius
+    rho = inner_radius(radius)
     return np.array([math.cos(a) * rho, math.sin(a) * rho])
 
 
@@ -113,7 +126,7 @@ def _circle_inner(shape: CircleShape, k: int, s):
     s = np.asarray(s, dtype=float)
     r = shape.radius
     # inner arc k is centred on the inner-square point opposite its middle
-    rho = OH_RATIO * r
+    rho = inner_radius(r)
     c = inner_arc_centre(r, k)
     ends = [rho * np.array([math.cos(math.pi / 4 + math.pi / 2 * j),
                             math.sin(math.pi / 4 + math.pi / 2 * j)]) for j in (k, k + 1)]
@@ -182,7 +195,7 @@ def core_corners(shape, n_outer: int, rot: float) -> tuple[list[np.ndarray], lis
     if isinstance(shape, CircleShape):
         d = [a + rot for a in core_directions(shape, n_outer)]
         polar = lambda r, a: np.array([math.cos(a) * r, math.sin(a) * r])
-        return ([polar(OH_RATIO * shape.radius, a) for a in d],
+        return ([polar(inner_radius(shape.radius), a) for a in d],
                 [polar(shape.radius, a) for a in d])
     if isinstance(shape, BlendShape):
         return ([rotated(outline(shape, k, 0.0, inner=True), rot) for k in range(4)],
@@ -248,7 +261,7 @@ def levels(spec) -> list[Level]:
     if all(isinstance(o, CircleShape) for o in outlines):
         a0 = corner0_angle(spec)
         ang = tuple(a0 + 2 * math.pi * k / n for k in range(n))
-        radii = [OH_RATIO * outlines[0].radius] + [o.radius for o in outlines]
+        radii = [inner_radius(outlines[0].radius)] + [o.radius for o in outlines]
         polar = [(r, ang) for r in radii]
     nrads = [spec._core_nrad] + [sh.nrad for sh in spec.shells]
     mprgs = [spec._core_mprg] + [sh.mprg for sh in spec.shells]

@@ -67,7 +67,7 @@ import numpy as np
 
 from ..core.shape import CircleShape, RectShape
 from ..core.spec import LayoutNotSupported, PipeSpec
-from ..sections.oh import OH_RATIO
+from ..sections import oh
 from .blocks import (
     ArcAbout, BlockLayout, LayoutError, Spline, bind_face, corner_shift,
     face_patches, face_vertices,
@@ -356,8 +356,10 @@ class Tee:
             return o + x * ex + y * ey + z * ez
 
         t = r / math.sqrt(2)                 # saddle corner offset (wall)
-        ci = OH_RATIO * t                    # branch inner-square corner offset
-        si = OH_RATIO * R / math.sqrt(2)     # main inner-square corner offset
+        # branch inner-square corner offset: the saddle offset scaled to the
+        # inner square (oh.inner_half_side(r), in this order bit-identical)
+        ci = oh.inner_radius(t)
+        si = oh.inner_half_side(R)           # main inner-square corner offset
         zq = si                              # junction core top height
         z1 = turning_height(R, r, Ts[-1])    # branch turning-station height
 

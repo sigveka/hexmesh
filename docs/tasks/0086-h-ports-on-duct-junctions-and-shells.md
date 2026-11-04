@@ -121,6 +121,82 @@ goes between or after this task's commits, never mixed into one.
   `check()` on a duct tee with no `branch` used to raise an
   `AttributeError`.  It now raises the named "needs branch=" message.
 
+**Step 4, done 2026-11-04.**  The junction blocks ask `sections.oh`
+for the inner square.
+- New in `sections/oh.py`: `inner_radius(r)` (= OH_RATIO·r, the
+  centre to an inner corner) and `inner_half_side(r)` (= OH_RATIO·r/√2).
+  `oh.py`'s own copies of the expression use them too.
+- The tee (`ci`, `si`), the wye (crotch corner F) and the round duct tap
+  call them.  No `OH_RATIO` is left in `assembly/`.
+- **Every existing junction mesh is unchanged, bit for bit.**  24 test
+  files that build tees, wyes or duct taps were recorded before and
+  after: 349 of 349 distinct meshes and 358 of 358 messages are
+  identical, and 1320 tests passed.
+- **Surprise:** the first try wrote the pipe tee's `ci` as
+  `inner_half_side(r)`, which is OH_RATIO·r/√2 where the old code had
+  OH_RATIO·(r/√2).  The values differ by 1 ulp (relative 1.3e-16).  At
+  branch ratio 0.9 that grew to 6.9e-12 in the nodes (the kit's
+  `tee-0.9` cases), which is over the 1e-12 acceptance.  `ci` is now
+  `inner_radius(r/√2)`, the old order.
+- `test_topology_invariance` shares meshes between its tests.  Its
+  recording keys depend on xdist scheduling, so compare its meshes by
+  content, not by key.
+
 ## Questions for design
+
+**Q1 (2026-11-04, step 1 waits on it): what `nrad` and ring grading do
+a duct junction's internal O-H blocks get when its ports are H?**
+- An H port has no `nrad` (decision 0036 item 4).  But the junction
+  keeps O-H blocks inside (item 5), and so do the switch legs
+  embedded at its ports.  Those need an `nrad` and an `mprg`.
+- A round tap on an H main has the same gap.  Its branch port is a
+  circle, so O-H, and today it takes the main's `nrad` and `mprg`.
+- 0085's `Transition` H end had the other end's `nrad`.  A junction
+  whose ports are all H has nothing to borrow from.
+- Options:
+  - **(a) Derived, no new field (proposed).**  `nrad` is the number of
+    H cells across one ring thickness t on the H face's smaller side:
+    `max(1, round(n_s · (1 − OH_RATIO) / 2))`, with n_s that side's
+    count.  That gives 1 at n_s = 4–6, 2 at 8, 3 at 12 and 5 at 24.
+    The ring's `mprg` is set so its first cell is the H face's wall
+    cell on that side (`progression_for_first_cell`), so near-wall
+    resolution doesn't jump across the switch.  The internal spec is
+    stored resolved in the fitting, like the duct-tap tunables.
+  - **(b) A `Tee(nrad=…, mprg=…)` field, required when the main is H.**
+    Explicit, but it's an O-H parameter on an H network, against
+    "users don't place switches" (item 5).
+  - **(c) (a) as the default, with (b) as an override.**
+- (a) or (c) also covers the round branch on an H main.
+- I'm working steps 4, 2, 3 and 5 meanwhile; step 1 waits.
+
+**Answer (design, 2026-11-04; the user agreed): (c), with (a) counted on
+the real nodes.  Step 1 goes ahead.**
+1. **Derived default.**
+   - nrad is the number of H cells lying within one ring thickness t of
+     the wall on the smaller side.  Count it on the H face's actual node
+     positions (graded by `wall_bump` if any); at least 1.
+   - The ring's `mprg` comes from `progression_for_first_cell`, so its
+     first cell is the H face's wall cell on that side.
+   - Warn, with the values, if that `mprg` is outside the limits or the
+     predicted ring quality drops below `PREDICTED_SJ_WARN`.
+2. **Store resolved.**  The derived nrad and mprg go into the fitting's
+   `to_dict`.  `refined(k)` treats them like a spec's (nrad × k,
+   mprg^(1/k)), so a series nests; never re-derive per level.
+3. **Override:** an optional `Tee(nrad=, mprg=)`.
+   - Used only when the junction's own O-H blocks have no O-H port to
+     inherit from (an H main), and it then replaces the derived values.
+   - `validate()` checks it before GMSH: nrad ≥ 1, mprg > 0, and the
+     ring's predicted quality.
+   - Plain numbers, documented in API.md (decision 0040's advisor will
+     set them).
+4. **A round tap on an H main:** the branch port is O-H with its own
+   spec.  The derived or overridden values apply only to the junction's
+   own blocks and the embedded switch legs on the main side.
+5. **Tests:**
+   - a uniform and a graded H main: the derived nrad matches a hand
+     count, the first cell matches to 1e-9, and `to_dict` and refined
+     nest;
+   - the override, and its rejection when invalid;
+   - a round tap on an H main.
 
 ## Outcome

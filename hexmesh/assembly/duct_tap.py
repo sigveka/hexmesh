@@ -61,7 +61,6 @@ import numpy as np
 from ..core.shape import CircleShape, RectShape
 from ..core.spec import PipeSpec
 from ..sections import oh
-from ..sections.oh import OH_RATIO
 from . import limits
 from .blocks import ArcAbout, BlockLayout, LayoutError, bind_face, face_patches, face_vertices
 from .interface import Frame
@@ -244,7 +243,7 @@ class DuctTap:
         # dome bottom.  Ring 0 the branch's inner square, 1 its outline.
         tb = oh.ring_thickness(p, q)
         if self.radius is not None:
-            inner = OH_RATIO * self.radius / math.sqrt(2)
+            inner = oh.inner_half_side(self.radius)
             pc, qc = inner, inner
         else:
             pc, qc = p - tb, q - tb

@@ -55,7 +55,7 @@ from dataclasses import dataclass, field, replace
 import numpy as np
 
 from ..core.spec import LayoutNotSupported, PipeSpec
-from ..sections.oh import OH_RATIO
+from ..sections import oh
 from . import limits
 from .blocks import (
     ArcAbout, BlockLayout, LayoutError, Polyline, Spline, bind_face,
@@ -385,7 +385,7 @@ class Wye:
         # tee does folds more wyes, task notes).
         for k, (d, side, z) in crotch.items():
             radial = (side + z * u) / math.sqrt(2)
-            lay.vertex(("F", 0, k), o + tf * d + OH_RATIO * R * radial)
+            lay.vertex(("F", 0, k), o + tf * d + oh.inner_radius(R) * radial)
             for l in levels:
                 lay.vertex(("W", l, k), o + t * d + Rl[l] * radial)
                 lay.edge(("F", 0, k) if l == 1 else ("W", l - 1, k), ("W", l, k))
