@@ -8,7 +8,8 @@ Cartesian `blockMesh` grid is the control: the V1 gates apply to it, and
 the O-H levels are reported against it (decision 0015 amendment 2).
 hexmesh's H section (`layout="h"`, task 0084) with the control's counts
 per section is gated like the control: it is the accepted hexmesh
-result.
+result.  A wall-graded H series at a/b = 2 (`hg`, nested `wall_bump`) is
+reported beside it.
 
 ```bash
 python3 validation/rect_duct/run.py --check-series          # the exact solution's checks (1 s)
@@ -16,6 +17,7 @@ python3 validation/rect_duct/run.py --json out.json         # 3 ratios × 3 leve
 python3 validation/rect_duct/run.py --ratios 1 --levels 1   # one case per mesh (~10 s)
 python3 validation/rect_duct/run.py --meshes cartesian      # the control only
 python3 validation/rect_duct/run.py --meshes h --np 2       # the H series, on 2 processes
+python3 validation/rect_duct/run.py --meshes hg --np 2      # graded H, a/b 2 (reported)
 python3 -m pytest -m openfoam tests/test_validation.py -k rect_duct
 ```
 

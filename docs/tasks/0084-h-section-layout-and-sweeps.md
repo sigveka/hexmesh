@@ -226,6 +226,22 @@ the default flip (0087).
     (cases `h_ar<r>_k<k>`); `recheck` gates `h` like the control
     (`_gates`, shared); `versus_control` covers H and O-H, its rows
     gain `mesh` and `cells_<mesh>`.
+  - **Step 9: a graded H series (Question 2's answer, 2026-11-04).**
+    - a/b = 2 only, rect_duct's setup on v2406, `run_solver`'s n_proc.
+    - Graded H core: `first_cell` at k = 1 about 0.3–0.5 of the uniform
+      wall cell, chosen and stated.  **Chosen: D_h/30 = 6.67e-4 m, 0.40
+      of the uniform D_h/12 on both sides** (`HG_FIRST_CELL`).  Stored
+      `wall_bump` (0.2223, 0.1751); nested wall cells 0.37 / 0.36
+      (wide) and 0.34 / 0.32 (narrow) of the uniform cell at k = 2 / 4.
+    - Levels k = 1, 2, 4 by `Assembly.refined(k)` (k = 8 would be 1.7M
+      cells), so the stored `wall_bump` nests.
+    - Reported, not gated: RESULTS.md rows beside the uniform H series
+      (f·Re and u_c per level, Richardson status, order, extrapolated
+      against exact).  Rows in results.json; `recheck` reports them.
+    - Expected: converging, order near 2, extrapolated f·Re about as
+      close as the uniform series.  If not, numbers go under Questions
+      before going further.
+    - Driver: mesh `hg` (cases `hg_ar2_k<k>`), `HG_RATIOS = (2,)`.
 
 ## Questions for design
 
@@ -292,6 +308,13 @@ the default flip (0087).
    reported (not gated) H-graded series next to the uniform one, first
    cell e.g. D_h/100; (b) leave it to a case that needs a wall layer
    (heated or turbulent ducts); (c) nothing.  I'd take (b).
+
+   **Answer (design session, 2026-11-04; the user: "Let us do a"):
+   (a).**  No planned case is a graded duct (0049 is a pipe; 0072 can
+   run uniform), so (b) could leave `wall_bump` untested in a solver
+   for a long time.  Storing per-side coefficients was for nested series
+   and Richardson, and this checks it directly.  Scope: step 9 (Agent
+   notes).
 
 ## Outcome
 
@@ -379,4 +402,31 @@ OpenFOAM v2406, 2 processes (task 0090).
   results.json grew to 34 kB.
 - **Proposed follow-ups.**  Question 2.  The other two follow-ups above
   were done in task 0090 (the driver-import test, the API.md line).
+
+**Step 9 (coding session, 2026-11-04).**  The graded H series at
+a/b = 2 (Question 2's answer), v2406, 2 processes.
+
+- **Files.**  `validation/rect_duct/{run.py, RESULTS.md, README.md,
+  results.json}`: mesh `hg`, `HG_RATIOS`, `HG_FIRST_CELL`; `recheck`
+  reports the graded rows, not gated.
+- **Grading.**  `first_cell` D_h/30 = 6.67e-4 m at k = 1, 0.40 of the
+  uniform wall cell; `wall_bump` (0.2223, 0.1751).  Nested wall cells
+  0.37 / 0.36 (wide), 0.34 / 0.32 (narrow) of the uniform level's at
+  k = 2 / 4.  k = 1, 2, 4 (3240 / 25 920 / 207 360 cells).
+- **Result: as expected.**  All converging: f·Re order 1.93,
+  extrapolated +0.014 % (uniform H: 1.94, +0.008 %); u_c order 2.03;
+  u_c net of the fit's bias order 1.97, extrapolated −0.0002 %.
+  f·Re's error is about 8 % larger than uniform at each level (the
+  centre cells are wider); the field's max error is half the uniform
+  one's (0.062 against 0.124 % at k = 4).
+- **Tests.**  `test_validation_meta`, the driver-import test and
+  `tests/test_validation.py`'s default set: 41 passed.  `recheck`
+  reports the three graded rows; the gates are unchanged (36 pass).
+- **Surprise.**  The centre fit sees fewer faces on the graded grid
+  (12 / 40 / 200 against 24 / 112 / 392: the window is fixed, the centre
+  cells larger), so its bias is larger (+0.12 % at k = 4).  The net u_c
+  takes it out.
+- **Cost and disk.**  About 5 min on 2 processes (solver 0 / 7 / 228 s).
+  Work directory (`/tmp/hexmesh-0084-hg-*`) deleted; results.json
+  +3 levels.
 

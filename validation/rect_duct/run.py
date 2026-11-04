@@ -166,13 +166,22 @@ def check_series() -> dict:
 
 # --- mesh ----------------------------------------------------------------------
 
+#: the graded H series (task 0084 step 9): a/b 2 only, wall cell at k = 1
+#: 0.4 of the uniform one (D_h/12 on both sides), refined by nesting
+HG_RATIOS = (2,)
+HG_FIRST_CELL = DH / 30
+
+
 def assembly(ratio: float, k: int = 1, layout: str = "oh") -> Assembly:
-    """The duct at level *k*: the O-H section (``layout="oh"``), or the H
-    section (task 0084) with the control's counts per section, uniform."""
+    """The duct at level *k*: the O-H section (``layout="oh"``), the H
+    section (task 0084) with the control's counts per section, uniform
+    (``"h"``) or graded to :data:`HG_FIRST_CELL` at k = 1 (``"hg"``)."""
     a, b = half_sides(ratio)
-    if layout == "h":
+    if layout in ("h", "hg"):
         nw, nh = control_cells(ratio)
-        spec = PipeSpec(nang_w=nw, nang_h=nh).core("fluid", RectShape(a, b, nw, nh), layout="h")
+        grading = {"first_cell": HG_FIRST_CELL} if layout == "hg" else {}
+        spec = PipeSpec(nang_w=nw, nang_h=nh).core("fluid", RectShape(a, b, nw, nh), layout="h",
+                                                   **grading)
     else:
         nh = BASE["nang_h"]
         nw = int(round(nh * ratio))           # cells roughly square in the core
@@ -323,7 +332,7 @@ def results(case: Path, ratio: float) -> dict:
 # The same duct, inlet, planes and post-processing on a uniform blockMesh
 # grid: no O-H corners, so a second-order reference for the setup.
 
-MESHES = ("oh", "cartesian", "h")
+MESHES = ("oh", "cartesian", "h", "hg")
 
 
 def control_cells(ratio: int) -> tuple[int, int]:
@@ -461,7 +470,7 @@ def versus_control(rows: list[dict]) -> list[dict]:
 
 def level_name(mesh: str, ratio: int, k: int) -> str:
     """The level's name in results.json: its case directory's."""
-    return f"{ {'cartesian': 'cart_', 'h': 'h_'}.get(mesh, '')}ar{ratio}_k{k}"
+    return f"{ {'cartesian': 'cart_', 'h': 'h_', 'hg': 'hg_'}.get(mesh, '')}ar{ratio}_k{k}"
 
 
 def main(argv=None) -> dict:
@@ -470,7 +479,8 @@ def main(argv=None) -> dict:
     ap.add_argument("--levels", nargs="+", type=int, default=list(LEVELS))
     ap.add_argument("--meshes", nargs="+", choices=MESHES, default=list(MESHES),
                     help="hexmesh's O-H section, the Cartesian control, hexmesh's H "
-                         "section (task 0084); default all")
+                         "section uniform (task 0084) or graded (hg, a/b 2 only); "
+                         "default all")
     ap.add_argument("--work", type=Path, default=HERE / "work")
     ap.add_argument("--end-time", type=int, default=20000)
     ap.add_argument("--np", type=int, default=1, dest="n_proc",
@@ -494,6 +504,8 @@ def main(argv=None) -> dict:
     rows = []
     for mesh in args.meshes:
         for ratio in args.ratios:
+            if mesh == "hg" and ratio not in HG_RATIOS:
+                continue
             for k in args.levels:
                 name = level_name(mesh, ratio, k)
                 r = stored.run_level(
@@ -554,6 +566,13 @@ def recheck(data: dict) -> list[dict]:
         for key in ("fRe", "u_c", "u_c_net"):
             out.append(stored.row(f"{key} (O-H, a/b {ratio})", rich=rich["oh"][ratio][key],
                                   note="reported against the control (amendment 2)"))
+        if ratio in HG_RATIOS and ratio in rich.get("hg", {}):
+            for key in ("fRe", "u_c", "u_c_net"):
+                r = rich["hg"][ratio][key]
+                out.append(stored.row(f"{key} (graded H, a/b {ratio})", rich=r,
+                                      value="" if r["ext_err_signed"] is None
+                                      else f"{r['ext_err_signed']:+.3%}",
+                                      note="reported (task 0084 step 9)"))
     return out
 
 if __name__ == "__main__":

@@ -173,15 +173,50 @@ The control has the same axial cells and about the same section cells:
   the hexmesh route (gmsh export, `gmshToFoam`, boundary roles) adds
   nothing to the error, and H passes the gates with the control's
   numbers.
-- **What it doesn't test.**  A wall-graded H core (`first_cell=` or
-  `wall_bump=`, with task 0084's nested Bump series) isn't in this case.
-  The exact solution needs no wall clustering at Re 100, and the choice
-  of a first cell is left to the design session (task 0084, *Questions
-  for design* 2).
+- **The graded H core** is the next subsection: a nested `wall_bump`
+  series at a/b = 2, reported.
 - **Cost.**  Solver time at k = 4 on 2 processes: 69 / 226 / 609 s for
   a/b = 1 / 2 / 4, against the control's 115 / 362 / 1099 s serial.
   Iteration counts differ by up to 12 % (round-off in the parallel
   sums); the results don't.
+
+### Graded H, a/b = 2 (reported; task 0084 step 9)
+
+A wall-graded H core: `first_cell=` D_h/30 = 6.67e-4 m at k = 1, 0.40 of
+the uniform wall cell (D_h/12 on both sides), stored as `wall_bump`
+(0.2223, 0.1751) and refined by `Assembly.refined(k)`, so every level
+nests.  Nested wall cells, as a fraction of the uniform level's:
+0.40 / 0.37 / 0.36 on the wide side, 0.40 / 0.34 / 0.32 on the narrow
+one (k = 1 / 2 / 4).  The control's counts per section (18 × 9 at
+k = 1), 2 processes.  checkMesh OK, 0° non-orthogonality, min scaled
+Jacobian 1.000 at every level.
+
+| k | cells | f·Re, graded | f·Re, uniform | u_c, graded | u_c, uniform | centre-fit bias, graded | field max, graded / uniform | iterations | solver time (s) |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | 3240 | −3.333 % | −3.094 % | −0.858 % | −1.797 % | +0.020 % | 0.929 % / 1.908 % | 104 | 0 |
+| 2 | 25920 | −0.867 % | −0.798 % | −0.122 % | −0.410 % | +0.102 % | 0.244 % / 0.490 % | 226 | 7 |
+| 4 | 207360 | −0.218 % | −0.202 % | +0.058 % | −0.040 % | +0.116 % | 0.062 % / 0.124 % | 613 | 228 |
+
+| quantity | status | observed order | extrapolated − exact | GCI fine | uniform H: order | uniform H: extrapolated − exact |
+|---|---|---|---|---|---|---|
+| f·Re | converging | 1.93 | +0.014 % | 0.290 % | 1.94 | +0.008 % |
+| u_c | converging | 2.03 | +0.117 % | 0.073 % | 1.90 | +0.096 % |
+| u_c net of the fit | converging | 1.97 | −0.000 % | 0.072 % | 1.94 | +0.005 % |
+
+- **The nested series converges at order 2.**  f·Re 1.93, u_c 2.03,
+  u_c net of the fit 1.97, all converging.  The extrapolated f·Re is
+  within +0.014 % of exact (uniform: +0.008 %), u_c net of the fit
+  within 0.0002 %.  So a refined `wall_bump` series is a valid
+  Richardson series in OpenFOAM.
+- **Grading costs a little in f·Re and gains in u_c and the field.**
+  The wall-clustered grid has wider centre cells, so f·Re's error is
+  about 8 % larger at each level (−0.218 % against −0.202 % at k = 4).
+  The field's max error is half the uniform one's at every level (0.062
+  against 0.124 % at k = 4).
+- **The centre fit sees fewer faces** (12 / 40 / 200 against 24 / 112 /
+  392): the centre window is fixed in size and the centre cells are
+  larger.  Its bias is +0.12 % at k = 4, which is why the raw u_c
+  extrapolates to +0.117 % and the net value to zero.
 
 ## The O-H levels (reported)
 
