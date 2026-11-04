@@ -13,7 +13,7 @@ import numpy as np
 import pytest
 
 from hexmesh.assembly import Assembly, AssemblyError, Straight, Tee, intent, limits
-from hexmesh.assembly.duct_tap import DuctTap
+from hexmesh.assembly.duct_tap import DuctTap, TapTemplate
 from hexmesh.assembly.interface import Frame
 from hexmesh.core.shape import CircleShape, RectShape
 from hexmesh.core.spec import PipeSpec
@@ -186,7 +186,7 @@ def test_full_width_dispatch_and_quality_by_length():
         for n in (4, 8):
             spec = _spec(n=n)
             tee = _tee(RectShape(A, 0.6 * A, n, n), run_length=run).resolve(inlet, spec)
-            tap = tee._tap(inlet, spec)
+            tap = TapTemplate(tee).tap(inlet, spec)
             assert isinstance(tap, FullWidthTap)
             assert None not in (tee.run_length,) and tee.margin is None
             frames = [inlet] + [f for f, _ in tap.ports(inlet, spec)]

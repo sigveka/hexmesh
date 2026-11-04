@@ -46,6 +46,7 @@ from hexmesh.assembly import (
     Assembly, Bend, Closure, Elbow, MiterBend, Reducer, SplinePipe, Straight, Switch, Tee,
     Transition, Wye,
 )
+from hexmesh.assembly.duct_tap import TapTemplate
 from hexmesh.core.shape import CircleShape, RectShape
 from hexmesh.core.spec import PipeSpec
 
@@ -517,7 +518,7 @@ def _duct_tap_deviation(tee, inlet, spec, x) -> float:
     """Largest distance of the points *x* from a duct tap's walls: the
     duct's faces |y| = a, |z| = b, or (z ≥ b) the branch's planes or
     cylinder, relative to the duct's half-diagonal (task 0070)."""
-    tap = tee._tap(inlet, spec)
+    tap = TapTemplate(tee).tap(inlet, spec)
     o, ex, ey, ez, a, b, _ = tap._basis(inlet, spec)
     v = x - o
     X, Y, Z = v @ ex, v @ ey, v @ ez

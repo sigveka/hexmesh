@@ -1,6 +1,6 @@
 # 0086 — H ports on duct junctions, and shells around an H core
 
-- **Status:** ready (after 0085)
+- **Status:** in progress
 - **Decision:** [0036 — Cartesian (H) rectangular section](../decisions/0036-cartesian-rectangular-section.md) (item 5, rollout step 3); [0026](../decisions/0026-layer-outlines.md) (layer outlines); DESIGN §7.1 ("Duct junctions and the H layout")
 - **Depends on:** 0085 (the switch builder); 0060's split of the
   duct-tap front end out of `Tee`, if done by then.  Otherwise do that
@@ -89,6 +89,37 @@ switch in their legs, so users never place switches around them
 decision, only if these measure badly); the default flip (0087).
 
 ## Agent notes
+
+**Order of work.**
+1. 0060's split first: 0060 isn't done, and this task's *Depends on*
+   says to do the split first in that case.
+2. Then step 4, which the task says goes before step 1.
+3. Then steps 1, 2, 3, 5 and 6.
+
+Task 0094 (structured errors) shares `duct_tap.py` and `tee.py`, so it
+goes between or after this task's commits, never mixed into one.
+
+**Step 0, the split (0060's design note), done 2026-11-04.**
+- The duct-tap front end leaves `Tee` for `duct_tap.TapTemplate`:
+  resolve, check, ports, layout, quality, fill and `meshed_sj_check`.
+  - `Tee._template(spec)` picks it on a non-round main, and `Tee`
+    delegates.
+  - `FULL_WIDTH_RUN` moves with it.
+  - `thicknesses`, `branch_spec` and `tee_wall` stay public in `tee.py`.
+- The template reads the branch and the main through the shape
+  protocol: `corner(0)` for the half-extents (exact: the corner is ±1
+  times them), `max_extent` for a round tap's radius, `is_round`, and
+  `counts`.
+- `SHAPE_SITES_CAP` goes from 15 to 7.  What's left is the pipe tee's
+  radius reads in `tee.py`, which are round by definition.
+- **No behaviour change** (task 0065's method).  21 test files that
+  build tees were recorded before and after:
+  - 334 of 334 distinct meshes are identical node for node;
+  - 339 of 339 messages are identical;
+  - 1262 tests passed.
+- The one difference is on an error path that no test reaches.
+  `check()` on a duct tee with no `branch` used to raise an
+  `AttributeError`.  It now raises the named "needs branch=" message.
 
 ## Questions for design
 
