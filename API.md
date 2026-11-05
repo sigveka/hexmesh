@@ -84,9 +84,9 @@ in degrees. The thresholds are data, in `hexmesh.assembly.limits`.
 
 | Method | Does |
 |---|---|
-| `mesh(dim=3, *, walls_by_fitting=False)` | Build faces, fill all fittings, write physical groups, and mesh. Between the surface and volume mesh, junction wall nodes are projected onto their analytic walls (decision 0029); `projection_report` holds each fitting's largest move, absolute and in local wall radii, and its cells' min corner scaled Jacobian. A move beyond `limits.WALL_PROJECTION_WARN_MOVE` (1) wall radii warns; a folded cell (corner SJ ≤ 0) in a projected fitting or its neighbours raises `AssemblyError`, naming the fitting. An OCC or GMSH error inside a fitting's fill also becomes an `AssemblyError` naming the fitting and quoting the original message. Projected nodes keep stale parametric coordinates, so leave GMSH's mesh optimisers off. Walls are `{layer}_wall`, after the layer outermost where they are, plus `{layer}_end` for the end faces of a terminated layer. With `walls_by_fitting`, each is split per fitting, `{group}_{name}`; *name* is the fitting's label or `<Type><index>` (`Bend3`) |
-| `write(path, dim=3, *, walls_by_fitting=False, provenance=True)` | `mesh()`, then `gmsh.write(path)`; the format follows the extension.  A `.msh` carries the recipe block (see below) unless `provenance=False`, which writes exactly gmsh's file |
-| `write_openfoam(path, *, interfaces=False, walls_by_fitting=False, provenance=True)` | `mesh()`, then write a `.msh` for `gmshToFoam`: MSH 2.2 ASCII, without the material-interface groups unless `interfaces=True` (the split rebuilds them as `mappedWall`; kept, they become faceZones); the GMSH options and groups are restored afterwards.  Also writes the role manifest `<stem>.roles.json`.  The recipe block as for `write`; `gmshToFoam` skips it |
+| `mesh(dim=3, *, order=1, incomplete=False, walls_by_fitting=False)` | Build faces, fill all fittings, write physical groups, and mesh. Between the surface and volume mesh, junction wall nodes are projected onto their analytic walls (decision 0029); `projection_report` holds each fitting's largest move, absolute and in local wall radii, and its cells' min corner scaled Jacobian. A move beyond `limits.WALL_PROJECTION_WARN_MOVE` (1) wall radii warns; a folded cell (corner SJ ≤ 0) in a projected fitting or its neighbours raises `AssemblyError`, naming the fitting. An OCC or GMSH error inside a fitting's fill also becomes an `AssemblyError` naming the fitting and quoting the original message. Projected nodes keep stale parametric coordinates, so leave GMSH's mesh optimisers off. Walls are `{layer}_wall`, after the layer outermost where they are, plus `{layer}_end` for the end faces of a terminated layer. With `walls_by_fitting`, each is split per fitting, `{group}_{name}`; *name* is the fitting's label or `<Type><index>` (`Bend3`). *order* 2 (task 0076) raises the checked linear mesh to second order: Hex27, or Hex20 with *incomplete*.  High-order nodes on projected walls are projected too, and a bend's high-order nodes between stations are placed exactly on its arcs (gmsh leaves interior axial edges straight, which folds thin shells in tight bends).  gmsh's high-order optimisers are never run.  A hex whose Jacobian determinant is ≤ 0 at one of its nodes or Gauss4 points raises `AssemblyError` (`second_order_inverted`), naming the fitting.  A `Wye` is rejected before meshing (`second_order_unsupported`): its hexes at the creases invert.  `mesh_order` records the order; `cell_count()` is unchanged (cells, not nodes) |
+| `write(path, dim=3, *, order=1, incomplete=False, walls_by_fitting=False, provenance=True)` | `mesh()`, then `gmsh.write(path)`; the format follows the extension.  A `.msh` carries the recipe block (see below) unless `provenance=False`, which writes exactly gmsh's file.  *order*, *incomplete*: as for `mesh()`; `.msh` 2.2 and 4.1 both carry Hex27 and the physical groups, and the recipe block's write line adds `order=2 incomplete=…` |
+| `write_openfoam(path, *, interfaces=False, walls_by_fitting=False, provenance=True, order=1)` | `mesh()`, then write a `.msh` for `gmshToFoam`: MSH 2.2 ASCII, without the material-interface groups unless `interfaces=True` (the split rebuilds them as `mappedWall`; kept, they become faceZones); the GMSH options and groups are restored afterwards.  Also writes the role manifest `<stem>.roles.json`.  The recipe block as for `write`; `gmshToFoam` skips it.  *order* other than 1 raises `AssemblyError` (`openfoam_needs_order_1`): `gmshToFoam` reads first-order elements only |
 | `group_roles()` | Physical-group name → role (`volume`, `open_end`, `wall`, `interface`), from the graph, as last written by `mesh()` |
 | `check_quality(quality_name="minSICN", threshold=None, by="material")` | `QualityReport` per material, or per fitting with `by="fitting"` (see Quality) |
 | `fitting_volumes()` | Volume tags per fitting (edge index → tags) |
@@ -1438,6 +1438,8 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `layout_not_supported` | a section layout that this fitting does not support yet | `LayoutNotSupported` |
 | `layout_unknown` | an unknown section layout | `SpecError` |
 | `mesh_not_all_hex` | a mesh with elements other than hexahedra | `StudyError` |
+| `mesh_order_invalid` | a mesh order other than 1 or 2 | `AssemblyError` |
+| `mesh_order_needs_volume` | order=2 asked of a surface or line mesh | `AssemblyError` |
 | `meshed_nonorth_above_maximum` | meshed non-orthogonality above OUTLINE_NONORTH_MAX | `AssemblyError` |
 | `meshed_nonorth_high` | meshed non-orthogonality high but allowed (warning) | `HexmeshWarning` |
 | `meshed_sj_below_minimum` | meshed corner scaled Jacobian below PREDICTED_SJ_MIN | `AssemblyError` |
@@ -1473,6 +1475,7 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `nozzle_unknown` | a drum has no nozzle of that name | `EquipmentError` |
 | `nrad_on_h_core` | nrad= on an H core, which has no ring | `SpecError` |
 | `openfoam_boundary_unparsable` | an OpenFOAM boundary file that can't be parsed | `ReaderError` |
+| `openfoam_needs_order_1` | write_openfoam asked for a second-order mesh | `AssemblyError` |
 | `openfoam_patches_unmapped` | OpenFOAM patches not in the role manifest (warning) | `HexmeshWarning` |
 | `option_invalid` | an option outside its allowed values | `AssemblyError`, `EquipmentError`, `HexmeshError`, `ReaderError`, `StudyError` |
 | `other_runs_active` | other pytest or OpenFOAM runs are active on the machine | `StudyError` |
@@ -1525,6 +1528,8 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `run_length_too_short` | a junction's run too short for its branch | `AssemblyError` |
 | `sampling_invalid` | a study's sampling block that is not valid | `StudyError` |
 | `section_nonorth_above_maximum` | a section's predicted non-orthogonality above OUTLINE_NONORTH_MAX | `AssemblyError` |
+| `second_order_inverted` | second-order hexes with a Jacobian determinant <= 0 | `AssemblyError` |
+| `second_order_unsupported` | order=2 on a fitting that can't be raised to second order (the wye) | `AssemblyError` |
 | `section_not_supported` | a section (layout, n_outer) the assembly does not support | `AssemblyError` |
 | `section_predicted_sj_below_minimum` | a section's predicted scaled Jacobian below PREDICTED_SJ_MIN | `AssemblyError` |
 | `section_quality_reject` | a section rejected by its quality check | `AssemblyError` |

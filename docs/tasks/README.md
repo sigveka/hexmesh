@@ -78,7 +78,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0069](0069-duct-tap-pillow-prototype.md) | Prototype: duct tap with a pillowed ring (hole on the wall) | done (Q1 answered: B adopted, decision 0033) | 0033 |
 | [0070](0070-duct-tap-merge-into-tee.md) | Duct taps: the pillowed tap in `Tee` | done | 0033, 0027 |
 | [0073](0073-validation-metadata-and-coverage.md) | Validation metadata (`case.json`), categories and a coverage matrix in the gallery | done (Q1, not blocking: `conduction` tag) | 0012 |
-| [0076](0076-second-order-export.md) | Second-order mesh export: `Assembly.mesh(order=2)` | ready | 0034, 0029 |
+| [0076](0076-second-order-export.md) | Second-order mesh export: `Assembly.mesh(order=2)` | done | 0034, 0029 |
 | [0078](0078-readme-generated-sections.md) | README: generated numbers, validation table, hero image and checks | ready | — |
 | [0080](0080-installable-package.md) | Installable package: extras, version, console command, install smoke test | done | — |
 | [0081](0081-architecture-tests-and-contracts.md) | Architecture tests (DESIGN §3.1), and the cross-package leaks | done | 0037 |
@@ -98,7 +98,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0095](0095-limits-and-schema.md) | Limits with units, and a JSON Schema generated from the registries | done | 0040, 0019 |
 | [0096](0096-pcf-line-numbers.md) | PCF errors name the line: record `Provenance.line` | done | 0040, 0032 |
 | [0097](0097-describe-and-preview.md) | `describe` and `preview`: what a network is, without GMSH | done | 0040, 0019 |
-| [0098](0098-advise-and-cli.md) | `advise` (the resolution advisor) and the `hexmesh` CLI | blocked | 0040 |
+| [0098](0098-advise-and-cli.md) | `advise` (the resolution advisor) and the `hexmesh` CLI | ready | 0040 |
 
 ### Validation
 

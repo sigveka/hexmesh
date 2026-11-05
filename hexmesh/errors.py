@@ -246,6 +246,8 @@ CODES: dict[str, str] = {
     "layout_not_supported": "a section layout that this fitting does not support yet",
     "layout_unknown": "an unknown section layout",
     "mesh_not_all_hex": "a mesh with elements other than hexahedra",
+    "mesh_order_invalid": "a mesh order other than 1 or 2",
+    "mesh_order_needs_volume": "order=2 asked of a surface or line mesh",
     "meshed_nonorth_above_maximum": "meshed non-orthogonality above OUTLINE_NONORTH_MAX",
     "meshed_nonorth_high": "meshed non-orthogonality high but allowed (warning)",
     "meshed_sj_below_minimum": "meshed corner scaled Jacobian below PREDICTED_SJ_MIN",
@@ -281,6 +283,7 @@ CODES: dict[str, str] = {
     "nozzle_unknown": "a drum has no nozzle of that name",
     "nrad_on_h_core": "nrad= on an H core, which has no ring",
     "openfoam_boundary_unparsable": "an OpenFOAM boundary file that can't be parsed",
+    "openfoam_needs_order_1": "write_openfoam asked for a second-order mesh",
     "openfoam_patches_unmapped": "OpenFOAM patches not in the role manifest (warning)",
     "option_invalid": "an option outside its allowed values",
     "other_runs_active": "other pytest or OpenFOAM runs are active on the machine",
@@ -336,6 +339,9 @@ CODES: dict[str, str] = {
     "sampling_invalid": "a study's sampling block that is not valid",
     "section_nonorth_above_maximum":
         "a section's predicted non-orthogonality above OUTLINE_NONORTH_MAX",
+    "second_order_inverted": "second-order hexes with a Jacobian determinant <= 0",
+    "second_order_unsupported":
+        "order=2 on a fitting that can't be raised to second order (the wye)",
     "section_not_supported": "a section (layout, n_outer) the assembly does not support",
     "section_predicted_sj_below_minimum":
         "a section's predicted scaled Jacobian below PREDICTED_SJ_MIN",

@@ -43,6 +43,19 @@
   three orthographic views and an isometric one.  It needs the new
   `preview` extra (matplotlib).
 
+**Second-order export** (decision 0034; task 0076).
+
+- `Assembly.mesh(order=2)` (and `write(..., order=2)`) writes Hex27, or
+  Hex20 with `incomplete=True`, with the high-order nodes on the true
+  walls:
+  - junction walls are re-projected;
+  - bends are placed exactly on their arcs.
+  Volume and wall area converge at order 4, against 2 for linear.
+- An inverted second-order hex is an error naming the fitting.
+- A `Wye` is rejected at order 2.
+- `write_openfoam(order=2)` is refused, because `gmshToFoam` reads
+  first-order elements only.
+
 ## 0.4.0 (2026-11-05)
 
 **Breaking: rectangular cores default to the H face** (decision 0036;

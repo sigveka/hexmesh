@@ -57,6 +57,7 @@ from ..io.writers import msh_comments
 from ..io.writers.openfoam_boundary import roles_path, write_roles
 from ..version import __version__
 from .signature import check_port_pairs, classify, signature
+from .sweep import Arc
 from .corners import transfinite_surface_corners, transfinite_volume_corners
 from .fittings import FillResult, Straight
 from . import limits
@@ -98,6 +99,29 @@ def _at(origin: dict | None) -> str:
     if not origin or not origin.get("file") or not origin.get("line"):
         return ""
     return f", {PurePath(origin['file']).name}:{origin['line']}"
+
+
+class _Parents(dict):
+    """Hex node index → its parent corners (the corners sharing its
+    nonzero local coordinates), for the nodes past the 8 corners."""
+
+    def index(self, corners: set) -> int:
+        return next(k for k, ps in self.items() if ps == corners)
+
+
+def _element_parents(element_type: int) -> _Parents:
+    local = np.asarray(gmsh.model.mesh.getElementProperties(element_type)[4]).reshape(-1, 3)
+    out = _Parents()
+    for k in range(8, len(local)):
+        fixed = local[k] != 0
+        out[k] = frozenset(i for i in range(8) if np.all(local[i][fixed] == local[k][fixed]))
+    return out
+
+
+def _rotation(axis: np.ndarray, angle: float) -> np.ndarray:
+    """Rotation matrix by *angle* (radians) about the unit *axis*."""
+    k = np.array([[0, -axis[2], axis[1]], [axis[2], 0, -axis[0]], [-axis[1], axis[0], 0]])
+    return np.eye(3) + math.sin(angle) * k + (1 - math.cos(angle)) * (k @ k)
 
 
 @contextmanager
@@ -204,6 +228,7 @@ class Assembly:
         self._nozzle = None          # (drum, nozzle name) for from_nozzle()
         self._group_roles: dict[str, str] = {}
         self._meshed = False
+        self.mesh_order = 1             # 2 after mesh(order=2) (task 0076)
         #: Quality warnings from the last ``validate()`` (task 0047):
         #: ``"<interface>: <message>"``, also issued as ``UserWarning``.
         self.warnings: list[str] = []
@@ -844,11 +869,36 @@ class Assembly:
                                 code="no_mesh_yet", hint="call mesh() first")
         return dict(self._group_roles)
 
-    def mesh(self, dim: int = 3, *, walls_by_fitting: bool = False) -> None:
+    def mesh(self, dim: int = 3, *, order: int = 1, incomplete: bool = False,
+             walls_by_fitting: bool = False) -> None:
         """Build, write physical groups, and generate the mesh.
+
+        *order* 2 (task 0076, decision 0034) raises the checked linear mesh
+        to second order: Hex27, or Hex20 with *incomplete*.  The high-order
+        nodes on projected walls are projected too, gmsh's high-order
+        optimisers are never run, and an element whose Jacobian
+        determinant is ≤ 0 at a Hex27 node or a Gauss point is an
+        ``AssemblyError`` naming the fitting (:meth:`_second_order`).  A
+        fitting with a ``second_order_limitation`` (the wye) is rejected
+        before meshing.
 
         *walls_by_fitting*: see :meth:`write_physical_groups`.
         """
+        if order not in (1, 2):
+            raise AssemblyError(f"mesh order must be 1 or 2, got {order!r}",
+                                code="mesh_order_invalid", where={"field": "order"},
+                                value=order, limit=[1, 2])
+        if order == 2:
+            if dim != 3:
+                raise AssemblyError(f"order=2 needs a volume mesh (dim=3), got dim={dim!r}",
+                                    code="mesh_order_needs_volume", where={"field": "dim"},
+                                    value=dim, limit=3)
+            for e in self._edges:
+                why = getattr(e.fitting, "second_order_limitation", None)
+                if why:
+                    raise AssemblyError(f"{e.name}{e.at}: order=2 is not supported: {why}",
+                                        code="second_order_unsupported", where=e.where,
+                                        hint="mesh it at order=1")
         self.build()
         gmsh.model.occ.synchronize()
         self.write_physical_groups(walls_by_fitting)
@@ -861,7 +911,105 @@ class Assembly:
         self._check_projection(moved)
         if dim == 3:
             self._check_meshed_sj()
+        if order == 2:
+            self._second_order(incomplete)
+        self.mesh_order = order
         self._meshed = True
+
+    def _second_order(self, incomplete: bool) -> None:
+        """``setOrder(2)`` on the checked linear mesh, then every high-order
+        node on a projected fitting's walls onto that fitting's projector,
+        and the validity check (task 0076)."""
+        opt = "Mesh.SecondOrderIncomplete"
+        was = gmsh.option.getNumber(opt)
+        try:
+            gmsh.option.setNumber(opt, 1 if incomplete else 0)
+            gmsh.model.mesh.setOrder(2)
+        finally:
+            gmsh.option.setNumber(opt, was)
+        msh = gmsh.model.mesh
+        for e in self._edges:
+            if hasattr(e.fitting, "path") and len(e.ports) == 2:
+                axial = e.fitting.path(e.ports[0].frame, e.ports[1].frame, e.ports[0].spec).axial
+                if isinstance(axial, Arc):
+                    self._revolve_high_order(e, axial)
+            for project, surfs in self._fitting_projections.get(e.index, []):
+                ho = set()
+                for s in surfs:
+                    for t, _, n in zip(*msh.getElements(2, s)):
+                        k = msh.getElementProperties(int(t))[3]       # nodes per element
+                        ho.update(n.reshape(-1, k)[:, 4:].ravel().tolist())
+                if not ho:
+                    continue
+                tags = np.array(sorted(ho))
+                x = np.array([msh.getNode(int(t))[0] for t in tags])
+                for t, y in zip(tags, project(x)):
+                    msh.setNode(int(t), y.tolist(), [])
+        self._check_second_order()
+
+    def _revolve_high_order(self, e, arc: Arc) -> None:
+        """Place every high-order node of a bend's hexes that lies between
+        two stations exactly: its counterpart on the hex's first station
+        (the corner, edge node or face node with the same in-station
+        parents), rotated about the bend axis by half the slab's turn.
+        ``setOrder`` keeps interior axial edges straight; in a tight bend
+        their sag folds thin shells (task 0076)."""
+        msh = gmsh.model.mesh
+        axis = np.asarray(arc.axis, float) / np.linalg.norm(arc.axis)
+        centre = np.asarray(arc.centre, float)
+
+        def radial(x):
+            r = x - centre
+            return r - np.outer(r @ axis, axis)
+
+        for v in self._fitting_volumes.get(e.index, []):
+            for t, tags, nodes in zip(*msh.getElements(3, v)):
+                parents = _element_parents(int(t))
+                conn = nodes.reshape(len(tags), -1).astype(int)
+                ids, x, _ = msh.getNodes(3, v, includeBoundary=True)
+                at = dict(zip(ids.astype(int).tolist(), x.reshape(-1, 3)))
+                for h in conn:
+                    c = np.array([at[n] for n in h[:8]])
+                    r = radial(c)
+                    turn = np.arctan2(np.cross(r[0], r) @ axis, (r * r[0]).sum(axis=1))
+                    first = {i for i in range(8) if abs(turn[i]) < 1e-9}
+                    half = 0.5 * turn[[i for i in range(8) if i not in first][0]]
+                    rot = _rotation(axis, half)
+                    for k, ps in parents.items():
+                        on_first = ps & first
+                        if on_first and on_first != ps:
+                            twin = next(iter(on_first)) if len(on_first) == 1 else \
+                                parents.index(on_first)
+                            p = at[h[twin]]
+                            y = centre + rot @ (p - centre)
+                            at[h[k]] = y
+                            msh.setNode(int(h[k]), y.tolist(), [])
+
+    def _check_second_order(self) -> None:
+        """An ``AssemblyError`` naming the fitting for any high-order hex
+        whose Jacobian determinant is ≤ 0 at one of its nodes or at a
+        ``Gauss4`` integration point."""
+        msh = gmsh.model.mesh
+        for e in self._edges:
+            bad = total = 0
+            for v in self._fitting_volumes.get(e.index, []):
+                for t, tags, _ in zip(*msh.getElements(3, v)):
+                    t = int(t)
+                    props = msh.getElementProperties(t)
+                    gauss, _ = msh.getIntegrationPoints(t, "Gauss4")
+                    worst = None
+                    for local in (np.asarray(props[4]), gauss):
+                        _, det, _ = msh.getJacobians(t, local, tag=v)
+                        det = det.reshape(len(tags), -1).min(axis=1)
+                        worst = det if worst is None else np.minimum(worst, det)
+                    bad += int((worst <= 0).sum())
+                    total += len(tags)
+            if bad:
+                raise AssemblyError(
+                    f"{e.name}{e.at}: {bad} of {total} second-order hexes have a Jacobian "
+                    "determinant <= 0 at a node or Gauss point",
+                    code="second_order_inverted", where=e.where, value=bad,
+                    limit={"max": 0}, hint="mesh it at order=1, or refine it")
 
     def _project_walls(self) -> dict[int, tuple[np.ndarray, np.ndarray]]:
         """Move the nodes of every projected surface, its curves and its
@@ -1025,17 +1173,18 @@ class Assembly:
             msh.setTransfiniteVolume(tag, cornerTags=transfinite_volume_corners(tag))
             msh.setRecombine(3, tag)
 
-    def write(self, path: str, dim: int = 3, *, walls_by_fitting: bool = False,
-              provenance: bool = True) -> None:
+    def write(self, path: str, dim: int = 3, *, order: int = 1, incomplete: bool = False,
+              walls_by_fitting: bool = False, provenance: bool = True) -> None:
         """Mesh and write *path* in the format its extension names.  A
         ``.msh`` carries the recipe block unless *provenance* is false
-        (:meth:`_stamp`)."""
-        self.mesh(dim, walls_by_fitting=walls_by_fitting)
+        (:meth:`_stamp`).  *order*, *incomplete*: see :meth:`mesh`."""
+        self.mesh(dim, order=order, incomplete=incomplete, walls_by_fitting=walls_by_fitting)
         gmsh.write(path)
         if str(path).endswith(".msh"):
             msh_comments.to_lf(path)
             if provenance:
-                self._stamp(path, f"write dim={dim} walls_by_fitting={walls_by_fitting}")
+                hi = "" if order == 1 else f" order={order} incomplete={incomplete}"
+                self._stamp(path, f"write dim={dim}{hi} walls_by_fitting={walls_by_fitting}")
 
     def _stamp(self, path, write: str) -> None:
         """Insert the ``$Comments`` block (decision 0038): logo, versions,
@@ -1049,7 +1198,8 @@ class Assembly:
             msh=msh_comments.msh_format(path), error=error))
 
     def write_openfoam(self, path: str, *, interfaces: bool = False,
-                       walls_by_fitting: bool = False, provenance: bool = True) -> None:
+                       walls_by_fitting: bool = False, provenance: bool = True,
+                       order: int = 1) -> None:
         """Mesh and write a ``.msh`` file for OpenFOAM's ``gmshToFoam``.
 
         Writes MSH 2.2 ASCII (``Mesh.MshFileVersion = 2.2``,
@@ -1075,7 +1225,16 @@ class Assembly:
 
         The ``.msh`` carries the recipe block unless *provenance* is false;
         ``gmshToFoam`` skips it (docs/integrations/openfoam.md).
+
+        *order* must be 1: ``gmshToFoam`` reads first-order elements only
+        (task 0076), so ``order=2`` is an ``AssemblyError``.
         """
+        if order != 1:
+            raise AssemblyError(f"write_openfoam writes first-order meshes only, got "
+                                f"order={order!r}: gmshToFoam reads no second-order elements",
+                                code="openfoam_needs_order_1", where={"field": "order"},
+                                value=order, limit=1, hint="use write(..., order=2) for "
+                                "other solvers")
         if not str(path).endswith(".msh"):
             raise AssemblyError(f"write_openfoam writes a .msh file, got {path!r}",
                                 code="write_openfoam_needs_msh", where={"field": "path"},

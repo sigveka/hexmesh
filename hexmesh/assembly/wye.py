@@ -204,6 +204,12 @@ class Wye:
 
     strategies = frozenset({0})   # both port pairs: inlet → each daughter
     port_names = ("left", "right")
+    #: why ``Assembly.mesh(order=2)`` rejects it (task 0076): measured on
+    #: the example, the high-order hexes at the creases invert, more with
+    #: refinement, and the wall error there doesn't fall
+    second_order_limitation = (
+        "its second-order hexes near the creases invert (6, 94 and 684 at k = 1, 2 and 4, "
+        "with crease-aware projection; task 0076)")
 
     angle:         float = param(
         "deg", "angle between the daughters, split equally about the inlet direction",

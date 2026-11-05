@@ -369,6 +369,50 @@ Probe: examples meshed with `Assembly.mesh(3)`, then
   the corners.  It isn't comparable to hexmesh's corner SJ (smooth
   bend: 0.809 linear vs 0.184 second order, both valid).
 
+### Second-order hexes in hexmesh: what the implementation found (gmsh 4.12.1, task 0076, 2026-11-05) — *verified*
+
+Follows the design probe above.  Evidence: `tests/test_second_order.py`
+and the task file's measurements.
+- **`setOrder(2)` leaves interior edges straight, even on transfinite
+  volumes.**  It puts boundary high-order nodes on the OCC surfaces.  In
+  a tight bend, a thin shell's interior axial edges are then chords
+  while its walls are arcs, and the hexes fold:
+  - `lagged_duct` Bend1: 72 of 1872 hexes;
+  - `insulated_route` Elbow6: 16;
+  - `pipe_rack` Elbow1: 24.
+  All of these are in 6 mm steel shells with 2 radial cells.
+  hexmesh places every high-order node between two bend stations itself:
+  its station counterpart, rotated about the bend axis by half the slab
+  turn.  That makes them exact, and all three examples are valid.
+- **Re-projecting with the fitting's own projector is enough for tees.**
+  - High-order wall nodes go onto the tube union to round-off.  With
+    gmsh's placement alone they stay about 1e-3 R off, at every level.
+  - No hex inverts at k = 1, 2 or 4.  The wall offset between nodes
+    falls with refinement: 5.4e-5, 9.8e-6, 4.9e-6 R.
+- **Wyes stay invalid.**  The probe's suspect was the union projector
+  sending midpoints onto the other tube.  Two things were tried:
+  - a crease-aware rule: put each high-order node on the tube all its
+    parent corners lie on;
+  - a transfinite carry of the wall offsets into the touching hexes'
+    interior nodes (Coons on faces, Gordon-Hall in the body).
+  With both, the example's inverted hexes, counted at the Hex27 nodes,
+  went from 32 to 6 at k = 1, but were 94 at k = 2 and 684 at k = 4.
+  The wall offset between nodes stayed about 0.016 R.  The linear
+  mesh's own offset grows too (0.030, 0.034, 0.040 R), so the error sits
+  where the mesh lines cross the creases, not in curvature sag.
+  `Assembly.mesh(order=2)` rejects the wye.
+- **Jacobian checks: Gauss points miss what the nodes catch.**  On the
+  wye at k = 1, no hex has a determinant ≤ 0 at the Gauss3 points, but
+  32 do at the Hex27 nodes.  hexmesh checks both: the element's own
+  nodes and Gauss4.
+- **`getJacobians` on a surface element in 3-D returns the area
+  element.**  Σ w·det over Gauss6 gives the wall area: 2πRL to 1e-7 at
+  order 2.
+- **Hex20** (`Mesh.SecondOrderIncomplete = 1`) costs nothing extra.
+  hexmesh sets the option for the call and restores it.
+- **`.msh` 2.2 and 4.1 both carry Hex27 (type 12)**, and the physical
+  groups read back unchanged.
+
 ### ASCII `.msh` on Windows has CRLF line endings — *verified*
 gmsh 4.12.1 (pip wheel) on `windows-latest` writes ASCII `.msh` with
 `\r\n`: it opens the file in C text mode.  Binary `.msh` is written in

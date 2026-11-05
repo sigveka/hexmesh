@@ -1,6 +1,6 @@
 # 0098 — `advise` (the resolution advisor) and the `hexmesh` CLI
 
-- **Status:** blocked (questions for design, step 3)
+- **Status:** ready (questions answered 2026-11-05)
 - **Decision:** [0040 — Agents for users](../decisions/0040-user-agents-network-design-and-resolution.md) (foundation D; settled: wall-resolved only at first)
 - **Depends on:** 0095 (the schema, limits), 0097 (`describe`).  The
   network-document input waits for decision 0032's stage 2; until then
@@ -236,3 +236,43 @@ the two?
 I'm stopping 0098 here.  The rest of the task (steps 1, 2 and 4–7, and
 the CLI) doesn't depend on these answers in structure, but the core
 counts and the classes' `validated` flags do, so I haven't started it.
+
+### Answers (design session, 2026-11-05; the user: "yes, your answers are fine")
+
+- **Q1:** the worse of the two gated quantities (pressure and velocity)
+  sets the class.  The report still gives each quantity's own expected
+  error at the chosen counts.
+- **Q2: extrapolate, within limits, and label it.**
+  - Extrapolate along the observed order, only from a series whose
+    0089 status is `converging`.  Go at most 2× in k past the finest
+    measured level (k ≤ 8 today).
+  - Such a class gets `"validated": false` and
+    `"basis": "extrapolated at order p from k = 4"`, with the real p
+    and k.  It also gives the nearest measured level and its error.
+  - Beyond 2×, the class is reported as out of range, with no counts.
+    `advise` falls back to the best class in range, and says so.
+  - Today that gives poiseuille fine at k ≈ 4.2, and rect H a/b 1 fine
+    at k ≈ 6.4.  Both are in range.
+- **Q3:** the uniform `h_*` series at a/b 1, 2 and 4.
+  - Between measured aspect ratios, use the worse of the two
+    neighbours.  Above 4, use a/b 4's class with `"validated": false`.
+  - No O-H rectangle calibration.
+  - **Laminar flow** gets a uniform H core (no wall grading), and for
+    circles the plain O-H ring grading of the calibrated runs, so the
+    advice matches what was measured.  Wall grading only comes in for
+    turbulent wall-resolved flow, which is unvalidated anyway.
+  - The graded `hg_*` a/b 2 series measured about 8 % more error.
+    Record it in the reasons as a check, not as a class.
+- **Q4: (b).**
+  - The run scripts write `nang`, `nrad`, `nang_w` and `nang_h` into
+    each level of `results.json`.  The two committed files are
+    backfilled without a rerun.
+  - A pure-Python test checks that each stored level's counts equal the
+    run script's `assembly(factor)`.
+  - If `results.json` has a schema, extend it, backward-compatible.
+- **Also, in every `advise` report, coded, and in API.md:**
+  "calibrated on developed flow in straight runs; bends, junctions and
+  switches may be less accurate at the same counts".
+
+Status set back to ready.  The coding session was on 0076 (the user's
+"start") when the answers came.
