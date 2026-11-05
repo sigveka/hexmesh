@@ -56,6 +56,11 @@ ORDER = ("core", "sections", "assembly", "interchange", "study",
 LEAVES = {"hexmesh._occ", "hexmesh.session", "hexmesh.quality_hex",
           "hexmesh.version",            # task 0091: assembly stamps the version
           "hexmesh.errors"}             # task 0094: every layer's error classes
+#: the public API ``hexmesh.agent`` may import (task 0097): the package
+#: roots, and the documented registries the schema reads
+AGENT_IMPORTS = {"hexmesh", "hexmesh.assembly", "hexmesh.interchange", "hexmesh.errors",
+                 "hexmesh.assembly.intent", "hexmesh.assembly.limits",   # FITTING_TYPES, LIMITS
+                 "hexmesh.core.params", "hexmesh.core.shape"}            # UNITS, SHAPES
 #: which capabilities may import ``io.writers``
 WRITERS_USERS = {"assembly", "study"}
 #: may import anything
@@ -463,6 +468,15 @@ def code_violations(root: Path) -> list[str]:
 
 # --- the real tree -------------------------------------------------------------
 
+def agent_violations(root: Path) -> list[str]:
+    """Imports by ``hexmesh.agent`` of anything but :data:`AGENT_IMPORTS`
+    and itself."""
+    return [f"{imp.where(root)}: {imp.module} imports {imp.target}, not the public API"
+            for imp in imports(root)
+            if imp.module.startswith("hexmesh.agent")
+            and not imp.target.startswith("hexmesh.agent") and imp.target not in AGENT_IMPORTS]
+
+
 def test_every_module_has_a_capability():
     for mod in modules(ROOT):
         capability(mod)
@@ -554,6 +568,19 @@ def test_planted_import_of_agent(tmp_path, rel):
                             "hexmesh/agent/schema.py": "from hexmesh import Session\n"})
     bad = order_violations(root)
     assert len(bad) == 1 and rel in bad[0] and "hexmesh.agent" in bad[0]
+
+
+def test_agent_imports_only_the_public_api():
+    assert agent_violations(ROOT) == []
+
+
+def test_planted_agent_import(tmp_path):
+    root = _tree(tmp_path, {"hexmesh/agent/__init__.py": "from hexmesh import Assembly\n"
+                                                         "from ._x import f\n",
+                            "hexmesh/agent/_x.py": "from hexmesh.assembly.tee import Tee\n",
+                            "hexmesh/assembly/tee.py": ""})
+    bad = agent_violations(root)
+    assert len(bad) == 1 and "hexmesh.assembly.tee" in bad[0]
 
 
 def test_planted_order_allows_the_order(tmp_path):

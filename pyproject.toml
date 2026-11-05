@@ -28,6 +28,9 @@ gallery = [             # docs/gallery/build.py; tests/test_validation_meta.py
     "Pillow>=10",
     "jsonschema>=4.10",
 ]
+preview = [            # hexmesh.agent.preview (task 0097)
+    "matplotlib>=3.5",
+]
 study = [              # hexmesh.study.stages.other_runs off Linux (decision 0039)
     "psutil>=5.9",
 ]
@@ -36,6 +39,7 @@ dev = [
     "pytest-cov",
     "pytest-xdist>=3",
     "jsonschema>=4.10", # case.json and hexmesh.agent schema tests (skipped without)
+    "matplotlib>=3.5",  # hexmesh.agent.preview tests (skipped without)
 ]
 
 [project.scripts]

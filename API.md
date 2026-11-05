@@ -1685,6 +1685,69 @@ Kinds:
 | `VENTURI_DIVERGENT_MIN` | 7 | `deg` | error | narrowest venturi divergent (ISO 5167-4) |
 | `VENTURI_DIVERGENT_MAX` | 15 | `deg` | error | widest venturi divergent (ISO 5167-4) |
 
+## Describe and preview (`hexmesh.agent`)
+
+What a network is, before meshing and without a GMSH session (task
+0097).  Both functions take an `Assembly`, its `to_dict()` description
+(any version `intent.upgrade` reads), or a
+`hexmesh.interchange.NetworkModel`.
+
+`describe(x)` returns JSON-safe data, deterministic to the byte.  Floats
+are rounded to 12 significant digits.
+
+- **Assemblies** (`"kind": "assembly"`):
+  - `fittings`: per fitting:
+    - index, label, name and type, and how it was added (`kind`);
+    - `inlet` and `outlets`: interface, position and direction;
+    - `centreline_length`;
+    - `section`: layout, and every layer's name and outline;
+    - the exact `cells`.
+  - `open_ends`: the patch name the build gives each end, its position,
+    its `outward` direction, whether equipment ends it, and its section.
+  - `junctions`: the centre, each branch's direction and `deflection`
+    from the inlet direction, and the `angles` between the branches.
+  - `totals`: the bounding box of the centrelines, the centreline length
+    per section, and the total cells.  The total equals
+    `Assembly.cell_count()`.
+  - `warnings` (code and message) and `error` (`HexmeshError.to_dict()`)
+    from `validate()`.  A failing assembly is described, not raised.
+  - `units`: `{"length": "as given", "angle": "deg"}`.  An assembly's
+    lengths are in its own unit, since hexmesh never converts.
+- **Network models** (`"kind": "network_model"`): `parts`, `ports`,
+  `connections` (`inferred` or declared), `networks`, and `rejected`.
+  `rejected` lists the parts the builder refuses: `Part.reject`, with the
+  record and source line.  Lengths are in metres.
+
+```python
+>>> from hexmesh.agent import describe
+>>> d = describe(wye_example)            # hexmesh/examples/fittings/wye.py
+>>> d["junctions"][0]["angles"]
+[{'ports': [1, 2], 'angle': 60.0}]
+>>> d["totals"]
+{'bounding_box': {'min': [0.0, -0.45, 0.0], 'max': [1.47942286341, 0.45, 0.0]},
+ 'centreline_length': [{'section': 'fluid circle r=0.1', 'length': 2.5}],
+ 'cells': 5724, 'fittings': 4, 'open_ends': 3}
+>>> d["open_ends"][0]["name"], d["open_ends"][0]["outward"]
+('inlet', [-1.0, 0.0, 0.0])
+```
+
+`preview(x, path)` writes a PNG and returns its path.  It shows:
+- the centrelines;
+- each interface's outer outline;
+- labels at the fittings and at the open ends, which are red and named
+  by their patch;
+- four views: top (x, y), front (x, z), side (y, z) and isometric.
+
+It needs matplotlib, from the `preview` extra (`pip install
+'hexmesh[preview]'`).  The figure size and DPI are fixed, and the PNG
+has no timestamp or software tag, so the same input gives the same
+bytes.  The examples each take under 1 s.
+
+![preview of a PCF tee](docs/agent/preview_pcf_tee.png)
+
+More references: `docs/agent/preview_hvac_branched.png` and
+`docs/agent/preview_bifurcation_tree.png`.
+
 ## Physical groups
 
 The naming convention is in [the guide](docs/GUIDE.md#physical-groups). It

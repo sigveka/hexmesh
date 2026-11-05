@@ -31,6 +31,18 @@
   value: an unresolvable `n_layers`, the wye angle, and the cosine and
   venturi profile ranges.  Messages are unchanged.
 
+**`describe` and `preview`** (decision 0040; task 0097).
+
+- `hexmesh.agent.describe(x)` summarises an `Assembly`, its saved
+  description or a `NetworkModel` as JSON data, without GMSH:
+  - for an assembly: fittings, open ends with their patch names,
+    junction angles, totals, and `validate()`'s warnings and error;
+  - for a model: parts, connections, and the parts the builder would
+    reject.
+- `hexmesh.agent.preview(x, path)` draws it to a deterministic PNG, in
+  three orthographic views and an isometric one.  It needs the new
+  `preview` extra (matplotlib).
+
 ## 0.4.0 (2026-11-05)
 
 **Breaking: rectangular cores default to the H face** (decision 0036;

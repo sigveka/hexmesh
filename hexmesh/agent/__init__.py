@@ -19,8 +19,18 @@ package (``tests/test_architecture.py``).
 - :func:`schema`: a JSON Schema (draft 2020-12) of the saved
   ``hexmesh.assembly`` description, generated from the fitting, spec,
   shape and equipment registries and from ``limits.LIMITS``.
+- :func:`describe`: what an assembly or a network model is, as JSON
+  data, without GMSH (task 0097).
+- :func:`preview`: a PNG of it, without GMSH (needs matplotlib, the
+  ``preview`` extra).
+
+The functions live in private modules (``_schema``, ``_describe``,
+``_preview``), so that ``hexmesh.agent.schema`` and the rest stay the
+functions; ``python3 -m hexmesh.agent.schema`` is the one command.
 """
 
+from ._describe import describe
+from ._preview import preview
 from ._schema import dumps, schema
 
-__all__ = ["dumps", "schema"]
+__all__ = ["describe", "dumps", "preview", "schema"]

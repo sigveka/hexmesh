@@ -97,7 +97,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0094](0094-structured-errors.md) | Structured errors: a code, a location, the value and the limit | done | 0040, 0019 |
 | [0095](0095-limits-and-schema.md) | Limits with units, and a JSON Schema generated from the registries | done | 0040, 0019 |
 | [0096](0096-pcf-line-numbers.md) | PCF errors name the line: record `Provenance.line` | done | 0040, 0032 |
-| [0097](0097-describe-and-preview.md) | `describe` and `preview`: what a network is, without GMSH | ready (after 0095) | 0040, 0019 |
+| [0097](0097-describe-and-preview.md) | `describe` and `preview`: what a network is, without GMSH | done | 0040, 0019 |
 | [0098](0098-advise-and-cli.md) | `advise` (the resolution advisor) and the `hexmesh` CLI | ready (after 0095, 0097) | 0040 |
 
 ### Validation
