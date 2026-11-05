@@ -50,7 +50,8 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 
 #: capabilities in dependency order (DESIGN §3.1)
-ORDER = ("core", "sections", "assembly", "interchange", "study")
+ORDER = ("core", "sections", "assembly", "interchange", "study",
+         "agent")                     # task 0095: decision 0040's tool layer, on top
 #: shared leaves: anyone may import them; they import only leaves
 LEAVES = {"hexmesh._occ", "hexmesh.session", "hexmesh.quality_hex",
           "hexmesh.version",            # task 0091: assembly stamps the version
@@ -201,6 +202,10 @@ def order_violations(root: Path) -> list[str]:
     out = []
     for imp in imports(root):
         src, tgt = capability(imp.module), capability(imp.target)
+        if tgt == "agent" and src != "agent":           # not even root or examples
+            out.append(f"{imp.where(root)}: {imp.module} ({src}) imports {imp.target}: "
+                       "nothing in the library imports hexmesh.agent (task 0095)")
+            continue
         if src == tgt or src in FREE:
             continue
         if (src, tgt) in ALLOWED_EDGES:
@@ -539,6 +544,16 @@ def test_planted_order_violation(tmp_path, rel, text):
                             "hexmesh/io/writers/openfoam.py": ""} | {rel: text})
     bad = order_violations(root)
     assert len(bad) == 1 and rel in bad[0]
+
+
+@pytest.mark.parametrize("rel", ["hexmesh/__init__.py", "hexmesh/examples/fittings/tee.py",
+                                 "hexmesh/study/run.py"])
+def test_planted_import_of_agent(tmp_path, rel):
+    root = _tree(tmp_path, {rel: "from hexmesh.agent import schema\n",
+                            "hexmesh/agent/__init__.py": "",
+                            "hexmesh/agent/schema.py": "from hexmesh import Session\n"})
+    bad = order_violations(root)
+    assert len(bad) == 1 and rel in bad[0] and "hexmesh.agent" in bad[0]
 
 
 def test_planted_order_allows_the_order(tmp_path):

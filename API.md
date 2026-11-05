@@ -1612,6 +1612,79 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 
 ---
 
+## Schema and limits (`hexmesh.agent`, `hexmesh.assembly.limits`)
+
+`hexmesh.agent.schema()` returns a JSON Schema (draft 2020-12) of the
+saved description, `Assembly.to_dict()` (task 0095).
+`python3 -m hexmesh.agent.schema` prints it, and `hexmesh.agent.dumps()`
+returns that text.  It is generated at call time from the registries,
+never hand-edited, and deterministic (sorted keys):
+- `$defs` has one entry per fitting type (`intent.FITTING_TYPES`), plus
+  `PipeSpec`, `Core`, `Shell`, the shapes, `Drum`, `Nozzle`, the nozzle
+  locations, `Edge` and `Assembly`;
+- each field has its JSON type, `x-unit`, `description`, range
+  (`minimum`, `exclusiveMinimum`, …, `enum`) and default;
+- a field checked against a limit below names it in `x-limit`, and
+  `x-limits` holds the whole table;
+- `x-version` is the description's `intent.VERSION`.  Validate an older
+  description after `intent.upgrade()`.
+
+The schema checks shape and ranges only.  Rules across fields, such as a
+bend's radius exceeding the pipe's outer radius, are in the descriptions.
+`Assembly.validate()` is still the check that the assembly builds.
+
+Units (`hexmesh.core.params.UNITS`):
+- `length`: the user's unit; hexmesh never converts;
+- `deg`;
+- `1`: a ratio or factor;
+- `cells`: a cell or layer count;
+- `-`: not a quantity (a name, a choice, a spec, a shape).
+
+Fields carry this metadata themselves: `dataclasses.field(metadata=…)`
+through `hexmesh.core.params.param`, and the tables `PipeSpec.PARAMS`,
+`CORE_PARAMS` and `SHELL_PARAMS` for the spec's methods.  `limits` adds
+`t` (ring thicknesses), `R` (radii) and `layers`.
+
+`limits.LIMITS` maps each name to `Limit(value, unit, kind, doc)`; every
+name is also a module constant.  Errors name these entries in `limit`.
+Kinds:
+- `error`: past it, the input is rejected;
+- `warn`: past it, `validate()` warns;
+- `info`: a cap or a table hexmesh applies itself, rejecting nothing.
+
+| name | value | unit | kind | doc |
+|------|-------|------|------|-----|
+| `RADIANS_WARNING_BELOW` | 6.28319 | `deg` | warn | a bend, elbow or wye angle below this is probably in radians |
+| `TOWARD_MIN_ANGLE` | 1 | `deg` | error | smallest angle between toward= and the inlet axis |
+| `JUNCTION_TOWARD_TOL` | 1 | `deg` | error | largest miss of a junction's toward= from its nearest allowed direction |
+| `OUTLINE_MIN_GAP` | 0.001 | `1` | error | smallest gap between consecutive layer outlines, over the outer one's extent |
+| `OUTLINE_NONORTH_WARN` | 70 | `deg` | warn | predicted or meshed non-orthogonality above this warns |
+| `OUTLINE_NONORTH_MAX` | 80 | `deg` | error | predicted or meshed non-orthogonality above this is rejected |
+| `PREDICTED_SJ_WARN` | 0.3 | `1` | warn | predicted or meshed min corner scaled Jacobian below this warns |
+| `PREDICTED_SJ_MIN` | 0.1 | `1` | error | predicted or meshed min corner scaled Jacobian below this is rejected |
+| `DUCT_TAP_MAX_RATIO` | 0.93 | `1` | error | largest reach across of a duct tap, over the face's half-width |
+| `DUCT_TAP_NARROW_ASPECT_WARN` | 3 | `1` | warn | a tap on the narrow face of a duct this deep (depth / width) or deeper warns |
+| `SWITCH_MIN_LENGTH` | 1.25 | `t` | error | shortest Switch, in ring thicknesses |
+| `SWITCH_MAX_SHEAR` | 0.4 | `1` | error | largest side-block shear of a switch to a graded H face (wall shift / length) |
+| `SWITCH_MAX_CORE_SHEAR` | 1 | `1` | error | largest core-block shear of a switch to a graded H face (wall shift / core length) |
+| `SWITCH_SHEAR_SJ` | `((0.1, 0.577), (0.2, 0.55), (0.3, 0.548), (0.35, 0.546), (0.4, 0.501))` | `1` | info | (wall shear, smallest meshed min corner SJ) of measured switches, for reports |
+| `COSINE_S0_MIN` | -1 | `1` | error | smallest cosine-profile s0 (inclusive): a bulge to 3 R |
+| `COSINE_S0_MAX` | 0.5 | `1` | error | largest cosine-profile s0 (exclusive): a throat of zero radius |
+| `WYE_N_SPLIT_MAX` | 6 | `layers` | info | largest Wye.n_split that resolution or refined(k) chooses |
+| `WYE_SHELL_TAN_FACTOR` | 0.65 | `1` | error | a wye's total shell thickness is at most this × R × tan(angle / 2) |
+| `WYE_SHELL_MAX` | 0.55 | `R` | error | a wye's total shell thickness is at most this many core radii |
+| `WYE_SHELL_MIN_ANGLE` | 40 | `deg` | error | narrowest wye with shells |
+| `WALL_PROJECTION_WARN_MOVE` | 1 | `R` | warn | a wall projection moving a node further than this many local wall radii warns |
+| `MIN_MITER_CUT` | 1 | `deg` | error | smallest turn of each MiterBend cut |
+| `MAX_MITER_CUT` | 90 | `deg` | error | largest turn of each MiterBend cut |
+| `MAX_CHORD_TURN` | 30 | `deg` | error | largest turn of one axial layer with straight axial edges (splines, closures) |
+| `MAX_SLAB_TURN` | 180 | `deg` | error | a bend's axial layer turns less than this (exclusive) |
+| `MAX_RESOLVED_LAYERS` | 100000 | `layers` | error | largest axial layer count n_layers=None resolution tries |
+| `WYE_ANGLE_MIN` | 30 | `deg` | error | narrowest Wye |
+| `WYE_ANGLE_MAX` | 120 | `deg` | error | widest Wye |
+| `VENTURI_DIVERGENT_MIN` | 7 | `deg` | error | narrowest venturi divergent (ISO 5167-4) |
+| `VENTURI_DIVERGENT_MAX` | 15 | `deg` | error | widest venturi divergent (ISO 5167-4) |
+
 ## Physical groups
 
 The naming convention is in [the guide](docs/GUIDE.md#physical-groups). It

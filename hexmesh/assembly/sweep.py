@@ -28,6 +28,7 @@ from dataclasses import dataclass, field, replace
 import numpy as np
 import gmsh
 
+from . import limits
 from .errors import AssemblyError
 from .. import _occ
 from ..core.cross_section import LayeredCrossSection
@@ -278,10 +279,10 @@ class Path:
 
 
 # Largest normal turn per slab when axial curves are straight chords.
-MAX_CHORD_TURN = 30.0   # degrees
+MAX_CHORD_TURN = limits.MAX_CHORD_TURN   # degrees (registered in limits, task 0095)
 
 # Search limit when resolving n_layers=None from an axial cell size.
-MAX_RESOLVED_LAYERS = 100_000
+MAX_RESOLVED_LAYERS = limits.MAX_RESOLVED_LAYERS
 
 
 def _check_n_layers(n) -> None:
@@ -456,7 +457,7 @@ class Sweep:
             if n > MAX_RESOLVED_LAYERS:
                 raise AssemblyError(f"no layer count up to {MAX_RESOLVED_LAYERS} passes",
                                     code="n_layers_unresolvable", where={"field": "n_layers"},
-                                    limit=MAX_RESOLVED_LAYERS)
+                                    limit="MAX_RESOLVED_LAYERS")
         return replace(self, n_layers=n)
 
     def centreline_length(self, inlet: Frame, spec: PipeSpec,

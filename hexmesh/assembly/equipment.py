@@ -55,6 +55,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from ..errors import HexmeshError
+from ..core.params import param
 from ..core.spec import PipeSpec
 from .interface import Frame, outer_radius
 
@@ -74,9 +75,9 @@ class OnShell:
     *projection*: distance from the drum axis to the nozzle face.
     """
 
-    axial:      float
-    angle:      float
-    projection: float
+    axial:      float = param("length", "nozzle axis from the first tangent plane")
+    angle:      float = param("deg", "about the drum axis, from the drum's up")
+    projection: float = param("length", "drum axis to the nozzle face", exclusiveMinimum=0)
 
 
 @dataclass(frozen=True)
@@ -91,19 +92,21 @@ class OnHead:
     face.
     """
 
-    head:       str
-    offset:     float
-    angle:      float
-    projection: float
+    head:       str = param("-", "the head the nozzle is on", enum=["first", "second"])
+    offset:     float = param("length", "nozzle axis from the drum axis", minimum=0)
+    angle:      float = param("deg",
+                              "about the drum axis, from the drum's up (ignored if centred)")
+    projection: float = param("length", "head's tangent plane to the nozzle face",
+                              exclusiveMinimum=0)
 
 
 @dataclass(frozen=True)
 class Nozzle:
     """A named nozzle with the cross-section of the pipe it connects to."""
 
-    name:     str
-    spec:     PipeSpec
-    location: OnShell | OnHead
+    name:     str = param("-", "nozzle name, unique on its drum")
+    spec:     PipeSpec = param("-", "cross-section of the pipe it connects to")
+    location: OnShell | OnHead = param("-", "where on the drum: on the shell or on a head")
 
 
 @dataclass(frozen=True)
@@ -115,16 +118,20 @@ class Drum:
     *up* are normalised, and *up* is made perpendicular to *axis*.
     """
 
-    name:      str
-    diameter:  float
-    length:    float
-    position:  tuple = (0.0, 0.0, 0.0)
-    axis:      tuple = (1.0, 0.0, 0.0)
-    up:        tuple = (0.0, 0.0, 1.0)
-    head:      str = "ellipsoidal_2_1"
-    crown_radius:   float | None = None
-    knuckle_radius: float | None = None
-    nozzles:   tuple = ()
+    name:      str = param("-", "drum name: letters, digits and _ (part of patch names)")
+    diameter:  float = param("length", "inside diameter", exclusiveMinimum=0)
+    length:    float = param("length", "tangent-to-tangent length", exclusiveMinimum=0)
+    position:  tuple = param("length", "centre of the first tangent plane",
+                             default=(0.0, 0.0, 0.0))
+    axis:      tuple = param("1", "drum axis direction (normalised)", default=(1.0, 0.0, 0.0))
+    up:        tuple = param("1", "up direction, made perpendicular to axis",
+                             default=(0.0, 0.0, 1.0))
+    head:      str = param("-", "head type", default="ellipsoidal_2_1", enum=list(HEADS))
+    crown_radius:   float | None = param("length", "torispherical heads: crown radius",
+                                         default=None, exclusiveMinimum=0)
+    knuckle_radius: float | None = param("length", "torispherical heads: knuckle radius",
+                                         default=None, exclusiveMinimum=0)
+    nozzles:   tuple = param("-", "the drum's nozzles", default=())
     _frame:    Frame = field(init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:

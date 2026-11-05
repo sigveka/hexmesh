@@ -35,7 +35,7 @@ dev = [
     "pytest>=7",
     "pytest-cov",
     "pytest-xdist>=3",
-    "jsonschema>=4.10", # case.json schema tests (skipped without)
+    "jsonschema>=4.10", # case.json and hexmesh.agent schema tests (skipped without)
 ]
 
 [project.scripts]

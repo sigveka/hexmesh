@@ -95,7 +95,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0092](0092-platform-support.md) | Platform support: portable meshing, a portable Docker runner, CI on three systems | done | 0039 |
 | [0093](0093-validation-results-json.md) | Each validation case keeps its full-precision results next to RESULTS.md | done | 0012, 0015 |
 | [0094](0094-structured-errors.md) | Structured errors: a code, a location, the value and the limit | done | 0040, 0019 |
-| [0095](0095-limits-and-schema.md) | Limits with units, and a JSON Schema generated from the registries | ready | 0040, 0019 |
+| [0095](0095-limits-and-schema.md) | Limits with units, and a JSON Schema generated from the registries | done | 0040, 0019 |
 | [0096](0096-pcf-line-numbers.md) | PCF errors name the line: record `Provenance.line` | done | 0040, 0032 |
 | [0097](0097-describe-and-preview.md) | `describe` and `preview`: what a network is, without GMSH | ready (after 0095) | 0040, 0019 |
 | [0098](0098-advise-and-cli.md) | `advise` (the resolution advisor) and the `hexmesh` CLI | ready (after 0095, 0097) | 0040 |

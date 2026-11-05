@@ -47,14 +47,14 @@ import math
 import numpy as np
 
 from .errors import AssemblyError
-from .limits import COSINE_S0_MAX, COSINE_S0_MIN
+from .limits import COSINE_S0_MAX, COSINE_S0_MIN, VENTURI_DIVERGENT_MAX, VENTURI_DIVERGENT_MIN
 
 # Largest gap between a slab's straight wall chord and the profile, as a
 # fraction of the inlet radius (decision 0008, C1).
 CHORD_TOL = 1e-3
 
 VENTURI_CONVERGENT = 21.0          # included angle, degrees (ISO 5167-4)
-VENTURI_DIVERGENT = (7.0, 15.0)    # allowed included angles, degrees
+VENTURI_DIVERGENT = (VENTURI_DIVERGENT_MIN, VENTURI_DIVERGENT_MAX)   # degrees (limits)
 
 
 def _pchip_slopes(x: np.ndarray, y: np.ndarray) -> np.ndarray:
@@ -110,7 +110,7 @@ class Profile:
                 f"{COSINE_S0_MAX:g} a throat of zero radius (COSINE_S0_MAX); s0 > 0 "
                 f"constricts, s0 < 0 bulges",
                 code="profile_parameter_out_of_range", where={"field": "s0"}, value=s0,
-                limit={"min": COSINE_S0_MIN, "max_exclusive": COSINE_S0_MAX})
+                limit={"min": "COSINE_S0_MIN", "max_exclusive": "COSINE_S0_MAX"})
         self._r = lambda s: 1.0 - s0 * (1.0 + np.cos(2 * np.pi * (s - 0.5)))
 
     def _venturi(self, beta: float, divergent: float = 15.0) -> None:
@@ -124,7 +124,8 @@ class Profile:
                                 f"(ISO 5167-4), got {divergent!r}",
                                 code="profile_parameter_out_of_range",
                                 where={"field": "divergent"}, value=divergent,
-                                limit={"min": lo, "max": hi})
+                                limit={"min": "VENTURI_DIVERGENT_MIN",
+                                       "max": "VENTURI_DIVERGENT_MAX"})
         R, r = self.r_in, beta * self.r_in
         l1 = (R - r) / math.tan(math.radians(VENTURI_CONVERGENT / 2))
         l2 = 2 * r

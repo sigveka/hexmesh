@@ -50,11 +50,12 @@ Scope of this prototype: single-layer circular specs, ``rot = 0``,
 
 from __future__ import annotations
 import math
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, replace
 
 import numpy as np
 
 from .errors import AssemblyError
+from ..core.params import param
 from ..core.spec import PipeSpec
 from ..sections import oh
 from . import limits
@@ -68,7 +69,7 @@ from .signature import check_port_pairs
 from .tee import thicknesses
 
 _SAMPLES = 9            # interior points per spline edge
-ANGLE_RANGE = (30.0, 120.0)
+ANGLE_RANGE = (limits.WYE_ANGLE_MIN, limits.WYE_ANGLE_MAX)   # registered, task 0095
 
 # Closed-form placement, in units of R; h = angle / 2.
 _IN_MARGIN = 0.1        # Sa behind O by R (tan h + margin): Sa is clear of the daughters
@@ -204,14 +205,30 @@ class Wye:
     strategies = frozenset({0})   # both port pairs: inlet → each daughter
     port_names = ("left", "right")
 
-    angle:         float
-    run_length:    float
-    branch_length: float
-    n_run:    int | None = None
-    n_branch: int | None = None
-    n_split:  int | None = None
-    roll:     float = 0.0
-    toward:   tuple | None = field(default=None, metadata={"input": True})
+    angle:         float = param(
+        "deg", "angle between the daughters, split equally about the inlet direction",
+        limit={"minimum": "WYE_ANGLE_MIN", "maximum": "WYE_ANGLE_MAX"})
+    run_length:    float = param(
+        "length", "inlet port to the bifurcation point", exclusiveMinimum=0)
+    branch_length: float = param(
+        "length", "bifurcation point to each outlet port", exclusiveMinimum=0)
+    n_run:    int | None = param(
+        "cells", "axial layers of the inlet run; None resolves when added", default=None,
+        minimum=1)
+    n_branch: int | None = param(
+        "cells", "axial layers of each daughter run; None resolves when added", default=None,
+        minimum=1)
+    n_split:  int | None = param(
+        "cells", "layers of each daughter's turning block; None resolves when added",
+        default=None, minimum=1, limit="WYE_N_SPLIT_MAX")
+    roll:     float = param(
+        "deg",
+        "rotation of the daughters' plane about the inlet axis; a multiple of the section's "
+        "period",
+        default=0.0)
+    toward:   tuple | None = param(
+        "-", "absolute direction, instead of roll: resolved to the nearest allowed roll",
+        input=True, limit="JUNCTION_TOWARD_TOL")
 
     def resolve(self, inlet: Frame, spec: PipeSpec, axial_cell=None, outlet=None) -> "Wye":
         # toward names the right daughter's side: the rolled frame's right,
@@ -305,7 +322,7 @@ class Wye:
                 f"Wye angle {self.angle:g}° is outside the prototype range "
                 f"{lo:g}°–{hi:g}°",
                 code="angle_out_of_range", where={"field": "angle"}, value=self.angle,
-                limit={"min": lo, "max": hi})
+                limit={"min": "WYE_ANGLE_MIN", "max": "WYE_ANGLE_MAX"})
         g = self.placement(spec.core_shape.max_extent)
         if self.run_length <= g["s_in"]:
             raise AssemblyError(

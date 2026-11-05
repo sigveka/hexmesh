@@ -61,12 +61,13 @@ along the main's ``right`` or along the main's axis respectively.
 
 from __future__ import annotations
 import math
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, replace
 
 import numpy as np
 
 from .errors import AssemblyError, AssemblyTypeError
 from ..core.shape import CircleShape, RectShape
+from ..core.params import param
 from ..core.spec import PipeSpec
 from ..sections import oh
 from .blocks import (
@@ -189,23 +190,48 @@ class Tee:
     pillows = True
     port_names = ("main", "branch")
 
-    run_length:    float | None = None
-    branch_length: float | None = None      # required
-    branch_radius: float | None = field(default=None, metadata={"input": True})   # or branch
-    n_run:    int = 3
-    n_branch: int = 3
-    n_turn:   int = 2
-    roll:     float = 0.0
-    toward:   tuple | None = field(default=None, metadata={"input": True})
+    run_length:    float | None = param(
+        "length", "T-point to each main port; None resolves when added", default=None,
+        exclusiveMinimum=0, limit="PREDICTED_SJ_WARN")
+    branch_length: float | None = param(
+        "length", "main axis to the branch port (required)", default=None, exclusiveMinimum=0)
+    branch_radius: float | None = param(
+        "length", "branch radius, below the main radius (or branch)", input=True,
+        exclusiveMinimum=0)
+    n_run:    int = param(
+        "cells", "axial layers of the approach and departure runs", default=3, minimum=1)
+    n_branch: int = param("cells", "axial layers of the branch run", default=3, minimum=1)
+    n_turn:   int = param("cells", "layers of the junction's turning blocks", default=2, minimum=1)
+    roll:     float = param(
+        "deg",
+        "branch direction about the main axis from the inlet's up; a multiple of the section's "
+        "period",
+        default=0.0)
+    toward:   tuple | None = param(
+        "-", "absolute direction, instead of roll: resolved to the nearest allowed roll",
+        input=True, limit="JUNCTION_TOWARD_TOL")
     # duct taps only (absent from a pipe tee's JSON)
-    branch:   CircleShape | RectShape | None = field(default=None, metadata={"input": True})
-    face:     str | None = field(default=None, metadata={"input": True})
-    margin:   float | None = field(default=None, metadata={"input": True})
-    dome:     float | None = field(default=None, metadata={"input": True})
-    sheet:    float | None = field(default=None, metadata={"input": True})
-    n_wall:   int | None = field(default=None, metadata={"input": True})
-    nrad:     int | None = field(default=None, metadata={"input": True})   # duct taps, H main
-    mprg:     float | None = field(default=None, metadata={"input": True})
+    branch:   CircleShape | RectShape | None = param(
+        "-", "duct taps: the branch section (a shape with the main's counts)", input=True,
+        limit="DUCT_TAP_MAX_RATIO")
+    face:     str | None = param(
+        "-", "duct taps: the face the branch leaves", input=True, enum=["wide", "narrow"],
+        limit="DUCT_TAP_NARROW_ASPECT_WARN")
+    margin:   float | None = param(
+        "1", "duct taps: layout tunable (DuctTap); resolved when added", input=True)
+    dome:     float | None = param(
+        "1", "duct taps: layout tunable (DuctTap); resolved when added", input=True)
+    sheet:    float | None = param(
+        "1", "duct taps: layout tunable (DuctTap); resolved when added", input=True)
+    n_wall:   int | None = param(
+        "cells", "duct taps: cells from a station to the hole; resolved when added", input=True,
+        minimum=1)
+    nrad:     int | None = param(
+        "cells", "duct taps on an H main: radial cells of the O-H ring; derived when added",
+        input=True, minimum=1)
+    mprg:     float | None = param(
+        "1", "duct taps on an H main: radial growth of the O-H ring; derived when added",
+        input=True, exclusiveMinimum=0)
 
     def __post_init__(self):
         missing = ["branch_length"] if self.branch_length is None else []

@@ -97,6 +97,7 @@ from typing import Protocol, runtime_checkable
 import numpy as np
 
 from ..errors import SpecError
+from .params import param
 
 
 @runtime_checkable
@@ -141,8 +142,8 @@ class CircleShape:
         every layer in the same pipe stack (conformality requirement).
     """
 
-    radius: float
-    nang:   int
+    radius: float = param("length", "radius of the circle", exclusiveMinimum=0)
+    nang:   int = param("cells", "divisions per quadrant arc, shared by every layer", minimum=1)
 
     def __post_init__(self) -> None:
         if self.radius <= 0:
@@ -240,10 +241,14 @@ class RectShape:
         Mesh divisions along each height edge.  Shared across all layers.
     """
 
-    half_w: float
-    half_h: float
-    nang_w: int
-    nang_h: int
+    half_w: float = param("length", "half-width, along the first in-plane axis",
+                          exclusiveMinimum=0)
+    half_h: float = param("length", "half-height, along the second in-plane axis",
+                          exclusiveMinimum=0)
+    nang_w: int = param("cells", "divisions along each width edge, shared by every layer",
+                        minimum=1)
+    nang_h: int = param("cells", "divisions along each height edge, shared by every layer",
+                        minimum=1)
 
     def __post_init__(self) -> None:
         if self.half_w <= 0:

@@ -30,13 +30,14 @@ its ``Path`` and inherits ``validate`` / ``fill`` from ``Sweep``.
 from __future__ import annotations
 import math
 import warnings
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, replace
 
 import numpy as np
 
 from ..errors import HexmeshWarning
 from .errors import AssemblyError, AssemblyTypeError
 from ..core.shape import BlendShape
+from ..core.params import param
 from ..core.spec import PipeSpec
 from .interface import (Frame, check_outlines, half_extent, outer_radius, roll_mismatch,
                         rotate, toward_roll)
@@ -50,10 +51,6 @@ __all__ = ["Straight", "Bend", "MiterBend", "Elbow", "Reducer", "Transition",
 
 
 # Input-only field: resolved by Assembly.add() and never saved (intent.py).
-def _input_field():
-    return field(default=None, metadata={"input": True})
-
-
 class _Toward:
     """``toward=``: an absolute direction to turn toward, resolved to
     ``roll`` from the inlet frame by :meth:`resolve` (decision 0024).
@@ -112,10 +109,17 @@ class Straight(Sweep):
 
     strategies = frozenset({0, 1})   # switch classes it bridges (DESIGN A4)
 
-    length:   float
-    n_layers: int | None = None
-    axial_grading: float = 1.0
-    stack_changes: tuple = ()
+    length:   float = param("length", "axial length", exclusiveMinimum=0)
+    n_layers: int | None = param(
+        "cells", "axial layers; None resolves from the assembly's axial_cell", default=None,
+        minimum=1)
+    axial_grading: float = param(
+        "1", "ratio of consecutive axial cell lengths, inlet → outlet (1 = uniform)", default=1.0,
+        exclusiveMinimum=0)
+    stack_changes: tuple = param(
+        "-",
+        "(i, spec) pairs ending or starting outer layers from axial cell i on (decision 0006)",
+        default=())
 
     def ports(self, inlet: Frame, spec: PipeSpec) -> list[tuple[Frame, PipeSpec]]:
         out = Frame(inlet.position + self.length * inlet.normal,
@@ -183,20 +187,34 @@ class Bend(_Toward, Sweep):
 
     strategies = frozenset({0, 1})   # switch classes it bridges (DESIGN A4)
 
-    radius:   float
-    angle:    float
-    n_layers: int | None = None
-    roll:     float = 0.0
-    axial_grading: float = 1.0
-    stack_changes: tuple = ()
-    toward:   tuple | None = _input_field()
+    radius:   float = param(
+        "length", "centreline radius; above the pipe's outer radius", exclusiveMinimum=0)
+    angle:    float = param(
+        "deg", "turn angle; nonzero (below RADIANS_WARNING_BELOW it is probably radians)",
+        exclusiveMinimum=-360, exclusiveMaximum=360, limit="RADIANS_WARNING_BELOW")
+    n_layers: int | None = param(
+        "cells", "axial layers; None resolves from the assembly's axial_cell", default=None,
+        minimum=1)
+    roll:     float = param(
+        "deg", "bend-plane rotation about the inlet axis (0 = toward the inlet's up)",
+        default=0.0)
+    axial_grading: float = param(
+        "1", "ratio of consecutive axial cell lengths, inlet → outlet (1 = uniform)", default=1.0,
+        exclusiveMinimum=0)
+    stack_changes: tuple = param(
+        "-",
+        "(i, spec) pairs ending or starting outer layers from axial cell i on (decision 0006)",
+        default=())
+    toward:   tuple | None = param(
+        "-", "absolute direction to turn toward, instead of roll (input only: roll is saved)",
+        input=True)
 
     def centreline_length(self, inlet, spec, outlet=None) -> float:
         return self.radius * math.radians(abs(self.angle))
 
     def layers_ok(self, n, inlet, spec, outlet=None) -> bool:
         # a slab turning 180° has antiparallel faces (corners.frame_offset)
-        return abs(self.angle) / n < 180.0 - 1e-9
+        return abs(self.angle) / n < limits.MAX_SLAB_TURN - 1e-9
 
     def _axis_centre(self, inlet: Frame) -> tuple[np.ndarray, np.ndarray]:
         phi = math.radians(self.roll)
@@ -251,8 +269,8 @@ class Bend(_Toward, Sweep):
 # Direction change allowed at one miter cut.  Hexes next to a cut are skewed
 # by half the cut angle; a single 90° cut keeps minSICN ≈ 0.19, and below
 # 1° the legs collapse to sliver cells (measured, docs/tasks/0012).
-MAX_MITER_CUT = 90.0   # degrees
-MIN_MITER_CUT = 1.0    # degrees
+MAX_MITER_CUT = limits.MAX_MITER_CUT   # degrees (registered in limits, task 0095)
+MIN_MITER_CUT = limits.MIN_MITER_CUT   # degrees
 
 
 @dataclass(frozen=True)
@@ -287,12 +305,25 @@ class MiterBend(_Toward, Sweep):
 
     strategies = frozenset({0})   # switch classes it bridges (DESIGN A4)
 
-    radius:   float
-    angle:    float
-    n_cuts:   int = 1
-    n_layers: int | None = 2
-    roll:     float = 0.0
-    toward:   tuple | None = _input_field()
+    radius:   float = param(
+        "length",
+        "centreline radius of the equivalent smooth bend; above the pipe's outer radius",
+        exclusiveMinimum=0)
+    angle:    float = param(
+        "deg", "turn angle; nonzero (below RADIANS_WARNING_BELOW it is probably radians)",
+        exclusiveMinimum=-360, exclusiveMaximum=360, limit="RADIANS_WARNING_BELOW")
+    n_cuts:   int = param(
+        "1", "number of cuts (welds); each turns angle / n_cuts", default=1, minimum=1,
+        limit=("MIN_MITER_CUT", "MAX_MITER_CUT"))
+    n_layers: int | None = param(
+        "cells", "axial layers of each end leg (inner segments get twice as many)", default=2,
+        minimum=1)
+    roll:     float = param(
+        "deg", "bend-plane rotation about the inlet axis (0 = toward the inlet's up)",
+        default=0.0)
+    toward:   tuple | None = param(
+        "-", "absolute direction to turn toward, instead of roll (input only: roll is saved)",
+        input=True)
 
     def centreline_length(self, inlet, spec, outlet=None) -> float:
         # n_layers counts the cells of one end leg (inner segments get 2×)
@@ -405,12 +436,24 @@ class Elbow(_Toward, Sweep):
 
     strategies = frozenset({0})   # switch classes it bridges (DESIGN A4)
 
-    angle:    float = 90.0
-    schedule: str = "long"
-    n_layers: int | None = 8
-    roll:     float = 0.0
-    axial_grading: float = 1.0
-    toward:   tuple | None = _input_field()
+    angle:    float = param(
+        "deg", "turn angle; nonzero (below RADIANS_WARNING_BELOW it is probably radians)",
+        default=90.0, exclusiveMinimum=-360, exclusiveMaximum=360, limit="RADIANS_WARNING_BELOW")
+    schedule: str = param(
+        "-", "centreline radius: long 1.5 D, short 1 D (ASME B16.9)", default="long",
+        enum=["long", "short"])
+    n_layers: int | None = param(
+        "cells", "axial layers; None resolves from the assembly's axial_cell", default=8,
+        minimum=1)
+    roll:     float = param(
+        "deg", "bend-plane rotation about the inlet axis (0 = toward the inlet's up)",
+        default=0.0)
+    axial_grading: float = param(
+        "1", "ratio of consecutive axial cell lengths, inlet → outlet (1 = uniform)", default=1.0,
+        exclusiveMinimum=0)
+    toward:   tuple | None = param(
+        "-", "absolute direction to turn toward, instead of roll (input only: roll is saved)",
+        input=True)
 
     FACTORS = {"long": 1.5, "short": 1.0}
 
@@ -541,12 +584,23 @@ class Reducer(Sweep):
     # switch classes it bridges (DESIGN A4): 2 for grading-only pairs
     strategies = frozenset({0, 2})
 
-    outlet:   PipeSpec
-    length:   float
-    n_layers: int | None = None
-    axial_grading: float = 1.0
-    profile:  tuple | None = None
-    chord_tol: float = CHORD_TOL
+    outlet:   PipeSpec = param("-", "outlet spec: the inlet's but for sizes and radial gradings")
+    length:   float = param("length", "axial length", exclusiveMinimum=0)
+    n_layers: int | None = param(
+        "cells", "axial layers; None resolves from the assembly's axial_cell", default=None,
+        minimum=1)
+    axial_grading: float = param(
+        "1", "ratio of consecutive axial cell lengths, inlet → outlet (1 = uniform)", default=1.0,
+        exclusiveMinimum=0)
+    profile:  tuple | None = param(
+        "-",
+        'radius profile instead of a cone: ["cosine", s0], ["venturi", beta, divergent] or [[s, '
+        'R/R_in], …]',
+        default=None,
+        limit=("COSINE_S0_MIN", "COSINE_S0_MAX", "VENTURI_DIVERGENT_MIN", "VENTURI_DIVERGENT_MAX"))
+    chord_tol: float = param(
+        "1", "largest wall-chord gap from the profile, in inlet radii", default=CHORD_TOL,
+        exclusiveMinimum=0)
 
     def layers_ok(self, n, inlet, spec, outlet=None) -> bool:
         if self.profile is None:
@@ -695,10 +749,14 @@ class Transition(Sweep):
     strategies = frozenset({0, 1})
     pillows = True
 
-    outlet:   PipeSpec
-    length:   float
-    n_layers: int | None = None
-    axial_grading: float = 1.0
+    outlet:   PipeSpec = param("-", "outlet spec: the inlet's but for each layer's outline")
+    length:   float = param("length", "axial length", exclusiveMinimum=0)
+    n_layers: int | None = param(
+        "cells", "axial layers; None resolves from the assembly's axial_cell", default=None,
+        minimum=1)
+    axial_grading: float = param(
+        "1", "ratio of consecutive axial cell lengths, inlet → outlet (1 = uniform)", default=1.0,
+        exclusiveMinimum=0)
 
     def ports(self, inlet: Frame, spec: PipeSpec) -> list[tuple[Frame, PipeSpec]]:
         out = Frame(inlet.position + self.length * inlet.normal,
@@ -1096,10 +1154,16 @@ class SplinePipe(Sweep):
 
     strategies = frozenset({0})   # switch classes it bridges (DESIGN A4)
 
-    points:      tuple
-    n_layers:    int | None = None
-    end_tangent: tuple | None = None
-    axial_grading: float = 1.0
+    points:      tuple = param(
+        "length", "curve points, at least two; the first is the inlet position")
+    n_layers:    int | None = param(
+        "cells", "axial layers (stations) along the curve; None resolves from axial_cell",
+        default=None, minimum=1, limit="MAX_CHORD_TURN")
+    end_tangent: tuple | None = param(
+        "1", "outlet direction, normalised; None leaves the curve free", default=None)
+    axial_grading: float = param(
+        "1", "ratio of consecutive axial cell lengths, inlet → outlet (1 = uniform)", default=1.0,
+        exclusiveMinimum=0)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "points", tuple(tuple(map(float, p)) for p in self.points))
@@ -1194,9 +1258,14 @@ class Closure(Sweep):
 
     strategies = frozenset({0})   # switch classes it bridges (DESIGN A4)
 
-    n_layers: int | None = None
-    tension:  float = 1.0
-    axial_grading: float = 1.0
+    n_layers: int | None = param(
+        "cells", "axial layers along the run; None resolves from axial_cell", default=None,
+        minimum=1, limit="MAX_CHORD_TURN")
+    tension:  float = param(
+        "1", "end-tangent magnitude over the chord length", default=1.0, exclusiveMinimum=0)
+    axial_grading: float = param(
+        "1", "ratio of consecutive axial cell lengths, inlet → outlet (1 = uniform)", default=1.0,
+        exclusiveMinimum=0)
 
     places_outlet = False
 

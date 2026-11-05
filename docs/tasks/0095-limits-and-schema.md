@@ -1,6 +1,6 @@
 # 0095 — Limits with units, and a JSON Schema generated from the registries
 
-- **Status:** ready
+- **Status:** done
 - **Decision:** [0040 — Agents for users](../decisions/0040-user-agents-network-design-and-resolution.md) (foundation B); [0019](../decisions/0019-future-agent-sdk.md) items 3 and constraint 6
 - **Depends on:** 0094 (done: its errors name `limits.py` constants in
   `limit`).
@@ -104,3 +104,170 @@ without reading the source.  Today:
   generator so that adding the network-model part classes later is a
   new entry, not a rewrite.
 - The CLI (foundation D), and `describe` / `preview` (foundation C).
+
+## Agent notes
+
+- **Registry.**  `limits.LIMITS` is built from the constants: each
+  constant is `NAME = _limit("NAME", value, unit, kind, doc)`, so the
+  value is written once and callers don't change.
+- **A third kind, `info`.**  Two constants are neither an error nor a
+  warning bound:
+  - `SWITCH_SHEAR_SJ`, a table of measurements for reports;
+  - `WYE_N_SPLIT_MAX`, a cap that resolution applies itself.
+  Calling either one `error` would misdescribe it.  `KINDS` is
+  `("error", "warn", "info")`.
+- **Limit units.**  Besides `deg` and `1`, limits use `t` (ring
+  thicknesses, `SWITCH_MIN_LENGTH`), `R` (radii, `WYE_SHELL_MAX` and
+  `WALL_PROJECTION_WARN_MOVE`) and `layers`.  No limit is in `m`: every
+  length limit is relative.
+- **Inline limits moved into `limits.py`** (file:line at d2b9908):
+  - `fittings.py:254–255` `MAX_MITER_CUT`, `MIN_MITER_CUT`: already
+    named by 0094's errors, now registered.  `fittings` keeps aliases.
+  - `fittings.py:199` the bend's per-layer 180° in `Bend.layers_ok`,
+    now `MAX_SLAB_TURN`.
+  - `sweep.py:281` `MAX_CHORD_TURN` and `sweep.py:284`
+    `MAX_RESOLVED_LAYERS`: `sweep` keeps aliases.
+  - `wye.py:71` `ANGLE_RANGE` (30, 120), now `WYE_ANGLE_MIN` and
+    `WYE_ANGLE_MAX`: `ANGLE_RANGE` is kept, built from them.
+  - `profile.py:57` `VENTURI_DIVERGENT` (7, 15), now
+    `VENTURI_DIVERGENT_MIN` and `VENTURI_DIVERGENT_MAX`: the tuple is
+    kept.
+  - Left alone as rules, not numbers:
+    - `nang % (n_outer // 4)`;
+    - `0 < |angle| < 360`;
+    - the bend radius against the outer radius;
+    - `n_outer` a positive multiple of 4.
+    They are schema ranges or descriptions instead.
+  - Left alone as internal:
+    - the reducer's search cap, `100_000` in `fittings.py:617`;
+    - `wye.py`'s `_IN_MARGIN`… layout constants;
+    - `duct_tap.FULL_WIDTH_RUN`;
+    - the PCF reader's tolerances;
+    - `interchange.build`'s `TOL_*`.
+- **Errors' `limit` that moved from a value to a name** (step 1, last
+  point):
+  - `sweep.py:459` `n_layers_unresolvable`: `100000` →
+    `"MAX_RESOLVED_LAYERS"`;
+  - `wye.py:308` `angle_out_of_range`: `{"min": 30.0, "max": 120.0}`
+    → `{"min": "WYE_ANGLE_MIN", "max": "WYE_ANGLE_MAX"}`;
+  - `profile.py:113` `profile_parameter_out_of_range` (cosine `s0`): `{"min": -1.0, "max_exclusive": 0.5}`
+    → the names `COSINE_S0_MIN` and `COSINE_S0_MAX`;
+  - `profile.py:127` `profile_parameter_out_of_range` (venturi divergent): `{"min": 7.0, "max": 15.0}` →
+    the names `VENTURI_DIVERGENT_MIN` and `VENTURI_DIVERGENT_MAX`.
+  - The messages are unchanged.
+- **Field metadata** lives in `hexmesh/core/params.py`: `param()` for
+  dataclass fields, `describe()` for table entries.  It is in `core`
+  because the shapes and the spec need it and `core` is the bottom
+  layer, so it isn't a new leaf.
+  - `param(..., input=True)` replaces `fittings._input_field()` and the
+    `field(default=None, metadata={"input": True})` spelled out in `tee`,
+    `wye` and `switch`.  The `"input"` flag is unchanged.
+- **Field units** (`params.UNITS`): `length` (the user's unit: hexmesh
+  never converts, so not `m`), `deg`, `1`, `cells`, and `-` for what
+  isn't a quantity (names, choices, specs, shapes).  `-` keeps "every
+  field has a unit" checkable.
+- **The `PipeSpec` tables** are class attributes next to their methods:
+  - `PARAMS` (`__init__`), `CORE_PARAMS` and `SHELL_PARAMS`;
+  - a test checks that each table's keys equal its method's arguments;
+  - input-only arguments (`radius`, `half_w`, `first_cell`…) are
+    described as inputs and left out of the saved schema.
+- **`-m` and the package.**  `hexmesh.agent.schema()` (a function) and
+  `python3 -m hexmesh.agent.schema` (a module) share a name.  If the
+  package imported `schema.py`, `-m` would load it twice, and runpy
+  warns about that.  So:
+  - the generator is `hexmesh/agent/_schema.py`;
+  - `schema.py` is the command and re-exports `schema` and `dumps`;
+  - the package imports `_schema`.
+- **The architecture test** puts `agent` after `study` in `ORDER`.  A
+  new rule says no module outside `hexmesh.agent` imports it, root and
+  examples included, with planted cases.
+- **The schema describes the saved form**, not the constructors:
+  - fields without a default are `required`;
+  - input fields are optional and say they are left out while unset;
+  - `additionalProperties: false`, so a typo fails;
+  - `Shell.type` also accepts `square_shell`, the pre-0026 form that
+    `from_dict` still reads.
+  The schema checks shapes and ranges only.  Cross-field rules stay in
+  the descriptions, and `validate()` stays the real check.
+- **The ranges are enforced by the code.**  Checked by planting the
+  first out-of-range value of every fitting field through `Assembly.add`
+  and `validate()`.  Every one was rejected except `Reducer.chord_tol=0`,
+  which only a profile uses.
+
+## Outcome
+
+**Files.**
+- New:
+  - `hexmesh/core/params.py`;
+  - `hexmesh/agent/__init__.py`, `_schema.py` and `schema.py`;
+  - `tests/test_agent_schema.py`.
+- Changed:
+  - `assembly/limits.py` (the registry, plus 11 new entries);
+  - field metadata in `assembly/fittings.py`, `tee.py`, `wye.py`,
+    `switch.py` and `equipment.py`, and in `core/shape.py` and
+    `core/spec.py`;
+  - aliases and limit names in `sweep.py` and `profile.py`;
+  - `tests/test_architecture.py`;
+  - `API.md`: "Schema and limits";
+  - `CHANGELOG.md`;
+  - `pyproject.toml`: a comment only.
+
+**Measurements.**
+- Schema: 69,650 bytes, with 28 `$defs` and 153 properties.
+- 115 fields described:
+  - 67 fitting fields across the 11 types;
+  - 6 shape fields;
+  - 20 equipment fields;
+  - 22 entries in the `PipeSpec` tables.
+- `LIMITS`: 30 entries.  Before this task, 19 were constants in
+  `limits.py`.  11 are new or moved: 2 miter, 3 sweep, 2 wye angle,
+  2 venturi, and the bend's 180°.
+- `jsonschema` comes from the `dev` extra, which already had it for
+  `case.json` and which CI installs.  It needs no new extra; the tests
+  skip without it.
+
+**Checks.**
+- New tests: 40 in `test_agent_schema`, run on all 28 examples:
+  - the metaschema;
+  - determinism;
+  - every example's `to_dict()` validates;
+  - both `saved_before_*` fixtures validate after `upgrade()`;
+  - bad input is rejected: a typo, a wrong type, an out-of-range value,
+    an unknown type and a future version;
+  - unit and doc on every field, with a planted case;
+  - the tables match their signatures;
+  - field and error limit names are registered;
+  - `API.md`'s table equals `LIMITS`.
+- Architecture: 3 new planted cases.
+- Recorder over the full suite, d2b9908 against the working tree:
+  - no message or type changed (the 5 that differ embed pytest's
+    `tmp_path`);
+  - the same 404 records.
+  The recorder doesn't capture `limit`; the four errors whose `limit`
+  became a name are listed in *Agent notes*.
+- The 28 example meshes: `$Nodes`, `$Elements` and the recipe hash are
+  identical, so `to_dict` is unchanged too.
+- Full suite: 3245 passed, 15 skipped.
+
+**Unclear units or ranges** (my choice; check them):
+- `Tee.margin`, `dome` and `sheet`: `1`, with no range.  They are
+  `DuctTap` layout fractions, resolved by search; I didn't trace their
+  bounds.
+- `Reducer.chord_tol`: `1` (a fraction of R_in), `> 0`.  The code
+  accepts 0 without a profile.
+- `MiterBend.n_cuts`: unit `1` (a count of welds), not `cells`.
+- `toward` is `-`, while `end_tangent`, `Drum.axis` and `up` are `1`.
+  Both are directions; `toward` is only an input, used for its
+  direction.
+- Equipment ranges are not probed against the code, because a drum
+  needs a nozzle to check them:
+  - `OnShell.projection > 0`;
+  - `OnHead.offset >= 0`;
+  - `OnHead.projection > 0`.
+- `PipeSpec.mbmp > 0` and the `wall_bump` coefficients `> 0`: from the
+  meaning, not from a check.
+
+**Follow-ups.**
+- The network document's part classes (decision 0032 stage 2, task
+  0097/0098) can add a builder to `_schema._defs()`.
+- `describe` and `preview` (0097) can reuse `hexmesh.core.params`.

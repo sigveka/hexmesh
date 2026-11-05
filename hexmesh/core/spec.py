@@ -44,6 +44,7 @@ from typing import TYPE_CHECKING
 
 from ..errors import SpecError, SpecTypeError
 from .grading import bump_for_first_cell, bump_for_ratio, progression_for_first_cell
+from .params import describe
 from .shape import (LAYOUTS, CircleShape, RectShape, Shape, longest_radial, core_wall_span,
                     ring_corners, shape_from_dict)
 from .region import MaterialGraph
@@ -184,6 +185,21 @@ class PipeSpec:
         )
     """
 
+    #: the constructor's arguments (task 0095): saved as they are
+    PARAMS = {
+        "nang": describe("cells", "divisions per quadrant arc; circles and shells",
+                         minimum=1),
+        "nang_w": describe("cells", "divisions along width edges; rectangular cores",
+                           minimum=1),
+        "nang_h": describe("cells", "divisions along height edges; rectangular cores",
+                           minimum=1),
+        "mbmp": describe("1", "angular bump factor of the transfinite arcs (1 = uniform)",
+                         exclusiveMinimum=0),
+        "rot": describe("deg", "rotation of the outer corner frame (decision 0024)"),
+        "n_outer": describe("1", "outer structural corners: a positive multiple of 4",
+                            minimum=4),
+    }
+
     def __init__(
         self,
         nang:    int | None = None,
@@ -221,6 +237,28 @@ class PipeSpec:
     # ------------------------------------------------------------------
     # Builder methods
     # ------------------------------------------------------------------
+
+    #: :meth:`core`'s arguments (task 0095).  ``name``, ``shape``,
+    #: ``layout``, ``nrad``, ``mprg`` and ``wall_bump`` are saved; the
+    #: others are inputs, resolved into those.
+    CORE_PARAMS = {
+        "name": describe("-", "material label of the core"),
+        "shape": describe("-", "the core outline: a circle or a rectangle"),
+        "nrad": describe("cells", "O-H radial cells, inner square to wall (0 on an H core)",
+                         minimum=0),
+        "mprg": describe("1", "radial progression (> 1 refines inward); H: wall growth ratio",
+                         exclusiveMinimum=0),
+        "radius": describe("length", "input: a circular core's radius", exclusiveMinimum=0),
+        "half_w": describe("length", "input: a rectangular core's half-width",
+                           exclusiveMinimum=0),
+        "half_h": describe("length", "input: a rectangular core's half-height",
+                           exclusiveMinimum=0),
+        "first_cell": describe("length", "input: the wall cell height; resolves to mprg or "
+                               "wall_bump", exclusiveMinimum=0),
+        "layout": describe("-", "section layout (decision 0036)", enum=sorted(LAYOUTS)),
+        "wall_bump": describe("1", "an H core's Bump coefficients (c_w, c_h); < 1 refines "
+                              "toward the walls", exclusiveMinimum=0),
+    }
 
     def core(
         self,
@@ -428,6 +466,22 @@ class PipeSpec:
         self._core_nrad = nrad
         self._core_mprg = 1.0 if mprg is None else mprg
         return self
+
+    #: :meth:`shell`'s arguments (task 0095).  ``first_cell`` is an
+    #: input, resolved into ``mprg``; the others are saved.
+    SHELL_PARAMS = {
+        "name": describe("-", "material label of the shell"),
+        "dR": describe("length", "thickness: the previous outline grown by dR (or outer)",
+                       exclusiveMinimum=0, limit="OUTLINE_MIN_GAP"),
+        "nrad": describe("cells", "radial cells across the shell", minimum=1),
+        "mprg": describe("1", "radial progression (> 1 refines toward the inner boundary)",
+                         exclusiveMinimum=0),
+        "outer": describe("-", "the shell's outline, instead of dR",
+                          limit=("OUTLINE_MIN_GAP", "OUTLINE_NONORTH_WARN",
+                                 "OUTLINE_NONORTH_MAX")),
+        "first_cell": describe("length", "input: the outer-boundary cell height; resolves to "
+                               "mprg", exclusiveMinimum=0),
+    }
 
     def shell(
         self,

@@ -16,6 +16,21 @@
 - Messages are unchanged.  The codes are listed in
   [API.md](API.md#errors-hexmesherrors).
 
+**A JSON Schema of the saved description, and limits as data**
+(decision 0040; task 0095).
+
+- `hexmesh.agent.schema()` returns a JSON Schema (draft 2020-12) of
+  `Assembly.to_dict()`.  `python3 -m hexmesh.agent.schema` prints it.
+  It is generated from the registries, and every field has a type,
+  unit (`x-unit`), description, range and default.
+- `hexmesh.assembly.limits.LIMITS` holds every limit as
+  `Limit(value, unit, kind, doc)`; the module constants are unchanged.
+  The limits inline elsewhere moved into it: the miter cuts, the sweep
+  caps, the wye angle range and the venturi divergent range.
+- Four errors now name their limit in `limit` instead of giving its
+  value: an unresolvable `n_layers`, the wye angle, and the cosine and
+  venturi profile ranges.  Messages are unchanged.
+
 ## 0.4.0 (2026-11-05)
 
 **Breaking: rectangular cores default to the H face** (decision 0036;

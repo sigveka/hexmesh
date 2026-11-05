@@ -55,12 +55,13 @@ both ends.
 
 from __future__ import annotations
 import math
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, replace
 
 import numpy as np
 
 from .errors import AssemblyError
 from ..core.grading import bump
+from ..core.params import param
 from ..core.spec import PipeSpec
 from ..sections import h, layout_of, oh
 from . import limits
@@ -141,9 +142,14 @@ class Switch:
     strategies = frozenset({1})   # class 1, a pillow: O-H ↔ H (DESIGN A4)
     pillows = True
 
-    length:   float
-    n_layers: int | None = None
-    outlet:   PipeSpec | None = field(default=None, metadata={"input": True})
+    length:   float = param(
+        "length", "axial length, at least SWITCH_MIN_LENGTH ring thicknesses", exclusiveMinimum=0,
+        limit=("SWITCH_MIN_LENGTH", "SWITCH_MAX_SHEAR"))
+    n_layers: int | None = param(
+        "cells", "cells along the core block; None resolves from axial_cell", default=None,
+        minimum=1)
+    outlet:   PipeSpec | None = param(
+        "-", "outlet spec: the same rectangle and counts, the other layout", input=True)
 
     def resolve(self, inlet: Frame, spec: PipeSpec, axial_cell: float | None = None,
                 outlet: Frame | None = None) -> "Switch":
