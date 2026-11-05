@@ -97,6 +97,8 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0094](0094-structured-errors.md) | Structured errors: a code, a location, the value and the limit | done | 0040, 0019 |
 | [0095](0095-limits-and-schema.md) | Limits with units, and a JSON Schema generated from the registries | ready | 0040, 0019 |
 | [0096](0096-pcf-line-numbers.md) | PCF errors name the line: record `Provenance.line` | done | 0040, 0032 |
+| [0097](0097-describe-and-preview.md) | `describe` and `preview`: what a network is, without GMSH | ready (after 0095) | 0040, 0019 |
+| [0098](0098-advise-and-cli.md) | `advise` (the resolution advisor) and the `hexmesh` CLI | ready (after 0095, 0097) | 0040 |
 
 ### Validation
 
@@ -134,9 +136,10 @@ or a long run.
      for `nrad` on rectangular cores).
    - **0072** (square-duct bend), ready: it runs on the H section.
 2. **Alongside, no blockers:**
-   - user agents (decision 0040): **0095** (limits and schema), then
-     foundations C and D (tasks to come).  **0096** (PCF line numbers),
-     small, any time.  0094 done;
+   - user agents (decision 0040): **0095 → 0097 → 0098** (schema,
+     describe and preview, advise and the CLI).  Then **0066** and the
+     network document (decision 0032 stage 2, proposed), then the plugin.
+     0094 and 0096 done;
    - general branches (decision 0031): **0060 → 0061 / 0062 → 0063**.
      0060 carries a design note from 0081: the duct-tap front end leaves
      `Tee`;

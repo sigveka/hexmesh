@@ -7,7 +7,8 @@
   plan (work in progress) where design decisions are justified")
 - **Tasks:** stage 1 accepted 2026-10-29 (the user): tasks 0065 (network
   model and builder extraction) and 0066 (model operations and public
-  API).  Later stages: none yet.
+  API).  Stage 2 (the network document) accepted 2026-11-05: its task
+  follows 0066.  Later stages: none yet.
 
 ## Purpose
 
@@ -283,6 +284,69 @@ constraint 3).
    needs the vascular work.
 6. **Exporters** (later): network model → PCF / IFC, for round trips
    with the source tools.
+
+## Stage 2: the network document v1 (proposed 2026-11-05 by the design session; accepted 2026-11-05 by the user: "yes", items 1–9 as a whole)
+
+Stage 2 is needed now: decision 0040's network designer writes the
+network model, so it needs a file form.  Item 5 already fixes most of
+it (JSON-LD, `@list`, stable `@id`s, a shipped context, a schema per
+version, upgrades).  This section settles the open questions stage 2
+touches, and adds what an author who writes documents by hand, an agent
+or a person, needs.
+
+**Recommended:**
+1. **Vocabulary in v1: `hm:` only, plus the IFC GUID.**
+   - FSO terms aren't checked yet (open question).  Item 5 says a wrong
+     mapping is worse than none.
+   - The shipped `@context` maps every key to `hm:`.  Adding FSO
+     mappings later changes only the context, not documents.
+2. **Inferred connections are stored, marked `inferred`, with their
+   distance.**  A document then reloads to the same model without
+   re-inferring.  This settles the open question with its lean.
+3. **References across documents: deferred.**  One self-contained
+   document in v1, as item 5 says.
+4. **Provenance of a part written in a document** is the document
+   itself:
+   - `format: "hexmesh-network"`, `source`: the file;
+   - `record`: the part's `@id`, plus a JSON pointer to its entry.
+   - Errors (task 0094, `where["source"]`) then point into the file an
+     agent or person wrote.
+   - A part imported from PCF keeps its PCF provenance when saved, so a
+     round trip doesn't lose it.
+5. **The operation log is saved** (item 3), entries as task 0066
+   defines them.  A document written by hand has none, or one
+   `authored` entry.
+6. **The schema is a committed file per version**,
+   `hexmesh/interchange/schemas/network-v1.json`.
+   - It is generated from the model classes and their field metadata,
+     in the same way as task 0095's schema, then frozen.
+   - A test checks that the generator still produces the current
+     version's file.  So old versions stay readable after the classes
+     move on.
+7. **Authoring convenience: a route with bends.**
+   - A `Polyline` takes `turns="bend"` with a `bend_radius` (metres, or
+     a multiple of the outside diameter, `"1.5D"`).
+   - The builder then places a `Bend` at each interior vertex (the
+     corner, as a PCF CENTRE-POINT), with straights between.  Today's
+     `turns="spline"` stays.
+   - So an author gives a pipe run as its corner points, one section
+     and a radius, instead of a port pair per straight and a corner per
+     bend.  The validation (a radius tighter than the outside radius, a
+     straight too short for its bends) names the vertex.
+   - This is a builder rule on an existing part, not a new part type,
+     and imported models are unaffected.
+8. **What the document doesn't hold: resolution.**
+   - Mesh density stays out of the network model: the builder takes the
+     spec (item 4).
+   - Decision 0040's advisor writes a separate **resolution table**
+     (sections → `PipeSpec` descriptions, `n_layers` per part), which
+     the builder accepts as `spec=`.
+   - So one network can be meshed at several resolutions, and the
+     `.msh` recipe still records the exact build (decision 0038).
+9. **Order:** task 0066 (operations and the log) first, then the stage
+   2 task.  The document saves what 0066 defines.
+
+**Settled:** items 1–9, as written.  The stage 2 task follows task 0066.
 
 ## Open questions
 

@@ -5,9 +5,9 @@
 - **Date:** 2026-11-04 (the user: "I am thinking network designer and
   resolution is where I want to start", for agents that serve users of
   the framework, not its development)
-- **Tasks:** 0094 (foundation A, structured errors; done), 0095
-  (foundation B, limits and schema), 0096 (PCF line numbers).  To be
-  written: foundations C and D, then the plugin (E).
+- **Tasks:** 0094 (foundation A; done), 0095 (B), 0097 (C), 0098 (D),
+  0096 (PCF line numbers; done).  The plugin (E) after decision 0032's
+  stage 2 (the network document).
 - **Builds on:** decision 0019 (agent SDK, proposed): this decision is
   its first stage.  Decision 0032 (network interchange): the network
   model is what an agent writes.
