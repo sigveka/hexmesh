@@ -74,6 +74,12 @@ inside existing ones".
   duct-tap tests' builds).  Make it a separate commit before the
   lateral work.
 - Lower `tests/test_architecture.py`'s shape-site cap by what leaves.
+- **Done in task 0086** (`92c0787`, 2026-11-04).  `duct_tap.TapTemplate`
+  holds the front end, and `Tee` picks the template and delegates.  The
+  template asks the shape protocol, so the shape-site cap is 15 → 7.
+  No behaviour change: 334 of 334 tee meshes and 339 of 339 messages
+  identical (the 0065 method, 21 files).  0060 starts at the `angle`
+  work.
 
 ## Agent notes
 

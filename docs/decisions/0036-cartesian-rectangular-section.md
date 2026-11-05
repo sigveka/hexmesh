@@ -164,6 +164,26 @@ built on a straight duct.**
     length is L ≥ 1.25 t (`limits.SWITCH_MIN_LENGTH`).  It meets
     `limits.py` across a/b 1 / 2 / 4 and `nrad` 1 / 3 / 6, so the
     hybrid isn't needed.
+  - **Correction (2026-11-05, the user agreed; task 0086's Question
+    2):** 1.25 t holds only for a uniform H face.
+    - On a graded H face, the side blocks' wall nodes move from the O-H
+      spacing to the graded H spacing over L.  The cells shear by about
+      Δ/L, where Δ is the largest wall-node shift.
+    - At L = 1.25 t, min SJ fell to 0.12 (a/b 2, n 8, first cell
+      0.002).
+    - The rule is now L ≥ max(1.25 t, Δ_max / `SWITCH_MAX_SHEAR`, t +
+      Δ_max / `SWITCH_MAX_CORE_SHEAR`), with the constants 0.4 and 1.0.
+      Over 450 meshed switches (a/b 1–4, n 8–24, first cell to h/200),
+      that gives min SJ ≥ 0.50.  The core term covers short switches,
+      whose 0.25 t core carries the same change of grading.
+    - `mesh()` checks the meshed min SJ and non-orthogonality on task
+      0047's tiers.  Non-orthogonality reaches 70–80° at steep gradings
+      and rises with length and `nrad`, so the fix past 80° is a gentler
+      grading or a smaller `nrad`, not a longer switch.
+    - The switch adds no loss of its own.  Its measured K = −0.073 is the
+      change between the two meshes' developed profiles: the
+      kinetic-energy balance explains 91 % of it.
+    - The capped choice stands.
 - **Fallback, only if capped misses `limits.py` or needs an
   impractical length at `nrad` = 6:** the hybrid.  For `nrad` ≥ 2, the
   inner ring sheets cross the outer one and end crosswise on the wall,

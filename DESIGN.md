@@ -490,16 +490,14 @@ Implementation (`Assembly.close(source, target, fitting)`):
 ## 9. Current deviations
 
 Known deviations of the current code (refreshed 2026-11-02 by decision
-0037; the legacy connector rows went with the legacy API, task 0017):
+0037, and 2026-11-05 after tasks 0082–0087; the legacy connector rows
+went with the legacy API, task 0017):
 
 | Deviation | Rule | Where | Removed by |
 |---|---|---|---|
-| The O-H face is described in nine modules, twice: GMSH builders and an independent block-layout declaration; the rectangle's ring inset is written in both | §3.1, §6.1 Sections | `core/shape.py`, `core/cross_section.py`, `faces/*`, `assembly/interface.build_face`, `assembly/blocks.face_vertices` / `_rect_face_vertices` / `face_patches`, `assembly/corners.py`, `assembly/signature.py` | task 0082 |
-| Type switches on shapes outside `core.shape` and the face builders: 69 sites by `tests/test_architecture.py`'s definition (cap 69) | §3.1 | `assembly/tee.py` 17, `core/spec.py` 14, `assembly/interface.py` 9, `assembly/wye.py` 8, `assembly/corners.py` 6, `assembly/section_quality.py` 6, others 9 | task 0083 (lowers the cap); tee's share with 0060 |
-| Rectangular cores have only the O-H layout; the H layout is the default (decision 0036) | A4, §6.1 Sections, §7.1 | `faces/oh_rect.py`, `core/spec.py`, duct fittings | tasks 0084–0087 |
+| Type switches on shapes outside `core.shape` and `sections`: 7 sites by `tests/test_architecture.py`'s definition (cap 7; 69 at task 0081) | §3.1 | the remaining sites (the cap's comment in `tests/test_architecture.py` tracks them) | tasks 0060–0062, as the tee is touched |
 | Readers sit in `io`, above the assembly | §3.1 | `io/readers/` | task 0066 |
-| The duct taps' front end (geometry, resolution, checks) is a special case inside the pipe tee's class | §6 | `assembly/tee.py` (`_duct_geometry`, `_resolve_duct`, `_check_duct`, `_tap`) | tasks 0060–0063 (split when touched) |
-| `n_outer = 8` builds a different face (one 8-sided centre patch that can't bound a hex block) instead of the sub-partition of decision 0005; rejected in validation | §7 | `faces/oh_circle.build_oh_circle8`; `interface.check_supported` | task 0088 |
+| `n_outer = 8` builds a different face (one 8-sided centre patch that can't bound a hex block) instead of the sub-partition of decision 0005; rejected in validation | §7 | `sections/oh_gmsh.build_oh_circle8`; `interface.check_supported` | task 0088 |
 | Tee limited to a perpendicular, centred branch with circular shells copied from the main (multi-layer since task 0052; roll in 90° steps since task 0040) | §7.1 | `hexmesh/assembly/tee.py` | tasks 0060–0062 |
 
 New code must not add to this table.

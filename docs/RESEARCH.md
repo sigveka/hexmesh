@@ -1112,6 +1112,63 @@ design session, 2026-11-04; decision 0036 amendment).
   d = t plus a short core.  The rule scales with the ring thickness, not
   with `nrad` or a/b.  From 1.25 t to 5 t the quality doesn't change.
   Skewness grows 1.64 → 2.18 as the core's cells lengthen.
+  - **Correction (task 0086, Question 2, 2026-11-05): this holds only
+    for a uniform H face.**  0085's graded rows were all at L = 3t, which
+    hid the problem.
+  - On a graded H face, the side blocks' wall edges go from the O-H
+    face's uniform spacing to the H face's Bump over L.  The cells shear
+    by about Δ/L, where Δ is the largest wall-node shift between the
+    two distributions.  Δ is computable before GMSH.
+  - At a/b 2, n 8, first cell 0.002, by L/t:
+
+    | L / t | 1.25 | 1.5 | 2 | 3 | 4 |
+    |---|---|---|---|---|---|
+    | min SJ | 0.122 | 0.231 | 0.387 | 0.523 | 0.563 |
+
+    Non-orthogonality reaches 79–81° at the short lengths.  The layer
+    count and the ring's `mprg` don't matter.
+  - By shear, over a/b 1 and 2, n 8 and 16, first cell 0.001–0.004:
+    - Δ/L ≤ 0.4 gives min SJ ≥ 0.50;
+    - 0.5–0.8 gives 0.23–0.52;
+    - above 1 gives 0.10–0.24.
+  - `validate()` had predicted 1/√3 from straight-edge corners, so no
+    tier fired.  A graded `Switch` could mesh at SJ ~0.1 with no
+    warning (since `07c38de`).
+  - **The widened measurements** (task 0086, 450 meshed switches):
+    - a/b 1, 2 and 4; n 8–24; first cell down to h/200; `nrad` 2–9 and
+      6; L/t 1.25–16.
+    - The side shear alone does not hold min SJ ≥ 0.5.  Where 1.25 t
+      sets the length, the core block is only 0.25 t long and carries
+      the same change of grading.  Example: a/b 1, n 24, h/25 meshes at
+      0.481 at a side shear of 0.286.
+    - The core shear Δ/(L − t) separates the cases.  Side shear ≤ 0.4
+      with core shear ≤ 1.0 gives min SJ ≥ 0.501 over 188 cases.
+  - **The rule** (the user agreed, 2026-11-05):
+    L ≥ max(1.25 t, Δ_max / `SWITCH_MAX_SHEAR`, t + Δ_max /
+    `SWITCH_MAX_CORE_SHEAR`), with the constants 0.4 and 1.0.
+    - The core term sets the length for 0.25 t < Δ < 0.67 t, which is 5
+      of 36 cases.  The longest switch is unchanged (12 t).
+    - A side-shear limit alone would have needed 0.28, making every
+      graded switch 1.43× longer.
+  - **The prediction:** `validate()` reports the measured bound for the
+    shear used (`limits.SWITCH_SHEAR_SJ`: 0.1 → 0.577, 0.2 → 0.550, 0.3
+    → 0.548, 0.35 → 0.546, 0.4 → 0.501), not 1/√3.
+  - **Safety net:** `mesh()` measures the meshed min SJ and max
+    non-orthogonality of `Switch`, `Transition`'s H end and taps on a
+    graded H main, on task 0047's tiers.
+    - Over the sweep, the SJ check fired at 0.039–0.085 (1.25 t, h/100).
+    - **Non-orthogonality is the switch's own** (plain H gives 0°,
+      pillowed O-H 44°).  It rises with the wall grading, the switch
+      length and the ring's `nrad`.  At a/b 4, n 8, first cell h/200:
+
+      | `nrad` | at 12 t (shortest) | at 20 t |
+      |---|---|---|
+      | 3 (derived) | < 70° | 76.2° |
+      | 6 | 74.2° | 79.5° |
+
+      So lengthening a switch doesn't lower it.  Past 80° the error
+      points to a gentler H-face grading or a smaller `nrad` instead
+      (`mesh()`, `d5e503f`).
 - **Graded H end:** the grading change goes in the core, so that C
   already carries the H side grading.  Min SJ is then 0.547–0.577.  In
   the cap it would be 0.39–0.49.
@@ -1133,8 +1190,21 @@ design session, 2026-11-04; decision 0036 amendment).
     duct (−39 % of the developed Δp over the switch).  That is about the
     2.4 % gap between the two meshes' pressure gradients.  The likely
     cause is the change between the two discrete developed profiles,
-    not a physical effect.  Task 0086 step 5 checks this against the
-    momentum-flux coefficients.
+    not a physical effect.
+  - **Explained** (task 0086 step 5, the user agreed, 2026-11-05):
+
+    | balance | prediction | share of K |
+    |---|---|---|
+    | kinetic energy, α_H − α_OH | −0.0663 | 91 % |
+    | momentum, 2(β_H − β_OH) | −0.0476 | 65 % |
+
+    - The energy balance is the right measure.  The momentum balance
+      leaves out the changed wall shear.
+    - About 45 % of the β gap is plane quadrature: the exact profile
+      sampled on the two grids' faces already differs by Δβ = −0.0107.
+    - **The switch has no loss of its own.**  The defect is the change
+      between the two meshes' discrete developed profiles: a
+      discretisation effect, which shrinks as both meshes converge.
   - simpleFoam never met `residualControl`, but the fields were frozen
     from iteration 2500 (`docs/integrations/openfoam.md`).
 

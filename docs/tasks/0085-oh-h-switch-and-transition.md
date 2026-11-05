@@ -219,6 +219,13 @@ defect is negative (below).
 - The length rule is `L ≥ 1.25 t` (`limits.SWITCH_MIN_LENGTH`), so the
   switch is about one ring thickness long at any nrad.  At nrad 6 that
   is practical, so the hybrid wasn't needed.
+  - **Correction (design session, 2026-11-05; task 0086, Question 2):**
+    the rule holds only for a uniform H face.  On a graded H face the
+    side blocks shear by about Δ/L.  At 1.25 t, min SJ fell to 0.12 (a/b
+    2, n 8, first cell 0.002), and `validate()` still predicted 1/√3.
+    The graded rows here were all at L = 3t.  Task 0086 adds
+    L ≥ Δ_max / `SWITCH_MAX_SHEAR` (about 0.4), a meshed-SJ check, and
+    a corrected prediction (RESEARCH §7.11; decision 0036 amendment).
 - Turned out is impossible on a flat wall (decision 0036, amendment
   under item 6).
 
