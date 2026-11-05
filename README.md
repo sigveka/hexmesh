@@ -17,7 +17,7 @@
 ![Python ≥ 3.10](https://img.shields.io/badge/python-%E2%89%A5%203.10-3776ab)
 ![gmsh 4.12](https://img.shields.io/badge/gmsh-4.12-555)
 ![OpenFOAM v1912 · v2406](https://img.shields.io/badge/OpenFOAM-v1912%20%C2%B7%20v2406-2a6ebb)
-![version 0.3.0](https://img.shields.io/badge/version-0.3.0-888)
+![version 0.4.0](https://img.shields.io/badge/version-0.4.0-888)
 ![BSD 3-Clause](https://img.shields.io/badge/licence-BSD--3--Clause-2e7d32)
 
 **Structured all-hex meshes for pipe and duct networks, junctions included.**
@@ -96,6 +96,11 @@ Doubling every density parameter doubles the nodes in each direction:
 Plus `Straight`, rectangular ducts, duct taps, layer outlines (round in
 square and square in round) and insulation that stops and starts along a
 run.
+
+**Rectangular ducts** are one Cartesian patch with graded walls by
+default since 0.4.0, because the O-H face converges badly on a rectangle
+([RESEARCH §7.11](docs/RESEARCH.md)).  `layout="oh"` with `nrad=` keeps
+the O-H face ([CHANGELOG](CHANGELOG.md)).
 
 **Not yet:**
 - tees with a non-perpendicular or offset branch (planned);

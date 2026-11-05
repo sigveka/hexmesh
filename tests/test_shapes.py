@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Unit tests for pure-Python data structures:
   CircleShape, RectShape, PipeSpec.
@@ -167,7 +179,7 @@ class TestPipeSpec:
         with pytest.raises(ValueError, match="equal counts per side"):
             (
                 PipeSpec(nang_w=3, nang_h=2)
-                .core("air", RectShape(0.1, 0.08, 3, 2), nrad=3)
+                .core("air", RectShape(0.1, 0.08, 3, 2), nrad=3, layout="oh")
                 .shell("sq", outer=RectShape(0.2, 0.2, 3, 2), nrad=2)
             )
 
@@ -176,7 +188,7 @@ class TestPipeSpec:
             PipeSpec(nang=5).core("fluid", CircleShape(0.1, nang=4), nrad=3)
 
     def test_rect_pipe_nang(self):
-        pipe = PipeSpec().core("air", RectShape(0.1, 0.05, 3, 2), nrad=3)
+        pipe = PipeSpec().core("air", RectShape(0.1, 0.05, 3, 2), nrad=3, layout="oh")
         assert pipe.nang_w == 3
         assert pipe.nang_h == 2
         assert pipe.nang is None

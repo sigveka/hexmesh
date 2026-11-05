@@ -40,7 +40,7 @@ INLET = Frame(np.zeros(3), np.array([1.0, 0, 0]), np.array([0, 0, 1.0]))
 
 def _oh(aspect=2, n=4, nrad=3, **kw):
     return PipeSpec(nang_w=aspect * n, nang_h=n).core(
-        "air", RectShape(aspect * B, B, aspect * n, n), nrad=nrad, **kw)
+        "air", RectShape(aspect * B, B, aspect * n, n), nrad=nrad, layout="oh", **kw)
 
 
 def _h(aspect=2, n=4, **kw):
@@ -136,7 +136,8 @@ def test_length_rule_is_in_ring_thicknesses():
 
 def _graded4():
     """The kit's ``switch-4-h-oh-graded`` pair: a/b 4, first cell 0.004."""
-    return (PipeSpec(nang_w=16, nang_h=4).core("air", RectShape(4 * B, B, 16, 4), nrad=1),
+    return (PipeSpec(nang_w=16, nang_h=4).core("air", RectShape(4 * B, B, 16, 4), nrad=1,
+                                               layout="oh"),
             PipeSpec(nang_w=16, nang_h=4).core("air", RectShape(4 * B, B, 16, 4), layout="h",
                                                first_cell=0.004))
 
@@ -162,7 +163,7 @@ def test_core_term_binds_at_moderate_shift():
     """The core block's term (task 0086, Q4): a shift between a quarter and
     two thirds of t, where 1.25 t and Δ/0.4 would both leave the core
     block too short (measured: min SJ 0.481 at 1.25 t, a/b 1, n 24)."""
-    s_oh = PipeSpec(nang_w=24, nang_h=24).core("air", RectShape(B, B, 24, 24), nrad=6)
+    s_oh = PipeSpec(nang_w=24, nang_h=24).core("air", RectShape(B, B, 24, 24), nrad=6, layout="oh")
     s_h = PipeSpec(nang_w=24, nang_h=24).core("air", RectShape(B, B, 24, 24), layout="h",
                                               first_cell=0.002)
     need, t, d = switch.min_length(s_oh, s_h)
@@ -375,7 +376,7 @@ def test_transition_to_h_embeds_a_switch():
 @pytest.mark.parametrize("make, match, exc", [
     (lambda: (Transition(_hrect(0.1, 0.1), 0.3, 6), _hrect()), "both ends", ValueError),
     (lambda: (Transition(_hrect(), 0.3, 6), PipeSpec(nang=4).core(
-        "air", RectShape(0.14, 0.07, 4, 4), nrad=3)), "use Switch", ValueError),
+        "air", RectShape(0.14, 0.07, 4, 4), nrad=3, layout="oh")), "use Switch", ValueError),
     (lambda: (Transition(_hrect(), 0.05, 2), _circle()), "n_layers >=", ValueError),
     (lambda: (Transition(_hrect(n=6), 0.3, 6), _circle()), "equal counts", ValueError),
 ])
@@ -399,7 +400,7 @@ def test_transition_still_rejects_layer_termination():
     a transition's."""
     two = _circle().shell("wall", dR=0.01, nrad=2)
     with pytest.raises(ValueError, match="present only at the inlet.*keeps the layers"):
-        Transition(PipeSpec(nang=4).core("air", RectShape(0.14, 0.07, 4, 4), nrad=3),
+        Transition(PipeSpec(nang=4).core("air", RectShape(0.14, 0.07, 4, 4), nrad=3, layout="oh"),
                    0.3, 4).check(two)
 
 

@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Ventilation supply run: a fan's round outlet, a flat duct through the
 building, and a square terminal.
@@ -11,21 +23,23 @@ building, and a square terminal.
   turns along the ceiling with a two-cut mitred hard-way bend
   (``roll=90``: across the width, so its radius is checked against the
   half-width), and jogs sideways with a spline offset.
-- A second ``Transition`` (rectangle → rectangle) ends at a 0.3 × 0.3
-  square terminal, named ``terminal``.
+- A ``Reducer`` (rectangle → rectangle: half_w and half_h change on the
+  H face) ends at a 0.3 × 0.3 square terminal, named ``terminal``.
+- The rectangles are H faces (the default since 0.4.0), their walls
+  graded by ``mprg`` (the second cell from each wall over the first).
 
 Patches: ``air_inlet``, ``air_terminal``, ``air_wall``.
 """
 
 from hexmesh import (
-    Assembly, Bend, MiterBend, PipeSpec, SplinePipe, Straight, Transition,
+    Assembly, Bend, MiterBend, PipeSpec, Reducer, SplinePipe, Straight, Transition,
 )
 
 N = 8      # cells per side, shared by every section so transitions are class 0
 
 FAN = PipeSpec(nang=N).core("air", radius=0.15, nrad=4)
-DUCT = PipeSpec(nang_w=N, nang_h=N).core("air", half_w=0.25, half_h=0.125, nrad=4)
-TERMINAL = PipeSpec(nang_w=N, nang_h=N).core("air", half_w=0.15, half_h=0.15, nrad=4)
+DUCT = PipeSpec(nang_w=N, nang_h=N).core("air", half_w=0.25, half_h=0.125, mprg=1.2)
+TERMINAL = PipeSpec(nang_w=N, nang_h=N).core("air", half_w=0.15, half_h=0.15, mprg=1.2)
 
 
 def build() -> Assembly:
@@ -43,7 +57,7 @@ def build() -> Assembly:
     asm.add(SplinePipe((tuple(p), tuple(p + 1.0 * d + 0.3 * side),
                         tuple(p + 2.0 * d + 0.6 * side)),
                        n_layers=16, end_tangent=tuple(d)))
-    asm.add(Transition(TERMINAL, length=0.4, n_layers=4))
+    asm.add(Reducer(TERMINAL, length=0.4, n_layers=4))
     asm.add(Straight(0.3, n_layers=4), names=["terminal"])
     return asm
 

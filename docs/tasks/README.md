@@ -87,7 +87,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0084](0084-h-section-layout-and-sweeps.md) | The H section: the layout, `layout=` on the spec, and every sweep | done | 0036, 0037 |
 | [0085](0085-oh-h-switch-and-transition.md) | The O-H ↔ H switch, and `Transition` to an H rectangle | done | 0036, 0011 |
 | [0086](0086-h-ports-on-duct-junctions-and-shells.md) | H ports on duct junctions, and shells around an H core | done | 0036, 0026 |
-| [0087](0087-h-default-flip.md) | Make H the default rectangular core (version 0.4.0) | ready (after 0086) | 0036 |
+| [0087](0087-h-default-flip.md) | Make H the default rectangular core (version 0.4.0) | done | 0036 |
 | [0088](0088-n-outer-sub-partition.md) | `n_outer = 8` as a sub-partition of the O-H face (exact core cuts) | ready (after 0082; not alongside 0084) | 0005, 0010 |
 | [0089](0089-richardson-growing-differences.md) | `richardson()`: no order when differences grow; recheck accepted cases | done | 0015 |
 | [0090](0090-shared-parallel-openfoam-runs.md) | Parallel OpenFOAM runs in the shared helpers, used by every driver | done | 0012, 0025 |

@@ -33,7 +33,7 @@ from hexmesh.sections import h, layout_of, oh
 
 
 def _rect(a, b, n=4, **kw):
-    return PipeSpec(nang=n, **kw).core("fluid", RectShape(a, b, n, n), nrad=3)
+    return PipeSpec(nang=n, **kw).core("fluid", RectShape(a, b, n, n), nrad=3, layout="oh")
 
 
 def _h(a, b, nw, nh, rot=0.0, **kw):
@@ -47,7 +47,7 @@ SPECS = {
     "rect-2": lambda: _rect(0.10, 0.05),
     "rect-4": lambda: _rect(0.20, 0.05),
     "rect-unequal-counts": lambda: PipeSpec(nang_w=6, nang_h=3).core(
-        "fluid", RectShape(0.10, 0.05, 6, 3), nrad=3),
+        "fluid", RectShape(0.10, 0.05, 6, 3), nrad=3, layout="oh"),
     "circle-3layer": lambda: (PipeSpec(nang=4).core("fluid", radius=0.05, nrad=3, mprg=0.9)
                               .shell("wall", dR=0.004, nrad=2, mprg=1.1)
                               .shell("lagging", dR=0.02, nrad=3)),

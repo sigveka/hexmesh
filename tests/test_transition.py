@@ -36,7 +36,7 @@ def _circle(r=0.1, nang=6, nrad=3, name="fluid", **kw):
 
 def _rect(hw=0.14, hh=0.07, nang_w=6, nang_h=6, nrad=3, name="fluid", **kw):
     return PipeSpec(nang_w=nang_w, nang_h=nang_h, **kw).core(
-        name, half_w=hw, half_h=hh, nrad=nrad)
+        name, half_w=hw, half_h=hh, nrad=nrad, layout="oh")
 
 
 def _asm(inlet, outlet, n_layers=4, length=0.3):
@@ -150,7 +150,7 @@ class TestStationShape:
 # ---------------------------------------------------------------------------
 
 def _insulated(core, outer, nang=6):
-    return (PipeSpec(nang=nang).core("fluid", core, nrad=3)
+    return (PipeSpec(nang=nang).core("fluid", core, nrad=3, layout="oh")
             .shell("insulation", outer=outer, nrad=2))
 
 

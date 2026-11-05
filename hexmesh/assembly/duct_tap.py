@@ -166,7 +166,7 @@ class DuctTap:
             hw, hh = (self.across, self.along) if on_U else (self.along, self.across)
             shape = RectShape(hw, hh, sh.nang_w, sh.nang_h)
             out = PipeSpec(nang_w=sh.nang_w, nang_h=sh.nang_h)
-        return frame, out.core(spec.layer_names[0], shape, nrad=spec._core_nrad,
+        return frame, out.core(spec.layer_names[0], shape, nrad=spec._core_nrad, layout="oh",
                                mprg=spec._core_mprg)
 
     def ports(self, inlet: Frame, spec: PipeSpec):

@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Layer outlines (decision 0026, task 0045): shells of any outline, circle or
 rectangle, in any order.  The conformance kit meshes the stacks
@@ -47,7 +59,7 @@ class TestSpec:
         assert _core().period == pytest.approx(math.pi / 2)
         assert _in(RectShape(0.2, 0.2, 4, 4)).period == pytest.approx(math.pi / 2)
         assert _in(RectShape(0.25, 0.125, 4, 4)).period == pytest.approx(math.pi)
-        rc = (PipeSpec(nang=4).core("f", RectShape(0.1, 0.05, 4, 4), nrad=3)
+        rc = (PipeSpec(nang=4).core("f", RectShape(0.1, 0.05, 4, 4), nrad=3, layout="oh")
               .shell("c", outer=CircleShape(0.2, 4), nrad=2))
         assert rc.period == pytest.approx(math.pi)
 
@@ -106,7 +118,7 @@ class TestFirstCell:
         assert spec.shells[0].mprg == pytest.approx(self._mprg(span, 4, 0.01), rel=1e-9)
 
     def test_rectangle_grown_by_dR_at_the_corner_line(self):
-        spec = (PipeSpec(nang=4).core("f", RectShape(0.1, 0.05, 4, 4), nrad=3)
+        spec = (PipeSpec(nang=4).core("f", RectShape(0.1, 0.05, 4, 4), nrad=3, layout="oh")
                 .shell("wall", dR=0.02, nrad=4, first_cell=0.002))
         span = 0.02 * math.sqrt(2)
         assert spec.shells[0].mprg == pytest.approx(self._mprg(span, 4, 0.002), rel=1e-9)
@@ -133,8 +145,8 @@ class TestContainment:
         (RectShape(0.1, 0.05, 4, 4), CircleShape(0.11, 4), "-?153.4°"),  # corners out
     ])
     def test_outline_must_enclose_the_previous(self, inner, outer, at):
-        spec = PipeSpec(nang=4).core("fluid", inner, nrad=3).shell("block", outer=outer,
-                                                                    nrad=2)
+        spec = PipeSpec(nang=4).core("fluid", inner, nrad=3, layout="oh").shell(
+            "block", outer=outer, nrad=2)
         with pytest.raises((AssemblyError, ValueError),
                            match=rf"layer `block`: .*enclose `fluid`.*OUTLINE_MIN_GAP.* at {at}"):
             _validate(spec)
@@ -192,7 +204,8 @@ def _circle_in_rect(aspect, gap, nang=4):
 def _rect_in_circle(aspect, gap, nang=4):
     """Rectangle of half-diagonal 0.1 in a circle of radius (1 + gap) · 0.1."""
     hh = 0.1 / math.hypot(aspect, 1)
-    return (PipeSpec(nang=nang).core("core", RectShape(aspect * hh, hh, nang, nang), nrad=4)
+    return (PipeSpec(nang=nang).core("core", RectShape(aspect * hh, hh, nang, nang), nrad=4,
+                                     layout="oh")
             .shell("ring", outer=CircleShape(0.1 * (1 + gap), nang), nrad=4))
 
 
@@ -215,7 +228,7 @@ class TestSectionQuality:
         _circle_in_rect(2.5, 0.3), _circle_in_rect(1.5, 1.0, nang=8),
         _rect_in_circle(2, 0.3), _rect_in_circle(4, 0.1, nang=8),
         _core().shell("wall", dR=0.01, nrad=2, first_cell=0.002),
-        PipeSpec(nang=4, mbmp=0.6).core("core", RectShape(0.2, 0.1, 4, 4), nrad=3)
+        PipeSpec(nang=4, mbmp=0.6).core("core", RectShape(0.2, 0.1, 4, 4), nrad=3, layout="oh")
         .shell("ring", outer=CircleShape(0.3, 4), nrad=3, mprg=1.2),
     ], ids=["c-in-2.5to1", "c-in-1.5to1-nang8", "2to1-in-c", "4to1-in-c-nang8", "dR-graded",
             "bumped"])
@@ -279,7 +292,7 @@ class TestQualityLimits:
     def test_shells_that_keep_their_shape_are_not_checked(self):
         """dR shells (the inner outline grown) and circles round circles."""
         from hexmesh.assembly.section_quality import changes_shape
-        duct = (PipeSpec(nang=4).core("air", RectShape(0.6, 0.1, 4, 4), nrad=3)
+        duct = (PipeSpec(nang=4).core("air", RectShape(0.6, 0.1, 4, 4), nrad=3, layout="oh")
                 .shell("wall", dR=0.01, nrad=2))
         assert not changes_shape(duct, 1)
         assert not changes_shape(_in(CircleShape(0.2, 4)), 1)

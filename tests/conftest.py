@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Shared pytest fixtures for hexmesh tests.
 
@@ -59,7 +71,7 @@ def rect_pipe():
     return (
         PipeSpec(nang_w=3, nang_h=2)
         .core("air", shape=RectShape(half_w=0.08, half_h=0.05, nang_w=3, nang_h=2),
-              nrad=3)
+              nrad=3, layout="oh")
     )
 
 

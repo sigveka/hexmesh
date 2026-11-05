@@ -199,7 +199,8 @@ def pillowed(spec, nrad: int | None = None, mprg: float | None = None):
         mprg = dm if mprg is None else mprg
     shape = spec.core_shape
     return PipeSpec(nang_w=shape.nang_w, nang_h=shape.nang_h, mbmp=spec.mbmp,
-                    rot=spec.rot).core(spec.layer_names[0], shape, nrad=nrad, mprg=mprg)
+                    rot=spec.rot).core(spec.layer_names[0], shape, nrad=nrad, mprg=mprg,
+                                       layout="oh")
 
 
 # ---------------------------------------------------------------------------

@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Insulated transition: an insulated round pipe becomes an insulated duct,
 turns, and the insulation stops.
@@ -30,7 +42,7 @@ def pipe() -> PipeSpec:
 
 def duct(insulated: bool = True) -> PipeSpec:
     spec = (PipeSpec(nang=NANG)
-            .core("air", RectShape(0.15, 0.075, NANG, NANG), nrad=4)
+            .core("air", RectShape(0.15, 0.075, NANG, NANG), mprg=1.2)
             .shell("steel", dR=0.003, nrad=2))
     return spec.shell("insulation", dR=0.04, nrad=3) if insulated else spec
 

@@ -1,7 +1,20 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Rectangular cores in the assembly (decisions 0009, 0010; task 0028).
 Meshing and wall exactness are covered by the kit's duct cases
-(tests/test_fitting_conformance.py); these tests cover the rules.
+(tests/test_fitting_conformance.py); these tests cover the rules.  The
+duct is the default H face (0.4.0, task 0087); ``nrad=`` gives O-H.
 """
 
 import math
@@ -19,9 +32,10 @@ from hexmesh.assembly.signature import classify, signature
 from hexmesh.core.spec import PipeSpec
 
 
-def _duct(half_w=0.1, half_h=0.05, nang_w=4, nang_h=2, nrad=2, **kw):
+def _duct(half_w=0.1, half_h=0.05, nang_w=4, nang_h=2, nrad=None, **kw):
+    oh = {} if nrad is None else {"nrad": nrad, "layout": "oh"}
     return PipeSpec(nang_w=nang_w, nang_h=nang_h, **kw).core(
-        "air", half_w=half_w, half_h=half_h, nrad=nrad)
+        "air", half_w=half_w, half_h=half_h, **oh)
 
 
 def _circle(nang=4, nrad=2):
@@ -86,13 +100,18 @@ class TestPeriod:
 
 class TestSignature:
     def test_square_duct_matches_circle(self):
-        """Shape is geometry (decision 0009): equal counts, equal signature."""
-        assert signature(_square()) == signature(_circle(3))
+        """Shape is geometry (decision 0009): an O-H square with the
+        circle's counts has its signature.  The default H square differs
+        in layout, which a Switch bridges (class 1)."""
+        assert signature(_duct(0.07, 0.07, 3, 3, nrad=2)) == signature(_circle(3))
+        assert int(classify(signature(_circle(3)), signature(_square()))) == 1
 
     def test_duct_contents(self):
         sig = signature(_duct())
         assert (sig.n_outer, sig.period, sig.nang_w, sig.nang_h) == (4, 180.0, 4, 2)
-        assert [(l.name, l.kind, l.nrad) for l in sig.layers] == [("air", "oh_core", 2)]
+        assert [(l.name, l.kind, l.nrad) for l in sig.layers] == [("air", "h_core", 0)]
+        oh = signature(_duct(nrad=2))
+        assert [(l.name, l.kind, l.nrad) for l in oh.layers] == [("air", "oh_core", 2)]
 
     def test_circle_to_flat_duct_is_class_3(self):
         """Unequal counts change the combinatorial period: no sweep bridges it."""
@@ -106,10 +125,12 @@ class TestSignature:
 
 
 class TestSizes:
-    def test_cell_count_closed_form(self):
-        asm = Assembly(_duct(nrad=3), direction=[1, 0, 0], up=[0, 0, 1])
+    @pytest.mark.parametrize("nrad, per_layer", [(None, 4 * 2),                 # H
+                                                 (3, 4 * 2 + 2 * (4 + 2) * 3)])  # O-H
+    def test_cell_count_closed_form(self, nrad, per_layer):
+        asm = Assembly(_duct(nrad=nrad), direction=[1, 0, 0], up=[0, 0, 1])
         asm.add(Straight(0.3, n_layers=5))
-        assert asm.cell_count() == 5 * (4 * 2 + 2 * (4 + 2) * 3)
+        assert asm.cell_count() == 5 * per_layer
 
     @pytest.mark.parametrize("roll, ok", [(0, True), (90, False), (180, True), (-90, False)])
     def test_bend_checked_in_its_plane(self, roll, ok):
@@ -160,9 +181,13 @@ class TestRejections:
         assert not gmsh.isInitialized()
 
     def test_first_cell(self):
+        """first_cell= grades an H duct's walls; an O-H rectangle's ring
+        has no first_cell= (circles only)."""
+        assert _duct(nang_w=8, nang_h=4).layout == "h"
+        PipeSpec(nang_w=8, nang_h=4).core("air", half_w=0.1, half_h=0.05, first_cell=0.002)
         with pytest.raises(TypeError, match="circular cores only"):
             PipeSpec(nang_w=4, nang_h=2).core("air", half_w=0.1, half_h=0.05, nrad=3,
-                                               first_cell=0.001)
+                                               layout="oh", first_cell=0.001)
 
     def test_shells_need_equal_counts(self):
         """Shells around a rectangle exist (decision 0026), with one count

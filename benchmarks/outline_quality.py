@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Ring quality against outline aspect ratio (decision 0026 item 4, task 0047).
 Not part of the test suite.
@@ -72,10 +84,12 @@ def section(pairing: str, aspect: float, gap: float, nang: int) -> PipeSpec:
             "ring", outer=RectShape(aspect * hh, hh, nang, nang), nrad=NRAD)
     if pairing == "rect-in-circle":
         hh = SIZE / math.hypot(aspect, 1)           # half-diagonal = SIZE
-        return spec.core("core", RectShape(aspect * hh, hh, nang, nang), nrad=NRAD).shell(
+        return spec.core("core", RectShape(aspect * hh, hh, nang, nang), nrad=NRAD,
+                         layout="oh").shell(
             "ring", outer=CircleShape(SIZE * (1 + gap), nang), nrad=NRAD)
     if pairing == "rect-in-rect":
-        return spec.core("core", RectShape(aspect * SIZE, SIZE, nang, nang), nrad=NRAD).shell(
+        return spec.core("core", RectShape(aspect * SIZE, SIZE, nang, nang), nrad=NRAD,
+                         layout="oh").shell(
             "ring", dR=gap * SIZE, nrad=NRAD)
     raise ValueError(pairing)
 

@@ -37,7 +37,8 @@ A = 2 * B           # 2:1 duct, the tap on a wide face (half-width A)
 
 
 def _spec(aspect=2, n=4, **kw):
-    return PipeSpec(nang_w=n, nang_h=n, **kw).core("fluid", half_w=aspect * B, half_h=B, nrad=3)
+    return PipeSpec(nang_w=n, nang_h=n, **kw).core("fluid", half_w=aspect * B, half_h=B, nrad=3,
+                                                   layout="oh")
 
 
 def _asm(tee, spec=None, n=4):
@@ -122,7 +123,7 @@ def test_rejections(make, message):
 
 
 def test_round_tap_needs_equal_counts():
-    spec = PipeSpec(nang_w=4, nang_h=2).core("fluid", half_w=A, half_h=B, nrad=3)
+    spec = PipeSpec(nang_w=4, nang_h=2).core("fluid", half_w=A, half_h=B, nrad=3, layout="oh")
     with pytest.raises((AssemblyError, ValueError), match="equal counts per side"):
         _asm(_tee(CircleShape(radius=0.5 * A, nang=4)), spec=spec).validate()
 

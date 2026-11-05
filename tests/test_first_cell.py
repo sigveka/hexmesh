@@ -80,7 +80,7 @@ class TestSpec:
 
     def test_rect_core_rejected(self):
         with pytest.raises(TypeError, match="circular cores only"):
-            PipeSpec(nang_w=4, nang_h=4).core("air", half_w=0.1, half_h=0.1, nrad=4,
+            PipeSpec(nang_w=4, nang_h=4).core("air", half_w=0.1, half_h=0.1, nrad=4, layout="oh",
                                               first_cell=1e-3)
 
     def test_impossible_reported_at_build(self):

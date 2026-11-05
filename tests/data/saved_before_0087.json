@@ -1,0 +1,141 @@
+{
+ "edges": [
+  {
+   "fitting": {
+    "axial_grading": 1.0,
+    "length": 0.2,
+    "n_layers": 3,
+    "stack_changes": [],
+    "type": "Straight"
+   },
+   "source": 0
+  },
+  {
+   "fitting": {
+    "branch": {
+     "half_h": 0.06,
+     "half_w": 0.06,
+     "nang_h": 4,
+     "nang_w": 4,
+     "type": "rect"
+    },
+    "branch_length": 0.25,
+    "dome": 0.35,
+    "face": "wide",
+    "margin": 2.0,
+    "n_branch": 3,
+    "n_run": 3,
+    "n_turn": 2,
+    "n_wall": 2,
+    "roll": 0.0,
+    "run_length": 0.14,
+    "sheet": 0.5,
+    "type": "Tee"
+   },
+   "source": 1
+  },
+  {
+   "fitting": {
+    "axial_grading": 1.0,
+    "length": 0.1,
+    "n_layers": 2,
+    "stack_changes": [],
+    "type": "Straight"
+   },
+   "source": 3
+  },
+  {
+   "fitting": {
+    "angle": 90,
+    "axial_grading": 1.0,
+    "n_layers": 4,
+    "radius": 0.2,
+    "roll": 0.0,
+    "stack_changes": [],
+    "type": "Bend"
+   },
+   "source": 2
+  },
+  {
+   "fitting": {
+    "axial_grading": 1.0,
+    "chord_tol": 0.001,
+    "length": 0.2,
+    "n_layers": 3,
+    "outlet": {
+     "core": {
+      "layout": "oh",
+      "mprg": 1.0,
+      "name": "air",
+      "nrad": 3,
+      "shape": {
+       "half_h": 0.04,
+       "half_w": 0.08,
+       "nang_h": 4,
+       "nang_w": 4,
+       "type": "rect"
+      }
+     },
+     "mbmp": 1.0,
+     "n_outer": 4,
+     "nang": null,
+     "nang_h": 4,
+     "nang_w": 4,
+     "rot": 0.0,
+     "shells": []
+    },
+    "profile": null,
+    "type": "Reducer"
+   },
+   "source": 5
+  }
+ ],
+ "format": "hexmesh.assembly",
+ "inlet": {
+  "normal": [
+   1.0,
+   0.0,
+   0.0
+  ],
+  "position": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "spec": {
+   "core": {
+    "layout": "oh",
+    "mprg": 1.0,
+    "name": "air",
+    "nrad": 3,
+    "shape": {
+     "half_h": 0.05,
+     "half_w": 0.1,
+     "nang_h": 4,
+     "nang_w": 4,
+     "type": "rect"
+    }
+   },
+   "mbmp": 1.0,
+   "n_outer": 4,
+   "nang": null,
+   "nang_h": 4,
+   "nang_w": 4,
+   "rot": 0.0,
+   "shells": []
+  },
+  "up": [
+   0.0,
+   0.0,
+   1.0
+  ]
+ },
+ "lc": 0.1,
+ "names": {
+  "0": "inlet",
+  "2": "main",
+  "3": "branch"
+ },
+ "tail": 2,
+ "version": 2
+}

@@ -462,7 +462,7 @@ def _with_layers(spec: PipeSpec, layers: list, mprgs: list[float],
     if spec.layout == "h":            # its shells as an O-H core's (task 0086)
         out = out.core(name, layers[0], layout="h", wall_bump=wall_bump)
     else:
-        out = out.core(name, layers[0], nrad=spec._core_nrad, mprg=mprgs[0])
+        out = out.core(name, layers[0], nrad=spec._core_nrad, mprg=mprgs[0], layout="oh")
     for sh, x, m in zip(spec.shells, layers[1:], mprgs[1:]):
         if isinstance(x, (int, float)):
             out = out.shell(sh.name, dR=x, nrad=sh.nrad, mprg=m)
@@ -757,7 +757,8 @@ class Transition(Sweep):
         sh = h_spec.core_shape
         out = PipeSpec(nang_w=sh.nang_w, nang_h=sh.nang_h, mbmp=o_spec.mbmp,
                        rot=o_spec.rot).core(o_spec.layer_names[0], sh,
-                                            nrad=o_spec._core_nrad, mprg=o_spec._core_mprg)
+                                            nrad=o_spec._core_nrad, mprg=o_spec._core_mprg,
+                                            layout="oh")
         for s in h_spec.shells:
             out = out.shell(s.name, dR=s.dR, nrad=s.nrad, mprg=s.mprg, outer=s.outer)
         return out

@@ -155,11 +155,11 @@ class PipeSpec:
             .shell("insulation", dR=0.10, nrad=4)
         )
 
-    Rectangular duct (shorthand)::
+    Rectangular duct (shorthand; an H face, walls graded, since 0.4.0)::
 
         duct = (
-            PipeSpec(nang_w=6, nang_h=4)
-            .core("air", half_w=0.2, half_h=0.1, nrad=5)
+            PipeSpec(nang_w=6, nang_h=6)
+            .core("air", half_w=0.2, half_h=0.1, first_cell=0.02)
             .shell("duct_wall", dR=0.01, nrad=3)
         )
 
@@ -219,7 +219,7 @@ class PipeSpec:
         half_w: float | None = None,
         half_h: float | None = None,
         first_cell: float | None = None,
-        layout: str = "oh",
+        layout: str | None = None,
         wall_bump: tuple[float, float] | None = None,
     ) -> "PipeSpec":
         """Set the innermost (core) layer.
@@ -270,10 +270,11 @@ class PipeSpec:
             ``n_outer = 4`` cores only; mutually exclusive with ``mprg``
             (docs/tasks/0002).  On an H core: the end cell of every side,
             at all four walls, resolved here to ``wall_bump`` (task 0084).
-        layout : str
-            The section layout (decision 0036): ``"oh"`` (the default), the
-            5-patch O-H face; or ``"h"``, one Cartesian patch, for a
-            rectangular core (shells around it: task 0086).  An H
+        layout : str, optional
+            The section layout (decision 0036): ``"h"``, one Cartesian
+            patch, the default for a rectangular core (since 0.4.0, task
+            0087); or ``"oh"``, the 5-patch O-H face, the default for a
+            circle and the opt-in for a rectangle.  An H
             core has no ring, so no ``nrad``; ``mprg`` is then the wall
             growth ratio, the second cell from each wall over the first
             (> 1 refines toward the walls), and ``first_cell`` its end
@@ -288,17 +289,8 @@ class PipeSpec:
         """
         if self._core is not None:
             raise RuntimeError("PipeSpec.core() may only be called once.")
-        if layout not in LAYOUTS:
+        if layout is not None and layout not in LAYOUTS:
             raise ValueError(f"layout must be one of {sorted(LAYOUTS)}, got {layout!r}")
-        if layout == "h":
-            if nrad:
-                raise ValueError(
-                    f"nrad={nrad!r} on an H core: an H core has no ring, so its "
-                    "near-wall cells come from wall grading.  Drop nrad and grade "
-                    "the walls (first_cell= or mprg=), or pass layout='oh' to keep "
-                    "the O-H face (decision 0036)")
-        elif nrad < 1:
-            raise ValueError(f"nrad must be >= 1, got {nrad!r}")
 
         # Resolve shape from shorthand geometry keywords
         geo_given = radius is not None or half_w is not None or half_h is not None
@@ -346,6 +338,20 @@ class PipeSpec:
                 )
 
         self._validate_shape_nang(shape)
+        default = layout is None
+        if default:                    # H for a rectangle (0.4.0, decision 0036 item 1)
+            layout = "oh" if shape.is_round or shape.is_station else "h"
+        if layout == "h":
+            if nrad:
+                how = ("a rectangular core is H by default since 0.4.0" if default
+                       else "an H core")
+                raise ValueError(
+                    f"nrad={nrad!r} on {how}: it has no ring, so its "
+                    "near-wall cells come from wall grading.  Drop nrad and grade "
+                    "the walls (first_cell= or mprg=), or pass layout='oh' to keep "
+                    "the O-H face (decision 0036)")
+        elif nrad < 1:
+            raise ValueError(f"nrad must be >= 1, got {nrad!r}")
         if layout == "h":
             if shape.is_round or shape.is_station:
                 raise ValueError(f"layout='h' needs a rectangular core, got a {shape.label}")
@@ -681,7 +687,8 @@ class PipeSpec:
                       wall_bump=None if wb is None else tuple(wb),
                       mprg=None if wb is not None else core.get("mprg", 1.0))
         else:
-            spec.core(core["name"], shape, nrad=core["nrad"], mprg=core.get("mprg", 1.0))
+            spec.core(core["name"], shape, nrad=core["nrad"], mprg=core.get("mprg", 1.0),
+                      layout="oh")
         for sh in d.get("shells", []):
             sh = dict(sh)
             kind = sh.pop("type")

@@ -19,7 +19,7 @@ tasks 0082, 0084).  Two layouts, chosen on the core
   patches, corner order, signature kinds), used by the block layouts;
   ``sections.oh_gmsh``: its GMSH faces;
 - ``sections.h``: one Cartesian patch for a rectangular core, pure and
-  GMSH.
+  GMSH; the default for a rectangle since 0.4.0 (task 0087).
 
 ``layout_of(spec)`` gives a spec's layout module; both implement
 ``SectionLayout``, what the assembly asks of a layout (task 0084).

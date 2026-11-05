@@ -41,14 +41,62 @@ def _h(half_w=0.1, half_h=0.05, nw=8, nh=4, **kw):
 
 
 def _oh(half_w=0.1, half_h=0.05, nw=8, nh=4, nrad=2):
-    return PipeSpec(nang_w=nw, nang_h=nh).core("air", half_w=half_w, half_h=half_h, nrad=nrad)
+    return PipeSpec(nang_w=nw, nang_h=nh).core("air", half_w=half_w, half_h=half_h, nrad=nrad,
+                                              layout="oh")
+
+
+# -- the H default (0.4.0, task 0087) ---------------------------------------
+
+def test_layout_defaults_to_h_for_a_rectangle_and_oh_for_a_circle():
+    assert PipeSpec().core("air", RectShape(0.1, 0.05, 8, 4)).layout == "h"
+    assert PipeSpec(nang_w=8, nang_h=4).core("air", half_w=0.1, half_h=0.05).layout == "h"
+    assert PipeSpec(nang=4).core("air", radius=0.1, nrad=2).layout == "oh"
+    assert PipeSpec().core("air", RectShape(0.1, 0.05, 8, 4), nrad=2,
+                           layout="oh").layout == "oh"
+
+
+def test_nrad_on_a_default_rectangle_names_both_fixes():
+    with pytest.raises(ValueError, match=r"nrad=3 on a rectangular core is H by default "
+                                         r"since 0\.4\.0.*Drop nrad and grade the walls.*"
+                                         r"layout='oh'"):
+        PipeSpec().core("air", RectShape(0.1, 0.05, 8, 4), nrad=3)
+
+
+def test_saved_before_0087_reproduces_its_oh_mesh():
+    """``tests/data/saved_before_0087.json`` was written at d5e503f, before
+    the flip: a duct with a tap, a bend and a reducer.  Its specs load as
+    O-H and mesh exactly as the same assembly built with ``layout="oh"``
+    (at d5e503f the same 2240 cells and nodes, task 0087's notes)."""
+    saved = json.loads((DATA / "saved_before_0087.json").read_text(encoding="utf-8"))
+    asm = Assembly.from_dict(saved)
+    assert asm.inlet.spec.layout == "oh" and asm.cell_count() == 2240
+
+    def duct(hw, hh):
+        return PipeSpec(nang_w=4, nang_h=4).core("air", half_w=hw, half_h=hh, nrad=3,
+                                                 layout="oh")
+    fresh = Assembly(duct(0.1, 0.05), direction=[1, 0, 0], up=[0, 0, 1], lc=0.1)
+    fresh.add(Straight(0.2, n_layers=3))
+    main, br = fresh.add(Tee(branch=RectShape(0.06, 0.06, 4, 4), branch_length=0.25,
+                             n_run=3, n_branch=3), names=["main", "branch"])
+    fresh.add(br, Straight(0.1, n_layers=2))
+    main = fresh.add(main, Bend(0.2, 90, n_layers=4))
+    fresh.add(main, Reducer(duct(0.08, 0.04), 0.2, n_layers=3))
+    assert fresh.to_dict() == asm.to_dict()
+    nodes = []
+    for a in (asm, fresh):
+        with Session("saved0087"):
+            a.mesh()
+            tags, xyz, _ = gmsh.model.mesh.getNodes()
+            nodes.append((tags.copy(), xyz.copy()))
+    assert np.array_equal(nodes[0][0], nodes[1][0])
+    assert np.array_equal(nodes[0][1], nodes[1][1])
 
 
 # ---------------------------------------------------------------------------
 # The spec
 # ---------------------------------------------------------------------------
 
-def test_default_layout_is_oh():
+def test_oh_layout_has_no_wall_grading():
     assert _oh().layout == "oh" and _oh().wall_grading is None
 
 
@@ -62,7 +110,7 @@ def test_nrad_on_h_names_both_fixes():
     (lambda: PipeSpec(nang=4).core("air", half_w=0.1, half_h=0.05, layout="x"), "layout must be"),
     (lambda: _h(first_cell=0.002, mprg=1.2), "one of"),
     (lambda: _h(wall_bump=(0.5,)), "two positive"),
-    (lambda: PipeSpec(nang_w=4, nang_h=4).core("air", half_w=0.1, half_h=0.05, nrad=2,
+    (lambda: PipeSpec(nang_w=4, nang_h=4).core("air", half_w=0.1, half_h=0.05, nrad=2, layout="oh",
                                                 wall_bump=(0.5, 0.5)), "H core"),
 ])
 def test_bad_layouts(make, match):
@@ -108,12 +156,12 @@ def test_round_trip(make):
 def test_saved_before_0084_loads_as_oh_and_meshes_the_same():
     """``tests/data/saved_before_0084.json`` was written by the code before
     this task: no ``layout`` key.  It loads as O-H and meshes as a spec
-    built today with the default."""
+    built today with ``layout="oh"`` (the default before 0.4.0)."""
     saved = json.loads((DATA / "saved_before_0084.json").read_text(encoding="utf-8"))
     assert "layout" not in json.dumps(saved)
     asm = Assembly.from_dict(saved)
     assert asm.inlet.spec.layout == "oh"
-    duct = PipeSpec(nang_w=4, nang_h=2).core("air", half_w=0.1, half_h=0.05, nrad=2)
+    duct = PipeSpec(nang_w=4, nang_h=2).core("air", half_w=0.1, half_h=0.05, nrad=2, layout="oh")
     fresh = Assembly(duct, direction=[1, 0, 0], up=[0, 0, 1])
     fresh.add(Straight(0.3, n_layers=2))
     fresh.add(Bend(0.15, 90, n_layers=4))

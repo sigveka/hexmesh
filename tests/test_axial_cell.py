@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 ``Assembly(axial_cell=…)``: ``n_layers=None`` from a target axial cell size
 (task 0041, decision 0024).
@@ -49,7 +61,7 @@ def _added(ac, fitting, spec=None):
      0.4 * math.tan(math.radians(15))),
     (Reducer(_pipe(0.06), 0.2), 0.05, 0.2),
     (Transition(PipeSpec(nang_w=4, nang_h=4).core("fluid", half_w=0.1, half_h=0.06,
-                                                  nrad=3), 0.3), 0.04, 0.3),
+                                                  nrad=3, layout="oh"), 0.3), 0.04, 0.3),
 ], ids=["Straight", "Straight-exact", "Bend", "Bend-negative", "Elbow",
         "MiterBend", "MiterBend-3cuts", "Reducer", "Transition"])
 def test_resolved_count(fitting, ac, length):

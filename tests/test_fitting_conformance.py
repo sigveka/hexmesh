@@ -76,7 +76,7 @@ def _three_thin(radius=0.1):
 def _duct(half_w=0.1, half_h=0.05, nang_w=4, nang_h=2, name="air", nrad=2):
     """Single-layer rectangular duct, 2:1 by default (task 0028)."""
     return PipeSpec(nang_w=nang_w, nang_h=nang_h).core(
-        name, half_w=half_w, half_h=half_h, nrad=nrad)
+        name, half_w=half_w, half_h=half_h, nrad=nrad, layout="oh")
 
 
 def _hduct(half_w=0.1, half_h=0.05, nang_w=8, nang_h=4, first_cell=None, mprg=None):
@@ -103,13 +103,13 @@ def _in_rect(half_w=0.25, half_h=0.125):
 
 def _rect_in_circle():
     """2:1 duct in a circular casing: the casing's arcs are unequal."""
-    return PipeSpec(nang=4).core("fluid", RectShape(0.1, 0.05, 4, 4), nrad=3).shell(
+    return PipeSpec(nang=4).core("fluid", RectShape(0.1, 0.05, 4, 4), nrad=3, layout="oh").shell(
         "casing", outer=CircleShape(0.16, 4), nrad=3)
 
 
 def _rect3(half_w=0.1, half_h=0.05, lagging=True):
     """A duct with a wall and lagging, each grown by dR."""
-    spec = (PipeSpec(nang=4).core("fluid", RectShape(half_w, half_h, 4, 4), nrad=3)
+    spec = (PipeSpec(nang=4).core("fluid", RectShape(half_w, half_h, 4, 4), nrad=3, layout="oh")
             .shell("wall", dR=0.01, nrad=2))
     return spec.shell("lagging", dR=0.03, nrad=2) if lagging else spec
 
@@ -356,7 +356,7 @@ CASES = {
     "transition-square-shell-circle": lambda: _between(_in_rect(0.15, 0.15), Transition(
         _one().shell("block", dR=0.08, nrad=3), 0.3, 4)),
     "transition-3layer-circle-2to1": lambda: _between(_three(), Transition(
-        PipeSpec(nang=4).core("fluid", RectShape(0.15, 0.075, 4, 4), nrad=3)
+        PipeSpec(nang=4).core("fluid", RectShape(0.15, 0.075, 4, 4), nrad=3, layout="oh")
         .shell("wall", dR=0.025, nrad=2).shell("insulation", dR=0.03, nrad=2), 0.4, 6,
         axial_grading=1.1)),
 }

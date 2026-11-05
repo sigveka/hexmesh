@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Branched ventilation supply: a fan's round outlet, a flat main duct with
 three taps, and a bend at the end of the run.
@@ -32,7 +44,7 @@ N = 8      # cells per side, shared by every section and tap
 HALF_W, HALF_H = 0.25, 0.125
 
 FAN = PipeSpec(nang=N).core("air", radius=0.15, nrad=4)
-DUCT = PipeSpec(nang_w=N, nang_h=N).core("air", half_w=HALF_W, half_h=HALF_H, nrad=4)
+DUCT = PipeSpec(nang_w=N, nang_h=N).core("air", half_w=HALF_W, half_h=HALF_H, mprg=1.2)
 
 
 def build() -> Assembly:

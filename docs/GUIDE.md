@@ -212,7 +212,7 @@ PipeSpec(nang=6).core("fluid", radius=0.05, nrad=4).shell("pipe_wall", dR=0.005,
 
 Each layer becomes its own physical volume, and neighbouring layers meet at
 conformal material interfaces, which is what conjugate heat transfer needs.
-Every layer is built from a 5-patch O-H cross-section:
+A circular core (and a rectangular one with `layout="oh"`) is a 5-patch O-H cross-section:
 
 ```
       N
@@ -229,16 +229,24 @@ The centre square avoids the singular pole a pure O-grid would have.
 ### Rectangular ducts
 
 ```python
-# 2:1 duct, 0.2 wide (along the frame's right) by 0.1 high (along up)
-PipeSpec(nang_w=8, nang_h=4).core("air", half_w=0.1, half_h=0.05, nrad=3)
+# 2:1 duct, 0.2 wide (along the frame's right) by 0.1 high (along up),
+# walls graded to a first cell of 1 mm
+PipeSpec(nang_w=16, nang_h=8).core("air", half_w=0.1, half_h=0.05, first_cell=0.001)
 ```
 
-A duct uses the same O-H layout with straight sides: a centre rectangle and
-a ring of uniform thickness, with `nang_w` cells along the width and
-`nang_h` along the height. Ducts run through `Straight`, `Bend`,
-`MiterBend`, `SplinePipe`, `Closure` and `Reducer`.  A duct can also be
-one Cartesian patch (`layout="h"`, API.md), with or without shells; duct
-taps on it keep O-H blocks inside and add a `Switch` leg at each H port.  Shells may have any
+**Since 0.4.0 a duct is one Cartesian patch (the H face) by default**:
+`nang_w` cells along the width and `nang_h` along the height, graded
+toward the walls by `first_cell=` or `mprg=` (the second cell from a wall
+over the first).  The O-H face converges badly on a rectangle, and a
+Cartesian grid of the same cells converges at second order
+([RESEARCH §7.11](RESEARCH.md)).  For the O-H face (a centre rectangle and
+a ring of uniform thickness), pass `layout="oh"` with `nrad=`; `nrad=`
+alone is an error that names both fixes.  Descriptions saved before 0.4.0
+still load as O-H.
+
+Ducts run through `Straight`, `Bend`, `MiterBend`, `SplinePipe`,
+`Closure` and `Reducer`, with or without shells.  Duct taps on an H duct
+keep O-H blocks inside and add a `Switch` leg at each H port.  Shells may have any
 outline, so a duct can carry a wall and lagging, and a pipe can sit in a
 rectangular block (`.shell(name, outer=RectShape(...))`, API.md); a stack
 with a rectangle has the same count on every side.
@@ -246,7 +254,7 @@ with a rectangle has the same count on every side.
 when the counts per side match: a circle's `nang` equals the duct's
 `nang_w` and `nang_h`.  It changes every layer of a stack together, so an
 insulated pipe can become an insulated duct.  A transition may also end
-on an H duct (`layout="h"`, API.md); it then embeds a `Switch`.  Between an O-H and an H duct of the same size, put a `Switch`.
+on an H duct (the default); it then embeds a `Switch`.  Between an O-H and an H duct of the same size, put a `Switch`.
 
 `up` decides which side is the height, and a bend's `roll` decides its
 plane. `Bend(..., roll=0)` turns toward `up`, across the height: the
@@ -393,7 +401,7 @@ alone.  Verified with OpenFOAM v1912 and v2406; details in
 [docs/integrations/openfoam.md](integrations/openfoam.md).
 
 **Buoyant and CHT solvers need OpenFOAM v2406 or later.**  Every hexmesh
-mesh is non-orthogonal at the O-H corners (20°–40°).  The v1912 build's
+mesh with an O-H face is non-orthogonal at its corners (20°–40°).  The v1912 build's
 buoyant and compressible solvers (`buoyantSimpleFoam`,
 `chtMultiRegion*Foam`) diverge on any non-orthogonal mesh: even the
 shipped `buoyantCavity` tutorial with its box sheared by 1° fails.  v2406

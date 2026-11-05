@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Rectangular duct: a 2:1 duct with an easy-way and a hard-way bend.
 
@@ -9,13 +21,18 @@ A bend with ``roll=0`` turns toward ``up``, across the short side: the
 long side: the "hard way", which needs the larger bend radius (it is
 checked against the half-width).  The open ends become ``air_inlet`` and
 ``air_outlet``.
+
+The section is an H face, one Cartesian patch (the default for a
+rectangle since 0.4.0).  ``mprg`` grades its walls: the second cell from
+each wall over the first.  ``layout="oh"`` with ``nrad=`` gives the O-H
+face instead.
 (Limits: no elbow for ducts yet; duct tees are single-layer.  A duct with a wall and lagging:
 ``sections.lagged_duct``.)
 """
 
 from hexmesh import Assembly, Bend, PipeSpec, Straight
 
-DUCT = PipeSpec(nang_w=8, nang_h=4).core("air", half_w=0.1, half_h=0.05, nrad=3)
+DUCT = PipeSpec(nang_w=8, nang_h=4).core("air", half_w=0.1, half_h=0.05, mprg=1.2)
 
 
 def build() -> Assembly:

@@ -29,11 +29,11 @@ What each example shows, what its mesh looks like, and how good the cells are.  
 | [insulated_pipe](#insulated_pipe) | Three-layer insulated pipe: fluid, steel wall, insulation. | 10 800 | 0.144 | 0.792 | 3.5 s |
 | [insulated_route](#insulated_route) | Insulated route: a three-layer stack carried through a reducer, a miter, a spline and an elbow. | 15 600 | 0.061 | 0.531 | 6.9 s |
 | [graded_bend](#graded_bend) | CFD-ready bend: wall grading, axial cells clustered at the bend, inlet and outlet extensions, and one wall patch per fitting. | 11 160 | 0.100 | 0.792 | 1.9 s |
-| [rect_duct](#rect_duct) | Rectangular duct: a 2:1 duct with an easy-way and a hard-way bend. | 4 576 | 0.317 | 0.705 | 1.8 s |
-| [duct_transition](#duct_transition) | Duct transition: a circular pipe into a 2:1 duct, a duct bend, and back. | 5 616 | 0.377 | 0.689 | 3.6 s |
+| [rect_duct](#rect_duct) | Rectangular duct: a 2:1 duct with an easy-way and a hard-way bend. | 1 408 | 0.737 | 0.997 | 0.6 s |
+| [duct_transition](#duct_transition) | Duct transition: a circular pipe into a 2:1 duct, a duct bend, and back. | 4 392 | 0.356 | 0.546 | 2.9 s |
 | [layer_outlines](#layer_outlines) | Layer outlines: a round conductor in a square filler in a round sheath. | 11 040 | 0.132 | 0.706 | 5.8 s |
-| [lagged_duct](#lagged_duct) | Lagged duct: a rectangular air duct with a steel wall and lagging, through a reducer and bends both ways. | 10 488 | 0.025 | 0.690 | 5.3 s |
-| [insulated_transition](#insulated_transition) | Insulated transition: an insulated round pipe becomes an insulated duct, turns, and the insulation stops. | 9 036 | 0.050 | 0.689 | 6.5 s |
+| [lagged_duct](#lagged_duct) | Lagged duct: a rectangular air duct with a steel wall and lagging, through a reducer and bends both ways. | 7 176 | 0.024 | 0.690 | 4.6 s |
+| [insulated_transition](#insulated_transition) | Insulated transition: an insulated round pipe becomes an insulated duct, turns, and the insulation stops. | 6 972 | 0.048 | 0.577 | 7.3 s |
 | [insulated_tee](#insulated_tee) | Insulated tee: a three-layer header with a side branch, the steel and the insulation running through the junction into the branch. | 13 164 | 0.107 | 0.316 | 7.2 s |
 | [insulated_network](#insulated_network) | Insulated network: a three-layer header with a tee and a wye, the steel and the insulation running through both junctions, and one branch left bare. | 18 012 | 0.059 | 0.156 | 9.0 s |
 | **Networks: composing fittings into routes, branches and trees** | | | | | |
@@ -44,9 +44,9 @@ What each example shows, what its mesh looks like, and how good the cells are.  
 | [skewed_network](#skewed_network) | Off-axis network: a drum on a skewed axis, a nozzle at 35° from vertical, and fittings at arbitrary angles and rolls. | 9 492 | 0.150 | 0.331 | 3.3 s |
 | **Applications: equipment and engineering cases** | | | | | |
 | [drum_nozzle](#drum_nozzle) | Line from a drum nozzle: a horizontal drum with a top nozzle, a riser, an elbow, a tee and CFD extensions on the open ends. | 10 272 | 0.150 | 0.331 | 2.9 s |
-| [hvac_supply](#hvac_supply) | Ventilation supply run: a fan's round outlet, a flat duct through the building, and a square terminal. | 15 360 | 0.121 | 0.627 | 3.8 s |
-| [hvac_branched](#hvac_branched) | Branched ventilation supply: a fan's round outlet, a flat main duct with three taps, and a bend at the end of the run. | 33 472 | 0.166 | 0.421 | 5.5 s |
-| [cooling_channels](#cooling_channels) | Cooling channels: a supply pipe split by a wye into two flat rectangular channels, each returning to a round outlet. | 10 152 | 0.152 | 0.204 | 4.7 s |
+| [hvac_supply](#hvac_supply) | Ventilation supply run: a fan's round outlet, a flat duct through the building, and a square terminal. | 6 912 | 0.246 | 0.577 | 1.9 s |
+| [hvac_branched](#hvac_branched) | Branched ventilation supply: a fan's round outlet, a flat main duct with three taps, and a bend at the end of the run. | 24 704 | 0.157 | 0.421 | 6.0 s |
+| [cooling_channels](#cooling_channels) | Cooling channels: a supply pipe split by a wye into two flat rectangular channels, each returning to a round outlet. | 8 280 | 0.152 | 0.204 | 5.0 s |
 
 ## Fittings: one building block each
 
@@ -388,6 +388,11 @@ A bend with `roll=0` turns toward `up`, across the short side: the
 long side: the "hard way", which needs the larger bend radius (it is
 checked against the half-width).  The open ends become `air_inlet` and
 `air_outlet`.
+
+The section is an H face, one Cartesian patch (the default for a
+rectangle since 0.4.0).  `mprg` grades its walls: the second cell from
+each wall over the first.  `layout="oh"` with `nrad=` gives the O-H
+face instead.
 (Limits: no elbow for ducts yet; duct tees are single-layer.  A duct with a wall and lagging:
 `sections.lagged_duct`.)
 
@@ -397,7 +402,7 @@ python3 -m hexmesh.examples.sections.rect_duct
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 5: Straight ×3, Bend ×2 | 125 | 4 576 | 0.317 | 0.513 | 0.705 (#1 Bend) | 7.5 | 1.8 s |
+| 5: Straight ×3, Bend ×2 | 25 | 1 408 | 0.737 | 0.872 | 0.997 (#1 Bend) | 2.5 | 0.6 s |
 
 - **Open ends:** `air_inlet`, `air_outlet`
 - **Walls:** `air_wall`
@@ -423,7 +428,7 @@ python3 -m hexmesh.examples.sections.duct_transition
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 7: Straight ×4, Transition ×2, Bend | 160 | 5 616 | 0.377 | 0.579 | 0.689 (#5 Transition) | 5.4 | 3.6 s |
+| 7: Straight ×4, Transition ×2, Bend | 106 | 4 392 | 0.356 | 0.625 | 0.546 (#5 Transition) | 5.3 | 2.9 s |
 
 - **Open ends:** `air_inlet`, `air_outlet`
 - **Walls:** `air_wall`
@@ -483,7 +488,7 @@ python3 -m hexmesh.examples.sections.lagged_duct
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 7: Straight ×4, Bend ×2, Reducer | 416 | 10 488 | 0.025 | 0.313 | 0.690 (#3 Reducer) | 100.0 | 5.3 s |
+| 7: Straight ×4, Bend ×2, Reducer | 288 | 7 176 | 0.024 | 0.328 | 0.690 (#3 Reducer) | 100.0 | 4.6 s |
 
 - **Open ends:** `air_inlet`, `air_outlet`, `lagging_inlet`, `lagging_outlet`, `steel_inlet`, `steel_outlet`
 - **Walls:** `lagging_wall`
@@ -512,7 +517,7 @@ python3 -m hexmesh.examples.sections.insulated_transition
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 5: Straight ×3, Transition, Bend | 308 | 9 036 | 0.050 | 0.362 | 0.689 (#1 Transition) | 50.0 | 6.5 s |
+| 5: Straight ×3, Transition, Bend | 249 | 6 972 | 0.048 | 0.400 | 0.577 (#1 Transition) | 50.0 | 7.3 s |
 
 - **Open ends:** `air_inlet`, `air_outlet`, `insulation_inlet`, `steel_inlet`, `steel_outlet`
 - **Walls:** `insulation_end`, `insulation_wall`, `steel_wall`
@@ -764,8 +769,10 @@ python3 -m hexmesh.examples.applications.drum_nozzle
   turns along the ceiling with a two-cut mitred hard-way bend
   (`roll=90`: across the width, so its radius is checked against the
   half-width), and jogs sideways with a spline offset.
-- A second `Transition` (rectangle → rectangle) ends at a 0.3 × 0.3
-  square terminal, named `terminal`.
+- A `Reducer` (rectangle → rectangle: half_w and half_h change on the
+  H face) ends at a 0.3 × 0.3 square terminal, named `terminal`.
+- The rectangles are H faces (the default since 0.4.0), their walls
+  graded by `mprg` (the second cell from each wall over the first).
 
 Patches: `air_inlet`, `air_terminal`, `air_wall`.
 
@@ -775,7 +782,7 @@ python3 -m hexmesh.examples.applications.hvac_supply
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 10: Straight ×5, Transition ×2, Bend, MiterBend, SplinePipe | 235 | 15 360 | 0.121 | 0.363 | 0.627 (#5 MiterBend) | 18.0 | 3.8 s |
+| 10: Straight ×5, Transition, Bend, MiterBend, SplinePipe, Reducer | 76 | 6 912 | 0.246 | 0.562 | 0.577 (#1 Transition) | 9.1 | 1.9 s |
 
 - **Open ends:** `air_inlet`, `air_terminal`
 - **Walls:** `air_wall`
@@ -813,7 +820,7 @@ python3 -m hexmesh.examples.applications.hvac_branched
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 14: Straight ×9, Transition, Tee ×3, Bend | 235 | 33 472 | 0.166 | 0.504 | 0.421 (#6 Tee) | 9.4 | 5.5 s |
+| 14: Straight ×9, Transition, Tee ×3, Bend | 216 | 24 704 | 0.157 | 0.551 | 0.421 (#6 Tee) | 10.7 | 6.0 s |
 
 - **Open ends:** `air_inlet`, `air_main_end`, `air_supply_down`, `air_supply_side`, `air_supply_up`
 - **Walls:** `air_wall`
@@ -838,7 +845,7 @@ python3 -m hexmesh.examples.applications.cooling_channels
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 14: Straight ×7, Wye, Bend ×2, Transition ×4 | 184 | 10 152 | 0.152 | 0.380 | 0.204 (#1 Wye) | 9.4 | 4.7 s |
+| 14: Straight ×7, Wye, Bend ×2, Transition ×4 | 180 | 8 280 | 0.152 | 0.435 | 0.204 (#1 Wye) | 8.3 | 5.0 s |
 
 - **Open ends:** `fluid_inlet`, `fluid_left_out`, `fluid_right_out`
 - **Walls:** `fluid_wall`
@@ -906,9 +913,9 @@ Case: `validation/poiseuille/`: [README.md](../validation/poiseuille/README.md),
 
 Tags: `laminar`, `flow`, `section:rect`, `straight`, `OpenFOAM v2406 (docker)`.
 
-Gates: Cartesian control: extrapolated $f\,\mathrm{Re}$ and $u_c$, every aspect ratio: within 0.1 % of exact; Cartesian control: finest-level |error|: < 1 %; Cartesian control: observed order: $2 \pm 0.2$, status converging (else the setup is suspect); hexmesh O-H levels: reported against the control, not gated (decision 0015 amendment 2).
+Gates: Cartesian control: extrapolated $f\,\mathrm{Re}$ and $u_c$, every aspect ratio: within 0.1 % of exact; Cartesian control: finest-level |error|: < 1 %; Cartesian control: observed order: $2 \pm 0.2$, status converging (else the setup is suspect); hexmesh H section (the accepted hexmesh result, task 0084): extrapolated $f\,\mathrm{Re}$ and $u_c$, every aspect ratio: within 0.1 % of exact; hexmesh H section: finest-level |error|: < 1 %; hexmesh H section: observed order: $2 \pm 0.2$, status converging; hexmesh O-H levels: reported against the control, not gated (decision 0015 amendment 2).
 
-<p><img src="../validation/rect_duct/img/ar1_k1.png" width="68%"> <img src="../validation/rect_duct/img/ar1_k1_section.png" width="29%"></p>
+<p><img src="../validation/rect_duct/img/h_ar1_k1.png" width="68%"> <img src="../validation/rect_duct/img/h_ar1_k1_section.png" width="29%"></p>
 
 Case: `validation/rect_duct/`: [README.md](../validation/rect_duct/README.md), [RESULTS.md](../validation/rect_duct/RESULTS.md), [case.json](../validation/rect_duct/case.json).
 
@@ -1003,4 +1010,4 @@ Which hexmesh features each case exercises (decision 0012's fixed list). Marks: 
 
 ---
 
-Generated 2026-11-02 from hexmesh cbe19dc + uncommitted changes, gmsh 4.12.1, Python 3.12.3, 8 CPUs, 1 job(s).
+Generated 2026-11-05 from hexmesh d5e503f + uncommitted changes, gmsh 4.12.1, Python 3.12.3, 8 CPUs, 1 job(s).

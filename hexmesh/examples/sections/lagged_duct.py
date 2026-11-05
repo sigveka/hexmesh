@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Lagged duct: a rectangular air duct with a steel wall and lagging,
 through a reducer and bends both ways.
@@ -23,7 +35,7 @@ NANG = 6
 
 def duct(half_w: float, half_h: float) -> PipeSpec:
     return (PipeSpec(nang=NANG)
-            .core("air", RectShape(half_w, half_h, NANG, NANG), nrad=3)
+            .core("air", RectShape(half_w, half_h, NANG, NANG), mprg=1.2)
             .shell("steel", dR=0.002, nrad=2)
             .shell("lagging", dR=0.03, nrad=3))
 

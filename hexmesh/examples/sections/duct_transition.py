@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Duct transition: a circular pipe into a 2:1 duct, a duct bend, and back.
 
@@ -15,7 +27,7 @@ become ``air_inlet`` and ``air_outlet``.
 from hexmesh import Assembly, Bend, PipeSpec, Straight, Transition
 
 PIPE = PipeSpec(nang=6).core("air", radius=0.1, nrad=3)
-DUCT = PipeSpec(nang_w=6, nang_h=6).core("air", half_w=0.14, half_h=0.07, nrad=3)
+DUCT = PipeSpec(nang_w=6, nang_h=6).core("air", half_w=0.14, half_h=0.07, mprg=1.2)
 
 
 def build() -> Assembly:

@@ -271,6 +271,7 @@ def rect_duct(tmp_path_factory):
     out = work / "results.json"
     run = subprocess.run([sys.executable, str(ROOT / "validation/rect_duct/run.py"),
                           "--ratios", "1", "--levels", "1", "--work", str(work),
+                          "--meshes", "oh", "cartesian", "h",
                           "--json", str(out)], capture_output=True, text=True)
     assert run.returncode == 0, run.stdout[-3000:] + run.stderr[-3000:]
     return json.loads(out.read_text(encoding="utf-8"))

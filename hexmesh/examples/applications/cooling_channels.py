@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Cooling channels: a supply pipe split by a wye into two flat rectangular
 channels, each returning to a round outlet.
@@ -15,7 +27,7 @@ Outlets: ``fluid_left_out``, ``fluid_right_out``.
 from hexmesh import Assembly, Bend, PipeSpec, Straight, Transition, Wye
 
 PIPE = PipeSpec(nang=6).core("fluid", radius=0.03, nrad=3)
-CHANNEL = PipeSpec(nang_w=6, nang_h=6).core("fluid", half_w=0.06, half_h=0.02, nrad=3)
+CHANNEL = PipeSpec(nang_w=6, nang_h=6).core("fluid", half_w=0.06, half_h=0.02, mprg=1.2)
 
 
 def build() -> Assembly:

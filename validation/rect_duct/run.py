@@ -172,10 +172,11 @@ HG_RATIOS = (2,)
 HG_FIRST_CELL = DH / 30
 
 
-def assembly(ratio: float, k: int = 1, layout: str = "oh") -> Assembly:
-    """The duct at level *k*: the O-H section (``layout="oh"``), the H
-    section (task 0084) with the control's counts per section, uniform
-    (``"h"``) or graded to :data:`HG_FIRST_CELL` at k = 1 (``"hg"``)."""
+def assembly(ratio: float, k: int = 1, layout: str = "h") -> Assembly:
+    """The duct at level *k*: the H section (task 0084; the default since
+    0.4.0) with the control's counts per section, uniform (``"h"``) or
+    graded to :data:`HG_FIRST_CELL` at k = 1 (``"hg"``), or the O-H
+    section (``"oh"``)."""
     a, b = half_sides(ratio)
     if layout in ("h", "hg"):
         nw, nh = control_cells(ratio)
@@ -185,7 +186,8 @@ def assembly(ratio: float, k: int = 1, layout: str = "oh") -> Assembly:
     else:
         nh = BASE["nang_h"]
         nw = int(round(nh * ratio))           # cells roughly square in the core
-        spec = PipeSpec(nang=nh).core("fluid", RectShape(a, b, nw, nh), nrad=BASE["nrad"])
+        spec = PipeSpec(nang=nh).core("fluid", RectShape(a, b, nw, nh), nrad=BASE["nrad"],
+                                      layout="oh")
     asm = Assembly(spec, position=[0, 0, 0], direction=[1, 0, 0], up=[0, 0, 1])
     lengths = (X_A, X_M - X_A, X_B - X_M, LENGTH - X_B)
     for i, (L, n) in enumerate(zip(lengths, BASE["n_layers"])):
@@ -195,13 +197,20 @@ def assembly(ratio: float, k: int = 1, layout: str = "oh") -> Assembly:
 
 def meshes():
     """(label, caption, build) per mesh shown in README.md
-    (``docs/gallery/build.py --validation``): the coarse level of each
-    aspect ratio, and the square at every level."""
-    nh, nr = BASE["nang_h"], BASE["nrad"]
-    out = [(f"ar{r}_k1", f"a/b = {r}, k = 1: nang_w {nh * r}, nang_h {nh}, nrad {nr}",
-            lambda r=r: assembly(r, 1)) for r in RATIOS]
-    out += [(f"ar1_k{k}", f"a/b = 1, k = {k}: nang {nh * k}, nrad {nr * k}",
+    (``docs/gallery/build.py --validation``): the H section's coarse level
+    of each aspect ratio, the square at every level, and the O-H square
+    it replaced as the default (task 0087)."""
+    out = []
+    for r in RATIOS:
+        nw, nh = control_cells(r)
+        out.append((f"h_ar{r}_k1", f"H, a/b = {r}, k = 1: nang_w {nw}, nang_h {nh}",
+                    lambda r=r: assembly(r, 1)))
+    nw, nh = control_cells(1)
+    out += [(f"h_ar1_k{k}", f"H, a/b = 1, k = {k}: nang {nh * k}",
              lambda k=k: assembly(1, k)) for k in LEVELS[1:]]
+    nh, nr = BASE["nang_h"], BASE["nrad"]
+    out.append(("ar1_k1", f"O-H, a/b = 1, k = 1: nang {nh}, nrad {nr}",
+                lambda: assembly(1, 1, layout="oh")))
     return out
 
 
@@ -333,12 +342,13 @@ def results(case: Path, ratio: float) -> dict:
 # grid: no O-H corners, so a second-order reference for the setup.
 
 MESHES = ("oh", "cartesian", "h", "hg")
+DEFAULT_MESHES = ("h", "hg")         # the H default (0.4.0); oh, cartesian by --meshes
 
 
 def control_cells(ratio: int) -> tuple[int, int]:
     """(ny, nz) across and up at k = 1: square cells, about as many per
     section as the O-H level."""
-    per_section = assembly(ratio, 1).cell_count() // sum(BASE["n_layers"])
+    per_section = assembly(ratio, 1, layout="oh").cell_count() // sum(BASE["n_layers"])
     nz = max(1, round(math.sqrt(per_section / ratio)))
     return nz * ratio, nz
 
@@ -477,10 +487,11 @@ def main(argv=None) -> dict:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--ratios", nargs="+", type=int, default=list(RATIOS))
     ap.add_argument("--levels", nargs="+", type=int, default=list(LEVELS))
-    ap.add_argument("--meshes", nargs="+", choices=MESHES, default=list(MESHES),
+    ap.add_argument("--meshes", nargs="+", choices=MESHES, default=list(DEFAULT_MESHES),
                     help="hexmesh's O-H section, the Cartesian control, hexmesh's H "
                          "section uniform (task 0084) or graded (hg, a/b 2 only); "
-                         "default all")
+                         "default h hg (the H default, task 0087); "
+                         "--meshes oh cartesian for the comparison")
     ap.add_argument("--work", type=Path, default=HERE / "work")
     ap.add_argument("--end-time", type=int, default=20000)
     ap.add_argument("--np", type=int, default=1, dest="n_proc",

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hexmesh"
-version = "0.3.0"
+version = "0.4.0"
 description = "Composable structured hex mesh generation for CFD pipe systems"
 readme = "README.md"
 license = "BSD-3-Clause"
