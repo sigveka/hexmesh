@@ -1,5 +1,21 @@
 # Changes
 
+## Unreleased
+
+**Structured errors** (decision 0040; task 0094).
+
+- Every error that bad input can cause is now a `hexmesh.HexmeshError`.
+  It is still a `ValueError`, and it carries `code`, `where`, `value`,
+  `limit` and `hint`.  `err.to_dict()` gives them as JSON data.
+- The layers raise their own subclasses: `SpecError`, `AssemblyError`,
+  `EquipmentError`, `LayoutError`, `ReaderError` and `StudyError`.
+  Former `TypeError`s stay `TypeError`s (`SpecTypeError`,
+  `AssemblyTypeError`, `StudyTypeError`).
+- Warnings are `hexmesh.HexmeshWarning` (a `UserWarning`), with the same
+  fields.
+- Messages are unchanged.  The codes are listed in
+  [API.md](API.md#errors-hexmesherrors).
+
 ## 0.4.0 (2026-11-05)
 
 **Breaking: rectangular cores default to the H face** (decision 0036;

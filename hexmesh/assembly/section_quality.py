@@ -47,6 +47,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from .errors import AssemblyError
 from ..core.grading import bump, progression      # noqa: F401 (re-exported)
 from ..sections import layout_of
 from ..core.spec import PipeSpec
@@ -185,11 +186,15 @@ def check_section_quality(spec: PipeSpec) -> list[str]:
         what = (f"layer `{q.name}` ({spec.outlines[i - 1].label} in a "
                 f"{spec.outlines[i].label})")
         if q.min_sj < PREDICTED_SJ_MIN:
-            raise ValueError(f"{what}: predicted corner scaled Jacobian {q.min_sj:.3f} "
-                             f"is below PREDICTED_SJ_MIN {PREDICTED_SJ_MIN:g}")
+            raise AssemblyError(f"{what}: predicted corner scaled Jacobian {q.min_sj:.3f} "
+                                f"is below PREDICTED_SJ_MIN {PREDICTED_SJ_MIN:g}",
+                                code="section_predicted_sj_below_minimum", where={"label": q.name},
+                                value=float(q.min_sj), limit="PREDICTED_SJ_MIN")
         if q.max_non_ortho > OUTLINE_NONORTH_MAX:
-            raise ValueError(f"{what}: predicted non-orthogonality {q.max_non_ortho:.1f}° "
-                             f"is above OUTLINE_NONORTH_MAX {OUTLINE_NONORTH_MAX:g}°")
+            raise AssemblyError(f"{what}: predicted non-orthogonality {q.max_non_ortho:.1f}° "
+                                f"is above OUTLINE_NONORTH_MAX {OUTLINE_NONORTH_MAX:g}°",
+                                code="section_nonorth_above_maximum", where={"label": q.name},
+                                value=float(q.max_non_ortho), limit="OUTLINE_NONORTH_MAX")
         if q.min_sj < PREDICTED_SJ_WARN:
             warn.append(f"{what}: predicted corner scaled Jacobian {q.min_sj:.3f} "
                         f"is below PREDICTED_SJ_WARN {PREDICTED_SJ_WARN:g}")

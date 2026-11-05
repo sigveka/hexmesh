@@ -59,6 +59,7 @@ from dataclasses import dataclass, field, replace
 
 import numpy as np
 
+from .errors import AssemblyError
 from ..core.grading import bump
 from ..core.spec import PipeSpec
 from ..sections import h, layout_of, oh
@@ -151,7 +152,9 @@ class Switch:
         if sw.n_layers is not None:
             return sw
         if axial_cell is None:
-            raise ValueError("n_layers=None needs Assembly(axial_cell=...)")
+            raise AssemblyError("n_layers=None needs Assembly(axial_cell=...)",
+                                code="n_layers_unresolved", where={"field": "n_layers"},
+                                hint="Assembly(axial_cell=...)")
         core = self.length - self.cap_depth(spec)
         return replace(sw, n_layers=max(1, math.ceil(core / axial_cell - 1e-9)))
 
@@ -162,8 +165,9 @@ class Switch:
         if self.outlet is not None:
             return self.outlet
         if spec.layout != "oh":
-            raise ValueError("Switch from an H inlet needs outlet= (the O-H spec, "
-                             "with its nrad)")
+            raise AssemblyError("Switch from an H inlet needs outlet= (the O-H spec, "
+                                "with its nrad)",
+                                code="switch_needs_outlet", where={"field": "outlet"})
         sh = spec.core_shape
         out = PipeSpec(nang_w=sh.nang_w, nang_h=sh.nang_h, mbmp=spec.mbmp,
                        rot=spec.rot).core(spec.layer_names[0], sh, layout="h")
@@ -184,31 +188,43 @@ class Switch:
 
     def check(self, spec: PipeSpec) -> None:
         if self.length <= 0:
-            raise ValueError(f"length must be positive, got {self.length!r}")
+            raise AssemblyError(f"length must be positive, got {self.length!r}",
+                                code="size_not_positive", where={"field": "length"},
+                                value=self.length, limit={"min_exclusive": 0})
         if self.n_layers is not None and self.n_layers < 1:
-            raise ValueError(f"n_layers must be at least 1, got {self.n_layers!r}")
+            raise AssemblyError(f"n_layers must be at least 1, got {self.n_layers!r}",
+                                code="count_below_minimum", where={"field": "n_layers"},
+                                value=self.n_layers, limit={"min": 1})
         out = self.outlet_spec(spec)
         for end, s in (("inlet", spec), ("outlet", out)):
             if s.core_shape.side_curve != "line":
-                raise ValueError(f"Switch changes a rectangular duct's section; the {end} "
-                                 f"core is a {s.core_shape.label}")
+                raise AssemblyError(f"Switch changes a rectangular duct's section; the {end} "
+                                    f"core is a {s.core_shape.label}",
+                                    code="switch_needs_rectangle", where={"field": end})
         if {spec.layout, out.layout} != {"oh", "h"}:
-            raise ValueError(f"Switch joins an O-H and an H face; got layout "
-                             f"{spec.layout!r} at the inlet and {out.layout!r} at the outlet")
+            raise AssemblyError(f"Switch joins an O-H and an H face; got layout "
+                                f"{spec.layout!r} at the inlet and {out.layout!r} at the outlet",
+                                code="switch_needs_oh_and_h", where={"field": "outlet"},
+                                value=out.layout, limit="the other layout")
         a, b = spec.core_shape, out.core_shape
         if (a.half_w, a.half_h) != (b.half_w, b.half_h) or spec.rot != out.rot:
-            raise ValueError("Switch keeps the rectangle: the outlet's half_w, half_h and rot "
-                             "must be the inlet's (use Reducer or Transition to change them)")
+            raise AssemblyError("Switch keeps the rectangle: the outlet's half_w, half_h and rot "
+                                "must be the inlet's (use Reducer or Transition to change them)",
+                                code="switch_changes_rectangle", where={"field": "outlet"},
+                                hint="use Reducer or Transition")
         shells = lambda s: [(x.name, x.nrad, x.mprg, o.to_dict())
                             for x, o in zip(s.shells, s.outlines[1:])]
         if shells(spec) != shells(out):
-            raise ValueError("Switch keeps the shells: the outlet's shells (names, outlines, "
-                             "nrad, mprg) must be the inlet's")
+            raise AssemblyError("Switch keeps the shells: the outlet's shells (names, outlines, "
+                                "nrad, mprg) must be the inlet's",
+                                code="switch_changes_shells", where={"field": "outlet"})
         s_oh, s_h = self._ends(spec, out)
         need, _, _ = min_length(s_oh, s_h)
         if self.length < need - 1e-12:
-            raise ValueError(f"Switch length {self.length:.6g} is below "
-                             f"{length_rule(s_oh, s_h)}")
+            raise AssemblyError(f"Switch length {self.length:.6g} is below "
+                                f"{length_rule(s_oh, s_h)}",
+                                code="switch_too_short", where={"field": "length"},
+                                value=self.length, limit={"min": float(need)})
         check_port_pairs(self, [spec, out])     # counts, mbmp, name: class 1 only
 
     def ports(self, inlet: Frame, spec: PipeSpec) -> list[tuple[Frame, PipeSpec]]:
@@ -221,23 +237,29 @@ class Switch:
         0.5)."""
         self.check(spec)
         if self.n_layers is None:
-            raise ValueError("n_layers unresolved (add the switch to an Assembly)")
+            raise AssemblyError("n_layers unresolved (add the switch to an Assembly)",
+                                code="n_layers_unresolved", where={"field": "n_layers"},
+                                hint="add the switch to an Assembly")
         (want, _), = self.ports(frames[0], spec)
         got = frames[1]
         if (np.linalg.norm(want.position - got.position) > 1e-9 * self.length
                 or np.dot(want.normal, got.normal) < 1 - 1e-9
                 or np.dot(want.up, got.up) < 1 - 1e-9):
-            raise ValueError("port interface does not match Switch geometry")
+            raise AssemblyError("port interface does not match Switch geometry",
+                                code="outlet_frame_mismatch")
         try:
             self.layout(frames, spec).validate()
         except LayoutError as e:
-            raise ValueError(f"block layout invalid: {e}") from None
+            raise AssemblyError.wrap(e, f"block layout invalid: {e}",
+                                     code="block_layout_invalid") from None
         sj = self.predicted_sj(frames, spec)
         what = f"predicted corner scaled Jacobian {sj:.3f}"
         if self.wall_shift(spec):
             what += " (the empirical bound at this wall shear, limits.SWITCH_SHEAR_SJ)"
         if sj < limits.PREDICTED_SJ_MIN:
-            raise ValueError(f"{what} is below PREDICTED_SJ_MIN {limits.PREDICTED_SJ_MIN:g}")
+            raise AssemblyError(f"{what} is below PREDICTED_SJ_MIN {limits.PREDICTED_SJ_MIN:g}",
+                                code="predicted_sj_below_minimum", value=float(sj),
+                                limit="PREDICTED_SJ_MIN", hint=self.meshed_sj_hint)
         if sj < limits.PREDICTED_SJ_WARN:
             return [f"{what} is below PREDICTED_SJ_WARN {limits.PREDICTED_SJ_WARN:g}"]
         return []

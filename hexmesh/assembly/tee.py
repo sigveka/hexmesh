@@ -65,6 +65,7 @@ from dataclasses import dataclass, field, replace
 
 import numpy as np
 
+from .errors import AssemblyError, AssemblyTypeError
 from ..core.shape import CircleShape, RectShape
 from ..core.spec import PipeSpec
 from ..sections import oh
@@ -110,12 +111,15 @@ def tee_wall(o, ex, ez, R: float, r: float) -> TubeUnion:
 
 def _check_circle(spec: PipeSpec) -> None:
     if not spec.core_shape.is_round:
-        raise ValueError("Tee: a pipe tee needs a circular main; a rectangular "
-                         "main is a duct tap (branch=, face=; decision 0033)")
+        raise AssemblyError("Tee: a pipe tee needs a circular main; a rectangular "
+                            "main is a duct tap (branch=, face=; decision 0033)",
+                            code="pipe_tee_needs_circle",
+                            hint="a rectangular main is a duct tap (branch=, face=)")
     for sh, o in zip(spec.shells, spec.outlines[1:]):
         if not o.is_round:
-            raise ValueError(f"Tee: shell `{sh.name}` is not circular; junction "
-                             f"shells are circular only (decisions 0026, 0028)")
+            raise AssemblyError(f"Tee: shell `{sh.name}` is not circular; junction "
+                                f"shells are circular only (decisions 0026, 0028)",
+                                code="junction_shells_not_circular", where={"label": sh.name})
 
 
 def turning_height(R: float, r: float, T: float) -> float:
@@ -208,9 +212,11 @@ class Tee:
         if self.branch_radius is None and self.branch is None:
             missing.append("branch_radius (or branch)")
         if missing:
-            raise TypeError(f"Tee: missing required argument(s): {', '.join(missing)}")
+            raise AssemblyTypeError(f"Tee: missing required argument(s): {', '.join(missing)}",
+                                    code="argument_missing", value=list(missing))
         if self.branch_radius is not None and self.branch is not None:
-            raise TypeError("Tee: give branch_radius or branch, not both")
+            raise AssemblyTypeError("Tee: give branch_radius or branch, not both",
+                                    code="branch_args_conflict", where={"field": "branch"})
 
     def resolve(self, inlet: Frame, spec: PipeSpec, axial_cell=None, outlet=None) -> "Tee":
         tpl = self._template(spec)
@@ -218,8 +224,10 @@ class Tee:
             return tpl.resolve(inlet, spec)
         if self.branch is not None and self.branch.is_round:   # the shorthand's long form
             if self.branch.nang != spec.core_shape.nang:
-                raise ValueError(f"Tee: branch nang {self.branch.nang} must be the main's "
-                                 f"{spec.core_shape.nang}")
+                raise AssemblyError(f"Tee: branch nang {self.branch.nang} must be the main's "
+                                    f"{spec.core_shape.nang}",
+                                    code="counts_mismatch", where={"field": "branch"},
+                                    value=self.branch.nang, limit=spec.core_shape.nang)
             self = replace(self, branch_radius=self.branch.radius, branch=None)
         tee = junction_toward(self, inlet, spec)      # counts keep their defaults
         if tee.run_length is None:
@@ -278,7 +286,9 @@ class Tee:
             msg = (f"predicted corner scaled Jacobian {sj:.3f} is below {name} "
                    f"{tier:g}; {hint}")
             if tier == PREDICTED_SJ_MIN:
-                raise ValueError(msg)
+                raise AssemblyError(msg,
+                                    code="predicted_sj_below_minimum", value=float(sj),
+                                    limit="PREDICTED_SJ_MIN", hint=hint)
             return [msg]
         return []
 
@@ -312,33 +322,50 @@ class Tee:
                                          "nrad", "mprg")
                      if getattr(self, n) is not None]
         if duct_only:
-            raise ValueError(f"Tee: {', '.join(duct_only)} are for a duct tap (a "
-                             f"rectangular main); on a pipe give branch_radius")
+            raise AssemblyError(f"Tee: {', '.join(duct_only)} are for a duct tap (a "
+                                f"rectangular main); on a pipe give branch_radius",
+                                code="duct_tap_args_on_pipe", where={"field": duct_only[0]},
+                                hint="on a pipe give branch_radius")
         if self.run_length is None:
-            raise ValueError("Tee: run_length=None is resolved by Assembly.add(); "
-                             "add the fitting to an assembly")
+            raise AssemblyError("Tee: run_length=None is resolved by Assembly.add(); "
+                                "add the fitting to an assembly",
+                                code="fitting_not_resolved", where={"field": "run_length"},
+                                hint="add the fitting to an assembly")
         R, r = spec.core_shape.radius, self.branch_radius
         T = thicknesses(spec)[-1]
         if spec.rot != 0 or spec.n_outer != 4:
-            raise ValueError("Tee prototype requires rot = 0 and n_outer = 4")
+            raise AssemblyError("Tee prototype requires rot = 0 and n_outer = 4",
+                                code="junction_needs_rot_0_n_outer_4", where={"field": "rot"})
         if self.toward is not None:
-            raise ValueError("Tee: toward is resolved by Assembly.add(); add the "
-                             "fitting to an assembly")
+            raise AssemblyError("Tee: toward is resolved by Assembly.add(); add the "
+                                "fitting to an assembly",
+                                code="fitting_not_resolved", where={"field": "toward"},
+                                hint="add the fitting to an assembly")
         junction_roll(self, spec)
         if not 0 < r < R:
-            raise ValueError(f"branch radius {r} must be in (0, main radius {R})")
+            raise AssemblyError(f"branch radius {r} must be in (0, main radius {R})",
+                                code="branch_radius_out_of_range",
+                                where={"field": "branch_radius"}, value=r,
+                                limit={"min_exclusive": 0, "max_exclusive": R})
         if self.run_length <= r + T:
-            raise ValueError(f"run_length must exceed the branch's outer radius "
-                             f"{r + T:.4g} (branch radius + shells)")
+            raise AssemblyError(f"run_length must exceed the branch's outer radius "
+                                f"{r + T:.4g} (branch radius + shells)",
+                                code="run_length_too_short", where={"field": "run_length"},
+                                value=self.run_length, limit={"min_exclusive": r + T})
         if self.branch_length <= turning_height(R, r, T):
-            raise ValueError(
+            raise AssemblyError(
                 f"branch_length must exceed the turning station's height "
                 f"{turning_height(R, r, T):.4g} (outer main radius + outer branch "
-                f"radius / 2)"
+                f"radius / 2)",
+                code="branch_length_too_short", where={"field": "branch_length"},
+                value=self.branch_length, limit={"min_exclusive": turning_height(R, r, T)}
             )
         for n in (self.n_run, self.n_branch, self.n_turn):
             if n < 1:
-                raise ValueError("layer counts must be >= 1")
+                raise AssemblyError("layer counts must be >= 1",
+                                    code="count_below_minimum",
+                                    where={"field": "n_run, n_branch, n_turn"}, value=n,
+                                    limit={"min": 1})
 
     def layout(self, frames: list[Frame], spec: PipeSpec) -> BlockLayout:
         tpl = self._template(spec)
@@ -490,7 +517,8 @@ class Tee:
             if (np.linalg.norm(want.position - got.position) > 1e-9 * self.run_length
                     or np.dot(want.normal, got.normal) < 1 - 1e-9
                     or np.dot(want.up, got.up) < 1 - 1e-9):
-                raise ValueError("port interface does not match Tee geometry")
+                raise AssemblyError("port interface does not match Tee geometry",
+                                    code="outlet_frame_mismatch")
         tpl = self._template(spec)
         if tpl is not None:
             return tpl.validate(frames, spec)
@@ -498,7 +526,8 @@ class Tee:
         try:                                        # inversion check: names a run
             self.layout(frames, spec).validate()
         except LayoutError as e:
-            raise ValueError(f"block layout invalid: {e}") from None
+            raise AssemblyError.wrap(e, f"block layout invalid: {e}",
+                                     code="block_layout_invalid") from None
         return found
 
     def cell_count(self, frames: list[Frame], spec: PipeSpec) -> int:

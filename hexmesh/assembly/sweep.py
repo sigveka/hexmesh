@@ -28,6 +28,7 @@ from dataclasses import dataclass, field, replace
 import numpy as np
 import gmsh
 
+from .errors import AssemblyError
 from .. import _occ
 from ..core.cross_section import LayeredCrossSection
 from ..core.spec import PipeSpec
@@ -285,10 +286,14 @@ MAX_RESOLVED_LAYERS = 100_000
 
 def _check_n_layers(n) -> None:
     if n is None:
-        raise ValueError("n_layers=None is resolved by Assembly.add() with "
-                         "Assembly(axial_cell=...)")
+        raise AssemblyError("n_layers=None is resolved by Assembly.add() with "
+                            "Assembly(axial_cell=...)",
+                            code="n_layers_unresolved", where={"field": "n_layers"},
+                            hint="Assembly(axial_cell=...)")
     if n < 1:
-        raise ValueError(f"n_layers must be >= 1, got {n!r}")
+        raise AssemblyError(f"n_layers must be >= 1, got {n!r}",
+                            code="count_below_minimum", where={"field": "n_layers"}, value=n,
+                            limit={"min": 1})
 
 
 def _ruled(loop: int) -> int:
@@ -438,15 +443,20 @@ class Sweep:
         if self.n_layers is not None:
             return self
         if axial_cell is None:
-            raise ValueError("n_layers=None needs Assembly(axial_cell=...)")
+            raise AssemblyError("n_layers=None needs Assembly(axial_cell=...)",
+                                code="n_layers_unresolved", where={"field": "n_layers"},
+                                hint="Assembly(axial_cell=...)")
         if self.stack_changes:
-            raise ValueError("stack_changes indices need an explicit n_layers")
+            raise AssemblyError("stack_changes indices need an explicit n_layers",
+                                code="stack_changes_need_n_layers", where={"field": "n_layers"})
         L = self.centreline_length(inlet, spec, outlet)
         n = max(1, math.ceil(L / axial_cell - 1e-9))
         while not self.layers_ok(n, inlet, spec, outlet):
             n += 1
             if n > MAX_RESOLVED_LAYERS:
-                raise ValueError(f"no layer count up to {MAX_RESOLVED_LAYERS} passes")
+                raise AssemblyError(f"no layer count up to {MAX_RESOLVED_LAYERS} passes",
+                                    code="n_layers_unresolvable", where={"field": "n_layers"},
+                                    limit=MAX_RESOLVED_LAYERS)
         return replace(self, n_layers=n)
 
     def centreline_length(self, inlet: Frame, spec: PipeSpec,
@@ -470,7 +480,9 @@ class Sweep:
     def check(self, spec: PipeSpec) -> None:
         _check_n_layers(self.n_layers)
         if not self.axial_grading > 0:
-            raise ValueError(f"axial_grading must be positive, got {self.axial_grading!r}")
+            raise AssemblyError(f"axial_grading must be positive, got {self.axial_grading!r}",
+                                code="value_not_positive", where={"field": "axial_grading"},
+                                value=self.axial_grading, limit={"min_exclusive": 0})
         if self.stack_changes:
             self.check_stack_changes(spec)
 
@@ -487,24 +499,29 @@ class Sweep:
                     or np.dot(expected.normal, b.normal) < 1 - 1e-9
                     or abs(roll_mismatch(expected.up, b.up, b.normal,
                                          spec.period)) > 1e-9):
-                raise ValueError(
-                    f"outlet interface does not match {type(self).__name__} geometry"
+                raise AssemblyError(
+                    f"outlet interface does not match {type(self).__name__} geometry",
+                    code="outlet_frame_mismatch"
                 )
         path = self.path(a, b, spec)
         R = self.clearance(spec)
         if path.min_radius <= R:
             what = ("the pipe outer radius" if type(spec.outlines[-1]).side_curve == "arc"
                     else f"the section's half-extent {self.clearance_note}")
-            raise ValueError(
+            raise AssemblyError(
                 f"path bends with radius {path.min_radius:.4g}, tighter than "
-                f"{what} {R:.4g}"
+                f"{what} {R:.4g}",
+                code="bend_radius_below_outer_radius", where={"field": "radius"},
+                value=float(path.min_radius), limit={"min_exclusive": float(R)}
             )
         if path.axial is None and not path.prism:
             for k, turn in enumerate(path.turns()):
                 if turn > MAX_CHORD_TURN:
-                    raise ValueError(
+                    raise AssemblyError(
                         f"slab {k} turns {turn:.1f}° (limit {MAX_CHORD_TURN:.0f}° "
-                        f"with straight axial edges); use more axial layers"
+                        f"with straight axial edges); use more axial layers",
+                        code="chord_turn_above_maximum", where={"field": "n_layers"},
+                        value=float(turn), limit="MAX_CHORD_TURN", hint="use more axial layers"
                     )
         path.offsets(spec)   # raises if any correspondence is undefined
 
@@ -547,10 +564,12 @@ class Sweep:
         name = type(self).__name__
         idx = [i for i, _ in self.stack_changes]
         if idx != sorted(set(idx)) or any(not 1 <= i < self.n_layers for i in idx):
-            raise ValueError(
+            raise AssemblyError(
                 f"{name}: stack_changes must be at increasing cell boundaries "
                 f"1 … {self.n_layers - 1} (layers end inside the fitting, never "
-                f"at a port), got {idx}")
+                f"at a port), got {idx}",
+                code="stack_changes_invalid", where={"field": "stack_changes"}, value=list(idx),
+                limit={"min": 1, "max": self.n_layers - 1})
         prev = spec
         for i, nxt in self.stack_changes:
             _check_termination(name, i, prev, nxt)
@@ -568,8 +587,10 @@ class Sweep:
         slab = [cells[b] for b in bounds[:-1]]
         for k, (lo, hi) in enumerate(zip(bounds[:-1], bounds[1:])):
             if any(c is not slab[k] for c in cells[lo:hi]):
-                raise ValueError(f"{type(self).__name__}: a stack change falls "
-                                 f"inside slab {k}")
+                raise AssemblyError(f"{type(self).__name__}: a stack change falls "
+                                    f"inside slab {k}",
+                                    code="stack_change_inside_slab",
+                                    where={"field": "stack_changes"})
         n = [len(s.layer_names) for s in slab]
         specs = [slab[0]] + [slab[k - 1] if n[k - 1] >= n[k] else slab[k]
                              for k in range(1, len(slab))] + [slab[-1]]
@@ -606,26 +627,37 @@ def _check_termination(fitting: str, i: int, a: PipeSpec, b: PipeSpec) -> None:
     short, long_ = (la, lb) if len(la) <= len(lb) else (lb, la)
     where = f"{fitting}: stack change at cell {i}"
     if la == lb:
-        raise ValueError(f"{where} keeps the layers {la}; a stack change must "
-                         f"end or start a layer")
+        raise AssemblyError(f"{where} keeps the layers {la}; a stack change must "
+                            f"end or start a layer",
+                            code="stack_change_keeps_layers", where={"field": "stack_changes"},
+                            value=i)
     if long_[:len(short)] != short:
         gone = [x for x in long_ if x not in short]
         if set(short) <= set(long_):
-            raise ValueError(
+            raise AssemblyError(
                 f"{where}: only outermost layers may stop or start; "
-                f"{', '.join(f'`{x}`' for x in gone)} is not outermost")
-        raise ValueError(f"{where}: layers {la} → {lb} are not the same stack "
-                         f"with outer layers removed or added")
+                f"{', '.join(f'`{x}`' for x in gone)} is not outermost",
+                code="layer_termination_not_outermost", where={"field": "stack_changes"}, value=i)
+        raise AssemblyError(f"{where}: layers {la} → {lb} are not the same stack "
+                            f"with outer layers removed or added",
+                            code="layer_termination_not_same_stack",
+                            where={"field": "stack_changes"}, value=i)
     c = classify(signature(a), signature(b))
     if c.cls != 1:
         what = "; ".join(str(d) for d in c.differences if d.field != "shells")
-        raise ValueError(f"{where}: the remaining layers must match ({what}); "
-                         f"use a Reducer to change them")
+        raise AssemblyError(f"{where}: the remaining layers must match ({what}); "
+                            f"use a Reducer to change them",
+                            code="layer_termination_remaining_differ",
+                            where={"field": "stack_changes"}, value=i, hint="use a Reducer")
     for i in range(len(short)):
         diff = _layer_difference(a, b, i)
         if diff:
-            raise ValueError(f"{where}: the remaining layers must match "
-                             f"({diff}); use a Reducer")
+            raise AssemblyError(f"{where}: the remaining layers must match "
+                                f"({diff}); use a Reducer",
+                                code="layer_termination_remaining_differ",
+                                where={"field": "stack_changes"}, value=i, hint="use a Reducer")
     if a.rot != b.rot:
-        raise ValueError(f"{where}: the remaining layers must match "
-                         f"(rot {a.rot} vs {b.rot})")
+        raise AssemblyError(f"{where}: the remaining layers must match "
+                            f"(rot {a.rot} vs {b.rot})",
+                            code="layer_termination_remaining_differ",
+                            where={"field": "stack_changes"}, value=i)

@@ -51,30 +51,36 @@ def samples(study: Study) -> list[dict]:
     if s is None:
         return [{}]
     if not isinstance(s, dict) or len(s) != 1:
-        raise StudyError("sampling must have exactly one of 'table', 'grid', 'lhs'")
+        raise StudyError("sampling must have exactly one of 'table', 'grid', 'lhs'",
+                         code="sampling_invalid", where={"field": "sampling"})
     (kind, spec), = s.items()
     if kind == "table":
         if "rows" in spec:
             rows = spec["rows"]
             if not all(isinstance(r, dict) for r in rows):
-                raise StudyError("sampling.table.rows must be a list of objects")
+                raise StudyError("sampling.table.rows must be a list of objects",
+                                 code="sampling_invalid", where={"field": "sampling.table.rows"})
             return [dict(r) for r in rows]
         if "csv" in spec:
             with open(study.resolve(spec["csv"]), newline="", encoding="utf-8") as f:
                 return [{k.strip(): _number(v.strip()) for k, v in row.items()}
                         for row in csv.DictReader(f)]
-        raise StudyError("sampling.table needs 'rows' or 'csv'")
+        raise StudyError("sampling.table needs 'rows' or 'csv'",
+                         code="sampling_invalid", where={"field": "sampling.table"})
     if kind == "grid":
         if not spec or not all(isinstance(v, list) and v for v in spec.values()):
-            raise StudyError("sampling.grid needs a non-empty list per parameter")
+            raise StudyError("sampling.grid needs a non-empty list per parameter",
+                             code="sampling_invalid", where={"field": "sampling.grid"})
         names = list(spec)
         return [dict(zip(names, combo)) for combo in itertools.product(*spec.values())]
     if kind == "lhs":
         ranges, n, seed = spec.get("ranges"), spec.get("n"), spec.get("seed")
         if not isinstance(ranges, dict) or not ranges:
-            raise StudyError("sampling.lhs needs 'ranges': {name: [lo, hi]}")
+            raise StudyError("sampling.lhs needs 'ranges': {name: [lo, hi]}",
+                             code="sampling_invalid", where={"field": "sampling.lhs.ranges"})
         if not isinstance(n, int) or n < 1 or not isinstance(seed, int):
-            raise StudyError("sampling.lhs needs an integer 'n' >= 1 and an integer 'seed'")
+            raise StudyError("sampling.lhs needs an integer 'n' >= 1 and an integer 'seed'",
+                             code="sampling_invalid", where={"field": "sampling.lhs"})
         rng = np.random.default_rng(seed)
         out = [{} for _ in range(n)]
         for name, (lo, hi) in ranges.items():
@@ -82,7 +88,9 @@ def samples(study: Study) -> list[dict]:
             for row, v in zip(out, lo + (hi - lo) * u):
                 row[name] = float(v)
         return out
-    raise StudyError(f"unknown sampling {kind!r}; known: 'table', 'grid', 'lhs'")
+    raise StudyError(f"unknown sampling {kind!r}; known: 'table', 'grid', 'lhs'",
+                     code="option_invalid", where={"field": "sampling"}, value=kind,
+                     limit=["table", "grid", "lhs"])
 
 
 def variants(study: Study) -> list[dict]:

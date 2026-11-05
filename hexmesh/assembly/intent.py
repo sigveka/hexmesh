@@ -53,6 +53,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from .errors import AssemblyError, AssemblyTypeError
 from ..core.shape import SHAPES, shape_from_dict
 from ..core.spec import PipeSpec
 from . import limits
@@ -118,7 +119,8 @@ def _same_frame(a: Frame, b: Frame) -> bool:
 def fitting_to_dict(fitting) -> dict:
     name = type(fitting).__name__
     if FITTING_TYPES.get(name) is not type(fitting):
-        raise TypeError(f"cannot serialise fitting type {name}")
+        raise AssemblyTypeError(f"cannot serialise fitting type {name}",
+                                code="fitting_not_serialisable", value=name)
     d = {"type": name}
     for f in dataclasses.fields(fitting):
         v = getattr(fitting, f.name)
@@ -134,8 +136,10 @@ def fitting_from_dict(d: dict):
     try:
         cls = FITTING_TYPES[name]
     except KeyError:
-        raise ValueError(f"unknown fitting type {name!r}; known: "
-                         f"{', '.join(sorted(FITTING_TYPES))}") from None
+        raise AssemblyError(f"unknown fitting type {name!r}; known: "
+                            f"{', '.join(sorted(FITTING_TYPES))}",
+                            code="fitting_type_unknown", value=name,
+                            limit=sorted(FITTING_TYPES)) from None
     kw = {}
     for f in dataclasses.fields(cls):
         if f.name not in d:
@@ -143,7 +147,8 @@ def fitting_from_dict(d: dict):
         v = d.pop(f.name)
         kw[f.name] = PipeSpec.from_dict(v) if f.type == "PipeSpec" else _tuples(v)
     if d:
-        raise ValueError(f"{name}: unknown fields {sorted(d)}")
+        raise AssemblyError(f"{name}: unknown fields {sorted(d)}",
+                            code="fitting_fields_unknown", where={"label": name}, value=sorted(d))
     return cls(**kw)
 
 
@@ -202,11 +207,15 @@ def _rot_to_degrees(v):
 def upgrade(d: dict) -> dict:
     """A saved description at the current :data:`VERSION`."""
     if d.get("format") != FORMAT:
-        raise ValueError(f"not a {FORMAT} description (format={d.get('format')!r})")
+        raise AssemblyError(f"not a {FORMAT} description (format={d.get('format')!r})",
+                            code="description_format_invalid", where={"field": "format"},
+                            value=d.get("format"), limit=FORMAT)
     if d.get("version") == 1:
         d = {**_rot_to_degrees(d), "version": VERSION}
     if d.get("version") != VERSION:
-        raise ValueError(f"unsupported {FORMAT} version {d.get('version')!r}")
+        raise AssemblyError(f"unsupported {FORMAT} version {d.get('version')!r}",
+                            code="description_version_unsupported", where={"field": "version"},
+                            value=d.get("version"))
     return d
 
 

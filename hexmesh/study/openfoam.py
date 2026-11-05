@@ -56,6 +56,8 @@ from pathlib import Path, PurePath
 
 import numpy as np
 
+from .definition import StudyError
+
 OPENFOAM_RC = Path("/usr/share/openfoam/etc/bashrc")
 #: The image's environment, whatever its version directory.
 _DOCKER_RC = "for f in /usr/lib/openfoam/openfoam*/etc/bashrc; do source $f; done"
@@ -69,7 +71,9 @@ def set_runner(spec: str) -> None:
     """``"native"`` or ``"docker:<image>"``."""
     global _runner
     if spec != "native" and not (spec.startswith("docker:") and len(spec) > 7):
-        raise ValueError(f"OpenFOAM runner {spec!r}: give 'native' or 'docker:<image>'")
+        raise StudyError(f"OpenFOAM runner {spec!r}: give 'native' or 'docker:<image>'",
+                         code="option_invalid", where={"field": "runner"}, value=spec,
+                         limit=["native", "docker:<image>"])
     _runner = spec
 
 
@@ -309,11 +313,15 @@ def run_solver(case: Path, solver: str, *, n_proc: int = 1, log: str | None = No
     case = Path(case)
     log = log or f"log.{solver}"
     if n_proc < 1:
-        raise ValueError(f"n_proc must be >= 1, got {n_proc!r}")
+        raise StudyError(f"n_proc must be >= 1, got {n_proc!r}",
+                         code="count_below_minimum", where={"field": "n_proc"}, value=n_proc,
+                         limit={"min": 1})
     cores = physical_cores()
     if n_proc > cores:
-        raise ValueError(f"n_proc={n_proc} is more than this machine's {cores} physical cores "
-                         f"(Open MPI places one rank per core, not per hardware thread)")
+        raise StudyError(f"n_proc={n_proc} is more than this machine's {cores} physical cores "
+                         f"(Open MPI places one rank per core, not per hardware thread)",
+                         code="cores_exceeded", where={"field": "n_proc"}, value=n_proc,
+                         limit={"max": cores})
     if n_proc == 1:
         return foam(solver, case, log)
     regions = tuple(regions)
@@ -528,8 +536,11 @@ def substitute_case(case: Path, params: dict) -> list[str]:
 
         new = _TOKEN.sub(value, work).replace("\0", "$")
         if missing:
-            raise ValueError(f"{rel.as_posix()}: unknown placeholder(s) "
-                             + ", ".join(f"${n}" for n in dict.fromkeys(missing)))
+            raise StudyError(f"{rel.as_posix()}: unknown placeholder(s) "
+                             + ", ".join(f"${n}" for n in dict.fromkeys(missing)),
+                             code="case_placeholder_unknown",
+                             where={"source": {"file": rel.as_posix()}},
+                             value=list(dict.fromkeys(missing)))
         if new != text:
             path.write_text(new, encoding="utf-8", newline="\n")
             changed.append(rel.as_posix())

@@ -1267,6 +1267,338 @@ rows = run(study, jobs=2)        # stages up to the study's last; PreflightFaile
 
 ---
 
+## Errors (`hexmesh.errors`)
+
+Every error a user's input can cause (decision 0040; task 0094) is a
+`HexmeshError`, a `ValueError` with structured fields:
+
+| field | content |
+|-------|---------|
+| `code` | the rule that failed: a stable `snake_case` key of `hexmesh.errors.CODES`. A code never changes once released; a new rule gets a new code. |
+| `where` | where: any of `fitting` (index), `label`, `interface` (index), `field`, `part` (a network-model part id, a drum's name), `source` (provenance: `file`, `format`, `record`, `record_id`, `line`, `guid`) |
+| `value`, `limit` | the offending value and the bound it broke: a number, a range such as `{"min_exclusive": 0}`, a list of allowed values, or the name of a `hexmesh.assembly.limits` constant |
+| `hint` | a fix, when there is one |
+
+`str(err)` is the message alone, unchanged from before the fields existed,
+and `err.to_dict()` gives every field as JSON data (`type`, `code`,
+`message`, `where`, `value`, `limit`, `hint`). The fields survive
+pickling, so a study worker's error arrives whole.
+
+```python
+try:
+    asm.validate()
+except hexmesh.HexmeshError as e:
+    e.code        # "angle_out_of_range"
+    e.where       # {"field": "angle", "fitting": 1, "label": "wide"}
+    e.to_dict()   # JSON data for an agent or a log
+```
+
+Each layer raises its own subclass:
+
+| class | raised by | also a |
+|-------|-----------|--------|
+| `SpecError` | `core`, `sections`: specs and shapes | |
+| `SpecTypeError` | a wrong combination of spec arguments | `TypeError` |
+| `AssemblyError` | `assembly`, the network builder (`hexmesh.interchange`) | |
+| `AssemblyTypeError` | a wrong argument type to the assembly | `TypeError` |
+| `EquipmentError` | drums and nozzles | |
+| `LayoutError` | block layouts (`assembly.blocks`) | |
+| `ReaderError` | `io.readers`, and the files `io.writers` read back | |
+| `StudyError`, `PreflightFailed` | `hexmesh.study` | |
+| `StudyTypeError` | a study's post-processing result | `TypeError` |
+
+When the assembly re-raises a fitting's error with its location, it keeps
+the fitting's `code`, `value`, `limit` and `hint` and adds `fitting` and
+`label` to `where` (`HexmeshError.wrap`). Builder errors on an imported
+network carry the part's provenance in `where["source"]`.
+
+Warnings are `HexmeshWarning` (a `UserWarning`) with the same fields:
+`warnings.catch_warnings(record=True)` gives them, and `w.message.code`
+names the rule.
+
+Checks of hexmesh's own invariants, which no input should reach, stay plain
+`ValueError`s without a code.
+
+| code | rule | class |
+|------|------|-------|
+| `angle_looks_like_radians` | a fitting angle so small it was probably given in radians (warning) | `HexmeshWarning` |
+| `angle_out_of_range` | a bend or wye angle outside its open range | `AssemblyError` |
+| `argument_missing` | a required fitting argument is missing | `AssemblyTypeError` |
+| `assembly_already_built` | fittings added or changed after the assembly was built | `AssemblyError` |
+| `assembly_empty` | an assembly with no fittings | `AssemblyError` |
+| `bend_geometry_invalid` | a bend's ports and corner point give no valid bend | `AssemblyError` |
+| `bend_leg_not_along_pipe` | a bend's incoming leg does not continue the incoming pipe | `AssemblyError` |
+| `bend_radius_below_outer_radius` | a path bends tighter than the section's outer radius | `AssemblyError` |
+| `block_division_conflict` | parallel edges of a block layout need different cell counts | `LayoutError` |
+| `block_division_missing` | a block-layout edge reaches no fixed cell count | `LayoutError` |
+| `block_face_shared` | a block-layout face is shared by more than two blocks | `LayoutError` |
+| `block_grading_conflict` | parallel edges of a block layout are graded differently | `LayoutError` |
+| `block_h_core_in_ring` | an H core bound inside a ring of a block layout | `LayoutError` |
+| `block_inverted` | a block of a layout is inverted or degenerate at a corner | `LayoutError` |
+| `block_layout_empty` | a block layout with no blocks | `LayoutError` |
+| `block_layout_invalid` | a fitting's block layout fails its checks | `AssemblyError` |
+| `block_port_face_interior` | a block-layout port face is interior to the layout | `LayoutError` |
+| `block_port_face_unused` | a block-layout port face is used by no block | `LayoutError` |
+| `block_port_faces_unbound` | block-layout port faces not bound before realising | `LayoutError` |
+| `block_vertex_unplaced` | a block-layout vertex has no coordinates | `LayoutError` |
+| `block_vertices_not_distinct` | a block without 8 distinct vertices | `LayoutError` |
+| `branch_args_conflict` | a tee given both branch_radius and branch | `AssemblyTypeError` |
+| `branch_length_too_short` | a tee branch does not reach past the main's wall | `AssemblyError` |
+| `branch_radius_out_of_range` | a pipe-tee branch radius not in (0, main radius) | `AssemblyError` |
+| `bundle_pipe_has_no_shells` | a bundle pipe with no shell layers | `SpecError` |
+| `bundle_pipe_outer_not_rectangle` | a bundle pipe whose outermost shell is not rectangular | `SpecTypeError` |
+| `case_placeholder_unknown` | an OpenFOAM case template uses a placeholder with no parameter | `StudyError` |
+| `case_template_not_directory` | a study's case template is not a directory | `StudyError` |
+| `cell_budget_exceeded` | more cells than the budget (max_cells) | `AssemblyError`, `StudyError` |
+| `chain_gap` | a network component does not start at the previous outlet | `AssemblyError` |
+| `chord_turn_above_maximum` | a sweep slab turns more than straight axial edges allow | `AssemblyError` |
+| `close_onto_itself` | an interface closed onto itself | `AssemblyError` |
+| `close_source_not_outlet` | close() from an interface that is not an outlet | `AssemblyError` |
+| `close_target_not_inlet` | close() onto an interface that is not an inlet | `AssemblyError` |
+| `closure_ends_coincide` | a closure's source and target interfaces coincide | `AssemblyError` |
+| `closure_needs_close` | a Closure added directly instead of through Assembly.close() | `AssemblyTypeError` |
+| `cores_exceeded` | more parallel ranks or jobs than the machine has cores | `StudyError` |
+| `corner_correspondence_ambiguous` | a slab twists by half the section's symmetry angle | `AssemblyError` |
+| `count_below_minimum` | a count (cells, layers, jobs) below its minimum or not an integer | `AssemblyError`, `SpecError`, `StudyError` |
+| `counts_mismatch` | cell counts that must match between two sections or sides do not | `AssemblyError` |
+| `cross_unsupported` | a network cross (four-way junction) | `AssemblyError` |
+| `curve_constraint_conflict` | a curve given two different transfinite constraints | `AssemblyError` |
+| `description_format_invalid` | an assembly description in another format | `AssemblyError` |
+| `description_version_unsupported` | an assembly description of an unsupported version | `AssemblyError` |
+| `drum_axis_zero` | a drum with a zero axis | `EquipmentError` |
+| `drum_head_args_invalid` | a drum head's arguments do not fit its head type | `EquipmentError` |
+| `drum_name_invalid` | a drum name not made of letters, digits and _ | `EquipmentError` |
+| `drum_up_parallel` | a drum whose up vector is parallel to its axis | `EquipmentError` |
+| `duct_tap_args_on_pipe` | duct-tap arguments given for a tee on a circular main | `AssemblyError` |
+| `duct_tap_needs_branch_shape` | a duct tap without a branch shape | `AssemblyError` |
+| `duct_tap_roll_invalid` | a duct tap's roll other than 0 or 180 | `AssemblyError` |
+| `duct_tap_too_wide` | a duct tap too wide for the face it sits on | `AssemblyError` |
+| `elbow_needs_circle` | an ASME Elbow on a non-circular section | `AssemblyError` |
+| `equal_tee_unsupported` | an equal tee (branch as large as the main) | `AssemblyError` |
+| `extend_args_invalid` | negative extension lengths or cells_per_diameter | `AssemblyError` |
+| `faces_antiparallel` | two faces are antiparallel, so their corners can't be matched | `AssemblyError` |
+| `fill_failed` | a fitting failed while filling its volume | `AssemblyError` |
+| `fill_order_invalid` | a fill order that is not a permutation of the fittings | `AssemblyError` |
+| `first_cell_out_of_range` | a first cell not in (0, layer thickness] | `SpecError` |
+| `first_cell_unsupported` | first_cell= on a core that does not support it | `SpecTypeError` |
+| `fitting_fields_unknown` | unknown fields in a fitting's description | `AssemblyError` |
+| `fitting_invalid` | a fitting fails its checks when added | `AssemblyError` |
+| `fitting_names_not_unique` | fitting names that are not unique | `AssemblyError` |
+| `fitting_not_resolved` | a fitting used before Assembly.add() resolved it | `AssemblyError` |
+| `fitting_not_serialisable` | a fitting type that can't be written to a description | `AssemblyTypeError` |
+| `fitting_quality_warning` | a fitting's predicted quality is low (warning) | `HexmeshWarning` |
+| `fitting_type_unknown` | an unknown fitting type in a description | `AssemblyError` |
+| `full_width_tap_tunables` | pillowed-tap tunables given to a full-width duct tap | `AssemblyError` |
+| `grading_args_conflict` | both mprg= and first_cell= given | `SpecTypeError` |
+| `grading_unreachable` | no grading coefficient reaches the target with the cell count | `SpecError` |
+| `h_layout_needs_n_outer_4` | layout='h' with n_outer other than 4 | `SpecError` |
+| `h_layout_needs_rectangle` | layout='h' on a non-rectangular core | `SpecError` |
+| `inlet_enters_junction_wrongly` | from the chosen inlet a junction is entered by a branch | `AssemblyError` |
+| `inlet_not_open_end` | the chosen inlet is not an open end of the network | `AssemblyError` |
+| `insulation_change_in_spline` | insulation starts or stops inside a spline run | `AssemblyError` |
+| `insulation_change_inside` | insulation thickness changes inside one component | `AssemblyError` |
+| `insulation_change_not_straight` | insulation changes where no straight component can hold it | `AssemblyError` |
+| `insulation_shell_exists` | insulation=True with a spec that already has an insulation shell | `AssemblyError` |
+| `insulation_thickness_change` | insulation changes between two non-zero thicknesses | `AssemblyError` |
+| `insulation_thickness_missing` | an insulated part in a network with no insulation thickness | `AssemblyError` |
+| `interface_degree` | an interface already used as the inlet or outlet of another fitting | `AssemblyError` |
+| `interface_not_in_assembly` | an interface from another assembly | `AssemblyError` |
+| `interface_not_open` | an interface that is not an open end | `AssemblyError` |
+| `joint_between_fittings` | a joint between two non-straight fittings, with no run to absorb it | `AssemblyError` |
+| `junction_degree` | more than two components meet at a point that is not a junction part | `AssemblyError` |
+| `junction_insulation_differs` | a junction's legs carry different insulation thicknesses | `AssemblyError` |
+| `junction_needs_rot_0_n_outer_4` | a junction on a section with rot != 0 or n_outer != 4 | `AssemblyError` |
+| `junction_points_missing` | a network junction without its centre or branch points | `AssemblyError` |
+| `junction_roll_invalid` | a junction roll not a multiple of the section's period | `AssemblyError` |
+| `junction_run_not_along_pipe` | a junction's inlet run does not continue the incoming pipe | `AssemblyError` |
+| `junction_shells_not_circular` | non-circular shells through a junction | `AssemblyError` |
+| `junction_shells_unsupported` | shells on a junction that does not support them | `AssemblyError` |
+| `junction_size_missing` | a network junction without sizes on its ports | `AssemblyError` |
+| `kink_without_fitting` | a network changes direction without a fitting | `AssemblyError` |
+| `label_duplicate` | a fitting label already used | `AssemblyError` |
+| `label_invalid` | a fitting label not made of letters, digits and _ | `AssemblyError` |
+| `layer_name_invalid` | a layer name not made of letters, digits and _ | `SpecError` |
+| `layer_termination_not_outermost` | a layer that is not outermost stops or starts | `AssemblyError` |
+| `layer_termination_not_same_stack` | a stack change that is not the same stack with outer layers removed or added | `AssemblyError` |
+| `layer_termination_remaining_differ` | the layers that remain across a stack change differ | `AssemblyError` |
+| `layout_corners_invalid` | a face whose corners are not one per quadrant | `LayoutError` |
+| `layout_not_supported` | a section layout that this fitting does not support yet | `LayoutNotSupported` |
+| `layout_unknown` | an unknown section layout | `SpecError` |
+| `mesh_not_all_hex` | a mesh with elements other than hexahedra | `StudyError` |
+| `meshed_nonorth_above_maximum` | meshed non-orthogonality above OUTLINE_NONORTH_MAX | `AssemblyError` |
+| `meshed_nonorth_high` | meshed non-orthogonality high but allowed (warning) | `HexmeshWarning` |
+| `meshed_sj_below_minimum` | meshed corner scaled Jacobian below PREDICTED_SJ_MIN | `AssemblyError` |
+| `meshed_sj_low` | meshed corner scaled Jacobian low but allowed (warning) | `HexmeshWarning` |
+| `miter_cut_above_maximum` | each miter cut turns more than MAX_MITER_CUT | `AssemblyError` |
+| `miter_cut_below_minimum` | each miter cut turns less than MIN_MITER_CUT | `AssemblyError` |
+| `model_id_duplicate` | a network-model port or part id already used | `AssemblyError` |
+| `model_part_type_unknown` | a class that is not a network-model part type | `AssemblyTypeError` |
+| `msh_format_invalid` | a file that is not a valid .msh file | `ReaderError` |
+| `msh_has_no_recipe` | a .msh file without a hexmesh recipe | `AssemblyError` |
+| `n_layers_unresolvable` | no axial layer count up to the maximum passes the checks | `AssemblyError` |
+| `n_layers_unresolved` | n_layers used before Assembly.add() resolved it | `AssemblyError` |
+| `n_outer_invalid` | n_outer not a positive multiple of 4 | `SpecError` |
+| `nang_missing` | a core given by size on a spec without nang | `SpecTypeError` |
+| `nang_not_divisible` | nang not divisible by n_outer // 4 | `SpecError` |
+| `network_disconnected` | a network that is not one connected piece | `AssemblyError` |
+| `network_empty` | a network model with no parts | `AssemblyError` |
+| `network_loop` | a network with a loop | `AssemblyError` |
+| `network_no_open_end` | a network with no open end | `AssemblyError` |
+| `network_no_valid_inlet` | no open end enters every junction through its inlet | `AssemblyError` |
+| `network_only_joints` | a network model with only joints | `AssemblyError` |
+| `network_piece_invalid` | one piece of a multi-piece network fails to build | `AssemblyError` |
+| `no_gmsh_session` | a call that needs a GMSH session outside one | `AssemblyError` |
+| `no_mesh_yet` | a call that needs the mesh before mesh() | `AssemblyError` |
+| `nozzle_footprint_outside` | a nozzle footprint crosses a drum tangent line | `EquipmentError` |
+| `nozzle_footprints_overlap` | two nozzle footprints overlap | `EquipmentError` |
+| `nozzle_location_unknown` | an unknown nozzle location | `EquipmentError` |
+| `nozzle_name_duplicate` | duplicate nozzle names on a drum | `EquipmentError` |
+| `nozzle_name_invalid` | a nozzle name not made of letters, digits and _ | `EquipmentError` |
+| `nozzle_not_circular` | a drum nozzle with a non-circular layer | `EquipmentError` |
+| `nozzle_projection_too_short` | a nozzle projection that does not leave the drum shell | `EquipmentError` |
+| `nozzle_too_large` | a nozzle as large as the drum | `EquipmentError` |
+| `nozzle_unknown` | a drum has no nozzle of that name | `EquipmentError` |
+| `nrad_on_h_core` | nrad= on an H core, which has no ring | `SpecError` |
+| `openfoam_boundary_unparsable` | an OpenFOAM boundary file that can't be parsed | `ReaderError` |
+| `openfoam_patches_unmapped` | OpenFOAM patches not in the role manifest (warning) | `HexmeshWarning` |
+| `option_invalid` | an option outside its allowed values | `AssemblyError`, `EquipmentError`, `HexmeshError`, `ReaderError`, `StudyError` |
+| `other_runs_active` | other pytest or OpenFOAM runs are active on the machine | `StudyError` |
+| `other_runs_unchecked` | other runs on the machine can't be checked (warning) | `HexmeshWarning` |
+| `outlet_frame_mismatch` | an outlet interface that does not match the fitting's geometry | `AssemblyError` |
+| `outline_gap_too_small` | a layer outline too close to the outline inside it | `AssemblyError` |
+| `parameter_not_finite` | a study parameter value that is not finite | `StudyError` |
+| `parameter_not_json` | a study parameter value that is not JSON data | `StudyError` |
+| `part_kind_unsupported` | a network part of a kind the builder can't place | `AssemblyError` |
+| `part_rejected` | a network part the importer marked unbuildable | `AssemblyError` |
+| `pcf_component_incomplete` | a PCF component with fewer than two end points, skipped (warning) | `HexmeshWarning` |
+| `pcf_component_unsupported` | a PCF component type hexmesh does not read, skipped (warning) | `HexmeshWarning` |
+| `pcf_no_files` | read_pcf given an empty list of files | `ReaderError` |
+| `pcf_type_inferred` | an unknown PCF type read as an inline straight or reducer (warning) | `HexmeshWarning` |
+| `pcf_unit_scale_override` | unit_scale overrides the PCF's units header (warning) | `HexmeshWarning` |
+| `pcf_unit_unknown` | a PCF units header that is not recognised | `ReaderError` |
+| `pcf_units_missing` | a PCF without a units header, read as millimetres (warning) | `HexmeshWarning` |
+| `pipe_tee_needs_circle` | a pipe tee on a non-circular main | `AssemblyError` |
+| `port_name_unknown` | an unknown port name for a fitting | `AssemblyError` |
+| `port_names_count` | a number of port names that does not match the fitting's outlets | `AssemblyError` |
+| `port_placement_mismatch` | a placed port misses the network's port position | `AssemblyError` |
+| `port_roll_not_a_period` | port frames that differ by a roll that is not a period | `LayoutError` |
+| `port_type_mismatch` | an interface's port type differs from the one the fitting declares | `AssemblyError` |
+| `post_result_not_dict` | a study's post-processing returns something other than a dict | `StudyTypeError` |
+| `predicted_sj_below_minimum` | a fitting's predicted scaled Jacobian below PREDICTED_SJ_MIN | `AssemblyError` |
+| `preflight_failed` | study preflight found failing variants | `PreflightFailed` |
+| `prepend_at_equipment_end` | prepend at an equipment end | `AssemblyError` |
+| `prepend_needs_straight` | prepend of a fitting other than a Straight | `AssemblyTypeError` |
+| `profile_chords_too_coarse` | a profiled reducer's wall chords too far from its profile | `AssemblyError` |
+| `profile_parameter_out_of_range` | a profile parameter outside its range | `AssemblyError` |
+| `profile_radii_mismatch` | a profile's end radii differ from the inlet's or outlet's | `AssemblyError` |
+| `profile_stations_too_few` | too few stations to resolve a profile's corners | `AssemblyError` |
+| `profile_table_invalid` | a profile table that is not a valid list of (s, r) pairs | `AssemblyError` |
+| `profile_too_short` | a profiled reducer too short for its profile | `AssemblyError` |
+| `profile_unknown` | an unknown profile | `AssemblyError` |
+| `reader_format_invalid` | a file whose contents a reader can't use | `ReaderError` |
+| `rect_stack_counts_unequal` | a stack with a rectangle whose layers have unequal counts per side | `SpecError` |
+| `rect_stack_needs_n_outer_4` | a stack with a rectangle and n_outer other than 4 | `SpecError` |
+| `reducer_axis_not_along_pipe` | a network reducer's axis does not continue the incoming pipe | `AssemblyError` |
+| `reducer_eccentric` | an eccentric network reducer | `AssemblyError` |
+| `reducer_grading_one_end` | a Reducer that grades only one end of an H duct | `AssemblyError` |
+| `reducer_layout_change` | a Reducer between different section layouts | `AssemblyError` |
+| `reducer_shape_change` | a Reducer between different outline shapes | `AssemblyError` |
+| `reducer_sizes_missing` | a network reducer without both sizes | `AssemblyError` |
+| `refine_factor_invalid` | a refinement factor that is not an integer >= 1 | `AssemblyError` |
+| `role_manifest_format_unsupported` | a role manifest in an unsupported format | `ReaderError` |
+| `roll_and_toward_conflict` | both roll and toward given | `AssemblyError` |
+| `roll_mismatch_ambiguous` | a roll mismatch of half the section's symmetry period | `AssemblyError` |
+| `rot_mismatch` | outlet and inlet sections differ in rot | `AssemblyError` |
+| `run_length_too_short` | a junction's run too short for its branch | `AssemblyError` |
+| `sampling_invalid` | a study's sampling block that is not valid | `StudyError` |
+| `section_nonorth_above_maximum` | a section's predicted non-orthogonality above OUTLINE_NONORTH_MAX | `AssemblyError` |
+| `section_not_supported` | a section (layout, n_outer) the assembly does not support | `AssemblyError` |
+| `section_predicted_sj_below_minimum` | a section's predicted scaled Jacobian below PREDICTED_SJ_MIN | `AssemblyError` |
+| `section_quality_reject` | a section rejected by its quality check | `AssemblyError` |
+| `section_quality_warning` | a section's predicted quality is low (warning) | `HexmeshWarning` |
+| `seton_host_missing` | a set-on with no straight pipe through its centre | `AssemblyError` |
+| `seton_host_too_short` | a set-on's host pipe too short around the branch | `AssemblyError` |
+| `seton_offset_unsupported` | a tangential or offset set-on | `AssemblyError` |
+| `shape_args_conflict` | both shape= and geometry keywords given | `SpecTypeError` |
+| `shape_args_missing` | neither shape= nor geometry keywords given | `SpecTypeError` |
+| `shape_counts_mismatch` | a shape's cell counts differ from the spec's | `SpecError` |
+| `shape_not_serialisable` | a core shape that can't be written to a description | `SpecTypeError` |
+| `shape_type_unknown` | an unknown shape type in a description | `SpecError` |
+| `shell_nrad_missing` | a shell without nrad | `SpecTypeError` |
+| `shell_outline_args` | a shell given both or neither of dR and outer | `SpecError` |
+| `shell_type_unknown` | an unknown shell type in a description | `SpecError` |
+| `size_not_positive` | a size or length that must be positive is not | `AssemblyError`, `EquipmentError`, `SpecError` |
+| `source_not_interface` | a source that is not an Interface | `AssemblyTypeError` |
+| `spline_points_coincide` | consecutive spline points coincide | `AssemblyError` |
+| `spline_points_invalid` | spline points that are not at least two 3-vectors | `AssemblyError` |
+| `spline_start_mismatch` | a spline that does not start at the inlet | `AssemblyError` |
+| `spline_tangent_zero` | a zero spline end tangent | `AssemblyError` |
+| `stack_change_inside_slab` | a stack change inside a sweep slab | `AssemblyError` |
+| `stack_change_keeps_layers` | a stack change that ends or starts no layer | `AssemblyError` |
+| `stack_changes_invalid` | stack_changes not at increasing interior cell boundaries | `AssemblyError` |
+| `stack_changes_need_n_layers` | stack_changes without an explicit n_layers | `AssemblyError` |
+| `stated_angle_disagrees` | a bend's stated angle disagrees with its geometry | `AssemblyError` |
+| `stated_radius_disagrees` | a bend's stated radius disagrees with its geometry | `AssemblyError` |
+| `study_block_invalid` | a study block that is not an object with its required key | `StudyError` |
+| `study_case_needs_openfoam` | a case stage without format openfoam | `StudyError` |
+| `study_function_invalid` | a study function not given as module:function | `StudyError` |
+| `study_function_not_found` | a study function that can't be imported | `StudyError` |
+| `study_key_unknown` | unknown keys in a study file | `StudyError` |
+| `study_not_json` | a study file that is not JSON | `StudyError` |
+| `study_not_object` | a study file that is not a JSON object | `StudyError` |
+| `study_not_run` | a study read before it was run | `StudyError` |
+| `study_placeholders_mismatch` | study placeholders and parameters that do not match | `StudyError` |
+| `study_run_needs_case` | a run stage without a case stage | `StudyError` |
+| `study_stage_missing` | a study run to a stage its file has no block for | `StudyError` |
+| `study_template_invalid` | a study template that is neither python nor json | `StudyError` |
+| `switch_changes_rectangle` | a Switch whose outlet rectangle differs from its inlet's | `AssemblyError` |
+| `switch_changes_shells` | a Switch whose outlet shells differ from its inlet's | `AssemblyError` |
+| `switch_class_not_bridged` | a spec change of a switch class without its bridge | `AssemblyError` |
+| `switch_class_not_declared` | a fitting that does not declare the switch class it needs | `AssemblyError` |
+| `switch_needed` | a spec change that needs a Switch | `AssemblyError` |
+| `switch_needs_oh_and_h` | a Switch that does not join an O-H and an H face | `AssemblyError` |
+| `switch_needs_outlet` | a Switch from an H inlet without outlet= | `AssemblyError` |
+| `switch_needs_rectangle` | a Switch on a non-rectangular core | `AssemblyError` |
+| `switch_too_short` | a switch shorter than its length rule | `AssemblyError` |
+| `tail_closed` | add() after the tail was closed, with no interface given | `AssemblyError` |
+| `tap_does_not_fit` | a duct tap that does not fit its main | `AssemblyError`, `LayoutError` |
+| `tap_ring_override_on_oh_main` | duct-tap ring overrides on an O-H main | `AssemblyError` |
+| `tee_branch_angled` | a network tee whose branch is not perpendicular | `AssemblyError` |
+| `tee_run_asymmetric` | a network tee whose run ports are not symmetric | `AssemblyError` |
+| `terminal_end_taken` | an open end attached to two terminals | `AssemblyError` |
+| `terminal_name_duplicate` | two network ends with the same name | `AssemblyError` |
+| `terminal_no_open_end` | a terminal with no open pipe end at its position | `AssemblyError` |
+| `terminal_points_disagree` | a terminal's two positions disagree | `AssemblyError` |
+| `terminal_position_missing` | a terminal without a position | `AssemblyError` |
+| `topology_key_mismatch` | variants with one topology key but different connectivity | `StudyError` |
+| `toward_along_axis` | toward too close to the inlet axis | `AssemblyError` |
+| `toward_invalid` | toward that is not a nonzero 3-vector | `AssemblyError` |
+| `toward_needs_positive_angle` | toward with a negative angle | `AssemblyError` |
+| `toward_off_allowed` | toward not on an allowed direction of the section | `AssemblyError` |
+| `toward_on_duct_tap` | toward= on a duct tap | `AssemblyError` |
+| `transition_both_h` | a Transition with H layouts at both ends | `AssemblyError` |
+| `transition_layers_cross` | a Transition whose layer outlines cross | `AssemblyError` |
+| `transition_needs_shape_change` | a Transition between circles only | `AssemblyError` |
+| `transition_same_rectangle` | a Transition with the same rectangle at both ends | `AssemblyError` |
+| `transition_shape_unsupported` | a Transition layer that is neither circle nor rectangle | `AssemblyError` |
+| `value_not_positive` | a coefficient or ratio that must be positive is not | `AssemblyError`, `SpecError` |
+| `variants_duplicate` | two study variants with the same parameters | `StudyError` |
+| `wall_bump_invalid` | wall_bump that is not two positive coefficients | `SpecError` |
+| `wall_bump_needs_h_layout` | wall_bump= on a core that is not H | `SpecTypeError` |
+| `wall_projection_folded` | wall projection folded cells | `AssemblyError` |
+| `wall_projection_moves_node` | wall projection moves a node far (warning) | `HexmeshWarning` |
+| `with_radii_needs_dr_shells` | with_radii on a spec whose shells are not dR shells | `SpecError` |
+| `write_openfoam_needs_msh` | write_openfoam given a path that is not .msh | `AssemblyError` |
+| `wye_needs_circle` | a Wye on a non-circular core | `AssemblyError` |
+| `wye_shell_angle_below_minimum` | a shelled Wye below WYE_SHELL_MIN_ANGLE | `AssemblyError` |
+| `wye_shells_too_thick` | a Wye's shells thicker than its angle allows | `AssemblyError` |
+| `ypiece_asymmetric` | a network Y piece that is not symmetric and coplanar | `AssemblyError` |
+| `ypiece_daughter_size` | a network Y piece whose daughters differ in size from the stem | `AssemblyError` |
+| `ypiece_stem_missing` | a network Y piece without a stem pipe or branch points | `AssemblyError` |
+| `ypiece_stem_too_short` | a network Y piece's stem too short for the Wye's inlet run | `AssemblyError` |
+
+---
+
 ## Physical groups
 
 The naming convention is in [the guide](docs/GUIDE.md#physical-groups). It

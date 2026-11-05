@@ -45,6 +45,8 @@ import tempfile
 import warnings
 from pathlib import Path
 
+from ...errors import HexmeshError, HexmeshWarning, ReaderError
+
 FORMAT = 1
 ROLES = ("volume", "open_end", "wall", "interface")
 
@@ -59,7 +61,9 @@ def write_roles(path, groups: dict[str, str], not_written=()) -> None:
     """Write a role manifest (indented JSON, sorted keys)."""
     bad = {g: r for g, r in groups.items() if r not in ROLES}
     if bad:
-        raise ValueError(f"unknown roles {bad}; roles are {ROLES}")
+        raise HexmeshError(f"unknown roles {bad}; roles are {ROLES}",
+                           code="option_invalid", where={"field": "groups"}, value=bad,
+                           limit=list(ROLES))
     data = {"format": FORMAT, "groups": dict(groups),
             "not_written": sorted(not_written)}
     _atomic_write(Path(path), json.dumps(data, indent=2, sort_keys=True) + "\n")
@@ -72,7 +76,9 @@ def read_roles(path_or_dict) -> dict:
     else:
         data = json.loads(Path(path_or_dict).read_text(encoding="utf-8"))
     if data.get("format") != FORMAT:
-        raise ValueError(f"unsupported role manifest format {data.get('format')!r}")
+        raise ReaderError(f"unsupported role manifest format {data.get('format')!r}",
+                          code="role_manifest_format_unsupported", where={"field": "format"},
+                          value=data.get("format"))
     return data
 
 
@@ -111,7 +117,8 @@ def _entries(text: str):
     if m:
         i = _skip(text, m.end())
     if not text.startswith("(", i):
-        raise ValueError("boundary file: patch list '(' not found")
+        raise ReaderError("boundary file: patch list '(' not found",
+                          code="openfoam_boundary_unparsable")
     i += 1
     while True:
         i = _skip(text, i)
@@ -119,11 +126,13 @@ def _entries(text: str):
             return
         m = re.compile(r"[^\s{}()]+").match(text, i)
         if not m:
-            raise ValueError(f"boundary file: patch name expected at offset {i}")
+            raise ReaderError(f"boundary file: patch name expected at offset {i}",
+                              code="openfoam_boundary_unparsable", value=i)
         name = m.group()
         i = _skip(text, m.end())
         if not text.startswith("{", i):
-            raise ValueError(f"boundary file: '{{' expected after patch {name}")
+            raise ReaderError(f"boundary file: '{{' expected after patch {name}",
+                              code="openfoam_boundary_unparsable", where={"part": name})
         start, depth = i + 1, 1
         i += 1
         while depth:
@@ -137,7 +146,7 @@ def _as_wall(body: str) -> str:
     """Retype one patch body to a wall, touching only the typing lines."""
     m = _TYPE.search(body)
     if not m:
-        raise ValueError("patch entry without a 'type' line")
+        raise ReaderError("patch entry without a 'type' line", code="openfoam_boundary_unparsable")
     body = body[:m.start("value")] + "wall" + body[m.end("value"):]
     body = _PHYS.sub(lambda p: p.group("lead") + "wall" + p.group("tail"), body)
     g = _GROUPS.search(body)
@@ -201,8 +210,11 @@ def apply_boundary_roles(case_dir, roles, region: str | None = None) -> list[str
     text = path.read_text(encoding="utf-8")
     new, retyped, unknown = retype_boundary_text(text, groups)
     if unknown:
-        warnings.warn(f"{path}: patches not in the role manifest, left as they are: "
-                      f"{', '.join(unknown)}", stacklevel=2)
+        warnings.warn(HexmeshWarning(f"{path}: patches not in the role manifest, left as they "
+                                     f"are: {', '.join(unknown)}",
+                                     code="openfoam_patches_unmapped",
+                                     where={"source": {"file": str(path)}},
+                                     value=list(unknown)), stacklevel=2)
     if new != text:
         _atomic_write(path, new)
     return retyped

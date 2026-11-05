@@ -34,6 +34,8 @@ from dataclasses import dataclass, field, replace
 
 import numpy as np
 
+from ..errors import HexmeshWarning
+from .errors import AssemblyError, AssemblyTypeError
 from ..core.shape import BlendShape
 from ..core.spec import PipeSpec
 from .interface import (Frame, check_outlines, half_extent, outer_radius, roll_mismatch,
@@ -63,24 +65,31 @@ class _Toward:
         if self.toward is not None:
             name = type(self).__name__
             if self.roll != 0:
-                raise ValueError(f"{name}: give roll or toward, not both")
+                raise AssemblyError(f"{name}: give roll or toward, not both",
+                                    code="roll_and_toward_conflict", where={"field": "toward"})
             if self.angle < 0:
-                raise ValueError(f"{name}: toward needs a positive angle (a negative "
-                                 f"angle turns away from it), got {self.angle!r}")
+                raise AssemblyError(f"{name}: toward needs a positive angle (a negative "
+                                    f"angle turns away from it), got {self.angle!r}",
+                                    code="toward_needs_positive_angle", where={"field": "angle"},
+                                    value=self.angle, limit={"min_exclusive": 0})
             fitting = replace(self, roll=toward_roll(inlet, self.toward), toward=None)
         fitting = super(_Toward, fitting).resolve(inlet, spec, axial_cell, outlet)
         if 0 < abs(fitting.angle) < RADIANS_WARNING_BELOW:
             # stacklevel: here, Assembly._resolved, Assembly.add/close, the caller
             warnings.warn(
-                f"{type(fitting).__name__} angle {fitting.angle:g}° is below "
-                f"{RADIANS_WARNING_BELOW:.3g}°: angles are in degrees "
-                f"(looks like radians?)", UserWarning, stacklevel=4)
+                HexmeshWarning(f"{type(fitting).__name__} angle {fitting.angle:g}° is below "
+                               f"{RADIANS_WARNING_BELOW:.3g}°: angles are in degrees "
+                               f"(looks like radians?)",
+                               code="angle_looks_like_radians", where={"field": "angle"},
+                               value=fitting.angle, limit="RADIANS_WARNING_BELOW"), stacklevel=4)
         return fitting
 
     def check_resolved(self) -> None:
         if self.toward is not None:
-            raise ValueError(f"{type(self).__name__}: toward is resolved by "
-                             "Assembly.add(); add the fitting to an assembly")
+            raise AssemblyError(f"{type(self).__name__}: toward is resolved by "
+                                "Assembly.add(); add the fitting to an assembly",
+                                code="fitting_not_resolved", where={"field": "toward"},
+                                hint="add the fitting to an assembly")
 
 
 # ---------------------------------------------------------------------------
@@ -116,7 +125,9 @@ class Straight(Sweep):
     def check(self, spec: PipeSpec) -> None:
         super().check(spec)
         if self.length <= 0:
-            raise ValueError(f"length must be positive, got {self.length!r}")
+            raise AssemblyError(f"length must be positive, got {self.length!r}",
+                                code="size_not_positive", where={"field": "length"},
+                                value=self.length, limit={"min_exclusive": 0})
 
     def path(self, a: Frame, b: Frame, spec: PipeSpec) -> Path:
         if not self.stack_changes:
@@ -220,7 +231,9 @@ class Bend(_Toward, Sweep):
         super().check(spec)
         self.check_resolved()
         if not 0 < abs(self.angle) < 360:
-            raise ValueError(f"angle must be in (0, 360) degrees, got {self.angle!r}")
+            raise AssemblyError(f"angle must be in (0, 360) degrees, got {self.angle!r}",
+                                code="angle_out_of_range", where={"field": "angle"},
+                                value=self.angle, limit={"min_exclusive": 0, "max_exclusive": 360})
 
     def path(self, a: Frame, b: Frame, spec: PipeSpec) -> Path:
         n = self.n_layers
@@ -305,19 +318,29 @@ class MiterBend(_Toward, Sweep):
         super().check(spec)
         self.check_resolved()
         if self.n_cuts < 1:
-            raise ValueError(f"n_cuts must be >= 1, got {self.n_cuts!r}")
+            raise AssemblyError(f"n_cuts must be >= 1, got {self.n_cuts!r}",
+                                code="count_below_minimum", where={"field": "n_cuts"},
+                                value=self.n_cuts, limit={"min": 1})
         if not 0 < abs(self.angle) < 360:
-            raise ValueError(f"angle must be in (0, 360) degrees, got {self.angle!r}")
+            raise AssemblyError(f"angle must be in (0, 360) degrees, got {self.angle!r}",
+                                code="angle_out_of_range", where={"field": "angle"},
+                                value=self.angle, limit={"min_exclusive": 0, "max_exclusive": 360})
         if abs(self.cut_angle) < MIN_MITER_CUT:
-            raise ValueError(
+            raise AssemblyError(
                 f"each cut turns {abs(self.cut_angle):.4g}°, below "
-                f"{MIN_MITER_CUT:.0f}°; use fewer cuts or a Straight"
+                f"{MIN_MITER_CUT:.0f}°; use fewer cuts or a Straight",
+                code="miter_cut_below_minimum", where={"field": "n_cuts"},
+                value=abs(self.cut_angle), limit="MIN_MITER_CUT",
+                hint="use fewer cuts or a Straight"
             )
         if abs(self.cut_angle) > MAX_MITER_CUT:
-            raise ValueError(
+            raise AssemblyError(
                 f"each cut turns {abs(self.cut_angle):.4g}° (limit "
                 f"{MAX_MITER_CUT:.0f}°); use n_cuts >= "
-                f"{math.ceil(abs(self.angle) / MAX_MITER_CUT)}"
+                f"{math.ceil(abs(self.angle) / MAX_MITER_CUT)}",
+                code="miter_cut_above_maximum", where={"field": "n_cuts"},
+                value=abs(self.cut_angle), limit="MAX_MITER_CUT",
+                hint=f"use n_cuts >= {math.ceil(abs(self.angle) / MAX_MITER_CUT)}"
             )
 
     def corners(self, inlet: Frame) -> list[np.ndarray]:
@@ -410,12 +433,15 @@ class Elbow(_Toward, Sweep):
     def check(self, spec: PipeSpec) -> None:
         self.check_resolved()
         if any(type(o).side_curve != "arc" for o in spec.outlines):
-            raise ValueError("Elbow schedules are ASME pipe fittings, for circular "
-                             "pipes; use Bend(radius, angle, …) for a section with "
-                             "a rectangle")
+            raise AssemblyError("Elbow schedules are ASME pipe fittings, for circular "
+                                "pipes; use Bend(radius, angle, …) for a section with "
+                                "a rectangle",
+                                code="elbow_needs_circle", hint="use Bend(radius, angle, …)")
         if self.schedule not in self.FACTORS:
-            raise ValueError(
-                f"schedule must be one of {sorted(self.FACTORS)}, got {self.schedule!r}"
+            raise AssemblyError(
+                f"schedule must be one of {sorted(self.FACTORS)}, got {self.schedule!r}",
+                code="option_invalid", where={"field": "schedule"}, value=self.schedule,
+                limit=sorted(self.FACTORS)
             )
         self.bend(spec).check(spec)
 
@@ -536,26 +562,33 @@ class Reducer(Sweep):
     def check(self, spec: PipeSpec) -> None:
         super().check(spec)
         if self.length <= 0:
-            raise ValueError(f"length must be positive, got {self.length!r}")
+            raise AssemblyError(f"length must be positive, got {self.length!r}",
+                                code="size_not_positive", where={"field": "length"},
+                                value=self.length, limit={"min_exclusive": 0})
         # rot is placement, not connectivity (task 0019), so the signature
         # check in Sweep.validate does not see it; the cone needs it equal.
         if spec.rot != self.outlet.rot:
-            raise ValueError(
+            raise AssemblyError(
                 f"outlet spec differs from the inlet in rot ({spec.rot!r} vs "
-                f"{self.outlet.rot!r}); a reducer may change radii only")
+                f"{self.outlet.rot!r}); a reducer may change radii only",
+                code="rot_mismatch", where={"field": "rot"}, value=self.outlet.rot, limit=spec.rot)
         for name, a, b in zip(spec.layer_names, spec.outlines, self.outlet.outlines):
             if type(a) is not type(b):
-                raise ValueError(
+                raise AssemblyError(
                     f"Reducer changes outline sizes, not shapes: layer `{name}` is a "
                     f"{type(a).__name__} at the inlet and a {type(b).__name__} at the "
-                    f"outlet; use Transition")
+                    f"outlet; use Transition",
+                    code="reducer_shape_change", where={"label": name}, hint="use Transition")
         if spec.layout != self.outlet.layout:
-            raise ValueError(f"Reducer changes sizes, not layouts: layout {spec.layout!r} "
-                             f"at the inlet, {self.outlet.layout!r} at the outlet")
+            raise AssemblyError(f"Reducer changes sizes, not layouts: layout {spec.layout!r} "
+                                f"at the inlet, {self.outlet.layout!r} at the outlet",
+                                code="reducer_layout_change", where={"field": "layout"},
+                                value=self.outlet.layout, limit=spec.layout)
         kinds = {(s.wall_grading or ("uniform",))[0] for s in (spec, self.outlet)}
         if spec.layout == "h" and "bump" in kinds and len(kinds) > 1:
-            raise ValueError("Reducer: grade both ends of an H duct (first_cell=, mprg= "
-                             "or wall_bump=), or neither (the stations interpolate it)")
+            raise AssemblyError("Reducer: grade both ends of an H duct (first_cell=, mprg= "
+                                "or wall_bump=), or neither (the stations interpolate it)",
+                                code="reducer_grading_one_end", where={"field": "outlet"})
         if self.profile is not None:
             self._check_profile(spec)
 
@@ -569,10 +602,11 @@ class Reducer(Sweep):
                 [_sizes(o) for o in self.outlet.outlines]))):
             got = r0 * float(prof(s))
             if not np.allclose(got, want, rtol=1e-9, atol=0.0):
-                raise ValueError(
+                raise AssemblyError(
                     f"profile gives the {end} radii {list(np.round(got, 9))} "
                     f"(r({s:g}) = {float(prof(s)):.6g} × the inlet's), but the {end} "
-                    f"spec has {list(want)}; every radius scales with the profile")
+                    f"spec has {list(want)}; every radius scales with the profile",
+                    code="profile_radii_mismatch", where={"field": "profile"})
         gaps = prof.chord_gaps(prof.stations(self.fractions(self.n_layers)))
         if gaps.max() > self.chord_tol:
             k = int(np.argmax(gaps))
@@ -586,10 +620,12 @@ class Reducer(Sweep):
                 mid = (lo + hi) // 2
                 lo, hi = (lo, mid) if ok(mid) else (mid, hi)
             n = hi
-            raise ValueError(
+            raise AssemblyError(
                 f"slab {k} of the profile's wall chords is {gaps[k]:.3g} · R_in "
                 f"from the profile (chord_tol {self.chord_tol:g}); use n_layers "
-                f">= {n}")
+                f">= {n}",
+                code="profile_chords_too_coarse", where={"field": "n_layers"},
+                value=float(gaps[k]), limit=self.chord_tol, hint=f"use n_layers >= {n}")
 
     def path(self, a: Frame, b: Frame, spec: PipeSpec) -> Path:
         n = self.n_layers
@@ -672,7 +708,9 @@ class Transition(Sweep):
     def check(self, spec: PipeSpec) -> None:
         super().check(spec)
         if self.length <= 0:
-            raise ValueError(f"length must be positive, got {self.length!r}")
+            raise AssemblyError(f"length must be positive, got {self.length!r}",
+                                code="size_not_positive", where={"field": "length"},
+                                value=self.length, limit={"min_exclusive": 0})
         h_end = self._h_end(spec)
         if h_end is not None:
             self._check_h_end(spec, h_end)
@@ -682,27 +720,36 @@ class Transition(Sweep):
             from .signature import BRIDGES, classify, signature
             c = classify(signature(a), signature(b))
             what = "; ".join(str(d) for d in c.differences)
-            raise ValueError(f"outlet spec differs from the inlet in {what}. That is switch "
-                             f"class {c.cls}, which needs {BRIDGES[c.cls]}; Transition keeps "
-                             f"the layers")
+            raise AssemblyError(f"outlet spec differs from the inlet in {what}. That is switch "
+                                f"class {c.cls}, which needs {BRIDGES[c.cls]}; Transition keeps "
+                                f"the layers",
+                                code="switch_class_not_bridged", where={"field": "outlet"},
+                                value=int(c.cls))
         for end, s in (("inlet", a), ("outlet", b)):
             for lname, o in zip(s.layer_names, s.outlines):
                 if o.is_station:
-                    raise ValueError(f"Transition joins circles and rectangles; layer "
-                                     f"`{lname}` at the {end} is a {type(o).__name__}")
+                    raise AssemblyError(f"Transition joins circles and rectangles; layer "
+                                        f"`{lname}` at the {end} is a {type(o).__name__}",
+                                        code="transition_shape_unsupported",
+                                        where={"label": lname})
         if all(o.is_round for o in a.outlines + b.outlines):
-            raise ValueError("Transition changes outline shapes; for circles at both "
-                             "ends (sizes only) use Reducer")
+            raise AssemblyError("Transition changes outline shapes; for circles at both "
+                                "ends (sizes only) use Reducer",
+                                code="transition_needs_shape_change", hint="use Reducer")
         for lname, x, y in zip(a.layer_names, a.outlines, b.outlines):
             if x.counts != y.counts:
-                raise ValueError(
+                raise AssemblyError(
                     f"Transition needs equal counts per side: layer `{lname}` inlet "
                     f"{_counts(x)} vs outlet {_counts(y)} (a circle's nang must "
-                    f"equal the rectangle's nang_w and nang_h)")
+                    f"equal the rectangle's nang_w and nang_h)",
+                    code="counts_mismatch", where={"label": lname}, value=_counts(y),
+                    limit=_counts(x))
         # rot is placement, not connectivity (task 0019): check it here
         if a.rot != b.rot:
-            raise ValueError(f"outlet spec differs from the inlet in rot ({a.rot!r} "
-                             f"vs {b.rot!r})")
+            raise AssemblyError(f"outlet spec differs from the inlet in rot ({a.rot!r} "
+                                f"vs {b.rot!r})",
+                                code="rot_mismatch", where={"field": "rot"}, value=b.rot,
+                                limit=a.rot)
         if spec.shells:
             self._check_nested(spec)
 
@@ -721,8 +768,9 @@ class Transition(Sweep):
             except ValueError as e:
                 at = (f"station {stations.index(uk)}" if uk in stations
                       else "between stations")
-                raise ValueError(f"Transition: the layers cross {at}, "
-                                 f"{uk:.3f} of the length along: {e}") from None
+                raise AssemblyError.wrap(e, f"Transition: the layers cross {at}, "
+                                            f"{uk:.3f} of the length along: {e}",
+                                         code="transition_layers_cross", field="length") from None
 
     # -- an H end (task 0085) ------------------------------------------
 
@@ -735,10 +783,11 @@ class Transition(Sweep):
     def _check_h_end(self, spec: PipeSpec, end: str) -> None:
         h_spec, o_spec = (spec, self.outlet) if end == "inlet" else (self.outlet, spec)
         if o_spec.layout == "h":
-            raise ValueError(_BOTH_H)
+            raise AssemblyError(_BOTH_H, code="transition_both_h", hint="use Reducer")
         if o_spec.core_shape == h_spec.core_shape:
-            raise ValueError("Transition: the same rectangle at both ends; to change the "
-                             "layout only use Switch")
+            raise AssemblyError("Transition: the same rectangle at both ends; to change the "
+                                "layout only use Switch",
+                                code="transition_same_rectangle", hint="use Switch")
         blend = self._blend_spec(spec)
         Transition(blend, self.length, self.n_layers, self.axial_grading).check(o_spec) \
             if end == "outlet" else Transition(o_spec, self.length, self.n_layers,
@@ -753,7 +802,7 @@ class Transition(Sweep):
         end = self._h_end(spec)
         h_spec, o_spec = (spec, self.outlet) if end == "inlet" else (self.outlet, spec)
         if o_spec.layout == "h":
-            raise ValueError(_BOTH_H)
+            raise AssemblyError(_BOTH_H, code="transition_both_h", hint="use Reducer")
         sh = h_spec.core_shape
         out = PipeSpec(nang_w=sh.nang_w, nang_h=sh.nang_h, mbmp=o_spec.mbmp,
                        rot=o_spec.rot).core(o_spec.layer_names[0], sh,
@@ -774,10 +823,12 @@ class Transition(Sweep):
         n = self.n_layers
         m = max(1, math.ceil(need * n / self.length - 1e-9))
         if m >= n:
-            raise ValueError(
+            raise AssemblyError(
                 f"Transition to an H rectangle: the switch needs {length_rule(blend, h_spec)}, "
                 f"and the blend at least one of the {n} layers; use n_layers >= {m + 1} or a "
-                f"longer transition")
+                f"longer transition",
+                code="switch_too_short", where={"field": "n_layers"}, value=n,
+                limit={"min": m + 1})
         return m, self.length * m / n
 
     def _parts(self, frames: list[Frame], spec: PipeSpec):
@@ -803,13 +854,16 @@ class Transition(Sweep):
             return super().validate(frames, spec)
         self.check(spec)
         if self.n_layers is None:
-            raise ValueError("n_layers unresolved (add the transition to an Assembly)")
+            raise AssemblyError("n_layers unresolved (add the transition to an Assembly)",
+                                code="n_layers_unresolved", where={"field": "n_layers"},
+                                hint="add the transition to an Assembly")
         from .signature import check_port_pairs
         check_port_pairs(self, [spec, self.outlet])
         (want, _), = self.ports(frames[0], spec)
         if (np.linalg.norm(want.position - frames[1].position) > 1e-9 * self.length
                 or np.dot(want.normal, frames[1].normal) < 1 - 1e-9):
-            raise ValueError("outlet interface does not match Transition geometry")
+            raise AssemblyError("outlet interface does not match Transition geometry",
+                                code="outlet_frame_mismatch")
         found = []
         for part, fr, s in self._parts(frames, spec):
             found += part.validate(list(fr), s) or []
@@ -1072,19 +1126,25 @@ class SplinePipe(Sweep):
         if layers:
             _check_n_layers(self.n_layers)
         if not self.axial_grading > 0:
-            raise ValueError(f"axial_grading must be positive, got {self.axial_grading!r}")
+            raise AssemblyError(f"axial_grading must be positive, got {self.axial_grading!r}",
+                                code="value_not_positive", where={"field": "axial_grading"},
+                                value=self.axial_grading, limit={"min_exclusive": 0})
         P = np.asarray(self.points)
         if P.ndim != 2 or P.shape[1] != 3 or len(P) < 2:
-            raise ValueError("points must be at least two 3-vectors")
+            raise AssemblyError("points must be at least two 3-vectors",
+                                code="spline_points_invalid", where={"field": "points"})
         scale = max(1.0, float(np.abs(P).max()))
         if np.linalg.norm(P[0] - inlet.position) > 1e-9 * scale:
-            raise ValueError(
-                f"points[0] {P[0]} is not the inlet position {inlet.position}"
+            raise AssemblyError(
+                f"points[0] {P[0]} is not the inlet position {inlet.position}",
+                code="spline_start_mismatch", where={"field": "points"}
             )
         if np.linalg.norm(np.diff(P, axis=0), axis=1).min() < 1e-12 * scale:
-            raise ValueError("consecutive points coincide")
+            raise AssemblyError("consecutive points coincide",
+                                code="spline_points_coincide", where={"field": "points"})
         if self.end_tangent is not None and np.linalg.norm(self.end_tangent) < 1e-12:
-            raise ValueError("end_tangent must be non-zero")
+            raise AssemblyError("end_tangent must be non-zero",
+                                code="spline_tangent_zero", where={"field": "end_tangent"})
 
     def ports(self, inlet: Frame, spec: PipeSpec) -> list[tuple[Frame, PipeSpec]]:
         self._check_points(inlet)
@@ -1150,12 +1210,15 @@ class Closure(Sweep):
         return _max_turn(frames) <= MAX_CHORD_TURN
 
     def ports(self, inlet: Frame, spec: PipeSpec):
-        raise TypeError("Closure joins two existing interfaces; use Assembly.close()")
+        raise AssemblyTypeError("Closure joins two existing interfaces; use Assembly.close()",
+                                code="closure_needs_close", hint="use Assembly.close()")
 
     def check(self, spec: PipeSpec) -> None:
         super().check(spec)
         if self.tension <= 0:
-            raise ValueError(f"tension must be positive, got {self.tension!r}")
+            raise AssemblyError(f"tension must be positive, got {self.tension!r}",
+                                code="value_not_positive", where={"field": "tension"},
+                                value=self.tension, limit={"min_exclusive": 0})
 
     # -- centreline -----------------------------------------------------
 
@@ -1190,12 +1253,14 @@ class Closure(Sweep):
 
     def path(self, a: Frame, b: Frame, spec: PipeSpec) -> Path:
         if np.linalg.norm(b.position - a.position) < 1e-12:
-            raise ValueError("source and target interfaces coincide")
+            raise AssemblyError("source and target interfaces coincide",
+                                code="closure_ends_coincide")
         frames, twist = self.stations(a, b, spec.period)
         if abs(abs(twist) - spec.period / 2) < 1e-9:
-            raise ValueError(
+            raise AssemblyError(
                 f"roll mismatch of {math.degrees(twist):.4g}° is half the section's "
                 f"symmetry period ({math.degrees(spec.period):.4g}°), so it is "
-                f"ambiguous which way to twist; roll one end")
+                f"ambiguous which way to twist; roll one end",
+                code="roll_mismatch_ambiguous", value=math.degrees(twist), hint="roll one end")
         return Path(frames, [1] * self.n_layers,
                     min_radius=self._min_bend_radius(a, b))

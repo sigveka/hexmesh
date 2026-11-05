@@ -83,7 +83,8 @@ def write_manifest(study: Study, rows: list[dict]) -> None:
 def read_manifest(study: Study) -> dict:
     path = study.output / "study.json"
     if not path.exists():
-        raise StudyError(f"no manifest at {path}: run the study first")
+        raise StudyError(f"no manifest at {path}: run the study first",
+                         code="study_not_run", where={"source": {"file": str(path)}})
     return json.loads(path.read_text(encoding="utf-8"))
 
 
@@ -99,7 +100,9 @@ def read_mesh(path: Path) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         hexes = []
         for etype, _, nodes in zip(*gmsh.model.mesh.getElements(3)):
             if int(etype) != 5:
-                raise StudyError(f"{path}: not all-hex (element type {int(etype)})")
+                raise StudyError(f"{path}: not all-hex (element type {int(etype)})",
+                                 code="mesh_not_all_hex", where={"source": {"file": str(path)}},
+                                 value=int(etype))
             hexes.append(nodes.reshape(-1, 8))
         hexes = np.searchsorted(tags, np.concatenate(hexes))
     return tags, x, hexes
@@ -123,7 +126,8 @@ def export(study: Study) -> dict[str, Path]:
                 tags0, hexes0 = tags, hexes
             elif not (np.array_equal(tags, tags0) and np.array_equal(hexes, hexes0)):
                 raise StudyError(f"topology key {key}: variant {r['hash']} has a different "
-                                 f"connectivity from {members[0]['hash']}")
+                                 f"connectivity from {members[0]['hash']}",
+                                 code="topology_key_mismatch", value=r["hash"])
             coords.append(x)
         path = out_dir / f"{key}.npz"
         np.savez(path, coords=np.stack(coords), hexes=hexes0, node_tags=tags0,

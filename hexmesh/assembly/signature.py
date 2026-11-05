@@ -53,6 +53,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .errors import AssemblyError
 from ..core.spec import LayerSpec, PipeSpec
 from ..sections import h, oh
 
@@ -208,20 +209,24 @@ def check_port_pairs(fitting, specs: list[PipeSpec]) -> None:
         port = "outlet" if len(specs) == 2 else f"outlet {k}"
         what = "; ".join(str(d) for d in c.differences)
         if c.cls == 2 and 2 in allowed and not c.grading_only:
-            raise ValueError(
+            raise AssemblyError(
                 f"{name}: {port} spec differs from the inlet in {what}. That is "
                 f"switch class 2 beyond radial grading (counts or mbmp), which "
                 f"needs {BRIDGES[2]}; {name} bridges grading-only class-2 pairs "
-                f"(radial mprg) only")
+                f"(radial mprg) only",
+                code="switch_class_not_declared", where={"field": port}, value=int(c.cls))
         if c.cls == 1 and c.ends == "pillow" and not getattr(fitting, "pillows", False):
-            raise ValueError(
+            raise AssemblyError(
                 f"{name}: {port} spec differs from the inlet in {what}. That is switch "
                 f"class 1, a pillow (a rectangular O-H face is a pillowed H face): put a "
                 f"Switch between them (decision 0036, task 0085)"
-                + (f"; {name} bridges layer termination only" if 1 in allowed else ""))
+                + (f"; {name} bridges layer termination only" if 1 in allowed else ""),
+                code="switch_needed", where={"field": port}, value=int(c.cls),
+                hint="put a Switch between them")
         if c.cls in allowed:
             continue
-        raise ValueError(
+        raise AssemblyError(
             f"{name}: {port} spec differs from the inlet in {what}. That is "
             f"switch class {c.cls}, which needs {BRIDGES[c.cls]}; {name} "
-            f"declares strategies {sorted(allowed)}")
+            f"declares strategies {sorted(allowed)}",
+            code="switch_class_not_declared", where={"field": port}, value=int(c.cls))

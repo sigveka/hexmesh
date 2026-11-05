@@ -22,7 +22,7 @@ from .interface import Frame, Interface, port_type
 from .fittings  import (
     Straight, Bend, MiterBend, Elbow, Reducer, Transition, SplinePipe, Closure, FillResult,
 )
-from .assembler import Assembly, AssemblyError
+from .assembler import Assembly, AssemblyError, AssemblyTypeError
 from .tee       import Tee
 from .switch    import Switch
 from .wye       import Wye
@@ -32,6 +32,6 @@ __all__ = [
     "Frame", "Interface", "port_type",
     "Straight", "Bend", "MiterBend", "Elbow", "Reducer", "Transition", "SplinePipe", "Closure",
     "FillResult",
-    "Assembly", "AssemblyError", "Tee", "Wye", "Switch",
+    "Assembly", "AssemblyError", "AssemblyTypeError", "Tee", "Wye", "Switch",
     "Drum", "Nozzle", "OnShell", "OnHead", "EquipmentError",
 ]

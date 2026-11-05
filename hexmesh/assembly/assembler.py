@@ -43,6 +43,8 @@ from typing import Iterable
 import numpy as np
 import gmsh
 
+from ..errors import HexmeshWarning
+from .errors import AssemblyError, AssemblyTypeError
 from .. import _occ
 from ..core.spec import PipeSpec
 from ..sections import add_physical_group
@@ -63,14 +65,11 @@ from .interface import (
 )
 
 
-class AssemblyError(ValueError):
-    """Raised during validation; names the offending fitting or interface."""
-
-
 def _require_session() -> None:
     """Raise before any GMSH call when no GMSH session is open (task 0039)."""
     if not gmsh.isInitialized():
-        raise AssemblyError("needs a GMSH session: use `with Session(...):`")
+        raise AssemblyError("needs a GMSH session: use `with Session(...):`",
+                            code="no_gmsh_session", hint="open one with `with Session(...):`")
 
 
 def curve_constraints(records) -> dict:
@@ -85,7 +84,8 @@ def curve_constraints(records) -> dict:
         if (prev.nodes != c.nodes or prev.kind != c.kind
                 or not math.isclose(prev.coef, c.coef, rel_tol=1e-12)):
             raise AssemblyError(
-                f"curve {c.tag}: conflicting transfinite constraints {prev} and {c}"
+                f"curve {c.tag}: conflicting transfinite constraints {prev} and {c}",
+                code="curve_constraint_conflict", where={"part": f"curve {c.tag}"}
             )
     return out
 
@@ -140,7 +140,9 @@ class Assembly:
         axial_cell: float | None = None,
     ) -> None:
         if axial_cell is not None and not axial_cell > 0:
-            raise ValueError(f"axial_cell must be positive, got {axial_cell!r}")
+            raise AssemblyError(f"axial_cell must be positive, got {axial_cell!r}",
+                                code="size_not_positive", where={"field": "axial_cell"},
+                                value=axial_cell, limit={"min_exclusive": 0})
         self.axial_cell = axial_cell
         self._interfaces: list[Interface] = []
         self._edges:      list[Edge]      = []
@@ -209,15 +211,18 @@ class Assembly:
         holds only the resolved values (decision 0024).
         """
         if self._faces_built:
-            raise AssemblyError("cannot add fittings after the assembly is built")
+            raise AssemblyError("cannot add fittings after the assembly is built",
+                                code="assembly_already_built")
         if fitting is None:
             source, fitting, update_tail = self._tail, source, True
         else:
             update_tail = False
         if source is None:
-            raise AssemblyError("the tail was closed; pass the interface to add from")
+            raise AssemblyError("the tail was closed; pass the interface to add from",
+                                code="tail_closed", hint="pass the interface to add from")
         if not isinstance(source, Interface):
-            raise TypeError(f"source must be an Interface, got {type(source).__name__}")
+            raise AssemblyTypeError(f"source must be an Interface, got {type(source).__name__}",
+                                    code="source_not_interface", where={"field": "source"})
         self._check_degree(source, "inlet", fitting)
         fitting = self._resolved(fitting, source)
 
@@ -248,18 +253,25 @@ class Assembly:
         or a ``Straight`` / ``Bend`` that fits exactly.
         """
         if self._faces_built:
-            raise AssemblyError("cannot add fittings after the assembly is built")
+            raise AssemblyError("cannot add fittings after the assembly is built",
+                                code="assembly_already_built")
         for iface in (source, target):
             if not any(iface is i for i in self._interfaces):
-                raise AssemblyError(f"{iface} does not belong to this assembly")
+                raise AssemblyError(f"{iface} does not belong to this assembly",
+                                    code="interface_not_in_assembly",
+                                    where={"interface": iface.index})
             if not iface.is_open:
-                raise AssemblyError(f"{iface} is not an open interface")
+                raise AssemblyError(f"{iface} is not an open interface",
+                                    code="interface_not_open", where={"interface": iface.index})
         if source is target:
-            raise AssemblyError("cannot close an interface onto itself")
+            raise AssemblyError("cannot close an interface onto itself",
+                                code="close_onto_itself", where={"interface": source.index})
         if source.edges[0].ports[0] is source:
-            raise AssemblyError(f"source {source} is an upstream end, not an outlet")
+            raise AssemblyError(f"source {source} is an upstream end, not an outlet",
+                                code="close_source_not_outlet", where={"interface": source.index})
         if target.edges[0].ports[0] is not target:
-            raise AssemblyError(f"target {target} is a downstream end, not an inlet")
+            raise AssemblyError(f"target {target} is a downstream end, not an inlet",
+                                code="close_target_not_inlet", where={"interface": target.index})
         self._check_degree(source, "inlet", fitting)
         self._check_degree(target, "outlet", fitting)
         fitting = self._resolved(fitting, source, target)
@@ -281,17 +293,21 @@ class Assembly:
         name moves to the new inlet, so the inlet patch keeps its name.
         """
         if self._faces_built:
-            raise AssemblyError("cannot add fittings after the assembly is built")
+            raise AssemblyError("cannot add fittings after the assembly is built",
+                                code="assembly_already_built")
         if type(fitting) is not Straight:
-            raise TypeError(
-                f"prepend places a Straight only, got {type(fitting).__name__}")
+            raise AssemblyTypeError(
+                f"prepend places a Straight only, got {type(fitting).__name__}",
+                code="prepend_needs_straight")
         old = self.inlet
         if not old.is_open:
-            raise AssemblyError(f"the inlet {old} is not an open end")
+            raise AssemblyError(f"the inlet {old} is not an open end",
+                                code="interface_not_open", where={"interface": old.index})
         if old.equipment:
             raise AssemblyError(f"the inlet {old} is an equipment end (a drum nozzle or "
                                 "a PCF equipment connection); "
-                                "nothing can be placed upstream of it")
+                                "nothing can be placed upstream of it",
+                                code="prepend_at_equipment_end", where={"interface": old.index})
         self._check_degree(old, "outlet", fitting)
         fitting = self._resolved(fitting, old)    # the length does not depend on the frame
         f = old.frame
@@ -319,10 +335,14 @@ class Assembly:
         their patch names.  Must be called before ``build()``.
         """
         if self._faces_built:
-            raise AssemblyError("cannot add fittings after the assembly is built")
+            raise AssemblyError("cannot add fittings after the assembly is built",
+                                code="assembly_already_built")
         if upstream < 0 or downstream < 0 or cells_per_diameter <= 0:
-            raise ValueError("upstream and downstream must be >= 0, "
-                             "and cells_per_diameter > 0")
+            raise AssemblyError("upstream and downstream must be >= 0, "
+                                "and cells_per_diameter > 0",
+                                code="extend_args_invalid",
+                                value={"upstream": upstream, "downstream": downstream,
+                                       "cells_per_diameter": cells_per_diameter})
 
         def run(iface, diameters):
             d = hydraulic_diameter(iface.spec)
@@ -365,8 +385,9 @@ class Assembly:
         in its ``$Comments`` block (decision 0038)."""
         recipe = msh_comments.read_recipe(path)
         if recipe is None:
-            raise ValueError(f"{path}: no hexmesh recipe (written with provenance=False, "
-                             "by another tool, or from an assembly to_dict can't describe)")
+            raise AssemblyError(f"{path}: no hexmesh recipe (written with provenance=False, "
+                                "by another tool, or from an assembly to_dict can't describe)",
+                                code="msh_has_no_recipe", where={"source": {"file": str(path)}})
         return cls.from_dict(recipe)
 
     def refined(self, k: int) -> "Assembly":
@@ -395,7 +416,9 @@ class Assembly:
         of a network needs density switches (decision 0003).
         """
         if isinstance(k, bool) or not isinstance(k, (int, np.integer)) or k < 1:
-            raise ValueError(f"refined(k): k must be an integer >= 1, got {k!r}")
+            raise AssemblyError(f"refined(k): k must be an integer >= 1, got {k!r}",
+                                code="refine_factor_invalid", where={"field": "k"}, value=k,
+                                limit={"min": 1, "integer": True})
         return type(self).from_dict(intent.refined_dict(self.to_dict(), int(k)))
 
     def save(self, path) -> None:
@@ -423,9 +446,10 @@ class Assembly:
         if not isinstance(label, str) or not re.fullmatch(r"[A-Za-z0-9_]+", label):
             raise AssemblyError(
                 f"fitting label {label!r} must be letters, digits and _ only "
-                "(it becomes part of a patch name)")
+                "(it becomes part of a patch name)", code="label_invalid", where={"label": label})
         if any(e.name == label for e in self._edges):
-            raise AssemblyError(f"fitting label {label!r} is already used")
+            raise AssemblyError(f"fitting label {label!r} is already used",
+                                code="label_duplicate", where={"label": label})
 
     def _resolved(self, fitting, source: Interface, target: Interface | None = None):
         """*fitting* with input-only fields resolved at *source* (and
@@ -437,7 +461,8 @@ class Assembly:
                 fitting = resolve(source.frame, source.spec, self.axial_cell,
                                   None if target is None else target.frame)
             except ValueError as e:
-                raise AssemblyError(f"{fitting!r} at {source}: {e}") from None
+                raise AssemblyError.wrap(e, f"{fitting!r} at {source}: {e}",
+                                         code="fitting_invalid", interface=source.index) from None
         return fitting
 
     @staticmethod
@@ -452,13 +477,15 @@ class Assembly:
             if unknown or len(ports) != n:
                 raise AssemblyError(
                     f"{type(fitting).__name__} has ports {', '.join(ports)}; "
-                    f"unknown port name(s) {', '.join(map(repr, unknown))}")
+                    f"unknown port name(s) {', '.join(map(repr, unknown))}",
+                    code="port_name_unknown", value=unknown, limit=list(ports))
             return [names.get(k) for k in ports]
         names = list(names)
         if len(names) != n:
             raise AssemblyError(
                 f"{type(fitting).__name__} has {n} outlet(s) "
-                f"({', '.join(ports)}); got {len(names)} names")
+                f"({', '.join(ports)}); got {len(names)} names",
+                code="port_names_count", value=len(names), limit=n)
         return names
 
     @staticmethod
@@ -475,7 +502,8 @@ class Assembly:
         if attached:
             raise AssemblyError(
                 f"{iface} (interface #{iface.index}) is already the {role} of "
-                f"{attached[0]}; it cannot also be the {role} of {fitting!r}")
+                f"{attached[0]}; it cannot also be the {role} of {fitting!r}",
+                code="interface_degree", where={"interface": iface.index})
 
     def _new_interface(self, frame: Frame, spec: PipeSpec, name: str | None) -> Interface:
         iface = Interface(len(self._interfaces), frame, spec, name)
@@ -493,7 +521,7 @@ class Assembly:
         (``cell_count()``, computed without GMSH) exceeds the budget.
         """
         if not self._edges:
-            raise AssemblyError("assembly has no fittings")
+            raise AssemblyError("assembly has no fittings", code="assembly_empty")
         self.warnings = []
         checked: set[str] = set()
         for iface in self._interfaces:
@@ -503,11 +531,15 @@ class Assembly:
                     raise AssemblyError(
                         f"{iface} (interface #{iface.index}) is the {role} of "
                         f"{len(attached)} fittings: "
-                        + ", ".join(map(repr, attached)))
+                        + ", ".join(map(repr, attached)),
+                        code="interface_degree", where={"interface": iface.index},
+                        value=len(attached), limit=1)
             try:
                 check_supported(iface.spec)
             except NotImplementedError as e:
-                raise AssemblyError(f"{iface}: {e}") from None
+                raise AssemblyError.wrap(e, f"{iface}: {e}",
+                                         code="section_not_supported",
+                                         interface=iface.index) from None
             # outline quality limits (decision 0026 item 4, task 0047), once per spec
             key = json.dumps(iface.spec.to_dict(), sort_keys=True)
             if key not in checked:
@@ -515,10 +547,14 @@ class Assembly:
                 try:
                     found = check_section_quality(iface.spec)
                 except ValueError as e:
-                    raise AssemblyError(f"{iface}: {e}") from None
+                    raise AssemblyError.wrap(e, f"{iface}: {e}",
+                                             code="section_quality_reject",
+                                             interface=iface.index) from None
                 for msg in found:
                     self.warnings.append(f"{iface}: {msg}")
-                    warnings.warn(f"{iface}: {msg}", UserWarning, stacklevel=2)
+                    warnings.warn(HexmeshWarning(f"{iface}: {msg}",
+                                                 code="section_quality_warning",
+                                                 where={"interface": iface.index}), stacklevel=2)
         for edge in self._edges:
             # The fitting's own checks first: they give the most specific
             # reason (e.g. "Wye prototype supports single-layer specs only").
@@ -527,17 +563,24 @@ class Assembly:
                     [p.frame for p in edge.ports], edge.ports[0].spec
                 )
             except ValueError as e:
-                raise AssemblyError(f"{edge}: {e}") from None
+                raise AssemblyError.wrap(e, f"{edge}: {e}",
+                                         code="fitting_invalid", fitting=edge.index,
+                                         label=edge.name) from None
             for msg in found or ():          # a fitting's predicted-quality warnings
                 self.warnings.append(f"{edge}: {msg}")
-                warnings.warn(f"{edge}: {msg}", UserWarning, stacklevel=2)
+                warnings.warn(HexmeshWarning(f"{edge}: {msg}",
+                                             code="fitting_quality_warning",
+                                             where={"fitting": edge.index,
+                                                    "label": edge.name}), stacklevel=2)
             # A4: each port pair, as connected, must be in a switch class the
             # fitting declares (decision 0011).  Before the exact type check
             # below, so the error names what differs.
             try:
                 check_port_pairs(edge.fitting, [p.spec for p in edge.ports])
             except ValueError as e:
-                raise AssemblyError(f"{edge}: {e}") from None
+                raise AssemblyError.wrap(e, f"{edge}: {e}",
+                                         code="switch_class_not_declared", fitting=edge.index,
+                                         label=edge.name) from None
             # A4 — every port type must match the type the fitting declares
             # for it; a fitting that only joins existing interfaces keeps
             # its inlet type throughout.
@@ -552,7 +595,9 @@ class Assembly:
                     raise AssemblyError(
                         f"{edge}: port type at {iface} differs from the type "
                         f"the fitting declares"
-                        + (f" ({'; '.join(map(str, diff))})" if diff else " (radii)")
+                        + (f" ({'; '.join(map(str, diff))})" if diff else " (radii)"),
+                        code="port_type_mismatch",
+                        where={"fitting": edge.index, "label": edge.name, "interface": iface.index}
                     )
         if max_cells is not None:
             counts = self.cell_counts()
@@ -561,7 +606,10 @@ class Assembly:
                 worst = max(self._edges, key=lambda e: counts[e.index])
                 raise AssemblyError(
                     f"assembly has {total} cells, over the budget of {max_cells}; "
-                    f"largest is {worst} with {counts[worst.index]}"
+                    f"largest is {worst} with {counts[worst.index]}",
+                    code="cell_budget_exceeded",
+                    where={"fitting": worst.index, "label": worst.name}, value=total,
+                    limit=max_cells
                 )
 
     def cell_counts(self) -> dict[int, int]:
@@ -620,7 +668,8 @@ class Assembly:
         edges = (self._edges if order is None
                  else [self._edges[i] for i in order])
         if sorted(e.index for e in edges) != list(range(len(self._edges))):
-            raise AssemblyError("order must be a permutation of all fittings")
+            raise AssemblyError("order must be a permutation of all fittings",
+                                code="fill_order_invalid", where={"field": "order"})
 
         fill = FillResult()
         for edge in edges:
@@ -637,7 +686,8 @@ class Assembly:
                 raise
             except Exception as e:
                 raise AssemblyError(
-                    f"{edge}: fill failed ({type(e).__name__}: {e})") from e
+                    f"{edge}: fill failed ({type(e).__name__}: {e})",
+                    code="fill_failed", where={"fitting": edge.index, "label": edge.name}) from e
             self._fitting_volumes[edge.index] = [v for vs in part.volumes.values() for v in vs]
             if part.checked_volumes is not None:
                 self._checked_volumes[edge.index] = list(part.checked_volumes)
@@ -715,7 +765,8 @@ class Assembly:
         if walls_by_fitting:
             names = [e.name for e in self._edges]
             if len(set(names)) != len(names):
-                raise AssemblyError(f"fitting names are not unique: {names}")
+                raise AssemblyError(f"fitting names are not unique: {names}",
+                                    code="fitting_names_not_unique", value=names)
             for e in self._edges:
                 for base, tags in self._fitting_walls[e.index].items():
                     group(2, tags, f"{base}_{e.name}", "wall")
@@ -733,7 +784,8 @@ class Assembly:
         """Physical-group name → role, as last written by
         :meth:`write_physical_groups` (so after :meth:`mesh`)."""
         if not getattr(self, "_group_roles", None):
-            raise AssemblyError("no physical groups written yet; call mesh() first")
+            raise AssemblyError("no physical groups written yet; call mesh() first",
+                                code="no_mesh_yet", hint="call mesh() first")
         return dict(self._group_roles)
 
     def mesh(self, dim: int = 3, *, walls_by_fitting: bool = False) -> None:
@@ -811,7 +863,11 @@ class Assembly:
                        f"{ratio.max():.2f} local wall radii (WALL_PROJECTION_WARN_MOVE "
                        f"{limits.WALL_PROJECTION_WARN_MOVE:g})")
                 self.warnings.append(msg)
-                warnings.warn(msg, UserWarning, stacklevel=3)
+                warnings.warn(HexmeshWarning(msg,
+                                             code="wall_projection_moves_node",
+                                             where={"fitting": e.index, "label": e.name},
+                                             value=float(ratio.max()),
+                                             limit="WALL_PROJECTION_WARN_MOVE"), stacklevel=3)
             if not meshed:
                 continue
             # the fitting and its neighbours: a projector that moves port
@@ -825,7 +881,9 @@ class Assembly:
             if sj.min() <= 0:
                 raise AssemblyError(
                     f"{e.name}: wall projection folded {int((sj <= 0).sum())} cell(s), "
-                    f"min corner scaled Jacobian {sj.min():.3g} (decision 0029)")
+                    f"min corner scaled Jacobian {sj.min():.3g} (decision 0029)",
+                    code="wall_projection_folded", where={"fitting": e.index, "label": e.name},
+                    value=float(sj.min()), limit={"min_exclusive": 0})
 
     def _check_meshed_sj(self) -> None:
         """For fittings whose predicted corner SJ is not a bound
@@ -864,12 +922,17 @@ class Assembly:
                                "a smaller tap, or the wide face, may do better")
                 raise AssemblyError(
                     f"{e.name}: meshed corner scaled Jacobian {sj:.3f} is below "
-                    f"PREDICTED_SJ_MIN {limits.PREDICTED_SJ_MIN:g}; {hint}")
+                    f"PREDICTED_SJ_MIN {limits.PREDICTED_SJ_MIN:g}; {hint}",
+                    code="meshed_sj_below_minimum", where={"fitting": e.index, "label": e.name},
+                    value=sj, limit="PREDICTED_SJ_MIN", hint=hint)
             if sj < limits.PREDICTED_SJ_WARN:
                 msg = (f"{e.name}: meshed corner scaled Jacobian {sj:.3f} is below "
                        f"PREDICTED_SJ_WARN {limits.PREDICTED_SJ_WARN:g}")
                 self.warnings.append(msg)
-                warnings.warn(msg, UserWarning, stacklevel=3)
+                warnings.warn(HexmeshWarning(msg,
+                                             code="meshed_sj_low",
+                                             where={"fitting": e.index, "label": e.name}, value=sj,
+                                             limit="PREDICTED_SJ_WARN"), stacklevel=3)
 
     def _check_meshed_nonorth(self, e, angle: float) -> None:
         # it rises with a switch's length (task 0086), so not the SJ hint
@@ -877,13 +940,19 @@ class Assembly:
             raise AssemblyError(
                 f"{e.name}: meshed non-orthogonality {angle:.1f}° is above "
                 f"OUTLINE_NONORTH_MAX {limits.OUTLINE_NONORTH_MAX:g}°; a gentler wall grading "
-                f"of the H face, or a smaller ring nrad, lowers it")
+                f"of the H face, or a smaller ring nrad, lowers it",
+                code="meshed_nonorth_above_maximum", where={"fitting": e.index, "label": e.name},
+                value=angle, limit="OUTLINE_NONORTH_MAX",
+                hint="a gentler wall grading of the H face, or a smaller ring nrad")
         if angle > limits.OUTLINE_NONORTH_WARN:
             msg = (f"{e.name}: meshed non-orthogonality {angle:.1f}° is above "
                    f"OUTLINE_NONORTH_WARN {limits.OUTLINE_NONORTH_WARN:g}° (a steep wall "
                    f"grading at the switch)")
             self.warnings.append(msg)
-            warnings.warn(msg, UserWarning, stacklevel=4)
+            warnings.warn(HexmeshWarning(msg,
+                                         code="meshed_nonorth_high",
+                                         where={"fitting": e.index, "label": e.name}, value=angle,
+                                         limit="OUTLINE_NONORTH_WARN"), stacklevel=4)
 
     def _set_constraints(self) -> None:
         msh = gmsh.model.mesh
@@ -950,7 +1019,9 @@ class Assembly:
         ``gmshToFoam`` skips it (docs/integrations/openfoam.md).
         """
         if not str(path).endswith(".msh"):
-            raise ValueError(f"write_openfoam writes a .msh file, got {path!r}")
+            raise AssemblyError(f"write_openfoam writes a .msh file, got {path!r}",
+                                code="write_openfoam_needs_msh", where={"field": "path"},
+                                value=str(path))
         _require_session()
         self.mesh(walls_by_fitting=walls_by_fitting)
         dropped = []
@@ -1011,7 +1082,8 @@ class Assembly:
         """
         _require_session()
         if not self._meshed:
-            raise AssemblyError("no mesh yet; call mesh() or write() first")
+            raise AssemblyError("no mesh yet; call mesh() or write() first",
+                                code="no_mesh_yet", hint="call mesh() or write() first")
         if by == "material":
             groups = [(name, None, vols) for name, vols in self.volumes.items()]
         elif by == "fitting":
@@ -1019,7 +1091,9 @@ class Assembly:
             groups = [(f"#{e.index} {type(e.fitting).__name__}", e.index,
                        self._fitting_volumes[e.index]) for e in self._edges]
         else:
-            raise ValueError(f'by must be "material" or "fitting", got {by!r}')
+            raise AssemblyError(f'by must be "material" or "fitting", got {by!r}',
+                                code="option_invalid", where={"field": "by"}, value=by,
+                                limit=["material", "fitting"])
 
         metric = METRICS.get(quality_name)
         higher = metric.higher_is_better if metric else True

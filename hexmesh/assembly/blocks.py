@@ -48,6 +48,7 @@ import numpy as np
 import gmsh
 from scipy.interpolate import CubicSpline
 
+from ..errors import HexmeshError
 from .. import _occ
 from ..sections import layout_of
 from ..core.cross_section import interface_group_name
@@ -73,7 +74,7 @@ _FACES = [(0, 3, 2, 1), (4, 5, 6, 7), (0, 1, 5, 4),
           (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7)]
 
 
-class LayoutError(ValueError):
+class LayoutError(HexmeshError):
     """Raised by ``BlockLayout.validate``."""
 
 
@@ -234,7 +235,8 @@ class BlockLayout:
         """
         ids = tuple(ids)
         if len(ids) != 8 or len(set(ids)) != 8:
-            raise LayoutError(f"block needs 8 distinct vertices, got {ids}")
+            raise LayoutError(f"block needs 8 distinct vertices, got {ids}",
+                              code="block_vertices_not_distinct")
         p = [self.coords[v] for v in ids]
         if np.dot(np.cross(p[1] - p[0], p[3] - p[0]), p[4] - p[0]) < 0:
             ids = (ids[0], ids[3], ids[2], ids[1], ids[4], ids[7], ids[6], ids[5])
@@ -309,7 +311,8 @@ class BlockLayout:
                 other = root_count[r][1]
                 raise LayoutError(
                     f"division conflict: edge {_show(k)} needs {n} but parallel "
-                    f"edge {_show(other)} needs {root_count[r][0]}"
+                    f"edge {_show(other)} needs {root_count[r][0]}",
+                    code="block_division_conflict"
                 )
             root_count[r] = (n, k)
 
@@ -328,7 +331,8 @@ class BlockLayout:
                 raise LayoutError(
                     f"grading conflict: edge {_show(k)} is graded {e.grading} but "
                     f"parallel edge {_show(other)} is graded "
-                    f"{self.edges[other].grading} (directions compared along the class)"
+                    f"{self.edges[other].grading} (directions compared along the class)",
+                    code="block_grading_conflict"
                 )
             root_grading[r] = (g, k)
 
@@ -338,7 +342,8 @@ class BlockLayout:
             if r not in root_count:
                 raise LayoutError(
                     f"edge {_show(k)} has no division count (its parallel class "
-                    f"reaches no edge with a fixed count)"
+                    f"reaches no edge with a fixed count)",
+                    code="block_division_missing"
                 )
             e = self.edges.get(k)
             if e is not None and e.own_grading:
@@ -360,27 +365,32 @@ class BlockLayout:
     def validate(self) -> dict:
         """Check topology, densities and corner Jacobians; return a report."""
         if not self.blocks:
-            raise LayoutError("layout has no blocks")
+            raise LayoutError("layout has no blocks", code="block_layout_empty")
         for ids, _ in self.blocks:
             for v in ids:
                 if v not in self.coords:
-                    raise LayoutError(f"vertex {v!r} has no coordinates")
+                    raise LayoutError(f"vertex {v!r} has no coordinates",
+                                      code="block_vertex_unplaced")
         use = self.face_use()
         for k, users in use.items():
             if len(users) > 2:
-                raise LayoutError(f"face {_show(k)} is shared by {len(users)} blocks")
+                raise LayoutError(f"face {_show(k)} is shared by {len(users)} blocks",
+                                  code="block_face_shared")
         for k in _ordered(self.port_faces):
             if k not in use:
-                raise LayoutError(f"port face {_show(k)} is not used by any block")
+                raise LayoutError(f"port face {_show(k)} is not used by any block",
+                                  code="block_port_face_unused")
             if len(use[k]) != 1:
-                raise LayoutError(f"port face {_show(k)} is interior to the layout")
+                raise LayoutError(f"port face {_show(k)} is interior to the layout",
+                                  code="block_port_face_interior")
         self._classes = self._division_classes()
         sj = self.corner_jacobians()
         if sj.min() <= 0:
             bad = int(np.argmin(sj)) // 8
             raise LayoutError(
                 f"block {bad} {self.blocks[bad][0]} is inverted or degenerate "
-                f"at a corner (scaled Jacobian {sj.min():.3f})"
+                f"at a corner (scaled Jacobian {sj.min():.3f})",
+                code="block_inverted", value=float(sj.min()), limit={"min_exclusive": 0}
             )
         boundary = [k for k, u in use.items() if len(u) == 1 and k not in self.port_faces]
         return {"blocks": len(self.blocks), "faces": len(use),
@@ -550,7 +560,8 @@ class BlockLayout:
 
         unbound = [_show(k) for k in _ordered(self.port_faces) if k not in self.faces]
         if unbound:
-            raise LayoutError(f"port faces not bound before realise: {', '.join(unbound[:2])}")
+            raise LayoutError(f"port faces not bound before realise: {', '.join(unbound[:2])}",
+                              code="block_port_faces_unbound")
         result = FillResult()
         surf_of: dict[frozenset, int] = {}
         for k, users in use.items():
@@ -643,7 +654,9 @@ def corner_shift(layout_frame, frame, spec) -> int:
     s = round(steps)
     if abs(steps - s) > 1e-9:
         raise LayoutError(f"frames differ by a roll of {math.degrees(a - a0):.6g}°, "
-                          f"not a multiple of {360 / n:g}°")
+                          f"not a multiple of {360 / n:g}°",
+                          code="port_roll_not_a_period", value=math.degrees(a - a0),
+                          limit={"multiple_of": 360 / n})
     return s % n
 
 
@@ -663,7 +676,8 @@ def bind_face(layout: BlockLayout, prefix, face, shift: int = 0) -> None:
         lvl = i - 1 if h_core else i
         if "ip" not in g:              # an H face: one patch on the outer corners
             if i:
-                raise LayoutError("bind_face: an H core inside a ring")
+                raise LayoutError("bind_face: an H core inside a ring",
+                                  code="block_h_core_in_ring")
             h_core = True
             at = lambda k: (k + shift) % n
             for k in range(n):

@@ -34,6 +34,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from .errors import AssemblyError
 from ..core.cross_section import LayeredCrossSection
 from ..core.spec import PipeSpec
 from .. import sections
@@ -114,14 +115,17 @@ def toward_roll(frame: Frame, toward) -> float:
     from .limits import TOWARD_MIN_ANGLE
     t = np.asarray(toward, dtype=float)
     if t.shape != (3,) or not np.linalg.norm(t) > 0:
-        raise ValueError(f"toward must be a nonzero 3-vector, got {toward!r}")
+        raise AssemblyError(f"toward must be a nonzero 3-vector, got {toward!r}",
+                            code="toward_invalid", where={"field": "toward"})
     t = t / np.linalg.norm(t)
     along = float(np.dot(t, frame.normal))
     off = math.degrees(math.acos(min(1.0, abs(along))))
     if off < TOWARD_MIN_ANGLE:
-        raise ValueError(
+        raise AssemblyError(
             f"toward {tuple(np.round(t, 6))} is {off:.3g}° from the inlet normal "
-            f"(minimum {TOWARD_MIN_ANGLE:g}°): it sets no direction across the pipe")
+            f"(minimum {TOWARD_MIN_ANGLE:g}°): it sets no direction across the pipe",
+            code="toward_along_axis", where={"field": "toward"}, value=off,
+            limit="TOWARD_MIN_ANGLE")
     p = t - along * frame.normal
     return math.degrees(math.atan2(np.dot(p, frame.right), np.dot(p, frame.up)))
 
@@ -138,9 +142,11 @@ def junction_roll(fitting, spec: PipeSpec) -> None:
     P = math.degrees(spec.period)
     m = fitting.roll / P
     if abs(m - round(m)) > 1e-9:
-        raise ValueError(
+        raise AssemblyError(
             f"{type(fitting).__name__} roll {fitting.roll:g}° is not a multiple of "
-            f"the section's period {P:g}°")
+            f"the section's period {P:g}°",
+            code="junction_roll_invalid", where={"field": "roll"}, value=fitting.roll,
+            limit={"multiple_of": P})
 
 
 def junction_toward(fitting, inlet: Frame, spec: PipeSpec, offset: float = 0.0):
@@ -156,16 +162,19 @@ def junction_toward(fitting, inlet: Frame, spec: PipeSpec, offset: float = 0.0):
         return fitting
     name = type(fitting).__name__
     if fitting.roll != 0:
-        raise ValueError(f"{name}: give roll or toward, not both")
+        raise AssemblyError(f"{name}: give roll or toward, not both",
+                            code="roll_and_toward_conflict", where={"field": "toward"})
     want = toward_roll(inlet, fitting.toward) - offset
     P = math.degrees(spec.period)
     roll = round(want / P) * P
     miss = abs(math.remainder(want - roll, 360.0))
     if miss > JUNCTION_TOWARD_TOL:
-        raise ValueError(
+        raise AssemblyError(
             f"{name}: toward is {miss:.3g}° from the nearest allowed direction "
             f"(roll {math.remainder(roll, 360.0):g}°; rolls are multiples of "
-            f"{P:g}°, tolerance {JUNCTION_TOWARD_TOL:g}°)")
+            f"{P:g}°, tolerance {JUNCTION_TOWARD_TOL:g}°)",
+            code="toward_off_allowed", where={"field": "toward"}, value=miss,
+            limit="JUNCTION_TOWARD_TOL")
     return replace(fitting, roll=math.remainder(roll, 360.0) + 0.0, toward=None)
 
 
@@ -281,8 +290,10 @@ def check_outlines(spec: PipeSpec, samples: int = 720) -> None:
         gap, at = float(gaps.min()), float(a[gaps.argmin()])
         need = OUTLINE_MIN_GAP * outer.max_extent
         if gap < need:
-            raise ValueError(
+            raise AssemblyError(
                 f"layer `{oname}`: its outline must enclose `{iname}`'s with a gap "
                 f"of at least {need:.3g} (OUTLINE_MIN_GAP {OUTLINE_MIN_GAP:g} of its "
                 f"extent); the gap is {gap:.3g} at {math.degrees(at):.1f}° "
-                f"(before rot)")
+                f"(before rot)",
+                code="outline_gap_too_small", where={"label": oname}, value=gap,
+                limit="OUTLINE_MIN_GAP")

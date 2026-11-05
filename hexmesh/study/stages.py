@@ -39,7 +39,8 @@ import warnings
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from .definition import Study, StudyError, canonical, variant_hash
+from ..errors import HexmeshWarning
+from .definition import Study, StudyError, StudyTypeError, canonical, variant_hash
 from .sampling import variants
 
 STATUS = ("checked", "preflight_failed", "meshed", "mesh_failed", "case_ready", "case_failed",
@@ -101,7 +102,7 @@ def preflight(study: Study) -> list[dict]:
         h = variant_hash(params)
         if h in seen:
             raise StudyError(f"variants {seen[h]} and {len(rows)} have the same "
-                             f"parameters {params}")
+                             f"parameters {params}", code="variants_duplicate", value=params)
         seen[h] = len(rows)
         row = {"hash": h, "params": params, "status": "checked", "cells": None,
                "topology": None, "warnings": [], "error": None, "network": None}
@@ -124,7 +125,9 @@ def preflight(study: Study) -> list[dict]:
     total = study.budget.get("max_cells_total")
     cells = sum(r["cells"] or 0 for r in rows)
     if total is not None and cells > total:
-        raise StudyError(f"the study has {cells} cells, over max_cells_total {total}")
+        raise StudyError(f"the study has {cells} cells, over max_cells_total {total}",
+                         code="cell_budget_exceeded", where={"field": "budget.max_cells_total"},
+                         value=cells, limit=total)
     return rows
 
 
@@ -297,7 +300,9 @@ def case_stage(study: Study, rows: list[dict], jobs: int | None = None) -> list[
     todo = [r for r in rows if r["status"] == "meshed"]
     template = study.resolve(study.case["template"])
     if todo and not template.is_dir():
-        raise StudyError(f"case template {template} is not a directory")
+        raise StudyError(f"case template {template} is not a directory",
+                         code="case_template_not_directory", where={"field": "case.template"},
+                         value=str(template))
 
     def make(row):
         d = variant_dir(study, row["hash"])
@@ -401,7 +406,8 @@ def other_runs() -> list[str]:
         reason = f"{type(e).__name__}: {e}"
     if not _warned_unavailable:
         _warned_unavailable = True
-        warnings.warn(f"can't check for other pytest or OpenFOAM runs: {reason}",
+        warnings.warn(HexmeshWarning(f"can't check for other pytest or OpenFOAM runs: {reason}",
+                                     code="other_runs_unchecked", hint=reason),
                       stacklevel=2)
     return []
 
@@ -419,12 +425,16 @@ def run_stage(study: Study, rows: list[dict], jobs: int | None = None,
     cores = study.run.get("cores_per_job", 1)
     if jobs * cores > (os.cpu_count() or 1):
         raise StudyError(f"jobs × cores_per_job = {jobs} × {cores} exceeds the "
-                         f"{os.cpu_count()} cores of this machine")
+                         f"{os.cpu_count()} cores of this machine",
+                         code="cores_exceeded", where={"field": "run.cores_per_job"},
+                         value=jobs * cores, limit={"max": os.cpu_count()})
     if not force:
         busy = other_runs()
         if busy:
             raise StudyError("other pytest or OpenFOAM runs are active (shared machine; "
-                             "--force runs anyway):\n" + "\n".join(busy))
+                             "--force runs anyway):\n" + "\n".join(busy),
+                             code="other_runs_active", value=list(busy),
+                             hint="--force runs anyway")
     post = study.function(study.run["post"], "run.post") if study.run.get("post") else None
     timeout = study.run.get("timeout")
 
@@ -448,8 +458,9 @@ def run_stage(study: Study, rows: list[dict], jobs: int | None = None,
             try:
                 result = post(case, dict(row["params"])) if post else {}
                 if not isinstance(result, dict):
-                    raise TypeError(f"post-processing returned {type(result).__name__}, "
-                                    f"not a dict")
+                    raise StudyTypeError(f"post-processing returned {type(result).__name__}, "
+                                         f"not a dict",
+                                         code="post_result_not_dict", where={"field": "run.post"})
                 out["result"], out["status"] = canonical(result), "done"
             except Exception as e:                           # recorded, not raised
                 out["status"], out["error"] = "run_failed", f"post: {type(e).__name__}: {e}"

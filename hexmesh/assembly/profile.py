@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Radius profiles along a sweep (decision 0008, task 0031).
 
@@ -34,6 +46,7 @@ import math
 
 import numpy as np
 
+from .errors import AssemblyError
 from .limits import COSINE_S0_MAX, COSINE_S0_MIN
 
 # Largest gap between a slab's straight wall chord and the profile, as a
@@ -81,8 +94,9 @@ class Profile:
             elif kind == "venturi":
                 self._venturi(*args)
             else:
-                raise ValueError(f"unknown profile {kind!r}; known: 'cosine', "
-                                 f"'venturi', or a table of (s, r) pairs")
+                raise AssemblyError(f"unknown profile {kind!r}; known: 'cosine', "
+                                    f"'venturi', or a table of (s, r) pairs",
+                                    code="profile_unknown", where={"field": "profile"}, value=kind)
         else:
             self._table(spec)
 
@@ -90,28 +104,37 @@ class Profile:
 
     def _cosine(self, s0: float) -> None:
         if not COSINE_S0_MIN <= s0 < COSINE_S0_MAX:
-            raise ValueError(
+            raise AssemblyError(
                 f"cosine s0 must be in [{COSINE_S0_MIN:g}, {COSINE_S0_MAX:g}), got {s0!r}: "
                 f"{COSINE_S0_MIN:g} is a bulge to {1 - 2 * COSINE_S0_MIN:g}·R (COSINE_S0_MIN), "
                 f"{COSINE_S0_MAX:g} a throat of zero radius (COSINE_S0_MAX); s0 > 0 "
-                f"constricts, s0 < 0 bulges")
+                f"constricts, s0 < 0 bulges",
+                code="profile_parameter_out_of_range", where={"field": "s0"}, value=s0,
+                limit={"min": COSINE_S0_MIN, "max_exclusive": COSINE_S0_MAX})
         self._r = lambda s: 1.0 - s0 * (1.0 + np.cos(2 * np.pi * (s - 0.5)))
 
     def _venturi(self, beta: float, divergent: float = 15.0) -> None:
         if not 0 < beta < 1:
-            raise ValueError(f"venturi beta must be in (0, 1), got {beta!r}")
+            raise AssemblyError(f"venturi beta must be in (0, 1), got {beta!r}",
+                                code="profile_parameter_out_of_range", where={"field": "beta"},
+                                value=beta, limit={"min_exclusive": 0, "max_exclusive": 1})
         lo, hi = VENTURI_DIVERGENT
         if not lo <= divergent <= hi:
-            raise ValueError(f"venturi divergent angle must be {lo:g}°–{hi:g}° "
-                             f"(ISO 5167-4), got {divergent!r}")
+            raise AssemblyError(f"venturi divergent angle must be {lo:g}°–{hi:g}° "
+                                f"(ISO 5167-4), got {divergent!r}",
+                                code="profile_parameter_out_of_range",
+                                where={"field": "divergent"}, value=divergent,
+                                limit={"min": lo, "max": hi})
         R, r = self.r_in, beta * self.r_in
         l1 = (R - r) / math.tan(math.radians(VENTURI_CONVERGENT / 2))
         l2 = 2 * r
         l3 = (R - r) / math.tan(math.radians(divergent / 2))
         need = l1 + l2 + l3
         if self.length < need * (1 - 1e-12):
-            raise ValueError(f"venturi with beta {beta:g} and a {divergent:g}° "
-                             f"divergent needs length >= {need:.6g}, got {self.length:.6g}")
+            raise AssemblyError(f"venturi with beta {beta:g} and a {divergent:g}° "
+                                f"divergent needs length >= {need:.6g}, got {self.length:.6g}",
+                                code="profile_too_short", where={"field": "length"},
+                                value=self.length, limit={"min": need})
         s = np.array([0.0, l1, l1 + l2, need, max(need, self.length)]) / self.length
         x = np.array([1.0, beta, beta, 1.0, 1.0])
         self.kinks = tuple(float(v) for v in s[1:4])
@@ -121,15 +144,19 @@ class Profile:
         try:
             pts = np.array(table, dtype=float)
         except (TypeError, ValueError):
-            raise ValueError(f"profile must be ('cosine', s0), ('venturi', beta, "
-                             f"divergent) or a table of (s, r) pairs, got {table!r}") from None
+            raise AssemblyError(f"profile must be ('cosine', s0), ('venturi', beta, "
+                                f"divergent) or a table of (s, r) pairs, got {table!r}",
+                                code="profile_unknown", where={"field": "profile"}) from None
         if pts.ndim != 2 or pts.shape[1] != 2 or len(pts) < 2:
-            raise ValueError("a profile table needs at least two (s, r) pairs")
+            raise AssemblyError("a profile table needs at least two (s, r) pairs",
+                                code="profile_table_invalid", where={"field": "profile"})
         s, r = pts[:, 0], pts[:, 1]
         if s[0] != 0.0 or s[-1] != 1.0 or np.any(np.diff(s) <= 0):
-            raise ValueError("a profile table's s must increase from 0 to 1")
+            raise AssemblyError("a profile table's s must increase from 0 to 1",
+                                code="profile_table_invalid", where={"field": "profile"})
         if np.any(r <= 0):
-            raise ValueError("a profile table's r must be positive")
+            raise AssemblyError("a profile table's r must be positive",
+                                code="profile_table_invalid", where={"field": "profile"})
         m = _pchip_slopes(s, r)
 
         def f(q):
@@ -154,12 +181,16 @@ class Profile:
         for kink in self.kinks:
             k = int(np.argmin(np.abs(u[1:-1] - kink))) + 1 if len(u) > 2 else None
             if k is None:
-                raise ValueError("a venturi needs interior stations at its corners; "
-                                 "use more layers")
+                raise AssemblyError("a venturi needs interior stations at its corners; "
+                                    "use more layers",
+                                    code="profile_stations_too_few", where={"field": "n_layers"},
+                                    hint="use more layers")
             u[k] = kink
         if np.any(np.diff(u) <= 0):
-            raise ValueError("venturi corners fall between too few stations; "
-                             "use more layers")
+            raise AssemblyError("venturi corners fall between too few stations; "
+                                "use more layers",
+                                code="profile_stations_too_few", where={"field": "n_layers"},
+                                hint="use more layers")
         return u
 
     def chord_gaps(self, u: np.ndarray, samples: int = 64) -> np.ndarray:

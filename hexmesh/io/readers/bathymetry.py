@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Bathymetry reader — pipeline route on a surveyed seabed surface.
 
@@ -31,6 +43,7 @@ from typing import Sequence
 
 import numpy as np
 
+from ...errors import ReaderError
 from ...interchange.model import NetworkModel, Polyline, Provenance
 
 
@@ -120,15 +133,18 @@ def _load_surface(path: Path, fmt: str) -> tuple[np.ndarray, np.ndarray, np.ndar
     elif fmt == "netcdf":
         return _load_netcdf(path)
     else:
-        raise ValueError(f"Unknown surface format '{fmt}'. "
-                         "Use 'xyz', 'geotiff', or 'netcdf'.")
+        raise ReaderError(f"Unknown surface format '{fmt}'. "
+                          "Use 'xyz', 'geotiff', or 'netcdf'.",
+                          code="option_invalid", where={"field": "format"}, value=fmt,
+                          limit=["xyz", "geotiff", "netcdf"])
 
 
 def _load_xyz(path: Path) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Load a whitespace/comma-separated XYZ point cloud."""
     data = np.loadtxt(path, delimiter=None, comments=["#", "//"])
     if data.ndim != 2 or data.shape[1] < 3:
-        raise ValueError(f"XYZ file must have >= 3 columns, got shape {data.shape}.")
+        raise ReaderError(f"XYZ file must have >= 3 columns, got shape {data.shape}.",
+                          code="reader_format_invalid", where={"source": {"file": str(path)}})
     return data[:, 0], data[:, 1], data[:, 2]
 
 
@@ -170,9 +186,10 @@ def _load_netcdf(path: Path) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
                     if xvar in ds.coords and yvar in ds.coords:
                         xg, yg = np.meshgrid(ds[xvar].values, ds[yvar].values)
                         return xg.ravel(), yg.ravel(), z.ravel()
-    raise ValueError(
+    raise ReaderError(
         "Could not identify x/y/z variables in NetCDF file.  "
-        "Please rename coordinates to 'x','y','z' or 'lon','lat','depth'."
+        "Please rename coordinates to 'x','y','z' or 'lon','lat','depth'.",
+        code="reader_format_invalid", where={"source": {"file": str(path)}}
     )
 
 
@@ -219,7 +236,9 @@ def _load_route(
     elif fmt in ("shp", "shapefile"):
         return _load_shapefile(path)
     else:
-        raise ValueError(f"Unknown route format '{fmt}'. Use 'csv' or 'shp'.")
+        raise ReaderError(f"Unknown route format '{fmt}'. Use 'csv' or 'shp'.",
+                          code="option_invalid", where={"field": "format"}, value=fmt,
+                          limit=["csv", "shp"])
 
 
 def _load_shapefile(path: Path) -> np.ndarray:
@@ -237,7 +256,8 @@ def _load_shapefile(path: Path) -> np.ndarray:
             geom = shape(feature["geometry"])
             coords = np.array(geom.coords)[:, :2]
             return coords
-    raise ValueError(f"No features found in Shapefile: {path}")
+    raise ReaderError(f"No features found in Shapefile: {path}",
+                      code="reader_format_invalid", where={"source": {"file": str(path)}})
 
 
 # ---------------------------------------------------------------------------

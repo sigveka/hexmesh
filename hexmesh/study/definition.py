@@ -71,6 +71,8 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from ..errors import HexmeshError
+
 KEYS = {"template", "parameters", "sampling", "budget", "output", "jobs", "format",
         "walls_by_fitting", "case", "run"}
 CASE_KEYS = {"template", "split_regions"}
@@ -80,8 +82,12 @@ FORMATS = ("msh", "openfoam")
 _PLACEHOLDER = re.compile(r"^\$([A-Za-z_]\w*)$")
 
 
-class StudyError(ValueError):
+class StudyError(HexmeshError):
     """A study file that can't be used, with what is wrong."""
+
+
+class StudyTypeError(StudyError, TypeError):
+    """A :class:`StudyError` that was a ``TypeError`` before task 0094."""
 
 
 @dataclass
@@ -117,7 +123,8 @@ class Study:
         """Import ``module:function``, the study file's directory first on
         ``sys.path``."""
         if not isinstance(target, str) or target.count(":") != 1:
-            raise StudyError(f"{what} must be 'module:function', got {target!r}")
+            raise StudyError(f"{what} must be 'module:function', got {target!r}",
+                             code="study_function_invalid", where={"field": what}, value=target)
         mod, fn = target.split(":")
         root = str(self.root)
         if root not in sys.path:
@@ -125,7 +132,8 @@ class Study:
         try:
             return getattr(importlib.import_module(mod), fn)
         except (ImportError, AttributeError) as e:
-            raise StudyError(f"{what} {target!r}: {e}") from None
+            raise StudyError.wrap(e, f"{what} {target!r}: {e}",
+                                  code="study_function_not_found", field=what) from None
 
     def builder(self):
         """``params -> Assembly`` for this study's template."""
@@ -147,7 +155,9 @@ class Study:
             raise StudyError("; ".join(
                 ([f"unknown placeholder(s): {', '.join('$' + u for u in unknown)}"]
                  if unknown else [])
-                + ([f"unused parameter(s): {', '.join(unused)}"] if unused else [])))
+                + ([f"unused parameter(s): {', '.join(unused)}"] if unused else [])),
+                             code="study_placeholders_mismatch",
+                             value={"unknown": sorted(unknown), "unused": sorted(unused)})
 
 
 def load_study(path) -> Study:
@@ -155,42 +165,59 @@ def load_study(path) -> Study:
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as e:
-        raise StudyError(f"{path}: not JSON ({e})") from None
+        raise StudyError(f"{path}: not JSON ({e})",
+                         code="study_not_json", where={"source": {"file": str(path)}}) from None
     if not isinstance(raw, dict):
-        raise StudyError(f"{path}: a study file is a JSON object")
+        raise StudyError(f"{path}: a study file is a JSON object",
+                         code="study_not_object", where={"source": {"file": str(path)}})
     unknown = set(raw) - KEYS
     if unknown:
         raise StudyError(f"unknown study key(s): {', '.join(sorted(unknown))}; "
-                         f"known: {', '.join(sorted(KEYS))}")
+                         f"known: {', '.join(sorted(KEYS))}",
+                         code="study_key_unknown", value=sorted(unknown), limit=sorted(KEYS))
     tpl = raw.get("template")
     if not isinstance(tpl, dict) or len(tpl) != 1 or next(iter(tpl)) not in ("python", "json"):
-        raise StudyError('template must be {"python": "module:function"} or {"json": "path"}')
+        raise StudyError('template must be {"python": "module:function"} or {"json": "path"}',
+                         code="study_template_invalid", where={"field": "template"})
     budget = raw.get("budget", {})
     if set(budget) - BUDGET_KEYS:
-        raise StudyError(f"unknown budget key(s): {', '.join(sorted(set(budget) - BUDGET_KEYS))}")
+        raise StudyError(f"unknown budget key(s): {', '.join(sorted(set(budget) - BUDGET_KEYS))}",
+                         code="study_key_unknown", where={"field": "budget"},
+                         value=sorted(set(budget) - BUDGET_KEYS), limit=sorted(BUDGET_KEYS))
     fmt = raw.get("format", "msh")
     if fmt not in FORMATS:
-        raise StudyError(f"format must be one of {FORMATS}, got {fmt!r}")
+        raise StudyError(f"format must be one of {FORMATS}, got {fmt!r}",
+                         code="option_invalid", where={"field": "format"}, value=fmt,
+                         limit=list(FORMATS))
     jobs = raw.get("jobs", 1)
     if not isinstance(jobs, int) or jobs < 1:
-        raise StudyError(f"jobs must be a positive integer, got {jobs!r}")
+        raise StudyError(f"jobs must be a positive integer, got {jobs!r}",
+                         code="count_below_minimum", where={"field": "jobs"}, value=jobs,
+                         limit={"min": 1, "integer": True})
     case, run = raw.get("case"), raw.get("run")
     for name, block, keys, required in (("case", case, CASE_KEYS, "template"),
                                         ("run", run, RUN_KEYS, "command")):
         if block is None:
             continue
         if not isinstance(block, dict) or required not in block:
-            raise StudyError(f"{name} must be an object with {required!r}")
+            raise StudyError(f"{name} must be an object with {required!r}",
+                             code="study_block_invalid", where={"field": name})
         if set(block) - keys:
-            raise StudyError(f"unknown {name} key(s): {', '.join(sorted(set(block) - keys))}")
+            raise StudyError(f"unknown {name} key(s): {', '.join(sorted(set(block) - keys))}",
+                             code="study_key_unknown", where={"field": name},
+                             value=sorted(set(block) - keys), limit=sorted(keys))
     if case is not None and fmt != "openfoam":
-        raise StudyError('a case stage needs "format": "openfoam" (the role manifest)')
+        raise StudyError('a case stage needs "format": "openfoam" (the role manifest)',
+                         code="study_case_needs_openfoam", where={"field": "format"}, value=fmt)
     if run is not None and case is None:
-        raise StudyError("a run stage needs a case stage")
+        raise StudyError("a run stage needs a case stage",
+                         code="study_run_needs_case", where={"field": "run"})
     if run is not None:
         cores = run.get("cores_per_job", 1)
         if not isinstance(cores, int) or cores < 1:
-            raise StudyError(f"run.cores_per_job must be a positive integer, got {cores!r}")
+            raise StudyError(f"run.cores_per_job must be a positive integer, got {cores!r}",
+                             code="count_below_minimum", where={"field": "run.cores_per_job"},
+                             value=cores, limit={"min": 1, "integer": True})
     study = Study(path=path, template=tpl, parameters=dict(raw.get("parameters", {})),
                   sampling=raw.get("sampling"), budget=budget, jobs=jobs, format=fmt,
                   walls_by_fitting=bool(raw.get("walls_by_fitting", False)),
@@ -224,7 +251,8 @@ def substitute(obj, params: dict):
         m = _PLACEHOLDER.match(obj)
         if m:
             if m.group(1) not in params:
-                raise StudyError(f"unknown placeholder ${m.group(1)}")
+                raise StudyError(f"unknown placeholder ${m.group(1)}",
+                                 code="study_placeholders_mismatch", value=m.group(1))
             return params[m.group(1)]
     return obj
 
@@ -245,9 +273,11 @@ def canonical(obj):
     if isinstance(obj, float) or hasattr(obj, "__float__"):
         f = float(obj)
         if not math.isfinite(f):
-            raise StudyError(f"parameter value {obj!r} is not finite")
+            raise StudyError(f"parameter value {obj!r} is not finite",
+                             code="parameter_not_finite", value=obj)
         return int(f) if f.is_integer() and abs(f) < 2**53 else float(repr(f))
-    raise StudyError(f"parameter value {obj!r} ({type(obj).__name__}) is not JSON data")
+    raise StudyError(f"parameter value {obj!r} ({type(obj).__name__}) is not JSON data",
+                     code="parameter_not_json", value=repr(obj))
 
 
 def variant_hash(params: dict, length: int = 12) -> str:

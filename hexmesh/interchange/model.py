@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 The network model (decision 0032, item 3): a format-neutral description of
 pipe and duct networks, between the importers and the builder.
@@ -264,7 +276,9 @@ class NetworkModel:
         pid = kw.pop("id", None) or self._fresh("p", self.ports)
         port = Port(pid, None if position is None else np.asarray(position, dtype=float), **kw)
         if pid in self.ports:
-            raise ValueError(f"port id {pid!r} is already used")
+            from ..assembly import AssemblyError
+            raise AssemblyError(f"port id {pid!r} is already used",
+                                code="model_id_duplicate", where={"field": "id"}, value=pid)
         self.ports[pid] = port
         return port
 
@@ -273,12 +287,16 @@ class NetworkModel:
         ports at *positions* (or existing ``Port``s), in order.  Keywords
         go to the part; ``id=`` sets its id (default ``<n>``)."""
         if cls not in PART_TYPES:
-            raise TypeError(f"{cls!r} is not a network-model part type")
+            from ..assembly import AssemblyTypeError
+            raise AssemblyTypeError(f"{cls!r} is not a network-model part type",
+                                    code="model_part_type_unknown", value=repr(cls))
         ports = [p if isinstance(p, Port) else self.add_port(p)
                  for p in positions_or_ports]
         pid = kw.pop("id", None) or self._fresh("", self.parts)
         if pid in self.parts:
-            raise ValueError(f"part id {pid!r} is already used")
+            from ..assembly import AssemblyError
+            raise AssemblyError(f"part id {pid!r} is already used",
+                                code="model_id_duplicate", where={"field": "id"}, value=pid)
         part = cls(pid, [p.id for p in ports], **kw)
         if not part.type:
             part.type = cls.__name__.upper()

@@ -90,6 +90,7 @@ from typing import Iterator
 
 import numpy as np
 
+from ...errors import HexmeshWarning, ReaderError
 from ...interchange import model as _m
 from ...interchange.build import INSULATION, TOL_FLOOR, TOL_RELATIVE  # noqa: F401  (re-exported)
 
@@ -412,7 +413,8 @@ def read_pcf(
     """
     if isinstance(path, (list, tuple)):
         if not path:
-            raise ValueError("read_pcf: empty list of files")
+            raise ReaderError("read_pcf: empty list of files",
+                              code="pcf_no_files", where={"field": "path"})
         parts = [read_pcf(p, unit_scale, ignore_types, joint_max) for p in path]
         net = NetworkSpec(source=", ".join(n.source for n in parts),
                           header=dict(parts[0].header), coord_scale=parts[0].coord_scale)
@@ -452,8 +454,10 @@ def read_pcf(
             kind = _inline_kind(rtype, attrs, inline_warned)
         if kind is None:
             spec.skipped.append((record_type, attrs))
-            warnings.warn(f"Unsupported PCF component type '{record_type}' — skipped.",
-                          stacklevel=2)
+            warnings.warn(HexmeshWarning(
+                f"Unsupported PCF component type '{record_type}' — skipped.",
+                code="pcf_component_unsupported",
+                where={"source": {"file": str(path), "record": record_type}}), stacklevel=2)
             continue
 
         endpoints = list(attrs.get("END-POINT", []))
@@ -471,8 +475,10 @@ def read_pcf(
                                                     branches[0] or [0, 0, 0])
             endpoints = [first, first]
         elif len(endpoints) < 2:
-            warnings.warn(f"Component {record_type} has < 2 END-POINTs — skipped.",
-                          stacklevel=2)
+            warnings.warn(HexmeshWarning(
+                f"Component {record_type} has < 2 END-POINTs — skipped.",
+                code="pcf_component_incomplete",
+                where={"source": {"file": str(path), "record": record_type}}), stacklevel=2)
             continue
 
         def point(v):
@@ -537,17 +543,24 @@ def _keypoint_insulation(words: list[str]) -> str | None:
 def _coord_scale(header: dict, unit_scale: float | None) -> float:
     unit = header.get("UNITS-CO-ORDS")
     if unit is not None and unit.upper() not in COORD_UNITS:
-        raise ValueError(f"UNITS-CO-ORDS {unit!r} not recognised; known: "
-                         f"{', '.join(COORD_UNITS)}")
+        raise ReaderError(f"UNITS-CO-ORDS {unit!r} not recognised; known: "
+                          f"{', '.join(COORD_UNITS)}",
+                          code="pcf_unit_unknown", where={"field": "UNITS-CO-ORDS"}, value=unit,
+                          limit=sorted(COORD_UNITS))
     from_header = COORD_UNITS[unit.upper()] if unit else None
     if unit_scale is not None:
         if from_header is not None and not math.isclose(unit_scale, from_header):
-            warnings.warn(f"unit_scale={unit_scale} overrides UNITS-CO-ORDS {unit} "
-                          f"({from_header} m)", stacklevel=3)
+            warnings.warn(HexmeshWarning(f"unit_scale={unit_scale} overrides UNITS-CO-ORDS {unit} "
+                                         f"({from_header} m)",
+                                         code="pcf_unit_scale_override",
+                                         where={"field": "unit_scale"}, value=unit_scale,
+                                         limit=from_header), stacklevel=3)
         return unit_scale
     if from_header is None:
-        warnings.warn("PCF has no UNITS-CO-ORDS header; reading coordinates and "
-                      "bore as millimetres", stacklevel=3)
+        warnings.warn(HexmeshWarning("PCF has no UNITS-CO-ORDS header; reading coordinates and "
+                                     "bore as millimetres",
+                                     code="pcf_units_missing",
+                                     where={"field": "UNITS-CO-ORDS"}), stacklevel=3)
         return 1e-3
     return from_header
 
@@ -557,8 +570,10 @@ def _bore_scale(header: dict) -> float:
     if unit is None:
         return 1e-3            # the missing header has already warned, or coords are mm
     if unit.upper() not in BORE_UNITS:
-        raise ValueError(f"UNITS-BORE {unit!r} not recognised; known: "
-                         f"{', '.join(BORE_UNITS)}")
+        raise ReaderError(f"UNITS-BORE {unit!r} not recognised; known: "
+                          f"{', '.join(BORE_UNITS)}",
+                          code="pcf_unit_unknown", where={"field": "UNITS-BORE"}, value=unit,
+                          limit=sorted(BORE_UNITS))
     return BORE_UNITS[unit.upper()]
 
 
@@ -619,8 +634,10 @@ def _inline_kind(rtype: str, attrs: dict, warned: set[str]) -> str:
     if rtype not in warned:
         warned.add(rtype)
         what = "a reducer" if kind == "reducer" else "an inline straight"
-        warnings.warn(f"{rtype} treated as {what} (not a PCF type hexmesh knows; "
-                      f"two END-POINTs)", stacklevel=3)
+        warnings.warn(HexmeshWarning(f"{rtype} treated as {what} (not a PCF type hexmesh knows; "
+                                     f"two END-POINTs)",
+                                     code="pcf_type_inferred", where={"source": {"record": rtype}},
+                                     value=kind), stacklevel=3)
     return kind
 
 

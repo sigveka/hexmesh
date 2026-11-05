@@ -30,6 +30,10 @@ functions count the same as module-level ones.
 - **Text I/O names its encoding** (decision 0039; task 0092): every text
   ``open``, ``read_text`` and ``write_text`` in ``hexmesh/`` passes
   ``encoding=`` (see :func:`encoding_violations`).
+- **Every error is coded** (decision 0040; task 0094): each construction
+  of a ``HexmeshError`` or ``HexmeshWarning`` class passes ``code=`` as a
+  string literal registered in ``hexmesh.errors.CODES``, and every
+  registered code is used (see :func:`code_violations`).
 
 Each check returns its violations, so the planted-violation tests at the
 end run the same code on a synthetic tree.
@@ -49,7 +53,8 @@ ROOT = Path(__file__).resolve().parents[1]
 ORDER = ("core", "sections", "assembly", "interchange", "study")
 #: shared leaves: anyone may import them; they import only leaves
 LEAVES = {"hexmesh._occ", "hexmesh.session", "hexmesh.quality_hex",
-          "hexmesh.version"}            # task 0091: assembly stamps the version
+          "hexmesh.version",            # task 0091: assembly stamps the version
+          "hexmesh.errors"}             # task 0094: every layer's error classes
 #: which capabilities may import ``io.writers``
 WRITERS_USERS = {"assembly", "study"}
 #: may import anything
@@ -79,6 +84,9 @@ RULE_PRIVATE = "DESIGN §3.1, no private name crosses a package"
 RULE_CYCLE = "DESIGN §3.1, no module cycles"
 RULE_SHAPES = "DESIGN §3.1, shapes and section layouts own their behaviour"
 RULE_ENCODING = "decision 0039, text I/O names its encoding"
+RULE_CODES = "decision 0040, every error carries a registered code"
+#: the roots of the coded error and warning classes (``hexmesh/errors.py``)
+CODED_ROOTS = {"HexmeshError", "HexmeshWarning"}
 #: ``X.open(...)`` on these modules is not a text-file open (binary by
 #: default, or a dataset or model)
 BINARY_OPENERS = {"gzip", "bz2", "lzma", "tarfile", "zipfile", "wave", "dbm", "shelve",
@@ -374,6 +382,80 @@ def encoding_violations(root: Path, trees: tuple[str, ...] = ()) -> list[str]:
     return out
 
 
+def registered_codes(root: Path) -> set[str]:
+    """The keys of ``CODES`` in ``hexmesh/errors.py``, read from its AST."""
+    tree = ast.parse((root / "hexmesh" / "errors.py").read_text(encoding="utf-8"))
+    for node in tree.body:
+        target = node.target if isinstance(node, ast.AnnAssign) else (
+            node.targets[0] if isinstance(node, ast.Assign) else None)
+        if isinstance(target, ast.Name) and target.id == "CODES":
+            return {k.value for k in node.value.keys}
+    raise AssertionError("hexmesh/errors.py defines no CODES")
+
+
+def _base_name(node: ast.expr) -> str:
+    return node.attr if isinstance(node, ast.Attribute) else getattr(node, "id", "")
+
+
+def code_violations(root: Path) -> list[str]:
+    """Constructions of a coded error or warning class (a subclass of
+    :data:`CODED_ROOTS`, by class name across ``hexmesh/``) or of its
+    ``wrap`` without a ``code=`` string literal in ``CODES``, or in a module
+    that neither imports nor defines the class; and codes in
+    ``CODES`` that nothing uses.  A class whose ``__init__`` passes the
+    code itself (``PreflightFailed``) is constructed without one."""
+    trees = {p: ast.parse(p.read_text(encoding="utf-8"), str(p))
+             for p in modules(root).values()}
+    bases = {n.name: {_base_name(b) for b in n.bases}
+             for tree in trees.values() for n in ast.walk(tree) if isinstance(n, ast.ClassDef)}
+    coded = set(CODED_ROOTS)
+    while True:
+        more = {c for c, bs in bases.items() if c not in coded and bs & coded}
+        if not more:
+            break
+        coded |= more
+    known, used, out = registered_codes(root), set(), []
+    self_coded = set()
+    for tree in trees.values():
+        for cls in (n for n in ast.walk(tree) if isinstance(n, ast.ClassDef) and n.name in coded):
+            for n in ast.walk(cls):
+                if isinstance(n, ast.Call) and _base_name(n.func) == "__init__":
+                    code = next((kw.value for kw in n.keywords if kw.arg == "code"), None)
+                    if isinstance(code, ast.Constant):
+                        self_coded.add(cls.name)
+                        used.add(code.value)
+    for path, tree in trees.items():
+        bound = ({a.asname or a.name.split(".")[0] for n in ast.walk(tree)
+                  if isinstance(n, (ast.Import, ast.ImportFrom)) for a in n.names}
+                 | {n.name for n in ast.walk(tree) if isinstance(n, ast.ClassDef)})
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            f = node.func
+            if isinstance(f, ast.Attribute) and f.attr == "wrap":
+                name = _base_name(f.value)
+            else:
+                name = _base_name(f)
+            if name not in coded or name in self_coded and not (
+                    isinstance(f, ast.Attribute) and f.attr == "wrap"):
+                continue
+            where = f"{path.relative_to(root).as_posix()}:{node.lineno}"
+            code = next((kw.value for kw in node.keywords if kw.arg == "code"), None)
+            if isinstance(f, ast.Name) or isinstance(f.value, ast.Name):
+                bare = f.id if isinstance(f, ast.Name) else f.value.id
+                if bare not in bound:
+                    out.append(f"{where}: {bare} is neither imported nor defined here")
+            if not (isinstance(code, ast.Constant) and isinstance(code.value, str)):
+                out.append(f"{where}: {name}(…) without a code= string literal")
+            elif code.value not in known:
+                out.append(f"{where}: code {code.value!r} is not in CODES")
+            else:
+                used.add(code.value)
+    out += [f"hexmesh/errors.py: code {c!r} is registered but never used"
+            for c in sorted(known - used)]
+    return out
+
+
 # --- the real tree -------------------------------------------------------------
 
 def test_every_module_has_a_capability():
@@ -421,6 +503,14 @@ def test_text_io_names_its_encoding():
     bad = encoding_violations(ROOT, ENCODING_TREES)
     assert not bad, (f"{RULE_ENCODING}; pass encoding=\"utf-8\" (and newline=\"\\n\" for "
                      "files OpenFOAM or a shell reads):\n  " + "\n  ".join(bad))
+
+
+
+def test_every_error_is_coded():
+    bad = code_violations(ROOT)
+    assert not bad, (f"{RULE_CODES}; pass code=\"…\" and register it, with a one-line "
+                     "description, in hexmesh/errors.py CODES:\n  " + "\n  ".join(bad))
+
 
 # --- planted violations: the same checks on a synthetic tree --------------------
 
@@ -533,3 +623,44 @@ def test_planted_encoding(tmp_path, text, n):
     assert len(bad) == 2 * n, bad
     assert sorted(bad) == sorted(b for f in ("hexmesh/study/x.py", "tests/test_x.py")
                                  for b in bad if b.startswith(f"{f}:1: "))
+
+
+_ERRORS = ("class HexmeshError(ValueError): pass\n"
+           "class HexmeshWarning(UserWarning): pass\n"
+           "CODES = {'size_not_positive': 'a size', 'self_coded': 'its own'}\n")
+
+
+@pytest.mark.parametrize("text, n", [
+    ("raise AssemblyError('x', code='size_not_positive')\n", 0),
+    ("raise AssemblyError('x')\n", 1),                                  # no code
+    ("raise AssemblyError('x', code=name)\n", 1),                       # not a literal
+    ("raise AssemblyError('x', code='size_negative')\n", 1),            # not registered
+    ("raise AssemblyError.wrap(e, 'x', code='size_not_positive')\n", 0),
+    ("raise AssemblyError.wrap(e, 'x')\n", 1),
+    ("warnings.warn(HexmeshWarning('x'))\n", 1),
+    ("raise Failed(rows)\n", 0),                                        # codes itself
+    ("raise ValueError('internal')\n", 0),                              # not a coded class
+    ("raise ReaderError('x', code='size_not_positive')\n", 1),          # never imported
+])
+def test_planted_error_codes(tmp_path, text, n):
+    root = _tree(tmp_path, {
+        "hexmesh/assembly/errors.py": (
+            "from ..errors import HexmeshError\n"
+            "class AssemblyError(HexmeshError): pass\n"
+            "class Failed(AssemblyError):\n"
+            "    def __init__(self, rows):\n"
+            "        super().__init__('f', code='self_coded')\n"),
+        "hexmesh/errors.py": _ERRORS + "class ReaderError(HexmeshError): pass\n",
+        "hexmesh/assembly/x.py": ("from .errors import AssemblyError, Failed\n"
+                                  "import warnings\nfrom ..errors import HexmeshWarning\n"
+                                  "AssemblyError('y', code='size_not_positive')\n" + text)})
+    bad = code_violations(root)
+    assert len(bad) == n, bad
+    assert all(b.startswith("hexmesh/assembly/x.py:5: ") for b in bad), bad
+
+
+def test_planted_unused_code(tmp_path):
+    root = _tree(tmp_path, {"hexmesh/errors.py": _ERRORS})
+    assert code_violations(root) == [
+        "hexmesh/errors.py: code 'self_coded' is registered but never used",
+        "hexmesh/errors.py: code 'size_not_positive' is registered but never used"]

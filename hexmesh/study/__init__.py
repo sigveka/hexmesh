@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Study runner (decision 0025): one study file → many variants, checked in
 seconds, meshed in parallel jobs, recorded in one manifest.
@@ -43,7 +55,8 @@ class PreflightFailed(StudyError):
         self.rows = rows
         n = sum(r["status"] == "preflight_failed" for r in rows)
         super().__init__(f"preflight: {n} of {len(rows)} variant(s) failed; nothing meshed "
-                         f"(--keep-going meshes the rest)\n{failure_table(rows)}")
+                         f"(--keep-going meshes the rest)\n{failure_table(rows)}",
+                         code="preflight_failed", value=n, limit={"max": 0})
 
 
 def last_stage(study: Study) -> str:
@@ -62,9 +75,12 @@ def run(study: Study, stage: str | None = None, jobs: int | None = None,
     """
     stage = stage or last_stage(study)
     if stage not in STAGES:
-        raise StudyError(f"stage must be one of {STAGES}, got {stage!r}")
+        raise StudyError(f"stage must be one of {STAGES}, got {stage!r}",
+                         code="option_invalid", where={"field": "stage"}, value=stage,
+                         limit=list(STAGES))
     if stage == "case" and not study.case or stage == "run" and not study.run:
-        raise StudyError(f"the study file has no {stage!r} block")
+        raise StudyError(f"the study file has no {stage!r} block",
+                         code="study_stage_missing", where={"field": stage})
     say = log or (lambda *a: None)
     rows = preflight(study)
     cells = sum(r["cells"] or 0 for r in rows)

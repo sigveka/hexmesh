@@ -259,7 +259,8 @@ def _absorb_joints(comps: list[_Comp], report: dict) -> list[_Comp]:
                 raise AssemblyError(
                     f"{pending[0].type} at {np.round(pending[0].start, 4)} sits "
                     f"between two non-straight fittings ({out[-1].type}, "
-                    f"{c.type}); there is no straight run to absorb it")
+                    f"{c.type}); there is no straight run to absorb it",
+                    code="joint_between_fittings", where={"source": _source(pending[0])})
             pending = []
         out.append(c)
     report["joints"].extend((j.type, "dropped") for j in pending)
@@ -302,6 +303,26 @@ def _ports(c: _Comp) -> list:
     return [c.start, c.end]
 
 
+def _source(x) -> dict:
+    """The provenance of *x* (a component, a graph piece or a part) for an
+    error's ``where["source"]`` (task 0094): file, format, record, record id,
+    line and guid, where known."""
+    part = getattr(getattr(x, "comp", x), "part", x)
+    prov = getattr(part, "provenance", None)
+    if prov is None:
+        return {}
+    out = {"file": prov.source, "format": prov.format, "record": prov.record,
+           "record_id": prov.record_id, "line": prov.line, "guid": prov.guid}
+    return {k: v for k, v in out.items() if v not in (None, "")}
+
+
+def _part_id(x) -> str | None:
+    """The network-model part id of *x* (a component, a graph piece or a
+    part), for an error's ``where["part"]`` (task 0094)."""
+    part = getattr(getattr(x, "comp", x), "part", x)
+    return getattr(part, "id", None)
+
+
 def _describe(c: _Comp, label: str) -> str:
     """The part as messages name it (``model.describe``: the importer's
     formatter), at its centre (junctions) or its start."""
@@ -342,9 +363,13 @@ def _split_hosts(comps, labels, tol, seton_run):
         what = _describe(j_c, labels[i])
         if j_c.kind == "seton" and j_c.offset:
             raise AssemblyError(f"{what}: tangential and offset set-ons are not "
-                                f"supported; a Tee branch is perpendicular and centred")
+                                f"supported; a Tee branch is perpendicular and centred",
+                                code="seton_offset_unsupported",
+                                where={"part": _part_id(j_c), "source": _source(j_c)})
         if j_c.centre is None or j_c.branch is None:
-            raise AssemblyError(f"{what}: needs a centre and a branch point")
+            raise AssemblyError(f"{what}: needs a centre and a branch point",
+                                code="junction_points_missing",
+                                where={"part": _part_id(j_c), "source": _source(j_c)})
         c = j_c.centre
         hosts = []
         for h, hc in enumerate(comps):
@@ -360,18 +385,24 @@ def _split_hosts(comps, labels, tol, seton_run):
             inside = [x for x in hosts if tol < x[1] < x[2] - tol]
             if not inside:
                 raise AssemblyError(f"{what}: no straight pipe passes through its centre "
-                                    f"(the branch must be centred on a straight pipe)")
+                                    f"(the branch must be centred on a straight pipe)",
+                                    code="seton_host_missing",
+                                    where={"part": _part_id(j_c), "source": _source(j_c)})
             h, t, L = inside[0]
             host = comps[h]
             axis = (host.end - host.start) / L
             if not j_c.branch_bore:
-                raise AssemblyError(f"{what}: needs a size on its branch")
+                raise AssemblyError(f"{what}: needs a size on its branch",
+                                    code="junction_size_missing",
+                                    where={"part": _part_id(j_c), "source": _source(j_c)})
             t_j = _junction_thickness([j_c.ins_junction, *host.ins], what)
             run = seton_run(j_c, host, t_j)
             if t - run <= tol or t + run >= L - tol:
                 raise AssemblyError(
                     f"{what}: host pipe {labels[h]} is too short around the branch; "
-                    f"the tee needs {run:.4g} m on each side of its centre")
+                    f"the tee needs {run:.4g} m on each side of its centre",
+                    code="seton_host_too_short", where={"part": _part_id(j_c), "source": _source(j_c)},
+                    value=float(min(t, L - t)), limit={"min_exclusive": float(run)})
             a, b = c - run * axis, c + run * axis
             tee = replace(j_c, kind="tee", start=a, end=b, sec=host.sec, ins_junction=t_j)
             pieces = [replace(host, start=host.start.copy(), end=a, ins=(host.ins[0],) * 2),
@@ -382,7 +413,9 @@ def _split_hosts(comps, labels, tol, seton_run):
             ends = [x for x in hosts if x[1] <= tol or x[1] >= x[2] - tol]
             if not ends or j_c.branch2 is None:
                 raise AssemblyError(f"{what}: needs a stem pipe ending at its "
-                                    f"centre, and two branch points")
+                                    f"centre, and two branch points",
+                                    code="ypiece_stem_missing",
+                                    where={"part": _part_id(j_c), "source": _source(j_c)})
             h, t, L = ends[0]
             host = comps[h]
             far = host.start if t >= L - tol else host.end
@@ -394,7 +427,10 @@ def _split_hosts(comps, labels, tol, seton_run):
             if run >= L - tol:
                 raise AssemblyError(
                     f"{what}: stem pipe {labels[h]} ({L:.4g} m) is shorter than the "
-                    f"{run:.4g} m the Wye's inlet run needs")
+                    f"{run:.4g} m the Wye's inlet run needs",
+                    code="ypiece_stem_too_short",
+                    where={"part": _part_id(j_c), "source": _source(j_c)}, value=L,
+                    limit={"min_exclusive": float(run)})
             a = c - run * n
             wye = replace(j_c, kind="wye", start=a, end=a, sec=host.sec,
                           ins_junction=_junction_thickness([j_c.ins_junction, *host.ins], what))
@@ -450,7 +486,9 @@ def _graph(parts: list[_Part], joints: list[_Comp], tol: float):
             raise AssemblyError(
                 f"{len(at)} components meet at {np.round(points[n], 4)} "
                 f"({', '.join(parts[k].label for k, _ in at)}); a junction must be "
-                f"a tee, a tap or a wye")
+                f"a tee, a tap or a wye",
+                code="junction_degree", where={"source": _source(parts[at[0][0]])}, value=len(at),
+                limit={"max": 2})
     return nodes, at_node
 
 
@@ -492,7 +530,10 @@ def _check_tree(parts, nodes, hint=lambda: "") -> None:
                     continue
                 if j in seen:
                     raise AssemblyError(f"{parts[j].label} is on a loop; loops are not "
-                                        f"built from a network (decision 0023)")
+                                        f"built from a network (decision 0023)",
+                                        code="network_loop",
+                                        where={"part": _part_id(parts[j]),
+                                               "source": _source(parts[j])})
                 seen.add(j)
                 stack.append((j, n))
     missing = [k for k in range(len(parts)) if k not in seen]
@@ -506,7 +547,9 @@ def _check_tree(parts, nodes, hint=lambda: "") -> None:
         raise AssemblyError(
             f"{_describe(parts[j].comp, parts[j].label)}: starts {gap:.3g} m from the "
             f"open end of {_describe(parts[k].comp, parts[k].label)}; the network "
-            f"must be one connected piece" + hint())
+            f"must be one connected piece" + hint(),
+            code="network_disconnected",
+            where={"part": _part_id(parts[j]), "source": _source(parts[j])}, value=gap)
 
 
 def _entries(parts, nodes, root: tuple[int, int]) -> str | None:
@@ -552,7 +595,8 @@ def _choose_root(parts, nodes, names, inlet, tol):
     ends = sorted((k, q, n) for n, at in enumerate(nodes) if len(at) == 1
                   for k, q in at)
     if not ends:
-        raise AssemblyError("the network has no open end to start from")
+        raise AssemblyError("the network has no open end to start from",
+                            code="network_no_open_end")
     if inlet is not None:
         if isinstance(inlet, str):
             pick = [e for e in ends if names.get(e[2]) == inlet]
@@ -563,10 +607,13 @@ def _choose_root(parts, nodes, names, inlet, tol):
         if not pick:
             known = ", ".join(str(names[e[2]]) for e in ends if names.get(e[2]))
             raise AssemblyError(f"inlet {inlet!r} is not an open end"
-                                + (f" (open ends: {known})" if known else ""))
+                                + (f" (open ends: {known})" if known else ""),
+                                code="inlet_not_open_end", where={"field": "inlet"}, value=inlet)
         bad = _entries(parts, nodes, pick[0][:2])
         if bad:
-            raise AssemblyError(f"from inlet {inlet!r}, {bad}")
+            raise AssemblyError(f"from inlet {inlet!r}, {bad}",
+                                code="inlet_enters_junction_wrongly", where={"field": "inlet"},
+                                value=inlet)
         return pick[0]
 
     def upstream(e):                        # the source declares flow in here
@@ -578,7 +625,7 @@ def _choose_root(parts, nodes, names, inlet, tol):
             return e
         first_bad = first_bad or bad
     raise AssemblyError(f"no open end enters every junction through its inlet: "
-                        f"{first_bad}")
+                        f"{first_bad}", code="network_no_valid_inlet")
 
 
 def _orient(c: _Comp, port: int) -> _Comp:
@@ -616,7 +663,9 @@ def _resolve_insulation(model: NetworkModel, comps: list[_Comp]) -> None:
                 kind = net.kind if net is not None else "network"
                 raise AssemblyError(
                     f"{kind} {c.system or '(none)'!r}: {_describe(c, label)} is "
-                    f"insulated but the {kind} has no insulation thickness")
+                    f"insulated but the {kind} has no insulation thickness",
+                    code="insulation_thickness_missing",
+                    where={"part": _part_id(c), "source": _source(c)})
             return t
         own = c.insulation
         c.ins = tuple(thick(e or own) for e in c.end_insulation)
@@ -634,7 +683,8 @@ def _junction_thickness(ts, what: str) -> float:
     found = sorted({t for t in ts if t > 0})
     if len(found) > 1:
         raise AssemblyError(f"{what}: its legs have insulation {found[0]:.4g} m and "
-                            f"{found[-1]:.4g} m; a junction carries one thickness")
+                            f"{found[-1]:.4g} m; a junction carries one thickness",
+                            code="junction_insulation_differs", value=found)
     return found[0] if found else 0.0
 
 
@@ -676,9 +726,13 @@ def _plan_insulation(comps, labels, t_in, to_junction, tol):
     for k, c in enumerate(comps):
         if a[k] != b[k] and not straight[k]:
             raise AssemblyError(f"{labels[k]}: insulation changes inside it, and only "
-                                f"a straight component can hold the change")
+                                f"a straight component can hold the change",
+                                code="insulation_change_not_straight",
+                                where={"part": _part_id(comps[k]), "source": _source(comps[k])})
         if a[k] > 0 and b[k] > 0 and a[k] != b[k]:
-            raise AssemblyError(f"{labels[k]}: insulation thickness changes inside it")
+            raise AssemblyError(f"{labels[k]}: insulation thickness changes inside it",
+                                code="insulation_change_inside",
+                                where={"part": _part_id(comps[k]), "source": _source(comps[k])})
 
     def host(k_left, k_right, t_left, t_right, where):
         """Boundary between *k_left* (outlet) and *k_right* (inlet); either
@@ -689,13 +743,20 @@ def _plan_insulation(comps, labels, t_in, to_junction, tol):
             name = labels[k_left if k_left is not None else k_right]
             raise AssemblyError(f"{name}: insulation thickness changes from "
                                 f"{t_left:.4g} m to {t_right:.4g} m at {where}; only "
-                                f"a layer that ends or starts is supported")
+                                f"a layer that ends or starts is supported",
+                                code="insulation_thickness_change",
+                                where={"part": _part_id(comps[k_left if k_left is not None
+                                                              else k_right])},
+                                value=t_right, limit=t_left)
         options = [k for k in (k_left, k_right) if k is not None and straight[k]]
         options.sort(key=lambda k: (t_left if k == k_left else t_right) > 0)  # bare first
         if not options:
             name = labels[k_left if k_left is not None else k_right]
             raise AssemblyError(f"{name}: insulation starts or stops at {where}, and "
-                                f"no straight component next to it can hold the change")
+                                f"no straight component next to it can hold the change",
+                                code="insulation_change_not_straight",
+                                where={"part": _part_id(comps[k_left if k_left is not None
+                                                              else k_right])})
         k = options[0]
         if k == k_left:                       # the left one takes the right's status
             port_out[k] = t_right
@@ -750,22 +811,33 @@ def _equipment_ends(model, terminals, parts, nodes, names, tol, describe) -> set
             raise AssemblyError(
                 f"{what}: nozzle {nozzle} is at {np.round(nz_point, 4)} but the connection "
                 f"is at {np.round(point, 4)}, "
-                f"{np.linalg.norm(point - nz_point):.3g} m apart")
+                f"{np.linalg.norm(point - nz_point):.3g} m apart",
+                code="terminal_points_disagree", where={"part": _part_id(t), "source": _source(t)})
         at = point if point is not None else nz_point
         if at is None:
-            raise AssemblyError(f"{what}: no position to attach it by")
+            raise AssemblyError(f"{what}: no position to attach it by",
+                                code="terminal_position_missing",
+                                where={"part": _part_id(t), "source": _source(t)})
         if not ends:
-            raise AssemblyError(f"{what}: the network has no open end")
+            raise AssemblyError(f"{what}: the network has no open end",
+                                code="network_no_open_end",
+                                where={"part": _part_id(t), "source": _source(t)})
         d, k, q, n = min((float(np.linalg.norm(parts[k].ports[q] - at)), k, q, n)
                          for k, q, n in ends)
         if d > tol:
             raise AssemblyError(
                 f"{what} at {np.round(at, 4)}: no open pipe end there; the nearest, "
-                f"{describe(parts[k])}, is {d:.3g} m away")
+                f"{describe(parts[k])}, is {d:.3g} m away",
+                code="terminal_no_open_end", where={"part": _part_id(t), "source": _source(t)}, value=d,
+                limit={"max": tol})
         if n in marked:
-            raise AssemblyError(f"{what}: that end is already attached to {marked[n]}")
+            raise AssemblyError(f"{what}: that end is already attached to {marked[n]}",
+                                code="terminal_end_taken",
+                                where={"part": _part_id(t), "source": _source(t)})
         if label in marked.values():
-            raise AssemblyError(f"{what}: two ends would be named {label!r}")
+            raise AssemblyError(f"{what}: two ends would be named {label!r}",
+                                code="terminal_name_duplicate",
+                                where={"part": _part_id(t), "source": _source(t)})
         marked[n] = label
         names[n] = label
     return set(marked)
@@ -777,10 +849,14 @@ def _reject_unsupported(comps: list[_Comp]) -> None:
     from ..assembly import AssemblyError
     for c in comps:
         if c.part is not None and c.part.reject:
-            raise AssemblyError(f"{_describe(c, c.label)}: {c.part.reject}")
+            raise AssemblyError(f"{_describe(c, c.label)}: {c.part.reject}",
+                                code="part_rejected",
+                                where={"part": _part_id(c), "source": _source(c)})
         if c.kind == "junction?":
             raise AssemblyError(f"{_describe(c, c.label)}: crosses are not supported "
-                                f"(decision 0023)")
+                                f"(decision 0023)",
+                                code="cross_unsupported",
+                                where={"part": _part_id(c), "source": _source(c)})
 
 
 def _pieces(comps: list[_Comp], tol: float) -> list[list[int]]:
@@ -883,11 +959,14 @@ def build(model: NetworkModel, spec, selection=None, *, axial_cell: float | None
     records the tolerance, the joints absorbed and the largest lateral
     offset.
     """
+    from ..assembly import AssemblyError
     if kinks not in ("error", "spline"):
-        raise ValueError(f"kinks must be 'error' or 'spline', got {kinks!r}")
+        raise AssemblyError(f"kinks must be 'error' or 'spline', got {kinks!r}",
+                            code="option_invalid", where={"field": "kinks"}, value=kinks,
+                            limit=["error", "spline"])
     comps = _comps(model, None if selection is None else set(selection))
     if not comps:
-        raise ValueError("the network model has no parts to build.")
+        raise AssemblyError("the network model has no parts to build.", code="network_empty")
     if tol is None:
         tol = _model_tolerance(comps)
     _reject_unsupported(comps)
@@ -915,7 +994,7 @@ def build_pieces(model: NetworkModel, spec, *, axial_cell: float | None = None,
     from ..assembly import AssemblyError
     comps = _comps(model, None)
     if not comps:
-        raise ValueError("the network model has no parts to build.")
+        raise AssemblyError("the network model has no parts to build.", code="network_empty")
     if tol is None:
         tol = _model_tolerance(comps)
     _reject_unsupported(comps)
@@ -937,7 +1016,8 @@ def build_pieces(model: NetworkModel, spec, *, axial_cell: float | None = None,
                 model, _comps(model, ids), terms, spec, axial_cell, kinks, tol, lc, None,
                 insulation, insulation_nrad, ignored={})
         except AssemblyError as e:
-            raise AssemblyError(f"{name}: {e}") from None
+            raise AssemblyError.wrap(e, f"{name}: {e}",
+                                     code="network_piece_invalid", label=name) from None
     model.report = {"ignored": ignored, "tolerance": tol, "pieces": reports}
     return out
 
@@ -945,14 +1025,16 @@ def build_pieces(model: NetworkModel, spec, *, axial_cell: float | None = None,
 def _build(model, comps, terminals, spec, axial_cell, kinks, tol, lc, inlet, insulation,
            insulation_nrad, ignored=None):
     """Build *comps* (from ``_comps``; checked) and return ``(Assembly, report)``."""
+    from ..assembly import AssemblyError
     report = {"ignored": model.report.get("ignored", {}) if ignored is None else ignored}
     spec = _section_spec(spec)
     if insulation:
         sample = spec(comps[0].sec if comps[0].bore else Section(nominal=0.1)) \
             if callable(spec) else spec
         if any(sh.name == INSULATION for sh in sample.shells):
-            raise ValueError(f"insulation=True adds a shell named {INSULATION!r}; the "
-                             f"spec already has one")
+            raise AssemblyError(f"insulation=True adds a shell named {INSULATION!r}; the "
+                                f"spec already has one",
+                                code="insulation_shell_exists", where={"field": "insulation"})
         _resolve_insulation(model, comps)
     else:
         for c in comps:
@@ -978,7 +1060,7 @@ def _build(model, comps, terminals, spec, axial_cell, kinks, tol, lc, inlet, ins
     joints = [c for c in comps if c.kind == "joint"]
     parts = [_Part(c, l, _ports(c)) for c, l in zip(comps, labels) if c.kind != "joint"]
     if not parts:
-        raise ValueError("the network model has only joints.")
+        raise AssemblyError("the network model has only joints.", code="network_only_joints")
     nodes, at_node = _graph(parts, joints, tol)
     _check_tree(parts, nodes, lambda: _pieces_hint(model, whole, tol))
     names = _end_names(parts, nodes)
@@ -1021,11 +1103,14 @@ def _place(report, parts, nodes, at_node, names, root, spec, axial_cell, kinks, 
     asm.inlet.equipment = n0 in ins["equipment"]
     state = {"junctions": 0, "tail": None}
 
-    def check(what, frame, end):
+    def check(what, frame, end, piece):
         if np.linalg.norm(frame.position - end) > tol:
             raise AssemblyError(
                 f"{what}: placed port {np.round(frame.position, 6)} misses its "
-                f"port {np.round(end, 6)} by {np.linalg.norm(frame.position - end):.3g} m")
+                f"port {np.round(end, 6)} by {np.linalg.norm(frame.position - end):.3g} m",
+                code="port_placement_mismatch",
+                where={"part": _part_id(piece), "source": _source(piece)},
+                value=float(np.linalg.norm(frame.position - end)), limit={"max": tol})
 
     def joints_at(n, x):
         return [(j, None) for j in _joints_from(at_node.get(n, []), x)]
@@ -1056,12 +1141,15 @@ def _place(report, parts, nodes, at_node, names, root, spec, axial_cell, kinks, 
             raise AssemblyError(
                 f"{what}: arrives with insulation {_thickness(iface.spec):.4g} m but "
                 f"carries {c.ins_junction:.4g} m, and no straight component before "
-                f"it can hold the change")
-        check(what, frame, c.start)
+                f"it can hold the change",
+                code="junction_insulation_differs", where={"part": _part_id(p), "source": _source(p)})
+        check(what, frame, c.start, p)
         centre = c.centre
         axis = _unit(centre - c.start)
         if np.linalg.norm(np.cross(axis, frame.normal)) > 1e-3 or np.dot(axis, frame.normal) < 0:
-            raise AssemblyError(f"{what}: its inlet run is not along the incoming pipe")
+            raise AssemblyError(f"{what}: its inlet run is not along the incoming pipe",
+                                code="junction_run_not_along_pipe",
+                                where={"part": _part_id(p), "source": _source(p)})
         run = float(np.linalg.norm(centre - c.start))
         main_bore = c.bore
         if p.kind == "tee":
@@ -1070,18 +1158,28 @@ def _place(report, parts, nodes, at_node, names, root, spec, axial_cell, kinks, 
             tilt = math.degrees(math.asin(min(1.0, abs(float(np.dot(_unit(b), axis))))))
             if tilt > 1.0:
                 raise AssemblyError(f"{what}: branch at {90 - tilt:.4g}° to the run; a Tee "
-                                    f"branch is perpendicular (angled tees are not supported)")
+                                    f"branch is perpendicular (angled tees are not supported)",
+                                    code="tee_branch_angled",
+                                    where={"part": _part_id(p), "source": _source(p)}, value=90 - tilt,
+                                    limit=90)
             if abs(float(np.linalg.norm(c.end - centre)) - run) > tol:
                 raise AssemblyError(f"{what}: run ports are not symmetric about "
-                                    f"its centre")
+                                    f"its centre",
+                                    code="tee_run_asymmetric",
+                                    where={"part": _part_id(p), "source": _source(p)})
             if not (c.branch_bore and main_bore):
-                raise AssemblyError(f"{what}: needs sizes on its run and branch points")
+                raise AssemblyError(f"{what}: needs sizes on its run and branch points",
+                                    code="junction_size_missing",
+                                    where={"part": _part_id(p), "source": _source(p)})
             R = _radius(iface.spec)
             rb = _branch_radius(spec, R, c.branch_sec, main_bore)
             if not rb < R:
                 raise AssemblyError(f"{what}: equal tees (branch radius {rb:.4g}, main "
                                     f"radius {R:.4g}) are planned through the wye-family "
-                                    f"layout; not available yet")
+                                    f"layout; not available yet",
+                                    code="equal_tee_unsupported",
+                                    where={"part": _part_id(p), "source": _source(p)}, value=rb,
+                                    limit={"max_exclusive": R})
             fitting = Tee(run, blen, rb, toward=tuple(_unit(b)))
             outs_at = [c.end, c.branch]
         else:
@@ -1094,11 +1192,15 @@ def _place(report, parts, nodes, at_node, names, root, spec, axial_cell, kinks, 
             if abs(h1 - h2) > 0.1 or abs(l1 - l2) > tol or coplanar > 1e-3:
                 raise AssemblyError(f"{what}: asymmetric Y piece (daughters at {h1:.4g}° "
                                     f"and {h2:.4g}°, {l1:.4g} and {l2:.4g} m); a Wye "
-                                    f"is symmetric and coplanar")
+                                    f"is symmetric and coplanar",
+                                    code="ypiece_asymmetric",
+                                    where={"part": _part_id(p), "source": _source(p)})
             for bb in (c.branch_bore, c.branch2_bore):
                 if bb is not None and main_bore and abs(bb - main_bore) > 1e-9:
                     raise AssemblyError(f"{what}: daughters must have the stem's size "
-                                        f"(Wye daughters keep the inlet's spec)")
+                                        f"(Wye daughters keep the inlet's spec)",
+                                        code="ypiece_daughter_size",
+                                        where={"part": _part_id(p), "source": _source(p)})
             side = d1 - np.dot(d1, axis) * axis            # BRANCH1 is the "right" daughter
             fitting = Wye(h1 + h2, run, l1, toward=tuple(_unit(side)))
             outs_at = [c.branch2, c.branch]                # [left, right]
@@ -1112,10 +1214,12 @@ def _place(report, parts, nodes, at_node, names, root, spec, axial_cell, kinks, 
         try:
             fitting.resolve(frame, iface.spec).check(iface.spec)
         except ValueError as e:
-            raise AssemblyError(f"{what}: {e}") from None
+            raise AssemblyError.wrap(e, f"{what}: {e}",
+                                     code="fitting_invalid", part=_part_id(p),
+                                     source=_source(p)) from None
         outs = asm.add(iface, fitting, label=p.label)
         for o, x in zip(outs, outs_at):
-            check(what, o.frame, x)
+            check(what, o.frame, x, p)
         return outs, outs_at
 
     def end_of(iface, n):
@@ -1192,7 +1296,10 @@ def _place_chain(asm, iface, chain, end_dir, spec, kinks, tol, ins, to_junction,
         if np.linalg.norm(frame.position - end) > tol:
             raise AssemblyError(
                 f"{label(k)}: placed outlet {np.round(frame.position, 6)} misses its "
-                f"end point {np.round(end, 6)} by {np.linalg.norm(frame.position - end):.3g} m"
+                f"end point {np.round(end, 6)} by {np.linalg.norm(frame.position - end):.3g} m",
+                code="port_placement_mismatch",
+                where={"part": _part_id(comps[k]), "source": _source(comps[k])},
+                value=float(np.linalg.norm(frame.position - end)), limit={"max": tol}
             )
 
     def along(frame, end):
@@ -1213,7 +1320,9 @@ def _place_chain(asm, iface, chain, end_dir, spec, kinks, tol, ins, to_junction,
         if np.linalg.norm(c.start - frame.position) > tol:
             raise AssemblyError(
                 f"{label(k)}: starts {np.linalg.norm(c.start - frame.position):.3g} m "
-                f"from the previous outlet"
+                f"from the previous outlet",
+                code="chain_gap", where={"part": _part_id(c), "source": _source(c)},
+                value=float(np.linalg.norm(c.start - frame.position)), limit={"max": tol}
             )
         length = float(np.linalg.norm(c.end - c.start))
         if c.kind in ("pipe", "fitting"):
@@ -1224,7 +1333,10 @@ def _place_chain(asm, iface, chain, end_dir, spec, kinks, tol, ins, to_junction,
                 if kinks == "error" or c.kind != "pipe":
                     raise AssemblyError(
                         f"{label(k)}: changes direction without a fitting "
-                        f"(use kinks='spline' for routes)"
+                        f"(use kinks='spline' for routes)",
+                        code="kink_without_fitting",
+                        where={"part": _part_id(c), "source": _source(c)},
+                        hint="use kinks='spline' for routes"
                     )
                 # maximal run of pipes from here, joined by one spline
                 j = k
@@ -1232,7 +1344,9 @@ def _place_chain(asm, iface, chain, end_dir, spec, kinks, tol, ins, to_junction,
                     j += 1
                 if not all(uniform(i) for i in range(k, j + 1)):
                     raise AssemblyError(f"{label(k)}: insulation starts or stops inside a "
-                                        f"spline run; it needs a straight component")
+                                        f"spline run; it needs a straight component",
+                                        code="insulation_change_in_spline",
+                                        where={"part": _part_id(c), "source": _source(c)})
                 pts = [frame.position] + [comps[i].end for i in range(k, j + 1)]
                 nxt = comps[j + 1] if j + 1 < len(comps) else None
                 end_t = (tuple(_start_direction(nxt)) if nxt is not None
@@ -1257,13 +1371,16 @@ def _place_chain(asm, iface, chain, end_dir, spec, kinks, tol, ins, to_junction,
             try:
                 g = _elbow_params(c)
             except ValueError as e:
-                raise AssemblyError(f"{label(k)}: {e}") from None
+                raise AssemblyError.wrap(e, f"{label(k)}: {e}",
+                                         code="bend_geometry_invalid", part=_part_id(c),
+                                         source=_source(c)) from None
             leg = float(np.linalg.norm(c.centre - c.start))
             if np.linalg.norm(np.cross(g.incoming, frame.normal)) * leg > tol \
                     or np.dot(g.incoming, frame.normal) < 0:
                 raise AssemblyError(
                     f"{label(k)}: bend's incoming leg (start → corner) is not "
-                    f"along the incoming pipe")
+                    f"along the incoming pipe",
+                    code="bend_leg_not_along_pipe", where={"part": _part_id(c), "source": _source(c)})
             _cross_check_elbow(c, g, label(k))
             roll = math.degrees(math.atan2(np.dot(g.turn, frame.right),
                                            np.dot(g.turn, frame.up)))
@@ -1271,9 +1388,13 @@ def _place_chain(asm, iface, chain, end_dir, spec, kinks, tol, ins, to_junction,
             check(k, iface.frame, c.end)
         elif c.kind == "reducer":
             if c.eccentric:
-                raise AssemblyError(f"{label(k)}: eccentric reducers are not supported")
+                raise AssemblyError(f"{label(k)}: eccentric reducers are not supported",
+                                    code="reducer_eccentric",
+                                    where={"part": _part_id(c), "source": _source(c)})
             if not c.end_bore or not c.bore:
-                raise AssemblyError(f"{label(k)}: reducer needs both bores")
+                raise AssemblyError(f"{label(k)}: reducer needs both bores",
+                                    code="reducer_sizes_missing",
+                                    where={"part": _part_id(c), "source": _source(c)})
             if callable(spec):
                 outlet = spec(c.end_sec)
                 if ins["on"]:
@@ -1283,13 +1404,17 @@ def _place_chain(asm, iface, chain, end_dir, spec, kinks, tol, ins, to_junction,
                 radii = [_radius(cur) * c.end_bore / c.bore] + [sh.dR for sh in cur.shells]
                 outlet = cur.with_radii(radii)
             if not straight_on(k, frame):
-                raise AssemblyError(f"{label(k)}: reducer axis is not the incoming direction")
+                raise AssemblyError(f"{label(k)}: reducer axis is not the incoming direction",
+                                    code="reducer_axis_not_along_pipe",
+                                    where={"part": _part_id(c), "source": _source(c)})
             ax, lat = along(frame, c.end)
             report["max_offset"] = max(report["max_offset"], lat)
             iface = asm.add(iface, Reducer(outlet, ax), label=lab)
             check(k, iface.frame, c.end)
         else:
-            raise AssemblyError(f"{label(k)}: unsupported kind {c.kind!r}")
+            raise AssemblyError(f"{label(k)}: unsupported kind {c.kind!r}",
+                                code="part_kind_unsupported",
+                                where={"part": _part_id(c), "source": _source(c)}, value=c.kind)
         k += 1
     return iface
 
@@ -1312,12 +1437,17 @@ def _cross_check_elbow(c: _Comp, g: ElbowGeometry, label: str) -> None:
     if part.stated_angle is not None and abs(part.stated_angle - g.angle) > ANGLE_TOL:
         what = said.get("angle", f"stated angle {part.stated_angle:g}°")
         raise AssemblyError(f"{label}: {what} disagrees with the {g.angle:.4g}° "
-                            f"from {geometry}")
+                            f"from {geometry}",
+                            code="stated_angle_disagrees",
+                            where={"part": _part_id(c), "source": _source(c)}, value=part.stated_angle,
+                            limit=g.angle)
     r = part.stated_radius
     if r is not None and abs(r - g.radius) > RADIUS_TOL * g.radius:
         what = said.get("radius", "stated radius")
         raise AssemblyError(f"{label}: {what} ({r:.6g} m) disagrees "
-                            f"with the {g.radius:.6g} m from {geometry}")
+                            f"with the {g.radius:.6g} m from {geometry}",
+                            code="stated_radius_disagrees",
+                            where={"part": _part_id(c), "source": _source(c)}, value=r, limit=g.radius)
 
 
 BUILDERS.update(build=build, build_pieces=build_pieces)

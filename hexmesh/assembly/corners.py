@@ -32,6 +32,7 @@ from typing import Callable
 import gmsh
 import numpy as np
 
+from .errors import AssemblyError
 from .. import _occ
 from ..core.cross_section import CrossSection
 from ..core.spec import PipeSpec
@@ -152,7 +153,8 @@ def frame_offset(a: Frame, b: Frame, spec: PipeSpec) -> int:
     axis = np.cross(a.normal, b.normal)
     s, c = float(np.linalg.norm(axis)), float(np.dot(a.normal, b.normal))
     if c < -1 + 1e-9:
-        raise ValueError("faces are antiparallel: corner correspondence undefined")
+        raise AssemblyError("faces are antiparallel: corner correspondence undefined",
+                            code="faces_antiparallel")
     if s > 1e-14:
         k = axis / s
         d = d * c + np.cross(k, d) * s + k * np.dot(k, d) * (1 - c)
@@ -161,9 +163,10 @@ def frame_offset(a: Frame, b: Frame, spec: PipeSpec) -> int:
     steps = roll / P
     m = round(steps)
     if abs(steps - m) > 0.5 - 1e-9:
-        raise ValueError(
+        raise AssemblyError(
             "corner correspondence is ambiguous: the slab twists by half the "
-            "cross-section symmetry angle; use more axial layers"
+            "cross-section symmetry angle; use more axial layers",
+            code="corner_correspondence_ambiguous", hint="use more axial layers"
         )
     return (m * round(P * n / (2 * math.pi))) % n
 

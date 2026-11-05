@@ -58,6 +58,7 @@ from dataclasses import dataclass, replace
 
 import numpy as np
 
+from .errors import AssemblyError
 from ..core.shape import CircleShape, RectShape
 from ..core.spec import PipeSpec
 from ..sections import h, oh
@@ -76,7 +77,8 @@ def _label_map(lay, prefix, o, e1, e2) -> dict:
         d = lay.coords[(prefix, 1, k)] - o
         out[(int(np.sign(d @ e1)), int(np.sign(d @ e2)))] = k
     if len(out) != 4:
-        raise LayoutError(f"face {prefix}: corners not one per quadrant")
+        raise LayoutError(f"face {prefix}: corners not one per quadrant",
+                          code="layout_corners_invalid", where={"part": f"face {prefix}"})
     return out
 
 
@@ -129,7 +131,8 @@ class DuctTap:
             if best is None or sj > best[0]:
                 best = (sj, tap)
         if best is None:
-            raise ValueError("no layout fits: the tap is too long for run_length")
+            raise AssemblyError("no layout fits: the tap is too long for run_length",
+                                code="tap_does_not_fit", where={"field": "run_length"})
         return best[1]
 
     # -- geometry -------------------------------------------------------
@@ -192,7 +195,8 @@ class DuctTap:
 
         reach = self.radius if self.radius is not None else q     # across
         if not (0 < reach < a and s < self.run_length):
-            raise LayoutError(f"tap does not fit: q {q:.4g} vs a {a:.4g}, s {s:.4g}")
+            raise LayoutError(f"tap does not fit: q {q:.4g} vs a {a:.4g}, s {s:.4g}",
+                              code="tap_does_not_fit", value=float(q), limit={"max": float(a)})
 
         lay = BlockLayout()
         face_vertices(lay, "A", frames[0], spec)
@@ -372,7 +376,9 @@ class FullWidthTap(DuctTap):
         bframe, bspec = self.branch(frames[0], spec)
         if not (p < self.run_length and z1 < self.branch_length):
             raise LayoutError(f"tap does not fit: p {p:.4g} vs run {self.run_length:.4g}, "
-                              f"turning height {z1:.4g} vs branch {self.branch_length:.4g}")
+                              f"turning height {z1:.4g} vs branch {self.branch_length:.4g}",
+                              code="tap_does_not_fit", value=float(p),
+                              limit={"max": float(self.run_length)})
 
         def P(x, y, z):
             return o + x * ex + y * ey + z * ez
@@ -529,23 +535,29 @@ class TapTemplate:
         """The ``Tee`` with ``face``, ``run_length`` and the tunables set."""
         tee = self.tee
         if tee.toward is not None:
-            raise ValueError("Tee: toward= is for pipe tees; a duct tap takes face= "
-                             "and roll= (0 or 180)")
+            raise AssemblyError("Tee: toward= is for pipe tees; a duct tap takes face= "
+                                "and roll= (0 or 180)",
+                                code="toward_on_duct_tap", where={"field": "toward"},
+                                hint="use face= and roll= (0 or 180)")
         if tee.branch is None:
-            raise ValueError("Tee: a rectangular main needs branch=RectShape(…) or "
-                             "CircleShape(…); branch_radius= is the shorthand for pipes")
+            raise AssemblyError("Tee: a rectangular main needs branch=RectShape(…) or "
+                                "CircleShape(…); branch_radius= is the shorthand for pipes",
+                                code="duct_tap_needs_branch_shape", where={"field": "branch"},
+                                hint="branch=RectShape(…) or CircleShape(…)")
         tee = replace(tee, face=tee.face or "wide")
         me = TapTemplate(tee)
         if spec.layout == "h":
             return me._resolve_h(inlet, spec)
         if tee.nrad is not None or tee.mprg is not None:
-            raise ValueError("Tee: nrad= and mprg= are for a duct tap on an H main (its "
-                             "O-H blocks inside); an O-H main's ring is its own")
+            raise AssemblyError("Tee: nrad= and mprg= are for a duct tap on an H main (its "
+                                "O-H blocks inside); an O-H main's ring is its own",
+                                code="tap_ring_override_on_oh_main", where={"field": "nrad"})
         if me.full_width(spec):
             tuning = [n for n in _TUNABLES if getattr(tee, n) is not None]
             if tuning:
-                raise ValueError(f"Tee: a full-width tap has no {', '.join(tuning)} "
-                                 f"(pillowed taps only)")
+                raise AssemblyError(f"Tee: a full-width tap has no {', '.join(tuning)} "
+                                    f"(pillowed taps only)",
+                                    code="full_width_tap_tunables", where={"field": tuning[0]})
             if tee.run_length is None:
                 _, a, b, along, *_ = me.geometry(spec)
                 tee = replace(tee, run_length=along + FULL_WIDTH_RUN * min(a, b))
@@ -567,39 +579,52 @@ class TapTemplate:
         if spec.layout == "h":
             return self._check_h(spec, tuned)
         if tee.nrad is not None or tee.mprg is not None:
-            raise ValueError("Tee: nrad= and mprg= are for a duct tap on an H main (its "
-                             "O-H blocks inside); an O-H main's ring is its own")
+            raise AssemblyError("Tee: nrad= and mprg= are for a duct tap on an H main (its "
+                                "O-H blocks inside); an O-H main's ring is its own",
+                                code="tap_ring_override_on_oh_main", where={"field": "nrad"})
         sh = spec.core_shape
         full = tee.branch is not None and self.full_width(spec)
         tunables = () if full else tuple(getattr(tee, k) for k in _TUNABLES)
         if tee.run_length is None or (tuned and None in tunables):
-            raise ValueError("Tee: run_length and the duct-tap tunables are resolved "
-                             "by Assembly.add(); add the fitting to an assembly")
+            raise AssemblyError("Tee: run_length and the duct-tap tunables are resolved "
+                                "by Assembly.add(); add the fitting to an assembly",
+                                code="fitting_not_resolved", where={"field": "run_length"},
+                                hint="add the fitting to an assembly")
         if spec.shells:
-            raise ValueError("Tee: duct taps are single-layer; shelled duct taps are "
-                             "not supported yet (decisions 0026, 0028)")
+            raise AssemblyError("Tee: duct taps are single-layer; shelled duct taps are "
+                                "not supported yet (decisions 0026, 0028)",
+                                code="junction_shells_unsupported")
         if spec.rot != 0 or spec.n_outer != 4:
-            raise ValueError("Tee: a duct tap requires rot = 0 and n_outer = 4")
+            raise AssemblyError("Tee: a duct tap requires rot = 0 and n_outer = 4",
+                                code="junction_needs_rot_0_n_outer_4", where={"field": "rot"})
         if tee.branch is None:
-            raise ValueError("Tee: a rectangular main needs branch=RectShape(…) or "
-                             "CircleShape(…); branch_radius= is the shorthand for pipes")
+            raise AssemblyError("Tee: a rectangular main needs branch=RectShape(…) or "
+                                "CircleShape(…); branch_radius= is the shorthand for pipes",
+                                code="duct_tap_needs_branch_shape", where={"field": "branch"},
+                                hint="branch=RectShape(…) or CircleShape(…)")
         if tee.face not in (None, "wide", "narrow"):
-            raise ValueError(f"Tee: face must be 'wide' or 'narrow', got {tee.face!r}")
+            raise AssemblyError(f"Tee: face must be 'wide' or 'narrow', got {tee.face!r}",
+                                code="option_invalid", where={"field": "face"}, value=tee.face,
+                                limit=["wide", "narrow"])
         if min(abs(math.remainder(tee.roll - r, 360.0)) for r in (0, 180)) > 1e-9:
-            raise ValueError(f"Tee: a duct tap's roll is 0 or 180 (the side of the "
-                             f"face), got {tee.roll:g}; face= picks wide or narrow")
+            raise AssemblyError(f"Tee: a duct tap's roll is 0 or 180 (the side of the "
+                                f"face), got {tee.roll:g}; face= picks wide or narrow",
+                                code="duct_tap_roll_invalid", where={"field": "roll"},
+                                value=tee.roll, limit=[0, 180])
         br = tee.branch
         (mw, mh), (bw, bh) = sh.counts, br.counts
         if br.is_round:
             if not (mw == mh == bw):
-                raise ValueError(
+                raise AssemblyError(
                     f"Tee: a round duct tap needs equal counts per side: main "
-                    f"(nang_w, nang_h) = ({mw}, {mh}), branch nang {bw}")
+                    f"(nang_w, nang_h) = ({mw}, {mh}), branch nang {bw}",
+                    code="counts_mismatch", where={"field": "branch"}, value=bw, limit=(mw, mh))
         elif (bw, bh) != (mw, mh):
-            raise ValueError(
+            raise AssemblyError(
                 f"Tee: branch counts (nang_w, nang_h) = ({bw}, {bh}) must "
                 f"be the main's ({mw}, {mh}): the branch keeps the main's "
-                f"counts per side (module notes)")
+                f"counts per side (module notes)",
+                code="counts_mismatch", where={"field": "branch"}, value=(bw, bh), limit=(mw, mh))
         on_U, a, b, along, across, reach_x, reach_y = self.geometry(spec)
         face = tee.face or "wide"
         ratio = reach_y / a
@@ -607,33 +632,50 @@ class TapTemplate:
         if full:
             z1 = b + 0.5 * min(along, across)
             if tee.run_length <= along:
-                raise ValueError(f"Tee: run_length must exceed the full-width tap's "
-                                 f"half-length along the main, {along:.4g}")
+                raise AssemblyError(f"Tee: run_length must exceed the full-width tap's "
+                                    f"half-length along the main, {along:.4g}",
+                                    code="run_length_too_short", where={"field": "run_length"},
+                                    value=tee.run_length, limit={"min_exclusive": float(along)})
             if tee.branch_length <= z1:
-                raise ValueError(f"Tee: branch_length must exceed the turning station's "
-                                 f"height {z1:.4g} (the {face} face at {b:.4g} plus half "
-                                 f"the branch's smaller half-extent)")
+                raise AssemblyError(f"Tee: branch_length must exceed the turning station's "
+                                    f"height {z1:.4g} (the {face} face at {b:.4g} plus half "
+                                    f"the branch's smaller half-extent)",
+                                    code="branch_length_too_short",
+                                    where={"field": "branch_length"}, value=tee.branch_length,
+                                    limit={"min_exclusive": float(z1)})
             for n in (tee.n_run, tee.n_branch, tee.n_turn):
                 if n < 1:
-                    raise ValueError("layer counts must be >= 1")
+                    raise AssemblyError("layer counts must be >= 1",
+                                        code="count_below_minimum",
+                                        where={"field": "n_run, n_branch, n_turn"}, value=n,
+                                        limit={"min": 1})
             return
         if ratio > limits.DUCT_TAP_MAX_RATIO:
-            raise ValueError(
+            raise AssemblyError(
                 f"Tee: the tap reaches {reach_y:.4g} across the {face} face of "
                 f"half-width {a:.4g}: ratio {ratio:.3g} exceeds DUCT_TAP_MAX_RATIO "
                 f"{limits.DUCT_TAP_MAX_RATIO:g}; a tap up to "
                 f"{limits.DUCT_TAP_MAX_RATIO * a:.4g}, or a full-width tap (across "
-                f"{a:.4g})")
+                f"{a:.4g})",
+                code="duct_tap_too_wide", where={"field": "branch"}, value=float(ratio),
+                limit="DUCT_TAP_MAX_RATIO", hint="a smaller tap, or a full-width tap")
         need = reach_x + (tee.margin or min(DuctTap.TUNING["margin"])) * t
         if tee.run_length <= need:
-            raise ValueError(f"Tee: run_length must exceed {need:.4g}: the tap's reach "
-                             f"along the main {reach_x:.4g} plus the station margin")
+            raise AssemblyError(f"Tee: run_length must exceed {need:.4g}: the tap's reach "
+                                f"along the main {reach_x:.4g} plus the station margin",
+                                code="run_length_too_short", where={"field": "run_length"},
+                                value=tee.run_length, limit={"min_exclusive": float(need)})
         if tee.branch_length <= b:
-            raise ValueError(f"Tee: branch_length must exceed the {face} face's "
-                             f"distance from the axis, {b:.4g}")
+            raise AssemblyError(f"Tee: branch_length must exceed the {face} face's "
+                                f"distance from the axis, {b:.4g}",
+                                code="branch_length_too_short", where={"field": "branch_length"},
+                                value=tee.branch_length, limit={"min_exclusive": float(b)})
         for n in (tee.n_run, tee.n_branch, tee.n_wall or 1):
             if n < 1:
-                raise ValueError("layer counts must be >= 1")
+                raise AssemblyError("layer counts must be >= 1",
+                                    code="count_below_minimum",
+                                    where={"field": "n_run, n_branch, n_wall"}, value=n,
+                                    limit={"min": 1})
 
     # -- the fitting contract (delegated by Tee) ------------------------
 
@@ -697,7 +739,9 @@ class TapTemplate:
             msg = (f"predicted corner scaled Jacobian {sj:.3f} is below {name} "
                    f"{tier:g} ({kind}, {face} face); {hint}")
             if tier == PREDICTED_SJ_MIN:
-                raise ValueError(msg)
+                raise AssemblyError(msg,
+                                    code="predicted_sj_below_minimum", value=float(sj),
+                                    limit="PREDICTED_SJ_MIN", hint=hint)
             # a round tap's prediction overestimates: its warning tier is
             # the meshed check in Assembly.mesh() (task 0057's note)
             if not self.meshed_sj_check():
@@ -819,16 +863,21 @@ class TapTemplate:
         tee = self.tee
         if tee.nrad is not None and (isinstance(tee.nrad, bool) or not isinstance(tee.nrad, int)
                                      or tee.nrad < 1):
-            raise ValueError(f"Tee: nrad must be an integer >= 1, got {tee.nrad!r}")
+            raise AssemblyError(f"Tee: nrad must be an integer >= 1, got {tee.nrad!r}",
+                                code="count_below_minimum", where={"field": "nrad"},
+                                value=tee.nrad, limit={"min": 1, "integer": True})
         if tee.mprg is not None and not tee.mprg > 0:
-            raise ValueError(f"Tee: mprg must be positive, got {tee.mprg!r}")
+            raise AssemblyError(f"Tee: mprg must be positive, got {tee.mprg!r}",
+                                code="value_not_positive", where={"field": "mprg"}, value=tee.mprg,
+                                limit={"min_exclusive": 0})
 
-    def _room(self, e: ValueError, spec: PipeSpec) -> ValueError:
+    def _room(self, e: ValueError, spec: PipeSpec) -> AssemblyError:
         """*e* from the O-H junction inside, naming the legs on top."""
         lm, lb = self.legs(spec)
         legs = f"{lm:.4g} at each main port" + (f" and {lb:.4g} at the branch" if lb else "")
-        return ValueError(f"{e} (for the O-H junction inside: with H ports a switch leg of "
-                          f"{legs} comes on top, task 0086)")
+        return AssemblyError.wrap(e, f"{e} (for the O-H junction inside: with H ports a switch "
+                                  f"leg of {legs} comes on top, task 0086)",
+                                  code="tap_does_not_fit")
 
     def _check_h(self, spec: PipeSpec, tuned: bool) -> None:
         """An H main: the override, then the O-H junction inside, its room
@@ -882,4 +931,5 @@ def _validate_layout(lay: BlockLayout) -> None:
     try:
         lay.validate()
     except LayoutError as e:
-        raise ValueError(f"block layout invalid: {e}") from None
+        raise AssemblyError.wrap(e, f"block layout invalid: {e}",
+                                 code="block_layout_invalid") from None

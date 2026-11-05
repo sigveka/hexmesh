@@ -96,6 +96,8 @@ from typing import Protocol, runtime_checkable
 
 import numpy as np
 
+from ..errors import SpecError
+
 
 @runtime_checkable
 class Shape(Protocol):
@@ -144,9 +146,13 @@ class CircleShape:
 
     def __post_init__(self) -> None:
         if self.radius <= 0:
-            raise ValueError(f"radius must be positive, got {self.radius}")
+            raise SpecError(f"radius must be positive, got {self.radius}",
+                            code="size_not_positive", where={"field": "radius"}, value=self.radius,
+                            limit={"min_exclusive": 0})
         if self.nang < 1:
-            raise ValueError(f"nang must be >= 1, got {self.nang}")
+            raise SpecError(f"nang must be >= 1, got {self.nang}",
+                            code="count_below_minimum", where={"field": "nang"}, value=self.nang,
+                            limit={"min": 1})
 
     @property
     def max_extent(self) -> float:
@@ -241,13 +247,21 @@ class RectShape:
 
     def __post_init__(self) -> None:
         if self.half_w <= 0:
-            raise ValueError(f"half_w must be positive, got {self.half_w}")
+            raise SpecError(f"half_w must be positive, got {self.half_w}",
+                            code="size_not_positive", where={"field": "half_w"}, value=self.half_w,
+                            limit={"min_exclusive": 0})
         if self.half_h <= 0:
-            raise ValueError(f"half_h must be positive, got {self.half_h}")
+            raise SpecError(f"half_h must be positive, got {self.half_h}",
+                            code="size_not_positive", where={"field": "half_h"}, value=self.half_h,
+                            limit={"min_exclusive": 0})
         if self.nang_w < 1:
-            raise ValueError(f"nang_w must be >= 1, got {self.nang_w}")
+            raise SpecError(f"nang_w must be >= 1, got {self.nang_w}",
+                            code="count_below_minimum", where={"field": "nang_w"},
+                            value=self.nang_w, limit={"min": 1})
         if self.nang_h < 1:
-            raise ValueError(f"nang_h must be >= 1, got {self.nang_h}")
+            raise SpecError(f"nang_h must be >= 1, got {self.nang_h}",
+                            code="count_below_minimum", where={"field": "nang_h"},
+                            value=self.nang_h, limit={"min": 1})
 
     @property
     def max_extent(self) -> float:
@@ -357,7 +371,8 @@ def shape_from_dict(d: dict) -> Shape:
     d = dict(d)
     kind = d.pop("type")
     if kind not in SHAPES:
-        raise ValueError(f"unknown shape type {kind!r}; known: {', '.join(SHAPES)}")
+        raise SpecError(f"unknown shape type {kind!r}; known: {', '.join(SHAPES)}",
+                        code="shape_type_unknown", value=kind, limit=sorted(SHAPES))
     return SHAPES[kind](**d)
 
 # ---------------------------------------------------------------------------

@@ -46,6 +46,7 @@ from .assembly import (
 from .assembly.quality import QualityReport, RegionQuality
 from .core.shape import CircleShape
 from .core.spec import PipeSpec
+from .errors import HexmeshError, HexmeshWarning
 from .quality_hex import HexVolumeQuality, all_metrics as hex_all_metrics
 from .session import Session
 
@@ -54,6 +55,7 @@ __all__ = [
     "Straight", "Bend", "Elbow", "MiterBend", "Reducer", "Transition", "SplinePipe",
     "Closure", "Tee", "Wye", "Switch",
     "Drum", "Nozzle", "OnShell", "OnHead", "EquipmentError",
+    "HexmeshError", "HexmeshWarning",
     "PipeSpec", "CircleShape",
     "QualityReport", "RegionQuality", "HexVolumeQuality", "hex_all_metrics",
     "Session",

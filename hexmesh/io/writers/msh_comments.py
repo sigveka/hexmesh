@@ -41,6 +41,8 @@ import json
 import re
 from pathlib import Path
 
+from ...errors import ReaderError
+
 BEGIN, END = "hexmesh-recipe-begin", "hexmesh-recipe-end"
 WRAP = 200                  # recipe characters per line (gmsh re-wraps at 255)
 
@@ -64,7 +66,8 @@ def msh_format(path) -> tuple[str, bool]:
     """(version, binary) from the file's ``$MeshFormat`` header."""
     with open(path, "rb") as f:
         if f.readline().strip() != b"$MeshFormat":
-            raise ValueError(f"{path}: not a .msh file (no $MeshFormat header)")
+            raise ReaderError(f"{path}: not a .msh file (no $MeshFormat header)",
+                              code="msh_format_invalid", where={"source": {"file": str(path)}})
         version, file_type, _ = f.readline().split()
     return version.decode(), file_type == b"1"
 
@@ -113,7 +116,8 @@ def insert(path, lines: list[str]) -> None:
     data = p.read_bytes()
     m = re.search(rb"^\$EndMeshFormat(\r?\n)", data, re.M)
     if m is None:
-        raise ValueError(f"{path}: no $EndMeshFormat")
+        raise ReaderError(f"{path}: no $EndMeshFormat",
+                          code="msh_format_invalid", where={"source": {"file": str(path)}})
     eol = m.group(1).decode("ascii")
     i = m.end()
     p.write_bytes(data[:i] + "".join(f"{l}{eol}" for l in lines).encode("ascii") + data[i:])

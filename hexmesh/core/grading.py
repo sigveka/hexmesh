@@ -20,6 +20,8 @@ A layer of thickness ``t`` split into ``n`` cells whose lengths grow by
 from __future__ import annotations
 import math
 
+from ..errors import SpecError
+
 
 def progression_for_first_cell(thickness: float, n_cells: int, h_first: float) -> float:
     """Growth ratio *q* of *n_cells* cells over *thickness* whose first cell
@@ -31,28 +33,35 @@ def progression_for_first_cell(thickness: float, n_cells: int, h_first: float) -
     Returns 1.0 for ``h_first == thickness / n_cells``.
     """
     if n_cells < 1:
-        raise ValueError(f"n_cells must be >= 1, got {n_cells!r}")
+        raise SpecError(f"n_cells must be >= 1, got {n_cells!r}",
+                        code="count_below_minimum", where={"field": "n_cells"}, value=n_cells,
+                        limit={"min": 1})
     if thickness <= 0:
-        raise ValueError(f"thickness must be positive, got {thickness!r}")
+        raise SpecError(f"thickness must be positive, got {thickness!r}",
+                        code="size_not_positive", where={"field": "thickness"}, value=thickness,
+                        limit={"min_exclusive": 0})
     if not 0 < h_first <= thickness:
-        raise ValueError(
+        raise SpecError(
             f"first cell {h_first!r} must be positive and no larger than the "
-            f"layer thickness {thickness!r}"
-        )
+            f"layer thickness {thickness!r}",
+            code="first_cell_out_of_range", where={"field": "first_cell"},
+            value=h_first, limit={"min_exclusive": 0, "max": thickness})
     if n_cells == 1:
         if not math.isclose(h_first, thickness, rel_tol=1e-9):
-            raise ValueError(
+            raise SpecError(
                 f"a single cell spans the whole thickness {thickness!r}; "
-                f"first cell {h_first!r} is impossible (use more cells)"
-            )
+                f"first cell {h_first!r} is impossible (use more cells)",
+                code="first_cell_out_of_range", where={"field": "first_cell"},
+                value=h_first, hint="use more cells")
         return 1.0
     if math.isclose(h_first * n_cells, thickness, rel_tol=1e-12):
         return 1.0
     if math.isclose(h_first, thickness, rel_tol=1e-12):
-        raise ValueError(
+        raise SpecError(
             f"first cell {h_first!r} equals the thickness; no ratio fits "
-            f"{n_cells} cells"
-        )
+            f"{n_cells} cells",
+            code="first_cell_out_of_range", where={"field": "first_cell"},
+            value=h_first, limit={"max_exclusive": thickness})
 
     def total(log_q: float) -> float:
         if abs(log_q) < 1e-12:
@@ -111,7 +120,8 @@ def _solve_bump(n: int, f, target: float) -> float:
     log coef) reaches *target*: bisection in log coef."""
     lo, hi = math.log(1e-12), math.log(1e6)
     if not f(math.exp(lo)) < target < f(math.exp(hi)):
-        raise ValueError(f"no Bump coefficient reaches {target!r} with {n} cells")
+        raise SpecError(f"no Bump coefficient reaches {target!r} with {n} cells",
+                        code="grading_unreachable", value=target)
     for _ in range(200):
         mid = 0.5 * (lo + hi)
         if f(math.exp(mid)) < target:
@@ -125,10 +135,14 @@ def bump_for_first_cell(length: float, n_cells: int, h_first: float) -> float:
     """``Bump`` coefficient giving end cells of *h_first* on a curve of
     *length* split into *n_cells* (both ends; 1.0 for uniform cells)."""
     if n_cells < 2:
-        raise ValueError(f"wall grading needs at least 2 cells across, got {n_cells!r}")
+        raise SpecError(f"wall grading needs at least 2 cells across, got {n_cells!r}",
+                        code="count_below_minimum", where={"field": "n_cells"}, value=n_cells,
+                        limit={"min": 2})
     if not 0 < h_first < length / 2:
-        raise ValueError(f"first cell {h_first!r} must be positive and under half "
-                         f"the side {length!r}")
+        raise SpecError(f"first cell {h_first!r} must be positive and under half "
+                         f"the side {length!r}",
+                        code="first_cell_out_of_range", where={"field": "first_cell"},
+                        value=h_first, limit={"min_exclusive": 0, "max_exclusive": length / 2})
     if math.isclose(h_first * n_cells, length, rel_tol=1e-12):
         return 1.0
     return _solve_bump(n_cells, lambda c: float(bump(n_cells, c)[1]), h_first / length)
@@ -138,9 +152,13 @@ def bump_for_ratio(n_cells: int, ratio: float) -> float:
     """``Bump`` coefficient whose second cell from each end is *ratio*
     times the end cell (> 1 refines toward both ends; 1.0 uniform)."""
     if n_cells < 3:
-        raise ValueError(f"a wall growth ratio needs at least 3 cells across, got {n_cells!r}")
+        raise SpecError(f"a wall growth ratio needs at least 3 cells across, got {n_cells!r}",
+                        code="count_below_minimum", where={"field": "n_cells"}, value=n_cells,
+                        limit={"min": 3})
     if ratio <= 0:
-        raise ValueError(f"wall growth ratio must be positive, got {ratio!r}")
+        raise SpecError(f"wall growth ratio must be positive, got {ratio!r}",
+                        code="value_not_positive", where={"field": "mprg"}, value=ratio,
+                        limit={"min_exclusive": 0})
     if math.isclose(ratio, 1.0, rel_tol=1e-15):
         return 1.0
 

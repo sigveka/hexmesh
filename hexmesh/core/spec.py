@@ -42,6 +42,7 @@ import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
+from ..errors import SpecError, SpecTypeError
 from .grading import bump_for_first_cell, bump_for_ratio, progression_for_first_cell
 from .shape import (LAYOUTS, CircleShape, RectShape, Shape, longest_radial, core_wall_span,
                     ring_corners, shape_from_dict)
@@ -55,19 +56,23 @@ def _check_layer_name(name) -> None:
     """Layer names become group names (``fluid_inlet``,
     ``interface_fluid_steel``), so keep them to ``[A-Za-z0-9_]``."""
     if not isinstance(name, str) or not re.fullmatch(r"[A-Za-z0-9_]+", name):
-        raise ValueError(f"layer name {name!r} must be letters, digits and _ only "
-                         "(it becomes part of physical group names)")
+        raise SpecError(f"layer name {name!r} must be letters, digits and _ only "
+                         "(it becomes part of physical group names)",
+                        code="layer_name_invalid", where={"field": "name"}, value=name)
 
 
-class LayoutNotSupported(ValueError):
+class LayoutNotSupported(SpecError):
     """A section layout used where it isn't built yet (task 0084): names
     *where* (a fitting or option), the *layout* and the *task* that adds
-    it, so a script or agent can act on it."""
+    it, so a script or agent can act on it.  ``where`` is the structured
+    location (``{"part": …}``); ``site`` keeps the text."""
 
     def __init__(self, where: str, layout: str, task: str, hint: str = ""):
-        self.where, self.layout, self.task = where, layout, task
+        self.site, self.layout, self.task = where, layout, task
         super().__init__(f"{where}: layout {layout!r} is not supported yet (task {task})"
-                         + (f"; {hint}" if hint else ""))
+                         + (f"; {hint}" if hint else ""),
+                         code="layout_not_supported", where={"part": where}, value=layout,
+                         hint=hint or None)
 
 
 def _wall_progression(mprg: float | None, thickness: float, nrad: int,
@@ -78,7 +83,8 @@ def _wall_progression(mprg: float | None, thickness: float, nrad: int,
     small wall cell needs the reciprocal of the first-cell ratio.
     """
     if mprg is not None:
-        raise TypeError("pass either mprg= or first_cell=, not both")
+        raise SpecTypeError("pass either mprg= or first_cell=, not both",
+                            code="grading_args_conflict", hint="pass mprg= or first_cell=")
     return 1.0 / progression_for_first_cell(thickness, nrad, first_cell)
 
 
@@ -113,11 +119,17 @@ class LayerSpec:
 
     def __post_init__(self) -> None:
         if (self.dR is None) == (self.outer is None):
-            raise ValueError(f"shell `{self.name}`: give exactly one of dR and outer")
+            raise SpecError(f"shell `{self.name}`: give exactly one of dR and outer",
+                            code="shell_outline_args", where={"label": self.name})
         if self.dR is not None and self.dR <= 0:
-            raise ValueError(f"LayerSpec.dR must be positive, got {self.dR!r}")
+            raise SpecError(f"LayerSpec.dR must be positive, got {self.dR!r}",
+                            code="size_not_positive", where={"label": self.name, "field": "dR"},
+                            value=self.dR, limit={"min_exclusive": 0})
         if self.nrad is None or self.nrad < 1:
-            raise ValueError(f"LayerSpec.nrad must be >= 1, got {self.nrad!r}")
+            raise SpecError(f"LayerSpec.nrad must be >= 1, got {self.nrad!r}",
+                            code="count_below_minimum",
+                            where={"label": self.name, "field": "nrad"}, value=self.nrad,
+                            limit={"min": 1})
 
     def outline(self, inner: Shape) -> Shape:
         """This layer's outline, around *inner* (the previous one)."""
@@ -182,9 +194,10 @@ class PipeSpec:
         n_outer: int   = 4,
     ) -> None:
         if n_outer < 4 or n_outer % 4 != 0:
-            raise ValueError(
-                f"PipeSpec n_outer must be a positive multiple of 4, got {n_outer!r}."
-            )
+            raise SpecError(
+                f"PipeSpec n_outer must be a positive multiple of 4, got {n_outer!r}.",
+                code="n_outer_invalid", where={"field": "n_outer"}, value=n_outer,
+                limit="a positive multiple of 4")
         self._n_outer = n_outer
         self._nang   = nang
         self._nang_w = nang_w
@@ -199,10 +212,11 @@ class PipeSpec:
         if nang is not None:
             divisor = n_outer // 4
             if nang % divisor != 0:
-                raise ValueError(
+                raise SpecError(
                     f"PipeSpec nang={nang} must be divisible by n_outer//4={divisor} "
-                    f"(n_outer={n_outer})."
-                )
+                    f"(n_outer={n_outer}).",
+                    code="nang_not_divisible", where={"field": "nang"}, value=nang,
+                    limit={"multiple_of": divisor})
 
     # ------------------------------------------------------------------
     # Builder methods
@@ -290,48 +304,50 @@ class PipeSpec:
         if self._core is not None:
             raise RuntimeError("PipeSpec.core() may only be called once.")
         if layout is not None and layout not in LAYOUTS:
-            raise ValueError(f"layout must be one of {sorted(LAYOUTS)}, got {layout!r}")
+            raise SpecError(f"layout must be one of {sorted(LAYOUTS)}, got {layout!r}",
+                            code="layout_unknown", where={"field": "layout"}, value=layout,
+                            limit=sorted(LAYOUTS))
 
         # Resolve shape from shorthand geometry keywords
         geo_given = radius is not None or half_w is not None or half_h is not None
         if shape is not None and geo_given:
-            raise TypeError(
+            raise SpecTypeError(
                 "PipeSpec.core(): pass either shape= or geometry keywords "
                 "(radius / half_w / half_h), not both."
-            )
+            , code="shape_args_conflict")
         if shape is None and not geo_given:
-            raise TypeError(
+            raise SpecTypeError(
                 "PipeSpec.core(): provide either shape= or one of the "
                 "geometry keywords (radius=, half_w= + half_h=)."
-            )
+            , code="shape_args_missing")
 
         if geo_given:
             if radius is not None:
                 # Circular shorthand
                 if half_w is not None or half_h is not None:
-                    raise TypeError(
+                    raise SpecTypeError(
                         "PipeSpec.core(): radius and half_w/half_h are "
                         "mutually exclusive."
-                    )
+                    , code="shape_args_conflict")
                 if self._nang is None:
-                    raise TypeError(
+                    raise SpecTypeError(
                         "PipeSpec.core(radius=…) requires nang to be set on "
                         "the PipeSpec, e.g. PipeSpec(nang=5).core(…, radius=0.3)."
-                    )
+                    , code="nang_missing", where={"field": "nang"})
                 shape = CircleShape(radius=radius, nang=self._nang)
             else:
                 # Rectangular shorthand
                 if half_w is None or half_h is None:
-                    raise TypeError(
+                    raise SpecTypeError(
                         "PipeSpec.core(): half_w and half_h must both be "
                         "provided for a rectangular core."
-                    )
+                    , code="shape_args_missing")
                 if self._nang_w is None or self._nang_h is None:
-                    raise TypeError(
+                    raise SpecTypeError(
                         "PipeSpec.core(half_w=…, half_h=…) requires nang_w "
                         "and nang_h to be set on the PipeSpec, e.g. "
                         "PipeSpec(nang_w=6, nang_h=4).core(…, half_w=0.2, half_h=0.1)."
-                    )
+                    , code="nang_missing", where={"field": "nang_w"})
                 shape = RectShape(
                     half_w=half_w, half_h=half_h,
                     nang_w=self._nang_w, nang_h=self._nang_h,
@@ -345,20 +361,32 @@ class PipeSpec:
             if nrad:
                 how = ("a rectangular core is H by default since 0.4.0" if default
                        else "an H core")
-                raise ValueError(
+                raise SpecError(
                     f"nrad={nrad!r} on {how}: it has no ring, so its "
                     "near-wall cells come from wall grading.  Drop nrad and grade "
                     "the walls (first_cell= or mprg=), or pass layout='oh' to keep "
-                    "the O-H face (decision 0036)")
+                    "the O-H face (decision 0036)",
+                    code="nrad_on_h_core", where={"label": name, "field": "nrad"},
+                    value=nrad,
+                    hint="drop nrad and grade the walls (first_cell= or mprg=), "
+                         "or pass layout='oh'")
         elif nrad < 1:
-            raise ValueError(f"nrad must be >= 1, got {nrad!r}")
+            raise SpecError(f"nrad must be >= 1, got {nrad!r}",
+                            code="count_below_minimum", where={"label": name, "field": "nrad"},
+                            value=nrad, limit={"min": 1})
         if layout == "h":
             if shape.is_round or shape.is_station:
-                raise ValueError(f"layout='h' needs a rectangular core, got a {shape.label}")
+                raise SpecError(f"layout='h' needs a rectangular core, got a {shape.label}",
+                                code="h_layout_needs_rectangle",
+                                where={"label": name, "field": "layout"})
             if self._n_outer != 4:
-                raise ValueError("layout='h' needs n_outer = 4")
+                raise SpecError("layout='h' needs n_outer = 4",
+                                code="h_layout_needs_n_outer_4",
+                                where={"label": name, "field": "n_outer"}, value=self._n_outer,
+                                limit=4)
             if sum(x is not None for x in (mprg, first_cell, wall_bump)) > 1:
-                raise TypeError("pass one of mprg=, first_cell= or wall_bump=")
+                raise SpecTypeError("pass one of mprg=, first_cell= or wall_bump=",
+                                    code="grading_args_conflict", where={"label": name})
             if first_cell is not None:             # each side's coefficient
                 wall_bump = tuple(
                     bump_for_first_cell(math.dist(shape.corner(k), shape.corner(k + 1)),
@@ -370,18 +398,26 @@ class PipeSpec:
             if wall_bump is not None:
                 wall_bump = tuple(float(c) for c in wall_bump)
                 if len(wall_bump) != 2 or not all(c > 0 for c in wall_bump):
-                    raise ValueError(f"wall_bump must be two positive coefficients, "
-                                     f"got {wall_bump!r}")
+                    raise SpecError(f"wall_bump must be two positive coefficients, "
+                                     f"got {wall_bump!r}",
+                                    code="wall_bump_invalid",
+                                    where={"label": name, "field": "wall_bump"}, value=wall_bump)
             self._layout = "h"
             self._core_wall_bump = wall_bump
             first_cell = None                      # the wall grading, not mprg
         elif wall_bump is not None:
-            raise TypeError("wall_bump= is an H core's grading (layout='h')")
+            raise SpecTypeError("wall_bump= is an H core's grading (layout='h')",
+                                code="wall_bump_needs_h_layout",
+                                where={"label": name, "field": "wall_bump"})
         if first_cell is not None:
             if not shape.is_round:
-                raise TypeError("first_cell= supports circular cores only")
+                raise SpecTypeError("first_cell= supports circular cores only",
+                                    code="first_cell_unsupported",
+                                    where={"label": name, "field": "first_cell"})
             if self._n_outer != 4:
-                raise TypeError("first_cell= supports n_outer=4 cores only")
+                raise SpecTypeError("first_cell= supports n_outer=4 cores only",
+                                    code="first_cell_unsupported",
+                                    where={"label": name, "field": "first_cell"})
             # Solved on the thickest span (mid-arc), so first_cell is the
             # largest wall cell; at the corners it is 0.4/0.491 ≈ 0.81 of it.
             mprg = _wall_progression(mprg, core_wall_span(shape.max_extent),
@@ -438,7 +474,8 @@ class PipeSpec:
         if self._core is None:
             raise RuntimeError("Call PipeSpec.core() before .shell().")
         if nrad is None:
-            raise TypeError(f"shell `{name}`: nrad is required")
+            raise SpecTypeError(f"shell `{name}`: nrad is required",
+                                code="shell_nrad_missing", where={"label": name, "field": "nrad"})
         _check_layer_name(name)
         layer = LayerSpec(name=name, dR=dR, nrad=nrad, mprg=1.0, outer=outer)
         inner = self.outlines[-1]
@@ -462,7 +499,8 @@ class PipeSpec:
         Circular stacks of ``dR`` shells only."""
         name, shape = self._core
         if any(sh.dR is None for sh in self.shells):
-            raise ValueError("PipeSpec.with_radii needs dR shells")
+            raise SpecError("PipeSpec.with_radii needs dR shells",
+                            code="with_radii_needs_dr_shells")
         if mprgs is None:
             mprgs = [self._core_mprg] + [sh.mprg for sh in self.shells]
         out = (PipeSpec(nang=self.nang, n_outer=self.n_outer, rot=self.rot, mbmp=self.mbmp)
@@ -479,16 +517,21 @@ class PipeSpec:
         if all(type(o).side_curve == "arc" for o in outlines):
             return                              # circles: nang already shared
         if self._n_outer != 4:
-            raise ValueError(f"shell `{name}`: a stack with a rectangular outline "
-                             f"needs n_outer = 4, got {self._n_outer}")
+            raise SpecError(f"shell `{name}`: a stack with a rectangular outline "
+                             f"needs n_outer = 4, got {self._n_outer}",
+                            code="rect_stack_needs_n_outer_4",
+                            where={"label": name, "field": "n_outer"}, value=self._n_outer,
+                            limit=4)
         names = self.layer_names + [name]
         want = outlines[0].counts[0]
         for lname, o in zip(names, outlines):
             if o.counts != (want, want):
-                raise ValueError(
+                raise SpecError(
                     f"shell `{name}`: every outline in a stack with a rectangle needs "
                     f"equal counts per side; layer `{lname}` has {o.counts} "
-                    f"(nang_w, nang_h), the core {want} per side")
+                    f"(nang_w, nang_h), the core {want} per side",
+                    code="rect_stack_counts_unequal", where={"label": name},
+                    value=o.counts)
 
     # ------------------------------------------------------------------
     # Derived properties
@@ -619,10 +662,10 @@ class PipeSpec:
         for name, n in counts.items():
             mine = getattr(self, f"_{name}")
             if mine is not None and n != mine:
-                raise ValueError(
+                raise SpecError(
                     f"{type(shape).__name__}.{name}={n} does not match "
                     f"PipeSpec({name}={mine})."
-                )
+                , code="shape_counts_mismatch", where={"field": name}, value=n, limit=mine)
         for name, n in counts.items():
             if getattr(self, f"_{name}") is None:
                 setattr(self, f"_{name}", n)
@@ -630,10 +673,11 @@ class PipeSpec:
             # Enforce nang % (n_outer // 4) == 0 once nang is resolved.
             divisor = self._n_outer // 4
             if self._nang % divisor != 0:
-                raise ValueError(
+                raise SpecError(
                     f"PipeSpec nang={self._nang} must be divisible by "
-                    f"n_outer//4={divisor} (n_outer={self._n_outer})."
-                )
+                    f"n_outer//4={divisor} (n_outer={self._n_outer}).",
+                    code="nang_not_divisible", where={"field": "nang"},
+                    value=self._nang, limit={"multiple_of": divisor})
 
     # ------------------------------------------------------------------
     # Serialisation (docs/tasks/0006)
@@ -650,7 +694,8 @@ class PipeSpec:
             raise RuntimeError("PipeSpec has no core defined.")
         name, shape = self._core
         if not hasattr(shape, "to_dict"):
-            raise TypeError(f"cannot serialise core shape {type(shape).__name__}")
+            raise SpecTypeError(f"cannot serialise core shape {type(shape).__name__}",
+                                code="shape_not_serialisable")
         shape_d = shape.to_dict()
         shells = []
         for sh in self._shells:
@@ -698,7 +743,8 @@ class PipeSpec:
                       "outer": {"type": "rect", "half_w": sh["half_w"],
                                 "half_h": sh["half_h"], "nang_w": n, "nang_h": n}}
             elif kind != "shell":
-                raise ValueError(f"unknown shell type {kind!r}")
+                raise SpecError(f"unknown shell type {kind!r}",
+                                code="shell_type_unknown", value=kind)
             if "outer" in sh:
                 sh["outer"] = shape_from_dict(sh["outer"])
             spec.shell(**sh)
@@ -739,15 +785,18 @@ class BundleSpec:
 
     def __post_init__(self) -> None:
         if not self.pipe.shells:
-            raise ValueError("BundleSpec.pipe has no shell layers defined.")
+            raise SpecError("BundleSpec.pipe has no shell layers defined.",
+                            code="bundle_pipe_has_no_shells")
         outermost = self.pipe.outlines[-1]
         if outermost.side_curve != "line":           # cells tile on flat sides
-            raise TypeError(
+            raise SpecTypeError(
                 "BundleSpec.pipe must end with a rectangular shell "
                 f"(outer=RectShape); got {type(outermost).__name__}."
-            )
+            , code="bundle_pipe_outer_not_rectangle")
         if self.nx < 1 or self.ny < 1:
-            raise ValueError("nx and ny must be >= 1.")
+            raise SpecError("nx and ny must be >= 1.",
+                            code="count_below_minimum", where={"field": "nx, ny"},
+                            value=(self.nx, self.ny), limit={"min": 1})
 
     @property
     def pitch_w(self) -> float:

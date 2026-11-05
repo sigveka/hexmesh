@@ -54,13 +54,14 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from ..errors import HexmeshError
 from ..core.spec import PipeSpec
 from .interface import Frame, outer_radius
 
 HEADS = ("ellipsoidal_2_1", "hemispherical", "torispherical")
 
 
-class EquipmentError(ValueError):
+class EquipmentError(HexmeshError):
     """Invalid equipment or nozzle; the message names the drum and nozzle."""
 
 
@@ -130,25 +131,36 @@ class Drum:
         if not re.fullmatch(r"[A-Za-z0-9_]+", self.name or ""):
             raise EquipmentError(
                 f"drum name {self.name!r} must be letters, digits and _ only "
-                "(it becomes part of a patch name)")
+                "(it becomes part of a patch name)",
+                code="drum_name_invalid", where={"part": self.name, "field": "name"},
+                value=self.name)
         if self.diameter <= 0 or self.length <= 0:
-            raise EquipmentError(f"drum {self.name}: diameter and length must be positive")
+            raise EquipmentError(f"drum {self.name}: diameter and length must be positive",
+                                 code="size_not_positive",
+                                 where={"part": self.name, "field": "diameter, length"},
+                                 value=(self.diameter, self.length), limit={"min_exclusive": 0})
         if self.head not in HEADS:
             raise EquipmentError(f"drum {self.name}: head must be one of {HEADS}, "
-                                 f"got {self.head!r}")
+                                 f"got {self.head!r}",
+                                 code="option_invalid", where={"part": self.name, "field": "head"},
+                                 value=self.head, limit=list(HEADS))
         if self.head == "torispherical":
             self._check_torispherical()
         elif self.crown_radius is not None or self.knuckle_radius is not None:
             raise EquipmentError(f"drum {self.name}: crown_radius and knuckle_radius "
-                                 "apply to torispherical heads only")
+                                 "apply to torispherical heads only",
+                                 code="drum_head_args_invalid",
+                                 where={"part": self.name, "field": "crown_radius"})
         a = np.asarray(self.axis, dtype=float)
         u = np.asarray(self.up, dtype=float)
         if np.linalg.norm(a) == 0:
-            raise EquipmentError(f"drum {self.name}: axis is zero")
+            raise EquipmentError(f"drum {self.name}: axis is zero",
+                                 code="drum_axis_zero", where={"part": self.name, "field": "axis"})
         a = a / np.linalg.norm(a)
         u = u - np.dot(u, a) * a
         if np.linalg.norm(u) < 1e-9:
-            raise EquipmentError(f"drum {self.name}: up is parallel to the axis")
+            raise EquipmentError(f"drum {self.name}: up is parallel to the axis",
+                                 code="drum_up_parallel", where={"part": self.name, "field": "up"})
         object.__setattr__(self, "_frame", Frame(
             np.asarray(self.position, dtype=float), a, u / np.linalg.norm(u)))
         object.__setattr__(self, "nozzles", tuple(self.nozzles))
@@ -156,10 +168,14 @@ class Drum:
         for n in names:
             if not re.fullmatch(r"[A-Za-z0-9_]+", n or ""):
                 raise EquipmentError(f"drum {self.name}: nozzle name {n!r} must be "
-                                     "letters, digits and _ only")
+                                     "letters, digits and _ only",
+                                     code="nozzle_name_invalid",
+                                     where={"part": self.name, "field": "nozzles"}, value=n)
         dup = sorted({n for n in names if names.count(n) > 1})
         if dup:
-            raise EquipmentError(f"drum {self.name}: duplicate nozzle names {dup}")
+            raise EquipmentError(f"drum {self.name}: duplicate nozzle names {dup}",
+                                 code="nozzle_name_duplicate",
+                                 where={"part": self.name, "field": "nozzles"}, value=dup)
 
     # ------------------------------------------------------------------
     # Geometry
@@ -174,11 +190,14 @@ class Drum:
         if L is None or r is None:
             raise EquipmentError(
                 f"drum {self.name}: a torispherical head needs crown_radius and "
-                "knuckle_radius (no default: they depend on the design code)")
+                "knuckle_radius (no default: they depend on the design code)",
+                code="drum_head_args_invalid", where={"part": self.name, "field": "crown_radius"})
         if not (0 < r < R < L):
             raise EquipmentError(
                 f"drum {self.name}: torispherical head needs 0 < knuckle_radius "
-                f"< D/2 < crown_radius, got {r}, {R}, {L}")
+                f"< D/2 < crown_radius, got {r}, {R}, {L}",
+                code="drum_head_args_invalid",
+                where={"part": self.name, "field": "knuckle_radius"}, value=(r, R, L))
 
     @property
     def crown_limit(self) -> float:
@@ -219,7 +238,9 @@ class Drum:
             if n.name == name:
                 return n
         raise EquipmentError(f"drum {self.name} has no nozzle {name!r}; "
-                             f"it has {[n.name for n in self.nozzles]}")
+                             f"it has {[n.name for n in self.nozzles]}",
+                             code="nozzle_unknown", where={"part": self.name}, value=name,
+                             limit=[n.name for n in self.nozzles])
 
     def frame(self, name: str) -> Frame:
         """Interface frame of nozzle *name*'s face (see module conventions)."""
@@ -235,7 +256,10 @@ class Drum:
             base, out = f.position + self.length * f.normal, f.normal.copy()
         else:
             raise EquipmentError(f"drum {self.name}, nozzle {name}: head must be "
-                                 f"'first' or 'second', got {loc.head!r}")
+                                 f"'first' or 'second', got {loc.head!r}",
+                                 code="option_invalid",
+                                 where={"part": self.name, "label": name, "field": "head"},
+                                 value=loc.head, limit=["first", "second"])
         e = self.radial(loc.angle)
         up = e if loc.offset > 0 else f.up.copy()
         return Frame(base + loc.projection * out + loc.offset * e, out, up)
@@ -252,11 +276,16 @@ class Drum:
             for lname, o in zip(n.spec.layer_names, n.spec.outlines):
                 if not o.is_round:
                     raise EquipmentError(f"{where}: drum nozzles are circular pipes, "
-                                         f"layer `{lname}` is a {type(o).__name__}")
+                                         f"layer `{lname}` is a {type(o).__name__}",
+                                         code="nozzle_not_circular",
+                                         where={"part": self.name, "label": n.name})
             r = outer_radius(n.spec)
             if r >= R:
                 raise EquipmentError(f"{where}: outer radius {r} is not below the "
-                                     f"drum radius {R}")
+                                     f"drum radius {R}",
+                                     code="nozzle_too_large",
+                                     where={"part": self.name, "label": n.name}, value=r,
+                                     limit={"max_exclusive": R})
             loc = n.location
             if isinstance(loc, OnShell):
                 # The intersection with the shell reaches at most R along
@@ -264,27 +293,49 @@ class Drum:
                 if loc.projection <= R:
                     raise EquipmentError(f"{where}: projection {loc.projection} must "
                                          f"exceed the drum radius {R}, or the face "
-                                         "is inside the shell")
+                                         "is inside the shell",
+                                         code="nozzle_projection_too_short",
+                                         where={"part": self.name, "label": n.name,
+                                                "field": "projection"},
+                                         value=loc.projection, limit={"min_exclusive": R})
                 if loc.axial - r < 0 or loc.axial + r > self.length:
                     raise EquipmentError(f"{where}: footprint (axial {loc.axial} ± {r}) "
-                                         f"crosses a tangent line (0 … {self.length})")
+                                         f"crosses a tangent line (0 … {self.length})",
+                                         code="nozzle_footprint_outside",
+                                         where={"part": self.name, "label": n.name,
+                                                "field": "axial"},
+                                         value=loc.axial)
             elif isinstance(loc, OnHead):
                 self.frame(n.name)                      # checks loc.head
                 if loc.offset < 0:
-                    raise EquipmentError(f"{where}: offset must be >= 0")
+                    raise EquipmentError(f"{where}: offset must be >= 0",
+                                         code="nozzle_footprint_outside",
+                                         where={"part": self.name, "label": n.name,
+                                                "field": "offset"},
+                                         value=loc.offset, limit={"min": 0})
                 if loc.offset + r > self.crown_limit:
                     region = "crown region" if self.head == "torispherical" else "head"
                     raise EquipmentError(f"{where}: footprint (offset {loc.offset} + {r}) "
-                                         f"leaves the {region} (radius {self.crown_limit:.6g})")
+                                         f"leaves the {region} (radius {self.crown_limit:.6g})",
+                                         code="nozzle_footprint_outside",
+                                         where={"part": self.name, "label": n.name,
+                                                "field": "offset"},
+                                         value=loc.offset, limit={"max": self.crown_limit - r})
                 # h(ρ) falls with ρ, so the highest point of the footprint
                 # is at its innermost radius.
                 top = self.head_height(max(0.0, loc.offset - r))
                 if loc.projection <= top:
                     raise EquipmentError(f"{where}: projection {loc.projection} must "
                                          f"exceed the head height {top:.6g} over the "
-                                         "footprint, or the face is inside the head")
+                                         "footprint, or the face is inside the head",
+                                         code="nozzle_projection_too_short",
+                                         where={"part": self.name, "label": n.name,
+                                                "field": "projection"},
+                                         value=loc.projection, limit={"min_exclusive": float(top)})
             else:
-                raise EquipmentError(f"{where}: unknown location {loc!r}")
+                raise EquipmentError(f"{where}: unknown location {loc!r}",
+                                     code="nozzle_location_unknown",
+                                     where={"part": self.name, "label": n.name})
         self._check_overlaps()
 
     def _check_overlaps(self) -> None:
@@ -293,7 +344,9 @@ class Drum:
             for b in shell[i + 1:]:
                 if self._shell_overlap(a, b):
                     raise EquipmentError(f"drum {self.name}: footprints of nozzles "
-                                         f"{a.name} and {b.name} overlap")
+                                         f"{a.name} and {b.name} overlap",
+                                         code="nozzle_footprints_overlap",
+                                         where={"part": self.name}, value=[a.name, b.name])
         for head in ("first", "second"):
             on = [n for n in self.nozzles
                   if isinstance(n.location, OnHead) and n.location.head == head]
@@ -305,7 +358,9 @@ class Drum:
                     cb = b.location.offset * self.radial(b.location.angle)
                     if np.linalg.norm(ca - cb) < outer_radius(a.spec) + outer_radius(b.spec):
                         raise EquipmentError(f"drum {self.name}: footprints of nozzles "
-                                             f"{a.name} and {b.name} overlap")
+                                             f"{a.name} and {b.name} overlap",
+                                             code="nozzle_footprints_overlap",
+                                             where={"part": self.name}, value=[a.name, b.name])
 
     def _shell_overlap(self, a: Nozzle, b: Nozzle, n: int = 720) -> bool:
         """Do two radial shell footprints overlap?
