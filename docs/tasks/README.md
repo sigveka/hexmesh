@@ -119,6 +119,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0075](0075-validation-helical-pipe.md) | Validation: laminar flow in a helical pipe (spline pipe) | V3 | ready (v2406 runner) | 0012, 0015 |
 | [0077](0077-validation-fenicsx-second-order.md) | Verification: FEniCSx toolchain, and second-order export checked end to end | V1 | ready (step 1 any time; 2–4 after 0076) | 0034, 0012, 0015 |
 | [0079](0079-validation-taylor-bubble.md) | Validation: a Taylor bubble rising in stagnant liquid (VOF) | V3 | ready (v2406 runner) | 0012, 0015 |
+| [0099](0099-validation-graphs.md) | Validation results as graphs: convergence, layouts, the stenosis against DNS | docs | ready (after 0098) | 0012, 0015, 0036 |
 
 
 ### Order
@@ -138,8 +139,10 @@ or a long run.
 2. **Alongside, no blockers:**
    - user agents (decision 0040): **0095 → 0097 → 0098** (schema,
      describe and preview, advise and the CLI).  Then **0066** and the
-     network document (decision 0032 stage 2, proposed), then the plugin.
+     network document (decision 0032 stage 2, accepted), then the plugin.
      0094 and 0096 done;
+   - validation graphs: **0099** after 0098 (it edits the same
+     `results.json` files);
    - general branches (decision 0031): **0060 → 0061 / 0062 → 0063**.
      0060 carries a design note from 0081: the duct-tap front end leaves
      `Tee`;
