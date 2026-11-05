@@ -33,10 +33,12 @@ Usage::
 """
 
 from __future__ import annotations
+import copy
 import json
 import math
 import re
 import warnings
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import PurePath
 from typing import Iterable
@@ -44,7 +46,7 @@ from typing import Iterable
 import numpy as np
 import gmsh
 
-from ..errors import HexmeshWarning
+from ..errors import HexmeshError, HexmeshWarning
 from .errors import AssemblyError, AssemblyTypeError
 from .. import _occ
 from ..core.spec import PipeSpec
@@ -96,6 +98,24 @@ def _at(origin: dict | None) -> str:
     if not origin or not origin.get("file") or not origin.get("line"):
         return ""
     return f", {PurePath(origin['file']).name}:{origin['line']}"
+
+
+@contextmanager
+def _located(edge: "Edge", errors=AssemblyError):
+    """Re-raise a fitting's own *errors* raised inside the block with
+    *edge*'s ``origin``: the message as ``"<edge>: <message>"`` (the form
+    of ``validate()``'s errors) and ``where["source"]``; class, code,
+    value, limit and hint unchanged (task 0096).  Without an origin the
+    error passes through as it is."""
+    try:
+        yield
+    except errors as e:
+        if not edge.origin:
+            raise
+        located = copy.copy(e)
+        located.args = (f"{edge}: {e}",)
+        located.where = {**edge.where, **e.where, "source": dict(edge.origin)}
+        raise located from e
 
 
 @dataclass(eq=False)
@@ -712,7 +732,7 @@ class Assembly:
             # No raw OCC or GMSH exception escapes a fill (task 0053): it
             # becomes an AssemblyError naming the fitting.
             try:
-                with _occ.building():
+                with _occ.building(), _located(edge):
                     part = edge.fitting.fill(
                         [p.face for p in edge.ports],
                         [p.frame for p in edge.ports],
@@ -864,7 +884,8 @@ class Assembly:
                     x.append(nx.reshape(-1, 3))
                 tags, first = np.unique(np.concatenate(tags), return_index=True)
                 x = np.vstack(x)[first]
-                y = project(x)
+                with _located(e, HexmeshError):
+                    y = project(x)
                 moved.setdefault(e.index, []).append(
                     (np.linalg.norm(y - x, axis=1), project.local_radius(y)))
                 for t, p in zip(tags, y):

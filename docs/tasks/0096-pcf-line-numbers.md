@@ -194,8 +194,26 @@ errors.
     origin) and its `from_dict` copy (none) give equal `to_dict` and
     identical `.msh` bytes, and the `.msh` holds no path.
 
-`fill()` passes a fitting's own `AssemblyError` through unchanged, as
-before, so those errors don't carry the origin.
+**Meshing-time errors** (second design answer, 2026-11-05; the user:
+"yes").  ee5157f left one gap: `fill()` passed a fitting's own
+`AssemblyError` through unchanged, so those errors had no origin.  The
+commit on top closes it.
+- `_located(edge)` wraps the calls into a fitting during meshing: `fill`,
+  and the wall projectors in `_project_walls`.  For a fitting with an
+  origin, it re-raises a copy of the fitting's error, of the same class
+  and with the same code, value, limit and hint.  The message becomes
+  `"<edge>: <message>"`, the form of `validate()`'s errors.  `where`
+  gets the fitting, its label and `source`.
+- Without an origin, the error passes through unchanged.  Errors other
+  than `AssemblyError` raised in `fill` keep becoming `fill_failed`,
+  which already names the fitting and carries its origin.
+- Test `test_io_readers::test_fill_error_names_the_file_and_line`: a
+  `Bend` whose `fill` raises (monkeypatched).
+  - On a PCF-built assembly, the error reads
+    `fitting #k Bend(…), line.pcf:<n>: cannot fill`, with
+    `where["source"]["line"]`, and the same code, value, limit and hint.
+  - On a hand-built assembly it is exactly `cannot fill`, with `where`
+    empty.
 
 **Checked.**
 - Recorder over the full suite, d96fef1 against the working tree:
@@ -207,3 +225,9 @@ before, so those errors don't carry the origin.
 - All 28 example meshes: `$Nodes`, `$Elements` and the recipe hash are
   identical.
 - Full suite: 3201 passed, 15 skipped (3199 before, plus 2 new).
+- Checked:
+  - recorder over the full suite, ee5157f against the working tree: no
+    existing message changed (apart from 5 that embed pytest's
+    `tmp_path`); the one new record is the new test's;
+  - the 28 example meshes are identical;
+  - full suite: 3202 passed, 15 skipped.

@@ -315,6 +315,34 @@ def test_origin_is_diagnostic_only(tmp_path):
     assert str(tmp_path) not in (tmp_path / "with.msh").read_text(encoding="utf-8")
 
 
+def test_fill_error_names_the_file_and_line(tmp_path, monkeypatch):
+    """An error a fitting raises while it fills, on a PCF-built assembly,
+    gets the fitting and its PCF line; on a hand-built one (no origin) it
+    passes through unchanged (task 0096, design)."""
+    from hexmesh.assembly import fittings
+
+    def fail(self, *args, **kw):
+        raise AssemblyError("cannot fill", code="fill_failed", value=1, limit=0, hint="h")
+    monkeypatch.setattr(fittings.Bend, "fill", fail)
+    with Session("pcf"):
+        asm = _pcf(tmp_path, LINE).to_assembly(_spec(0.05))
+        bend = next(e for e in asm.edges if isinstance(e.fitting, fittings.Bend))
+        line = bend.origin["line"]
+        with pytest.raises(AssemblyError) as info:
+            asm.mesh()
+    e = info.value
+    assert str(e) == f"{bend}: cannot fill" and str(e).endswith(f", line.pcf:{line}: cannot fill")
+    assert (e.code, e.value, e.limit, e.hint) == ("fill_failed", 1, 0, "h")
+    assert e.where == {**bend.where, "source": bend.origin} and e.where["source"]["line"] == line
+    with Session("hand"):
+        hand = Assembly(_spec(0.05))
+        hand.add(fittings.Straight(0.3, n_layers=2))
+        hand.add(fittings.Bend(0.3, 90, n_layers=4))
+        with pytest.raises(AssemblyError) as info:
+            hand.mesh()
+    assert str(info.value) == "cannot fill" and info.value.where == {}
+
+
 def test_each_file_keeps_its_records_lines(tmp_path):
     a, b = tmp_path / "a.pcf", tmp_path / "b.pcf"
     a.write_text(HEADER_MM + "PIPE\n    END-POINT 0 0 0 200\n    END-POINT 1000 0 0 200\n",

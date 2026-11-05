@@ -60,8 +60,9 @@ names are `fitting.port_names`: `Tee` `main`, `branch`; `Wye` `left`,
 *origin* is where an importer read the fitting from: a JSON-safe mapping
 such as `{"file": "plant.pcf", "line": 7, "record": "ELBOW", "record_id":
 "1"}` (task 0096).  It is diagnostic only.  Every error and warning the
-assembly raises about that fitting carries it in `where["source"]`, and
-its message names `<file name>:<line>`
+assembly raises about that fitting carries it in `where["source"]`.  So
+does an error the fitting raises itself while meshing.  Each message
+names `<file name>:<line>`
 (`fitting #1 Bend(…), plant.pcf:7: path bends with radius 0.05, …`).
 It is never saved (`to_dict`, the `.msh` recipe), so a reloaded assembly
 has none.  The network builder sets it from each part's provenance.
