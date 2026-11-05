@@ -429,6 +429,13 @@ converge.  If design wants β to close, the next check is the same pair
 at 2× counts.  Both Δβ and the defect should fall roughly as the f·Re
 gap (2.4 % here).
 
+**Answer (design, 2026-11-05; the user agreed).**  α is the measure.  The
+mechanical-energy balance closes K to 9 %.  The momentum balance misses
+the change in wall shear, so the 20 % test on β was the wrong one.  The
+switch has no loss of its own: the defect is the change between the two
+meshes' discrete developed profiles.  No 2× pair is needed.  The β and α
+numbers and the quadrature share go in the Outcome.
+
 **Q4 (2026-11-05): confirm the switch rule's second term, and whether a
 switch's non-orthogonality needs a tier.**  Nothing waits on it: (a)
 below is implemented, and (b) is a constants change.
@@ -446,10 +453,34 @@ below is implemented, and (b) is a constants change.
   - **(b)** Leave it, and document it in API.md.
   - Proposed: (a), the same safety net as for SJ.
 
+**Answer (design, 2026-11-05; the user agreed).**
+- The term: (a), confirmed.  `L ≥ max(1.25 t, Δ/0.4, t + Δ/1.0)`, with
+  `SWITCH_MAX_SHEAR` 0.4, `SWITCH_MAX_CORE_SHEAR` 1.0 and the
+  `SWITCH_SHEAR_SJ` table as implemented.
+- Non-orthogonality: (a).  Add the meshed max non-orthogonality to
+  `mesh()`'s safety net for `Switch`, `Transition`'s H end and graded-H
+  taps, on 0047's tiers (70° warn, 80° max).  API.md notes that steep
+  wall gradings push the switch towards 70–77°.
+
+*Done (agent, 2026-11-05).*
+- `quality_hex.max_non_orthogonality` (vectorised, OpenFOAM's
+  definition; it matches the per-face scratch reference to 1e-6 on
+  three cases).
+- `FillResult.checked_volumes`: what the meshed checks measure.  A tee on
+  an H main measures its legs, unless the branch is round (the whole
+  tee, for its SJ).  `Transition` measures its switch.
+- **Found:** the switch's non-orthogonality rises with its length and
+  the ring's nrad, not only with the grading.  a/b 4, n 8, h/200:
+  - nrad 3 (derived): under 70° at the shortest length (12 t), 76.2°
+    at 20 t;
+  - nrad 6: 74.2° at 12 t, 79.5° at 20 t.
+  So the error's hint names a gentler grading or a smaller nrad, not a
+  longer switch.
+
 ## Outcome
 
-*Done 2026-11-05.  Q3 and Q4 are open for design.  Neither blocks:
-Q4's option (a) is implemented, and (b) is a constants change.*
+*Done 2026-11-05.  Q3 and Q4 answered the same day; Q4's
+non-orthogonality check added after d74a94b.*
 
 **Files.**
 - `sections/h.py`:
@@ -478,7 +509,9 @@ Q4's option (a) is implemented, and (b) is a constants change.*
     that points to `Reducer`.
 - `assembly/blocks.py` (`bind_face`: H rings) and `assembly/sweep.py`
   (`face_grading`: H rings).
-- `assembly/assembler.py`: a per-fitting hint in the meshed check.
+- `assembly/assembler.py`: a per-fitting hint in the meshed check, the
+  meshed non-orthogonality tiers, and `checked_volumes`.
+- `quality_hex.py`: `cell_centres`, `max_non_orthogonality`.
 - `assembly/intent.py`: refinement of `nrad`/`mprg`.
 - `assembly/wye.py`: the H check is dropped (circles only).
 - `core/spec.py`: shells on an H core.
@@ -496,7 +529,7 @@ Q4's option (a) is implemented, and (b) is a constants change.*
   quality, `Transition`'s H end, duct taps on H mains), GUIDE.md.
 
 **Tests.**
-- Full suite: 3157 passed, 15 skipped, 0 failed (2800 / 15 / 0 at 0085's
+- Full suite: 3159 passed, 15 skipped, 0 failed (2800 / 15 / 0 at 0085's
   end).
 - Every existing mesh is unchanged, recorded over 0084's file list
   (1320 tests before, 1486 after):
@@ -529,7 +562,13 @@ Q4's option (a) is implemented, and (b) is a constants change.*
   - `hvac_branched` at first cell 0.005 is rejected: the side branch's
     0.4 is too short for the lengthened legs (0.25 at the main ports,
     0.11 at the branch), and the error names them.
-- **Step 5:** 2Δβ explains 65 % of the switch's defect and Δα 91 % (Q3).
+- **Step 5 (Q3; α is the measure):** at 0085's counts, the measured
+  defect is K = −0.0730.
+  - β: O-H 1.34894, H 1.32515 at plane B; 2Δβ = −0.0476 (65 %).
+  - α: O-H 2.04756, H 1.98130; Δα = −0.0663 (91 %).
+  - Quadrature share: the exact profile on the two grids' faces already
+    differs by Δβ −0.0107 (45 % of Δβ) and Δα −0.0238 (36 % of Δα).
+  - The switch has no loss of its own.
 
 **Surprises.**
 - 0085's switch rule was wrong on graded H faces (Q2): SJ about 0.1
@@ -548,7 +587,6 @@ Q4's option (a) is implemented, and (b) is a constants change.*
   grow by up to 8× per cell (nrad 3, mprg 0.12 at a/b 4, h/200).
 - Relax a shape-changing shell's outer sides toward uniform (the casing
   non-orthogonality above).
-- Q4(a): the switch's non-orthogonality in `mesh()`'s safety net.
 
 **Disk.**  Recordings (about 145 MB) and the step 5 OpenFOAM runs
 (18 MB) are deleted.  Kept in the scratchpad: the JSON tables.

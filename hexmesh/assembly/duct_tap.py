@@ -864,12 +864,17 @@ class TapTemplate:
         (_, fr_in, s_oh), branch_leg = parts[1], parts[3] if len(parts) == 4 else None
         inner_faces = [build_face(s_oh, fr_in[0], lc), build_face(s_oh, fr_in[1], lc),
                        faces[2] if branch_leg is None else build_face(branch_leg[2], fr_in[2], lc)]
-        result = parts[0][0].fill([faces[0], inner_faces[0]], parts[0][1], parts[0][2], lc)
-        result.merge(parts[1][0].fill(inner_faces, fr_in, s_oh, lc))
-        result.merge(parts[2][0].fill([inner_faces[1], faces[1]], parts[2][1], parts[2][2], lc))
+        legs = [parts[0][0].fill([faces[0], inner_faces[0]], parts[0][1], parts[0][2], lc),
+                parts[2][0].fill([inner_faces[1], faces[1]], parts[2][1], parts[2][2], lc)]
         if branch_leg is not None:
-            result.merge(branch_leg[0].fill([inner_faces[2], faces[2]], branch_leg[1],
-                                            branch_leg[2], lc))
+            legs.append(branch_leg[0].fill([inner_faces[2], faces[2]], branch_leg[1],
+                                           branch_leg[2], lc))
+        result = parts[1][0].fill(inner_faces, fr_in, s_oh, lc)
+        for leg in legs:
+            result.merge(leg)
+        # the meshed checks measure the legs; a round tap's, the whole tee
+        if not self.meshed_sj_check():
+            result.checked_volumes = [v for leg in legs for vs in leg.volumes.values() for v in vs]
         return result
 
 

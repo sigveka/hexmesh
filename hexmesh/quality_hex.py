@@ -449,6 +449,47 @@ def face_angles(verts: np.ndarray) -> np.ndarray:
     return np.array(out)
 
 
+def _quad_centres_areas(p: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """OpenFOAM's face centres and area vectors of quads *p* (…, 4, 3): a
+    triangle fan about the vertex mean."""
+    c0 = p.mean(axis=-2)[..., None, :]
+    a, b = p, np.roll(p, -1, axis=-2)
+    n = 0.5 * np.cross(a - c0, b - c0)
+    w = np.linalg.norm(n, axis=-1)[..., None]
+    centre = (w * (a + b + c0) / 3).sum(axis=-2) / w.sum(axis=-2)
+    return centre, n.sum(axis=-2)
+
+
+def cell_centres(verts: np.ndarray) -> np.ndarray:
+    """OpenFOAM's (volume-weighted) centres of hexes *verts* (N, 8, 3):
+    pyramids on the faces about the vertex mean."""
+    fc, s = _quad_centres_areas(verts[:, np.array(_HEX_FACES)])
+    c0 = verts.mean(axis=1)[:, None, :]
+    pv = np.abs(np.einsum("nfi,nfi->nf", s, fc - c0)) / 3
+    return (pv[..., None] * (0.75 * fc + 0.25 * c0)).sum(axis=1) / pv.sum(axis=1)[:, None]
+
+
+def max_non_orthogonality(verts: np.ndarray, conn: np.ndarray) -> float:
+    """OpenFOAM's largest non-orthogonality, degrees, over the faces shared
+    by two of the hexes *verts* (N, 8, 3) with node ids *conn* (N, 8): the
+    angle between the face's area vector and the line between the two
+    cells' centres (``checkMesh``).  0 when no face is shared."""
+    faces = np.array(_HEX_FACES)
+    keys = np.sort(conn[:, faces], axis=-1).reshape(-1, 4)
+    order = np.lexsort(keys.T[::-1])
+    k = keys[order]
+    pair = np.flatnonzero(np.all(k[1:] == k[:-1], axis=1))
+    if not len(pair):
+        return 0.0
+    a, b = order[pair], order[pair + 1]          # flat (cell · 6 + face) indices
+    centres = cell_centres(verts)
+    _, s = _quad_centres_areas(verts[a // 6][np.arange(len(a))[:, None], faces[a % 6]])
+    d = centres[b // 6] - centres[a // 6]
+    c = np.abs(np.einsum("ni,ni->n", d, s)) / (np.linalg.norm(d, axis=1)
+                                                * np.linalg.norm(s, axis=1))
+    return float(np.degrees(np.arccos(np.clip(c, 0.0, 1.0))).max())
+
+
 def nes(verts: np.ndarray) -> float:
     """Normalized equiangle skewness, in [0, 1]; 0 when every face angle is 90°.
 

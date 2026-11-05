@@ -137,6 +137,9 @@ class FillResult:
     # with their curves' and points', onto the projector's surface
     # (decision 0029)
     projections: list[tuple[object, list[int]]] = field(default_factory=list)
+    # the volumes Assembly.mesh()'s meshed checks measure, if not all of the
+    # fitting's (a duct tap's switch legs, task 0086)
+    checked_volumes: list[int] | None = None
 
     def merge(self, other: "FillResult") -> None:
         for k, v in other.volumes.items():

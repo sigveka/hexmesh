@@ -590,8 +590,14 @@ direction. The rectangle, counts, `mbmp`, `rot` and name stay.
   switch's shear Δ/L (`limits.SWITCH_SHEAR_SJ`, measured over 450
   switches: 0.577 up to 0.1, 0.550 to 0.2, 0.548 to 0.3, 0.546 to 0.35,
   0.501 to 0.4), and `mesh()` applies the SJ tiers to the meshed cells
-  too, naming the switch. At the steepest gradings (first cell h/100 to
-  h/200) non-orthogonality reaches 70–77° at any length.
+  too, naming the switch. **Steep wall gradings push the switch's
+  non-orthogonality towards 70–80°** (first cell h/100 to h/200, a/b 4),
+  and it rises with the length and the ring's `nrad` (74° at the
+  shortest length with nrad 6, 79.5° at 20 t). So `mesh()` also checks
+  the meshed non-orthogonality on the outline tiers: a warning above
+  `OUTLINE_NONORTH_WARN` (70°), an `AssemblyError` above
+  `OUTLINE_NONORTH_MAX` (80°). The same checks run on a `Transition`'s
+  embedded switch and on a graded H main's switch legs.
 - **Shells.** The shells run through unchanged: both faces' first shell
   starts at the rectangle's corners. The outlet's shells must be the
   inlet's; the default H outlet copies them.
@@ -709,7 +715,8 @@ A perpendicular, centred side-branch tee, built as a block layout.
     Override with `Tee(nrad=, mprg=)`, on an H main only. Both are stored
     resolved, so `to_dict()` is explicit and `refined(k)` gives `nrad·k`,
     `mprg^(1/k)`. A quality warning names the ring. On a graded H main,
-    `mesh()` checks the meshed cells too (as for round taps).
+    `mesh()` checks the switch legs' meshed SJ and non-orthogonality
+    (`Switch`, quality); a round tap's SJ check takes the whole tee.
   - **Limits.** Single-layer ducts, `rot = 0`, `n_outer = 4`;
     `branch_length` beyond the face.
 

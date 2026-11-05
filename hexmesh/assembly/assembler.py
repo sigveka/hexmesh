@@ -46,7 +46,7 @@ import gmsh
 from .. import _occ
 from ..core.spec import PipeSpec
 from ..sections import add_physical_group
-from ..quality_hex import METRICS, hex_vertices, min_scaled_jacobians
+from ..quality_hex import METRICS, hex_vertices, max_non_orthogonality, min_scaled_jacobians
 from . import intent
 from ..io.writers import msh_comments
 from ..io.writers.openfoam_boundary import roles_path, write_roles
@@ -147,6 +147,7 @@ class Assembly:
         self._lc = lc
         self._fill: FillResult | None = None
         self._fitting_volumes: dict[int, list[int]] = {}
+        self._checked_volumes: dict[int, list[int]] = {}
         self._fitting_walls:   dict[int, dict[str, list[int]]] = {}
         self._fitting_projections: dict[int, list[tuple[object, list[int]]]] = {}
         # per fitting name: largest projection move and move / local edge
@@ -638,6 +639,8 @@ class Assembly:
                 raise AssemblyError(
                     f"{edge}: fill failed ({type(e).__name__}: {e})") from e
             self._fitting_volumes[edge.index] = [v for vs in part.volumes.values() for v in vs]
+            if part.checked_volumes is not None:
+                self._checked_volumes[edge.index] = list(part.checked_volumes)
             # Wall group per surface; a fill that names none has its
             # inlet's stack throughout (DESIGN A7, decision 0006).
             default = f"{edge.ports[0].spec.layer_names[-1]}_wall"
@@ -830,10 +833,16 @@ class Assembly:
         graded H face and the fittings that embed them, task 0086), apply the
         predicted-SJ tiers to the meshed cells: a warning below
         ``PREDICTED_SJ_WARN``, an ``AssemblyError`` below
-        ``PREDICTED_SJ_MIN``, each naming the fitting."""
+        ``PREDICTED_SJ_MIN``, each naming the fitting.  Fittings whose
+        ``meshed_nonorth_check`` is true (switches to a graded H face, task
+        0086) get the outline tiers on the meshed non-orthogonality too:
+        a warning above ``OUTLINE_NONORTH_WARN``, an error above
+        ``OUTLINE_NONORTH_MAX``.  A fill may name the volumes measured
+        (``FillResult.checked_volumes``)."""
+        check = lambda e, name: (getattr(e.fitting, name, None)
+                                 and e.fitting.__getattribute__(name)(e.ports[0].spec))
         edges = [e for e in self._edges
-                 if getattr(e.fitting, "meshed_sj_check", None)
-                 and e.fitting.meshed_sj_check(e.ports[0].spec)]
+                 if check(e, "meshed_sj_check") or check(e, "meshed_nonorth_check")]
         if not edges:
             return
         ntag, nx, _ = gmsh.model.mesh.getNodes()
@@ -841,9 +850,15 @@ class Assembly:
         pos[ntag.astype(int)] = np.arange(len(ntag))
         nx = nx.reshape(-1, 3)
         for e in edges:
-            hexes = [n.reshape(-1, 8) for v in self._fitting_volumes[e.index]
+            vols = self._checked_volumes.get(e.index, self._fitting_volumes[e.index])
+            hexes = [n.reshape(-1, 8) for v in vols
                      for t, _, n in zip(*gmsh.model.mesh.getElements(3, v)) if t == 5]
-            sj = float(min_scaled_jacobians(nx[pos[np.vstack(hexes).astype(int)]]).min())
+            conn = pos[np.vstack(hexes).astype(int)]
+            if check(e, "meshed_nonorth_check"):
+                self._check_meshed_nonorth(e, max_non_orthogonality(nx[conn], conn))
+            if not check(e, "meshed_sj_check"):
+                continue
+            sj = float(min_scaled_jacobians(nx[conn]).min())
             if sj < limits.PREDICTED_SJ_MIN:
                 hint = getattr(e.fitting, "meshed_sj_hint",
                                "a smaller tap, or the wide face, may do better")
@@ -855,6 +870,20 @@ class Assembly:
                        f"PREDICTED_SJ_WARN {limits.PREDICTED_SJ_WARN:g}")
                 self.warnings.append(msg)
                 warnings.warn(msg, UserWarning, stacklevel=3)
+
+    def _check_meshed_nonorth(self, e, angle: float) -> None:
+        # it rises with a switch's length (task 0086), so not the SJ hint
+        if angle > limits.OUTLINE_NONORTH_MAX:
+            raise AssemblyError(
+                f"{e.name}: meshed non-orthogonality {angle:.1f}° is above "
+                f"OUTLINE_NONORTH_MAX {limits.OUTLINE_NONORTH_MAX:g}°; a gentler wall grading "
+                f"of the H face, or a smaller ring nrad, lowers it")
+        if angle > limits.OUTLINE_NONORTH_WARN:
+            msg = (f"{e.name}: meshed non-orthogonality {angle:.1f}° is above "
+                   f"OUTLINE_NONORTH_WARN {limits.OUTLINE_NONORTH_WARN:g}° (a steep wall "
+                   f"grading at the switch)")
+            self.warnings.append(msg)
+            warnings.warn(msg, UserWarning, stacklevel=4)
 
     def _set_constraints(self) -> None:
         msh = gmsh.model.mesh

@@ -533,3 +533,8 @@ class Tee:
         (task 0086)."""
         tpl = self._template(spec)
         return tpl is not None and (tpl.meshed_sj_check() or tpl.graded_legs(spec))
+
+    def meshed_nonorth_check(self, spec: PipeSpec) -> bool:
+        """Taps on a graded H main: their switch legs (task 0086)."""
+        tpl = self._template(spec)
+        return tpl is not None and tpl.graded_legs(spec)

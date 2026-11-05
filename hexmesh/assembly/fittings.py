@@ -820,6 +820,8 @@ class Transition(Sweep):
         end = self._h_end(spec)
         return end is not None and (spec if end == "inlet" else self.outlet).wall_grading is not None
 
+    meshed_nonorth_check = meshed_sj_check     # its switch's, task 0086
+
     meshed_sj_hint = "a longer transition gives its switch more length"
 
     def cell_count(self, frames: list[Frame], spec: PipeSpec) -> int:
@@ -833,9 +835,13 @@ class Transition(Sweep):
         from .interface import build_face
         (p0, fr0, s0), (p1, fr1, s1) = self._parts(frames, spec)
         mid = build_face(s1, fr0[1], lc)          # the O-H rectangle at the station
-        result = p0.fill([faces[0], mid], list(fr0), s0, lc)
-        result.merge(p1.fill([mid, faces[1]], list(fr1), s1, lc))
-        return result
+        r0 = p0.fill([faces[0], mid], list(fr0), s0, lc)
+        r1 = p1.fill([mid, faces[1]], list(fr1), s1, lc)
+        switch = r0 if isinstance(p1, Transition) else r1
+        checked = [v for vs in switch.volumes.values() for v in vs]
+        r0.merge(r1)
+        r0.checked_volumes = checked          # the meshed checks: the switch (task 0086)
+        return r0
 
     def path(self, a: Frame, b: Frame, spec: PipeSpec) -> Path:
         if self._h_end(spec) is not None:     # the blend's (the kit's wall check)

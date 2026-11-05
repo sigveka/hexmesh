@@ -251,6 +251,11 @@ class Switch:
         meshed cells are checked too (task 0086)."""
         return self.wall_shift(spec) > 0
 
+    def meshed_nonorth_check(self, spec: PipeSpec) -> bool:
+        """A graded H face: up to 70–77° at the steepest gradings at any
+        length (task 0086's table), so the meshed cells are checked."""
+        return self.meshed_sj_check(spec)
+
     meshed_sj_hint = "a longer switch shears its cells less"
 
     # -- layout ---------------------------------------------------------

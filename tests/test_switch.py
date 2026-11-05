@@ -31,7 +31,7 @@ from hexmesh.assembly.interface import Frame
 from hexmesh.assembly.signature import check_port_pairs
 from hexmesh.core.shape import CircleShape, RectShape
 from hexmesh.core.spec import PipeSpec
-from hexmesh.quality_hex import hex_vertices, min_scaled_jacobians
+from hexmesh.quality_hex import hex_vertices, max_non_orthogonality, min_scaled_jacobians
 from hexmesh.sections import h, oh
 
 B = 0.05
@@ -225,6 +225,44 @@ def test_meshed_check_names_the_switch(monkeypatch):
         asm = _asm(s_oh, Switch(need, n_layers=2, outlet=s_h))
         with pytest.raises(AssemblyError, match="a longer switch"):
             asm.mesh()
+
+
+def test_non_orthogonality_of_two_sheared_cells():
+    """Two parallelepipeds stacked along z, each top shifted by s along x:
+    the shared face is horizontal and the centres differ by (s, 0, 1),
+    so the angle is atan(s) (OpenFOAM's definition)."""
+    s = 0.7
+    cube = np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0],
+                     [s, 0, 1], [1 + s, 0, 1], [1 + s, 1, 1], [s, 1, 1]], float)
+    verts = np.stack([cube, cube + [s, 0, 1]])
+    conn = np.array([[0, 1, 2, 3, 4, 5, 6, 7], [4, 5, 6, 7, 8, 9, 10, 11]])
+    assert max_non_orthogonality(verts, conn) == pytest.approx(math.degrees(math.atan(s)))
+    assert max_non_orthogonality(verts[:1], conn[:1]) == 0.0
+
+
+def _steep():
+    """a/b 4, n 8, first cell h/200, a ring of 6: 74.2° at the shortest
+    length, rising with it (79.5° at 20 t; task 0086's table)."""
+    s_h = PipeSpec(nang_w=32, nang_h=8).core("air", RectShape(4 * B, B, 32, 8), layout="h",
+                                             first_cell=B / 200)
+    return h.pillowed(s_h, nrad=6), s_h
+
+
+def test_meshed_non_orthogonality_tiers(monkeypatch):
+    """Design answer to Q4: the 0047 outline tiers on the meshed cells."""
+    s_oh, s_h = _steep()
+    need, _, _ = switch.min_length(s_oh, s_h)
+    sw = Switch(need, n_layers=2, outlet=s_h)
+    assert sw.meshed_nonorth_check(s_oh) and not Switch(0.1).meshed_nonorth_check(_oh())
+    with Session("nonorth"):
+        asm = _asm(s_oh, sw)
+        with pytest.warns(UserWarning, match=r"Switch.*meshed non-orthogonality 7\d\.\d° is "
+                                             r"above OUTLINE_NONORTH_WARN"):
+            asm.mesh()
+    monkeypatch.setattr(limits, "OUTLINE_NONORTH_MAX", 72.0)
+    with Session("nonorth2"):
+        with pytest.raises(AssemblyError, match="above OUTLINE_NONORTH_MAX 72°.*gentler wall grading"):
+            _asm(s_oh, sw).mesh()
 
 
 def test_transition_sizes_its_switch_by_the_shear_rule():
