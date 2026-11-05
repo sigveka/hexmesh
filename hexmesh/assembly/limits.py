@@ -68,6 +68,22 @@ DUCT_TAP_NARROW_ASPECT_WARN = 3.0
 #: length.  Measured from 1.25 t to 6 t (a/b 1–4, nrad 1–6): min corner SJ
 #: 1/√3 throughout, max non-orthogonality ≤ 54° (task 0085's table).
 SWITCH_MIN_LENGTH = 1.25
+#: On a graded H face (task 0086, design answer to Q2), also
+#: ``L ≥ Δ_max / SWITCH_MAX_SHEAR``: Δ_max the largest shift of a side node
+#: between the O-H and the H face (``switch.wall_shift``).  The side
+#: blocks' cells shear by about Δ_max / L.
+SWITCH_MAX_SHEAR = 0.4
+#: And ``L ≥ t + Δ_max / SWITCH_MAX_CORE_SHEAR``: the core block (L − t
+#: long) carries the same change of grading (task 0086, Q4).  With both,
+#: every measured case meshes at min SJ ≥ 0.501 (450 runs: a/b 1–4,
+#: n 8–24, first cell to h/200, nrad derived to 9, L/t 1.25–16).
+SWITCH_MAX_CORE_SHEAR = 1.0
+#: The empirical min corner SJ of a switch against its wall shear
+#: Δ_max / L, with the core term kept: (shear, the smallest meshed SJ up to
+#: that shear in task 0086's table, rounded down), ascending.
+#: ``validate()`` reports the row at the smallest tabulated shear not
+#: below the switch's.
+SWITCH_SHEAR_SJ = ((0.1, 0.577), (0.2, 0.550), (0.3, 0.548), (0.35, 0.546), (0.4, 0.501))
 
 #: ``("cosine", s0)`` profile severity (decision 0008, amended 2026-10-28;
 #: task 0055): s0 > 0 a constriction with throat ``(1 − 2·s0)·R``, s0 = 0 a

@@ -114,6 +114,23 @@ def _rect3(half_w=0.1, half_h=0.05, lagging=True):
     return spec.shell("lagging", dR=0.03, nrad=2) if lagging else spec
 
 
+def _rect_in_circle_h(first_cell=None):
+    """``_rect_in_circle`` with an H core (task 0086): the casing's corner
+    lines start at the core's corners."""
+    return PipeSpec(nang=4).core("fluid", RectShape(0.1, 0.05, 4, 4), layout="h",
+                                 first_cell=first_cell).shell(
+        "casing", outer=CircleShape(0.16, 4), nrad=3)
+
+
+def _rect3_h(half_w=0.1, half_h=0.05, lagging=True, first_cell=None):
+    """``_rect3`` with an H core (task 0086), graded to the walls by
+    *first_cell*; the shells' sides follow the core's grading."""
+    spec = (PipeSpec(nang=4).core("fluid", RectShape(half_w, half_h, 4, 4), layout="h",
+                                  first_cell=first_cell)
+            .shell("wall", dR=0.01, nrad=2))
+    return spec.shell("lagging", dR=0.03, nrad=2) if lagging else spec
+
+
 def _cyl_box_cyl():
     """Circle, square, circle: a cable in a square filler in a sheath."""
     return (_one(0.05).shell("filler", outer=RectShape(0.08, 0.08, 4, 4), nrad=2)
@@ -177,13 +194,20 @@ def _tee(ratio, direction=(0, 1, 0), spec=None):
     return asm
 
 
-def _duct_tap(branch, aspect=2, face="wide", roll=0, direction=(1, 0, 0)):
+def _duct_tap(branch, aspect=2, face="wide", roll=0, direction=(1, 0, 0), layout="oh",
+              first_cell=None):
     """Straight → duct-tap Tee → Straight on both outlets (task 0070).
     *branch* is "rect" or "round", reaching 0.6 of the face's half-width,
-    or "full": as wide as the face, 0.6 of it along the main (task 0057)."""
+    or "full": as wide as the face, 0.6 of it along the main (task 0057).
+    *layout* "h": an H main (task 0086), graded by *first_cell*; switch
+    legs at its ports and at a rectangular branch's."""
     B = 0.05
     n = 4
-    spec = _duct(half_w=aspect * B, half_h=B, nang_w=n, nang_h=n, name="fluid", nrad=3)
+    if layout == "h":
+        spec = PipeSpec(nang_w=n, nang_h=n).core("fluid", RectShape(aspect * B, B, n, n),
+                                                 layout="h", first_cell=first_cell)
+    else:
+        spec = _duct(half_w=aspect * B, half_h=B, nang_w=n, nang_h=n, name="fluid", nrad=3)
     a = aspect * B if face == "wide" else B
     if branch == "full":
         along_up = face == "wide" or aspect == 1      # the tap on an up/down face
@@ -239,6 +263,18 @@ CASES = {
     "tee-duct-full-1-wide":   lambda: _duct_tap("full", aspect=1),
     "tee-duct-full-2-wide":   lambda: _duct_tap("full", roll=180, direction=(1, 1, 0.2)),
     "tee-duct-full-2-narrow": lambda: _duct_tap("full", face="narrow"),
+    # on an H main (task 0086): the O-H junction inside, switch legs at the ports
+    "tee-duct-h-rect-2-wide":   lambda: _duct_tap("rect", layout="h"),
+    "tee-duct-h-rect-2-narrow-graded": lambda: _duct_tap("rect", face="narrow", roll=180,
+                                                         layout="h", first_cell=0.01),
+    "tee-duct-h-rect-3-wide-graded": lambda: _duct_tap("rect", aspect=3, direction=(1, 1, 0.2),
+                                                       layout="h", first_cell=0.01),
+    "tee-duct-h-round-2-wide":  lambda: _duct_tap("round", roll=180, layout="h"),
+    "tee-duct-h-round-2-narrow-graded": lambda: _duct_tap("round", face="narrow", layout="h",
+                                                          first_cell=0.01),
+    "tee-duct-h-full-1-wide":   lambda: _duct_tap("full", aspect=1, layout="h"),
+    "tee-duct-h-full-2-narrow-graded": lambda: _duct_tap("full", face="narrow", layout="h",
+                                                         first_cell=0.01),
     "wye-60":              lambda: _wye(60),
     "wye-90":              lambda: _wye(90),
     "wye-60-oblique":      lambda: _wye(60, direction=(1, 1, 0.2)),
@@ -301,6 +337,13 @@ CASES = {
     "outline-reducer":      lambda: _between(_rect3(), Reducer(_rect3(0.08, 0.04), 0.2,
                                                                n_layers=3)),
     "outline-miter":        lambda: _between(_in_rect(), MiterBend(0.5, 90, n_cuts=2)),
+    # shells around an H core (task 0086)
+    "outline-lagging-gap-h": lambda: _between(_rect3_h(first_cell=0.008), Straight(
+        0.6, n_layers=6, stack_changes=((2, _rect3_h(lagging=False, first_cell=0.008)),
+                                        (4, _rect3_h(first_cell=0.008))))),
+    "outline-reducer-h":    lambda: _between(_rect3_h(), Reducer(_rect3_h(0.08, 0.04), 0.2,
+                                                                 n_layers=3)),
+    "outline-miter-h":      lambda: _between(_rect_in_circle_h(), MiterBend(0.5, 90, n_cuts=2)),
     # transitions (task 0029): equal counts per side, so class 0
     "transition-circle-square": lambda: _between(_one(), Transition(_flat(0.09, 0.09), 0.3, 4)),
     "transition-circle-2to1": lambda: _between(_one(), Transition(_flat(), 0.3, 4)),
@@ -324,6 +367,9 @@ OUTLINE_STACKS = {
     "circle-2to1":   _in_rect,
     "2to1-circle":   _rect_in_circle,
     "rrr":           _rect3,
+    "2to1-circle-h": _rect_in_circle_h,
+    "rrr-h":         _rect3_h,
+    "rrr-h-graded":  lambda: _rect3_h(first_cell=0.008),
     "c-r-c":         _cyl_box_cyl,
 }
 OUTLINE_FITTINGS = {
@@ -387,8 +433,8 @@ CASES.update({
                                                               outlet=_duct(0.1, 0.05, 8, 4))),
     "switch-1-oh-h-graded": lambda: _between(_duct(0.06, 0.06, 6, 6, nrad=3), Switch(
         0.08, n_layers=3, outlet=_hduct(0.06, 0.06, 6, 6, first_cell=0.003))),
-    "switch-4-h-oh-graded": lambda: _between(H_DUCTS["4-graded"](), Switch(
-        0.1, n_layers=4, outlet=_duct(0.2, 0.05, 16, 4, nrad=1))),
+    "switch-4-h-oh-graded": lambda: _between(H_DUCTS["4-graded"](), Switch(   # Q2's rule
+        0.16, n_layers=4, outlet=_duct(0.2, 0.05, 16, 4, nrad=1))),
     "switch-2-oh-h-ratio":  lambda: _between(_duct(0.1, 0.05, 8, 4, nrad=3), Switch(
         0.1, n_layers=3, outlet=_hduct(mprg=1.3))),
     "switch-2-oblique":     _switch_oblique,
@@ -411,6 +457,19 @@ CASES.update({
     "transition-circle-h2to1-graded": lambda: _between(_one(), Transition(
         _hflat(first_cell=0.01), 0.3, 6)),
     "transition-h2to1-circle":      lambda: _between(_hflat(), Transition(_one(), 0.3, 6)),
+})
+
+
+# Inside shells (task 0086): the shells run straight through the switch
+CASES.update({
+    "switch-lagged-oh-h":     lambda: _between(_rect3(), Switch(0.1, n_layers=3,
+                                                                outlet=_rect3_h())),
+    "switch-in-circle-h-oh":  lambda: _between(_rect_in_circle_h(), Switch(
+        0.1, n_layers=3, outlet=_rect_in_circle())),
+    "transition-2layer-circle-h2to1": lambda: _between(_two(), Transition(
+        _rect3_h(0.14, 0.07, lagging=False), 0.3, 6)),
+    "transition-h2to1-2layer-circle": lambda: _between(_rect3_h(0.14, 0.07, lagging=False),
+                                                       Transition(_two(), 0.3, 6)),
 })
 
 

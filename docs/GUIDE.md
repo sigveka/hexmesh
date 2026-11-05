@@ -236,16 +236,17 @@ PipeSpec(nang_w=8, nang_h=4).core("air", half_w=0.1, half_h=0.05, nrad=3)
 A duct uses the same O-H layout with straight sides: a centre rectangle and
 a ring of uniform thickness, with `nang_w` cells along the width and
 `nang_h` along the height. Ducts run through `Straight`, `Bend`,
-`MiterBend`, `SplinePipe`, `Closure` and `Reducer`.  Shells may have any
+`MiterBend`, `SplinePipe`, `Closure` and `Reducer`.  A duct can also be
+one Cartesian patch (`layout="h"`, API.md), with or without shells; duct
+taps on it keep O-H blocks inside and add a `Switch` leg at each H port.  Shells may have any
 outline, so a duct can carry a wall and lagging, and a pipe can sit in a
 rectangular block (`.shell(name, outer=RectShape(...))`, API.md); a stack
 with a rectangle has the same count on every side.
 `Transition` joins a duct to a circular pipe, or to a duct of another size,
 when the counts per side match: a circle's `nang` equals the duct's
 `nang_w` and `nang_h`.  It changes every layer of a stack together, so an
-insulated pipe can become an insulated duct.  A single-layer transition
-may also end on an H duct (`layout="h"`, API.md); it then embeds a
-`Switch`.  Between an O-H and an H duct of the same size, put a `Switch`.
+insulated pipe can become an insulated duct.  A transition may also end
+on an H duct (`layout="h"`, API.md); it then embeds a `Switch`.  Between an O-H and an H duct of the same size, put a `Switch`.
 
 `up` decides which side is the height, and a bend's `roll` decides its
 plane. `Bend(..., roll=0)` turns toward `up`, across the height: the

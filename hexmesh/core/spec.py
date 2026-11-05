@@ -273,7 +273,7 @@ class PipeSpec:
         layout : str
             The section layout (decision 0036): ``"oh"`` (the default), the
             5-patch O-H face; or ``"h"``, one Cartesian patch, for a
-            rectangular core with no shells (shells: task 0086).  An H
+            rectangular core (shells around it: task 0086).  An H
             core has no ring, so no ``nrad``; ``mprg`` is then the wall
             growth ratio, the second cell from each wall over the first
             (> 1 refines toward the walls), and ``first_cell`` its end
@@ -431,10 +431,6 @@ class PipeSpec:
         """
         if self._core is None:
             raise RuntimeError("Call PipeSpec.core() before .shell().")
-        if self._layout != "oh":
-            raise LayoutNotSupported(f"PipeSpec.shell (`{name}`)", self._layout, "0086",
-                                     "shells around an H core come with the duct "
-                                     "junctions; pass layout='oh' for a shelled duct")
         if nrad is None:
             raise TypeError(f"shell `{name}`: nrad is required")
         _check_layer_name(name)

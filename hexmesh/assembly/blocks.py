@@ -655,12 +655,16 @@ def bind_face(layout: BlockLayout, prefix, face, shift: int = 0) -> None:
     (:func:`corner_shift`).
     """
     from .corners import canonical_geom
-    for lvl, (_, cs) in enumerate(face.layers):
+    h_core = False
+    for i, (_, cs) in enumerate(face.layers):
         n = cs.n_outer
         g = canonical_geom(cs)
+        # an H face's rings run from level i - 1 (its core has one level, task 0086)
+        lvl = i - 1 if h_core else i
         if "ip" not in g:              # an H face: one patch on the outer corners
-            if lvl:
-                raise LayoutError("bind_face: an H face has no shells (task 0086)")
+            if i:
+                raise LayoutError("bind_face: an H core inside a ring")
+            h_core = True
             at = lambda k: (k + shift) % n
             for k in range(n):
                 layout.bind_point((prefix, 0, k), g['op'][at(k)])
@@ -674,7 +678,7 @@ def bind_face(layout: BlockLayout, prefix, face, shift: int = 0) -> None:
             layout.bind_point((prefix, lvl + 1, k), g['op'][at(k)])
         for k in range(n):
             j = (k + 1) % n
-            if lvl == 0:
+            if i == 0:
                 layout.bind_edge((prefix, 0, k), (prefix, 0, j), g['ic'][at(k)])
             layout.bind_edge((prefix, lvl + 1, k), (prefix, lvl + 1, j), g['oc'][at(k)])
             layout.bind_edge((prefix, lvl, k), (prefix, lvl + 1, k), g['rc'][at(k)])

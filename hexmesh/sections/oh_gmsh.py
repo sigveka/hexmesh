@@ -48,7 +48,7 @@ from . import oh
 from ._gmsh_helpers import (
     add_point, add_arc, add_conic_arc, add_line, add_line_loop, add_surface,
     plane, stretched,
-    set_transfinite_line, set_transfinite_line_bump,
+    set_transfinite_curve, set_transfinite_line, set_transfinite_line_bump,
     set_transfinite_surface, set_recombine_surface,
 )
 
@@ -412,9 +412,15 @@ def build_ring(
     mbmp:   float = 1.0,
     rot:    float = 0.0,
     stretch: tuple | None = None,
+    center: int | None = None,
+    side_grading: list | None = None,
 ) -> CrossSection:
     """Build an n_outer-patch ring between *inner* and the outline *outer*
     (decision 0026).
+
+    *center* is the centre point when *inner* has none (an H core, task
+    0086); *side_grading* ``[(law, coef) or None, …]`` per side k, instead
+    of ``mbmp`` on every side (an H core's wall grading).
 
     The inner boundary reuses *inner*'s ``outer_points`` and
     ``outer_curves``: no new entities there, so the interface is conformal
@@ -428,14 +434,14 @@ def build_ring(
     """
     n = inner.n_outer          # 4 or 8
     cx, cy, cz = inner.cx, inner.cy, inner.cz
-    center = inner.center       # reuse — no new centre point
+    center = getattr(inner, "center", 0) or center     # reuse — no new centre point
     si = inner.outer_points     # n inner corner tags
     ia = inner.outer_curves     # n inner side tags (CCW, k → k+1)
     xyz = plane(cx, cy, cz, inner.h_axis, inner.v_axis, stretch)
 
     # The inner corners' directions, as the inner layer recorded them (rot
     # included); the default layout for CrossSections made by hand in tests.
-    if inner.corner_angles:
+    if getattr(inner, "corner_angles", None):
         angles = list(inner.corner_angles)
     else:
         angles = [d + rot for d in oh.core_directions(CircleShape(1.0, 4), n)]
@@ -461,11 +467,16 @@ def build_ring(
 
     # only the new entities: the inner sides are the previous layer's
     set_transfinite_line(R, nrad, mprg)
-    by_count: dict[int, list[int]] = {}
-    for k, a in enumerate(A_out):
-        by_count.setdefault(outer.side_count(k, n), []).append(a)
-    for count, curves in by_count.items():
-        set_transfinite_line_bump(curves, count, mbmp)
+    if side_grading is not None:
+        for k, a in enumerate(A_out):
+            set_transfinite_curve(a, outer.side_count(k, n),
+                                  *(side_grading[k] or ("Progression", 1.0)))
+    else:
+        by_count: dict[int, list[int]] = {}
+        for k, a in enumerate(A_out):
+            by_count.setdefault(outer.side_count(k, n), []).append(a)
+        for count, curves in by_count.items():
+            set_transfinite_line_bump(curves, count, mbmp)
     set_transfinite_surface(surfaces)
     set_recombine_surface(surfaces)
 

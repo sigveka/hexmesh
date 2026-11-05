@@ -292,6 +292,9 @@ def _refine_fitting_dict(d: dict, k: int) -> dict:
     if isinstance(d.get("branch"), dict):    # a duct tap's branch shape: its counts
         d["branch"] = {key: v * k if key in ("nang", "nang_w", "nang_h") else v
                        for key, v in d["branch"].items()}
+    if d.get("type") == "Tee" and d.get("nrad") is not None:   # an H main's ring (task 0086)
+        d["nrad"] *= k
+        d["mprg"] = d.get("mprg", 1.0) ** (1.0 / k)
     if "stack_changes" in d:          # (axial cell index, spec): cell i → cell k·i
         d["stack_changes"] = [[i * k, refine_spec_dict(spec, k)]
                               for i, spec in d["stack_changes"]]

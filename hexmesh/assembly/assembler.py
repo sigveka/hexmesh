@@ -826,7 +826,8 @@ class Assembly:
 
     def _check_meshed_sj(self) -> None:
         """For fittings whose predicted corner SJ is not a bound
-        (``meshed_sj_check``: round duct taps, task 0070), apply the
+        (``meshed_sj_check``: round duct taps, task 0070; switches to a
+        graded H face and the fittings that embed them, task 0086), apply the
         predicted-SJ tiers to the meshed cells: a warning below
         ``PREDICTED_SJ_WARN``, an ``AssemblyError`` below
         ``PREDICTED_SJ_MIN``, each naming the fitting."""
@@ -844,10 +845,11 @@ class Assembly:
                      for t, _, n in zip(*gmsh.model.mesh.getElements(3, v)) if t == 5]
             sj = float(min_scaled_jacobians(nx[pos[np.vstack(hexes).astype(int)]]).min())
             if sj < limits.PREDICTED_SJ_MIN:
+                hint = getattr(e.fitting, "meshed_sj_hint",
+                               "a smaller tap, or the wide face, may do better")
                 raise AssemblyError(
                     f"{e.name}: meshed corner scaled Jacobian {sj:.3f} is below "
-                    f"PREDICTED_SJ_MIN {limits.PREDICTED_SJ_MIN:g}; a smaller tap, or the "
-                    f"wide face, may do better")
+                    f"PREDICTED_SJ_MIN {limits.PREDICTED_SJ_MIN:g}; {hint}")
             if sj < limits.PREDICTED_SJ_WARN:
                 msg = (f"{e.name}: meshed corner scaled Jacobian {sj:.3f} is below "
                        f"PREDICTED_SJ_WARN {limits.PREDICTED_SJ_WARN:g}")

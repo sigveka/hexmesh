@@ -28,13 +28,29 @@ and ring thickness t (``sections.oh.ring_thickness``):
   slants C → H.
 
 The three slants meet at 45° at each corner of C, a cube O-grid's corner:
-min corner scaled Jacobian 1/√3 at any aspect ratio, ``nrad`` and length.
+min corner scaled Jacobian 1/√3 at any aspect ratio, ``nrad`` and length,
+with a uniform H face.
+
+**A graded H face** (task 0086, design answer to Q2).  The side blocks'
+wall edges go from the O-H face's node spacing to the H face's over the
+length, so their cells shear by about Δ/L, Δ the largest shift of a side
+node between the two faces (:func:`wall_shift`).  The length rule is
+therefore ``L ≥ max(SWITCH_MIN_LENGTH · t, Δ / SWITCH_MAX_SHEAR,
+t + Δ / SWITCH_MAX_CORE_SHEAR)``, the last for the core block, L − t long,
+which carries the same change (:func:`min_length`); the predicted SJ is the empirical bound measured
+for that shear (``limits.SWITCH_SHEAR_SJ``), and the meshed cells are
+checked after meshing.
 The H face's side grading (``wall_bump``) starts at C, so the core block
 carries the change from O's uniform sides (``BlockLayout.edge``'s
 ``own_grading``); in the cap it costs about 0.15 of min SJ (task 0085).
 
 Counts: the cap and core share the H face's ``nang_w`` × ``nang_h``; the
 side blocks have ``nrad`` across, ``n_layers`` along.
+
+Shells (task 0086): both faces' first shell starts at the rectangle's
+corners (O-H level 1, H level 0), so each shell's four ring blocks run
+straight from one face to the other.  The shells must be the same at
+both ends.
 """
 
 from __future__ import annotations
@@ -43,12 +59,61 @@ from dataclasses import dataclass, field, replace
 
 import numpy as np
 
-from ..core.spec import LayoutNotSupported, PipeSpec
-from ..sections import layout_of, oh
+from ..core.grading import bump
+from ..core.spec import PipeSpec
+from ..sections import h, layout_of, oh
 from . import limits
 from .blocks import BlockLayout, LayoutError, bind_face, face_vertices
 from .interface import Frame
 from .signature import check_port_pairs
+
+
+def wall_shift(o_spec: PipeSpec, h_spec: PipeSpec) -> float:
+    """Δ_max (pure): the largest distance between a side node of the O-H
+    face and the same node of the H face, over every layer's sides (the
+    O-H sides at ``mbmp``, the H sides at the wall grading)."""
+    corners = h_spec.corners()
+    out = 0.0
+    for k in range(4):
+        n = h_spec.core_shape.side_count(k, 4)
+        fo, fh = bump(n, o_spec.mbmp), h.side_fractions(h_spec, k)
+        for o, c in zip(h_spec.outlines, corners):
+            a, b = c[k], c[(k + 1) % 4]
+            d = o.side(a, b, fo) - o.side(a, b, fh)
+            out = max(out, float(np.max(np.linalg.norm(d, axis=-1))))
+    return out
+
+
+def min_length(o_spec: PipeSpec, h_spec: PipeSpec) -> tuple[float, float, float]:
+    """(shortest switch length, ring thickness t, Δ_max) between the two
+    faces (pure): ``max(SWITCH_MIN_LENGTH · t, Δ_max / SWITCH_MAX_SHEAR,
+    t + Δ_max / SWITCH_MAX_CORE_SHEAR)``."""
+    sh = h_spec.core_shape
+    t = oh.ring_thickness(sh.half_w, sh.half_h)
+    d = wall_shift(o_spec, h_spec)
+    if not d:
+        return limits.SWITCH_MIN_LENGTH * t, t, d
+    return max(limits.SWITCH_MIN_LENGTH * t, d / limits.SWITCH_MAX_SHEAR,
+               t + d / limits.SWITCH_MAX_CORE_SHEAR), t, d
+
+
+def length_rule(o_spec: PipeSpec, h_spec: PipeSpec) -> str:
+    """The length rule in words, with its numbers, for error messages."""
+    need, t, d = min_length(o_spec, h_spec)
+    return (f"{need:.6g}: the largest of {limits.SWITCH_MIN_LENGTH:g} ring thicknesses "
+            f"(t = {t:.6g}; the cap is one t deep), the H face's wall-node shift "
+            f"Δ_max = {d:.6g} over SWITCH_MAX_SHEAR {limits.SWITCH_MAX_SHEAR:g}, and t plus "
+            f"Δ_max over SWITCH_MAX_CORE_SHEAR {limits.SWITCH_MAX_CORE_SHEAR:g} (the core block)")
+
+
+def shear_sj(shear: float) -> float:
+    """The empirical min corner SJ bound for a switch at wall shear
+    Δ_max/L (``limits.SWITCH_SHEAR_SJ``, task 0086's table): the row at
+    the smallest tabulated shear not below *shear*."""
+    for s, sj in limits.SWITCH_SHEAR_SJ:
+        if shear <= s + 1e-12:
+            return sj
+    return 0.0
 
 
 @dataclass(frozen=True)
@@ -59,7 +124,9 @@ class Switch:
     ----------
     length : float
         Axial length; at least ``limits.SWITCH_MIN_LENGTH`` ring
-        thicknesses (the cap is one ring thickness deep).
+        thicknesses (the cap is one ring thickness deep), and on a graded
+        H face at least Δ_max / ``limits.SWITCH_MAX_SHEAR``
+        (:func:`min_length`).
     n_layers : int, optional
         Cells along the core block (and along the wall).  ``None`` resolves
         from ``Assembly(axial_cell=…)`` over ``length`` minus the cap.
@@ -98,8 +165,11 @@ class Switch:
             raise ValueError("Switch from an H inlet needs outlet= (the O-H spec, "
                              "with its nrad)")
         sh = spec.core_shape
-        return PipeSpec(nang_w=sh.nang_w, nang_h=sh.nang_h, mbmp=spec.mbmp,
-                        rot=spec.rot).core(spec.layer_names[0], sh, layout="h")
+        out = PipeSpec(nang_w=sh.nang_w, nang_h=sh.nang_h, mbmp=spec.mbmp,
+                       rot=spec.rot).core(spec.layer_names[0], sh, layout="h")
+        for s in spec.shells:
+            out = out.shell(s.name, dR=s.dR, nrad=s.nrad, mprg=s.mprg, outer=s.outer)
+        return out
 
     @staticmethod
     def _ends(spec: PipeSpec, out: PipeSpec) -> tuple[PipeSpec, PipeSpec]:
@@ -122,10 +192,6 @@ class Switch:
             if s.core_shape.side_curve != "line":
                 raise ValueError(f"Switch changes a rectangular duct's section; the {end} "
                                  f"core is a {s.core_shape.label}")
-            if s.shells:
-                raise LayoutNotSupported(f"Switch: the {end} spec has shells", "h", "0086",
-                                         "a switch inside shells (an H core with shells "
-                                         "around it) is task 0086's")
         if {spec.layout, out.layout} != {"oh", "h"}:
             raise ValueError(f"Switch joins an O-H and an H face; got layout "
                              f"{spec.layout!r} at the inlet and {out.layout!r} at the outlet")
@@ -133,12 +199,16 @@ class Switch:
         if (a.half_w, a.half_h) != (b.half_w, b.half_h) or spec.rot != out.rot:
             raise ValueError("Switch keeps the rectangle: the outlet's half_w, half_h and rot "
                              "must be the inlet's (use Reducer or Transition to change them)")
-        t = self.cap_depth(spec)
-        if self.length < limits.SWITCH_MIN_LENGTH * t - 1e-12:
-            raise ValueError(
-                f"Switch length {self.length:.6g} is below {limits.SWITCH_MIN_LENGTH:g} ring "
-                f"thicknesses ({limits.SWITCH_MIN_LENGTH * t:.6g}): the cap is one ring "
-                f"thickness (t = {t:.6g}) deep")
+        shells = lambda s: [(x.name, x.nrad, x.mprg, o.to_dict())
+                            for x, o in zip(s.shells, s.outlines[1:])]
+        if shells(spec) != shells(out):
+            raise ValueError("Switch keeps the shells: the outlet's shells (names, outlines, "
+                             "nrad, mprg) must be the inlet's")
+        s_oh, s_h = self._ends(spec, out)
+        need, _, _ = min_length(s_oh, s_h)
+        if self.length < need - 1e-12:
+            raise ValueError(f"Switch length {self.length:.6g} is below "
+                             f"{length_rule(s_oh, s_h)}")
         check_port_pairs(self, [spec, out])     # counts, mbmp, name: class 1 only
 
     def ports(self, inlet: Frame, spec: PipeSpec) -> list[tuple[Frame, PipeSpec]]:
@@ -146,8 +216,9 @@ class Switch:
         return [(out, self.outlet_spec(spec))]
 
     def validate(self, frames: list[Frame], spec: PipeSpec) -> list[str]:
-        """Raise ValueError if invalid; nothing to warn about (the corner
-        SJ is 1/√3 throughout, task 0085)."""
+        """Raise ValueError if invalid; the predicted-SJ tiers on
+        :meth:`predicted_sj` (with the length rule kept, never below
+        0.5)."""
         self.check(spec)
         if self.n_layers is None:
             raise ValueError("n_layers unresolved (add the switch to an Assembly)")
@@ -161,7 +232,26 @@ class Switch:
             self.layout(frames, spec).validate()
         except LayoutError as e:
             raise ValueError(f"block layout invalid: {e}") from None
+        sj = self.predicted_sj(frames, spec)
+        what = f"predicted corner scaled Jacobian {sj:.3f}"
+        if self.wall_shift(spec):
+            what += " (the empirical bound at this wall shear, limits.SWITCH_SHEAR_SJ)"
+        if sj < limits.PREDICTED_SJ_MIN:
+            raise ValueError(f"{what} is below PREDICTED_SJ_MIN {limits.PREDICTED_SJ_MIN:g}")
+        if sj < limits.PREDICTED_SJ_WARN:
+            return [f"{what} is below PREDICTED_SJ_WARN {limits.PREDICTED_SJ_WARN:g}"]
         return []
+
+    def wall_shift(self, spec: PipeSpec) -> float:
+        """Δ_max between this switch's two faces (:func:`wall_shift`)."""
+        return wall_shift(*self._ends(spec, self.outlet_spec(spec)))
+
+    def meshed_sj_check(self, spec: PipeSpec) -> bool:
+        """A graded H face: the prediction is an empirical bound, so the
+        meshed cells are checked too (task 0086)."""
+        return self.wall_shift(spec) > 0
+
+    meshed_sj_hint = "a longer switch shears its cells less"
 
     # -- layout ---------------------------------------------------------
 
@@ -178,7 +268,7 @@ class Switch:
         face_vertices(lay, "H", f_h, s_h, own_grading=True)
         axis = (f_h.position - f_oh.position) / self.length
         x_c = self.length - self.cap_depth(spec)
-        (level,) = layout_of(s_h).levels(s_h)
+        level = layout_of(s_h).levels(s_h)[0]
         for k in range(4):
             lay.vertex(("C", 0, k), lay.coords[("O", 0, k)] + x_c * axis)
             lay.edge(("O", 0, k), ("C", 0, k), divisions=self.n_layers)
@@ -194,6 +284,11 @@ class Switch:
             j = (k + 1) % 4
             lay.block([("O", 0, k), ("O", 0, j), ("O", 1, j), ("O", 1, k),
                        ("C", 0, k), ("C", 0, j), ("H", 0, j), ("H", 0, k)], name)
+        for i, shell in enumerate(s_h.layer_names[1:], start=1):       # shells: O i+1 ↔ H i
+            for k in range(4):
+                j = (k + 1) % 4
+                lay.block([("O", i, k), ("O", i, j), ("O", i + 1, j), ("O", i + 1, k),
+                           ("H", i - 1, k), ("H", i - 1, j), ("H", i, j), ("H", i, k)], shell)
         return lay
 
     def cell_count(self, frames: list[Frame], spec: PipeSpec) -> int:
@@ -201,7 +296,11 @@ class Switch:
         return self.layout(frames, spec).cell_count()
 
     def predicted_sj(self, frames: list[Frame], spec: PipeSpec) -> float:
-        return float(self.layout(frames, spec).corner_jacobians().min())
+        """The blocks' corner SJ from straight edges (1/√3), or on a graded
+        H face the empirical bound at the wall shear Δ_max/L if lower."""
+        sj = float(self.layout(frames, spec).corner_jacobians().min())
+        d = self.wall_shift(spec)
+        return min(sj, shear_sj(d / self.length)) if d else sj
 
     def fill(self, faces, frames, spec, lc):
         lay = self.layout(frames, spec)

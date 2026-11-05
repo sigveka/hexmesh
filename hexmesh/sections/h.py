@@ -19,7 +19,17 @@ A rectangular core meshed as a single transfinite patch of
 ``docs/integrations/gmsh.md``).  It has one level, the core's boundary,
 whose corners are the rectangle's corners NE, NW, SW, SE (DESIGN §6.1's
 corner table, as the O-H face's outer corners), and no inner boundary,
-corner lines or rings.  Shells around it come with task 0086.
+corner lines or rings.
+
+**Shells** (task 0086, decision 0036 option B).  The first shell's ring
+takes the core's four corners as its inner corners, so the corner
+diagonals lie in the shell and the fluid stays Cartesian.  Every ring is
+an O-H ring (``sections.oh``: corner lines by ``ring_corners``), its
+sides graded as the core's side of the same index (the core's wall
+``Bump``), so the lines across a thin shell stay straight.
+
+``pillowed`` is the O-H face an H face pillows into: what a junction's
+own O-H blocks use on an H port (task 0086).
 
 The pure declaration (``levels``, ``patches``) and the GMSH face
 (``build_h_rect``) both come from the functions here.
@@ -32,7 +42,7 @@ import math
 import numpy as np
 
 from ..core.cross_section import BoundaryType, CrossSection
-from ..core.grading import bump
+from ..core.grading import bump, progression_for_first_cell
 from ..core.shape import RectShape
 from . import oh
 from ._gmsh_helpers import (add_line, add_line_loop, add_point, add_surface, plane,
@@ -69,18 +79,34 @@ def side_grading(spec, k: int) -> tuple | None:
 
 
 def levels(spec) -> list[oh.Level]:
-    """The one corner level: the rectangle's corners, ``rot`` applied, and
-    its four sides."""
+    """The corner levels: the rectangle's corners, ``rot`` applied, and
+    its four sides; then each shell's outer corners, its sides (graded as
+    the core's) and its corner lines from the level below."""
     shape, rot = spec.core_shape, spec.rot_rad
-    corners = tuple(oh.rotated(shape.corner(k), rot) for k in range(4))
-    edges = tuple(oh.Edge((0, k), (0, (k + 1) % 4), shape.side_count(k, 4), side_grading(spec, k))
-                  for k in range(4))
-    return [oh.Level(corners, edges)]
+    corners = spec.corners()
+    out = []
+    for lvl, pts in enumerate(corners):
+        edges = []
+        for k in range(4):
+            edges.append(oh.Edge((lvl, k), (lvl, (k + 1) % 4), shape.side_count(k, 4),
+                                 side_grading(spec, k)))
+            if lvl:
+                sh = spec.shells[lvl - 1]
+                edges.append(oh.Edge((lvl - 1, k), (lvl, k), sh.nrad, ("Progression", sh.mprg)))
+        out.append(oh.Level(tuple(oh.rotated(p, rot) for p in pts), tuple(edges)))
+    return out
 
 
 def patches(spec) -> list[tuple[str, tuple[tuple[int, int], ...]]]:
-    """(material, cyclic ``(level, k)`` corners): the one patch."""
-    return [(spec.layer_names[0], tuple((0, k) for k in range(4)))]
+    """(material, cyclic ``(level, k)`` corners): the core's patch, then
+    each shell's ring patches."""
+    names = spec.layer_names
+    out = [(names[0], tuple((0, k) for k in range(4)))]
+    for lvl, name in enumerate(names[1:]):
+        for k in range(4):
+            j = (k + 1) % 4
+            out.append((name, ((lvl, k), (lvl, j), (lvl + 1, j), (lvl + 1, k))))
+    return out
 
 
 def node_grid(spec) -> np.ndarray:
@@ -97,15 +123,83 @@ def node_grid(spec) -> np.ndarray:
     return np.stack([x, y], axis=-1)
 
 
+def side_fractions(spec, k: int) -> np.ndarray:
+    """Node fractions of side *k*, corner k → k + 1: its wall grading's."""
+    n = spec.core_shape.side_count(k, 4)
+    g = side_grading(spec, k)
+    return bump(n, g[1]) if g else np.arange(n + 1) / n
+
+
 def node_grids(spec) -> list[tuple[int, np.ndarray]]:
-    """(layer index, node grid) of every patch: the one patch."""
-    return [(0, node_grid(spec))]
+    """(layer index, node grid) of every patch, unrotated: the core's
+    tensor grid, then each shell's ring patches, the linear blend of their
+    two boundaries at the radial grading (as ``sections.oh.node_grids``)."""
+    out = [(0, node_grid(spec))]
+    corners = spec.corners()
+    s = [side_fractions(spec, k) for k in range(4)]
+    prev = [spec.core_shape.side(corners[0][k], corners[0][(k + 1) % 4], s[k]) for k in range(4)]
+    for i, (sh, o) in enumerate(zip(spec.shells, spec.outlines[1:]), start=1):
+        t = oh.progression(sh.nrad, sh.mprg)
+        c = corners[i]
+        cur = [o.side(c[k], c[(k + 1) % 4], s[k]) for k in range(4)]
+        out += [(i, oh._ring(prev[k], cur[k], t)) for k in range(4)]
+        prev = cur
+    return out
 
 
 def section_cells(spec) -> int:
-    """Quads in the section: ``nang_w · nang_h``."""
+    """Quads in the section: ``nang_w · nang_h``, and per shell its ring,
+    ``2 (nang_w + nang_h) · nrad``."""
     c = side_counts(spec.core_shape)
-    return c[0] * c[1]
+    return c[0] * c[1] + sum(c) * sum(sh.nrad for sh in spec.shells)
+
+
+# ---------------------------------------------------------------------------
+# The O-H face an H face pillows into (task 0086, design answer to Q1)
+# ---------------------------------------------------------------------------
+
+def wall_distances(spec) -> tuple[np.ndarray, float]:
+    """(node distances from the wall, half-extent) along the H face's
+    smaller side: its nodes at the wall grading's fractions, from one wall
+    to the middle and on.  On a square the ``nang_h`` side."""
+    shape = spec.core_shape
+    k = 0 if shape.half_w < shape.half_h else 1
+    half = shape.half_w if k == 0 else shape.half_h
+    n = shape.side_count(k, 4)
+    g = side_grading(spec, k)
+    return 2 * half * (bump(n, g[1]) if g else np.arange(n + 1) / n), half
+
+
+def pillow_ring(spec, nrad: int | None = None) -> tuple[int, float]:
+    """(nrad, mprg) of the O-H ring an H face pillows into: nrad (unless
+    given) is the number of H cells within one ring thickness t of the
+    wall on the smaller side (a cell counts when its midpoint is within
+    t; at least 1), and ``mprg`` puts the ring's wall cell at the H face's
+    wall cell.  A spec's ``mprg`` grows from the inner square to the wall,
+    so it is the inverse of the progression grown from the wall."""
+    d, _ = wall_distances(spec)
+    shape = spec.core_shape
+    t = oh.ring_thickness(shape.half_w, shape.half_h)
+    mids = 0.5 * (d[:-1] + d[1:])
+    if nrad is None:
+        nrad = max(1, int(np.count_nonzero(mids <= t * (1 + 1e-12))))
+    if nrad == 1:
+        return 1, 1.0
+    return nrad, 1.0 / progression_for_first_cell(t, nrad, float(d[1] - d[0]))
+
+
+def pillowed(spec, nrad: int | None = None, mprg: float | None = None):
+    """The O-H spec of the H spec's rectangle: the same name, counts,
+    ``mbmp`` and ``rot``, with *nrad* and *mprg* (``pillow_ring``'s when
+    not given).  What a junction's own O-H blocks and its embedded switch
+    legs use on an H port (decision 0036 item 5)."""
+    from ..core.spec import PipeSpec
+    if nrad is None or mprg is None:
+        nrad, dm = pillow_ring(spec, nrad)
+        mprg = dm if mprg is None else mprg
+    shape = spec.core_shape
+    return PipeSpec(nang_w=shape.nang_w, nang_h=shape.nang_h, mbmp=spec.mbmp,
+                    rot=spec.rot).core(spec.layer_names[0], shape, nrad=nrad, mprg=mprg)
 
 
 # ---------------------------------------------------------------------------

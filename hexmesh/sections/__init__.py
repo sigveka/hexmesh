@@ -37,7 +37,7 @@ import numpy as np
 from ..core.cross_section import CrossSection, LayeredCrossSection
 from ..core.shape import BlendShape, RectShape
 from . import h, oh
-from ._gmsh_helpers import add_physical_group
+from ._gmsh_helpers import add_physical_group, add_point
 from .oh_gmsh import (build_annulus, build_oh_blend, build_oh_circle, build_oh_circle8,
                       build_oh_rect, build_ring)
 
@@ -106,8 +106,20 @@ def build_face(spec, position, h_axis, v_axis, lc: float,
     direction ``b`` (miter cut faces).
     """
     if spec.layout == "h":
-        return LayeredCrossSection([(spec.layer_names[0],
-                                     h.build_h_rect(spec, position, h_axis, v_axis, lc, stretch))])
+        cs = h.build_h_rect(spec, position, h_axis, v_axis, lc, stretch)
+        layers = [(spec.layer_names[0], cs)]
+        if spec.shells:     # rings on the core's corners (task 0086); a centre for arcs
+            center = add_point(*(float(c) for c in position), lc)
+            rot = spec.rot_rad
+            cs.corner_angles = [rot + float(np.arctan2(p[1], p[0]))
+                                for p in (spec.core_shape.corner(k) for k in range(4))]
+            grading = [h.side_grading(spec, k) for k in range(4)]
+            for shell, outline in zip(spec.shells, spec.outlines[1:]):
+                cs = build_ring(inner=cs, outer=outline, lc=lc, nrad=shell.nrad,
+                                mprg=shell.mprg, rot=rot, stretch=stretch, center=center,
+                                side_grading=grading)
+                layers.append((shell.name, cs))
+        return LayeredCrossSection(layers)
     cx, cy, cz = (float(c) for c in position)
     core_name, core_shape = spec._core
     if isinstance(core_shape, RectShape):

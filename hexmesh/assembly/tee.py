@@ -66,7 +66,7 @@ from dataclasses import dataclass, field, replace
 import numpy as np
 
 from ..core.shape import CircleShape, RectShape
-from ..core.spec import LayoutNotSupported, PipeSpec
+from ..core.spec import PipeSpec
 from ..sections import oh
 from .blocks import (
     ArcAbout, BlockLayout, LayoutError, Spline, bind_face, corner_shift,
@@ -106,13 +106,6 @@ def tee_wall(o, ex, ez, R: float, r: float) -> TubeUnion:
     as a wall projector (decision 0029)."""
     return TubeUnion([Tube(tuple(o), tuple(ex), R, ray=False),
                       Tube(tuple(o), tuple(ez), r)])
-
-
-def _check_layout(spec: PipeSpec) -> None:
-    if spec.layout != "oh":
-        raise LayoutNotSupported("Tee", spec.layout, "0086",
-                                 "the H duct junctions come with task 0086; "
-                                 "pass layout='oh' for a duct tap")
 
 
 def _check_circle(spec: PipeSpec) -> None:
@@ -174,12 +167,22 @@ class Tee:
     n_wall : int, optional
         Duct taps: cells from a station to the hole, resolved when the tee
         is added (``DuctTap.wall_cells``).
+    nrad, mprg : int, float, optional
+        Duct taps on an H main (task 0086): the radial cells and growth of
+        the O-H ring inside the junction and its switch legs.  Derived when
+        the tee is added (``sections.h.pillow_ring``: the H cells within a
+        ring thickness of the wall, and the H face's wall cell) and stored;
+        give them to override.  An O-H main's ring is its own: not allowed
+        there.
 
     Ports are ``main`` (the run outlet, keeping the inlet's ``up``) and
     ``branch``: ``add(…, names={"main": …, "branch": …})``.
     """
 
-    strategies = frozenset({0})   # both port pairs: main in → main out, → branch
+    # both port pairs: main in → main out, → branch; class 1 (a pillow) for
+    # a round branch on an H main, whose port is O-H (task 0086)
+    strategies = frozenset({0, 1})
+    pillows = True
     port_names = ("main", "branch")
 
     run_length:    float | None = None
@@ -197,6 +200,8 @@ class Tee:
     dome:     float | None = field(default=None, metadata={"input": True})
     sheet:    float | None = field(default=None, metadata={"input": True})
     n_wall:   int | None = field(default=None, metadata={"input": True})
+    nrad:     int | None = field(default=None, metadata={"input": True})   # duct taps, H main
+    mprg:     float | None = field(default=None, metadata={"input": True})
 
     def __post_init__(self):
         missing = ["branch_length"] if self.branch_length is None else []
@@ -208,7 +213,6 @@ class Tee:
             raise TypeError("Tee: give branch_radius or branch, not both")
 
     def resolve(self, inlet: Frame, spec: PipeSpec, axial_cell=None, outlet=None) -> "Tee":
-        _check_layout(spec)                  # before the duct tap's own checks
         tpl = self._template(spec)
         if tpl is not None:
             return tpl.resolve(inlet, spec)
@@ -300,12 +304,12 @@ class Tee:
     # -- topology -----------------------------------------------------
 
     def check(self, spec: PipeSpec) -> None:
-        _check_layout(spec)
         tpl = self._template(spec)
         if tpl is not None:
             return tpl.check(spec)
         _check_circle(spec)
-        duct_only = [n for n in ("branch", "face", "margin", "dome", "sheet", "n_wall")
+        duct_only = [n for n in ("branch", "face", "margin", "dome", "sheet", "n_wall",
+                                         "nrad", "mprg")
                      if getattr(self, n) is not None]
         if duct_only:
             raise ValueError(f"Tee: {', '.join(duct_only)} are for a duct tap (a "
@@ -488,8 +492,9 @@ class Tee:
                     or np.dot(want.up, got.up) < 1 - 1e-9):
                 raise ValueError("port interface does not match Tee geometry")
         tpl = self._template(spec)
-        found = (tpl.quality(frames, spec) if tpl is not None
-                 else self._quality(frames[0], spec))      # before the layout's own
+        if tpl is not None:
+            return tpl.validate(frames, spec)
+        found = self._quality(frames[0], spec)      # before the layout's own
         try:                                        # inversion check: names a run
             self.layout(frames, spec).validate()
         except LayoutError as e:
@@ -498,6 +503,9 @@ class Tee:
 
     def cell_count(self, frames: list[Frame], spec: PipeSpec) -> int:
         """Exact hex count of the block layout (pure; DESIGN P4)."""
+        tpl = self._template(spec)
+        if tpl is not None:
+            return tpl.cell_count(frames, spec)
         return self.layout(frames, spec).cell_count()
 
     def fill(self, faces, frames, spec, lc):
@@ -520,6 +528,8 @@ class Tee:
     def meshed_sj_check(self, spec: PipeSpec) -> bool:
         """Whether ``Assembly.mesh()`` checks this tee's meshed corner SJ
         on the predicted-SJ tiers: round duct taps, whose prediction (from
-        straight block edges) overestimates by up to 0.11 (task 0069)."""
+        straight block edges) overestimates by up to 0.11 (task 0069), and
+        taps on a graded H main, whose switch legs' is an empirical bound
+        (task 0086)."""
         tpl = self._template(spec)
-        return tpl is not None and tpl.meshed_sj_check()
+        return tpl is not None and (tpl.meshed_sj_check() or tpl.graded_legs(spec))

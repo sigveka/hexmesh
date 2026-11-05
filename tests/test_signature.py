@@ -167,8 +167,10 @@ def test_straight_joined_to_another_stack_rejected():
 def test_every_fitting_declares_strategies():
     from hexmesh.assembly import fittings
     for cls in (fittings.MiterBend, fittings.Elbow,
-                fittings.SplinePipe, fittings.Closure, Tee):
+                fittings.SplinePipe, fittings.Closure):
         assert cls.__dict__.get("strategies") == frozenset({0}), cls.__name__
+    # class 1 for a duct tap's H ports, a pillow (task 0086)
+    assert Tee.__dict__.get("strategies") == frozenset({0, 1}) and Tee.pillows
     # grading-only class 2 (decision 0016)
     assert fittings.Reducer.__dict__.get("strategies") == frozenset({0, 2})
     for cls in (fittings.Straight, fittings.Bend):          # layer termination (0018)

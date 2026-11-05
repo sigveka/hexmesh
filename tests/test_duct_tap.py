@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 Duct taps: ``Tee`` on a rectangular main (decision 0033 B; prototype task
 0069, merged in task 0070).  The kit (``test_fitting_conformance``) covers
@@ -17,6 +29,8 @@ from hexmesh.assembly.duct_tap import DuctTap, TapTemplate
 from hexmesh.assembly.interface import Frame
 from hexmesh.core.shape import CircleShape, RectShape
 from hexmesh.core.spec import PipeSpec
+from hexmesh.core.grading import progression
+from hexmesh.sections import h, oh
 
 B = 0.05
 A = 2 * B           # 2:1 duct, the tap on a wide face (half-width A)
@@ -201,3 +215,87 @@ def test_full_width_short_tap_warns():
         asm.validate()
     assert any("full-width duct tap" in str(x.message) and "PREDICTED_SJ_WARN" in str(x.message)
                for x in w)
+
+
+# ---------------------------------------------------------------------------
+# H mains (task 0086): the O-H junction inside, switch legs at the H ports
+# ---------------------------------------------------------------------------
+
+def _hspec(aspect=2, n=8, **kw):
+    return PipeSpec(nang_w=n, nang_h=n).core("fluid", RectShape(aspect * B, B, n, n),
+                                             layout="h", **kw)
+
+
+def _wall_cell(nrad, mprg, t):
+    """The ring's cell at the wall: its last, mprg grows inner → wall."""
+    p = progression(nrad, mprg) * t
+    return float(p[-1] - p[-2])
+
+
+@pytest.mark.parametrize("first_cell, nrad", [(None, 2), (0.004, 2), (0.002, 3)])
+def test_derived_ring_matches_the_h_cells(first_cell, nrad):
+    """nrad: the H cells whose midpoint is within t of the wall, on the
+    smaller side, counted here by hand; the ring's wall cell is the H
+    face's to 1e-9 (the design answer to Q1)."""
+    spec = _hspec(first_cell=first_cell)
+    t = oh.ring_thickness(2 * B, B)
+    x = 2 * B * h.side_fractions(spec, 1)          # the short side, wall to wall
+    mids = 0.5 * (x[:-1] + x[1:])
+    assert int(np.count_nonzero(mids <= t)) == nrad
+    asm = _asm(_tee(_rect(0.6 * A, n=8)), spec=spec, n=8)
+    tee = asm.edges[1].fitting
+    assert tee.nrad == nrad
+    assert _wall_cell(tee.nrad, tee.mprg, t) == pytest.approx(x[1] - x[0], abs=1e-9)
+
+
+def test_h_main_json_and_refinement_nest():
+    """nrad and mprg are stored resolved; refined: nrad × k, mprg^(1/k)
+    (each coarse ring cell splits into k of the same growth)."""
+    asm = _asm(_tee(_rect(0.6 * A)), spec=_hspec(n=4), n=4)
+    tee = asm.edges[1].fitting
+    d = intent.to_dict(asm)
+    back = Assembly.from_dict(d)
+    assert back.edges[1].fitting == tee and back.cell_count() == asm.cell_count()
+    fine = Assembly.from_dict(intent.refined_dict(d, 2)).edges[1].fitting
+    assert fine.nrad == 2 * tee.nrad and fine.mprg == pytest.approx(tee.mprg ** 0.5)
+    assert Assembly.from_dict(intent.refined_dict(d, 2)).cell_count() == 8 * asm.cell_count()
+
+
+def test_h_main_override_and_its_rejections():
+    tee = _asm(_tee(_rect(0.6 * A), nrad=3, mprg=0.8), spec=_hspec(n=4), n=4).edges[1].fitting
+    assert (tee.nrad, tee.mprg) == (3, 0.8)
+    for bad, match in (({"nrad": 0}, "nrad must be an integer"),
+                       ({"mprg": -1.0}, "mprg must be positive")):
+        with pytest.raises((AssemblyError, ValueError), match=match):
+            _asm(_tee(_rect(0.6 * A), **bad), spec=_hspec(n=4), n=4).validate()
+    with pytest.raises((AssemblyError, ValueError), match="for a duct tap on an H main"):
+        _asm(_tee(_rect(0.6 * A), nrad=3)).validate()
+
+
+def test_round_tap_on_an_h_main_keeps_an_oh_branch():
+    """No branch leg: the round branch port is the inner junction's O-H."""
+    asm = _asm(_tee(CircleShape(radius=0.6 * A, nang=4)), spec=_hspec(n=4), n=4)
+    asm.validate()
+    tee = asm.edges[1].fitting
+    tpl = TapTemplate(tee)
+    lm, lb = tpl.legs(_hspec(n=4))
+    assert lm > 0 and lb == 0
+    (main, s_main), (_, s_branch) = tee.ports(Frame(np.zeros(3), np.array([1.0, 0, 0]),
+                                                    np.array([0, 0, 1.0])), _hspec(n=4))
+    assert s_main.layout == "h" and s_branch.layout == "oh" and s_branch.core_shape.is_round
+
+
+def test_graded_h_main_lengthens_its_legs_by_the_shear_rule():
+    """The legs are the switch's shortest (task 0086, Q2): longer on a
+    graded main than the ring rule's 1.25 t, and the meshed cells are
+    checked (the prediction is an empirical bound)."""
+    from hexmesh.assembly.switch import min_length
+    uniform, graded = _hspec(n=4), _hspec(n=4, first_cell=0.01)
+    lu, _ = TapTemplate(_tee(_rect(0.6 * A))).legs(uniform)
+    lg, _ = TapTemplate(_tee(_rect(0.6 * A))).legs(graded)
+    t = oh.ring_thickness(2 * B, B)
+    assert lu == pytest.approx(limits.SWITCH_MIN_LENGTH * t) and lg > lu
+    tpl = TapTemplate(_tee(_rect(0.6 * A)))
+    assert lg == min_length(tpl.inner_spec(graded), graded)[0]
+    assert _tee(_rect(0.6 * A)).meshed_sj_check(graded)
+    assert not _tee(_rect(0.6 * A)).meshed_sj_check(uniform)

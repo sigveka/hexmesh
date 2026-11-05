@@ -77,10 +77,17 @@ def face_grading(face: LayeredCrossSection, spec: PipeSpec) -> dict[int, tuple[s
     An H face's sides carry its wall grading, a symmetric ``Bump``
     (``sections.h.side_grading``).
     """
-    if spec.layout == "h":
-        (_, cs), = face.layers
-        edges = h.levels(spec)[0].edges
-        return {abs(c): e.grading for c, e in zip(canonical_geom(cs)['oc'], edges) if e.grading}
+    if spec.layout == "h":            # every layer's sides as the core's (task 0086)
+        side = [h.side_grading(spec, k) for k in range(4)]
+        out = {}
+        for i, (_, cs) in enumerate(face.layers):
+            g = canonical_geom(cs)
+            out.update((abs(c), s) for c, s in zip(g['oc'], side) if s)
+            mprg = spec.shells[i - 1].mprg if i else 1.0
+            if mprg != 1.0:
+                for c in g['rc']:
+                    out[abs(c)] = ("Progression", mprg if c > 0 else 1.0 / mprg)
+        return out
     mprgs = [spec._core_mprg] + [getattr(sh, "mprg", 1.0) for sh in spec.shells]
     out: dict[int, tuple[str, float]] = {}
     for (_, cs), mprg in zip(face.layers, mprgs):

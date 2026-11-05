@@ -35,7 +35,7 @@ from dataclasses import dataclass, field, replace
 import numpy as np
 
 from ..core.shape import BlendShape
-from ..core.spec import LayoutNotSupported, PipeSpec
+from ..core.spec import PipeSpec
 from .interface import (Frame, check_outlines, half_extent, outer_radius, roll_mismatch,
                         rotate, toward_roll)
 from . import limits
@@ -459,9 +459,10 @@ def _with_layers(spec: PipeSpec, layers: list, mprgs: list[float],
     name, _ = spec._core
     out = PipeSpec(nang=spec.nang, nang_w=spec.nang_w, nang_h=spec.nang_h,
                    n_outer=spec.n_outer, rot=spec.rot, mbmp=spec.mbmp)
-    if spec.layout == "h":
-        return out.core(name, layers[0], layout="h", wall_bump=wall_bump)
-    out = out.core(name, layers[0], nrad=spec._core_nrad, mprg=mprgs[0])
+    if spec.layout == "h":            # its shells as an O-H core's (task 0086)
+        out = out.core(name, layers[0], layout="h", wall_bump=wall_bump)
+    else:
+        out = out.core(name, layers[0], nrad=spec._core_nrad, mprg=mprgs[0])
     for sh, x, m in zip(spec.shells, layers[1:], mprgs[1:]):
         if isinstance(x, (int, float)):
             out = out.shell(sh.name, dR=x, nrad=sh.nrad, mprg=m)
@@ -616,6 +617,11 @@ class Reducer(Sweep):
 # Transition
 # ---------------------------------------------------------------------------
 
+# both ends rectangles: a change of sizes, which Reducer makes on H faces
+_BOTH_H = ("Transition with H at both ends: both are rectangles, so use Reducer, which "
+           "changes half_w and half_h on H faces (task 0086)")
+
+
 @dataclass(frozen=True)
 class Transition(Sweep):
     """Straight transition that changes outline shapes: a circle to a
@@ -643,9 +649,10 @@ class Transition(Sweep):
     be an H face (``layout="h"``) with the other end's counts per side.
     The transition stays a class-0 blend to the O-H face of that rectangle
     (the other end's ``nrad`` and ``mprg``), and a ``Switch`` takes the
-    slabs at the H end: the fewest of the ``n_layers`` that give it
-    ``limits.SWITCH_MIN_LENGTH`` ring thicknesses at equal shares of the
-    length.  Single-layer stacks only: with shells, task 0086.
+    slabs at the H end: the fewest of the ``n_layers`` that give it its
+    shortest length (``switch.min_length``) at equal shares of the
+    length.  Shells (task 0086): the blend's H-end face carries the H
+    end's shells, which the switch keeps.
     """
 
     # switch classes it bridges (DESIGN A4): 1 only for an H end (a pillow)
@@ -728,13 +735,7 @@ class Transition(Sweep):
     def _check_h_end(self, spec: PipeSpec, end: str) -> None:
         h_spec, o_spec = (spec, self.outlet) if end == "inlet" else (self.outlet, spec)
         if o_spec.layout == "h":
-            raise ValueError("Transition with H at both ends: blend O-H faces, with a "
-                             "Switch at either end")
-        for which, s in ((end, h_spec), ("other end", o_spec)):
-            if s.shells:
-                raise LayoutNotSupported(f"Transition ({which})", "h", "0086",
-                                         "a transition to an H rectangle has a single layer "
-                                         "for now; with shells, task 0086")
+            raise ValueError(_BOTH_H)
         if o_spec.core_shape == h_spec.core_shape:
             raise ValueError("Transition: the same rectangle at both ends; to change the "
                              "layout only use Switch")
@@ -747,28 +748,35 @@ class Transition(Sweep):
 
     def _blend_spec(self, spec: PipeSpec) -> PipeSpec:
         """The O-H face of the H end's rectangle: the other end's core
-        (name, ``nrad``, ``mprg``), ``mbmp`` and ``rot``."""
+        (name, ``nrad``, ``mprg``), ``mbmp`` and ``rot``, and the H end's
+        shells."""
         end = self._h_end(spec)
         h_spec, o_spec = (spec, self.outlet) if end == "inlet" else (self.outlet, spec)
+        if o_spec.layout == "h":
+            raise ValueError(_BOTH_H)
         sh = h_spec.core_shape
-        return PipeSpec(nang_w=sh.nang_w, nang_h=sh.nang_h, mbmp=o_spec.mbmp,
-                        rot=o_spec.rot).core(o_spec.layer_names[0], sh,
-                                             nrad=o_spec._core_nrad, mprg=o_spec._core_mprg)
+        out = PipeSpec(nang_w=sh.nang_w, nang_h=sh.nang_h, mbmp=o_spec.mbmp,
+                       rot=o_spec.rot).core(o_spec.layer_names[0], sh,
+                                            nrad=o_spec._core_nrad, mprg=o_spec._core_mprg)
+        for s in h_spec.shells:
+            out = out.shell(s.name, dR=s.dR, nrad=s.nrad, mprg=s.mprg, outer=s.outer)
+        return out
 
     def _split(self, spec: PipeSpec) -> tuple[int, float]:
         """(switch layers m, switch length): the fewest of ``n_layers`` at
-        equal shares of the length that reach ``SWITCH_MIN_LENGTH`` ring
-        thicknesses; the blend keeps the rest (at least one)."""
-        from .switch import Switch
+        equal shares of the length that reach the switch's shortest
+        (``switch.min_length``); the blend keeps the rest (at least one)."""
+        from .switch import length_rule, min_length
         blend = self._blend_spec(spec)
-        need = limits.SWITCH_MIN_LENGTH * Switch(self.length).cap_depth(blend)
+        h_spec = spec if self._h_end(spec) == "inlet" else self.outlet
+        need, _, _ = min_length(blend, h_spec)
         n = self.n_layers
         m = max(1, math.ceil(need * n / self.length - 1e-9))
         if m >= n:
             raise ValueError(
-                f"Transition to an H rectangle: the switch needs {need:.6g} of the length "
-                f"({limits.SWITCH_MIN_LENGTH:g} ring thicknesses) and the blend at least one "
-                f"of the {n} layers; use n_layers >= {m + 1} or a longer transition")
+                f"Transition to an H rectangle: the switch needs {length_rule(blend, h_spec)}, "
+                f"and the blend at least one of the {n} layers; use n_layers >= {m + 1} or a "
+                f"longer transition")
         return m, self.length * m / n
 
     def _parts(self, frames: list[Frame], spec: PipeSpec):
@@ -789,7 +797,7 @@ class Transition(Sweep):
                 (Transition(self.outlet, lb, self.n_layers - m, self.axial_grading),
                  (mid, b), blend)]
 
-    def validate(self, frames: list[Frame], spec: PipeSpec) -> None:
+    def validate(self, frames: list[Frame], spec: PipeSpec) -> list[str] | None:
         if self._h_end(spec) is None:
             return super().validate(frames, spec)
         self.check(spec)
@@ -801,8 +809,18 @@ class Transition(Sweep):
         if (np.linalg.norm(want.position - frames[1].position) > 1e-9 * self.length
                 or np.dot(want.normal, frames[1].normal) < 1 - 1e-9):
             raise ValueError("outlet interface does not match Transition geometry")
+        found = []
         for part, fr, s in self._parts(frames, spec):
-            part.validate(list(fr), s)
+            found += part.validate(list(fr), s) or []
+        return found
+
+    def meshed_sj_check(self, spec: PipeSpec) -> bool:
+        """A graded H end: its switch's prediction is an empirical bound,
+        so ``Assembly.mesh()`` checks the meshed cells (task 0086)."""
+        end = self._h_end(spec)
+        return end is not None and (spec if end == "inlet" else self.outlet).wall_grading is not None
+
+    meshed_sj_hint = "a longer transition gives its switch more length"
 
     def cell_count(self, frames: list[Frame], spec: PipeSpec) -> int:
         if self._h_end(spec) is None:

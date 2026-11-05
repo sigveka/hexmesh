@@ -328,10 +328,24 @@ with an H end, which embeds one; task 0085).  Joined directly, the
 assembly rejects the pair before GMSH as switch class 1, a pillow, and
 names `Switch`.
 
-Not yet on an H core: shells (task 0086), `Tee` / duct taps and `Wye`
-(0086).  These raise `hexmesh.core.spec.LayoutNotSupported` (a
-`ValueError`) before GMSH, with attributes `where`, `layout` and `task`.
-Cells: `nang_w·nang_h` per section.
+**Shells** (task 0086). `.shell()` works on an H core as on a rectangular
+O-H one, with any outline (decision 0026). The first shell's ring starts
+at the core's four corners, so its corner lines lie in the shell and the
+core stays one Cartesian patch (decision 0036, option B). Every ring's
+sides take the core's wall grading, so the lines across a thin wall stay
+straight. In a shell that changes shape (a rectangle in a circle) the
+copied grading raises the ring's non-orthogonality: with a 4:1 core
+graded to a first cell of h/200 inside a circle, the predicted 84° is
+rejected before GMSH (the 0047 tiers).
+
+**Fittings on an H core.** Every fitting that takes a rectangular port
+takes an H one: the sweeps, `Switch`, `Transition` (one H end; a
+rectangle to a rectangle with H at both ends is a `Reducer`, which
+changes `half_w` and `half_h` on H faces) and `Tee` as a duct tap
+(below). `Wye` takes circles only.
+
+Cells: `nang_w·nang_h + 2·(nang_w + nang_h)·Σ nrad` over the shells, per
+section.
 
 `spec.to_dict()` / `PipeSpec.from_dict(d)` serialise a spec.  `mprg` is
 stored as resolved, so a spec built with `first_cell=` reloads with the
@@ -536,15 +550,15 @@ rectangle (either way), or a rectangle to one of another size or aspect
   ends nest, the blend has kept every station nested.)
 - **Corners.** Corner k meets corner k: a circle's corners at 45° + k·90°
   go to the rectangle's corners, with no twist.
-- **An H end** (task 0085). One end may be an H duct (`layout="h"`)
-  with the other end's counts per side, single-layer stacks only (shells:
-  task 0086). The transition blends to the O-H face of that rectangle
-  (the other end's `nrad` and `mprg`) and embeds a `Switch` in the slabs
-  at the H end: the fewest of the `n_layers` that give it 1.25 ring
-  thicknesses (`limits.SWITCH_MIN_LENGTH`), at equal shares of the
-  length. At least one layer stays for the blend, else a `ValueError`
-  names the `n_layers` needed. The same rectangle at both ends is a
-  `Switch`.
+- **An H end** (tasks 0085, 0086). One end may be an H duct
+  (`layout="h"`) with the other end's counts per side, with or without
+  shells. The transition blends to the O-H face of that rectangle (the
+  other end's `nrad` and `mprg`, the H end's shells) and embeds a
+  `Switch` in the slabs at the H end: the fewest of the `n_layers` that
+  give it the switch's shortest length (`Switch`, `length`), at equal
+  shares of the length. At least one layer stays for the blend, else a
+  `ValueError` names the `n_layers` needed. The same rectangle at both
+  ends is a `Switch`; H at both ends is a `Reducer`.
 
 ### `Switch(length, n_layers=None, outlet=None)`
 
@@ -561,13 +575,28 @@ direction. The rectangle, counts, `mbmp`, `rot` and name stay.
   the O-H face's centre rectangle to a level one ring thickness t before
   the H face, a frustum cap joins it to the whole H face, and four side
   blocks fill the ring. The H grading starts at that level.
-- **`length`.** At least `limits.SWITCH_MIN_LENGTH` = 1.25 ring
-  thicknesses, checked before GMSH. `n_layers` counts the core's cells
-  (and the wall's); `None` resolves from `axial_cell` over `length − t`.
-- **Quality.** Min scaled Jacobian 1/√3 = 0.577 at any aspect ratio,
-  `nrad` and length (predicted and meshed, a/b 1–4, `nrad` 1–6),
-  non-orthogonality up to about 54°.
-- **Cells.** `nang_w·nang_h·(n_layers + nrad) + 2·(nang_w + nang_h)·nrad·n_layers`.
+- **`length`.** Checked before GMSH: at least
+  `max(1.25 t, Δ/0.4, t + Δ/1.0)` (`limits.SWITCH_MIN_LENGTH`,
+  `SWITCH_MAX_SHEAR`, `SWITCH_MAX_CORE_SHEAR`; task 0086).  Δ is the
+  largest shift of a wall node between the O-H face's sides and the H
+  face's graded ones, 0 on an ungraded H face, so there the rule is
+  1.25 t.  On a graded face the side blocks' cells shear by about Δ/L
+  and the core block's by Δ/(L − t).  The error gives Δ, the limits and
+  the shortest length. `n_layers` counts the core's cells (and the
+  wall's); `None` resolves from `axial_cell` over `length − t`.
+- **Quality.** On an ungraded H face, min scaled Jacobian 1/√3 = 0.577 at
+  any aspect ratio, `nrad` and length, non-orthogonality up to about 54°.
+  On a graded one, `validate()` predicts the empirical bound at the
+  switch's shear Δ/L (`limits.SWITCH_SHEAR_SJ`, measured over 450
+  switches: 0.577 up to 0.1, 0.550 to 0.2, 0.548 to 0.3, 0.546 to 0.35,
+  0.501 to 0.4), and `mesh()` applies the SJ tiers to the meshed cells
+  too, naming the switch. At the steepest gradings (first cell h/100 to
+  h/200) non-orthogonality reaches 70–77° at any length.
+- **Shells.** The shells run through unchanged: both faces' first shell
+  starts at the rectangle's corners. The outlet's shells must be the
+  inlet's; the default H outlet copies them.
+- **Cells.** `nang_w·nang_h·(n_layers + nrad) + 2·(nang_w + nang_h)·nrad·n_layers`,
+  and per shell `2·(nang_w + nang_h)·nrad_shell·n_layers`.
 
 ### `SplinePipe(points, n_layers=None, end_tangent=None, axial_grading=1.0)`
 
@@ -667,6 +696,20 @@ A perpendicular, centred side-branch tee, built as a block layout.
     cells, naming the fitting: one warning, not two. A narrow-face tap on a duct of
     aspect ≥ `limits.DUCT_TAP_NARROW_ASPECT_WARN` (3) warns and suggests
     the wide face (min SJ about 0.13, non-orthogonality up to 82°).
+  - **On an H main** (task 0086). The junction's blocks stay O-H: the
+    main's rectangle pillowed into an O-H face with a ring of `nrad`
+    cells, and a `Switch` leg at each H port, the main's two and a
+    rectangular branch's (a round branch stays O-H). Each leg is the
+    switch's shortest (`Switch`, `length`), with `n_run` layers (`n_branch`
+    for the branch), and comes out of `run_length` and `branch_length`:
+    a room error from the junction inside names the legs. The ring is
+    derived from the H face: `nrad` is the number of H cells whose
+    midpoint lies within a ring thickness of the wall on the smaller side
+    (at least 1), and `mprg` puts the ring's wall cell at the H face's.
+    Override with `Tee(nrad=, mprg=)`, on an H main only. Both are stored
+    resolved, so `to_dict()` is explicit and `refined(k)` gives `nrad·k`,
+    `mprg^(1/k)`. A quality warning names the ring. On a graded H main,
+    `mesh()` checks the meshed cells too (as for round taps).
   - **Limits.** Single-layer ducts, `rot = 0`, `n_outer = 4`;
     `branch_length` beyond the face.
 

@@ -54,7 +54,7 @@ from dataclasses import dataclass, field, replace
 
 import numpy as np
 
-from ..core.spec import LayoutNotSupported, PipeSpec
+from ..core.spec import PipeSpec
 from ..sections import oh
 from . import limits
 from .blocks import (
@@ -279,8 +279,6 @@ class Wye:
     # -- topology -----------------------------------------------------
 
     def check(self, spec: PipeSpec) -> None:
-        if spec.layout != "oh":
-            raise LayoutNotSupported("Wye", spec.layout, "0086")
         if not spec.core_shape.is_round:
             raise ValueError("Wye prototype supports circular cores only")
         for sh, outline in zip(spec.shells, spec.outlines[1:]):

@@ -26,11 +26,12 @@ import pytest
 
 from hexmesh import (Assembly, AssemblyError, Bend, Closure, Session, Straight, Switch,
                      Transition)
-from hexmesh.assembly import intent, limits
+from hexmesh.assembly import intent, limits, switch
 from hexmesh.assembly.interface import Frame
 from hexmesh.assembly.signature import check_port_pairs
 from hexmesh.core.shape import CircleShape, RectShape
-from hexmesh.core.spec import LayoutNotSupported, PipeSpec
+from hexmesh.core.spec import PipeSpec
+from hexmesh.quality_hex import hex_vertices, min_scaled_jacobians
 from hexmesh.sections import h, oh
 
 B = 0.05
@@ -101,11 +102,25 @@ def test_checks(make, match):
         sw.check(spec)
 
 
-def test_shells_wait_for_0086():
-    lagged = PipeSpec(nang=4).core("air", RectShape(2 * B, B, 4, 4), nrad=3).shell(
-        "lagging", dR=0.01, nrad=2)
-    with pytest.raises(LayoutNotSupported, match="0086"):
-        Switch(0.1, n_layers=2).check(lagged)
+def _lagged(spec):
+    return spec.shell("lagging", dR=0.01, nrad=2)
+
+
+def test_shells_run_through():
+    """Task 0086: the default H outlet keeps the shells; each shell adds
+    four ring blocks, O-H level i + 1 to H level i."""
+    sw = Switch(0.1, n_layers=2)
+    spec = _lagged(_oh(aspect=1))
+    out = sw.outlet_spec(spec)
+    assert out.layout == "h" and out.layer_names == ["air", "lagging"]
+    sw.check(spec)
+    frames = _frames(sw, spec)
+    bare = sw.cell_count(_frames(sw, _oh(aspect=1)), _oh(aspect=1))
+    assert sw.cell_count(frames, spec) == bare + 4 * 4 * 2 * 2
+    with pytest.raises(ValueError, match="keeps the shells"):
+        Switch(0.1, n_layers=2, outlet=_h(aspect=1)).check(spec)
+    with pytest.raises(ValueError, match="keeps the shells"):
+        Switch(0.1, n_layers=2, outlet=_h(aspect=1).shell("lagging", dR=0.02, nrad=2)).check(spec)
 
 
 def test_length_rule_is_in_ring_thicknesses():
@@ -113,6 +128,113 @@ def test_length_rule_is_in_ring_thicknesses():
     Switch(limits.SWITCH_MIN_LENGTH * t, n_layers=2).check(_oh())
     with pytest.raises(ValueError, match="ring thicknesses"):
         Switch(0.99 * limits.SWITCH_MIN_LENGTH * t, n_layers=2).check(_oh())
+
+
+# ---------------------------------------------------------------------------
+# A graded H face: the wall-shear rule (task 0086, design answer to Q2)
+# ---------------------------------------------------------------------------
+
+def _graded4():
+    """The kit's ``switch-4-h-oh-graded`` pair: a/b 4, first cell 0.004."""
+    return (PipeSpec(nang_w=16, nang_h=4).core("air", RectShape(4 * B, B, 16, 4), nrad=1),
+            PipeSpec(nang_w=16, nang_h=4).core("air", RectShape(4 * B, B, 16, 4), layout="h",
+                                               first_cell=0.004))
+
+
+def _min_sj(volumes):
+    return float(min_scaled_jacobians(hex_vertices(volumes)[1]).min())
+
+
+def test_wall_shift_by_hand():
+    """Δ_max: the largest side-node shift, here on the long side (the
+    O-H face's sides uniform)."""
+    s_oh, s_h = _graded4()
+    want = 0.0
+    for k, half in ((0, 4 * B), (1, B)):
+        n = s_h.core_shape.side_count(k, 4)
+        want = max(want, float(np.max(np.abs(2 * half * (h.side_fractions(s_h, k)
+                                                        - np.arange(n + 1) / n)))))
+    assert switch.wall_shift(s_oh, s_h) == pytest.approx(want, rel=1e-12)
+    assert switch.wall_shift(_oh(), _h()) == 0.0
+
+
+def test_core_term_binds_at_moderate_shift():
+    """The core block's term (task 0086, Q4): a shift between a quarter and
+    two thirds of t, where 1.25 t and Δ/0.4 would both leave the core
+    block too short (measured: min SJ 0.481 at 1.25 t, a/b 1, n 24)."""
+    s_oh = PipeSpec(nang_w=24, nang_h=24).core("air", RectShape(B, B, 24, 24), nrad=6)
+    s_h = PipeSpec(nang_w=24, nang_h=24).core("air", RectShape(B, B, 24, 24), layout="h",
+                                              first_cell=0.002)
+    need, t, d = switch.min_length(s_oh, s_h)
+    assert d / limits.SWITCH_MAX_SHEAR < limits.SWITCH_MIN_LENGTH * t
+    assert need == pytest.approx(t + d / limits.SWITCH_MAX_CORE_SHEAR) and need > 1.25 * t
+    with pytest.raises(ValueError, match="core block"):
+        Switch(limits.SWITCH_MIN_LENGTH * t, n_layers=2, outlet=s_h).check(s_oh)
+
+
+def test_uniform_h_keeps_the_ring_rule():
+    need, t, d = switch.min_length(_oh(), _h())
+    assert d == 0.0 and need == pytest.approx(limits.SWITCH_MIN_LENGTH * t)
+
+
+def test_old_rule_accepted_new_rule_rejects():
+    """0.1 is 5 ring thicknesses (the old rule's 1.25 t passes), but the
+    wall shear Δ_max / 0.1 is past SWITCH_MAX_SHEAR."""
+    s_oh, s_h = _graded4()
+    t = oh.ring_thickness(4 * B, B)
+    assert 0.1 > limits.SWITCH_MIN_LENGTH * t
+    assert switch.wall_shift(s_oh, s_h) / 0.1 > limits.SWITCH_MAX_SHEAR
+    with pytest.raises(ValueError, match=r"Δ_max = .* over SWITCH_MAX_SHEAR"):
+        Switch(0.1, n_layers=2, outlet=s_h).check(s_oh)
+
+
+def test_at_the_limit_meshes_above_the_bound():
+    """At the shortest length the predicted SJ is the empirical bound,
+    ≥ 0.5, with no warning; the meshed cells are checked and above it."""
+    s_oh, s_h = _graded4()
+    need, t, d = switch.min_length(s_oh, s_h)
+    assert need == pytest.approx(max(d / limits.SWITCH_MAX_SHEAR,
+                                     t + d / limits.SWITCH_MAX_CORE_SHEAR))
+    sw = Switch(need, n_layers=2, outlet=s_h)
+    frames = _frames(sw, s_oh)
+    assert sw.predicted_sj(frames, s_oh) == switch.shear_sj(limits.SWITCH_MAX_SHEAR) >= 0.5
+    assert sw.validate(frames, s_oh) == [] and sw.meshed_sj_check(s_oh)
+    assert not Switch(0.1, n_layers=2).meshed_sj_check(_oh())
+    with Session("limit"):
+        asm = _asm(s_oh, sw)
+        asm.mesh()
+        assert asm.warnings == []
+        vols = asm.fitting_volumes()[1]
+        assert _min_sj(vols) >= 0.5
+
+
+def test_meshed_check_names_the_switch(monkeypatch):
+    """The safety net: the predicted-SJ tiers on the meshed cells.  The
+    prediction is stubbed to 1, standing for a case outside the measured
+    range, where the bound would be wrong."""
+    s_oh, s_h = _graded4()
+    need, _, _ = switch.min_length(s_oh, s_h)
+    monkeypatch.setattr(Switch, "predicted_sj", lambda self, frames, spec: 1.0)
+    monkeypatch.setattr(limits, "PREDICTED_SJ_WARN", 0.95)
+    with Session("net"):
+        asm = _asm(s_oh, Switch(need, n_layers=2, outlet=s_h))
+        with pytest.warns(UserWarning, match="Switch.*meshed corner scaled Jacobian"):
+            asm.mesh()
+    monkeypatch.setattr(limits, "PREDICTED_SJ_MIN", 0.9)
+    with Session("net2"):
+        asm = _asm(s_oh, Switch(need, n_layers=2, outlet=s_h))
+        with pytest.raises(AssemblyError, match="a longer switch"):
+            asm.mesh()
+
+
+def test_transition_sizes_its_switch_by_the_shear_rule():
+    """A graded H end takes more of the layers than a uniform one."""
+    graded = Transition(_hrect(first_cell=0.002), 0.3, 12)
+    uniform = Transition(_hrect(), 0.3, 12)
+    m_g, l_g = graded._split(_circle())
+    m_u, _ = uniform._split(_circle())
+    need, _, _ = switch.min_length(graded._blend_spec(_circle()), _hrect(first_cell=0.002))
+    assert m_g > m_u and l_g >= need - 1e-12
 
 
 # ---------------------------------------------------------------------------
@@ -213,9 +335,6 @@ def test_transition_to_h_embeds_a_switch():
 
 
 @pytest.mark.parametrize("make, match, exc", [
-    (lambda: (Transition(_hrect(), 0.3, 6), PipeSpec(nang=4).core(
-        "air", CircleShape(radius=0.1, nang=4), nrad=3).shell("wall", dR=0.01, nrad=2)),
-     "0086", LayoutNotSupported),
     (lambda: (Transition(_hrect(0.1, 0.1), 0.3, 6), _hrect()), "both ends", ValueError),
     (lambda: (Transition(_hrect(), 0.3, 6), PipeSpec(nang=4).core(
         "air", RectShape(0.14, 0.07, 4, 4), nrad=3)), "use Switch", ValueError),
@@ -226,6 +345,15 @@ def test_transition_h_end_checks(make, match, exc):
     tr, spec = make()
     with pytest.raises(exc, match=match):
         tr.check(spec)
+
+
+def test_transition_to_h_with_shells():
+    """Task 0086: the blend's H-end face carries the shells, which the
+    switch keeps."""
+    tr = Transition(_hrect().shell("wall", dR=0.01, nrad=2), 0.3, 6)
+    spec = _circle().shell("wall", dR=0.01, nrad=2)
+    tr.check(spec)
+    assert tr._blend_spec(spec).layer_names == ["air", "wall"]
 
 
 def test_transition_still_rejects_layer_termination():

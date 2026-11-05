@@ -60,7 +60,7 @@ import numpy as np
 
 from ..core.shape import CircleShape, RectShape
 from ..core.spec import PipeSpec
-from ..sections import oh
+from ..sections import h, oh
 from . import limits
 from .blocks import ArcAbout, BlockLayout, LayoutError, bind_face, face_patches, face_vertices
 from .interface import Frame
@@ -454,6 +454,9 @@ class FullWidthTap(DuctTap):
 # times the duct's smaller half-extent (task 0057; the pipe tee's R/2).
 FULL_WIDTH_RUN = 0.5
 
+# a frame for what doesn't depend on the placement (an H main's branch spec)
+_ORIGIN = Frame(np.zeros(3), np.array([1.0, 0, 0]), np.array([0, 0, 1.0]))
+
 _TUNABLES = ("margin", "dome", "sheet", "n_wall")
 
 
@@ -462,7 +465,16 @@ class TapTemplate:
     """A ``Tee`` on a rectangular main: its resolve, checks, ports,
     layout, quality and fill (decision 0033; ``Tee`` picks this template
     and delegates).  *tee* is the ``Tee`` with the user's fields; the
-    branch is a circle or a rectangle, read through the shape protocol."""
+    branch is a circle or a rectangle, read through the shape protocol.
+
+    **H ports** (decision 0036 item 5, task 0086).  On an H main the
+    junction keeps its O-H blocks: the O-H face the H main pillows into
+    (``sections.h.pillowed``, with the tee's ``nrad`` and ``mprg``,
+    derived and stored when the tee is added).  A ``Switch`` leg of
+    ``limits.SWITCH_MIN_LENGTH`` ring thicknesses at each H port (both
+    main ports, and a rectangular branch, which is H too) joins it to the
+    port; the legs come out of ``run_length`` and ``branch_length``, so
+    the ports stay where the tee puts them.  A round branch stays O-H."""
 
     tee: object
 
@@ -524,6 +536,11 @@ class TapTemplate:
                              "CircleShape(…); branch_radius= is the shorthand for pipes")
         tee = replace(tee, face=tee.face or "wide")
         me = TapTemplate(tee)
+        if spec.layout == "h":
+            return me._resolve_h(inlet, spec)
+        if tee.nrad is not None or tee.mprg is not None:
+            raise ValueError("Tee: nrad= and mprg= are for a duct tap on an H main (its "
+                             "O-H blocks inside); an O-H main's ring is its own")
         if me.full_width(spec):
             tuning = [n for n in _TUNABLES if getattr(tee, n) is not None]
             if tuning:
@@ -547,6 +564,11 @@ class TapTemplate:
 
     def check(self, spec: PipeSpec, tuned: bool = True) -> None:
         tee = self.tee
+        if spec.layout == "h":
+            return self._check_h(spec, tuned)
+        if tee.nrad is not None or tee.mprg is not None:
+            raise ValueError("Tee: nrad= and mprg= are for a duct tap on an H main (its "
+                             "O-H blocks inside); an O-H main's ring is its own")
         sh = spec.core_shape
         full = tee.branch is not None and self.full_width(spec)
         tunables = () if full else tuple(getattr(tee, k) for k in _TUNABLES)
@@ -616,10 +638,41 @@ class TapTemplate:
     # -- the fitting contract (delegated by Tee) ------------------------
 
     def ports(self, inlet: Frame, spec: PipeSpec):
+        if spec.layout == "h":
+            return self._h_ports(inlet, spec)
         return self.tap(inlet, spec).ports(inlet, spec)
 
     def layout(self, frames: list[Frame], spec: PipeSpec) -> BlockLayout:
+        """The junction's blocks; on an H main the O-H junction's (the
+        switch legs are their own layouts, ``_parts``)."""
+        if spec.layout == "h":
+            _, (inner, fr, s), *_ = self._parts(frames, spec)
+            return inner.layout(fr, s)
         return self.tap(frames[0], spec).layout(frames, spec)
+
+    def validate(self, frames: list[Frame], spec: PipeSpec) -> list[str]:
+        """Quality tiers and the block layouts (raise or warn); on an H
+        main also each switch leg's."""
+        if spec.layout != "h":
+            found = self.quality(frames, spec)
+            _validate_layout(self.layout(frames, spec))
+            return found
+        found = []
+        for part, fr, s in self._parts(frames, spec):
+            if isinstance(part, TapTemplate):
+                ring = (f" (H main: the O-H ring inside has nrad {s._core_nrad}, "
+                        f"mprg {s._core_mprg:.4g})")
+                found += [m + ring for m in part.quality(fr, s)]
+                _validate_layout(part.layout(fr, s))
+            else:
+                found += part.validate(fr, s)
+        return found
+
+    def cell_count(self, frames: list[Frame], spec: PipeSpec) -> int:
+        if spec.layout != "h":
+            return self.layout(frames, spec).cell_count()
+        return sum(part.layout(fr, s).cell_count() if isinstance(part, TapTemplate)
+                   else part.cell_count(fr, s) for part, fr, s in self._parts(frames, spec))
 
     def quality(self, frames: list[Frame], spec: PipeSpec) -> list[str]:
         """The predicted-SJ tiers (task 0052) for a duct tap, and the
@@ -659,8 +712,169 @@ class TapTemplate:
         return found
 
     def fill(self, faces, frames, spec, lc):
-        """Bind the three port faces (declared in the ports' own frames)."""
+        """Bind the three port faces (declared in the ports' own frames).
+        On an H main: the O-H faces at the legs' inner ends, then each
+        part's fill on its faces."""
+        if spec.layout == "h":
+            return self._fill_h(faces, frames, spec, lc)
         lay = self.layout(frames, spec)
         for prefix, face in zip("ABE", faces):
             bind_face(lay, prefix, face)
         return lay.realise(spec.layer_names)
+
+    # -- H ports (task 0086): O-H blocks inside, a switch leg at each port
+
+    def inner_spec(self, spec: PipeSpec) -> PipeSpec:
+        """The junction's own section: *spec*, or on an H main the O-H face
+        it pillows into (``sections.h.pillowed``; the tee's ``nrad`` and
+        ``mprg`` when set, else derived)."""
+        if spec.layout != "h":
+            return spec
+        return h.pillowed(spec, self.tee.nrad, self.tee.mprg)
+
+    def legs(self, spec: PipeSpec) -> tuple[float, float]:
+        """(main leg, branch leg): the switch lengths at the main ports and
+        at a rectangular branch port, each the switch's shortest
+        (``switch.min_length``, task 0086's Q2); 0 where the port stays
+        O-H (an O-H main, a round branch)."""
+        from .switch import min_length
+        if spec.layout != "h":
+            return 0.0, 0.0
+        s_oh = self.inner_spec(spec)
+        main, _, _ = min_length(s_oh, spec)
+        br = self.tee.branch
+        if br is None or br.is_round:
+            return main, 0.0
+        b_oh = self._branch_oh(spec)
+        return main, min_length(b_oh, self._h_branch(b_oh, spec))[0]
+
+    def _branch_oh(self, spec: PipeSpec) -> PipeSpec:
+        """The inner junction's branch spec on an H main: its shape and
+        counts don't depend on the lengths (any run length places it)."""
+        s_oh = self.inner_spec(spec)
+        tpl = TapTemplate(replace(self.tee, nrad=None, mprg=None,
+                                  run_length=self.tee.run_length or 1.0))
+        return tpl.tap(_ORIGIN, s_oh).branch(_ORIGIN, s_oh)[1]
+
+    def graded_legs(self, spec: PipeSpec) -> bool:
+        """An H main with a graded wall: its switch legs' prediction is an
+        empirical bound, so the meshed cells are checked (task 0086)."""
+        return spec.layout == "h" and spec.wall_grading is not None
+
+    def inner(self, spec: PipeSpec) -> "TapTemplate":
+        """The O-H junction inside: the tee with the legs taken off its
+        lengths, and no ``nrad``/``mprg`` (its main is O-H)."""
+        lm, lb = self.legs(spec)
+        tee = self.tee
+        run = None if tee.run_length is None else tee.run_length - lm
+        return TapTemplate(replace(tee, run_length=run, branch_length=tee.branch_length - lb,
+                                   nrad=None, mprg=None))
+
+    def _h_branch(self, bspec: PipeSpec, spec: PipeSpec) -> PipeSpec:
+        """A rectangular branch's H port: the inner branch spec's
+        rectangle, graded as the main (the same ``Bump`` per side count,
+        as the branch keeps the main's counts per side)."""
+        sh = bspec.core_shape
+        wall = spec.wall_grading
+        return PipeSpec(nang_w=sh.nang_w, nang_h=sh.nang_h, mbmp=bspec.mbmp,
+                        rot=bspec.rot).core(bspec.layer_names[0], sh, layout="h",
+                                            wall_bump=None if wall is None else wall[1])
+
+    def _parts(self, frames: list[Frame], spec: PipeSpec):
+        """[(fitting or template, frames, inlet spec), …] on an H main: the
+        inlet leg, the O-H junction, the outlet leg and (a rectangular
+        branch) the branch leg; *frames* the tee's three ports."""
+        from .switch import Switch
+        A, B, E = frames
+        lm, lb = self.legs(spec)
+        s_oh = self.inner_spec(spec)
+        A1 = Frame(A.position + lm * A.normal, A.normal, A.up)
+        B1 = Frame(B.position - lm * B.normal, B.normal, B.up)
+        E1 = Frame(E.position - lb * E.normal, E.normal, E.up)
+        inner = self.inner(spec)
+        b_oh = self._branch_oh(spec)
+        # the legs' layers are the run's and the branch's counts, so they
+        # refine with them (intent.refined_dict)
+        n_run, n_br = self.tee.n_run, self.tee.n_branch
+        parts = [(Switch(lm, n_layers=n_run, outlet=s_oh), [A, A1], spec),
+                 (inner, [A1, B1, E1], s_oh),
+                 (Switch(lm, n_layers=n_run, outlet=spec), [B1, B], s_oh)]
+        if lb:
+            parts.append((Switch(lb, n_layers=n_br, outlet=self._h_branch(b_oh, spec)),
+                          [E1, E], b_oh))
+        return parts
+
+    def _h_ports(self, inlet: Frame, spec: PipeSpec):
+        lm, lb = self.legs(spec)
+        s_oh = self.inner_spec(spec)
+        A1 = Frame(inlet.position + lm * inlet.normal, inlet.normal, inlet.up)
+        (b1, _), (e1, b_oh) = self.inner(spec).ports(A1, s_oh)
+        main = Frame(b1.position + lm * b1.normal, b1.normal, b1.up)
+        if not lb:
+            return [(main, spec), (e1, b_oh)]
+        branch = Frame(e1.position + lb * e1.normal, e1.normal, e1.up)
+        return [(main, spec), (branch, self._h_branch(b_oh, spec))]
+
+    def _check_override(self) -> None:
+        tee = self.tee
+        if tee.nrad is not None and (isinstance(tee.nrad, bool) or not isinstance(tee.nrad, int)
+                                     or tee.nrad < 1):
+            raise ValueError(f"Tee: nrad must be an integer >= 1, got {tee.nrad!r}")
+        if tee.mprg is not None and not tee.mprg > 0:
+            raise ValueError(f"Tee: mprg must be positive, got {tee.mprg!r}")
+
+    def _room(self, e: ValueError, spec: PipeSpec) -> ValueError:
+        """*e* from the O-H junction inside, naming the legs on top."""
+        lm, lb = self.legs(spec)
+        legs = f"{lm:.4g} at each main port" + (f" and {lb:.4g} at the branch" if lb else "")
+        return ValueError(f"{e} (for the O-H junction inside: with H ports a switch leg of "
+                          f"{legs} comes on top, task 0086)")
+
+    def _check_h(self, spec: PipeSpec, tuned: bool) -> None:
+        """An H main: the override, then the O-H junction inside, its room
+        checks naming the legs."""
+        self._check_override()
+        try:
+            self.inner(spec).check(self.inner_spec(spec), tuned)
+        except ValueError as e:
+            raise self._room(e, spec) from None
+
+    def _resolve_h(self, inlet: Frame, spec: PipeSpec):
+        """The tee on an H main, resolved: ``nrad`` and ``mprg`` (the
+        override, else derived), the O-H junction's resolve with the legs
+        off, and the legs back on ``run_length``."""
+        self._check_override()
+        tee = self.tee
+        if tee.nrad is None or tee.mprg is None:
+            dn, dm = h.pillow_ring(spec, tee.nrad)
+            tee = replace(tee, nrad=dn, mprg=dm if tee.mprg is None else tee.mprg)
+        me = TapTemplate(tee)
+        lm, lb = me.legs(spec)
+        inner_inlet = Frame(inlet.position + lm * inlet.normal, inlet.normal, inlet.up)
+        try:
+            inner = me.inner(spec).resolve(inner_inlet, me.inner_spec(spec))
+        except ValueError as e:
+            raise me._room(e, spec) from None
+        return replace(inner, run_length=inner.run_length + lm, branch_length=tee.branch_length,
+                       nrad=tee.nrad, mprg=tee.mprg)
+
+    def _fill_h(self, faces, frames, spec, lc):
+        from .interface import build_face
+        parts = self._parts(frames, spec)
+        (_, fr_in, s_oh), branch_leg = parts[1], parts[3] if len(parts) == 4 else None
+        inner_faces = [build_face(s_oh, fr_in[0], lc), build_face(s_oh, fr_in[1], lc),
+                       faces[2] if branch_leg is None else build_face(branch_leg[2], fr_in[2], lc)]
+        result = parts[0][0].fill([faces[0], inner_faces[0]], parts[0][1], parts[0][2], lc)
+        result.merge(parts[1][0].fill(inner_faces, fr_in, s_oh, lc))
+        result.merge(parts[2][0].fill([inner_faces[1], faces[1]], parts[2][1], parts[2][2], lc))
+        if branch_leg is not None:
+            result.merge(branch_leg[0].fill([inner_faces[2], faces[2]], branch_leg[1],
+                                            branch_leg[2], lc))
+        return result
+
+
+def _validate_layout(lay: BlockLayout) -> None:
+    try:
+        lay.validate()
+    except LayoutError as e:
+        raise ValueError(f"block layout invalid: {e}") from None

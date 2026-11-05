@@ -30,6 +30,7 @@ from hexmesh.assembly.signature import check_port_pairs, classify, signature
 from hexmesh.core.grading import bump, bump_for_first_cell, bump_for_ratio
 from hexmesh.core.shape import RectShape
 from hexmesh.core.spec import LayoutNotSupported, PipeSpec
+from hexmesh.sections import h
 
 DATA = Path(__file__).parent / "data"
 
@@ -69,10 +70,19 @@ def test_bad_layouts(make, match):
         make()
 
 
-def test_shells_on_h_name_the_task():
-    with pytest.raises(LayoutNotSupported) as e:
-        _h().shell("wall", dR=0.01, nrad=2)
-    assert (e.value.layout, e.value.task) == ("h", "0086")
+def test_shells_on_h():
+    """Rings on the core's corners (task 0086): one level per layer (the
+    core has one), four ring patches per shell, the shells' sides graded
+    as the core's."""
+    spec = _h(nw=6, nh=6, first_cell=0.004).shell("wall", dR=0.01, nrad=2).shell(
+        "lag", dR=0.03, nrad=3)
+    lv = h.levels(spec)
+    assert len(lv) == 3 and len(h.patches(spec)) == 1 + 4 + 4
+    assert h.section_cells(spec) == 6 * 6 + 24 * (2 + 3)
+    np.testing.assert_allclose(lv[1].corners[0], (0.11, 0.06))
+    sides = [e.grading for e in lv[2].edges if e.a[0] == e.b[0]]
+    assert sides == [h.side_grading(spec, k) for k in range(4)]
+    assert PipeSpec.from_dict(spec.to_dict()).to_dict() == spec.to_dict()
 
 
 def test_wall_grading():
@@ -182,13 +192,11 @@ def _validate(spec, fitting):
     asm.validate()
 
 
-@pytest.mark.parametrize("fitting, task", [
-    (lambda: Tee(run_length=0.2, branch_length=0.25, branch_radius=0.03), "0086"),
-    (lambda: Wye(60, run_length=0.25, branch_length=0.4), "0086"),
-])
-def test_junctions_and_transitions_reject_h(fitting, task):
-    with pytest.raises(AssemblyError, match=rf"layout 'h' is not supported yet \(task {task}\)"):
-        _validate(_h(), fitting())
+def test_wye_takes_circles_only():
+    """An H core is a rectangle: the wye's circular-cores rule, not a layout
+    rejection (task 0086)."""
+    with pytest.raises(AssemblyError, match="circular cores only"):
+        _validate(_h(), Wye(60, run_length=0.25, branch_length=0.4))
 
 
 def test_reducer_keeps_the_layout():
