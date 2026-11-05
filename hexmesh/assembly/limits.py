@@ -233,3 +233,23 @@ VENTURI_DIVERGENT_MIN = _limit(
     "VENTURI_DIVERGENT_MIN", 7.0, "deg", "error", "narrowest venturi divergent (ISO 5167-4)")
 VENTURI_DIVERGENT_MAX = _limit(
     "VENTURI_DIVERGENT_MAX", 15.0, "deg", "error", "widest venturi divergent (ISO 5167-4)")
+
+# --- the resolution advisor (hexmesh.agent.advise, task 0098) ----------------------
+# Guidance, not checks: the advisor's rules read them, nothing rejects a
+# mesh that passes them.
+
+MAX_WALL_GROWTH = _limit(
+    "MAX_WALL_GROWTH", 1.2, "1", "info",
+    "largest growth ratio between neighbouring cells from the wall cell inward that "
+    "the advisor plans [casey_and_wintergerste_2000]")
+MAX_AXIAL_ASPECT_STRAIGHT = _limit(
+    "MAX_AXIAL_ASPECT_STRAIGHT", 6.0, "1", "info",
+    "the advisor's axial cell over core cell in straights: the calibrated runs had "
+    "5–7.5 (validation/poiseuille, rect_duct)")
+MAX_AXIAL_ASPECT_FITTING = _limit(
+    "MAX_AXIAL_ASPECT_FITTING", 2.0, "1", "info",
+    "the advisor's axial cell over core cell in bends, junctions and other fittings, "
+    "where the flow develops (judgement; no validated case)")
+MAX_AXIAL_ASPECT_BUDGET = _limit(
+    "MAX_AXIAL_ASPECT_BUDGET", 12.0, "1", "info",
+    "the straights' axial aspect the advisor relaxes to first when over the budget")

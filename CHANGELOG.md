@@ -43,6 +43,22 @@
   three orthographic views and an isometric one.  It needs the new
   `preview` extra (matplotlib).
 
+**Resolution advice and the `hexmesh` command** (decision 0040; task 0098).
+
+- `hexmesh.agent.advise(asm, inputs)` chooses the counts from the flow:
+  the fluid, a velocity or flow rate, an accuracy class, and a budget.
+  It explains each choice and returns a resolution table.
+  `apply(description, table)` writes the table into a description.
+  - The counts come from `hexmesh/agent/calibration.json`, generated
+    from the validation results.  A class no case measured says
+    `"validated": false`.
+  - Turbulent flow is graded to y⁺; it isn't validated yet.
+- The `hexmesh` command: `schema`, `validate`, `estimate`, `describe`,
+  `preview`, `advise`, `apply` and `build`.  It writes JSON with exit
+  codes 0, 1 and 2.
+- Validation results now record each level's `nang`, `nrad`, `nang_w`
+  and `nang_h`.
+
 **Second-order export** (decision 0034; task 0076).
 
 - `Assembly.mesh(order=2)` (and `write(..., order=2)`) writes Hex27, or

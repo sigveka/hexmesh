@@ -60,7 +60,8 @@ LEAVES = {"hexmesh._occ", "hexmesh.session", "hexmesh.quality_hex",
 #: roots, and the documented registries the schema reads
 AGENT_IMPORTS = {"hexmesh", "hexmesh.assembly", "hexmesh.interchange", "hexmesh.errors",
                  "hexmesh.assembly.intent", "hexmesh.assembly.limits",   # FITTING_TYPES, LIMITS
-                 "hexmesh.core.params", "hexmesh.core.shape"}            # UNITS, SHAPES
+                 "hexmesh.core.params", "hexmesh.core.shape",            # UNITS, SHAPES
+                 "hexmesh.core.grading"}          # advise: the first-cell solvers
 #: which capabilities may import ``io.writers``
 WRITERS_USERS = {"assembly", "study"}
 #: may import anything

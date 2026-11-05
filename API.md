@@ -1334,6 +1334,16 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 
 | code | rule | class |
 |------|------|-------|
+| `advice_budget_unreachable` | a cell budget advise can't meet; value is the closest result | `AdviceError` |
+| `advice_calibration_scope` | advice is calibrated on developed flow in straight runs (advice note) | advice note |
+| `advice_eight_x` | doubling every count gives 8× the cells (advice note) | advice note |
+| `advice_fluid_unknown` | a fluid name advise has no properties for | `AdviceError` |
+| `advice_input_invalid` | advise inputs that are missing or malformed | `AdviceError` |
+| `advice_layout_unsupported` | advise on a rectangle in the O-H layout (calibrated for H only) | `AdviceError` |
+| `advice_length_unit_suspect` | a geometry that looks like millimetres read as metres (advice note) | advice note |
+| `advice_not_validated` | advice that rests on no validated case (advice note) | advice note |
+| `advice_regime_transitional` | a section in transitional flow, graded as turbulent (advice note) | advice note |
+| `advice_wall_function_unsupported` | wall functions asked of advise (they wait for task 0049) | `AdviceError` |
 | `angle_looks_like_radians` | a fitting angle so small it was probably given in radians (warning) | `HexmeshWarning` |
 | `angle_out_of_range` | a bend or wye angle outside its open range | `AssemblyError` |
 | `argument_missing` | a required fitting argument is missing | `AssemblyTypeError` |
@@ -1365,6 +1375,7 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `cell_budget_exceeded` | more cells than the budget (max_cells) | `AssemblyError`, `StudyError` |
 | `chain_gap` | a network component does not start at the previous outlet | `AssemblyError` |
 | `chord_turn_above_maximum` | a sweep slab turns more than straight axial edges allow | `AssemblyError` |
+| `cli_input_unreadable` | a hexmesh CLI input file or argument that is missing or unreadable | `HexmeshError` |
 | `close_onto_itself` | an interface closed onto itself | `AssemblyError` |
 | `close_source_not_outlet` | close() from an interface that is not an outlet | `AssemblyError` |
 | `close_target_not_inlet` | close() onto an interface that is not an inlet | `AssemblyError` |
@@ -1698,6 +1709,10 @@ Kinds:
 | `WYE_ANGLE_MAX` | 120 | `deg` | error | widest Wye |
 | `VENTURI_DIVERGENT_MIN` | 7 | `deg` | error | narrowest venturi divergent (ISO 5167-4) |
 | `VENTURI_DIVERGENT_MAX` | 15 | `deg` | error | widest venturi divergent (ISO 5167-4) |
+| `MAX_WALL_GROWTH` | 1.2 | `1` | info | largest growth ratio between neighbouring cells from the wall cell inward that the advisor plans [casey_and_wintergerste_2000] |
+| `MAX_AXIAL_ASPECT_STRAIGHT` | 6 | `1` | info | the advisor's axial cell over core cell in straights: the calibrated runs had 5–7.5 (validation/poiseuille, rect_duct) |
+| `MAX_AXIAL_ASPECT_FITTING` | 2 | `1` | info | the advisor's axial cell over core cell in bends, junctions and other fittings, where the flow develops (judgement; no validated case) |
+| `MAX_AXIAL_ASPECT_BUDGET` | 12 | `1` | info | the straights' axial aspect the advisor relaxes to first when over the budget |
 
 ## Describe and preview (`hexmesh.agent`)
 
@@ -1761,6 +1776,127 @@ bytes.  The examples each take under 1 s.
 
 More references: `docs/agent/preview_hvac_branched.png` and
 `docs/agent/preview_bifurcation_tree.png`.
+
+## Resolution advice (`hexmesh.agent.advise`, `apply`) and the `hexmesh` CLI
+
+Task 0098, decision 0040.  `advise(x, inputs)` chooses the counts:
+- `nang`, `nrad`, or `nang_w` / `nang_h`;
+- the wall grading;
+- every fitting's axial counts.
+
+It takes an `Assembly` or its `to_dict()`, and returns a JSON-safe
+report.  `apply(description, table)` writes the report's `table` into
+the description; build it with `Assembly.from_dict`.  No GMSH is needed.
+
+```python
+>>> from hexmesh.agent import advise, apply
+>>> r = advise(asm, {"fluid": "water", "flow": {"velocity": 0.005}})   # a 20 mm pipe
+>>> r["density"]
+{'nang': 12, 'nrad': 6, 'nang_w': None, 'nang_h': None, 'mprg': 1.0, 'wall_bump': None}
+>>> built = Assembly.from_dict(apply(asm.to_dict(), r["table"]))
+>>> built.cell_count() == r["totals"]["cells"]
+True
+```
+
+**Inputs** (SI units, except lengths):
+
+| key | value | default |
+|-----|-------|---------|
+| `length_unit` | the geometry's unit, `"m"` or `"mm"`.  hexmesh doesn't convert, and Re and y⁺ need metres; a diameter above 5 read as metres is noted (`advice_length_unit_suspect`) | `"m"` |
+| `fluid` | `"water"` or `"air"` at 20 °C [white_2011], or `{"density": kg/m³, "viscosity": Pa·s}` (dynamic) | required |
+| `flow` | `{"velocity": m/s}` or `{"flow_rate": m³/s}` at the inlet.  At a junction it splits in proportion to the open area downstream of each outlet | required |
+| `wall` | `"wall-resolved"`, or `{"treatment": "wall-resolved", "y_plus": 1}`.  `"wall-function"` is `advice_wall_function_unsupported` until task 0049 | `"wall-resolved"`, y⁺ 1 |
+| `accuracy` | `"coarse"`, `"medium"` or `"fine"`: ≤ 1 %, 0.3 % or 0.1 % in the validation cases' gated quantities | `"medium"` |
+| `budget` | the maximum cells | none |
+
+**The rules**, each recorded in the report's `reasons`:
+- **Re and regime.**  Re = U D_h / ν.  Laminar below 2300; transitional
+  up to 4000, which is noted and graded as turbulent; turbulent above.
+- **Core counts** come from `hexmesh/agent/calibration.json`.  It holds
+  the cells across D (circles, `nang + 2 nrad`) or D_h (H rectangles,
+  square cells) at which each class's error was measured:
+  - poiseuille for circles;
+  - rect_duct's uniform H series at a/b 1, 2 and 4 for rectangles.
+    Between those ratios, the worse neighbour is used.
+  - Classes between measured levels are interpolated.  Past the finest
+    level, a class is extrapolated (at most 2× in k) and marked
+    `"validated": false`, with its `basis`.
+  - `python3 -m hexmesh.agent._calibrate` regenerates the file from
+    `validation/*/results.json`; `--check` reports whether it is stale.
+- **Shared counts.**  Density is shared by every section of an
+  assembly, so the largest count any section needs wins.
+  - A circle's `nang` is even, so a node sits mid-arc.
+  - A Transition, or a layer stack with a rectangle, ties
+    `nang = nang_w = nang_h`.
+  - A rectangle in the O-H layout is `advice_layout_unsupported`: only
+    H is calibrated.
+- **Wall.**
+  - Laminar: the calibrated runs' uniform grading.
+  - Turbulent: the first cell for the y⁺ target, y = y⁺ ν / u_τ with
+    u_τ = U √(f/8).  f is Blasius below Re 10⁵ [blasius_1913] and
+    Haaland (smooth) above [haaland_1983].
+  - Circles get `mprg`, with `nrad` raised until the growth is within
+    `MAX_WALL_GROWTH`; H rectangles get `wall_bump`.
+  - No validated case covers turbulent flow, so the report says
+    `advice_not_validated`.
+- **Axial counts.**
+  - The core cell × `MAX_AXIAL_ASPECT_STRAIGHT` in straights, and
+    `MAX_AXIAL_ASPECT_FITTING` elsewhere, never below the fitting's
+    minimum (`layers_ok`).
+  - A tee's `n_run` and `n_branch` are set; its `n_turn` is kept.
+  - A wye and a switch keep their own rules.
+- **Budget.**  Over it, the resolution is lowered in this order:
+  1. the straights' aspect, to `MAX_AXIAL_ASPECT_BUDGET`;
+  2. the accuracy class, one step at a time;
+  3. the fittings' axial counts, to their minima.
+
+  A turbulent first cell never moves.  Each step's cells are in
+  `budget_steps`.  If the budget is still missed, the closest result
+  comes back with `ok: false` and the `advice_budget_unreachable` error,
+  whose `value` is the cells and `limit` the budget.
+
+**The report:**
+- `sections`: per fitting inlet, and per outlet with another section:
+  - Re, regime, flow rate, velocity and `first_cell`;
+  - `y_plus` when turbulent;
+  - the class and its expected errors;
+  - `reasons`.
+- `density` and `density_reasons`.
+- `fittings`: counts and reasons.
+- `totals`: `cells`, exact (`cell_count()`), against the budget.
+- `budget_steps`.
+- `calibration`: the class, case, `validated` and `basis` used.
+- `table`.
+- `notes`: coded; every report has `advice_calibration_scope` and
+  `advice_eight_x`.
+- `validation`: `validate()` on the result, run once.
+
+**The scope:** calibrated on developed laminar flow in straight runs.
+Bends, junctions and switches may be less accurate at the same counts.
+
+**`hexmesh`**, the console script (`hexmesh.agent.cli:main`;
+`hexmesh-study` is unchanged):
+
+| command | output (`result`) |
+|---------|-------------------|
+| `hexmesh schema` | the JSON Schema |
+| `hexmesh validate NET` | `{ok, errors, warnings, complete}`; `complete` is false when validation stopped at its first error |
+| `hexmesh estimate NET` | `{cells, exact, per_fitting}` |
+| `hexmesh describe NET` | `describe()` |
+| `hexmesh preview NET --out P.png` | `{path}` |
+| `hexmesh advise NET --inputs I.json` | the report |
+| `hexmesh apply NET --table T.json` | the description with the table applied |
+| `hexmesh build NET --out M.msh [--order 2]` | `{path, cells, order}`; the only command that needs GMSH; the `.msh` carries its recipe block |
+
+- *NET* is an `Assembly` description (`Assembly.save`).  A PCF file
+  waits for task 0066, because `hexmesh.agent` may not import
+  `io.readers`.  Until then, `save()` the assembly that
+  `read_pcf(...).to_assembly(spec)` builds.
+- stdout is one JSON object: `{version, command, ok, result}`, or
+  `{…, ok: false, error}`.  Keys are sorted and lines end in `\n`, so
+  the same input gives the same bytes.
+- Exit codes: 0 when `ok`; 1 for invalid input (including `validate`
+  errors); 2 for a failure, such as an unreachable budget.
 
 ## Physical groups
 

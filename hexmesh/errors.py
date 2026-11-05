@@ -139,6 +139,26 @@ class HexmeshWarning(_Fields, UserWarning):
 #: Every code, with a one-line description of the rule.  Codes describe the
 #: rule, not the fitting, and never change once released.
 CODES: dict[str, str] = {
+    "advice_budget_unreachable":
+        "a cell budget advise can't meet; value is the closest result",
+    "advice_calibration_scope":
+        "advice is calibrated on developed flow in straight runs (advice note)",
+    "advice_eight_x":
+        "doubling every count gives 8× the cells (advice note)",
+    "advice_fluid_unknown":
+        "a fluid name advise has no properties for",
+    "advice_input_invalid":
+        "advise inputs that are missing or malformed",
+    "advice_layout_unsupported":
+        "advise on a rectangle in the O-H layout (calibrated for H only)",
+    "advice_length_unit_suspect":
+        "a geometry that looks like millimetres read as metres (advice note)",
+    "advice_not_validated":
+        "advice that rests on no validated case (advice note)",
+    "advice_regime_transitional":
+        "a section in transitional flow, graded as turbulent (advice note)",
+    "advice_wall_function_unsupported":
+        "wall functions asked of advise (they wait for task 0049)",
     "angle_looks_like_radians":
         "a fitting angle so small it was probably given in radians (warning)",
     "angle_out_of_range": "a bend or wye angle outside its open range",
@@ -171,6 +191,8 @@ CODES: dict[str, str] = {
     "cell_budget_exceeded": "more cells than the budget (max_cells)",
     "chain_gap": "a network component does not start at the previous outlet",
     "chord_turn_above_maximum": "a sweep slab turns more than straight axial edges allow",
+    "cli_input_unreadable":
+        "a hexmesh CLI input file or argument that is missing or unreadable",
     "close_onto_itself": "an interface closed onto itself",
     "close_source_not_outlet": "close() from an interface that is not an outlet",
     "close_target_not_inlet": "close() onto an interface that is not an inlet",

@@ -23,6 +23,9 @@ package (``tests/test_architecture.py``).
   data, without GMSH (task 0097).
 - :func:`preview`: a PNG of it, without GMSH (needs matplotlib, the
   ``preview`` extra).
+- :func:`advise`: the resolution advisor, and :func:`apply`, which writes
+  its resolution table into a description (task 0098).
+- ``hexmesh`` (``cli.main``): all of them as one command.
 
 The functions live in private modules (``_schema``, ``_describe``,
 ``_preview``), so that ``hexmesh.agent.schema`` and the rest stay the
@@ -30,7 +33,8 @@ functions; ``python3 -m hexmesh.agent.schema`` is the one command.
 """
 
 from ._describe import describe
+from .advise import AdviceError, advise, apply
 from ._preview import preview
 from ._schema import dumps, schema
 
-__all__ = ["describe", "dumps", "preview", "schema"]
+__all__ = ["AdviceError", "advise", "apply", "describe", "dumps", "preview", "schema"]

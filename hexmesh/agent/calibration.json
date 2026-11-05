@@ -1,0 +1,370 @@
+{
+ "classes": {
+  "coarse": {
+   "max_error": 0.01
+  },
+  "fine": {
+   "max_error": 0.001
+  },
+  "medium": {
+   "max_error": 0.003
+  }
+ },
+ "format": "hexmesh.agent.calibration",
+ "generated_by": "python3 -m hexmesh.agent._calibrate (task 0098)",
+ "regime": "laminar",
+ "rule": "the worse of the gated quantities sets the class; between measured levels at each quantity's order; past the finest only from a converging series, at most 2× in k, and then not validated",
+ "scope": "calibrated on developed laminar flow in straight runs; bends, junctions and switches may be less accurate at the same counts",
+ "shapes": {
+  "circle": {
+   "case": "poiseuille",
+   "classes": {
+    "coarse": {
+     "basis": "measured at k = 1 (coarse)",
+     "errors": {
+      "dp": 0.00450725,
+      "u_max": 0.0093452
+     },
+     "k": 1,
+     "n": 12,
+     "validated": true
+    },
+    "fine": {
+     "basis": "extrapolated at order 0.99 (dp) from k = 4",
+     "errors": {
+      "dp": 0.001,
+      "u_max": 0.000673365
+     },
+     "k": 4.179,
+     "n": 50.1483,
+     "nearest": {
+      "errors": {
+       "dp": 0.00104413,
+       "u_max": 0.0007287
+      },
+      "k": 4,
+      "level": "fine",
+      "n": 48
+     },
+     "validated": false
+    },
+    "medium": {
+     "basis": "interpolated between measured k = 1 and 2, at each quantity's order between them",
+     "errors": {
+      "dp": 0.0022829,
+      "u_max": 0.003
+     },
+     "k": 1.8319,
+     "n": 21.9823,
+     "validated": true
+    }
+   },
+   "levels": [
+    {
+     "errors": {
+      "dp": 0.00450725,
+      "u_max": -0.0093452
+     },
+     "k": 1,
+     "level": "coarse",
+     "n": 12
+    },
+    {
+     "errors": {
+      "dp": 0.00206838,
+      "u_max": -0.0025441
+     },
+     "k": 2,
+     "level": "medium",
+     "n": 24
+    },
+    {
+     "errors": {
+      "dp": 0.00104413,
+      "u_max": -0.0007287
+     },
+     "k": 4,
+     "level": "fine",
+     "n": 48
+    }
+   ],
+   "metric": "cells along a diameter: nang + 2 nrad",
+   "nrad_per_nang": 0.5,
+   "quantities": {
+    "dp": "dp_err_signed",
+    "u_max": "u_max_err_signed"
+   }
+  },
+  "rect": {
+   "aspect": {
+    "1": {
+     "case": "rect_duct",
+     "classes": {
+      "coarse": {
+       "basis": "interpolated between measured k = 2 and 4, at each quantity's order between them",
+       "errors": {
+        "fRe": 0.01,
+        "u_c": 0.00622986
+       },
+       "k": 2.0182,
+       "n": 20.1816,
+       "validated": true
+      },
+      "fine": {
+       "basis": "extrapolated at order 1.93 (fRe) from k = 4",
+       "errors": {
+        "fRe": 0.001,
+        "u_c": 0.000431885
+       },
+       "k": 6.5304,
+       "n": 65.3043,
+       "nearest": {
+        "errors": {
+         "fRe": 0.00258084,
+         "u_c": 0.00110354
+        },
+        "k": 4,
+        "level": "h_ar1_k4",
+        "n": 40.0
+       },
+       "validated": false
+      },
+      "medium": {
+       "basis": "interpolated between measured k = 2 and 4, at each quantity's order between them",
+       "errors": {
+        "fRe": 0.003,
+        "u_c": 0.00133755
+       },
+       "k": 3.7072,
+       "n": 37.0722,
+       "validated": true
+      }
+     },
+     "levels": [
+      {
+       "errors": {
+        "fRe": -0.0392246,
+        "u_c": -0.0262334
+       },
+       "k": 1,
+       "level": "h_ar1_k1",
+       "n": 10.0
+      },
+      {
+       "errors": {
+        "fRe": -0.0101806,
+        "u_c": -0.00637396
+       },
+       "k": 2,
+       "level": "h_ar1_k2",
+       "n": 20.0
+      },
+      {
+       "errors": {
+        "fRe": -0.00258084,
+        "u_c": -0.00110354
+       },
+       "k": 4,
+       "level": "h_ar1_k4",
+       "n": 40.0
+      }
+     ],
+     "quantities": {
+      "fRe": "fRe_err_signed",
+      "u_c": "u_c_err_signed"
+     }
+    },
+    "2": {
+     "case": "rect_duct",
+     "classes": {
+      "coarse": {
+       "basis": "interpolated between measured k = 1 and 2, at each quantity's order between them",
+       "errors": {
+        "fRe": 0.01,
+        "u_c": 0.00524365
+       },
+       "k": 1.7823,
+       "n": 21.3882,
+       "validated": true
+      },
+      "fine": {
+       "basis": "extrapolated at order 1.94 (fRe) from k = 4",
+       "errors": {
+        "fRe": 0.001,
+        "u_c": 0.000117231
+       },
+       "k": 5.7383,
+       "n": 68.8596,
+       "nearest": {
+        "errors": {
+         "fRe": 0.0020167,
+         "u_c": 0.000395961
+        },
+        "k": 4,
+        "level": "h_ar2_k4",
+        "n": 48.0
+       },
+       "validated": false
+      },
+      "medium": {
+       "basis": "interpolated between measured k = 2 and 4, at each quantity's order between them",
+       "errors": {
+        "fRe": 0.003,
+        "u_c": 0.000777528
+       },
+       "k": 3.2747,
+       "n": 39.2964,
+       "validated": true
+      }
+     },
+     "levels": [
+      {
+       "errors": {
+        "fRe": -0.0309405,
+        "u_c": -0.0179709
+       },
+       "k": 1,
+       "level": "h_ar2_k1",
+       "n": 12.0
+      },
+      {
+       "errors": {
+        "fRe": -0.00798379,
+        "u_c": -0.00410194
+       },
+       "k": 2,
+       "level": "h_ar2_k2",
+       "n": 24.0
+      },
+      {
+       "errors": {
+        "fRe": -0.0020167,
+        "u_c": -0.000395961
+       },
+       "k": 4,
+       "level": "h_ar2_k4",
+       "n": 48.0
+      }
+     ],
+     "quantities": {
+      "fRe": "fRe_err_signed",
+      "u_c": "u_c_err_signed"
+     }
+    },
+    "4": {
+     "case": "rect_duct",
+     "classes": {
+      "coarse": {
+       "basis": "interpolated between measured k = 1 and 2, at each quantity's order between them",
+       "errors": {
+        "fRe": 0.01,
+        "u_c": 0.00475809
+       },
+       "k": 1.6441,
+       "n": 23.6752,
+       "validated": true
+      },
+      "fine": {
+       "basis": "extrapolated at order 1.95 (fRe) from k = 4",
+       "errors": {
+        "fRe": 0.001,
+        "u_c": 7.58312e-05
+       },
+       "k": 5.2727,
+       "n": 75.927,
+       "nearest": {
+        "errors": {
+         "fRe": 0.00171496,
+         "u_c": 0.000218551
+        },
+        "k": 4,
+        "level": "h_ar4_k4",
+        "n": 57.6
+       },
+       "validated": false
+      },
+      "medium": {
+       "basis": "interpolated between measured k = 2 and 4, at each quantity's order between them",
+       "errors": {
+        "fRe": 0.003,
+        "u_c": 0.000641787
+       },
+       "k": 3.0197,
+       "n": 43.4837,
+       "validated": true
+      }
+     },
+     "levels": [
+      {
+       "errors": {
+        "fRe": -0.0265231,
+        "u_c": -0.0139756
+       },
+       "k": 1,
+       "level": "h_ar4_k1",
+       "n": 14.4
+      },
+      {
+       "errors": {
+        "fRe": -0.00680844,
+        "u_c": -0.00311183
+       },
+       "k": 2,
+       "level": "h_ar4_k2",
+       "n": 28.8
+      },
+      {
+       "errors": {
+        "fRe": -0.00171496,
+        "u_c": -0.000218551
+       },
+       "k": 4,
+       "level": "h_ar4_k4",
+       "n": 57.6
+      }
+     ],
+     "quantities": {
+      "fRe": "fRe_err_signed",
+      "u_c": "u_c_err_signed"
+     }
+    }
+   },
+   "checks": {
+    "hg_ar2": {
+     "levels": [
+      {
+       "errors": {
+        "fRe": 0.033331,
+        "u_c": 0.00858117
+       },
+       "k": 1,
+       "level": "hg_ar2_k1",
+       "worse_than_uniform": 0.077262
+      },
+      {
+       "errors": {
+        "fRe": 0.00866558,
+        "u_c": 0.00122272
+       },
+       "k": 2,
+       "level": "hg_ar2_k2",
+       "worse_than_uniform": 0.0853969
+      },
+      {
+       "errors": {
+        "fRe": 0.0021773,
+        "u_c": 0.000582784
+       },
+       "k": 4,
+       "level": "hg_ar2_k4",
+       "worse_than_uniform": 0.0796365
+      }
+     ],
+     "note": "the H section graded to the wall (hg), against uniform h, a/b 2: a check, not a class (design answer Q3)"
+    }
+   },
+   "metric": "cells across D_h: n_short · D_h / (2 · short half-side), square cells"
+  }
+ },
+ "version": 1
+}

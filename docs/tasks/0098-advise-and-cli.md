@@ -1,6 +1,6 @@
 # 0098 — `advise` (the resolution advisor) and the `hexmesh` CLI
 
-- **Status:** ready (questions answered 2026-11-05)
+- **Status:** done (2026-11-05; Q5–Q7 for design, none blocking)
 - **Decision:** [0040 — Agents for users](../decisions/0040-user-agents-network-design-and-resolution.md) (foundation D; settled: wall-resolved only at first)
 - **Depends on:** 0095 (the schema, limits), 0097 (`describe`).  The
   network-document input waits for decision 0032's stage 2; until then
@@ -276,3 +276,158 @@ counts and the classes' `validated` flags do, so I haven't started it.
 
 Status set back to ready.  The coding session was on 0076 (the user's
 "start") when the answers came.
+
+### Questions raised while coding (2026-11-05; none blocks this task)
+
+- **Q5. PCF input to the CLI.**
+  - Step 7 asks for PCF files with `--spec`.  That needs
+    `hexmesh.agent` to import `hexmesh.io.readers`.
+  - `tests/test_architecture.py` forbids anything importing
+    `io.readers`.  Adding agent → io.readers to `ALLOWED_EDGES` would
+    be a new deviation, which CLAUDE.md rules out.
+  - So the CLI takes `Assembly` descriptions only.  A `.pcf` gets a
+    coded error (`cli_input_unreadable`) that points at task 0066, which
+    moves the readers into `interchange.importers`.
+  - Proposal: add the PCF input to 0066's acceptance, or as a follow-up
+    once 0066 is done.
+- **Q6. Classes between measured levels are interpolated, and kept
+  `"validated": true`.**
+  - The answers cover extrapolation past the finest level only.  Using
+    measured levels alone would put rect a/b 1's **coarse** class at
+    k = 4: k = 2 misses 1 % by 0.02 % (f·Re 1.018 %).  That costs 8×
+    the cells for 0.02 %.
+  - So between two measured levels the error follows each quantity's
+    order between them, and the class's `basis` says "interpolated
+    between measured k = 2 and 4".
+  - Please confirm, or say if interpolated classes should be
+    `"validated": false` too.
+- **Q7. The axial aspect limits are my choice:**
+  - `MAX_AXIAL_ASPECT_STRAIGHT` 6: the calibrated runs had 5–7.5;
+  - `MAX_AXIAL_ASPECT_FITTING` 2: judgement, no case;
+  - `MAX_AXIAL_ASPECT_BUDGET` 12;
+  - `MAX_WALL_GROWTH` 1.2: the ERCOFTAC guidelines.
+  All are `info` limits.  A design decision on them (or a bend
+  validation case) would replace the judgement.
+
+## Agent notes
+
+- **One density per assembly.**
+  - Density is shared by every section (a reducer changes radii only).
+    So the resolution table is one `density` (`nang`, `nrad`, `nang_w`,
+    `nang_h`, `mprg`, `wall_bump`) and per-fitting axial counts.
+  - The design's "one count per connected group" is the whole assembly:
+    the largest count any section needs.
+- **Tied counts.**  `nang = nang_w = nang_h` where:
+  - a Transition joins a circle to a rectangle;
+  - a layer stack has a rectangle and shells (the spec's own rule).
+  This makes the rectangles' short side as fine as the long side, so
+  those examples get many cells: `duct_transition`, `lagged_duct` and
+  the hvac examples (below).
+- **Even `nang` for circles.**  The first cell is defined mid-arc
+  (`core_wall_span`), and an odd `nang` has no node there.  The
+  calibrated runs used 6, 12 and 24.
+- **The flow split** at junctions is by downstream open area, a
+  stand-in for a flow solve; the report says so in its reasons.
+  - An assembly has one inlet, so "one flow per open inlet" waits for
+    network models (decision 0032 stage 2).
+- **The fluid is the core layer.**  An example whose core is solid
+  (`layer_outlines`, copper) gets advice for flow in the copper; the
+  reasons name the layer.
+- **Rectangles in the O-H layout** are `advice_layout_unsupported`: no
+  calibration, and the default is H.
+- **Turbulent grading:**
+  - circles: `mprg` from `progression_for_first_cell`, with `nrad`
+    raised until the growth ≤ `MAX_WALL_GROWTH`.  The section with the
+    smallest first cell against its ring sets the shared `mprg`; the
+    others' first cells and y⁺ are reported.
+  - H rectangles: `wall_bump`, with both counts raised ×1.25 until the
+    bump's largest neighbour ratio ≤ the limit.
+- **Axial counts:**
+  - a tee's `n_run` and `n_branch` from `run_length` and
+    `branch_length`, with `n_turn` kept;
+  - MiterBend from 2·`n_cuts` legs;
+  - wye and switch keep their rules;
+  - minima from each field's `minimum` and `layers_ok`.
+  - `apply` scales a straight's `stack_changes` indices with its
+    `n_layers`, and resets duct taps' `n_wall`, `nrad` and `mprg` to
+    None, so they are derived again.
+- **Notes and errors** are `HexmeshWarning(...).to_dict()` and
+  `AdviceError`.  The code-literal rule in `tests/test_architecture.py`
+  counts a code as used only where a coded class is built with it.
+- **`calibration.json` scope string:** "calibrated on developed laminar
+  flow in straight runs; …": I added "laminar" to the design's wording.
+- **Validation results:** `validation/tools/results.py` has `counts()`.
+  - Both run scripts store the counts per level.
+  - The two committed files were backfilled by a one-off script, which
+    rebuilt each level's assembly and checked its cell count against the
+    stored one: all 24 matched.
+  - `results.schema.json` gains four optional properties.
+  - `tests/test_validation_counts.py` is the drift test.
+
+## Outcome
+
+**Files.**
+- New:
+  - `hexmesh/agent/advise.py`: `advise`, `apply`, `AdviceError`,
+    `friction_factor`, `first_cell_for_y_plus`;
+  - `hexmesh/agent/_calibrate.py` (the generator, not imported at run
+    time);
+  - `hexmesh/agent/calibration.json`;
+  - `hexmesh/agent/cli.py`.
+- Changed:
+  - `hexmesh/agent/__init__.py`;
+  - `hexmesh/assembly/limits.py`: 4 limits;
+  - `hexmesh/errors.py`: 11 codes;
+  - `pyproject.toml`: the `hexmesh` script, and package data for the
+    calibration;
+  - `validation/tools/results.py`, both run scripts, both
+    `results.json`, `results.schema.json`;
+  - `docs/references.bib`: blasius_1913, haaland_1983, white_2011,
+    casey_and_wintergerste_2000;
+  - `API.md`: the section, codes and limits; `CHANGELOG.md`.
+- Tests:
+  - `tests/test_agent_advise.py` (30 tests);
+  - `tests/test_validation_counts.py` (2);
+  - the architecture whitelist gains `hexmesh.core.grading`.
+
+**The calibration** (cells across D or D_h; k is the validation level):
+
+| series | coarse ≤ 1 % | medium ≤ 0.3 % | fine ≤ 0.1 % |
+|---|---|---|---|
+| circle (poiseuille) | 12, measured k = 1 | 22.0, interpolated | 50.1, extrapolated at order 0.99 (Δp), not validated |
+| rect a/b 1 | 20.2, interpolated | 37.1, interpolated | 65.3, extrapolated at order 1.93, not validated |
+| rect a/b 2 | 21.4, interpolated | 39.3, interpolated | 68.9, extrapolated at order 1.94, not validated |
+| rect a/b 4 | 23.7, interpolated | 43.5, interpolated | 75.9, extrapolated at order 1.95, not validated |
+
+- The graded H check (`hg_ar2`) is 7.7–8.5 % worse than uniform at
+  each level, matching the design's "about 8 %".
+- **Rectangles cost far more than circles at the same class.**  Medium
+  is 30 × 60 per section at a/b 2, against 12² + 4·12·6 = 432 cells for
+  a circle.  This is the data: the H duct's f·Re error is 3–4 % at
+  k = 1, against 0.9 % for poiseuille.
+
+**Examples** (water at 2 mm/s, medium):
+- All 28 advise, apply and validate without error, in 0.02–3.4 s each.
+  `insulated_transition` takes 3.4 s, its `validate()` run once.
+- Circle networks: 22k–117k cells.
+- `rect_duct`: 270k.
+- Tied stacks: `lagged_duct` 0.9M, `duct_transition` 2.6M,
+  `hvac_supply` 2.7M, `hvac_branched` 10M, `cooling_channels` 20M.
+  Their long runs at 6 aspect, with counts tied to the long side, are
+  what the budget is for.
+
+**Round trip** (`test_round_trip_meshes_as_advised`): three examples
+mesh with the advised exact cell count, and the meshed wall cell of
+fitting 0 equals the advised first cell to 1e-6:
+- `graded_bend`, turbulent water at 0.5 m/s, y⁺ 1;
+- `rect_duct`, coarse;
+- `distribution_tree`, coarse.
+
+**Full suite:** 3384 passed, 15 skipped (3352 before, plus 32 new).  The preview timing gate (< 2 s, task 0097) missed once at 2.0–2.3 s while other tests ran in parallel, and passed alone and in the full suite.
+
+**Proposed follow-ups.**
+- The PCF input to the CLI, after task 0066 (Q5).
+- A bend or tee validation case, so that the fittings' axial limit and
+  the scope caveat rest on data (Q7).
+- Turbulent validation (a smooth pipe at Re ~10⁴–10⁵ with y⁺ 1), so
+  `"validated": false` can go from the wall grading.

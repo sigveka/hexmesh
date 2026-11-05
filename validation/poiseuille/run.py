@@ -333,7 +333,7 @@ def run_level(name: str, factor: int, work: Path, end_time: int) -> dict:
     m = re.search(r"SIMPLE solution converged in (\d+) iterations", solve)
     times = re.findall(r"^Time = (\d+)$", solve, re.M)
     out = {
-        "level": name, "factor": factor, "cells": cells,
+        "level": name, "factor": factor, "cells": cells, **stored.counts(asm),
         "cells_foam": int(re.search(r"cells:\s+(\d+)", check).group(1)),
         "mesh_ok": "Mesh OK." in check, "retyped": retyped,
         "patches": sorted(re.findall(r"^\s+(fluid_\w+)\s*$",

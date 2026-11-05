@@ -417,7 +417,8 @@ def run_level(ratio: float, k: int, work: Path, end_time: int, n_proc: int = 1,
     write_case(case, end_time, ratio)
     retyped = of.convert(case, msh)
     return _solve(case, ratio, {"mesh": mesh, "ratio": ratio, "k": k, "cells": cells,
-                                "min_scaled_jacobian": sj, "retyped": retyped}, n_proc)
+                                "min_scaled_jacobian": sj, "retyped": retyped,
+                                **stored.counts(asm)}, n_proc)
 
 
 def run_control(ratio: int, k: int, work: Path, end_time: int, n_proc: int = 1) -> dict:

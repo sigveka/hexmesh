@@ -37,6 +37,8 @@ The file::
 - Written deterministically: sorted keys, ``indent=1``, a trailing
   newline, UTF-8, ``\\n`` line endings (decision 0039).
 - ``validation/results.schema.json`` describes it.
+- A hexmesh level records its section counts (:func:`counts`), which
+  ``hexmesh.agent``'s calibration reads (task 0098).
 """
 
 from __future__ import annotations
@@ -155,6 +157,18 @@ class Store:
 
     def write(self) -> None:
         write(self.path, self.data)
+
+
+COUNTS = ("nang", "nrad", "nang_w", "nang_h")
+
+
+def counts(asm) -> dict:
+    """The inlet section's counts of *asm* (an ``Assembly``), for a level
+    of ``results.json``: ``nang``, the core's ``nrad`` (0 on an H core),
+    ``nang_w`` and ``nang_h`` (None where the section has none; task 0098)."""
+    spec = asm.to_dict()["inlet"]["spec"]
+    return {"nang": spec["nang"], "nrad": spec["core"]["nrad"],
+            "nang_w": spec["nang_w"], "nang_h": spec["nang_h"]}
 
 
 def run_level(store: Store, name: str, run: Callable[[], dict], case_dir: Path | None,

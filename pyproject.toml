@@ -43,11 +43,15 @@ dev = [
 ]
 
 [project.scripts]
+hexmesh = "hexmesh.agent.cli:main"
 hexmesh-study = "hexmesh.study.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["hexmesh*"]
+
+[tool.setuptools.package-data]
+"hexmesh.agent" = ["calibration.json"]   # advise's calibration (task 0098)
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
