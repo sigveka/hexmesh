@@ -142,6 +142,31 @@ def test_field_limits_are_registered():
     assert unknown == []
 
 
+def test_schema_ranges_are_enforced():
+    """The ranges that had no check before (design, task 0095 follow-up)
+    are now coded errors."""
+    from hexmesh.assembly.equipment import EquipmentError
+    from hexmesh.errors import SpecError
+    with pytest.raises(SpecError, match="mbmp must be positive") as info:
+        PipeSpec(nang=4, mbmp=0)
+    assert info.value.code == "value_not_positive"
+    spec = PipeSpec(nang=4).core("f", radius=0.05, nrad=3)
+    for loc, field_ in ((OnShell(1.0, 0.0, 0.0), "projection"),
+                        (OnHead("first", -0.1, 0.0, 1.0), "offset"),
+                        (OnHead("first", 0.0, 0.0, -1.0), "projection")):
+        with pytest.raises(EquipmentError, match=f"nozzle N1 {field_} must be") as info:
+            Drum("D1", diameter=1.0, length=2.0, nozzles=(Nozzle("N1", spec, loc),))
+        assert info.value.code == "size_not_positive"
+        assert info.value.where == {"part": "D1", "nozzle": "N1", "field": field_}
+
+
+def test_directions_share_one_unit():
+    s = schema()["$defs"]
+    for owner, name in (("Bend", "toward"), ("Tee", "toward"), ("Wye", "toward"),
+                        ("SplinePipe", "end_tangent"), ("Drum", "axis"), ("Drum", "up")):
+        assert s[owner]["properties"][name]["x-unit"] == "direction", (owner, name)
+
+
 # --- limits -----------------------------------------------------------------------
 
 def test_every_limit_has_unit_kind_and_doc():

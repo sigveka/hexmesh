@@ -123,8 +123,8 @@ class Drum:
     length:    float = param("length", "tangent-to-tangent length", exclusiveMinimum=0)
     position:  tuple = param("length", "centre of the first tangent plane",
                              default=(0.0, 0.0, 0.0))
-    axis:      tuple = param("1", "drum axis direction (normalised)", default=(1.0, 0.0, 0.0))
-    up:        tuple = param("1", "up direction, made perpendicular to axis",
+    axis:      tuple = param("direction", "drum axis direction", default=(1.0, 0.0, 0.0))
+    up:        tuple = param("direction", "up direction, made perpendicular to axis",
                              default=(0.0, 0.0, 1.0))
     head:      str = param("-", "head type", default="ellipsoidal_2_1", enum=list(HEADS))
     crown_radius:   float | None = param("length", "torispherical heads: crown radius",
@@ -183,6 +183,19 @@ class Drum:
             raise EquipmentError(f"drum {self.name}: duplicate nozzle names {dup}",
                                  code="nozzle_name_duplicate",
                                  where={"part": self.name, "field": "nozzles"}, value=dup)
+        for n in self.nozzles:                  # the schema's ranges (task 0095)
+            loc = n.location
+            checks = [("projection", loc.projection, {"min_exclusive": 0})]
+            if isinstance(loc, OnHead):
+                checks.append(("offset", loc.offset, {"min": 0}))
+            for field_, v, lim in checks:
+                if not (v > 0 if "min_exclusive" in lim else v >= 0):
+                    raise EquipmentError(
+                        f"drum {self.name}: nozzle {n.name} {field_} must be "
+                        f"{'positive' if 'min_exclusive' in lim else 'non-negative'}, got {v!r}",
+                        code="size_not_positive",
+                        where={"part": self.name, "nozzle": n.name, "field": field_},
+                        value=v, limit=lim)
 
     # ------------------------------------------------------------------
     # Geometry

@@ -214,6 +214,10 @@ class PipeSpec:
                 f"PipeSpec n_outer must be a positive multiple of 4, got {n_outer!r}.",
                 code="n_outer_invalid", where={"field": "n_outer"}, value=n_outer,
                 limit="a positive multiple of 4")
+        if not mbmp > 0:
+            raise SpecError(f"PipeSpec mbmp must be positive, got {mbmp!r}.",
+                            code="value_not_positive", where={"field": "mbmp"}, value=mbmp,
+                            limit={"min_exclusive": 0})
         self._n_outer = n_outer
         self._nang   = nang
         self._nang_w = nang_w

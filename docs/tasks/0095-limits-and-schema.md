@@ -271,3 +271,41 @@ without reading the source.  Today:
 - The network document's part classes (decision 0032 stage 2, task
   0097/0098) can add a builder to `_schema._defs()`.
 - `describe` and `preview` (0097) can reuse `hexmesh.core.params`.
+
+### Follow-up: the schema claims only what the code enforces (design answer, 2026-11-05)
+
+The design session accepted points 1–4 (the user: "i agree").  For
+point 5, the Outcome's "Unclear" list:
+- **New coded checks:**
+  - `PipeSpec(mbmp=…)` must be positive: `SpecError`,
+    `value_not_positive`.
+  - In `Drum.__post_init__`, with the drum and nozzle named:
+    `OnShell.projection > 0`, `OnHead.offset >= 0` and
+    `OnHead.projection > 0`.  These are `EquipmentError`s,
+    `size_not_positive`, with `where = {part, nozzle, field}`.  They
+    live with the drum's other nozzle checks, because a location alone
+    has no drum to name.
+- **Already checked:** the `wall_bump` coefficients
+  (`wall_bump_invalid`, `PipeSpec.core`).  No change.
+- **`direction`**, a new unit in `params.UNITS`: a 3-vector that hexmesh
+  normalises.  It applies to `toward` (Bend, MiterBend, Elbow, Tee, Wye),
+  `SplinePipe.end_tangent`, `Drum.axis` and `Drum.up`.  The saved
+  `Frame` vectors keep unit `1`: they are stored orthonormal and read
+  back bit for bit, not normalised.
+- **`Reducer.chord_tol`:** the range is now `minimum: 0`.
+- **API.md:**
+  - "Schema and limits" lists `direction`;
+  - it says every schema range is enforced;
+  - it documents `hexmesh.core.params` (`UNITS`, `RANGES`, `param`,
+    `describe`) and `hexmesh.core.shape.SHAPES` as public.  0097's
+    `AGENT_IMPORTS` relies on that.
+- **Tests:** `test_schema_ranges_are_enforced` (the four new errors,
+  with codes and `where`) and `test_directions_share_one_unit`.
+- **Checked:**
+  - recorder over the full suite, 1a10d13 + 0097 against the working
+    tree: no existing message or type changed (the 5 that differ embed
+    pytest's `tmp_path`);
+  - the only new records are the new tests' (the four new errors, and
+    0097's `TypeError` test);
+  - the 28 example meshes are identical;
+  - full suite: 3313 passed, 15 skipped.

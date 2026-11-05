@@ -208,7 +208,7 @@ class Tee:
         "period",
         default=0.0)
     toward:   tuple | None = param(
-        "-", "absolute direction, instead of roll: resolved to the nearest allowed roll",
+        "direction", "absolute direction, instead of roll: resolved to the nearest allowed roll",
         input=True, limit="JUNCTION_TOWARD_TOL")
     # duct taps only (absent from a pipe tee's JSON)
     branch:   CircleShape | RectShape | None = param(

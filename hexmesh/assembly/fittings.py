@@ -206,7 +206,7 @@ class Bend(_Toward, Sweep):
         "(i, spec) pairs ending or starting outer layers from axial cell i on (decision 0006)",
         default=())
     toward:   tuple | None = param(
-        "-", "absolute direction to turn toward, instead of roll (input only: roll is saved)",
+        "direction", "absolute direction to turn toward, instead of roll (input only: roll is saved)",
         input=True)
 
     def centreline_length(self, inlet, spec, outlet=None) -> float:
@@ -322,7 +322,7 @@ class MiterBend(_Toward, Sweep):
         "deg", "bend-plane rotation about the inlet axis (0 = toward the inlet's up)",
         default=0.0)
     toward:   tuple | None = param(
-        "-", "absolute direction to turn toward, instead of roll (input only: roll is saved)",
+        "direction", "absolute direction to turn toward, instead of roll (input only: roll is saved)",
         input=True)
 
     def centreline_length(self, inlet, spec, outlet=None) -> float:
@@ -452,7 +452,7 @@ class Elbow(_Toward, Sweep):
         "1", "ratio of consecutive axial cell lengths, inlet → outlet (1 = uniform)", default=1.0,
         exclusiveMinimum=0)
     toward:   tuple | None = param(
-        "-", "absolute direction to turn toward, instead of roll (input only: roll is saved)",
+        "direction", "absolute direction to turn toward, instead of roll (input only: roll is saved)",
         input=True)
 
     FACTORS = {"long": 1.5, "short": 1.0}
@@ -600,7 +600,7 @@ class Reducer(Sweep):
         limit=("COSINE_S0_MIN", "COSINE_S0_MAX", "VENTURI_DIVERGENT_MIN", "VENTURI_DIVERGENT_MAX"))
     chord_tol: float = param(
         "1", "largest wall-chord gap from the profile, in inlet radii", default=CHORD_TOL,
-        exclusiveMinimum=0)
+        minimum=0)
 
     def layers_ok(self, n, inlet, spec, outlet=None) -> bool:
         if self.profile is None:
@@ -1160,7 +1160,7 @@ class SplinePipe(Sweep):
         "cells", "axial layers (stations) along the curve; None resolves from axial_cell",
         default=None, minimum=1, limit="MAX_CHORD_TURN")
     end_tangent: tuple | None = param(
-        "1", "outlet direction, normalised; None leaves the curve free", default=None)
+        "direction", "outlet direction; None leaves the curve free", default=None)
     axial_grading: float = param(
         "1", "ratio of consecutive axial cell lengths, inlet → outlet (1 = uniform)", default=1.0,
         exclusiveMinimum=0)

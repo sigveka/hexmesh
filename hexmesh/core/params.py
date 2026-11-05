@@ -19,6 +19,7 @@ through :func:`param`; a method's arguments in a table of
 
 Units: ``length`` (the user's length unit: hexmesh never converts);
 ``deg``; ``1`` (a ratio or a factor); ``cells`` (a cell or layer count);
+``direction`` (a 3-vector hexmesh normalises: only its direction counts);
 ``-`` (not a quantity: a name, a choice, a spec, a shape or a vector of
 mixed meaning).
 
@@ -33,7 +34,7 @@ from __future__ import annotations
 
 import dataclasses
 
-UNITS = ("length", "deg", "1", "cells", "-")
+UNITS = ("length", "deg", "1", "cells", "direction", "-")
 RANGES = ("minimum", "exclusiveMinimum", "maximum", "exclusiveMaximum", "enum")
 
 

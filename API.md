@@ -1638,11 +1638,20 @@ Units (`hexmesh.core.params.UNITS`):
 - `deg`;
 - `1`: a ratio or factor;
 - `cells`: a cell or layer count;
+- `direction`: a 3-vector that hexmesh normalises, so only its direction
+  counts (`toward`, `end_tangent`, `Drum.axis`, `Drum.up`);
 - `-`: not a quantity (a name, a choice, a spec, a shape).
+
+Every range in the schema is one that the constructors or `validate()`
+enforce.
 
 Fields carry this metadata themselves: `dataclasses.field(metadata=…)`
 through `hexmesh.core.params.param`, and the tables `PipeSpec.PARAMS`,
-`CORE_PARAMS` and `SHELL_PARAMS` for the spec's methods.  `limits` adds
+`CORE_PARAMS` and `SHELL_PARAMS` for the spec's methods.  These are
+public, as is the registry the schema reads:
+- `hexmesh.core.params`: `UNITS`, `RANGES`, `param()`, `describe()`;
+- `hexmesh.core.shape.SHAPES`: the `to_dict()` type tag (`"circle"`,
+  `"rect"`) → outline class.  `limits` adds
 `t` (ring thicknesses), `R` (radii) and `layers`.
 
 `limits.LIMITS` maps each name to `Limit(value, unit, kind, doc)`; every
