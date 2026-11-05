@@ -38,6 +38,7 @@ import math
 import re
 import warnings
 from dataclasses import dataclass
+from pathlib import PurePath
 from typing import Iterable
 
 import numpy as np
@@ -90,23 +91,47 @@ def curve_constraints(records) -> dict:
     return out
 
 
+def _at(origin: dict | None) -> str:
+    """``", <file name>:<line>"`` for an *origin* with both, else ""."""
+    if not origin or not origin.get("file") or not origin.get("line"):
+        return ""
+    return f", {PurePath(origin['file']).name}:{origin['line']}"
+
+
 @dataclass(eq=False)
 class Edge:
-    """A fitting placed between its port interfaces (ports[0] = inlet)."""
+    """A fitting placed between its port interfaces (ports[0] = inlet).
+
+    ``origin``: where an importer read the fitting from (``file``,
+    ``line``, ``record``, ``record_id``; task 0096).  Diagnostic only: its
+    errors carry it in ``where["source"]`` and name ``<file>:<line>``; it
+    is never saved (``to_dict``, the ``.msh`` recipe) or compared."""
 
     index:   int
     fitting: object
     ports:   list[Interface]
     kind:    str = "add"     # "add", "close" or "prepend": how it entered the graph
     label:   str | None = None
+    origin:  dict | None = None
 
     @property
     def name(self) -> str:
         """``label``, or ``<Type><index>`` (``Bend3``): used in wall patch names."""
         return self.label or f"{type(self.fitting).__name__}{self.index}"
 
+    @property
+    def at(self) -> str:
+        """``", <file>:<line>"`` from ``origin``, or ""."""
+        return _at(self.origin)
+
+    @property
+    def where(self) -> dict:
+        """The fitting's location for an error's ``where``."""
+        return {"fitting": self.index, "label": self.name,
+                **({"source": dict(self.origin)} if self.origin else {})}
+
     def __repr__(self) -> str:
-        return f"fitting #{self.index} {self.fitting!r}"
+        return f"fitting #{self.index} {self.fitting!r}{self.at}"
 
 
 class Assembly:
@@ -190,7 +215,7 @@ class Assembly:
     # ------------------------------------------------------------------
 
     def add(self, source, fitting=None, names: Iterable[str] | dict | None = None,
-            label: str | None = None):
+            label: str | None = None, origin: dict | None = None):
         """Append a fitting.
 
         ``add(fitting)`` continues from the tail; ``add(interface, fitting)``
@@ -203,7 +228,10 @@ class Assembly:
         keyed by port name (``{"branch": "tap1"}``; ``Tee``: ``main``,
         ``branch``; ``Wye``: ``left``, ``right``; one-outlet fittings:
         ``outlet``).  *label* names the fitting itself (its wall patch with
-        ``walls_by_fitting``; default ``<Type><index>``).
+        ``walls_by_fitting``; default ``<Type><index>``).  *origin*: where
+        an importer read the fitting from, a JSON-safe mapping (``file``,
+        ``line``, ``record``, ``record_id``), for its error messages only;
+        never saved.
 
         Input-only fields are resolved here from the inlet frame
         (``fitting.resolve``): ``toward=`` becomes ``roll``, and
@@ -224,7 +252,8 @@ class Assembly:
             raise AssemblyTypeError(f"source must be an Interface, got {type(source).__name__}",
                                     code="source_not_interface", where={"field": "source"})
         self._check_degree(source, "inlet", fitting)
-        fitting = self._resolved(fitting, source)
+        origin = None if origin is None else dict(origin)
+        fitting = self._resolved(fitting, source, origin=origin)
 
         port_list = fitting.ports(source.frame, source.spec)
         names = self._port_names(fitting, names, len(port_list))
@@ -233,7 +262,7 @@ class Assembly:
             for (frame, spec), name in zip(port_list, names)
         ]
         self._check_label(label)
-        edge = Edge(len(self._edges), fitting, [source, *outlets], label=label)
+        edge = Edge(len(self._edges), fitting, [source, *outlets], label=label, origin=origin)
         self._edges.append(edge)
         for iface in edge.ports:
             iface.edges.append(edge)
@@ -243,14 +272,15 @@ class Assembly:
         return outlets[0] if len(outlets) == 1 else outlets
 
     def close(self, source: Interface, target: Interface, fitting,
-              label: str | None = None) -> None:
+              label: str | None = None, origin: dict | None = None) -> None:
         """Join two existing open interfaces with *fitting* (DESIGN.md §8).
 
         *source* must be a downstream end (an outlet of its fitting) and
         *target* an upstream end (the inlet of its fitting), so flow runs
         source → fitting → target.  Any fitting whose ``validate`` accepts
         the two frames can close a loop: ``Closure`` for an arbitrary gap,
-        or a ``Straight`` / ``Bend`` that fits exactly.
+        or a ``Straight`` / ``Bend`` that fits exactly.  *origin*: as for
+        :meth:`add`.
         """
         if self._faces_built:
             raise AssemblyError("cannot add fittings after the assembly is built",
@@ -274,23 +304,27 @@ class Assembly:
                                 code="close_target_not_inlet", where={"interface": target.index})
         self._check_degree(source, "inlet", fitting)
         self._check_degree(target, "outlet", fitting)
-        fitting = self._resolved(fitting, source, target)
+        origin = None if origin is None else dict(origin)
+        fitting = self._resolved(fitting, source, target, origin=origin)
 
         self._check_label(label)
-        edge = Edge(len(self._edges), fitting, [source, target], kind="close", label=label)
+        edge = Edge(len(self._edges), fitting, [source, target], kind="close", label=label,
+                    origin=origin)
         self._edges.append(edge)
         source.edges.append(edge)
         target.edges.append(edge)
         if self._tail is source:
             self._tail = None
 
-    def prepend(self, fitting: Straight, label: str | None = None) -> Interface:
+    def prepend(self, fitting: Straight, label: str | None = None,
+                origin: dict | None = None) -> Interface:
         """Place *fitting* upstream of the inlet; return the new inlet.
 
         The new inlet sits ``fitting.length`` back along the current
         inlet's normal, and the edge ``[new, old]`` is validated like any
         other.  Only a ``Straight`` can be placed backwards.  The inlet's
         name moves to the new inlet, so the inlet patch keeps its name.
+        *origin*: as for :meth:`add`.
         """
         if self._faces_built:
             raise AssemblyError("cannot add fittings after the assembly is built",
@@ -309,13 +343,15 @@ class Assembly:
                                 "nothing can be placed upstream of it",
                                 code="prepend_at_equipment_end", where={"interface": old.index})
         self._check_degree(old, "outlet", fitting)
-        fitting = self._resolved(fitting, old)    # the length does not depend on the frame
+        origin = None if origin is None else dict(origin)
+        fitting = self._resolved(fitting, old, origin=origin)   # the length: not the frame
         f = old.frame
         frame = Frame(f.position - fitting.length * f.normal, f.normal, f.up)
         new = self._new_interface(frame, old.spec, old.name)
         old.name = None
         self._check_label(label)
-        edge = Edge(len(self._edges), fitting, [new, old], kind="prepend", label=label)
+        edge = Edge(len(self._edges), fitting, [new, old], kind="prepend", label=label,
+                    origin=origin)
         self._edges.append(edge)
         new.edges.append(edge)
         old.edges.append(edge)
@@ -451,7 +487,8 @@ class Assembly:
             raise AssemblyError(f"fitting label {label!r} is already used",
                                 code="label_duplicate", where={"label": label})
 
-    def _resolved(self, fitting, source: Interface, target: Interface | None = None):
+    def _resolved(self, fitting, source: Interface, target: Interface | None = None,
+                  origin: dict | None = None):
         """*fitting* with input-only fields resolved at *source* (and
         *target*, for ``close``).  Angled fittings warn from their
         ``resolve`` on an angle that looks like radians (decision 0024)."""
@@ -461,8 +498,9 @@ class Assembly:
                 fitting = resolve(source.frame, source.spec, self.axial_cell,
                                   None if target is None else target.frame)
             except ValueError as e:
-                raise AssemblyError.wrap(e, f"{fitting!r} at {source}: {e}",
-                                         code="fitting_invalid", interface=source.index) from None
+                raise AssemblyError.wrap(e, f"{fitting!r} at {source}{_at(origin)}: {e}",
+                                         code="fitting_invalid", interface=source.index,
+                                         **({"source": origin} if origin else {})) from None
         return fitting
 
     @staticmethod
@@ -564,14 +602,12 @@ class Assembly:
                 )
             except ValueError as e:
                 raise AssemblyError.wrap(e, f"{edge}: {e}",
-                                         code="fitting_invalid", fitting=edge.index,
-                                         label=edge.name) from None
+                                         code="fitting_invalid", **edge.where) from None
             for msg in found or ():          # a fitting's predicted-quality warnings
                 self.warnings.append(f"{edge}: {msg}")
                 warnings.warn(HexmeshWarning(f"{edge}: {msg}",
                                              code="fitting_quality_warning",
-                                             where={"fitting": edge.index,
-                                                    "label": edge.name}), stacklevel=2)
+                                             where=edge.where), stacklevel=2)
             # A4: each port pair, as connected, must be in a switch class the
             # fitting declares (decision 0011).  Before the exact type check
             # below, so the error names what differs.
@@ -579,8 +615,8 @@ class Assembly:
                 check_port_pairs(edge.fitting, [p.spec for p in edge.ports])
             except ValueError as e:
                 raise AssemblyError.wrap(e, f"{edge}: {e}",
-                                         code="switch_class_not_declared", fitting=edge.index,
-                                         label=edge.name) from None
+                                         code="switch_class_not_declared",
+                                         **edge.where) from None
             # A4 — every port type must match the type the fitting declares
             # for it; a fitting that only joins existing interfaces keeps
             # its inlet type throughout.
@@ -597,7 +633,7 @@ class Assembly:
                         f"the fitting declares"
                         + (f" ({'; '.join(map(str, diff))})" if diff else " (radii)"),
                         code="port_type_mismatch",
-                        where={"fitting": edge.index, "label": edge.name, "interface": iface.index}
+                        where={**edge.where, "interface": iface.index}
                     )
         if max_cells is not None:
             counts = self.cell_counts()
@@ -608,7 +644,7 @@ class Assembly:
                     f"assembly has {total} cells, over the budget of {max_cells}; "
                     f"largest is {worst} with {counts[worst.index]}",
                     code="cell_budget_exceeded",
-                    where={"fitting": worst.index, "label": worst.name}, value=total,
+                    where=worst.where, value=total,
                     limit=max_cells
                 )
 
@@ -687,7 +723,7 @@ class Assembly:
             except Exception as e:
                 raise AssemblyError(
                     f"{edge}: fill failed ({type(e).__name__}: {e})",
-                    code="fill_failed", where={"fitting": edge.index, "label": edge.name}) from e
+                    code="fill_failed", where=edge.where) from e
             self._fitting_volumes[edge.index] = [v for vs in part.volumes.values() for v in vs]
             if part.checked_volumes is not None:
                 self._checked_volumes[edge.index] = list(part.checked_volumes)
@@ -859,13 +895,14 @@ class Assembly:
             rep = self.projection_report[e.name] = {
                 "move": float(move.max()), "ratio": float(ratio.max())}
             if ratio.max() > limits.WALL_PROJECTION_WARN_MOVE:
-                msg = (f"{e.name}: wall projection moves a node by {move[ratio.argmax()]:.3g}, "
+                msg = (f"{e.name}{e.at}: wall projection moves a node by "
+                       f"{move[ratio.argmax()]:.3g}, "
                        f"{ratio.max():.2f} local wall radii (WALL_PROJECTION_WARN_MOVE "
                        f"{limits.WALL_PROJECTION_WARN_MOVE:g})")
                 self.warnings.append(msg)
                 warnings.warn(HexmeshWarning(msg,
                                              code="wall_projection_moves_node",
-                                             where={"fitting": e.index, "label": e.name},
+                                             where=e.where,
                                              value=float(ratio.max()),
                                              limit="WALL_PROJECTION_WARN_MOVE"), stacklevel=3)
             if not meshed:
@@ -880,9 +917,9 @@ class Assembly:
             rep["min_sj"] = float(sj.min())
             if sj.min() <= 0:
                 raise AssemblyError(
-                    f"{e.name}: wall projection folded {int((sj <= 0).sum())} cell(s), "
+                    f"{e.name}{e.at}: wall projection folded {int((sj <= 0).sum())} cell(s), "
                     f"min corner scaled Jacobian {sj.min():.3g} (decision 0029)",
-                    code="wall_projection_folded", where={"fitting": e.index, "label": e.name},
+                    code="wall_projection_folded", where=e.where,
                     value=float(sj.min()), limit={"min_exclusive": 0})
 
     def _check_meshed_sj(self) -> None:
@@ -921,37 +958,37 @@ class Assembly:
                 hint = getattr(e.fitting, "meshed_sj_hint",
                                "a smaller tap, or the wide face, may do better")
                 raise AssemblyError(
-                    f"{e.name}: meshed corner scaled Jacobian {sj:.3f} is below "
+                    f"{e.name}{e.at}: meshed corner scaled Jacobian {sj:.3f} is below "
                     f"PREDICTED_SJ_MIN {limits.PREDICTED_SJ_MIN:g}; {hint}",
-                    code="meshed_sj_below_minimum", where={"fitting": e.index, "label": e.name},
+                    code="meshed_sj_below_minimum", where=e.where,
                     value=sj, limit="PREDICTED_SJ_MIN", hint=hint)
             if sj < limits.PREDICTED_SJ_WARN:
-                msg = (f"{e.name}: meshed corner scaled Jacobian {sj:.3f} is below "
+                msg = (f"{e.name}{e.at}: meshed corner scaled Jacobian {sj:.3f} is below "
                        f"PREDICTED_SJ_WARN {limits.PREDICTED_SJ_WARN:g}")
                 self.warnings.append(msg)
                 warnings.warn(HexmeshWarning(msg,
                                              code="meshed_sj_low",
-                                             where={"fitting": e.index, "label": e.name}, value=sj,
+                                             where=e.where, value=sj,
                                              limit="PREDICTED_SJ_WARN"), stacklevel=3)
 
     def _check_meshed_nonorth(self, e, angle: float) -> None:
         # it rises with a switch's length (task 0086), so not the SJ hint
         if angle > limits.OUTLINE_NONORTH_MAX:
             raise AssemblyError(
-                f"{e.name}: meshed non-orthogonality {angle:.1f}° is above "
+                f"{e.name}{e.at}: meshed non-orthogonality {angle:.1f}° is above "
                 f"OUTLINE_NONORTH_MAX {limits.OUTLINE_NONORTH_MAX:g}°; a gentler wall grading "
                 f"of the H face, or a smaller ring nrad, lowers it",
-                code="meshed_nonorth_above_maximum", where={"fitting": e.index, "label": e.name},
+                code="meshed_nonorth_above_maximum", where=e.where,
                 value=angle, limit="OUTLINE_NONORTH_MAX",
                 hint="a gentler wall grading of the H face, or a smaller ring nrad")
         if angle > limits.OUTLINE_NONORTH_WARN:
-            msg = (f"{e.name}: meshed non-orthogonality {angle:.1f}° is above "
+            msg = (f"{e.name}{e.at}: meshed non-orthogonality {angle:.1f}° is above "
                    f"OUTLINE_NONORTH_WARN {limits.OUTLINE_NONORTH_WARN:g}° (a steep wall "
                    f"grading at the switch)")
             self.warnings.append(msg)
             warnings.warn(HexmeshWarning(msg,
                                          code="meshed_nonorth_high",
-                                         where={"fitting": e.index, "label": e.name}, value=angle,
+                                         where=e.where, value=angle,
                                          limit="OUTLINE_NONORTH_WARN"), stacklevel=4)
 
     def _set_constraints(self) -> None:

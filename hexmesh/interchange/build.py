@@ -305,8 +305,9 @@ def _ports(c: _Comp) -> list:
 
 def _source(x) -> dict:
     """The provenance of *x* (a component, a graph piece or a part) for an
-    error's ``where["source"]`` (task 0094): file, format, record, record id,
-    line and guid, where known."""
+    error's ``where["source"]`` (task 0094), and the ``origin`` its fitting
+    is added with (task 0096): file, format, record, record id, line and
+    guid, where known."""
     part = getattr(getattr(x, "comp", x), "part", x)
     prov = getattr(part, "provenance", None)
     if prov is None:
@@ -1217,7 +1218,7 @@ def _place(report, parts, nodes, at_node, names, root, spec, axial_cell, kinks, 
             raise AssemblyError.wrap(e, f"{what}: {e}",
                                      code="fitting_invalid", part=_part_id(p),
                                      source=_source(p)) from None
-        outs = asm.add(iface, fitting, label=p.label)
+        outs = asm.add(iface, fitting, label=p.label, origin=_source(p) or None)
         for o, x in zip(outs, outs_at):
             check(what, o.frame, x, p)
         return outs, outs_at
@@ -1352,7 +1353,7 @@ def _place_chain(asm, iface, chain, end_dir, spec, kinks, tol, ins, to_junction,
                 end_t = (tuple(_start_direction(nxt)) if nxt is not None
                          else None if end_dir is None else tuple(end_dir))
                 iface = asm.add(iface, SplinePipe(tuple(map(tuple, pts)), end_tangent=end_t),
-                                label=lab)
+                                label=lab, origin=_source(c) or None)   # its first pipe
                 check(j, iface.frame, comps[j].end)
                 k = j + 1
                 continue
@@ -1362,10 +1363,11 @@ def _place_chain(asm, iface, chain, end_dir, spec, kinks, tol, ins, to_junction,
             switch = None if uniform(k) else _stack_changes(
                 plan[k][2], ax, asm.axial_cell, iface.spec, ins["nrad"])
             if switch is None:
-                iface = asm.add(iface, Straight(ax), label=lab)
+                iface = asm.add(iface, Straight(ax), label=lab, origin=_source(c) or None)
             else:
                 n, changes = switch
-                iface = asm.add(iface, Straight(ax, n, stack_changes=changes), label=lab)
+                iface = asm.add(iface, Straight(ax, n, stack_changes=changes), label=lab,
+                                origin=_source(c) or None)
             check(k, iface.frame, c.end)
         elif c.kind == "elbow":
             try:
@@ -1384,7 +1386,8 @@ def _place_chain(asm, iface, chain, end_dir, spec, kinks, tol, ins, to_junction,
             _cross_check_elbow(c, g, label(k))
             roll = math.degrees(math.atan2(np.dot(g.turn, frame.right),
                                            np.dot(g.turn, frame.up)))
-            iface = asm.add(iface, Bend(g.radius, g.angle, roll=roll), label=lab)
+            iface = asm.add(iface, Bend(g.radius, g.angle, roll=roll), label=lab,
+                            origin=_source(c) or None)
             check(k, iface.frame, c.end)
         elif c.kind == "reducer":
             if c.eccentric:
@@ -1409,7 +1412,7 @@ def _place_chain(asm, iface, chain, end_dir, spec, kinks, tol, ins, to_junction,
                                     where={"part": _part_id(c), "source": _source(c)})
             ax, lat = along(frame, c.end)
             report["max_offset"] = max(report["max_offset"], lat)
-            iface = asm.add(iface, Reducer(outlet, ax), label=lab)
+            iface = asm.add(iface, Reducer(outlet, ax), label=lab, origin=_source(c) or None)
             check(k, iface.frame, c.end)
         else:
             raise AssemblyError(f"{label(k)}: unsupported kind {c.kind!r}",

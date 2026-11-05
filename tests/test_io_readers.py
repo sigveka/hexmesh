@@ -25,7 +25,7 @@ import gmsh
 import numpy as np
 import pytest
 
-from hexmesh import Session
+from hexmesh import Assembly, Session
 from hexmesh.assembly import AssemblyError
 from hexmesh.core.shape import CircleShape
 from hexmesh.core.spec import PipeSpec
@@ -267,6 +267,52 @@ def test_error_names_the_file_and_line(tmp_path):
     src = info.value.where["source"]
     assert src["line"] == 7 and src["file"] == str(tmp_path / "line.pcf")
     assert src["record"] == "ELBOW"
+
+
+TIGHT = HEADER_MM + """\
+PIPE
+    END-POINT 0 0 0 200
+    END-POINT 1000 0 0 200
+ELBOW
+    END-POINT 1000 0 0 200
+    END-POINT 1050 50 0 200
+    CENTRE-POINT 1050 0 0
+PIPE
+    END-POINT 1050 50 0 200
+    END-POINT 1050 1050 0 200
+"""
+
+
+def test_assembly_error_names_the_file_and_line(tmp_path):
+    """The assembly's own check (a bend of radius 50 mm, tighter than the
+    110 mm pipe) names the PCF line of the ELBOW (task 0096, design Q1 (a))."""
+    asm = _pcf(tmp_path, TIGHT).to_assembly(_spec())
+    with pytest.raises(AssemblyError, match=r"fitting #1 Bend\(.*\), line\.pcf:7: path bends "
+                                             r"with radius 0\.05") as info:
+        asm.validate()
+    e = info.value
+    assert e.code == "bend_radius_below_outer_radius"
+    assert e.where["fitting"] == 1 and e.where["label"] == "ELBOW_1"
+    assert e.where["source"] == {"file": str(tmp_path / "line.pcf"), "format": "pcf",
+                                 "record": "ELBOW", "record_id": "1", "line": 7}
+
+
+def test_origin_is_diagnostic_only(tmp_path):
+    """An assembly with fitting origins and its from_dict copy (none) give
+    the same to_dict and the same .msh bytes: origin holds paths, which the
+    recipe never does (decision 0038)."""
+    with Session("with"):
+        asm = _pcf(tmp_path, LINE).to_assembly(_spec(0.05))
+        assert all(e.origin and e.origin["line"] for e in asm.edges)
+        d = asm.to_dict()
+        asm.write(str(tmp_path / "with.msh"))
+    with Session("without"):
+        bare = Assembly.from_dict(d)
+        assert all(e.origin is None for e in bare.edges)
+        assert bare.to_dict() == d
+        bare.write(str(tmp_path / "without.msh"))
+    assert (tmp_path / "with.msh").read_bytes() == (tmp_path / "without.msh").read_bytes()
+    assert str(tmp_path) not in (tmp_path / "with.msh").read_text(encoding="utf-8")
 
 
 def test_each_file_keeps_its_records_lines(tmp_path):

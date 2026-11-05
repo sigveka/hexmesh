@@ -41,10 +41,10 @@ An interface-first pipe network ([DESIGN.md](DESIGN.md) §5).
 
 | Method | Does |
 |---|---|
-| `add(fitting, names=None, label=None)` | Attach *fitting* to the tail and move the tail to its first outlet (a tee's `main`, a wye's `left`). Returns the outlet `Interface`, or a list in port order for multi-outlet fittings. *names* names the outlet interfaces; *label* names the fitting (letters, digits, `_`; unique) |
-| `add(interface, fitting, names=None, label=None)` | Attach *fitting* to *interface*; the tail does not move. Use the returned outlet to continue that line |
-| `close(source, target, fitting, label=None)` | Join two existing open interfaces. *source* must be an outlet and *target* an inlet, so flow runs source → target. Use `Closure` for any gap, or a `Straight` / `Bend` that fits exactly |
-| `prepend(straight, label=None)` | Place a `Straight` upstream of the inlet and make its start the new `inlet`; the inlet name moves with it. Returns the new inlet |
+| `add(fitting, names=None, label=None, origin=None)` | Attach *fitting* to the tail and move the tail to its first outlet (a tee's `main`, a wye's `left`). Returns the outlet `Interface`, or a list in port order for multi-outlet fittings. *names* names the outlet interfaces; *label* names the fitting (letters, digits, `_`; unique) |
+| `add(interface, fitting, names=None, label=None, origin=None)` | Attach *fitting* to *interface*; the tail does not move. Use the returned outlet to continue that line |
+| `close(source, target, fitting, label=None, origin=None)` | Join two existing open interfaces. *source* must be an outlet and *target* an inlet, so flow runs source → target. Use `Closure` for any gap, or a `Straight` / `Bend` that fits exactly |
+| `prepend(straight, label=None, origin=None)` | Place a `Straight` upstream of the inlet and make its start the new `inlet`; the inlet name moves with it. Returns the new inlet |
 | `extend_open_ends(upstream=5.0, downstream=10.0, cells_per_diameter=4.0)` | Straight runs before the inlet and after every open outlet, in diameters of each end's core (hydraulic diameters for a duct); 0 skips a side. Each run gets `round(diameters × cells_per_diameter)` axial cells. Patch names are unchanged. Ends marked `equipment` are skipped. Call before building |
 | `interfaces`, `edges` | All interfaces and fitting edges, in creation order |
 | `inlet` | The inlet interface |
@@ -56,6 +56,15 @@ names are `fitting.port_names`: `Tee` `main`, `branch`; `Wye` `left`,
 `right`; every one-outlet fitting `outlet`. An unknown key is an
 `AssemblyError` listing the valid ones. A named open end becomes the patch
 `<layer>_<name>`.
+
+*origin* is where an importer read the fitting from: a JSON-safe mapping
+such as `{"file": "plant.pcf", "line": 7, "record": "ELBOW", "record_id":
+"1"}` (task 0096).  It is diagnostic only.  Every error and warning the
+assembly raises about that fitting carries it in `where["source"]`, and
+its message names `<file name>:<line>`
+(`fitting #1 Bend(…), plant.pcf:7: path bends with radius 0.05, …`).
+It is never saved (`to_dict`, the `.msh` recipe), so a reloaded assembly
+has none.  The network builder sets it from each part's provenance.
 
 `add()` also resolves input-only fields from the inlet frame: `toward=`
 becomes `roll`, and only `roll` is stored and saved. A bend angle below

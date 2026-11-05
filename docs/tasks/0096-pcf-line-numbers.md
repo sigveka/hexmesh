@@ -100,6 +100,21 @@ provenance at about line 827.  Connections and equipment blocks too
 
    I lean to (a).  Which one, if either?
 
+   **Answer (design, 2026-11-05; the user: "yes"):** (a), as a follow-up
+   commit in this task, with three conditions:
+   - *Diagnostic only.*  `origin` is not written to `to_dict` or to the
+     `.msh` recipe (decision 0038: the recipe holds no paths).  It takes
+     no part in comparisons, and `from_dict` assemblies have none.
+   - *Dependency direction.*  `Assembly.add` / `close` / `prepend` take
+     a plain JSON-safe mapping, copied as given, never
+     `interchange.Provenance`.  The builder converts.
+   - *Where it shows.*  Every error the assembler raises about the
+     fitting carries it in `where["source"]`.  The message appends
+     `, <file>:<line>` in the fitting's description.  Text changes only
+     for fittings that have an origin.
+
+   (b) was rejected: it copies the assembly's rules into the builder.
+
 ## Outcome
 
 **Files.**
@@ -149,3 +164,46 @@ were meshed at 44a52a4 and on the working tree.  The SHA-256 of `$Nodes`,
 
 **Proposed.**  Question 1 above: carry provenance into assembly-level
 errors.
+
+### Follow-up: origins on assembly fittings (design answer to Q1)
+
+**Files.**
+- `hexmesh/assembly/assembler.py`:
+  - `Edge.origin`, and `Edge.at` (the `, <file>:<line>` suffix).
+  - `Edge.where` (`fitting`, `label`, and `source` from `origin`);
+    `Edge.__repr__` appends `at`.
+  - `add` / `close` / `prepend(…, origin=None)`.  The mapping is copied
+    with `dict()`.
+  - The errors raised at `resolve` time carry it too (no edge exists
+    yet).
+  - Every fitting-located error and warning uses `edge.where`: validate,
+    the quality warnings, switch classes, port types, the cell budget,
+    fill failures, and the mesh-time projection, SJ and
+    non-orthogonality checks.  The mesh-time messages, which start with
+    the fitting's name, get the suffix after the name.
+- `hexmesh/interchange/build.py`: each `asm.add` passes
+  `origin=_source(part)`.  A `SplinePipe` joining several pipes takes
+  its first pipe's origin.
+- `API.md`: `origin=` on `add`, `close` and `prepend`.
+- `tests/test_io_readers.py`:
+  - `test_assembly_error_names_the_file_and_line`: the task's original
+    example.  An ELBOW at line 7 of radius 50 mm on a 110 mm pipe gives
+    `fitting #1 Bend(…), line.pcf:7: path bends with radius 0.05, …`,
+    with `where["source"]["line"] == 7`;
+  - `test_origin_is_diagnostic_only`: a PCF assembly (every edge has an
+    origin) and its `from_dict` copy (none) give equal `to_dict` and
+    identical `.msh` bytes, and the `.msh` holds no path.
+
+`fill()` passes a fitting's own `AssemblyError` through unchanged, as
+before, so those errors don't carry the origin.
+
+**Checked.**
+- Recorder over the full suite, d96fef1 against the working tree:
+  - one existing message changed, `test_io_readers::test_spool_set_on_on_layered_spec`
+    (an assembly error on a PCF-built tee), and only by the added
+    `, line.pcf:<n>`;
+  - no other message, and no type, changed;
+  - the one new record is the new test's.
+- All 28 example meshes: `$Nodes`, `$Elements` and the recipe hash are
+  identical.
+- Full suite: 3201 passed, 15 skipped (3199 before, plus 2 new).
