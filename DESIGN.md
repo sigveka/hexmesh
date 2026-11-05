@@ -87,7 +87,7 @@ it.  Each package is one capability.  It depends only on capabilities
 to its left, and it reaches them only through their public names
 ([decision 0037](docs/decisions/0037-capability-boundaries.md)).
 
-`core` → `sections` → `assembly` → `interchange` → `study`
+`core` → `sections` → `assembly` → `interchange` → `study` → `agent`
 
 | Capability | Owns | Calls GMSH |
 |---|---|---|
@@ -96,9 +96,12 @@ to its left, and it reaches them only through their public names
 | `assembly` | fittings, interfaces, the graph, validation, realisation, meshing | Realisation part only |
 | `interchange` | the network model, importers, the builder | No |
 | `study` | studies, solver stages | Through `assembly` |
+| `agent` | the tool layer for agents and the `hexmesh` CLI: schema, describe, preview, advise (decision 0040).  Nothing else in hexmesh imports it | `build` only, through `assembly` |
 
 `io.writers` is a leaf used by `assembly` and `study`.  `_occ` is the
-shared OCC helper for `sections` and `assembly`.
+shared OCC helper for `sections` and `assembly`.  `errors` (the
+structured errors, task 0094) and `version` are shared leaves that
+every package may import.
 
 Rules:
 - **Shapes and section layouts own their behaviour.**  Code outside

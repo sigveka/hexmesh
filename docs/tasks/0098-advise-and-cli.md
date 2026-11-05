@@ -23,6 +23,12 @@ server) call.
 
 **Do.**
 1. **Inputs** (one JSON object, validated, units SI):
+   - **Geometry units.**  hexmesh doesn't convert lengths: the
+     schema's unit is `length` (task 0095).  The advisor needs metres
+     for Re and y⁺, so it takes `length_unit` (default `"m"`; also
+     `"mm"`).  Every report states the unit it assumed.  A geometry
+     whose diameters look like millimetres read as metres (D > 5) gets a
+     coded warning.
    - `fluid`: `{density, viscosity}`, or a named preset from a small
      shipped table (water and air at 20 °C, with their source);
    - `flow`: one bulk velocity or flow rate, or one per open inlet;
@@ -84,6 +90,15 @@ server) call.
      isn't met, return the closest result and a coded error saying by
      how much it misses.
    - The 8× rule is stated in every report.
+   - **Cost** (design answer to 0097's question, 2026-11-05; the user
+     agreed):
+     - Inside the budget loop, count cells with `cell_count()` /
+       `cell_counts()`, which are pure and fast.  Don't call `describe`
+       or `validate()` there: `validate()`'s junction predictions take
+       up to 4.3 s on `insulated_network`.
+     - Run `validate()` once, on the final result, and return its
+       warnings and errors with the report.
+     - `describe` gets no `validate=False` switch.
 6. **Outputs:**
    - `advise(network_or_description, inputs) → report`: per section
      (Re, regime, first cell, the spec description, reasons), per
