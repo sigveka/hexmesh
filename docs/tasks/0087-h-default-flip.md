@@ -171,6 +171,7 @@ meshed cell, OpenFOAM's definition for the angle.  No example warns.
 | example | cells before | cells after | min SJ before | min SJ after | max non-orth before | after |
 |---|---|---|---|---|---|---|
 | rect_duct | 4 576 | 1 408 | 0.705 | 0.997 | 41.3° | 1.6° |
+| rect_duct, 16 × 8 (below) | | 5 632 | | 0.997 | | 1.8° |
 | duct_transition | 5 616 | 4 392 | 0.689 | 0.546 | 39.9° | 50.5° |
 | insulated_transition | 9 036 | 6 972 | 0.689 | 0.577 | 39.9° | 50.5° |
 | lagged_duct | 10 488 | 7 176 | 0.690 | 0.690 | 41.1° | 41.9° |
@@ -201,5 +202,10 @@ meshed cell, OpenFOAM's definition for the angle.  No example warns.
 **Proposed.**
 - **DESIGN §9:** the row "Rectangular cores have only the O-H layout"
   can be removed (for the design session).
-- **Follow-up (optional):** raise `rect_duct`'s counts, e.g. 16 × 8 with
-  `first_cell=`, so the gallery shows a graded H face.
+- ~~Follow-up: raise `rect_duct`'s counts~~: done on design's answer
+  (2026-11-05).
+  - The example is now 16 × 8 with `first_cell=0.004`: 4 mm at every
+    wall against a uniform cell of 12.5 mm (`wall_bump` 0.154 / 0.111).
+  - 5 632 cells, min SJ 0.997, max non-orthogonality 1.8°.
+  - Gallery min SICN 0.168 (the graded wall cells' aspect ratio; 0.737
+    at 8 × 4 uniform-ish).

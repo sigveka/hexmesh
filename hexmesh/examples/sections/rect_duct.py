@@ -23,8 +23,8 @@ checked against the half-width).  The open ends become ``air_inlet`` and
 ``air_outlet``.
 
 The section is an H face, one Cartesian patch (the default for a
-rectangle since 0.4.0).  ``mprg`` grades its walls: the second cell from
-each wall over the first.  ``layout="oh"`` with ``nrad=`` gives the O-H
+rectangle since 0.4.0).  ``first_cell`` grades its walls: the end cell of
+every side, here 4 mm against a uniform cell of 12.5 mm.  ``layout="oh"`` with ``nrad=`` gives the O-H
 face instead.
 (Limits: no elbow for ducts yet; duct tees are single-layer.  A duct with a wall and lagging:
 ``sections.lagged_duct``.)
@@ -32,7 +32,8 @@ face instead.
 
 from hexmesh import Assembly, Bend, PipeSpec, Straight
 
-DUCT = PipeSpec(nang_w=8, nang_h=4).core("air", half_w=0.1, half_h=0.05, mprg=1.2)
+# walls graded to a 4 mm first cell (a uniform cell is 12.5 mm)
+DUCT = PipeSpec(nang_w=16, nang_h=8).core("air", half_w=0.1, half_h=0.05, first_cell=0.004)
 
 
 def build() -> Assembly:

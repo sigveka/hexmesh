@@ -29,7 +29,7 @@ What each example shows, what its mesh looks like, and how good the cells are.  
 | [insulated_pipe](#insulated_pipe) | Three-layer insulated pipe: fluid, steel wall, insulation. | 10 800 | 0.144 | 0.792 | 3.5 s |
 | [insulated_route](#insulated_route) | Insulated route: a three-layer stack carried through a reducer, a miter, a spline and an elbow. | 15 600 | 0.061 | 0.531 | 6.9 s |
 | [graded_bend](#graded_bend) | CFD-ready bend: wall grading, axial cells clustered at the bend, inlet and outlet extensions, and one wall patch per fitting. | 11 160 | 0.100 | 0.792 | 1.9 s |
-| [rect_duct](#rect_duct) | Rectangular duct: a 2:1 duct with an easy-way and a hard-way bend. | 1 408 | 0.737 | 0.997 | 0.6 s |
+| [rect_duct](#rect_duct) | Rectangular duct: a 2:1 duct with an easy-way and a hard-way bend. | 5 632 | 0.168 | 0.997 | 0.8 s |
 | [duct_transition](#duct_transition) | Duct transition: a circular pipe into a 2:1 duct, a duct bend, and back. | 4 392 | 0.356 | 0.546 | 2.9 s |
 | [layer_outlines](#layer_outlines) | Layer outlines: a round conductor in a square filler in a round sheath. | 11 040 | 0.132 | 0.706 | 5.8 s |
 | [lagged_duct](#lagged_duct) | Lagged duct: a rectangular air duct with a steel wall and lagging, through a reducer and bends both ways. | 7 176 | 0.024 | 0.690 | 4.6 s |
@@ -390,8 +390,8 @@ checked against the half-width).  The open ends become `air_inlet` and
 `air_outlet`.
 
 The section is an H face, one Cartesian patch (the default for a
-rectangle since 0.4.0).  `mprg` grades its walls: the second cell from
-each wall over the first.  `layout="oh"` with `nrad=` gives the O-H
+rectangle since 0.4.0).  `first_cell` grades its walls: the end cell of
+every side, here 4 mm against a uniform cell of 12.5 mm.  `layout="oh"` with `nrad=` gives the O-H
 face instead.
 (Limits: no elbow for ducts yet; duct tees are single-layer.  A duct with a wall and lagging:
 `sections.lagged_duct`.)
@@ -402,7 +402,7 @@ python3 -m hexmesh.examples.sections.rect_duct
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 5: Straight ×3, Bend ×2 | 25 | 1 408 | 0.737 | 0.872 | 0.997 (#1 Bend) | 2.5 | 0.6 s |
+| 5: Straight ×3, Bend ×2 | 25 | 5 632 | 0.168 | 0.489 | 0.997 (#1 Bend) | 12.5 | 0.8 s |
 
 - **Open ends:** `air_inlet`, `air_outlet`
 - **Walls:** `air_wall`
@@ -1010,4 +1010,4 @@ Which hexmesh features each case exercises (decision 0012's fixed list). Marks: 
 
 ---
 
-Generated 2026-11-05 from hexmesh d5e503f + uncommitted changes, gmsh 4.12.1, Python 3.12.3, 8 CPUs, 1 job(s).
+Generated 2026-11-05 from hexmesh dbfe4bc + uncommitted changes, gmsh 4.12.1, Python 3.12.3, 8 CPUs, 1 job(s).

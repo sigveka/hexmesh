@@ -1,7 +1,7 @@
 {
  "meta": {
   "date": "2026-11-05",
-  "commit": "d5e503f + uncommitted changes",
+  "commit": "dbfe4bc + uncommitted changes",
   "gmsh": "4.12.1",
   "python": "3.12.3",
   "cpus": 8,
@@ -397,11 +397,11 @@
    "materials": [
     "air"
    ],
-   "min_sicn": 0.7368787431747648,
-   "mean_sicn": 0.8719427101189843,
-   "min_sj": 0.9969173337331252,
+   "min_sicn": 0.16836068203028542,
+   "mean_sicn": 0.48923276621183587,
+   "min_sj": 0.9969173337331249,
    "min_sj_fitting": "#1 Bend",
-   "max_aspect": 2.5099112333132787,
+   "max_aspect": 12.499999224539525,
    "groups": {
     "open_end": [
      "air_inlet",
@@ -415,9 +415,9 @@
      "air"
     ]
    },
-   "predicted": 1408,
-   "meshed": 1408,
-   "build_s": 0.61
+   "predicted": 5632,
+   "meshed": 5632,
+   "build_s": 0.83
   },
   "sections.duct_transition": {
    "fittings": 7,
