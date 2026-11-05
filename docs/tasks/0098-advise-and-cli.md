@@ -1,6 +1,6 @@
 # 0098 — `advise` (the resolution advisor) and the `hexmesh` CLI
 
-- **Status:** ready (after 0095 and 0097)
+- **Status:** blocked (questions for design, step 3)
 - **Decision:** [0040 — Agents for users](../decisions/0040-user-agents-network-design-and-resolution.md) (foundation D; settled: wall-resolved only at first)
 - **Depends on:** 0095 (the schema, limits), 0097 (`describe`).  The
   network-document input waits for decision 0032's stage 2; until then
@@ -156,3 +156,83 @@ server) call.
   leaves room: a flow waveform, and a viscosity model.
 - The network-document input (decision 0032 stage 2).
 - The plugin (decision 0040, E).
+
+## Questions for design
+
+Raised 2026-11-05, before any code was written.  Step 3, the
+calibration, can't be written as specified from the committed data.
+
+**What the data has.**
+- `results.json` has per-level cells and errors.  It does not have each
+  level's counts across D (`nang`, `nrad`, `nang_w`, `nang_h`).
+- Those come from the run scripts: `BASE × factor`
+  (`validation/poiseuille/run.py:89–108`, `rect_duct/run.py:87–212`).
+- The flow cases that fit (laminar, steady, straight):
+  - `poiseuille` (circle, O-H, k = 1, 2, 4);
+  - `rect_duct` (H, graded H, O-H and a Cartesian control; aspect
+    ratios 1, 2 and 4; k = 1, 2, 4).
+
+**The measured errors against the classes** (|error|, at k = 1, 2, 4):
+
+| case, quantity | k = 1 | k = 2 | k = 4 | observed order |
+|---|---|---|---|---|
+| poiseuille Δp | 0.451 % | 0.207 % | 0.104 % | 0.99 |
+| poiseuille u_max | 0.935 % | 0.254 % | 0.073 % | 1.80 |
+| rect H a/b 1, f·Re | 3.92 % | 1.02 % | 0.258 % | ≈ 2 |
+| rect H a/b 2, f·Re | 3.09 % | 0.798 % | 0.202 % | ≈ 2 |
+| rect H a/b 4, f·Re | 2.65 % | 0.681 % | 0.171 % | ≈ 2 |
+| rect H a/b 1, u_c | 2.62 % | 0.637 % | 0.110 % | |
+| rect graded H a/b 2, f·Re | 3.33 % | 0.867 % | 0.218 % | |
+
+- **"fine" (≤ 0.1 %) is reached by no measured level** on either
+  pressure-drop quantity.  Only u_max (circle) and u_c (a/b 2 and 4)
+  reach it.
+- **"coarse" (≤ 1 %) isn't reached at k = 1 by any H duct quantity**,
+  and on f·Re at a/b 1 not even at k = 2 (1.02 %).
+- The O-H duct levels don't converge monotonically (f·Re a/b 1: 2.6,
+  2.0, 1.2 %), which is why they aren't gated (decision 0015,
+  amendment 2).
+
+**Q1. Which quantity sets a class?**  The gated quantity per case
+(poiseuille Δp and u_max; rect_duct f·Re and u_c), or the worse of
+the two?
+- Proposal: the worse of the two pressure and velocity quantities,
+  since they are the ones gated.
+- With that rule, poiseuille is coarse at k = 2 and medium at k = 4,
+  and has no fine.
+
+**Q2. May the script go past the finest level?**
+- Option (a): extrapolate along the observed order.  With order 1, Δp
+  reaches 0.1 % at k ≈ 4.2.  With order 2, f·Re a/b 1 reaches 0.1 % at
+  k ≈ 6.4.
+- Option (b): a class no measured level reaches is
+  `"validated": false`, with the nearest measured level and its error.
+- Proposal: (b) for this task.  (a) would be a number no case
+  measured.  A finer validation level (k = 8) is a separate task with
+  OpenFOAM runs.
+
+**Q3. Which rect_duct series calibrates the H rectangle?**
+- `h_*`, the accepted hexmesh H result (task 0084), and the library
+  default since task 0087.  It is identical to `cart_*`.
+- `hg_*` is graded, a/b 2 only.
+- Proposal: `h_*` at every aspect ratio, giving one class each for a/b
+  1, 2 and 4.  `advise` takes the nearest aspect ratio, or the worst of
+  the two around it.
+- O-H rectangles are not calibrated: `advise` gives the H layout for
+  rectangles anyway (step 2, "Layout").
+
+**Q4. Reading the counts from the run scripts.**
+- Option (a): `_calibrate.py` imports `validation/<case>/run.py` and
+  calls each level's `assembly(factor)` to read the counts.  This is
+  pure Python, with no OpenFOAM.
+- Option (b): the run scripts write `nang`/`nrad`/`nang_w`/`nang_h`
+  into each level of `results.json`.  The committed files are
+  backfilled without re-running, since the meshes are deterministic.
+- Proposal: (b).  It keeps `results.json` the single source the task
+  names, and the calibration then reads data only.  It touches
+  `validation/*/run.py` and two `results.json` files, so I'm asking
+  first.
+
+I'm stopping 0098 here.  The rest of the task (steps 1, 2 and 4–7, and
+the CLI) doesn't depend on these answers in structure, but the core
+counts and the classes' `validated` flags do, so I haven't started it.
