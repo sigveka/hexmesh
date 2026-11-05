@@ -1118,7 +1118,7 @@ asm = ix.build(m, pipe)            # or m.to_assembly(pipe)
 | `Joint` | two ports; absorbed into the adjacent straight run |
 | `Terminal` | one port: names the open end there and marks it as equipment; `check_point` must agree with it |
 | `Polyline` | ports in order: straights, or a spline with `kinks="spline"` |
-| `Connection` | `a`, `b` (port ids), `origin` ("declared" / "inferred"), `distance`.  Recorded; the builder still joins parts by position within the tolerance |
+| `Connection` | `a`, `b` (port ids), `origin` ("declared" / "inferred"), `distance`, `provenance` (the declaring record).  Recorded; the builder still joins parts by position within the tolerance |
 | `Network` | `name`, `parts`, `kind` ("pipeline", "system": for messages), `insulation_thickness`, `attributes` |
 | `Section` | `shape` ("circle" / "rect"), `nominal`, `diameter`, `width`, `height`; `bore` = `nominal` |
 | `Provenance` | `source`, `format`, `record`, `record_id`, `line`, `guid`, `attributes` |
@@ -1126,6 +1126,9 @@ asm = ix.build(m, pipe)            # or m.to_assembly(pipe)
 `register_formatter(format, fn)`: messages name a part whose provenance
 has that format as `fn(part, at, name)`; `describe(part, at=None,
 name=None)` applies it (default `part <id> (<TYPE> <name> at <point>)`).
+The PCF reader's formatter adds the file name and the line of the
+record's keyword: `component 1 (ELBOW ELBOW_1 at [1. 0. 0.], plant.pcf:7)`
+(task 0096).
 
 ### `build(model, spec, selection=None, *, axial_cell=None, kinks="error", tol=None, lc=None, inlet=None, insulation=False, insulation_nrad=2) -> Assembly`
 

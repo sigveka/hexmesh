@@ -392,11 +392,12 @@ def test_nozzle_component_form(tmp_path):
 
 @pytest.mark.parametrize("old, new, match", [
     ("CO-ORDS 0 0 0 100 FL", "CO-ORDS 0 50 0 100 FL",
-     r"END-CONNECTION-EQUIPMENT N1: nozzle N1 is at .* 0.05 m apart"),
+     r"END-CONNECTION-EQUIPMENT N1 \(\w+\.pcf:\d+\): nozzle N1 is at .* 0.05 m apart"),
     ("""    CO-ORDS 2000 0 0
     CONNECTION-REFERENCE V-102/N2""", """    CO-ORDS 2100 0 0
     CONNECTION-REFERENCE V-102/N2""",
-     r"END-CONNECTION-EQUIPMENT V-102/N2 at .*no open pipe end there.*component 0 "
+     r"END-CONNECTION-EQUIPMENT V-102/N2 \(\w+\.pcf:\d+\) at .*no open pipe end there.*"
+     r"component 0 "
      r"\(PIPE PIPE_1.*0.1 m away"),
 ])
 def test_equipment_position_mismatch(tmp_path, old, new, match):

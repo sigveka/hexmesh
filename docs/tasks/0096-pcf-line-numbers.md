@@ -1,6 +1,6 @@
 # 0096 — PCF errors name the line: record `Provenance.line`
 
-- **Status:** ready
+- **Status:** done
 - **Decision:** [0040 — Agents for users](../decisions/0040-user-agents-network-design-and-resolution.md) (errors that point to the user's own input); [0032](../decisions/0032-network-interchange.md) (provenance); task 0094's proposed follow-up
 - **Depends on:** 0094 (done).
 
@@ -50,3 +50,102 @@ provenance at about line 827.  Connections and equipment blocks too
 
 **Out of scope.**  Column positions; other formats' line numbers
 (future importers record them from the start).
+
+## Agent notes
+
+- `_iter_records` yields `(record_type, attrs, pipeline, line)`, where
+  *line* is the 1-based line of the record keyword (comments and blank
+  lines count).  `ComponentSpec.line` is new.
+- Connection and equipment blocks keep their file and line in their
+  attributes as `_source` and `_line`, beside the existing private
+  `_point`.  So a multi-file `read_pcf` keeps each record's own file
+  for `Terminal`s and declared connections too.  Before, those took
+  the merged `net.source`, which is `"a.pcf, b.pcf"`.
+- `interchange.model.Connection` gets a `provenance` field (default
+  None).  The PCF reader sets it on declared `END-CONNECTION-PIPELINE`
+  connections.
+- Message form: `component 1 (ELBOW ELBOW_1 at [1. 0. 0.], plant.pcf:7)`,
+  and `END-CONNECTION-EQUIPMENT V-102/N2 (plant.pcf:30)` for a terminal.
+  The text uses the file name; `where["source"]["file"]` keeps the path
+  as given.
+- The two skip warnings (`pcf_component_unsupported`,
+  `pcf_component_incomplete`) carry `line` in `where["source"]`.  Their
+  text is unchanged.
+- **The task's example error doesn't work:** a bend tighter than the
+  pipe's outer radius doesn't reach the PCF line.  The *assembly* finds
+  that error (`bend_radius_below_outer_radius`) in `validate()`, and it
+  names the fitting (`fitting #1 Bend(…)`, `where` = fitting and label)
+  with no PCF provenance.  The assembly never sees the source.  The
+  acceptance test uses an error the *builder* finds at a known line (a
+  stated `ANGLE` that disagrees with the geometry); see *Questions for
+  design*.
+- **Bathymetry:** the route is one `Polyline` through waypoints
+  interpolated from the route file (CSV rows or a Shapefile feature).
+  Its records don't map to parts, so there is no per-part line or
+  feature number to record.  Left as it is.
+
+## Questions for design
+
+1. **Assembly errors on an imported network.**  The assembly checks
+   fittings: bend radius, run lengths, predicted quality.  Its errors
+   on a PCF-built assembly name `fitting #k` and its label (e.g.
+   `ELBOW_1`), but not the file or line.  Two options:
+   - (a) The builder passes each part's provenance to `Assembly.add`
+     (a new keyword, e.g. `origin=`).  The assembler's wrap adds it to
+     `where["source"]` and the message.  This is a small API addition
+     on `Assembly`, used only by importers.
+   - (b) The builder runs `validate()` at build time and re-raises with
+     the part's description and source.  That moves the error earlier,
+     to `to_assembly`, and validates twice.
+
+   I lean to (a).  Which one, if either?
+
+## Outcome
+
+**Files.**
+- `hexmesh/io/readers/pcf.py`: line tracking in the parser,
+  `ComponentSpec.line`, provenance with `line` for parts, ports,
+  terminals and declared connections, and `file:line` in the formatter.
+- `hexmesh/interchange/model.py`: `Connection.provenance`.
+- `API.md`: the `Connection` row and the formatter note.
+- Tests:
+  - `tests/test_io_readers.py`: `test_error_names_the_file_and_line`,
+    `test_each_file_keeps_its_records_lines`;
+  - `tests/test_errors.py`: the provenance sample asserts `line`;
+  - `tests/test_pcf_insulation_equipment.py`: two `match=` patterns
+    updated (`test_equipment_position_mismatch`, both cases).
+
+**Messages changed.**
+- Recorder over the full suite, 44a52a4 against the working tree.
+- Every changed message differs only by the added `, <file>:<line>`
+  inside a component's parentheses, or ` (<file>:<line>)` after a
+  terminal.  This was checked by stripping those from the after-text,
+  which then equals the before-text in every case.
+- 27 recorded messages changed, plus the 2 whose test ids changed with
+  their patterns.  Every message that describes a PCF part or terminal
+  changes; by test:
+
+  | test | messages |
+  |------|----------|
+  | `test_pcf_junctions::test_rejections_name_the_component` | 9 |
+  | `test_pcf_insulation_equipment::test_insulation_errors_name_the_component` | 4 |
+  | `test_io_readers::test_elbow_cross_check_names_the_component` | 3 |
+  | `test_pcf_insulation_equipment::test_equipment_position_mismatch` (patterns updated) | 2 |
+  | `test_io_readers`: `eccentric_reducer_rejected`, `elbow_leg_must_follow_the_incoming_pipe`, `gap_names_the_component`, `kinks_rejected_or_splined`, `lateral_offset_within_tolerance_is_absorbed`, `wrong_elbow_end_point` | 1 each |
+  | `test_pcf_junctions::test_root_by_name_and_point` | 1 |
+  | `test_pcf_robustness`: `angled_inline_component_rejected_by_name`, `equal_tee_message_says_planned`, `several_pieces_to_assembly_lists_them` | 1 each |
+  | `test_errors::test_builder_error_carries_provenance` | 1 |
+
+- Example, before → after:
+  `component 1 (ELBOW ELBOW_1 at [1. 0. 0.]): ANGLE 46° disagrees …` →
+  `component 1 (ELBOW ELBOW_1 at [1. 0. 0.], line.pcf:7): ANGLE 46° disagrees …`
+- No error or warning changed type.
+
+**Meshes unchanged.**  All 28 examples (the PCF networks among them)
+were meshed at 44a52a4 and on the working tree.  The SHA-256 of `$Nodes`,
+`$Elements` and the recipe are identical for every one.
+
+**Full suite:** 3199 passed, 15 skipped (3197 before, plus 2 new tests).
+
+**Proposed.**  Question 1 above: carry provenance into assembly-level
+errors.

@@ -195,7 +195,7 @@ def test_builder_error_carries_provenance(tmp_path):
     assert d["where"]["part"] == "1"                    # the network-model part id
     src = d["where"]["source"]
     assert src["file"] == str(path) and src["format"] == "pcf" and src["record"] == "ELBOW"
-    assert src["record_id"] == "1"
+    assert src["record_id"] == "1" and src["line"] == 7         # task 0096
 
 
 def test_warning_is_coded(tmp_path):

@@ -171,6 +171,8 @@ class ComponentSpec:
         on BRANCH1-POINT / BRANCH2-POINT.
     source : str
         The file it was read from.
+    line : int or None
+        The 1-based line of its record keyword in that file.
     """
 
     kind:     str
@@ -189,6 +191,7 @@ class ComponentSpec:
     branch2_bore: float | None = None
     skey:     str = ""
     source:   str = ""
+    line:     int | None = None # 1-based line of the record keyword (task 0096)
     index:    int = -1          # position in NetworkSpec.components (to_assembly)
     insulation: str | None = None           # INSULATION ON / OFF, None if absent
     end_insulation: tuple = (None, None)    # INSULATION-ON/-SINGLE → "ON", -OFF → "OFF"
@@ -442,7 +445,7 @@ def read_pcf(
     ignored = spec.report["ignored"] = {}
     inline_warned: set[str] = set()
 
-    for record_type, attrs, pipeline in records:
+    for record_type, attrs, pipeline, line in records:
         rtype = record_type.upper()
         n_end = len(attrs.get("END-POINT", []))
         if rtype in ignore_types or rtype in ANNOTATION_TYPES \
@@ -457,7 +460,8 @@ def read_pcf(
             warnings.warn(HexmeshWarning(
                 f"Unsupported PCF component type '{record_type}' — skipped.",
                 code="pcf_component_unsupported",
-                where={"source": {"file": str(path), "record": record_type}}), stacklevel=2)
+                where={"source": {"file": str(path), "record": record_type, "line": line}}),
+                stacklevel=2)
             continue
 
         endpoints = list(attrs.get("END-POINT", []))
@@ -478,7 +482,8 @@ def read_pcf(
             warnings.warn(HexmeshWarning(
                 f"Component {record_type} has < 2 END-POINTs — skipped.",
                 code="pcf_component_incomplete",
-                where={"source": {"file": str(path), "record": record_type}}), stacklevel=2)
+                where={"source": {"file": str(path), "record": record_type, "line": line}}),
+                stacklevel=2)
             continue
 
         def point(v):
@@ -504,7 +509,7 @@ def read_pcf(
             record_type=rtype, pipeline=pipeline,
             branch=point(branches[0]), branch_bore=size(branches[0]),
             branch2=point(branches[1]), branch2_bore=size(branches[1]),
-            skey=str(attrs.get("SKEY", "")).strip().upper(), source=str(path),
+            skey=str(attrs.get("SKEY", "")).strip().upper(), source=str(path), line=line,
             insulation=_on_off(attrs.get("INSULATION")),
             end_insulation=tuple(_keypoint_insulation(w) for w in (epwords + [[], []])[:2]),
             branch_insulation=tuple(_keypoint_insulation(w) for w in bwords),
@@ -652,12 +657,14 @@ def _angle(u: np.ndarray, v: np.ndarray) -> float:
 _NUMBER = re.compile(r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?")
 
 
-def _iter_records(path: Path, net: NetworkSpec) -> Iterator[tuple[str, dict, str]]:
-    """Yield ``(record_type, attrs, pipeline)`` for each component record.
+def _iter_records(path: Path, net: NetworkSpec) -> Iterator[tuple[str, dict, str, int]]:
+    """Yield ``(record_type, attrs, pipeline, line)`` for each component
+    record, *line* the 1-based line of its keyword.
 
     Header keywords go to ``net.header``, ``PIPELINE-REFERENCE`` blocks to
     ``net.pipelines``, connection and equipment blocks to
-    ``net.connections``; everything from ``MATERIALS`` on is skipped.
+    ``net.connections`` (their attributes with ``_source`` and ``_line``);
+    everything from ``MATERIALS`` on is skipped.
     """
     block: tuple[str, str] | None = None   # (kind, name): "component" | "pipeline" | "other"
     attrs: dict = {}
@@ -665,6 +672,7 @@ def _iter_records(path: Path, net: NetworkSpec) -> Iterator[tuple[str, dict, str
     epwords: list[list[str]] = []           # the words on each END-POINT line
     pipeline = ""
     in_header = True
+    start = 0                               # the current block's keyword line
 
     def flush():
         if block is None:
@@ -675,14 +683,15 @@ def _iter_records(path: Path, net: NetworkSpec) -> Iterator[tuple[str, dict, str
             a["END-POINT"] = list(endpoints)
             a["END-POINT-WORDS"] = list(epwords)
         if kind == "component":
-            yield name, a, pipeline
+            yield name, a, pipeline, start
         elif kind == "pipeline":
             net.pipelines[name] = a
         elif kind == "other":
+            a["_source"], a["_line"] = str(path), start
             net.connections.append((name, a))
 
     with path.open(encoding="utf-8") as fh:
-        for raw_line in fh:
+        for number, raw_line in enumerate(fh, 1):
             line = raw_line.rstrip().expandtabs()
             if not line or line.startswith(";"):
                 continue
@@ -697,7 +706,7 @@ def _iter_records(path: Path, net: NetworkSpec) -> Iterator[tuple[str, dict, str
                     yield from flush()
                     in_header = False
                     pipeline = value
-                    block, attrs, endpoints = ("pipeline", value), {}, []
+                    block, attrs, endpoints, start = ("pipeline", value), {}, [], number
                     continue
                 if in_header and key not in _COMPONENT_MAP and key not in _NON_COMPONENTS \
                         and key not in ANNOTATION_TYPES:
@@ -707,6 +716,7 @@ def _iter_records(path: Path, net: NetworkSpec) -> Iterator[tuple[str, dict, str
                 in_header = False
                 kind = "other" if key in _NON_COMPONENTS else "component"
                 block, attrs, endpoints, epwords = (kind, words[0]), {}, [], []
+                start = number
                 if kind == "other" and value:
                     attrs[key] = value                 # EQUIPMENT-REFERENCE <name>
             elif "END-POINT" in line.split(None, 1)[0]:
@@ -763,17 +773,25 @@ def _labels(comps: list[ComponentSpec]) -> list[str]:
     return out
 
 
+def _file_line(prov) -> str:
+    """``<file name>:<line>`` when the provenance has both, else ""."""
+    return f"{Path(prov.source).name}:{prov.line}" if prov.source and prov.line else ""
+
+
 def _format(part, at, name) -> str:
     """How messages name a PCF part: ``component <index> (<TYPE> <label>[,
-    SKEY …] at <point>)``; an equipment connection by its record and
-    ``CONNECTION-REFERENCE``."""
+    SKEY …] at <point>, <file>:<line>)``; an equipment connection by its
+    record and ``CONNECTION-REFERENCE`` (and ``(<file>:<line>)``)."""
     prov = part.provenance
+    at_line = _file_line(prov)
     if isinstance(part, _m.Terminal):
-        return f"{prov.record} {prov.record_id or '(no CONNECTION-REFERENCE)'}"
+        return (f"{prov.record} {prov.record_id or '(no CONNECTION-REFERENCE)'}"
+                + (f" ({at_line})" if at_line else ""))
     skey = dict(prov.attributes).get("skey")
     skey = f", SKEY {skey}" if skey else ""
     where = "" if at is None else f" at {np.round(at, 4)}"
-    return f"component {prov.record_id} ({part.type} {name}{skey}{where})"
+    at_line = f", {at_line}" if at_line else ""
+    return f"component {prov.record_id} ({part.type} {name}{skey}{where}{at_line})"
 
 
 _m.register_formatter(FORMAT, _format)
@@ -825,7 +843,7 @@ def _to_model(net: NetworkSpec) -> "_m.NetworkModel":
     for i, (c, label) in enumerate(zip(net.components, _labels(net.components))):
         c.index = i
         prov = _m.Provenance(source=c.source or net.source, format=FORMAT,
-                             record=c.record_type, record_id=str(i),
+                             record=c.record_type, record_id=str(i), line=c.line,
                              attributes=(("skey", c.skey),))
 
         def port(x, bore, status=None, flow=None):
@@ -889,8 +907,8 @@ def _terminals(net: NetworkSpec, model) -> None:
             label = f"{_name(eq)}_{_name(nozzle)}"
         else:
             label = _name(ref) or "equipment"
-        prov = _m.Provenance(source=net.source, format=FORMAT, record=kind.upper(),
-                             record_id=ref)
+        prov = _m.Provenance(source=a.get("_source", net.source), format=FORMAT,
+                             record=kind.upper(), record_id=ref, line=a.get("_line"))
         port = model.add_port(a.get("_point"), equipment={"tag": eq, "nozzle": nozzle},
                               provenance=prov)
         model.add_part(_m.Terminal, [port], id=f"connection{j}", name=label,
@@ -913,5 +931,7 @@ def _declared_connections(net: NetworkSpec, model) -> None:
             a_id, b_id = near[0][1], near[1][1]
             model.connections.append(_m.Connection(
                 a_id, b_id, origin="declared",
+                provenance=_m.Provenance(source=a.get("_source", net.source), format=FORMAT,
+                                         record=kind.upper(), line=a.get("_line")),
                 distance=float(np.linalg.norm(model.ports[a_id].position
                                               - model.ports[b_id].position))))

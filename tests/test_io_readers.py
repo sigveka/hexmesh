@@ -255,6 +255,33 @@ def test_elbow_leg_must_follow_the_incoming_pipe(tmp_path):
         _pcf(tmp_path, text).to_assembly(_spec(0.05))
 
 
+# --- line numbers (task 0096) -------------------------------------------------
+
+def test_error_names_the_file_and_line(tmp_path):
+    """The ELBOW keyword is on line 7; its ANGLE disagrees with its points."""
+    text = ELBOW_45.replace("ANGLE 4500", "ANGLE 4600")
+    assert text.splitlines()[6] == "ELBOW"
+    with pytest.raises(AssemblyError, match=r"component 1 \(ELBOW ELBOW_1 at .*, line\.pcf:7\): "
+                                             r"ANGLE 46° disagrees") as info:
+        _pcf(tmp_path, text).to_assembly(_spec(0.05))
+    src = info.value.where["source"]
+    assert src["line"] == 7 and src["file"] == str(tmp_path / "line.pcf")
+    assert src["record"] == "ELBOW"
+
+
+def test_each_file_keeps_its_records_lines(tmp_path):
+    a, b = tmp_path / "a.pcf", tmp_path / "b.pcf"
+    a.write_text(HEADER_MM + "PIPE\n    END-POINT 0 0 0 200\n    END-POINT 1000 0 0 200\n",
+                 encoding="utf-8")
+    b.write_text(HEADER_MM + "; a comment\n\nPIPE\n    END-POINT 1000 0 0 200\n"
+                 "    END-POINT 2000 0 0 200\n", encoding="utf-8")
+    net = read_pcf([a, b])
+    assert [(c.source, c.line) for c in net.components] == [(str(a), 4), (str(b), 6)]
+    model = net.to_model()
+    assert [(q.provenance.source, q.provenance.line) for q in model.parts.values()] == [
+        (str(a), 4), (str(b), 6)]
+
+
 # --- units -------------------------------------------------------------------
 
 def _one_pipe(coords, bore_unit, x1, bore):

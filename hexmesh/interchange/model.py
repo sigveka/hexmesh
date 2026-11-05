@@ -231,12 +231,14 @@ PART_TYPES = (Straight, InlineEquipment, Bend, Reducer, Transition, Junction, Jo
 @dataclass(eq=False)
 class Connection:
     """Port ↔ port.  ``origin``: "declared" by the source (or a user), or
-    "inferred" from positions within ``distance``."""
+    "inferred" from positions within ``distance``; ``provenance``: the
+    record that declared it."""
 
     a:        str
     b:        str
     origin:   str = "inferred"
     distance: float = 0.0
+    provenance: Provenance | None = None
 
 
 @dataclass(eq=False)
