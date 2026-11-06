@@ -1,6 +1,6 @@
 # 0072 — Validation (V3): laminar flow in a 90° square-duct bend (Taylor, Whitelaw & Yianneskis, Re 790)
 
-- **Status:** blocked (RMS gate fails: questions Q1–Q2; results complete)
+- **Status:** ready (design answered Q1–Q2, 2026-11-06)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (category V3); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V3 (experiment: Taylor, Whitelaw & Yianneskis 1982)
 - **Features:** `section:rect`, `straight`, `bend`
@@ -136,6 +136,26 @@ it is reported and nothing is tuned.
   12.6 D_h used here?  The rig length gives RMS 0.089 at X_H = −0.50
   (k = 2).  A measured-profile inlet would need the profile at
   X_H = −0.75, which isn't tabulated.
+
+**Design answers** (2026-11-06; the user: "yes").  Principle: a gate
+isn't moved after its result is known.
+- **Q1:** keep the 5 % RMS comparison and record it as missed at five of
+  seven stations, with the numbers.  The case is accepted on what the
+  mesh controls, gated:
+  - mesh convergence of the peak U (GCI, as measured);
+  - the peak's position and its outward shift through the bend, per
+    station.
+
+  The RMS against the experiment is reported, with the upstream
+  mismatch (0.048 at X_H = −0.50) as its floor, like the O-H rectangle
+  levels in `rect_duct`.  A gate on the RMS growth through the bend is
+  a fair idea for a future case, set before its runs, not here.
+- **Q2:** gate on the rig's plug inlet at 7.5 D_h.  The 12.6 D_h run was
+  chosen to match the upstream data, so it is kept as a reported
+  sensitivity, not gated.
+- Then: rerun what Q2 needs (the gated level at 7.5 D_h if it isn't
+  already complete), update `RESULTS.md` and `case.json` gates, and
+  finish.
 
 ## Outcome
 

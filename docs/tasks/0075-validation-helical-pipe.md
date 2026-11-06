@@ -1,6 +1,6 @@
 # 0075 — Validation (V3): laminar flow in a helical pipe (spline pipe)
 
-- **Status:** blocked (the paper can't be fetched: Q1)
+- **Status:** ready (the paper is in docs/papers/, 2026-11-06)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (V3, with V4 secondary); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V3 (experiment: De Amicis et al. 2014; V4 correlation, Manlapaz & Churchill 1980, secondary)
 - **Features:** `section:circle`, `straight`, `spline`
@@ -83,6 +83,16 @@ heat transfer in coils.
   - (c) another open laminar-coil dataset.
 
   With (a), nothing else changes.
+
+**Design answer** (2026-11-06; the user: "yes"): **(a).**  The user
+downloads the PDF into `docs/papers/`, and the task resumes as written.
+The Manlapaz & Churchill correlation (b) isn't a substitute for the
+paper's data.
+- **Done 2026-11-06:** the user downloaded it:
+  `docs/papers/deamicis_and_cammi_etal_2014.pdf` (gitignored, like the
+  other papers), cited as `deamicis_and_cammi_etal_2014` in
+  `docs/references.bib`.  The task resumes as written, from step 1 (the
+  paper's coil: d, D, pitch).
 
 ## Outcome
 

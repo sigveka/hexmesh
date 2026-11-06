@@ -1,6 +1,6 @@
 # 0049 — Validation: fully developed turbulent pipe flow (RANS, k-ω SST)
 
-- **Status:** blocked (gates fail: questions Q1–Q3; results complete)
+- **Status:** ready (design answered Q1–Q3, 2026-11-06)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (its "turbulent pipe DNS" case); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V2 (DNS profiles; V4 friction-factor correlation as secondary)
 - **Features:** `section:circle`, `straight`
@@ -149,6 +149,33 @@ model constants are not tuned.  Evidence: `validation/turbulent_pipe/RESULTS.md`
   - Which wall-function set should the validated wall-function variant
     be, and should the CFD guidance warn that the standard `nutk` set
     under-predicts f by ~7 % in fully developed pipe flow at y⁺ ≈ 45?
+
+**Design answers** (2026-11-06; the user: "yes").  Principle: hexmesh
+validates meshes, not turbulence models, and a gate isn't moved after
+its result is known.
+- **Q1:** keep 3 % for U_c/U_b as a reported comparison, recorded as
+  missed (−3.9 % at Re_τ 550), with the reason: k-ω SST's weak outer
+  wake, a model bias, mesh-converged (fine GCI 0.1 %).  Cite a source
+  for SST's known centreline deficit if one is at hand.  Gate what the
+  mesh controls: mesh convergence of U_c/U_b and f (Richardson status
+  `converging`, GCI reported).
+  - The near-wall profile (u⁺ at y⁺ = 1 and 10 against the DNS) stays
+    reported, as the task's Accept had it.  *Corrected 2026-11-06:* an
+    earlier version of this answer made it a gate with no tolerance.
+    The coding session pointed out that choosing one after seeing the
+    values (+0.2 %, −2.1 %) would be a gate set after its result.
+- **Q2:** the f gate applies to the finest level, as written (+2.41 %:
+  passes).  Report the order (0.84), the extrapolated value (+4.6 % from
+  McKeon) and the 2.7 % fine-level GCI next to the pass, so the slow
+  convergence is visible.  This is wording on the report row; the
+  Richardson status stays `converging` (task 0089), with no code change.
+- **Q3:** the validated wall-function variant uses Spalding's law
+  (`nutUSpaldingWallFunction`; f −0.4 / −2.0 / −3.3 %).  The standard
+  `nutkWallFunction` set is reported, and the CFD guidance (`docs/GUIDE.md`
+  or the integration notes, `docs/integrations/openfoam.md`) warns that
+  it under-predicts f by about 7 % in fully developed pipe flow at
+  y⁺ ≈ 45, with this case's numbers.  0098's advisor keeps rejecting
+  wall functions until this case is accepted.
 
 ## Outcome
 
