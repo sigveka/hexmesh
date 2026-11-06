@@ -1,6 +1,6 @@
 # 0075 — Validation (V3): laminar flow in a helical pipe (spline pipe)
 
-- **Status:** ready (design answered Q3, 2026-11-06: rerun on nang 12/16/24)
+- **Status:** blocked (Q4: nang 24 costs ~16 h, not 3–4 h; rerun stopped)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (V3, with V4 secondary); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V3 (experiment: De Amicis et al. 2014; V4 correlation, Manlapaz & Churchill 1980, secondary)
 - **Features:** `section:circle`, `straight`, `spline`
@@ -242,6 +242,38 @@ the gate fixed now, before any run.
   mesh carries (0.5–1.4 % above nominal), fixed before the study.
   Report the faceted section's area error beside it, per level, so the
   correction is visible.
+
+**Q4: nang 24 costs about 5× my estimate, so the rerun stopped**
+(2026-11-06).
+- **What ran:**
+  - The driver ran on LEVELS = (12, 16, 24), reusing the stored nang 12
+    and 16 runs.  The faceted-area error is stored per level: nang 8
+    0.64 %, 12 0.29 %, 16 0.16 %, 24 0.07 %.
+  - Before the run, 31 GB was free and no other heavy run was active.
+  - The first nang 24 case (Re 1800) hit the driver's 5 h timeout at
+    step 306, unconverged.  Its p residual was 2e-6, falling about 2.4×
+    per 25 steps, against a target of 1e-7.  The other two Re weren't
+    started.
+  - The case was deleted.  It had no fields written (the write interval
+    is the end time), so it couldn't be restarted.
+- **My estimate in Q3 was wrong.**
+  - nang 24 is **2.71M cells**, not 1.8M.  `LAYERS_PER_TURN` scales
+    with nang, so the axial count grows too.
+  - At np 4 it takes **about 48 s per step** on a quiet machine (69 s
+    while the full suite shared the CPU).
+  - It would converge at about 390 steps, so **about 5 h per Re and
+    15–16 h for the three**, against the 3–4 h I gave.  For comparison,
+    nang 16 (0.80M cells) took 319 steps.
+- **The outcome rule doesn't cover a level that wasn't run,** and the
+  machine time is the user's to give, so I stopped.
+- **Options:**
+  - (a) run nang 24 as planned: about 16 h in one stretch, one case at a
+    time, about 1.6 GB of disk per case, deleted after each;
+  - (b) the same, but each nang 24 case starts from the nang 16 field,
+    mapped (`mapFields`).  That likely needs fewer steps, at the cost of
+    a driver change.  It wasn't measured, so it's a guess at 2–3 h per
+    Re;
+  - (c) another set of levels.  That is a change to the study design.
 
 ## Outcome
 

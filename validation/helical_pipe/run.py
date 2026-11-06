@@ -38,7 +38,7 @@ Gates (design answer to Q2, fixed before the runs): f within 5 % of Ito
 Re; the spline within 0.1 % of d of the helix.  The digitised measured
 points of the paper's Fig. 12 (``data/``) are reported, not gated.
 
-Run:   python3 validation/helical_pipe/run.py --np 4
+Run:   python3 validation/helical_pipe/run.py --np 4      # nang 12, 16, 24
 Recheck: python3 -m validation.tools.recheck helical_pipe
 """
 
@@ -87,9 +87,19 @@ DEV_LIMIT = 1e-3              # spline deviation gate, in d
 F_LIMIT = 0.05                # f against Ito
 
 # --- the levels: nang, with the axial layers scaled alike -------------------
-LEVELS = (8, 12, 16)
-LAYERS_PER_TURN = {8: 130, 12: 195, 16: 260}        # about 2, 1.33, 1 d per layer
-LAYERS_IN = {8: 3, 12: 4, 16: 6}
+# The gated series is nang 12, 16, 24 (task 0075, design answer Q3): nang 8
+# wasn't in the asymptotic range at De 270-340.  Its runs stay in
+# results.json, reported.
+LEVELS = (12, 16, 24)
+LAYERS_PER_TURN = {8: 130, 12: 195, 16: 260, 24: 390}   # about 2, 1.33, 1, 0.67 d per layer
+LAYERS_IN = {8: 3, 12: 4, 16: 6, 24: 9}
+
+
+def area_ratio(nang: int) -> float:
+    """The meshed section's area over πa²: the wall is the 4·nang-gon of
+    the wall nodes on the circle."""
+    n = 4 * nang
+    return n * math.sin(2 * math.pi / n) / (2 * math.pi)
 
 DATA = HERE / "data" / "deamicis_2014_fig12.csv"
 
@@ -358,6 +368,7 @@ def run_level(re_: float, nang: int, work: Path, end_time: int, n_proc: int) -> 
     f = fr["f_per_pair"][GATED_PAIR]
     re_b = re_ * fr["u_bulk_per_pair"][GATED_PAIR] / U_B         # ν = U_B d / re_
     return {"re": re_, "nang": nang, "cells": cells, "layers_per_turn": LAYERS_PER_TURN[nang],
+            "area_ratio": area_ratio(nang),
             "min_scaled_jacobian": sj, **stored.counts(asm),
             **{f"check_{k}": v for k, v in check.items()},
             "steps": int(steps[-1]) if steps else 0,
@@ -370,10 +381,11 @@ def run_level(re_: float, nang: int, work: Path, end_time: int, n_proc: int) -> 
 # --- analysis -----------------------------------------------------------------
 
 def analyse(levels: list[dict]) -> dict:
-    """Richardson on f at each Re (nang 8, 12, 16: ratios 1.5, 4/3)."""
+    """Richardson on f at each Re (nang 12, 16, 24: ratios 4/3, 1.5)."""
     out = {}
     for re_ in RES:
-        rows = sorted((r for r in levels if r["re"] == re_), key=lambda r: r["nang"])
+        rows = sorted((r for r in levels if r["re"] == re_ and r["nang"] in LEVELS),
+                      key=lambda r: r["nang"])
         if [r["nang"] for r in rows] == list(LEVELS):
             out[str(re_)] = conv.richardson(*(r["f"] for r in rows),
                                             r21=LEVELS[2] / LEVELS[1], r32=LEVELS[1] / LEVELS[0])
@@ -404,11 +416,12 @@ def recheck(data: dict) -> list[dict]:
     for re_ in RES:
         r = rich.get(str(re_))
         if r is not None:
-            out.append(stored.row(f"Re {re_}: f (nang 8, 12, 16)", rich=r, gate="converging",
+            out.append(stored.row(f"Re {re_}: f (nang {', '.join(map(str, LEVELS))})", rich=r,
+                                  gate="converging",
                                   ok=r["status"] == "converging",
                                   value=f"GCI {r['gci_fine']:.2%}" if r["gci_fine"] is not None
                                   else r["status"], note=r["note"]))
-        rows = [lv for lv in data["levels"] if lv["re"] == re_]
+        rows = [lv for lv in data["levels"] if lv["re"] == re_ and lv["nang"] in LEVELS]
         if rows:
             lv = max(rows, key=lambda x: x["nang"])
             out.append(stored.row(f"Re {re_}: f (nang {lv['nang']})",

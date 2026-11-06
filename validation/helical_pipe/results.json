@@ -62,7 +62,7 @@
    "chord_sag_over_d": {
     "12": 0.005178684582951926,
     "16": 0.002913010077910458,
-    "8": 0.011652040311641833
+    "24": 0.0012946711457379814
    },
    "interior_max_over_d": 0.00015595032568574264,
    "max_over_d": 0.00034088920631553994,
@@ -72,6 +72,7 @@
  "format": "hexmesh.validation.results",
  "levels": [
   {
+   "area_ratio": 0.9935868511442058,
    "cells": 100416,
    "check_cells_foam": 100416,
    "check_max_non_orthogonality": 28.1282636051,
@@ -126,6 +127,7 @@
    ]
   },
   {
+   "area_ratio": 0.9971466573496368,
    "cells": 338688,
    "check_cells_foam": 338688,
    "check_max_non_orthogonality": 33.249483654,
@@ -180,6 +182,7 @@
    ]
   },
   {
+   "area_ratio": 0.9983943930356184,
    "cells": 803328,
    "check_cells_foam": 803328,
    "check_max_non_orthogonality": 35.9951107465,
@@ -234,6 +237,7 @@
    ]
   },
   {
+   "area_ratio": 0.9935868511442058,
    "cells": 100416,
    "check_cells_foam": 100416,
    "check_max_non_orthogonality": 28.1282636051,
@@ -288,6 +292,7 @@
    ]
   },
   {
+   "area_ratio": 0.9971466573496368,
    "cells": 338688,
    "check_cells_foam": 338688,
    "check_max_non_orthogonality": 33.249483654,
@@ -342,6 +347,7 @@
    ]
   },
   {
+   "area_ratio": 0.9983943930356184,
    "cells": 803328,
    "check_cells_foam": 803328,
    "check_max_non_orthogonality": 35.9951107465,
@@ -396,6 +402,7 @@
    ]
   },
   {
+   "area_ratio": 0.9935868511442058,
    "cells": 100416,
    "check_cells_foam": 100416,
    "check_max_non_orthogonality": 28.1282636051,
@@ -450,6 +457,7 @@
    ]
   },
   {
+   "area_ratio": 0.9971466573496368,
    "cells": 338688,
    "check_cells_foam": 338688,
    "check_max_non_orthogonality": 33.249483654,
@@ -504,6 +512,7 @@
    ]
   },
   {
+   "area_ratio": 0.9983943930356184,
    "cells": 803328,
    "check_cells_foam": 803328,
    "check_max_non_orthogonality": 35.9951107465,
