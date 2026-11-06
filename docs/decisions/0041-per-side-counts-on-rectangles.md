@@ -2,8 +2,8 @@
 
 - **Status:** accepted (2026-11-06, the user: "follow your recommendation")
 - **Date:** 2026-11-05
-- **Tasks:** 0100 (step 1: trace the ties).  The B and C tasks follow
-  from its outcome.
+- **Tasks:** 0100 (step 1: trace the ties; done), 0101 (B: shells
+  around rectangles).  C is held (see "After task 0100").
 
 ## Context
 
@@ -123,9 +123,65 @@ record gets a note.
 ## Verified vs. assumed
 
 - **Measured** (task 0098): the cell counts in the table.
-- **Reported, not yet traced** by the design session: the cause of the
-  tie in each case.  The coding session's note says the shell case is
-  "the spec's own rule".  I found no such check in `core/spec.py` on a
-  quick look.
+- **Traced** (task 0100): the cause of each tie, below.  *Correction:*
+  the design session's quick look missed the shell check; it is
+  `PipeSpec._check_counts` (`core/spec.py:571`), decision 0026 item 3.
 - **Reasoning:** that an O-H patch with `nang_w ≠ nang_h` is valid for
   a circle (a 4-cornered transfinite patch; not built or measured).
+
+## After task 0100 (2026-11-06, design session; the user: "yes")
+
+**What 0100 found** (its *Outcome* has the table, with file and line):
+- **Shells around a rectangle:** only a spec rule,
+  `rect_stack_counts_unequal` (decision 0026 item 3, which left unequal
+  counts as "a later class-2 question").  With it bypassed, untied
+  stacks build, validate and mesh conformally: H and O-H, one and two
+  shells, a rectangular outer, a straight and a 90° bend.  **B holds.**
+- **A circle beside a rectangle** (a circle → rectangle `Transition`, a
+  circular shell round a rectangle, a round duct tap, a non-square
+  `BundleSpec` tile): geometric, because `CircleShape` carries one
+  count.  Only C lifts these.
+- **Rectangle → rectangle `Transition`:** already untied.
+
+**The gains.**  B alone takes `lagged_duct` from 936k to 527k cells
+(−44 %).  The other four (`duct_transition`, `hvac_supply`,
+`hvac_branched`, `cooling_channels`) are tied by transitions.
+
+**C's gain, estimated** (design session; arithmetic, not built).  Under
+C a circle's quarter-arcs take the rectangle's counts (a, b, a, b)
+instead of a each, with a the long side's count and b = a / (a/b) the
+short side's.  Per O-H or H section with a core of a × b and n rings
+of `nrad` cells:
+
+  cells(C) / cells(tied) = (a·b + 2(a + b)·n_r) / (a² + 4a·n_r)
+
+where n_r is the total ring count.  That lies between b/a (no rings)
+and (a + b)/(2a) (rings dominate).  At a count ratio a/b = 2
+(`lagged_duct`'s 60 × 30; the other four examples' ratios aren't
+checked): **0.50 to 0.75**, so C would cut them by 25–50 %
+(`cooling_channels` 20M → about 10–15M), if the axial counts don't
+change.  A flatter duct gains more: at a/b = 4, 0.25 to 0.63.  The
+axial counts follow the smallest cross-section cell, which C doesn't
+change when the cells are square.  The ratio applies to every section,
+circles included, so it bounds the whole assembly.
+
+**So C is held.**
+- Its cost is high: `nang`'s definition in CLAUDE.md and DESIGN, the
+  section signature's period (task 0082), `Transition`, the round duct
+  tap and the switch.
+- Its gain is at most 2×, while the four examples are 4–30× over a
+  circle network of the same reach.
+- The cause is that one density runs through a whole network: one
+  rectangle's long side sets every circle's count.  The question that
+  matters is whether the count can change conformally at a fitting
+  (refinement templates in a transition, for example).  That's a new
+  design question.  Today's answer stays option D: not conformal, so
+  not done.  It isn't opened yet.
+- C stays the next step if a user needs a circle beside an unequal
+  rectangle for its own sake (a non-square bundle tile, say), not for
+  cost.
+
+**Amends** decision 0026 item 3 (task 0101): a stack of rectangular
+outlines may have `nang_w ≠ nang_h`, each outline taking the core's
+counts.  A circular outline in a stack with a rectangle keeps equal
+counts.

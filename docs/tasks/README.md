@@ -100,6 +100,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0097](0097-describe-and-preview.md) | `describe` and `preview`: what a network is, without GMSH | done | 0040, 0019 |
 | [0098](0098-advise-and-cli.md) | `advise` (the resolution advisor) and the `hexmesh` CLI | done | 0040 |
 | [0100](0100-trace-tied-rectangle-counts.md) | Trace why rectangle side counts are tied next to circles and shells | done | 0041 |
+| [0101](0101-untie-rectangular-shell-counts.md) | Unequal side counts through a stack of rectangular outlines | ready | 0041, 0026 |
 
 ### Validation
 
@@ -117,7 +118,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0071](0071-validation-rectangular-duct.md) | Validation: fully developed laminar flow in rectangular ducts | V1 | done | 0012, 0015 |
 | [0072](0072-validation-laminar-square-bend.md) | Validation: laminar 90° square-duct bend (Taylor et al., Re 790) | V3 | done | 0012, 0015 |
 | [0074](0074-validation-mms-conduction.md) | Verification: manufactured solutions for conduction on every fitting's mesh | V1 | blocked (questions Q1–Q3; results complete) | 0012, 0015 |
-| [0075](0075-validation-helical-pipe.md) | Validation: laminar flow in a helical pipe (spline pipe) | V3 | blocked (f's convergence gate fails at Re 3000: Q3) | 0012, 0015 |
+| [0075](0075-validation-helical-pipe.md) | Validation: laminar flow in a helical pipe (spline pipe) | V3 | ready (design answered Q3, 2026-11-06: rerun on nang 12/16/24) | 0012, 0015 |
 | [0077](0077-validation-fenicsx-second-order.md) | Verification: FEniCSx toolchain, and second-order export checked end to end | V1 | ready (step 1 any time; 2–4 after 0076) | 0034, 0012, 0015 |
 | [0079](0079-validation-taylor-bubble.md) | Validation: a Taylor bubble rising in stagnant liquid (VOF) | V3 | ready (v2406 runner) | 0012, 0015 |
 | [0099](0099-validation-graphs.md) | Validation results as graphs: convergence, layouts, the stenosis against DNS | docs | ready (after 0098) | 0012, 0015, 0036 |
@@ -144,8 +145,8 @@ or a long run.
      0094 and 0096 done;
    - validation graphs: **0099** after 0098 (it edits the same
      `results.json` files);
-   - rectangle cost (decision 0041): **0100** (trace the ties), then
-     the B and C tasks from its outcome;
+   - rectangle cost (decision 0041): **0101** (shells around
+     rectangles; 0100 done).  C (unequal arcs on a circle) is held;
    - general branches (decision 0031): **0060 → 0061 / 0062 → 0063**.
      0060 carries a design note from 0081: the duct-tap front end leaves
      `Tee`;

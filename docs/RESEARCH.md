@@ -841,6 +841,40 @@ high-fidelity simulation, V3 experiment, V4 correlation).
   0070), not a gate.  Handbook coefficients (ASHRAE Duct Fitting
   Database, Idelchik) are commercial or book-only: V4 comparisons.
 
+**The laminar square-duct bend, measured** (task 0072, done
+2026-11-06, `6f836a7`; Taylor, Whitelaw & Yianneskis, Re 790,
+[`taylor_and_whitelaw_etal_1981`]):
+- **Inlet:** a plug whose development length (12.6 D_h) is fitted to the
+  X_H = −0.50 profile alone; that station is the calibration, not
+  gated.  The rig's own 7.5 D_h plug is too flat: the measured inflow is
+  more developed.  As a sensitivity run it fails in part (θ = 60° peak U
+  not converging; the peak position missed at X_H −0.50 / −0.25 and
+  77.5°).
+- **Gated, all passing:** the peak U converges (order 3.84, GCI 0.05 % at
+  θ = 60°; order 5.25, GCI 0.01 % at 77.5°), and the peak's gapwise
+  position matches at the six stations from X_H = −0.25 on
+  (0.5 → 0.3 → 0.1: the outward shift).
+- **Reported:** the RMS against the measurement (V_c), k = 1 / 2 / 3.  It
+  misses 5 % at five of seven stations; the upstream mismatch (0.047)
+  is its floor.
+
+  | station | RMS k = 1 / 2 / 3 | peak g |
+  |---|---|---|
+  | X_H = −0.50 | 0.081 / 0.048 / 0.047 | 0.5 |
+  | X_H = −0.25 | 0.114 / 0.082 / 0.076 | 0.5 |
+  | θ = 30° | 0.098 / 0.050 / 0.048 | 0.5 |
+  | θ = 60° | 0.084 / 0.077 / 0.093 | 0.3 |
+  | θ = 77.5° | 0.168 / 0.109 / 0.098 | 0.1 |
+  | X_H = +0.25 | 0.203 / 0.114 / 0.082 | 0.1 |
+  | X_H = +0.40 | 0.197 / 0.109 / 0.081 | 0.1 |
+
+- **Mesh:** the H section, 12 / 24 / 36 cells per side, 23k / 184k /
+  622k cells, non-orthogonality ≤ 1°.  About 15 min on 4 MPI processes
+  for the inlet match and all three levels.
+- **First data for the fittings' axial limit** (task 0098 Q7,
+  `MAX_AXIAL_ASPECT_FITTING`): this case's bend cells can be read
+  against it.
+
 ### 7.9 Validation candidates for uncovered features (surveyed 2026-10-30, design session)
 
 Task 0073's coverage matrix shows eight features with no validation

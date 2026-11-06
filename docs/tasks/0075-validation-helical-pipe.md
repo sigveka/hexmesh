@@ -1,6 +1,6 @@
 # 0075 — Validation (V3): laminar flow in a helical pipe (spline pipe)
 
-- **Status:** blocked (f's convergence gate fails at Re 3000: Q3)
+- **Status:** ready (design answered Q3, 2026-11-06: rerun on nang 12/16/24)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (V3, with V4 secondary); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V3 (experiment: De Amicis et al. 2014; V4 correlation, Manlapaz & Churchill 1980, secondary)
 - **Features:** `section:circle`, `straight`, `spline`
@@ -224,6 +224,24 @@ the gate fixed now, before any run.
       chosen now that nang 8 is known to be too coarse;
     - (b) record the case as rejected on the convergence gate, as run;
     - (c) something else.
+
+**Design answer to Q3** (2026-11-06; the user: "yes").
+- **Rerun on nang 12, 16 and 24.**  The gate is unchanged (f
+  `converging` at each Re, and f within 5 % of Ito).  Choosing levels in
+  the asymptotic range is part of the convergence study; the Q2 answer
+  didn't fix them.  At De 270–340 the secondary flow needs more than
+  nang 8 to be asymptotic.
+- **The outcome rule, fixed now, before the rerun:** if the 12/16/24
+  series isn't `converging` at every Re, the case is recorded as
+  rejected, with the Ito comparison and the digitised points reported.
+  No further levels, and no change to the gate.
+- **Before the run** (CLAUDE.md): check `df -h .` and for another
+  session's heavy run.  Delete the OpenFOAM cases afterwards, keeping the
+  numbers in `results.json` and the task.
+- **The bulk velocity: agreed.**  f and Re use the bulk velocity the
+  mesh carries (0.5–1.4 % above nominal), fixed before the study.
+  Report the faceted section's area error beside it, per level, so the
+  correction is visible.
 
 ## Outcome
 

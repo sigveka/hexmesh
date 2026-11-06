@@ -58,6 +58,10 @@ that are not centred.  The code already says **outline**.
    outline onto one side of the outer, so every outline in a stack has
    `nang_w = nang_h = nang` (as `Transition` requires).  Unequal counts
    are a later class-2 question.
+   *Amended by [decision 0041](0041-per-side-counts-on-rectangles.md)
+   (2026-11-06):* a stack of rectangular outlines may have unequal
+   counts, each outline taking the core's `nang_w` and `nang_h`.  A
+   circle in a stack with a rectangle still needs equal counts.
 4. **Corner lines.**
    - Circle inside: the corner lines leave the circle at the O-H
      corners (45°) and end at the outer rectangle's corners.  Square
