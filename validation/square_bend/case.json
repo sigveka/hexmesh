@@ -29,12 +29,16 @@
   "task": "0072",
   "gates": [
     {
-      "quantity": "RMS difference of U/V_c per station, finest level",
-      "limit": "within 5 % of V_c at every station (provisional)"
+      "quantity": "rig inlet (plug, 7.5 $D_h$): peak $U/V_c$ on the symmetry plane at θ = 60° and 77.5°, k = 1, 2, 3",
+      "limit": "Richardson status converging; GCI reported"
     },
     {
-      "quantity": "gapwise position of the peak U on the symmetry plane",
-      "limit": "shifts outward through the bend, as measured"
+      "quantity": "rig inlet, finest level: the peak's gapwise position on the symmetry plane, every station (its outward shift through the bend)",
+      "limit": "at the measured gapwise point"
+    },
+    {
+      "quantity": "reported, not gated: $U/V_c$ RMS difference per station, both inlets (5 % comparison; floor: the upstream mismatch); the matched inlet (12.6 $D_h$) as a sensitivity",
+      "limit": "reported"
     }
   ]
 }

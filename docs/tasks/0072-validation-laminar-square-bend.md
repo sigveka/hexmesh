@@ -1,6 +1,6 @@
 # 0072 — Validation (V3): laminar flow in a 90° square-duct bend (Taylor, Whitelaw & Yianneskis, Re 790)
 
-- **Status:** ready (design answered Q1–Q2, 2026-11-06)
+- **Status:** blocked (the rig-inlet gates fail in part: Q3)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (category V3); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V3 (experiment: Taylor, Whitelaw & Yianneskis 1982)
 - **Features:** `section:rect`, `straight`, `bend`
@@ -111,6 +111,18 @@ the O-H mesh can be added as a reported, ungated comparison.
 - **Peak shift:** the gapwise position of the peak U on the symmetry
   plane matches at every station already at k = 1: 0.5 upstream and at
   30°, 0.3 at 60°, 0.1 from 77.5° on.
+- **After the design answers (2026-11-06):**
+  - The driver runs two series: `rig` (the plug at L_UP = 7.5 D_h,
+    gated) and `matched` (12.6 D_h, reported).  The levels carry
+    `inlet`, and `--inlets` picks the series.
+  - The stored k = 1–3 levels were the matched series; they were renamed
+    `matched_k*` in `results.json`, with values unchanged and no rerun.
+  - The rig series ran at k = 1, 2, 3: 18.6k / 149k / 502k cells, about
+    12 min on 4 processes, all converged (about 200 SIMPLEC steps each).
+  - `recheck` gates the rig inlet's peak U convergence (θ = 60°, 77.5°)
+    and the peak position per station.  The RMS rows are reported for
+    both inlets.
+  - `case.json`'s gates follow the answers.
 
 ## Questions for design
 
@@ -157,9 +169,31 @@ isn't moved after its result is known.
   already complete), update `RESULTS.md` and `case.json` gates, and
   finish.
 
+- **Q3. Design's gates fail in part on the rig inlet**
+  (`validation/square_bend/RESULTS.md`).
+  - **The peak U at θ = 60° isn't converging:** 1.5123, 1.5220, 1.5358
+    at k = 1, 2, 3.  The fine-pair difference (0.0138, ratio 1.5)
+    exceeds the coarse pair's (0.0097, ratio 2).  At θ = 77.5° it
+    converges: order 3.89, GCI 0.08 %.
+  - **The peak position misses** at X_H = −0.50 and −0.25 (computed
+    g = 0.7, measured 0.5) and at θ = 77.5° (0.3 against 0.1).  It
+    matches at the other four stations.
+  - The cause looks like the inlet, not the mesh.  7.5 D_h from a plug
+    at Re 790 the flow is still developing, with off-centre maxima.  The
+    measured profile is more developed: the match needed 12.6 D_h.
+  - On the matched inlet, every one of these gates passes.  Its peak U
+    converges at both stations (GCI 0.05 %, 0.01 %), and the peak
+    position matches at all seven.
+  - The principle says the gates don't move.  So is the case
+    **rejected** on the rig inlet, with the matched-inlet results
+    reported?  Or is something else intended?  A finer fourth level
+    (k = 4, about 1.2M cells, roughly an hour) could show whether θ = 60°
+    reaches its asymptotic range.  It wouldn't change the position
+    misses.
+
 ## Outcome
 
-_Blocked on Q1–Q2; the runs and results are complete._
+_Blocked on Q3 (Q1–Q2 answered); both inlet series and their results are complete.  The tables below are the matched inlet (k = 3); the rig inlet is in RESULTS.md._
 
 - **Files:**
   - `validation/square_bend/`: `run.py`, `README.md`, `RESULTS.md`,

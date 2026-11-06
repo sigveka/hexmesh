@@ -327,8 +327,9 @@ def peak_on_symmetry(cc: np.ndarray, U: np.ndarray, station: str, n: int = 81) -
     return float(np.nanmax(_sample(cc, U, pts) @ t / V_C))
 
 
-def run_level(k: int, work: Path, end_time: int, n_proc: int, l_up: float = L_UP) -> dict:
-    case = work / f"k{k}"
+def run_level(k: int, work: Path, end_time: int, n_proc: int, l_up: float = L_UP,
+              inlet: str = "rig") -> dict:
+    case = work / f"{inlet}_k{k}"
     if case.exists():
         shutil.rmtree(case)
     case.mkdir(parents=True)
@@ -345,7 +346,8 @@ def run_level(k: int, work: Path, end_time: int, n_proc: int, l_up: float = L_UP
     log = of.run_solver(case, "simpleFoam", n_proc=n_proc)
     steps = re.findall(r"^Time = (\d+)", log, re.M)
     cc, U = _fields(case)
-    return {"k": k, "cells": cells, "l_up": l_up, "min_scaled_jacobian": sj, **stored.counts(asm),
+    return {"k": k, "inlet": inlet, "cells": cells, "l_up": l_up, "min_scaled_jacobian": sj,
+            **stored.counts(asm),
             **{f"check_{key}": v for key, v in check.items()},
             "steps": int(steps[-1]) if steps else 0,
             "converged": "solution converged in" in log,
@@ -416,8 +418,13 @@ def _fields(case: Path):
 
 # --- analysis -----------------------------------------------------------------
 
-def analyse(levels: list[dict]) -> dict:
-    rows = sorted(levels, key=lambda r: r["k"])
+# The inlets (task 0072, design Q2): the rig's plug 7.5 D_h before the bend
+# is gated; the plug matched to X_H = -0.50 is a reported sensitivity.
+INLETS = ("rig", "matched")
+
+
+def analyse(levels: list[dict], inlet: str = "rig") -> dict:
+    rows = sorted((r for r in levels if r["inlet"] == inlet), key=lambda r: r["k"])
     out = {}
     if [r["k"] for r in rows] == list(LEVELS):
         ks = [r["k"] for r in rows]
@@ -441,32 +448,40 @@ def table(row: dict) -> str:
 
 
 def recheck(data: dict) -> list[dict]:
-    """The gates from ``results.json`` (task 0093), at the finest level:
-    U/V_c RMS difference within 5 % of V_c per station, and the peak's
-    gapwise position on the symmetry plane as measured.  Richardson rows
-    for the peak U at GCI_STATIONS."""
-    rich = analyse(data["levels"])
-    out = [stored.row(f"peak U/V_c on the symmetry plane, {st} (k = 1, 2, 3)", rich=r)
-           for st, r in rich.items()]
-    fine = max(data["levels"], key=lambda r: r["k"])
+    """The gates from ``results.json`` (task 0072, design answers Q1-Q2),
+    on the rig inlet: the peak U's mesh convergence at GCI_STATIONS, and
+    at the finest level the peak's gapwise position on the symmetry plane
+    at every station, which carries its outward shift through the bend.
+    The U/V_c RMS against the measurements is reported (5 %, recorded as
+    missed; its floor is the upstream mismatch), for both inlets."""
+    out = []
+    for st, r in analyse(data["levels"], "rig").items():
+        out.append(stored.row(f"rig inlet: peak U/V_c on the symmetry plane, {st} (k = 1, 2, 3)",
+                              rich=r, gate="converging, as measured",
+                              ok=r["status"] == "converging",
+                              value=f"GCI {r['gci_fine']:.2%}" if r["gci_fine"] is not None
+                              else r["status"], note=r["note"]))
+    fine = max(stored.series(data, inlet="rig"), key=lambda r: r["k"])
     for st, s in fine["stations"].items():
-        out.append(stored.row(f"{st}: U/V_c RMS difference (k = {fine['k']})",
-                              gate="within 5 % of V_c", ok=s["u_rms_diff"] <= 0.05,
-                              value=f"{s['u_rms_diff']:.3f}",
-                              note=f"flux-matched {s['u_rms_diff_flux_matched']:.3f}"
-                              if s["u_rms_diff_flux_matched"] is not None else ""))
-    shift = all(s["peak_gap_computed"] == s["peak_gap_measured"]
-                for s in fine["stations"].values())
-    out.append(stored.row(f"peak position on the symmetry plane (k = {fine['k']})",
-                          gate="at the measured gapwise point, every station", ok=shift,
-                          value=", ".join(f"{s['peak_gap_computed']:.1f}"
-                                          for s in fine["stations"].values())))
+        out.append(stored.row(f"rig inlet, {st}: peak position on the symmetry plane "
+                              f"(k = {fine['k']})", gate="at the measured gapwise point",
+                              ok=s["peak_gap_computed"] == s["peak_gap_measured"],
+                              value=f"g = {s['peak_gap_computed']:.1f} "
+                                    f"(measured {s['peak_gap_measured']:.1f})"))
+    for inlet in INLETS:
+        lv = max(stored.series(data, inlet=inlet), key=lambda r: r["k"])
+        for st, s in lv["stations"].items():
+            out.append(stored.row(f"{inlet} inlet, {st}: U/V_c RMS difference (k = {lv['k']})",
+                                  value=f"{s['u_rms_diff']:.3f}",
+                                  note="5 % comparison: " +
+                                       ("within" if s["u_rms_diff"] <= 0.05 else "missed")))
     return out
 
 
 def main(argv=None) -> dict:
     ap = argparse.ArgumentParser(description=__doc__.strip().split("\n\n")[0])
     ap.add_argument("--levels", nargs="+", type=int, default=list(LEVELS))
+    ap.add_argument("--inlets", nargs="+", choices=INLETS, default=list(INLETS))
     ap.add_argument("--work", type=Path, default=HERE / "work")
     ap.add_argument("--end-time", type=int, default=5000)
     ap.add_argument("--np", type=int, default=1, dest="n_proc",
@@ -478,23 +493,25 @@ def main(argv=None) -> dict:
     of.set_runner(args.openfoam)
     store = stored.Store(args.json, "square_bend")
     store.put_extra("reference", "Taylor, Whitelaw & Yianneskis (1981), NASA CR-3367, Table I")
-    inlet = store.data["extra"].get("inlet")
-    if inlet is None:
-        inlet = match_inlet(INLET_K, args.work, args.end_time, args.n_proc)
-        store.put_extra("inlet", inlet)
+    match = store.data["extra"].get("inlet")
+    if match is None:
+        match = match_inlet(INLET_K, args.work, args.end_time, args.n_proc)
+        store.put_extra("inlet", match)
         if not args.keep_work:
             stored.remove_work(args.work / f"inlet_k{INLET_K}")
-    print(f"inlet: plug {inlet['l_up'] / D:.2f} D_h upstream of the bend (matched to "
-          f"{MATCH_STATION}: RMS {inlet['rms_at_x_star']:.3f})", flush=True)
-    for k in args.levels:
-        r = stored.run_level(store, f"k{k}",
-                             lambda k=k: run_level(k, args.work, args.end_time, args.n_proc,
-                                                   inlet["l_up"]),
-                             args.work / f"k{k}", args.keep_work)
-        print(table(r), flush=True)
-    rich = analyse(store.levels())
-    if rich:
-        store.put_extra("richardson_peak_u", rich)
+    print(f"matched inlet: plug {match['l_up'] / D:.2f} D_h upstream of the bend (to "
+          f"{MATCH_STATION}: RMS {match['rms_at_x_star']:.3f})", flush=True)
+    l_ups = {"rig": L_UP, "matched": match["l_up"]}
+    for inlet in args.inlets:
+        for k in args.levels:
+            r = stored.run_level(store, f"{inlet}_k{k}",
+                                 lambda k=k, inlet=inlet: run_level(
+                                     k, args.work, args.end_time, args.n_proc,
+                                     l_ups[inlet], inlet),
+                                 args.work / f"{inlet}_k{k}", args.keep_work)
+            print(f"{inlet} inlet, " + table(r), flush=True)
+    rich = {inlet: analyse(store.levels(), inlet) for inlet in INLETS}
+    store.put_extra("richardson_peak_u", rich)
     return rich
 
 
