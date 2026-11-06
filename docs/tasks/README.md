@@ -100,7 +100,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0097](0097-describe-and-preview.md) | `describe` and `preview`: what a network is, without GMSH | done | 0040, 0019 |
 | [0098](0098-advise-and-cli.md) | `advise` (the resolution advisor) and the `hexmesh` CLI | done | 0040 |
 | [0100](0100-trace-tied-rectangle-counts.md) | Trace why rectangle side counts are tied next to circles and shells | done | 0041 |
-| [0101](0101-untie-rectangular-shell-counts.md) | Unequal side counts through a stack of rectangular outlines | ready | 0041, 0026 |
+| [0101](0101-untie-rectangular-shell-counts.md) | Unequal side counts through a stack of rectangular outlines | done | 0041, 0026 |
 
 ### Validation
 

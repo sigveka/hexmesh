@@ -59,6 +59,20 @@
 - Validation results now record each level's `nang`, `nrad`, `nang_w`
   and `nang_h`.
 
+**Shells around a rectangle keep unequal counts** (decision 0041,
+option B; task 0101).
+
+- A stack of rectangular outlines no longer needs `nang_w = nang_h`.
+  Every outline takes the core's `(nang_w, nang_h)`, so a 2:1 duct with
+  a wall and lagging can be 8 × 4 throughout.
+- A stack with a circle and a rectangle, a circle ↔ rectangle
+  `Transition`, a round duct tap and `BundleSpec` keep equal counts per
+  side: a circle carries one count.
+- `advise` no longer ties a stack of rectangles, and names the fitting
+  or layer that ties the counts.  `lagged_duct` at "medium" goes from
+  936 000 to 526 500 cells.
+- Nothing that built before changes.
+
 **Second-order export** (decision 0034; task 0076).
 
 - `Assembly.mesh(order=2)` (and `write(..., order=2)`) writes Hex27, or

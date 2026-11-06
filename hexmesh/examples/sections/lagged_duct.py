@@ -23,8 +23,8 @@ The ``Reducer`` shrinks every layer's outline at once; it changes sizes
 only.  A change of shape is a ``Transition``
 (``sections.insulated_transition``).
 
-Rules: a stack with a rectangle has one count on every side, here 6
-(``nang = nang_w = nang_h``).
+Rules: in a stack of rectangles every outline takes the core's counts,
+here 6 × 6.  They may differ (``nang_w ≠ nang_h``, decision 0041).
 """
 
 from hexmesh import Assembly, Bend, PipeSpec, Reducer, Straight

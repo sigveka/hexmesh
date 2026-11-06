@@ -189,12 +189,11 @@ class TestRejections:
             PipeSpec(nang_w=4, nang_h=2).core("air", half_w=0.1, half_h=0.05, nrad=3,
                                                layout="oh", first_cell=0.001)
 
-    def test_shells_need_equal_counts(self):
-        """Shells around a rectangle exist (decision 0026), with one count
-        per side; the 2:1 duct has 4 × 2."""
-        with pytest.raises(ValueError, match=r"shell `wall`: .*equal counts per side; "
-                                             r"layer `air` has \(4, 2\)"):
-            _duct().shell("wall", dR=0.01, nrad=2)
+    def test_shells_keep_the_cores_counts(self):
+        """Shells around a rectangle (decision 0026) keep its 4 × 2 counts
+        (decision 0041, option B)."""
+        spec = _duct().shell("wall", dR=0.01, nrad=2)
+        assert [o.counts for o in spec.outlines] == [(4, 2), (4, 2)]
 
 
 def test_rot_turns_the_duct(gmsh_session):

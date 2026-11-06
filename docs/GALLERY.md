@@ -448,9 +448,9 @@ has a circle inside a rectangle and a rectangle inside a circle.  Every
 layer goes through the bends as a separate volume, with conformal
 `interface_*` groups between them.
 
-Rules: a stack with a rectangle has one count on every side (`nang`
-equals each rectangle's `nang_w` and `nang_h`), and each outline lies
-inside the next all round.  Quality falls as the rectangles flatten;
+Rules: a stack with a circle and a rectangle has one count on every
+side (`nang` equals each rectangle's `nang_w` and `nang_h`), and each
+outline lies inside the next all round.  Quality falls as the rectangles flatten;
 task 0047 measured it.
 
 ```bash
@@ -479,8 +479,8 @@ The `Reducer` shrinks every layer's outline at once; it changes sizes
 only.  A change of shape is a `Transition`
 (`sections.insulated_transition`).
 
-Rules: a stack with a rectangle has one count on every side, here 6
-(`nang = nang_w = nang_h`).
+Rules: in a stack of rectangles every outline takes the core's counts,
+here 6 × 6.  They may differ (`nang_w ≠ nang_h`, decision 0041).
 
 ```bash
 python3 -m hexmesh.examples.sections.lagged_duct

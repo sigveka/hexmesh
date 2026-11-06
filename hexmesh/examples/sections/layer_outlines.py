@@ -11,9 +11,9 @@ has a circle inside a rectangle and a rectangle inside a circle.  Every
 layer goes through the bends as a separate volume, with conformal
 ``interface_*`` groups between them.
 
-Rules: a stack with a rectangle has one count on every side (``nang``
-equals each rectangle's ``nang_w`` and ``nang_h``), and each outline lies
-inside the next all round.  Quality falls as the rectangles flatten;
+Rules: a stack with a circle and a rectangle has one count on every
+side (``nang`` equals each rectangle's ``nang_w`` and ``nang_h``), and each
+outline lies inside the next all round.  Quality falls as the rectangles flatten;
 task 0047 measured it.
 """
 

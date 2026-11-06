@@ -175,13 +175,36 @@ class TestPipeSpec:
         with pytest.raises(ValueError, match="exactly one of dR and outer"):
             base.shell("w", dR=0.1, outer=CircleShape(0.2, 4), nrad=2)
 
-    def test_rect_stack_needs_equal_counts(self):
-        with pytest.raises(ValueError, match="equal counts per side"):
-            (
-                PipeSpec(nang_w=3, nang_h=2)
-                .core("air", RectShape(0.1, 0.08, 3, 2), nrad=3, layout="oh")
-                .shell("sq", outer=RectShape(0.2, 0.2, 3, 2), nrad=2)
-            )
+    def test_rect_stack_takes_the_cores_counts(self):
+        """A stack of rectangles keeps unequal counts, the core's on every
+        outline (decision 0041, option B); other counts are rejected."""
+        core = PipeSpec(nang_w=3, nang_h=2).core("air", RectShape(0.1, 0.08, 3, 2), nrad=3,
+                                                  layout="oh")
+        spec = core.shell("sq", outer=RectShape(0.2, 0.2, 3, 2), nrad=2)
+        assert [o.counts for o in spec.outlines] == [(3, 2), (3, 2)]
+        with pytest.raises(ValueError, match=r"stack of rectangles takes the core's counts; "
+                                             r"layer `sq` has \(3, 3\)") as e:
+            core.shell("sq", outer=RectShape(0.2, 0.2, 3, 3), nrad=2)
+        assert e.value.code == "rect_stack_counts_unequal"
+
+    def test_rect_and_circle_stack_needs_equal_counts(self):
+        """A circle carries one count, so a stack with a circle and a
+        rectangle stays tied (decision 0041)."""
+        core = PipeSpec(nang_w=3, nang_h=2).core("air", RectShape(0.1, 0.08, 3, 2), nrad=3,
+                                                  layout="oh")
+        with pytest.raises(ValueError, match=r"rectangle and a circle needs equal counts per "
+                                             r"side, since a circle carries one count "
+                                             r"\(decision 0041\)") as e:
+            core.shell("casing", outer=CircleShape(0.2, 3), nrad=2)
+        assert e.value.code == "rect_stack_counts_unequal"
+
+    def test_bundle_tile_stays_tied(self):
+        """A BundleSpec tile is a circle in a rectangle, so its rectangle
+        can't take unequal counts (decision 0041)."""
+        with pytest.raises(ValueError, match=r"since a circle carries one count") as e:
+            (PipeSpec(nang=4).core("fluid", CircleShape(0.05, 4), nrad=2)
+             .shell("shell", outer=RectShape(0.1, 0.07, 4, 2), nrad=2))
+        assert e.value.code == "rect_stack_counts_unequal"
 
     def test_nang_mismatch_raises(self):
         with pytest.raises(ValueError, match="nang"):

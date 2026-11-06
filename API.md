@@ -266,9 +266,13 @@ from hexmesh.core.shape import CircleShape, RectShape
   new outline: radially on a circle, at the corner in that quadrant on a
   rectangle. A circle in a flat rectangle has skewed corner lines; a
   rectangle in a circle splits it into unequal arcs.
-- **Counts.** Every outline in a stack with a rectangle has the same count
-  on every side (`nang = nang_w = nang_h`), and `n_outer = 4`.
-  `ValueError` names the layer.
+- **Counts.** In a stack of rectangles every outline takes the core's
+  `(nang_w, nang_h)`, which may differ: a 2:1 duct with lagging can be
+  8 × 4 throughout (decision 0041). Once a circle is in the stack, every
+  outline has the same count on every side (`nang = nang_w = nang_h`),
+  since a circle carries one count. Any stack with a rectangle has
+  `n_outer = 4`. `ValueError` (`rect_stack_counts_unequal`) names the
+  layer.
 - **Containment.** Each outline lies inside the next all round, by at
   least `limits.OUTLINE_MIN_GAP` (10⁻³) of the outer one's largest
   extent. `validate()` names the layer, the gap and its direction.
@@ -1526,7 +1530,7 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `profile_too_short` | a profiled reducer too short for its profile | `AssemblyError` |
 | `profile_unknown` | an unknown profile | `AssemblyError` |
 | `reader_format_invalid` | a file whose contents a reader can't use | `ReaderError` |
-| `rect_stack_counts_unequal` | a stack with a rectangle whose layers have unequal counts per side | `SpecError` |
+| `rect_stack_counts_unequal` | a rectangle stack whose outline counts differ from the core's, or unequal per side with a circle | `SpecError` |
 | `rect_stack_needs_n_outer_4` | a stack with a rectangle and n_outer other than 4 | `SpecError` |
 | `reducer_axis_not_along_pipe` | a network reducer's axis does not continue the incoming pipe | `AssemblyError` |
 | `reducer_eccentric` | an eccentric network reducer | `AssemblyError` |
@@ -1829,8 +1833,10 @@ True
 - **Shared counts.**  Density is shared by every section of an
   assembly, so the largest count any section needs wins.
   - A circle's `nang` is even, so a node sits mid-arc.
-  - A Transition, or a layer stack with a rectangle, ties
-    `nang = nang_w = nang_h`.
+  - A circle meeting a rectangle ties `nang = nang_w = nang_h`: a
+    circle → rectangle Transition, a round tap on a duct, or a layer
+    stack with both.  The reason names the fitting or layer.  A stack of
+    rectangles isn't tied.
   - A rectangle in the O-H layout is `advice_layout_unsupported`: only
     H is calibrated.
 - **Wall.**

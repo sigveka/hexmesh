@@ -344,7 +344,7 @@ CODES: dict[str, str] = {
     "profile_unknown": "an unknown profile",
     "reader_format_invalid": "a file whose contents a reader can't use",
     "rect_stack_counts_unequal":
-        "a stack with a rectangle whose layers have unequal counts per side",
+        "a rectangle stack whose outline counts differ from the core's, or unequal per side with a circle",
     "rect_stack_needs_n_outer_4": "a stack with a rectangle and n_outer other than 4",
     "reducer_axis_not_along_pipe": "a network reducer's axis does not continue the incoming pipe",
     "reducer_eccentric": "an eccentric network reducer",

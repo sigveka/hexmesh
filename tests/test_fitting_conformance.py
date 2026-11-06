@@ -441,6 +441,38 @@ CASES.update({
 })
 
 
+def _rstack(layout="h", shells=1, outer=False, half_w=0.1, half_h=0.05):
+    """A 2:1 duct whose rectangular stack keeps unequal counts, 8 × 4 on
+    every outline (task 0101, decision 0041 option B)."""
+    core = {"nrad": 3} if layout == "oh" else {}
+    spec = PipeSpec(nang_w=8, nang_h=4).core("air", half_w=half_w, half_h=half_h,
+                                             layout=layout, **core)
+    if outer:
+        return spec.shell("wall", outer=RectShape(half_w + 0.02, half_h + 0.03, 8, 4), nrad=2)
+    for k in range(shells):
+        spec = spec.shell(("wall", "lagging")[k], dR=(0.01, 0.03)[k], nrad=2)
+    return spec
+
+
+# Stacks of rectangles with unequal counts (task 0101; cases from task 0100)
+CASES.update({
+    "straight-rect-untied-shell-h":   lambda: _between(_rstack("h"), Straight(0.3, n_layers=3)),
+    "straight-rect-untied-shell-oh":  lambda: _between(_rstack("oh"), Straight(0.3, n_layers=3)),
+    "straight-rect-untied-2shell-h":  lambda: _between(_rstack("h", 2), Straight(0.3, n_layers=3)),
+    "straight-rect-untied-outer-oh":  lambda: _between(_rstack("oh", outer=True),
+                                                       Straight(0.3, n_layers=3)),
+    "bend-rect-untied-shell-h":       lambda: _between(_rstack("h"), Bend(0.4, 90, n_layers=6)),
+    "bend-rect-untied-2shell-oh":     lambda: _between(_rstack("oh", 2), Bend(0.4, 90, n_layers=6)),
+    "miter-rect-untied-shell-oh":     lambda: _between(_rstack("oh"), MiterBend(0.4, 90, n_cuts=2)),
+    "reducer-rect-untied-shell-oh":   lambda: _between(_rstack("oh"), Reducer(
+        _rstack("oh", half_w=0.07, half_h=0.04), 0.2, n_layers=3)),
+    "transition-rect-untied-shell-oh": lambda: _between(_rstack("oh"), Transition(
+        _rstack("oh", half_w=0.08, half_h=0.06), 0.2, 3)),
+    "switch-rect-untied-shell":       lambda: _between(_rstack("oh"), Switch(
+        0.1, n_layers=3, outlet=_rstack("h"))),
+})
+
+
 def _hflat(half_w=0.14, half_h=0.07, **kw):
     """An H duct with ``_one()``'s counts and name: a transition's H partner."""
     return PipeSpec(nang_w=4, nang_h=4).core("fluid", RectShape(half_w, half_h, 4, 4),

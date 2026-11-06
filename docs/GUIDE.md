@@ -611,8 +611,9 @@ with `python3 docs/gallery/build.py` (needs `vtk`).
   its length along the main (short taps warn, very short ones fail).  Narrow-face taps on deep ducts (3:1)
   mesh poorly (min SJ about 0.13, non-orthogonality to 82°) and warn.  A
   tap costs about 1.6–2.3× the cells of a plain run of the same length.
-  A stack with a rectangle needs equal counts per side, and so does
-  `Transition`.
+  A stack with a rectangle and a circle needs equal counts per side, and
+  so does a circle ↔ rectangle `Transition`: a circle carries one count.
+  A stack of rectangles keeps the core's `nang_w` × `nang_h`.
 - **Layer changes:** insulation can't start or stop inside a fitting yet
   (decision 0006).
 - **OpenFOAM version:** buoyant and CHT solvers need v2406 or later on

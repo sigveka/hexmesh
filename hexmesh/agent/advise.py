@@ -591,32 +591,32 @@ def apply(description: dict, table: dict) -> dict:
 
 # --- advise -------------------------------------------------------------------------
 
-def _tied(d: dict) -> str | None:
-    """Why the description's counts are tied (nang = nang_w = nang_h), or
-    None: a Transition, or a stack of layers with a rectangle in it
-    ("every outline in a stack with a rectangle needs equal counts")."""
-    for e in d["edges"]:
-        if e["fitting"]["type"] == "Transition":
-            return "a Transition joins a circle to a rectangle"
-    for spec in _specs(d):
-        shapes = [spec["core"]["shape"]] + [s["outer"] for s in spec["shells"] if "outer" in s]
-        if spec["shells"] and any(s["type"] == "rect" for s in shapes) or \
-                spec.get("nang") is not None and spec.get("nang_w") is not None:
-            return f"layer {spec['core']['name']!r}'s stack has a rectangle and shells"
+def _round(shape) -> bool:
+    return type(shape).side_curve == "arc"
+
+
+def _tied(asm: Assembly) -> str | None:
+    """Why the assembly's counts are tied (nang = nang_w = nang_h), or None
+    (decision 0041, task 0100): a circle carries one count, so it ties a
+    rectangle it meets.  That is a Transition joining a circle to a
+    rectangle, a round duct tap on a rectangle, or a stack with a circle
+    and a rectangle.  A stack of rectangles takes the core's (nang_w,
+    nang_h) and ties nothing."""
+    for e in asm.edges:
+        shapes = [o for port in e.ports for o in port.spec.outlines]
+        if type(e.fitting).__name__ == "Transition" and \
+                any(map(_round, shapes)) and not all(map(_round, shapes)):
+            return f"{e.name} (a Transition) joins a circle to a rectangle"
+        branch = getattr(e.fitting, "branch", None)
+        if type(e.fitting).__name__ == "Tee" and not _round(e.ports[0].spec.core_shape) and \
+                (getattr(e.fitting, "branch_radius", None) is not None or
+                 branch is not None and _round(branch)):
+            return f"{e.name} is a round tap on a duct"
+    for i in asm.interfaces:
+        outlines = i.spec.outlines
+        if any(map(_round, outlines)) and not all(map(_round, outlines)):
+            return f"layer {i.spec.layer_names[0]!r}'s stack has a circle and a rectangle"
     return None
-
-
-def _specs(d: dict) -> list[dict]:
-    """Every spec of a description: the inlet's, the nozzles', the
-    fittings' outlets and stack changes."""
-    out = [d["inlet"]["spec"]] + [n["spec"] for n in d["inlet"].get("nozzle", {})
-                                  .get("drum", {}).get("nozzles", [])]
-    for e in d["edges"]:
-        f = e["fitting"]
-        if isinstance(f.get("outlet"), dict) and "core" in f["outlet"]:
-            out.append(f["outlet"])
-        out += [s for _, s in f.get("stack_changes") or []]
-    return out
 
 
 def _solve(asm, d, sections, inp, accuracy, ar_straight, minimal, tied):
@@ -662,7 +662,7 @@ def advise(x, inputs: dict) -> dict:
                                         "turbulent", code="advice_regime_transitional",
                                         where={"fitting": s["fitting"]}, value=s["re"],
                                         limit=[RE_LAMINAR, RE_TURBULENT]).to_dict())
-    tied = _tied(d)
+    tied = _tied(asm)
     acc = inp["accuracy"]
     best = _solve(asm, d, sections, inp, acc, limits.MAX_AXIAL_ASPECT_STRAIGHT, False,
                   tied)

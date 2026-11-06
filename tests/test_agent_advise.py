@@ -182,6 +182,28 @@ def test_every_report_states_the_scope_and_the_8x_rule():
 
 # --- the budget ---------------------------------------------------------------------
 
+def test_a_stack_of_rectangles_keeps_unequal_counts():
+    """A shelled duct isn't tied (task 0101, decision 0041 option B): the
+    lagged duct keeps nang_w ≠ nang_h, and the advice validates."""
+    r = advise(_example("sections.lagged_duct"),
+               {"fluid": "water", "flow": {"velocity": 0.002}})
+    d = r["density"]
+    assert d["nang"] is None and d["nang_w"] == 2 * d["nang_h"]
+    assert not any("needs nang = nang_w = nang_h" in x for x in r["density_reasons"])
+    assert r["validation"]["error"] is None
+
+
+def test_a_circle_meeting_a_rectangle_names_what_ties_it():
+    """A circle carries one count, so a circle → rectangle Transition still
+    ties the counts, and the reason names the fitting."""
+    r = advise(_example("sections.duct_transition"),
+               {"fluid": "water", "flow": {"velocity": 0.002}})
+    d = r["density"]
+    assert d["nang"] == d["nang_w"] == d["nang_h"]
+    assert any(x.startswith("Transition1 (a Transition) joins a circle to a rectangle")
+               for x in r["density_reasons"])
+
+
 def test_budget_reduces_in_order_and_keeps_the_first_cell():
     asm = _example("fittings.smooth_bend")
     inputs = {"fluid": "water", "flow": {"velocity": 0.5}}

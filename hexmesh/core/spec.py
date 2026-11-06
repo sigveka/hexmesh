@@ -501,9 +501,13 @@ class PipeSpec:
         layer's (decision 0026).
 
         Give exactly one of *dR* (the previous outline grown by *dR*) and
-        *outer* (a new outline, ``CircleShape`` or ``RectShape``).  A stack
-        with any rectangle has equal counts on every side of every outline
-        (``nang = nang_w = nang_h``) and ``n_outer = 4``, checked here.
+        *outer* (a new outline, ``CircleShape`` or ``RectShape``).  In a
+        stack of rectangles every outline takes the core's ``(nang_w,
+        nang_h)``, which may differ (decision 0041, option B).  A stack
+        with a rectangle and a circle has equal counts on every side of
+        every outline (``nang = nang_w = nang_h``): a circle carries one
+        count.  Any stack with a rectangle has ``n_outer = 4``.  Checked
+        here.
         That each outline lies inside the next is checked by the
         assembly's validation.
 
@@ -569,8 +573,10 @@ class PipeSpec:
         return out
 
     def _check_counts(self, name: str, outline: Shape) -> None:
-        """Equal counts per side through a stack with a rectangle
-        (decision 0026, item 3)."""
+        """The counts through a stack with a rectangle (decision 0026 item
+        3, as amended by decision 0041): every outline the core's
+        ``(nang_w, nang_h)`` in a stack of rectangles; equal counts per
+        side once a circle is in it, since a circle carries one count."""
         outlines = self.outlines + [outline]
         if all(type(o).side_curve == "arc" for o in outlines):
             return                              # circles: nang already shared
@@ -581,15 +587,27 @@ class PipeSpec:
                             where={"label": name, "field": "n_outer"}, value=self._n_outer,
                             limit=4)
         names = self.layer_names + [name]
-        want = outlines[0].counts[0]
+        core = outlines[0].counts
+        if all(type(o).side_curve != "arc" for o in outlines):
+            for lname, o in zip(names, outlines):
+                if o.counts != core:
+                    raise SpecError(
+                        f"shell `{name}`: every outline in a stack of rectangles takes "
+                        f"the core's counts; layer `{lname}` has {o.counts} "
+                        f"(nang_w, nang_h), the core {core}",
+                        code="rect_stack_counts_unequal", where={"label": name},
+                        value=o.counts, limit=core)
+            return
+        want = core[0]
         for lname, o in zip(names, outlines):
             if o.counts != (want, want):
                 raise SpecError(
-                    f"shell `{name}`: every outline in a stack with a rectangle needs "
-                    f"equal counts per side; layer `{lname}` has {o.counts} "
-                    f"(nang_w, nang_h), the core {want} per side",
+                    f"shell `{name}`: a stack with a rectangle and a circle needs equal "
+                    f"counts per side, since a circle carries one count (decision "
+                    f"0041); layer `{lname}` has {o.counts} (nang_w, nang_h), the core "
+                    f"{want} per side",
                     code="rect_stack_counts_unequal", where={"label": name},
-                    value=o.counts)
+                    value=o.counts, limit=(want, want))
 
     # ------------------------------------------------------------------
     # Derived properties
