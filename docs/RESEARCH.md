@@ -855,10 +855,34 @@ decision 0012):
 | **`wye`** | **Zhao & Lieber 1994**: steady inspiratory and expiratory flow in a symmetric 70° bifurcation, two-component LDA, Re 518–2089 (*J. Biomech. Eng.* 116); later called the experimental benchmark | V3 | **Area-preserving daughters** (smaller than the parent), so it needs unequal-radius daughters: a scope item for the wye-layout redesign (decision 0029 item 5 / 0031's amendment). |
 | **`tee`** (reduced branch) | Dividing- and combining-flow loss coefficients by area ratio (Miller; the BHRA data; Gardel); the Vattenfall T-junction (OECD/NEA, r/R ≈ 0.71, thermal mixing, LDV; LES needed) | V4; V3 later | RANS comparisons after 0049/0050.  Vattenfall needs LES: future.  The equal-diameter Štigler tee (§7.2) needs the wye family (decision 0031's amendment). |
 | **`duct-tap`** | Ohio State thesis (Christian): loss coefficients of T-junctions with square, rectangular and oval side branches (§7.8); ASHRAE Duct Fitting Database | V3 / V4 | Read the thesis; comparisons, not gates. |
-| **`spline`** | **Laminar helical pipes**: De Amicis et al. (2014, Politecnico di Milano) measured friction factors, matching laminar correlations (Manlapaz & Churchill 1980) to a few per cent; Germano (torsion) theory | V3 / V4 | A `SplinePipe` through helix points approximates the helix; record the geometric deviation.  Laminar, so it can run now. |
+| **`spline`** | **Laminar helical pipes**: De Amicis et al. (2014) [`deamicis_and_cammi_etal_2014`], measured friction factors; Germano (torsion) theory | V3 / V4 | A `SplinePipe` through helix points approximates the helix.  Tasked as 0075; the paper's facts are below the table. |
 | **`miter`** | No velocity dataset found for mitred *pipe* bends; loss coefficients by number of cuts and angle in Idelchik and Miller | V4 | Comparison only; low priority. |
 | **`transition`** | Davis & Gessner circle-to-rectangle duct (§7.8) | V3 | Planned, after 0049. |
 | **`bend`** (pipe, laminar) | Dean flow in a torus at weak curvature (§7.5, planned) | V1 | A `Bend` is an exact torus section; complements Sudo (0050, turbulent). |
+
+**The helical-pipe reference** (task 0075, read 2026-11-06)
+[`deamicis_and_cammi_etal_2014`]:
+- **The SIET coil** (its Table 2): d = 12.53 mm, helix diameter 1 m,
+  pitch 0.8 m per turn, 32 m of tube (about 10 turns).  κa = 0.0118,
+  τa = 3.00e-3, λ = τ/κ = 0.255.  Water, single phase.  The other coils
+  (Table 6) are Cioncolini & Santini's (2006).
+- **Laminar range:** Re ≈ 1750 to the transition at Re ≈ 3200, so
+  De ≈ 200–360.
+- **The measured f isn't tabulated**: only Figs. 3, 4 and 12, with error
+  bars of about ±10–15 % at the lowest Re and about 5 % scatter about
+  the correlations.
+- **Correlations against the data** (Table 3, Re ≤ 3200, RMS): Hasson
+  3.40 %, Prandtl 3.57 %, White 3.70 %, Ito 4.14 % (named best overall),
+  Mori & Nakayama 4.88 %, Barua 6.56 %, Srinivasan 9.53 %.  The CFD
+  (Table 7): OpenFOAM 2.56 % RMS on SIET, and about 5 % maximum for
+  every code.
+- **hexmesh's spline** through the helix (hexmesh's `_cubic_spline`,
+  clamped ends): the maximum deviation falls as h⁴, from 8.8e-2 d at 8
+  points per turn to 3.4e-4 d at 32 and 6.7e-5 d at 48.  It is largest
+  at the clamped ends.  The faceted centreline then sags s²κ/8 between
+  stations (2.9e-3 d at s = 1 d), which is axial discretisation.
+- **Gate** (decision, task 0075 Q2): f within 5 % of Ito at Re 1800,
+  2400 and 3000; the digitised points reported.
 
 **Priorities** (design's view):
 1. **MMS conduction harness** (V1, every feature);
@@ -1272,6 +1296,44 @@ amendment 3):
 - **Not rerun:** Poiseuille's three-level OpenFOAM test (over 30 min).
   Its gate path is covered by the unit tests and the recheck of stored
   values.
+
+### 7.13 Turbulent pipe flow with k-ω SST (task 0049)
+
+Task 0049 (done 2026-11-06, `adc540f`): a periodic fully developed pipe,
+OpenFOAM v2406, k-ω SST, against McKeon et al. (2005)
+[`mckeon_and_zagarola_etal_2005`] and the DNS at Re_τ 550 and 1000.
+
+| Re_b (Re_τ) | variant | f vs McKeon | f vs DNS | U_c/U_b vs DNS | first-cell y⁺ |
+|---|---|---|---|---|---|
+| 19 000 (550) | wall-resolved, k = 4 | +2.41 % (extrap. +4.6 %) | +1.22 % | −3.98 % | 0.12 |
+| 37 700 (1000) | wall-resolved, k = 2 | −0.55 % | −0.48 % | −4.68 % | 0.24 |
+| 10⁵ | wall-resolved, k = 2 | −1.60 % | — | — | 0.24 |
+| 19 000 / 37 700 / 10⁵ | Spalding wall functions | −0.37 / −2.04 / −3.27 % | | −7.2 / −6.4 % | 48 |
+| same | `nutk` wall functions | −7.26 / −7.08 / −7.22 % | −8.3 / −7.0 % | −7.6 / −6.7 % | 46–48 |
+| same | `nutU` wall functions | −5.34 / −6.53 / −7.29 % | | −7.5 / −6.7 % | 48 |
+
+- **Gated, and passing:** f within 3 % of McKeon (wall-resolved, finest
+  level); f within 5 % with Spalding's wall function; f and U_c/U_b
+  converging at Re_τ 550 (orders 0.84 and 0.98, GCI 2.7 % and 0.1 %).
+- **The model, not the mesh:** U_c/U_b is 4–5 % low.  k-ω SST's outer
+  wake is weak: u⁺ at the centre is about 1 below the DNS, while the
+  sublayer matches (u⁺(1) = 1.00; u⁺(10) 8.29 against 8.47).  Reported
+  against the 3 % comparison, not gated (the 0049 design answers).
+- **f converges slowly** from below (order 0.84).  The finest level
+  passes; the extrapolation (+4.6 %) is reported beside it.
+- **Wall functions:** the `nut` wall function alone moves f by up to 7
+  points.  OpenFOAM's standard `nutkWallFunction` under-predicts f by
+  about 7 % at y⁺ ≈ 45 in developed pipe flow
+  (`docs/integrations/openfoam.md`).  Spalding's law is the validated
+  set.
+- **A trap:** with R − r as the wall distance, the wall-resolved u⁺
+  reads wrong by about a viscous unit at nang 12, because the wall is
+  faceted.  Use the distance to the faceted wall.
+- **Cost:** 2 h 50 min for the set on 4 MPI processes; Re_τ 550 at k = 4
+  (184k cells) took 15 400 SIMPLE steps.
+- **Held** (the user, 2026-11-06): letting the advisor (task 0098)
+  give Spalding wall-function advice at y⁺ ≈ 50 in pipe flow.  Decision
+  0040 keeps it wall-resolved first.
 
 ## 8. Proposed hexmesh actions
 

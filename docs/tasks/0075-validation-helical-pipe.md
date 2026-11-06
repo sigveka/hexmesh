@@ -1,6 +1,6 @@
 # 0075 — Validation (V3): laminar flow in a helical pipe (spline pipe)
 
-- **Status:** blocked (the measured f is only in a figure: Q2)
+- **Status:** ready (design answered Q2, 2026-11-06)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (V3, with V4 secondary); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V3 (experiment: De Amicis et al. 2014; V4 correlation, Manlapaz & Churchill 1980, secondary)
 - **Features:** `section:circle`, `straight`, `spline`
@@ -161,6 +161,25 @@ paper's data.
   A gate band against the points (a) would need setting before the
   runs.  Also, the three Re must lie in 1750–3200, the only laminar
   range measured.
+
+**Design answer to Q2** (2026-11-06; the user: "yes"): **(b)**, with
+the gate fixed now, before any run.
+- **Gate:** the developed Darcy friction factor within **5 % of Ito's
+  correlation** at three Re in the measured laminar range: **1800, 2400
+  and 3000** (De ≈ 200–340), on the SIET coil (d 12.53 mm, D 1 m, pitch
+  0.8 m per turn).  The paper validated Ito on these data (Table 3:
+  4.14 % RMS) and names it the best overall.  The case is V4 on the
+  correlation, with the measurement as its basis.
+- **Also gated:** Richardson status `converging` (task 0089) for f at
+  each Re; and the spline within 0.1 % of d of the helix (step 1:
+  3.4e-4 d at 32 points per turn).
+- **Reported:** the digitised Fig. 12 laminar points (Re 1750–3200),
+  in `data/` with their reading uncertainty and the paper's error bars
+  (about ±10–15 % at low Re).  They aren't gated: a 5 % band can't
+  discriminate against points with ±10–15 % bars.
+- (c), asking the authors for tabulated data, is optional and the user's
+  to do.  If tables arrive, the gate against them is a new decision
+  before any rerun, not a change to this one.
 
 ## Outcome
 

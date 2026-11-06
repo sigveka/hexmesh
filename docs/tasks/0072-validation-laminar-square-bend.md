@@ -1,6 +1,6 @@
 # 0072 — Validation (V3): laminar flow in a 90° square-duct bend (Taylor, Whitelaw & Yianneskis, Re 790)
 
-- **Status:** blocked (the rig-inlet gates fail in part: Q3)
+- **Status:** ready (design answered Q3, 2026-11-06)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (category V3); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V3 (experiment: Taylor, Whitelaw & Yianneskis 1982)
 - **Features:** `section:rect`, `straight`, `bend`
@@ -190,6 +190,26 @@ isn't moved after its result is known.
     (k = 4, about 1.2M cells, roughly an hour) could show whether θ = 60°
     reaches its asymptotic range.  It wouldn't change the position
     misses.
+
+**Design answer to Q3** (2026-11-06; the user: "yes").  This reverses
+the Q2 answer above, which was too strict.
+- **Gate on the matched inlet.**  The plug's development length
+  (12.6 D_h) is fitted to the first measured station alone, the
+  X_H = −0.50 profile, and the case says so.  Fitting the inflow to
+  upstream data and predicting the bend from it is ordinary validation
+  practice: the fit uses no station that is gated.
+- **The gates are unchanged** and apply from X_H = −0.25 onward: the
+  peak U's GCI at 60° and 77.5°, and the peak position and its outward
+  shift per station.  X_H = −0.50 is the inlet's calibration station:
+  reported, not gated.
+- **The rig inlet (7.5 D_h)** is reported as a sensitivity run, with its
+  failures: θ = 60° not converging (fine-pair difference 0.0138 against
+  0.0097), and the peak position missing at X_H −0.50 / −0.25 and
+  77.5°.  The plug at the rig's length models an inflow the experiment
+  evidently didn't have (the measured profile is more developed).  Its
+  misses upstream of the bend test that inflow model, not the mesh.
+- No fourth level (k = 4).
+- The 5 % RMS comparison stays reported (Q1's answer).
 
 ## Outcome
 
