@@ -1,6 +1,6 @@
 # 0075 — Validation (V3): laminar flow in a helical pipe (spline pipe)
 
-- **Status:** ready (on the v2406 runner)
+- **Status:** blocked (the paper can't be fetched: Q1)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (V3, with V4 secondary); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V3 (experiment: De Amicis et al. 2014; V4 correlation, Manlapaz & Churchill 1980, secondary)
 - **Features:** `section:circle`, `straight`, `spline`
@@ -57,11 +57,32 @@ heat transfer in coils.
 
 ## Agent notes
 
-_None yet._
+- **De Amicis et al. (2014), 2026-11-06.**  It is *Prog. Nucl. Energy*
+  76, 206–215, with authors De Amicis, Cammi, L. P. M. Colombo,
+  M. Colombo and Ricotti.
+  - The open copy at re.public.polimi.it (handle 11311/861372 and its
+    `/retrieve/…_Cammi.pdf` file) sits behind a Cloudflare JavaScript
+    challenge.  The handle page returns 403, and the PDF link returns
+    the challenge page instead of the PDF.  I didn't try to get around
+    it.
+  - A search found no other open copy.
+  - Gelfgat (arXiv 1809.01367) compares against these data, but only as
+    a figure (four coils, friction factor against Re, agreeing up to
+    Re ≈ 3000).  It doesn't tabulate the coils or the values.
+- Nothing is built yet: step 1 needs the paper's coil (d, D, pitch).
 
 ## Questions for design
 
-_None._
+- **Q1. The reference can't be fetched by an agent** (Agent notes).
+  Options:
+  - (a) the user downloads the PDF in a browser into `docs/papers/`, and
+    the task resumes as written;
+  - (b) the case uses a coil chosen here, gated against Manlapaz &
+    Churchill (1980) as a V4 correlation case, until the paper is in
+    hand;
+  - (c) another open laminar-coil dataset.
+
+  With (a), nothing else changes.
 
 ## Outcome
 
