@@ -124,6 +124,17 @@ All *verified* on v1912, 2026-10-25, on `examples/insulated_pipe`
     gave identical results on the same case.
   - The image has `wmake` and `g++`, so coded sources should compile.
     They weren't needed.
+- **A periodic pipe from hexmesh's open ends** (v2406 in Docker,
+  2026-11-06, task 0049).  *Verified*: `createPatch -overwrite` with two
+  `cyclic` entries, `transform translational`, `separationVector (L 0 0)`
+  on the patch built from `fluid_inlet` and `(-L 0 0)` on the one from
+  `fluid_outlet`, pairs them; the faces match because hexmesh's two ends
+  have identical node layouts.  `meanVelocityForce` (`fields (U); Ubar
+  (U_b 0 0);`, `selectionMode all`) drives the bulk velocity and prints
+  `pressure gradient = …` every step, which gives τ_w exactly by the
+  momentum balance.  A laminar Re 100 check gave f within 0.1 % of 64/Re.
+  `pRefCell 0; pRefValue 0;` are needed (no fixed-value p patch).
+  `SIMPLE solution converged in N iterations` is v2406's convergence line.
 
 ## Known quirks
 

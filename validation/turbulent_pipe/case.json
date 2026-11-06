@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "title": "Fully developed turbulent pipe flow, k-ω SST",
+  "category": "V2",
+  "references": [
+    {
+      "source": "el_khoury_and_schlatter_etal_2013 (data: el_khoury_and_schlatter_etal_2013_data)",
+      "role": "primary"
+    },
+    {
+      "source": "mckeon_and_zagarola_etal_2005",
+      "role": "secondary"
+    }
+  ],
+  "tags": {
+    "regime": [
+      "rans:kOmegaSST"
+    ],
+    "physics": [
+      "flow"
+    ],
+    "features": [
+      "section:circle",
+      "straight"
+    ],
+    "toolchain": {
+      "openfoam": "v2406",
+      "runner": "docker"
+    }
+  },
+  "status": "in progress",
+  "task": "0049",
+  "gates": [
+    {
+      "quantity": "friction factor $f$, finest level",
+      "limit": "within 3 % of McKeon et al. eq. 3.5 (wall-resolved); within 5 % (wall functions)"
+    },
+    {
+      "quantity": "$U_c / U_b$",
+      "limit": "within 3 % of the DNS at the matching $Re_\\tau$"
+    }
+  ]
+}
