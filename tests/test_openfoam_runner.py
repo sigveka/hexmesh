@@ -210,3 +210,15 @@ def test_decompose_the_time_the_solver_starts_from(tmp_path, control, want):
     for t in ("0.1", "0.5"):
         (tmp_path / t).mkdir()
     assert of.start_time_option(tmp_path) == want
+
+
+@pytest.mark.parametrize("keep, want", [(False, "gmshToFoam /"), (True, "gmshToFoam -keepOrientation /")])
+def test_convert_keep_orientation_flag(monkeypatch, tmp_path, keep, want):
+    """``keep_orientation`` skips gmshToFoam's orientation test, which flips
+    valid warped hexes (task 0074); off by default."""
+    ran = []
+    monkeypatch.setattr(of, "foam", lambda cmd, *a, **k: ran.append(cmd) or "")
+    import hexmesh.io.writers.openfoam_boundary as ob
+    monkeypatch.setattr(ob, "apply_boundary_roles", lambda case, roles: [])
+    of.convert(tmp_path, tmp_path / "mesh.msh", keep_orientation=keep)
+    assert ran[0].startswith(want)

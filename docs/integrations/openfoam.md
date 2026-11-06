@@ -103,8 +103,50 @@ All *verified* on v1912, 2026-10-25, on `examples/insulated_pipe`
   `mappedWall` pair with equal face counts, `fluid_to_steel` ↔
   `steel_to_fluid` and `steel_to_insulation` ↔ `insulation_to_steel`.
   *Verified.*  The outer `insulation_wall` stays a `patch`.
+- **A spatially varying source and boundary value without compiling**
+  (v2406 in Docker, `opencfd/openfoam-default:2406`, 2026-11-05, task
+  0074).  *Verified* on `laplacianFoam`, by the manufactured-solution
+  harness `validation/mms/run.py`.
+  - **Source:** a `scalarSemiImplicitSource` in `constant/fvOptions`,
+    with the 2206+ `sources` syntax and an `exprField`:
+    `sources { T { explicit { type exprField; expression
+    "1.5*sin(4.2*pos().x()+0.3)*…"; } implicit none; } }`.  It is
+    evaluated at the cell centres; `volumeMode specific` gives a rate
+    per volume.  The header documents it
+    (`src/fvOptions/sources/general/semiImplicitSource/SemiImplicitSource.H`
+    in the image).
+  - **Boundary:** `type uniformFixedValue; uniformValue { type
+    expression; expression "…pos()…"; }`, evaluated at the face
+    centres, on a `".*"` patch entry.
+  - `exprFixedValue` works too, but its key is `valueExpr`, not
+    `expression` (FATAL IO "Entry 'valueExpr' not found").  It also
+    prints "DEPRECATED after version 2212" for each patch.  The two
+    gave identical results on the same case.
+  - The image has `wmake` and `g++`, so coded sources should compile.
+    They weren't needed.
 
 ## Known quirks
+
+- **`gmshToFoam` turns valid warped hexes inside out** (v2406 in
+  Docker, 2026-11-06, task 0074).  Its `correctOrientation`
+  (`applications/utilities/mesh/conversion/gmshToFoam/gmshToFoam.C`
+  in the image) inverts a hex if, for any face, the vector from the
+  face's *first vertex* to the cell centre is on the wrong side of the
+  face's area normal.  On a strongly warped junction hex that test fails
+  for a right-handed cell.  Evidence: the MMS 90° wye at k = 4
+  (221 184 hexes): `Inverting hex` ×6.  The 6 had a corner scaled
+  Jacobian ≥ 0.13 and a positive pyramid-decomposed volume in the
+  written `.msh`, but after the flip `checkMesh` failed 5 checks:
+  2 negative volumes, 16 open cells, non-orthogonality 125°, 34 wrongly
+  oriented faces.  `laplacianFoam` then stopped on a floating-point
+  exception.  The gmsh mesh itself was closed and conformal (no
+  coincident nodes, no face in more than two hexes, boundary openness
+  1e-16).  **Fix:** `gmshToFoam -keepOrientation`, valid when every hex
+  is known right-handed (positive worst scaled Jacobian):
+  `hexmesh.study.openfoam.convert(..., keep_orientation=True)`.  It is
+  opt-in there.  `validation/mms/run.py` re-implements the test
+  (`foam_would_invert`) and stores per level how many hexes it would
+  have flipped.
 
 - **`gmshToFoam` skips a `$Comments` section** (v1912 native and v2406
   in Docker, MSH 2.2 ASCII, 2026-11-02, design session).

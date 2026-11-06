@@ -74,6 +74,13 @@
 
 ## 0.4.0 (2026-11-05)
 
+**`convert(..., keep_orientation=True)`** (task 0074).
+
+- `hexmesh.study.openfoam.convert` can pass `-keepOrientation` to
+  `gmshToFoam`.  Without it, gmshToFoam (v2406) turned 6 valid hexes of
+  a refined 90° wye inside out, and `checkMesh` failed.  It is off by
+  default.
+
 **Breaking: rectangular cores default to the H face** (decision 0036;
 task 0087).
 

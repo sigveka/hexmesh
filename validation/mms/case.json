@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "title": "Manufactured solutions for conduction on every fitting",
+  "category": "V1",
+  "references": [
+    {
+      "source": "manufactured: $T_m = \\sin(a x + 0.3)\\,\\sin(b y + 0.7)\\,\\sin(c z + 1.1)$, source $S = (a^2 + b^2 + c^2)\\,T_m$",
+      "role": "primary"
+    }
+  ],
+  "tags": {
+    "regime": [],
+    "physics": [
+      "conduction"
+    ],
+    "features": [
+      "section:circle",
+      "section:rect",
+      "layers",
+      "straight",
+      "bend",
+      "miter",
+      "spline",
+      "profiled-reducer",
+      "transition",
+      "tee",
+      "duct-tap",
+      "wye",
+      "stack-changes",
+      "projection"
+    ],
+    "toolchain": {
+      "openfoam": "v2406",
+      "runner": "docker"
+    }
+  },
+  "status": "in progress",
+  "task": "0074",
+  "gates": [
+    {
+      "quantity": "volume-weighted L2 error of T, every case",
+      "limit": "falls with refinement (orders reported, not gated)"
+    }
+  ]
+}

@@ -1,0 +1,4658 @@
+{
+ "case": "mms",
+ "extra": {
+  "method": {
+   "D_T": 1,
+   "field": "sin(a x + 0.3) sin(b y + 0.7) sin(c z + 1.1)",
+   "source": "(a² + b² + c²) T_m",
+   "wave_numbers": "2π / max(extent / 1.5, 2 R)"
+  }
+ },
+ "format": "hexmesh.validation.results",
+ "levels": [
+  {
+   "all": {
+    "cells": 864,
+    "l2": 0.013369021337039856,
+    "max": 0.04502578926100309
+   },
+   "boundary_cells": {
+    "cells": 360,
+    "l2": 0.015812072193593103,
+    "max": 0.04502578926100309
+   },
+   "case": "straight",
+   "cells": 864,
+   "check_cells_foam": 864,
+   "check_max_non_orthogonality": 23.452717822027214,
+   "check_max_skewness": 0.42224352883494537,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 864,
+    "l2": 0.013369021337039856,
+    "max": 0.04502578926100309
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 504,
+    "l2": 0.01084303210632134,
+    "max": 0.03271722028964963
+   },
+   "k": 1,
+   "keep_orientation": true,
+   "last_initial_residual": 5.59445184847196e-15,
+   "match_distance_max": 0.00017262398168448444,
+   "max_at": {
+    "boundary_cell": true,
+    "fitting": "Straight0",
+    "position": [
+     0.37500000003203265,
+     0.012742257243226938,
+     0.004111198267138563
+    ]
+   },
+   "min_scaled_jacobian": 0.7933533402912339,
+   "name": "straight_k1",
+   "nang": 6,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 3,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 864,
+     "l2": 0.013369021337039856,
+     "max": 0.04502578926100309
+    }
+   },
+   "precision": "full",
+   "rest": null,
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 2,
+   "volume": 0.003105828541230248,
+   "wave_numbers": [
+    26.927937030769648,
+    62.83185307179586,
+    62.83185307179586
+   ]
+  },
+  {
+   "all": {
+    "cells": 6912,
+    "l2": 0.0035094342728065903,
+    "max": 0.01979293559898354
+   },
+   "boundary_cells": {
+    "cells": 1536,
+    "l2": 0.004902722689054538,
+    "max": 0.01979293559898354
+   },
+   "case": "straight",
+   "cells": 6912,
+   "check_cells_foam": 6912,
+   "check_max_non_orthogonality": 33.24310491663592,
+   "check_max_skewness": 0.4837514264013906,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 6912,
+    "l2": 0.0035094342728065903,
+    "max": 0.01979293559898354
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 5376,
+    "l2": 0.00288574776456378,
+    "max": 0.008740196894549745
+   },
+   "k": 2,
+   "keep_orientation": true,
+   "last_initial_residual": 6.839234005621103e-15,
+   "match_distance_max": 4.53847671172731e-05,
+   "max_at": {
+    "boundary_cell": true,
+    "fitting": "Straight0",
+    "position": [
+     0.38750000002177415,
+     0.0106512390561509,
+     0.0062880449882296244
+    ]
+   },
+   "min_scaled_jacobian": 0.7518398074789756,
+   "name": "straight_k2",
+   "nang": 12,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 6,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 6912,
+     "l2": 0.0035094342728065903,
+     "max": 0.01979293559898354
+    }
+   },
+   "precision": "full",
+   "rest": null,
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 3,
+   "volume": 0.003132628613281235,
+   "wave_numbers": [
+    26.927937030769648,
+    62.83185307179586,
+    62.83185307179586
+   ]
+  },
+  {
+   "all": {
+    "cells": 55296,
+    "l2": 0.0011570265041567717,
+    "max": 0.007832359588033522
+   },
+   "boundary_cells": {
+    "cells": 6336,
+    "l2": 0.0017387212321801537,
+    "max": 0.007832359588033522
+   },
+   "case": "straight",
+   "cells": 55296,
+   "check_cells_foam": 55296,
+   "check_max_non_orthogonality": 38.86600723163685,
+   "check_max_skewness": 0.5145971260673604,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 55296,
+    "l2": 0.0011570265041567717,
+    "max": 0.007832359588033522
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 48960,
+    "l2": 0.001039420532608362,
+    "max": 0.004923986410589665
+   },
+   "k": 4,
+   "keep_orientation": true,
+   "last_initial_residual": 7.225840067578116e-15,
+   "match_distance_max": 1.1599176252374736e-05,
+   "max_at": {
+    "boundary_cell": true,
+    "fitting": "Straight0",
+    "position": [
+     0.3937500000121421,
+     0.011683907472980757,
+     0.007300377131819872
+    ]
+   },
+   "min_scaled_jacobian": 0.7298640702516215,
+   "name": "straight_k4",
+   "nang": 24,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 12,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 55296,
+     "l2": 0.0011570265041567717,
+     "max": 0.007832359588033522
+    }
+   },
+   "precision": "full",
+   "rest": null,
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 3,
+   "volume": 0.0031393502030468558,
+   "wave_numbers": [
+    26.927937030769648,
+    62.83185307179586,
+    62.83185307179586
+   ]
+  },
+  {
+   "all": {
+    "cells": 1296,
+    "l2": 0.013889089058895361,
+    "max": 0.06676428584123861
+   },
+   "boundary_cells": {
+    "cells": 456,
+    "l2": 0.015777798716043186,
+    "max": 0.06676428584123861
+   },
+   "case": "bend",
+   "cells": 1296,
+   "check_cells_foam": 1296,
+   "check_max_non_orthogonality": 23.492512954264626,
+   "check_max_skewness": 0.4222433062016871,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 864,
+    "l2": 0.012006623323562664,
+    "max": 0.043010880930385964
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 840,
+    "l2": 0.012144732784326366,
+    "max": 0.043010880930385964
+   },
+   "k": 1,
+   "keep_orientation": true,
+   "last_initial_residual": 5.476081947142451e-15,
+   "match_distance_max": 0.0002155648880367201,
+   "max_at": {
+    "boundary_cell": true,
+    "fitting": "Straight0",
+    "position": [
+     0.024999999967967243,
+     0.012742257243226932,
+     0.0041111982671385595
+    ]
+   },
+   "min_scaled_jacobian": 0.789533127112204,
+   "name": "bend_k1",
+   "nang": 6,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 3,
+   "per_fitting": {
+    "Bend1": {
+     "cells": 864,
+     "l2": 0.012006623323562664,
+     "max": 0.043010880930385964
+    },
+    "Straight0": {
+     "cells": 216,
+     "l2": 0.019924783611114612,
+     "max": 0.06676428584123861
+    },
+    "Straight2": {
+     "cells": 216,
+     "l2": 0.010145898448992227,
+     "max": 0.03291119697546896
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 432,
+    "l2": 0.015810380407931438,
+    "max": 0.06676428584123861
+   },
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 2,
+   "volume": 0.0033706655413215983,
+   "wave_numbers": [
+    34.886420195345046,
+    62.83185307179586,
+    34.88642019534504
+   ]
+  },
+  {
+   "all": {
+    "cells": 10368,
+    "l2": 0.003681891465074404,
+    "max": 0.01743583456384612
+   },
+   "boundary_cells": {
+    "cells": 1920,
+    "l2": 0.004182099675002742,
+    "max": 0.01743583456384612
+   },
+   "case": "bend",
+   "cells": 10368,
+   "check_cells_foam": 10368,
+   "check_max_non_orthogonality": 33.25202184328976,
+   "check_max_skewness": 0.4837514264013794,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 6912,
+    "l2": 0.002875915809400998,
+    "max": 0.010056546348108375
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 8448,
+    "l2": 0.0035039933247048736,
+    "max": 0.015610762691711022
+   },
+   "k": 2,
+   "keep_orientation": true,
+   "last_initial_residual": 6.8749028548391095e-15,
+   "match_distance_max": 5.792656745902035e-05,
+   "max_at": {
+    "boundary_cell": true,
+    "fitting": "Straight0",
+    "position": [
+     0.012499999980904541,
+     0.014857424539166476,
+     0.00611131644875478
+    ]
+   },
+   "min_scaled_jacobian": 0.7509341835041666,
+   "name": "bend_k2",
+   "nang": 12,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 6,
+   "per_fitting": {
+    "Bend1": {
+     "cells": 6912,
+     "l2": 0.002875915809400998,
+     "max": 0.010056546348108375
+    },
+    "Straight0": {
+     "cells": 1728,
+     "l2": 0.005502462857185707,
+     "max": 0.01743583456384612
+    },
+    "Straight2": {
+     "cells": 1728,
+     "l2": 0.0030445138761258836,
+     "max": 0.009350988396556792
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 3456,
+    "l2": 0.004446693279091292,
+    "max": 0.01743583456384612
+   },
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 3,
+   "volume": 0.0034086220969709222,
+   "wave_numbers": [
+    34.886420195345046,
+    62.83185307179586,
+    34.88642019534504
+   ]
+  },
+  {
+   "all": {
+    "cells": 82944,
+    "l2": 0.0010323367691384509,
+    "max": 0.005097751532303019
+   },
+   "boundary_cells": {
+    "cells": 7872,
+    "l2": 0.0014386162368977943,
+    "max": 0.005097751532303019
+   },
+   "case": "bend",
+   "cells": 82944,
+   "check_cells_foam": 82944,
+   "check_max_non_orthogonality": 38.86827832582561,
+   "check_max_skewness": 0.5145971260674037,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 55296,
+    "l2": 0.0008711920006087453,
+    "max": 0.00505612287962065
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 75072,
+    "l2": 0.0009581388101509371,
+    "max": 0.00505612287962065
+   },
+   "k": 4,
+   "keep_orientation": true,
+   "last_initial_residual": 7.124477475802194e-15,
+   "match_distance_max": 1.5009897227791802e-05,
+   "max_at": {
+    "boundary_cell": true,
+    "fitting": "Straight0",
+    "position": [
+     0.006249999995235571,
+     0.013654864848571296,
+     0.00924188524275015
+    ]
+   },
+   "min_scaled_jacobian": 0.7296442512848157,
+   "name": "bend_k4",
+   "nang": 24,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 12,
+   "per_fitting": {
+    "Bend1": {
+     "cells": 55296,
+     "l2": 0.0008711920006087453,
+     "max": 0.00505612287962065
+    },
+    "Straight0": {
+     "cells": 13824,
+     "l2": 0.0013976998323134656,
+     "max": 0.005097751532303019
+    },
+    "Straight2": {
+     "cells": 13824,
+     "l2": 0.000948857836747429,
+     "max": 0.004943505026085426
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 27648,
+    "l2": 0.0011945492906544502,
+    "max": 0.005097751532303019
+   },
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 3,
+   "volume": 0.0034181624618772367,
+   "wave_numbers": [
+    34.886420195345046,
+    62.83185307179586,
+    34.88642019534504
+   ]
+  },
+  {
+   "all": {
+    "cells": 1728,
+    "l2": 0.009711362528868724,
+    "max": 0.042663222037893966
+   },
+   "boundary_cells": {
+    "cells": 552,
+    "l2": 0.010946316846339125,
+    "max": 0.042663222037893966
+   },
+   "case": "miter",
+   "cells": 1728,
+   "check_cells_foam": 1728,
+   "check_max_non_orthogonality": 25.82253933732479,
+   "check_max_skewness": 0.6665730687107849,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 1296,
+    "l2": 0.007740735129296288,
+    "max": 0.022351061859137045
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 1176,
+    "l2": 0.008708685628350327,
+    "max": 0.032529436199111084
+   },
+   "k": 1,
+   "keep_orientation": true,
+   "last_initial_residual": 7.383382563340715e-15,
+   "match_distance_max": 0.000200460177178578,
+   "max_at": {
+    "boundary_cell": true,
+    "fitting": "Straight0",
+    "position": [
+     0.024999999967967243,
+     0.012742257243226932,
+     0.0041111982671385595
+    ]
+   },
+   "min_scaled_jacobian": 0.7661413921052127,
+   "name": "miter_k1",
+   "nang": 6,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 3,
+   "per_fitting": {
+    "MiterBend1": {
+     "cells": 1296,
+     "l2": 0.007740735129296288,
+     "max": 0.022351061859137045
+    },
+    "Straight0": {
+     "cells": 216,
+     "l2": 0.014669463910488052,
+     "max": 0.042663222037893966
+    },
+    "Straight2": {
+     "cells": 216,
+     "l2": 0.009165712211696845,
+     "max": 0.032529436199111084
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 432,
+    "l2": 0.012231178434001365,
+    "max": 0.042663222037893966
+   },
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 2,
+   "volume": 0.004049526308173623,
+   "wave_numbers": [
+    29.43807419511391,
+    62.83185307179586,
+    29.4380741951139
+   ]
+  },
+  {
+   "all": {
+    "cells": 13824,
+    "l2": 0.0025945292600375357,
+    "max": 0.011400035847366707
+   },
+   "boundary_cells": {
+    "cells": 2304,
+    "l2": 0.0032228771331332087,
+    "max": 0.011400035847366707
+   },
+   "case": "miter",
+   "cells": 13824,
+   "check_cells_foam": 13824,
+   "check_max_non_orthogonality": 35.29289119408302,
+   "check_max_skewness": 0.6684545777082637,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 10368,
+    "l2": 0.002162066746361717,
+    "max": 0.008889043637925309
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 11520,
+    "l2": 0.0023760235524004666,
+    "max": 0.009938026550812107
+   },
+   "k": 2,
+   "keep_orientation": true,
+   "last_initial_residual": 7.669071592293725e-15,
+   "match_distance_max": 5.431755213559955e-05,
+   "max_at": {
+    "boundary_cell": true,
+    "fitting": "Straight0",
+    "position": [
+     0.012499999980904541,
+     0.014857424539166476,
+     0.00611131644875478
+    ]
+   },
+   "min_scaled_jacobian": 0.7260258676208807,
+   "name": "miter_k2",
+   "nang": 12,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 6,
+   "per_fitting": {
+    "MiterBend1": {
+     "cells": 10368,
+     "l2": 0.002162066746361717,
+     "max": 0.008889043637925309
+    },
+    "Straight0": {
+     "cells": 1728,
+     "l2": 0.0035884073039949014,
+     "max": 0.011400035847366707
+    },
+    "Straight2": {
+     "cells": 1728,
+     "l2": 0.0026834145453690033,
+     "max": 0.009289677994501755
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 3456,
+    "l2": 0.0031683892281143345,
+    "max": 0.011400035847366707
+   },
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 3,
+   "volume": 0.004084470046202769,
+   "wave_numbers": [
+    29.43807419511391,
+    62.83185307179586,
+    29.4380741951139
+   ]
+  },
+  {
+   "all": {
+    "cells": 110592,
+    "l2": 0.0009475455759726019,
+    "max": 0.0059858173745722665
+   },
+   "boundary_cells": {
+    "cells": 9408,
+    "l2": 0.0012142975687873185,
+    "max": 0.005102532536305715
+   },
+   "case": "miter",
+   "cells": 110592,
+   "check_cells_foam": 110592,
+   "check_max_non_orthogonality": 40.72838322322168,
+   "check_max_skewness": 0.6699377798654955,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 82944,
+    "l2": 0.0009814761411657419,
+    "max": 0.0059858173745722665
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 101184,
+    "l2": 0.0009053078243330099,
+    "max": 0.0059858173745722665
+   },
+   "k": 4,
+   "keep_orientation": true,
+   "last_initial_residual": 7.049364032985372e-15,
+   "match_distance_max": 1.416907196639146e-05,
+   "max_at": {
+    "boundary_cell": false,
+    "fitting": "MiterBend1",
+    "position": [
+     0.14505893752537286,
+     -0.02068868282375105,
+     0.020679840128246682
+    ]
+   },
+   "min_scaled_jacobian": 0.7047931931017478,
+   "name": "miter_k4",
+   "nang": 24,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 12,
+   "per_fitting": {
+    "MiterBend1": {
+     "cells": 82944,
+     "l2": 0.0009814761411657419,
+     "max": 0.0059858173745722665
+    },
+    "Straight0": {
+     "cells": 13824,
+     "l2": 0.000922575858691648,
+     "max": 0.004720910980320403
+    },
+    "Straight2": {
+     "cells": 13824,
+     "l2": 0.0008567862838811003,
+     "max": 0.004735507248401327
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 27648,
+    "l2": 0.0008902889843436842,
+    "max": 0.004735507248401327
+   },
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 3,
+   "volume": 0.004093234110898034,
+   "wave_numbers": [
+    29.43807419511391,
+    62.83185307179586,
+    29.4380741951139
+   ]
+  },
+  {
+   "all": {
+    "cells": 1944,
+    "l2": 0.02455989805033964,
+    "max": 0.11053901588957825
+   },
+   "boundary_cells": {
+    "cells": 600,
+    "l2": 0.030677255897950582,
+    "max": 0.11053901588957825
+   },
+   "case": "spline",
+   "cells": 1944,
+   "check_cells_foam": 1944,
+   "check_max_non_orthogonality": 23.64611862954382,
+   "check_max_skewness": 0.4222433062016038,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 1728,
+    "l2": 0.026703926885606428,
+    "max": 0.11053901588957825
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 1344,
+    "l2": 0.019204492960375494,
+    "max": 0.0568030874320834
+   },
+   "k": 1,
+   "keep_orientation": true,
+   "last_initial_residual": 7.057753365580098e-15,
+   "match_distance_max": 0.0002554283713018094,
+   "max_at": {
+    "boundary_cell": true,
+    "fitting": "SplinePipe1",
+    "position": [
+     0.47748468077839407,
+     0.06392367613852569,
+     0.19186165513843476
+    ]
+   },
+   "min_scaled_jacobian": 0.7908397476700715,
+   "name": "spline_k1",
+   "nang": 6,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 3,
+   "per_fitting": {
+    "SplinePipe1": {
+     "cells": 1728,
+     "l2": 0.026703926885606428,
+     "max": 0.11053901588957825
+    },
+    "Straight0": {
+     "cells": 216,
+     "l2": 0.008249320289977177,
+     "max": 0.019131788216016465
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 216,
+    "l2": 0.008249320289977177,
+    "max": 0.019131788216016465
+   },
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 2,
+   "volume": 0.004556886127963858,
+   "wave_numbers": [
+    19.519189226775243,
+    47.899168367571036,
+    34.66172534992785
+   ]
+  },
+  {
+   "all": {
+    "cells": 15552,
+    "l2": 0.0071714986241948496,
+    "max": 0.047761126267418685
+   },
+   "boundary_cells": {
+    "cells": 2496,
+    "l2": 0.01210543209600871,
+    "max": 0.047761126267418685
+   },
+   "case": "spline",
+   "cells": 15552,
+   "check_cells_foam": 15552,
+   "check_max_non_orthogonality": 33.28790751067518,
+   "check_max_skewness": 0.4837514264013794,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 13824,
+    "l2": 0.007821105258106824,
+    "max": 0.047761126267418685
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 13056,
+    "l2": 0.00487919946789139,
+    "max": 0.017672398589536953
+   },
+   "k": 2,
+   "keep_orientation": true,
+   "last_initial_residual": 6.15980615502965e-15,
+   "match_distance_max": 7.033727534571417e-05,
+   "max_at": {
+    "boundary_cell": true,
+    "fitting": "SplinePipe1",
+    "position": [
+     0.4975138001812006,
+     0.06717522501685914,
+     0.18895535933984783
+    ]
+   },
+   "min_scaled_jacobian": 0.751249671782725,
+   "name": "spline_k2",
+   "nang": 12,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 6,
+   "per_fitting": {
+    "SplinePipe1": {
+     "cells": 13824,
+     "l2": 0.007821105258106824,
+     "max": 0.047761126267418685
+    },
+    "Straight0": {
+     "cells": 1728,
+     "l2": 0.001986336350480857,
+     "max": 0.0051751263012433935
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 1728,
+    "l2": 0.001986336350480857,
+    "max": 0.0051751263012433935
+   },
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 3,
+   "volume": 0.004601514471295573,
+   "wave_numbers": [
+    19.519189226775243,
+    47.899168367571036,
+    34.66172534992785
+   ]
+  },
+  {
+   "all": {
+    "cells": 124416,
+    "l2": 0.0019337508347215516,
+    "max": 0.016960890637906567
+   },
+   "boundary_cells": {
+    "cells": 10176,
+    "l2": 0.003921041194277981,
+    "max": 0.016960890637906567
+   },
+   "case": "spline",
+   "cells": 124416,
+   "check_cells_foam": 124416,
+   "check_max_non_orthogonality": 38.876657545954004,
+   "check_max_skewness": 0.5145971260673546,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 110592,
+    "l2": 0.002102338116851159,
+    "max": 0.016960890637906567
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 114240,
+    "l2": 0.0014773072512001516,
+    "max": 0.008768637719183875
+   },
+   "k": 4,
+   "keep_orientation": true,
+   "last_initial_residual": 7.145470299757264e-15,
+   "match_distance_max": 1.8437815950351667e-05,
+   "max_at": {
+    "boundary_cell": true,
+    "fitting": "SplinePipe1",
+    "position": [
+     0.5107671610488086,
+     0.06804910068520033,
+     0.18290555571458683
+    ]
+   },
+   "min_scaled_jacobian": 0.7297211938536576,
+   "name": "spline_k4",
+   "nang": 24,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 12,
+   "per_fitting": {
+    "SplinePipe1": {
+     "cells": 110592,
+     "l2": 0.002102338116851159,
+     "max": 0.016960890637906567
+    },
+    "Straight0": {
+     "cells": 13824,
+     "l2": 0.00064863036485631,
+     "max": 0.003675446143175276
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 13824,
+    "l2": 0.00064863036485631,
+    "max": 0.003675446143175276
+   },
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 3,
+   "volume": 0.004612718549456573,
+   "wave_numbers": [
+    19.519189226775243,
+    47.899168367571036,
+    34.66172534992785
+   ]
+  },
+  {
+   "all": {
+    "cells": 1296,
+    "l2": 0.013262124576288333,
+    "max": 0.044400260378612555
+   },
+   "boundary_cells": {
+    "cells": 456,
+    "l2": 0.015440630691300292,
+    "max": 0.044400260378612555
+   },
+   "case": "reducer",
+   "cells": 1296,
+   "check_cells_foam": 1296,
+   "check_max_non_orthogonality": 27.57968552866986,
+   "check_max_skewness": 0.5408966314371464,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 864,
+    "l2": 0.00975720601107745,
+    "max": 0.02759034315449227
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 840,
+    "l2": 0.010225000681754888,
+    "max": 0.02759034315449227
+   },
+   "k": 1,
+   "keep_orientation": true,
+   "last_initial_residual": 6.244315411676284e-15,
+   "match_distance_max": 0.002831356116023588,
+   "max_at": {
+    "boundary_cell": true,
+    "fitting": "Straight2",
+    "position": [
+     0.37500000003203254,
+     0.012742257243226947,
+     0.004111198267138569
+    ]
+   },
+   "min_scaled_jacobian": 0.7512600143587895,
+   "name": "reducer_k1",
+   "nang": 6,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 3,
+   "per_fitting": {
+    "Reducer1": {
+     "cells": 864,
+     "l2": 0.00975720601107745,
+     "max": 0.02759034315449227
+    },
+    "Straight0": {
+     "cells": 216,
+     "l2": 0.01408340659929506,
+     "max": 0.031125431628895694
+    },
+    "Straight2": {
+     "cells": 216,
+     "l2": 0.014938688530921989,
+     "max": 0.044400260378612555
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 432,
+    "l2": 0.014517347492998984,
+    "max": 0.044400260378612555
+   },
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 3,
+   "volume": 0.002224067534772131,
+   "wave_numbers": [
+    26.927937030769648,
+    62.83185307179586,
+    62.83185307179586
+   ]
+  },
+  {
+   "all": {
+    "cells": 10368,
+    "l2": 0.004418334564742568,
+    "max": 0.019758921750810732
+   },
+   "boundary_cells": {
+    "cells": 1920,
+    "l2": 0.005253623771689135,
+    "max": 0.019758921750810732
+   },
+   "case": "reducer",
+   "cells": 10368,
+   "check_cells_foam": 10368,
+   "check_max_non_orthogonality": 36.50081569655165,
+   "check_max_skewness": 0.48375142640138935,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 6912,
+    "l2": 0.005106569977249549,
+    "max": 0.01692184064524227
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 8448,
+    "l2": 0.004016469488732425,
+    "max": 0.01692184064524227
+   },
+   "k": 2,
+   "keep_orientation": true,
+   "last_initial_residual": 4.11587094129351e-15,
+   "match_distance_max": 0.0007878786485058209,
+   "max_at": {
+    "boundary_cell": true,
+    "fitting": "Straight2",
+    "position": [
+     0.3875000000217741,
+     0.010651239056150896,
+     0.006288044988229629
+    ]
+   },
+   "min_scaled_jacobian": 0.7057226311370131,
+   "name": "reducer_k2",
+   "nang": 12,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 6,
+   "per_fitting": {
+    "Reducer1": {
+     "cells": 6912,
+     "l2": 0.005106569977249549,
+     "max": 0.01692184064524227
+    },
+    "Straight0": {
+     "cells": 1728,
+     "l2": 0.003460152935344747,
+     "max": 0.008571385978491164
+    },
+    "Straight2": {
+     "cells": 1728,
+     "l2": 0.004618288010359105,
+     "max": 0.019758921750810732
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 3456,
+    "l2": 0.004080517276191925,
+    "max": 0.019758921750810732
+   },
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 3,
+   "volume": 0.00225231317283567,
+   "wave_numbers": [
+    26.927937030769648,
+    62.83185307179586,
+    62.83185307179586
+   ]
+  },
+  {
+   "all": {
+    "cells": 82944,
+    "l2": 0.0018149162030586957,
+    "max": 0.009024801326661003
+   },
+   "boundary_cells": {
+    "cells": 7872,
+    "l2": 0.002120901705517283,
+    "max": 0.009024801326661003
+   },
+   "case": "reducer",
+   "cells": 82944,
+   "check_cells_foam": 82944,
+   "check_max_non_orthogonality": 42.14310642237215,
+   "check_max_skewness": 0.5145971260673546,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 55296,
+    "l2": 0.002651697174300422,
+    "max": 0.009024801326661003
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 75072,
+    "l2": 0.0017527746486764289,
+    "max": 0.008480496769795648
+   },
+   "k": 4,
+   "keep_orientation": true,
+   "last_initial_residual": 8.673580691591027e-15,
+   "match_distance_max": 0.00020167026420007305,
+   "max_at": {
+    "boundary_cell": true,
+    "fitting": "Reducer1",
+    "position": [
+     0.26571639827934757,
+     0.011230279947616321,
+     0.03696475149845274
+    ]
+   },
+   "min_scaled_jacobian": 0.6834888357284965,
+   "name": "reducer_k4",
+   "nang": 24,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 12,
+   "per_fitting": {
+    "Reducer1": {
+     "cells": 55296,
+     "l2": 0.002651697174300422,
+     "max": 0.009024801326661003
+    },
+    "Straight0": {
+     "cells": 13824,
+     "l2": 0.0011420579776829308,
+     "max": 0.0048466027459416194
+    },
+    "Straight2": {
+     "cells": 13824,
+     "l2": 0.0014136150842778336,
+     "max": 0.007829990428332989
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 27648,
+    "l2": 0.0012850299667492297,
+    "max": 0.007829990428332989
+   },
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 3,
+   "volume": 0.002259527856408838,
+   "wave_numbers": [
+    26.927937030769648,
+    62.83185307179586,
+    62.83185307179586
+   ]
+  },
+  {
+   "all": {
+    "cells": 1044,
+    "l2": 0.028400494558436785,
+    "max": 0.14454529871647076
+   },
+   "boundary_cells": {
+    "cells": 332,
+    "l2": 0.030256561909664633,
+    "max": 0.0976201437442803
+   },
+   "case": "transition",
+   "cells": 1044,
+   "check_cells_foam": 1044,
+   "check_max_non_orthogonality": 49.68445778922788,
+   "check_max_skewness": 2.13908002465938,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 756,
+    "l2": 0.02724120364874069,
+    "max": 0.14454529871647076
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 712,
+    "l2": 0.026628584796756394,
+    "max": 0.14454529871647076
+   },
+   "k": 1,
+   "keep_orientation": true,
+   "last_initial_residual": 6.776091636232226e-15,
+   "match_distance_max": 0.0006550486394933046,
+   "max_at": {
+    "boundary_cell": false,
+    "fitting": "Transition1",
+    "position": [
+     0.27675110829639016,
+     0.03902962493842797,
+     -0.02683554992611358
+    ]
+   },
+   "min_scaled_jacobian": 0.5773502691896228,
+   "name": "transition_k1",
+   "nang": 6,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 3,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 216,
+     "l2": 0.01403575307568316,
+     "max": 0.03130582791995462
+    },
+    "Straight2": {
+     "cells": 72,
+     "l2": 0.037674463228532185,
+     "max": 0.0976201437442803
+    },
+    "Transition1": {
+     "cells": 756,
+     "l2": 0.02724120364874069,
+     "max": 0.14454529871647076
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 288,
+    "l2": 0.02954294190484168,
+    "max": 0.0976201437442803
+   },
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 3,
+   "volume": 0.0035184735576855052,
+   "wave_numbers": [
+    26.927937030769648,
+    62.83185307179586,
+    62.83185307179586
+   ]
+  },
+  {
+   "all": {
+    "cells": 8352,
+    "l2": 0.01127938244129782,
+    "max": 0.08806950833474088
+   },
+   "boundary_cells": {
+    "cells": 1428,
+    "l2": 0.010347577317114729,
+    "max": 0.05476724223044305
+   },
+   "case": "transition",
+   "cells": 8352,
+   "check_cells_foam": 8352,
+   "check_max_non_orthogonality": 52.353793032495425,
+   "check_max_skewness": 2.240746648647693,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 6048,
+    "l2": 0.013892975280684146,
+    "max": 0.08806950833474088
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 6924,
+    "l2": 0.011608438701437237,
+    "max": 0.08806950833474088
+   },
+   "k": 2,
+   "keep_orientation": true,
+   "last_initial_residual": 3.821080483076744e-15,
+   "match_distance_max": 0.00020374635107525514,
+   "max_at": {
+    "boundary_cell": false,
+    "fitting": "Transition1",
+    "position": [
+     0.2807002565896898,
+     0.04159660990591712,
+     -0.02537811989736412
+    ]
+   },
+   "min_scaled_jacobian": 0.5773502691896171,
+   "name": "transition_k2",
+   "nang": 12,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 6,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 1728,
+     "l2": 0.003415748345476323,
+     "max": 0.008565106886774032
+    },
+    "Straight2": {
+     "cells": 576,
+     "l2": 0.00994828117158196,
+     "max": 0.03703050804146912
+    },
+    "Transition1": {
+     "cells": 6048,
+     "l2": 0.013892975280684146,
+     "max": 0.08806950833474088
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 2304,
+    "l2": 0.007729563222158727,
+    "max": 0.03703050804146912
+   },
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 5,
+   "volume": 0.0035310396870267113,
+   "wave_numbers": [
+    26.927937030769648,
+    62.83185307179586,
+    62.83185307179586
+   ]
+  },
+  {
+   "all": {
+    "cells": 66816,
+    "l2": 0.005243059218694274,
+    "max": 0.06229750282780122
+   },
+   "boundary_cells": {
+    "cells": 5924,
+    "l2": 0.0039099013283622865,
+    "max": 0.03165639518699819
+   },
+   "case": "transition",
+   "cells": 66816,
+   "check_cells_foam": 66816,
+   "check_max_non_orthogonality": 53.57821821908022,
+   "check_max_skewness": 2.2812158406551504,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 48384,
+    "l2": 0.0070755307644009375,
+    "max": 0.06229750282780122
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 60892,
+    "l2": 0.005438615411894625,
+    "max": 0.06229750282780122
+   },
+   "k": 4,
+   "keep_orientation": true,
+   "last_initial_residual": 3.1410373398029543e-13,
+   "match_distance_max": 5.5435309157470376e-05,
+   "max_at": {
+    "boundary_cell": false,
+    "fitting": "Transition1",
+    "position": [
+     0.283071085577088,
+     -0.042823415080317846,
+     0.024685302692505566
+    ]
+   },
+   "min_scaled_jacobian": 0.5773502691896105,
+   "name": "transition_k4",
+   "nang": 24,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 12,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 13824,
+     "l2": 0.0011267410091573547,
+     "max": 0.004854062540183834
+    },
+    "Straight2": {
+     "cells": 4608,
+     "l2": 0.0026465812277920602,
+     "max": 0.011030389612936564
+    },
+    "Transition1": {
+     "cells": 48384,
+     "l2": 0.0070755307644009375,
+     "max": 0.06229750282780122
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 18432,
+    "l2": 0.0021035271433024836,
+    "max": 0.011030389612936564
+   },
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 7,
+   "volume": 0.003527656624928824,
+   "wave_numbers": [
+    26.927937030769648,
+    62.83185307179586,
+    62.83185307179586
+   ]
+  },
+  {
+   "all": {
+    "cells": 2376,
+    "l2": 0.013211136549767423,
+    "max": 0.07856805966582242
+   },
+   "boundary_cells": {
+    "cells": 768,
+    "l2": 0.01508662995057148,
+    "max": 0.05936650651660452
+   },
+   "case": "tee",
+   "cells": 2376,
+   "check_cells_foam": 2376,
+   "check_max_non_orthogonality": 62.417601072448434,
+   "check_max_skewness": 1.6120688216997914,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 1728,
+    "l2": 0.012614618115709726,
+    "max": 0.07856805966582242
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 1608,
+    "l2": 0.011239687414206802,
+    "max": 0.07856805966582242
+   },
+   "k": 1,
+   "keep_orientation": true,
+   "last_initial_residual": 9.79051411369308e-15,
+   "match_distance_max": 0.0007917161588191754,
+   "max_at": {
+    "boundary_cell": false,
+    "fitting": "Tee1",
+    "position": [
+     0.18790180410060467,
+     0.009810207078779856,
+     0.034927647951580265
+    ]
+   },
+   "min_scaled_jacobian": 0.2576521280139983,
+   "name": "tee_k1",
+   "nang": 6,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 3,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 216,
+     "l2": 0.012513442935359657,
+     "max": 0.033073892388475246
+    },
+    "Straight2": {
+     "cells": 216,
+     "l2": 0.01632730274369893,
+     "max": 0.05060748164427953
+    },
+    "Straight3": {
+     "cells": 216,
+     "l2": 0.004099449717106087,
+     "max": 0.011687111605783118
+    },
+    "Tee1": {
+     "cells": 1728,
+     "l2": 0.012614618115709726,
+     "max": 0.07856805966582242
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 648,
+    "l2": 0.013781927634513434,
+    "max": 0.05060748164427953
+   },
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 3,
+   "volume": 0.0034942682254455954,
+   "wave_numbers": [
+    26.927937030769648,
+    62.83185307179586,
+    34.88642019534504
+   ]
+  },
+  {
+   "all": {
+    "cells": 19008,
+    "l2": 0.004714397271114794,
+    "max": 0.04755377176617004
+   },
+   "boundary_cells": {
+    "cells": 3216,
+    "l2": 0.005733249675025737,
+    "max": 0.040117203174178495
+   },
+   "case": "tee",
+   "cells": 19008,
+   "check_cells_foam": 19008,
+   "check_max_non_orthogonality": 69.52086923578126,
+   "check_max_skewness": 1.8050563551312413,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 13824,
+    "l2": 0.005187306399623864,
+    "max": 0.04755377176617004
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 15792,
+    "l2": 0.004296028875972484,
+    "max": 0.04755377176617004
+   },
+   "k": 2,
+   "keep_orientation": true,
+   "last_initial_residual": 5.914003888113734e-15,
+   "match_distance_max": 0.00021116109871831845,
+   "max_at": {
+    "boundary_cell": false,
+    "fitting": "Tee1",
+    "position": [
+     0.1874032498596654,
+     0.011388459399147725,
+     0.03210515243144333
+    ]
+   },
+   "min_scaled_jacobian": 0.2576521280139977,
+   "name": "tee_k2",
+   "nang": 12,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 6,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 1728,
+     "l2": 0.002943686134989463,
+     "max": 0.008823294378151547
+    },
+    "Straight2": {
+     "cells": 1728,
+     "l2": 0.005495304427782444,
+     "max": 0.02313699938337621
+    },
+    "Straight3": {
+     "cells": 1728,
+     "l2": 0.0015406444826020888,
+     "max": 0.004316404012080312
+    },
+    "Tee1": {
+     "cells": 13824,
+     "l2": 0.005187306399623864,
+     "max": 0.04755377176617004
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 5184,
+    "l2": 0.004187656739131091,
+    "max": 0.02313699938337621
+   },
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 4,
+   "volume": 0.0035266406295903136,
+   "wave_numbers": [
+    26.927937030769648,
+    62.83185307179586,
+    34.88642019534504
+   ]
+  },
+  {
+   "all": {
+    "cells": 152064,
+    "l2": 0.0019939877468710034,
+    "max": 0.026692595108233297
+   },
+   "boundary_cells": {
+    "cells": 13152,
+    "l2": 0.002274011186748785,
+    "max": 0.024944050404941576
+   },
+   "case": "tee",
+   "cells": 152064,
+   "check_cells_foam": 152064,
+   "check_max_non_orthogonality": 72.64531933489174,
+   "check_max_skewness": 1.8979207340985462,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 110592,
+    "l2": 0.0025386356057860333,
+    "max": 0.026692595108233297
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 138912,
+    "l2": 0.0019458726858687914,
+    "max": 0.026692595108233297
+   },
+   "k": 4,
+   "keep_orientation": true,
+   "last_initial_residual": 2.775358038017406e-14,
+   "match_distance_max": 5.512553583985014e-05,
+   "max_at": {
+    "boundary_cell": false,
+    "fitting": "Tee1",
+    "position": [
+     0.18719967065295678,
+     0.012179930146697245,
+     0.03086163885762583
+    ]
+   },
+   "min_scaled_jacobian": 0.2576521280139985,
+   "name": "tee_k4",
+   "nang": 24,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 12,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 13824,
+     "l2": 0.0008244029530706513,
+     "max": 0.004646079409360453
+    },
+    "Straight2": {
+     "cells": 13824,
+     "l2": 0.0016202771048698587,
+     "max": 0.008831486852210135
+    },
+    "Straight3": {
+     "cells": 13824,
+     "l2": 0.0005553278089825006,
+     "max": 0.0027728272622094957
+    },
+    "Tee1": {
+     "cells": 110592,
+     "l2": 0.0025386356057860333,
+     "max": 0.026692595108233297
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 41472,
+    "l2": 0.0012260207301953,
+    "max": 0.008831486852210135
+   },
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 7,
+   "volume": 0.0035347566309840285,
+   "wave_numbers": [
+    26.927937030769648,
+    62.83185307179586,
+    34.88642019534504
+   ]
+  },
+  {
+   "all": {
+    "cells": 4440,
+    "l2": 0.014583139981544464,
+    "max": 0.08834842730275827
+   },
+   "boundary_cells": {
+    "cells": 1056,
+    "l2": 0.016212785954351154,
+    "max": 0.05178673361365904
+   },
+   "case": "tee_shells",
+   "cells": 4440,
+   "check_cells_foam": 4440,
+   "check_max_non_orthogonality": 63.9243980211445,
+   "check_max_skewness": 2.586152302574915,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 3216,
+    "l2": 0.014317925445763375,
+    "max": 0.08834842730275827
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 3384,
+    "l2": 0.013572655030831954,
+    "max": 0.08834842730275827
+   },
+   "k": 1,
+   "keep_orientation": true,
+   "last_initial_residual": 8.935816874066056e-15,
+   "match_distance_max": 0.0007917161588191754,
+   "max_at": {
+    "boundary_cell": false,
+    "fitting": "Tee1",
+    "position": [
+     0.1878740369670605,
+     0.009827792111621905,
+     0.0425229824026479
+    ]
+   },
+   "min_scaled_jacobian": 0.2576521280139985,
+   "name": "tee_shells_k1",
+   "nang": 6,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 3,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 408,
+     "l2": 0.013640486445386986,
+     "max": 0.0357339548567962
+    },
+    "Straight2": {
+     "cells": 408,
+     "l2": 0.017476608027578486,
+     "max": 0.05178673361365904
+    },
+    "Straight3": {
+     "cells": 408,
+     "l2": 0.009802084149607388,
+     "max": 0.03436942610088489
+    },
+    "Tee1": {
+     "cells": 3216,
+     "l2": 0.014317925445763375,
+     "max": 0.08834842730275827
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 1224,
+    "l2": 0.014836352565767354,
+    "max": 0.05178673361365904
+   },
+   "retyped": [
+    "shell2_wall"
+   ],
+   "steps": 3,
+   "volume": 0.00724198219909182,
+   "wave_numbers": [
+    26.927937030769648,
+    62.83185307179586,
+    32.34864617845147
+   ]
+  },
+  {
+   "all": {
+    "cells": 35520,
+    "l2": 0.005194578513574022,
+    "max": 0.059495083646877056
+   },
+   "boundary_cells": {
+    "cells": 4368,
+    "l2": 0.006146209624751799,
+    "max": 0.023613964211304905
+   },
+   "case": "tee_shells",
+   "cells": 35520,
+   "check_cells_foam": 35520,
+   "check_max_non_orthogonality": 69.46294744554025,
+   "check_max_skewness": 2.8345773240559113,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 25728,
+    "l2": 0.005867472128472725,
+    "max": 0.059495083646877056
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 31152,
+    "l2": 0.0049423701604506595,
+    "max": 0.059495083646877056
+   },
+   "k": 2,
+   "keep_orientation": true,
+   "last_initial_residual": 7.805776248866843e-15,
+   "match_distance_max": 0.00021116109871831845,
+   "max_at": {
+    "boundary_cell": false,
+    "fitting": "Tee1",
+    "position": [
+     0.1873964370226092,
+     0.011392892381025574,
+     0.03588066900289977
+    ]
+   },
+   "min_scaled_jacobian": 0.25765212801399767,
+   "name": "tee_shells_k2",
+   "nang": 12,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 6,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 3264,
+     "l2": 0.003275698126654889,
+     "max": 0.009184428674908762
+    },
+    "Straight2": {
+     "cells": 3264,
+     "l2": 0.0058058296478283745,
+     "max": 0.023613964211304905
+    },
+    "Straight3": {
+     "cells": 3264,
+     "l2": 0.0027899358751442855,
+     "max": 0.00936104419721806
+    },
+    "Tee1": {
+     "cells": 25728,
+     "l2": 0.005867472128472725,
+     "max": 0.059495083646877056
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 9792,
+    "l2": 0.004443752988843377,
+    "max": 0.023613964211304905
+   },
+   "retyped": [
+    "shell2_wall"
+   ],
+   "steps": 4,
+   "volume": 0.007305712916453031,
+   "wave_numbers": [
+    26.927937030769648,
+    62.83185307179586,
+    32.34864617845147
+   ]
+  },
+  {
+   "all": {
+    "cells": 284160,
+    "l2": 0.0021951170043849355,
+    "max": 0.0364277729521536
+   },
+   "boundary_cells": {
+    "cells": 17760,
+    "l2": 0.002334161453603583,
+    "max": 0.013020818440270365
+   },
+   "case": "tee_shells",
+   "cells": 284160,
+   "check_cells_foam": 284160,
+   "check_max_non_orthogonality": 72.63007430936118,
+   "check_max_skewness": 2.944797852276084,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 205824,
+    "l2": 0.0028615538254516374,
+    "max": 0.0364277729521536
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 266400,
+    "l2": 0.0021793873736645395,
+    "max": 0.0364277729521536
+   },
+   "k": 4,
+   "keep_orientation": true,
+   "last_initial_residual": 8.876759078400355e-15,
+   "match_distance_max": 5.512553583985014e-05,
+   "max_at": {
+    "boundary_cell": false,
+    "fitting": "Tee1",
+    "position": [
+     0.18656246462391013,
+     0.012757956517968638,
+     0.03475584657071146
+    ]
+   },
+   "min_scaled_jacobian": 0.2576521280139985,
+   "name": "tee_shells_k4",
+   "nang": 24,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 12,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 26112,
+     "l2": 0.0008359949334546769,
+     "max": 0.004928679251524293
+    },
+    "Straight2": {
+     "cells": 26112,
+     "l2": 0.0016717913994633937,
+     "max": 0.008909621637279375
+    },
+    "Straight3": {
+     "cells": 26112,
+     "l2": 0.0007418320211063533,
+     "max": 0.0030155787988236926
+    },
+    "Tee1": {
+     "cells": 205824,
+     "l2": 0.0028615538254516374,
+     "max": 0.0364277729521536
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 78336,
+    "l2": 0.0012417637331478123,
+    "max": 0.008909621637279375
+   },
+   "retyped": [
+    "shell2_wall"
+   ],
+   "steps": 6,
+   "volume": 0.007321686235537077,
+   "wave_numbers": [
+    26.927937030769648,
+    62.83185307179586,
+    32.34864617845147
+   ]
+  },
+  {
+   "all": {
+    "cells": 1440,
+    "l2": 0.016607527872475658,
+    "max": 0.053903012117089366
+   },
+   "boundary_cells": {
+    "cells": 528,
+    "l2": 0.018169678141607342,
+    "max": 0.05217837675154169
+   },
+   "case": "stack_change",
+   "cells": 1440,
+   "check_cells_foam": 1440,
+   "check_max_non_orthogonality": 23.452717822027182,
+   "check_max_skewness": 0.4222435288349462,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 1440,
+    "l2": 0.016607527872475658,
+    "max": 0.053903012117089366
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 912,
+    "l2": 0.015578809596163846,
+    "max": 0.053903012117089366
+   },
+   "k": 1,
+   "keep_orientation": true,
+   "last_initial_residual": 3.958637228011706e-15,
+   "match_distance_max": 0.00017262398168448788,
+   "max_at": {
+    "boundary_cell": false,
+    "fitting": "Straight0",
+    "position": [
+     0.1750000004576132,
+     0.017582113438398918,
+     -0.04232937130189944
+    ]
+   },
+   "min_scaled_jacobian": 0.7933533402912339,
+   "name": "stack_change_k1",
+   "nang": 6,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 3,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 1440,
+     "l2": 0.016607527872475658,
+     "max": 0.053903012117089366
+    }
+   },
+   "precision": "full",
+   "rest": null,
+   "retyped": [
+    "shell2_end",
+    "shell2_wall",
+    "shell1_wall"
+   ],
+   "steps": 2,
+   "volume": 0.005279908520091421,
+   "wave_numbers": [
+    26.927937030769638,
+    62.83185307179586,
+    62.83185307179586
+   ]
+  },
+  {
+   "all": {
+    "cells": 11520,
+    "l2": 0.004209724942997277,
+    "max": 0.021050458555625262
+   },
+   "boundary_cells": {
+    "cells": 2256,
+    "l2": 0.005337466521742129,
+    "max": 0.021050458555625262
+   },
+   "case": "stack_change",
+   "cells": 11520,
+   "check_cells_foam": 11520,
+   "check_max_non_orthogonality": 33.24310491663586,
+   "check_max_skewness": 0.4837514264013904,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 11520,
+    "l2": 0.004209724942997277,
+    "max": 0.021050458555625262
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 9264,
+    "l2": 0.003866622554470776,
+    "max": 0.014765572586588394
+   },
+   "k": 2,
+   "keep_orientation": true,
+   "last_initial_residual": 4.462865397660197e-15,
+   "match_distance_max": 4.53847671172731e-05,
+   "max_at": {
+    "boundary_cell": true,
+    "fitting": "Straight0",
+    "position": [
+     0.3875000002207075,
+     0.014279634545858396,
+     -0.041630204341844
+    ]
+   },
+   "min_scaled_jacobian": 0.7518398074789756,
+   "name": "stack_change_k2",
+   "nang": 12,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 6,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 11520,
+     "l2": 0.004209724942997277,
+     "max": 0.021050458555625262
+    }
+   },
+   "precision": "full",
+   "rest": null,
+   "retyped": [
+    "shell2_end",
+    "shell2_wall",
+    "shell1_wall"
+   ],
+   "steps": 3,
+   "volume": 0.0053254686425781,
+   "wave_numbers": [
+    26.927937030769638,
+    62.83185307179586,
+    62.83185307179586
+   ]
+  },
+  {
+   "all": {
+    "cells": 92160,
+    "l2": 0.0011987135889947576,
+    "max": 0.00811707545057494
+   },
+   "boundary_cells": {
+    "cells": 9312,
+    "l2": 0.0018926042398796693,
+    "max": 0.00811707545057494
+   },
+   "case": "stack_change",
+   "cells": 92160,
+   "check_cells_foam": 92160,
+   "check_max_non_orthogonality": 38.86600723163655,
+   "check_max_skewness": 0.5145971260673551,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 92160,
+    "l2": 0.0011987135889947576,
+    "max": 0.00811707545057494
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 82848,
+    "l2": 0.0010871142372493065,
+    "max": 0.005103618848630309
+   },
+   "k": 4,
+   "keep_orientation": true,
+   "last_initial_residual": 7.195637094257074e-15,
+   "match_distance_max": 1.1599176252374265e-05,
+   "max_at": {
+    "boundary_cell": true,
+    "fitting": "Straight0",
+    "position": [
+     0.39375000010458056,
+     0.01317747555122153,
+     -0.04303800787119032
+    ]
+   },
+   "min_scaled_jacobian": 0.7298640702516221,
+   "name": "stack_change_k4",
+   "nang": 24,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 12,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 92160,
+     "l2": 0.0011987135889947576,
+     "max": 0.00811707545057494
+    }
+   },
+   "precision": "full",
+   "rest": null,
+   "retyped": [
+    "shell2_end",
+    "shell2_wall",
+    "shell1_wall"
+   ],
+   "steps": 3,
+   "volume": 0.005336895345179656,
+   "wave_numbers": [
+    26.927937030769638,
+    62.83185307179586,
+    62.83185307179586
+   ]
+  },
+  {
+   "all": {
+    "cells": 3996,
+    "l2": 0.012592654054068484,
+    "max": 0.08203835934878423
+   },
+   "boundary_cells": {
+    "cells": 1128,
+    "l2": 0.013824168732581368,
+    "max": 0.08203835934878423
+   },
+   "case": "wye60",
+   "cells": 3996,
+   "check_cells_foam": 3996,
+   "check_max_non_orthogonality": 76.55163931408805,
+   "check_max_skewness": 2.260514871328799,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 3348,
+    "l2": 0.012138163200891054,
+    "max": 0.08203835934878423
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 2868,
+    "l2": 0.011514895530792695,
+    "max": 0.055986011360066756
+   },
+   "k": 1,
+   "keep_orientation": true,
+   "last_initial_residual": 7.714215141262298e-15,
+   "match_distance_max": 0.0007456232170881036,
+   "max_at": {
+    "boundary_cell": true,
+    "fitting": "Wye1",
+    "position": [
+     0.2737635945327432,
+     0.004967072734033931,
+     0.006888058183711246
+    ]
+   },
+   "min_scaled_jacobian": 0.15644391160761778,
+   "name": "wye60_k1",
+   "nang": 6,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 3,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 216,
+     "l2": 0.010119386939021474,
+     "max": 0.021135314147425532
+    },
+    "Straight2": {
+     "cells": 216,
+     "l2": 0.014497465246979988,
+     "max": 0.035830181628701274
+    },
+    "Straight3": {
+     "cells": 216,
+     "l2": 0.014532516056429787,
+     "max": 0.03853207700739264
+    },
+    "Wye1": {
+     "cells": 3348,
+     "l2": 0.012138163200891054,
+     "max": 0.08203835934878423
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 648,
+    "l2": 0.01321328262947832,
+    "max": 0.03853207700739264
+   },
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 4,
+   "volume": 0.005648518654384796,
+   "wave_numbers": [
+    22.946127183857794,
+    26.68301766686956,
+    62.83185307179586
+   ]
+  },
+  {
+   "all": {
+    "cells": 26784,
+    "l2": 0.005882925899079314,
+    "max": 0.05071409587955611
+   },
+   "boundary_cells": {
+    "cells": 4080,
+    "l2": 0.005890450275557602,
+    "max": 0.05071409587955611
+   },
+   "case": "wye60",
+   "cells": 26784,
+   "check_cells_foam": 26784,
+   "check_max_non_orthogonality": 79.42973461157455,
+   "check_max_skewness": 1.9136844389193517,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 21600,
+    "l2": 0.006910635200170661,
+    "max": 0.05071409587955611
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 22704,
+    "l2": 0.0058805061569370135,
+    "max": 0.04949732291532433
+   },
+   "k": 2,
+   "keep_orientation": true,
+   "last_initial_residual": 8.7585198931426e-15,
+   "match_distance_max": 0.0008654213732171742,
+   "max_at": {
+    "boundary_cell": true,
+    "fitting": "Wye1",
+    "position": [
+     0.28012314497287916,
+     0.0056635133372555544,
+     0.0036746996619025827
+    ]
+   },
+   "min_scaled_jacobian": 0.1564436117454242,
+   "name": "wye60_k2",
+   "nang": 12,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 6,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 1728,
+     "l2": 0.002388835183860517,
+     "max": 0.008084166669449278
+    },
+    "Straight2": {
+     "cells": 1728,
+     "l2": 0.004691980382341679,
+     "max": 0.01584332723441606
+    },
+    "Straight3": {
+     "cells": 1728,
+     "l2": 0.00446448479404304,
+     "max": 0.014553208847133736
+    },
+    "Wye1": {
+     "cells": 21600,
+     "l2": 0.006910635200170661,
+     "max": 0.05071409587955611
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 5184,
+    "l2": 0.003985508663486198,
+    "max": 0.01584332723441606
+   },
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 5,
+   "volume": 0.0056954222252029625,
+   "wave_numbers": [
+    22.946127183857794,
+    26.68301766686956,
+    62.83185307179586
+   ]
+  },
+  {
+   "all": {
+    "cells": 193536,
+    "l2": 0.003931279070145615,
+    "max": 0.053206300661191364
+   },
+   "boundary_cells": {
+    "cells": 15456,
+    "l2": 0.0027985056792419246,
+    "max": 0.03933582308094208
+   },
+   "case": "wye60",
+   "cells": 193536,
+   "check_cells_foam": 193536,
+   "check_max_non_orthogonality": 80.32512697737918,
+   "check_max_skewness": 2.157125038651379,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 152064,
+    "l2": 0.005032072448096824,
+    "max": 0.053206300661191364
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 178080,
+    "l2": 0.004069752264669284,
+    "max": 0.053206300661191364
+   },
+   "k": 4,
+   "keep_orientation": true,
+   "last_initial_residual": 2.569428191848701e-14,
+   "match_distance_max": 0.0014694853752061164,
+   "max_at": {
+    "boundary_cell": false,
+    "fitting": "Wye1",
+    "position": [
+     0.15578407793522073,
+     0.031377290642537845,
+     -0.030178041878409997
+    ]
+   },
+   "min_scaled_jacobian": 0.15644346188959568,
+   "name": "wye60_k4",
+   "nang": 24,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 12,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 13824,
+     "l2": 0.0008168245065989291,
+     "max": 0.005554754084217628
+    },
+    "Straight2": {
+     "cells": 13824,
+     "l2": 0.0013973745314385174,
+     "max": 0.006060245596501979
+    },
+    "Straight3": {
+     "cells": 13824,
+     "l2": 0.0012634560067799428,
+     "max": 0.005363075385613647
+    },
+    "Wye1": {
+     "cells": 152064,
+     "l2": 0.005032072448096824,
+     "max": 0.053206300661191364
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 41472,
+    "l2": 0.0011854927156759083,
+    "max": 0.006060245596501979
+   },
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 6,
+   "volume": 0.0057071577406475815,
+   "wave_numbers": [
+    22.946127183857794,
+    26.68301766686956,
+    62.83185307179586
+   ]
+  },
+  {
+   "all": {
+    "cells": 4428,
+    "l2": 0.011703170200773756,
+    "max": 0.06163512989792594
+   },
+   "boundary_cells": {
+    "cells": 1224,
+    "l2": 0.012405949619653694,
+    "max": 0.06163512989792594
+   },
+   "case": "wye90",
+   "cells": 4428,
+   "check_cells_foam": 4428,
+   "check_max_non_orthogonality": 75.58209926830752,
+   "check_max_skewness": 1.8097689939367447,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 3780,
+    "l2": 0.01081111997655461,
+    "max": 0.06163512989792594
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 3204,
+    "l2": 0.01112367152016648,
+    "max": 0.057174895708711815
+   },
+   "k": 1,
+   "keep_orientation": true,
+   "last_initial_residual": 7.460650565595509e-15,
+   "match_distance_max": 0.0008755060457388411,
+   "max_at": {
+    "boundary_cell": true,
+    "fitting": "Wye1",
+    "position": [
+     0.2500489720442246,
+     0.011697684146757469,
+     0.006303320655936133
+    ]
+   },
+   "min_scaled_jacobian": 0.16412149273679874,
+   "name": "wye90_k1",
+   "nang": 6,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 3,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 216,
+     "l2": 0.0103540906778766,
+     "max": 0.022908019211541175
+    },
+    "Straight2": {
+     "cells": 216,
+     "l2": 0.01572071775015597,
+     "max": 0.038614447243661476
+    },
+    "Straight3": {
+     "cells": 216,
+     "l2": 0.012011086888974395,
+     "max": 0.031243365132223554
+    },
+    "Wye1": {
+     "cells": 3780,
+     "l2": 0.01081111997655461,
+     "max": 0.06163512989792594
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 648,
+    "l2": 0.012892043652323614,
+    "max": 0.038614447243661476
+   },
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 4,
+   "volume": 0.005720758836038961,
+   "wave_numbers": [
+    25.040290887833038,
+    20.815861888437755,
+    62.83185307179586
+   ]
+  },
+  {
+   "all": {
+    "cells": 30240,
+    "l2": 0.005359505764166574,
+    "max": 0.05466684575451508
+   },
+   "boundary_cells": {
+    "cells": 4464,
+    "l2": 0.004952656837272934,
+    "max": 0.037997799598307846
+   },
+   "case": "wye90",
+   "cells": 30240,
+   "check_cells_foam": 30240,
+   "check_max_non_orthogonality": 77.81274141925637,
+   "check_max_skewness": 1.4384688094723395,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 25056,
+    "l2": 0.006199151610308939,
+    "max": 0.05466684575451508
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 25776,
+    "l2": 0.005481794094488602,
+    "max": 0.05466684575451508
+   },
+   "k": 2,
+   "keep_orientation": true,
+   "last_initial_residual": 7.23194138182829e-15,
+   "match_distance_max": 0.0011810928539212479,
+   "max_at": {
+    "boundary_cell": false,
+    "fitting": "Wye1",
+    "position": [
+     0.13052680776333628,
+     0.024586532061671017,
+     0.005581023847645479
+    ]
+   },
+   "min_scaled_jacobian": 0.16412135454250307,
+   "name": "wye90_k2",
+   "nang": 12,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 6,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 1728,
+     "l2": 0.0023387370415238894,
+     "max": 0.0074855999932259
+    },
+    "Straight2": {
+     "cells": 1728,
+     "l2": 0.004977575495329683,
+     "max": 0.01540918703093258
+    },
+    "Straight3": {
+     "cells": 1728,
+     "l2": 0.003681349359636323,
+     "max": 0.010125436846502897
+    },
+    "Wye1": {
+     "cells": 25056,
+     "l2": 0.006199151610308939,
+     "max": 0.05466684575451508
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 5184,
+    "l2": 0.003820919691592467,
+    "max": 0.01540918703093258
+   },
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 5,
+   "volume": 0.005768881991627135,
+   "wave_numbers": [
+    25.040290887833038,
+    20.815861888437755,
+    62.83185307179586
+   ]
+  },
+  {
+   "all": {
+    "cells": 221184,
+    "l2": 0.0034419662735216535,
+    "max": 0.046288688267723255
+   },
+   "boundary_cells": {
+    "cells": 16992,
+    "l2": 0.0023107569069952126,
+    "max": 0.02329710350423808
+   },
+   "case": "wye90",
+   "cells": 221184,
+   "check_cells_foam": 221184,
+   "check_max_non_orthogonality": 78.81960777326157,
+   "check_max_skewness": 1.6091642708917666,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 179712,
+    "l2": 0.004367276165863359,
+    "max": 0.046288688267723255
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 6,
+   "interior_cells": {
+    "cells": 204192,
+    "l2": 0.0035747758684630355,
+    "max": 0.046288688267723255
+   },
+   "k": 4,
+   "keep_orientation": true,
+   "last_initial_residual": 9.772493681417688e-15,
+   "match_distance_max": 0.0022685258393045343,
+   "max_at": {
+    "boundary_cell": false,
+    "fitting": "Wye1",
+    "position": [
+     0.13060191180418898,
+     0.02358169082229848,
+     0.006349299800212606
+    ]
+   },
+   "min_scaled_jacobian": 0.13182221652438592,
+   "name": "wye90_k4",
+   "nang": 24,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 12,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 13824,
+     "l2": 0.0008130759655740017,
+     "max": 0.00530493536647525
+    },
+    "Straight2": {
+     "cells": 13824,
+     "l2": 0.00148876510831806,
+     "max": 0.005833847901943745
+    },
+    "Straight3": {
+     "cells": 13824,
+     "l2": 0.00105693387801439,
+     "max": 0.003400537672540997
+    },
+    "Wye1": {
+     "cells": 179712,
+     "l2": 0.004367276165863359,
+     "max": 0.046288688267723255
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 41472,
+    "l2": 0.0011539242170428578,
+    "max": 0.005833847901943745
+   },
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 5,
+   "volume": 0.005780916841986468,
+   "wave_numbers": [
+    25.040290887833038,
+    20.815861888437755,
+    62.83185307179586
+   ]
+  },
+  {
+   "all": {
+    "cells": 5748,
+    "l2": 0.011923665107491712,
+    "max": 0.05940459386559238
+   },
+   "boundary_cells": {
+    "cells": 1272,
+    "l2": 0.011308958818052123,
+    "max": 0.0468083919225194
+   },
+   "case": "wye60_shell",
+   "cells": 5748,
+   "check_cells_foam": 5748,
+   "check_max_non_orthogonality": 76.55163931408804,
+   "check_max_skewness": 0.9188881484855814,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 4812,
+    "l2": 0.010902690964366538,
+    "max": 0.05940459386559238
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 4476,
+    "l2": 0.01221400483159557,
+    "max": 0.05940459386559238
+   },
+   "k": 1,
+   "keep_orientation": true,
+   "last_initial_residual": 7.946281227749106e-15,
+   "match_distance_max": 0.0007456232170881514,
+   "max_at": {
+    "boundary_cell": false,
+    "fitting": "Wye1",
+    "position": [
+     0.1896696717201279,
+     0.018681225128946672,
+     0.010606601717798207
+    ]
+   },
+   "min_scaled_jacobian": 0.1564439116076183,
+   "name": "wye60_shell_k1",
+   "nang": 6,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 3,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 312,
+     "l2": 0.010636121240228563,
+     "max": 0.027428569674377234
+    },
+    "Straight2": {
+     "cells": 312,
+     "l2": 0.01132240075614047,
+     "max": 0.0425916056085186
+    },
+    "Straight3": {
+     "cells": 312,
+     "l2": 0.016810604505347274,
+     "max": 0.0468083919225194
+    },
+    "Wye1": {
+     "cells": 4812,
+     "l2": 0.010902690964366538,
+     "max": 0.05940459386559238
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 936,
+    "l2": 0.013215146080094277,
+    "max": 0.0468083919225194
+   },
+   "retyped": [
+    "shell1_wall"
+   ],
+   "steps": 4,
+   "volume": 0.008027153529056821,
+   "wave_numbers": [
+    22.6330195868036,
+    25.274538244982356,
+    62.83185307179586
+   ]
+  },
+  {
+   "all": {
+    "cells": 38496,
+    "l2": 0.0054510465174993335,
+    "max": 0.0637121940782775
+   },
+   "boundary_cells": {
+    "cells": 4656,
+    "l2": 0.0045036279396427166,
+    "max": 0.026126012671797094
+   },
+   "case": "wye60_shell",
+   "cells": 38496,
+   "check_cells_foam": 38496,
+   "check_max_non_orthogonality": 79.42973461157457,
+   "check_max_skewness": 1.1407017505278312,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 31008,
+    "l2": 0.006323520173590461,
+    "max": 0.0637121940782775
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 33840,
+    "l2": 0.005630388513784033,
+    "max": 0.0637121940782775
+   },
+   "k": 2,
+   "keep_orientation": true,
+   "last_initial_residual": 9.911335052153668e-15,
+   "match_distance_max": 0.0008654213732171777,
+   "max_at": {
+    "boundary_cell": false,
+    "fitting": "Wye1",
+    "position": [
+     0.15378289752057556,
+     0.03477644496851653,
+     -0.029007461964297276
+    ]
+   },
+   "min_scaled_jacobian": 0.15644361174542562,
+   "name": "wye60_shell_k2",
+   "nang": 12,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 6,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 2496,
+     "l2": 0.0024558293344567298,
+     "max": 0.008334099922812643
+    },
+    "Straight2": {
+     "cells": 2496,
+     "l2": 0.003469370818225958,
+     "max": 0.012263426128679256
+    },
+    "Straight3": {
+     "cells": 2496,
+     "l2": 0.005307225292697838,
+     "max": 0.018733430293785602
+    },
+    "Wye1": {
+     "cells": 31008,
+     "l2": 0.006323520173590461,
+     "max": 0.0637121940782775
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 7488,
+    "l2": 0.003925738652440144,
+    "max": 0.018733430293785602
+   },
+   "retyped": [
+    "shell1_wall"
+   ],
+   "steps": 6,
+   "volume": 0.008093520647985962,
+   "wave_numbers": [
+    22.6330195868036,
+    25.274538244982356,
+    62.83185307179586
+   ]
+  },
+  {
+   "all": {
+    "cells": 278016,
+    "l2": 0.0038948955399403374,
+    "max": 0.0675594461809419
+   },
+   "boundary_cells": {
+    "cells": 17760,
+    "l2": 0.0019026468433326594,
+    "max": 0.029685579193138856
+   },
+   "case": "wye60_shell",
+   "cells": 278016,
+   "check_cells_foam": 278016,
+   "check_max_non_orthogonality": 80.32512697737921,
+   "check_max_skewness": 1.6011378414468636,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 218112,
+    "l2": 0.005013005362391287,
+    "max": 0.0675594461809419
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 4,
+   "interior_cells": {
+    "cells": 260256,
+    "l2": 0.004037693002952662,
+    "max": 0.0675594461809419
+   },
+   "k": 4,
+   "keep_orientation": true,
+   "last_initial_residual": 2.0278332206232013e-13,
+   "match_distance_max": 0.0014694853752060914,
+   "max_at": {
+    "boundary_cell": false,
+    "fitting": "Wye1",
+    "position": [
+     0.15491214912709753,
+     0.035815077327454814,
+     -0.03481403630021865
+    ]
+   },
+   "min_scaled_jacobian": 0.15644346188959898,
+   "name": "wye60_shell_k4",
+   "nang": 24,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 12,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 19968,
+     "l2": 0.0007513002061497737,
+     "max": 0.005679466166460978
+    },
+    "Straight2": {
+     "cells": 19968,
+     "l2": 0.0010294704129807438,
+     "max": 0.004592856166329734
+    },
+    "Straight3": {
+     "cells": 19968,
+     "l2": 0.0015142605183888133,
+     "max": 0.006737559880023447
+    },
+    "Wye1": {
+     "cells": 218112,
+     "l2": 0.005013005362391287,
+     "max": 0.0675594461809419
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 59904,
+    "l2": 0.001142693637640844,
+    "max": 0.006737559880023447
+   },
+   "retyped": [
+    "shell1_wall"
+   ],
+   "steps": 9,
+   "volume": 0.00811011480753775,
+   "wave_numbers": [
+    22.6330195868036,
+    25.274538244982356,
+    62.83185307179586
+   ]
+  },
+  {
+   "all": {
+    "cells": 6372,
+    "l2": 0.01144620360569514,
+    "max": 0.06332792915276106
+   },
+   "boundary_cells": {
+    "cells": 1368,
+    "l2": 0.011100455239607383,
+    "max": 0.041389283088171025
+   },
+   "case": "wye90_shell",
+   "cells": 6372,
+   "check_cells_foam": 6372,
+   "check_max_non_orthogonality": 75.58209926830753,
+   "check_max_skewness": 0.850150957003115,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 5436,
+    "l2": 0.010255284842400661,
+    "max": 0.06332792915276106
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 5004,
+    "l2": 0.011610944638013232,
+    "max": 0.06332792915276106
+   },
+   "k": 1,
+   "keep_orientation": true,
+   "last_initial_residual": 7.498829986770251e-15,
+   "match_distance_max": 0.000875506045738832,
+   "max_at": {
+    "boundary_cell": false,
+    "fitting": "Wye1",
+    "position": [
+     0.15601747764573376,
+     0.026764315680853558,
+     0.030293053210547222
+    ]
+   },
+   "min_scaled_jacobian": 0.1641214927367985,
+   "name": "wye90_shell_k1",
+   "nang": 6,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 3,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 312,
+     "l2": 0.010797423404603603,
+     "max": 0.028502625166572426
+    },
+    "Straight2": {
+     "cells": 312,
+     "l2": 0.01283365212685623,
+     "max": 0.03645157178827607
+    },
+    "Straight3": {
+     "cells": 312,
+     "l2": 0.014921931891376854,
+     "max": 0.041389283088171025
+    },
+    "Wye1": {
+     "cells": 5436,
+     "l2": 0.010255284842400661,
+     "max": 0.06332792915276106
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 936,
+    "l2": 0.012960851701210748,
+    "max": 0.041389283088171025
+   },
+   "retyped": [
+    "shell1_wall"
+   ],
+   "steps": 4,
+   "volume": 0.008152255683580838,
+   "wave_numbers": [
+    24.516858138842032,
+    20.10230760903599,
+    62.83185307179586
+   ]
+  },
+  {
+   "all": {
+    "cells": 43488,
+    "l2": 0.005226517913944248,
+    "max": 0.06743114134989125
+   },
+   "boundary_cells": {
+    "cells": 5040,
+    "l2": 0.004239242250627421,
+    "max": 0.024610080421253566
+   },
+   "case": "wye90_shell",
+   "cells": 43488,
+   "check_cells_foam": 43488,
+   "check_max_non_orthogonality": 77.81274141925641,
+   "check_max_skewness": 1.0558430721690522,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 36000,
+    "l2": 0.006053364325631026,
+    "max": 0.06743114134989125
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 4,
+   "interior_cells": {
+    "cells": 38448,
+    "l2": 0.0054107255147715656,
+    "max": 0.06743114134989125
+   },
+   "k": 2,
+   "keep_orientation": true,
+   "last_initial_residual": 4.049901052597912e-15,
+   "match_distance_max": 0.001181092853921172,
+   "max_at": {
+    "boundary_cell": false,
+    "fitting": "Wye1",
+    "position": [
+     0.13482149387257916,
+     0.0344654879868796,
+     -0.03397988216533044
+    ]
+   },
+   "min_scaled_jacobian": 0.16412135454250223,
+   "name": "wye90_shell_k2",
+   "nang": 12,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 6,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 2496,
+     "l2": 0.0023837986390282196,
+     "max": 0.007877467982200514
+    },
+    "Straight2": {
+     "cells": 2496,
+     "l2": 0.003733390505864567,
+     "max": 0.010984920867985193
+    },
+    "Straight3": {
+     "cells": 2496,
+     "l2": 0.004725329503756596,
+     "max": 0.015097711125928337
+    },
+    "Wye1": {
+     "cells": 36000,
+     "l2": 0.006053364325631026,
+     "max": 0.06743114134989125
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 7488,
+    "l2": 0.003739404566673908,
+    "max": 0.015097711125928337
+   },
+   "retyped": [
+    "shell1_wall"
+   ],
+   "steps": 5,
+   "volume": 0.00821986266674489,
+   "wave_numbers": [
+    24.516858138842032,
+    20.10230760903599,
+    62.83185307179586
+   ]
+  },
+  {
+   "all": {
+    "cells": 317952,
+    "l2": 0.0035448769205435266,
+    "max": 0.06705193492822781
+   },
+   "boundary_cells": {
+    "cells": 19296,
+    "l2": 0.0016661313529512515,
+    "max": 0.016349225860072203
+   },
+   "case": "wye90_shell",
+   "cells": 317952,
+   "check_cells_foam": 317952,
+   "check_max_non_orthogonality": 78.81960777326161,
+   "check_max_skewness": 1.5615279729287044,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 258048,
+    "l2": 0.004528583318799529,
+    "max": 0.06705193492822781
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 18,
+   "interior_cells": {
+    "cells": 298656,
+    "l2": 0.003677261060918852,
+    "max": 0.06705193492822781
+   },
+   "k": 4,
+   "keep_orientation": true,
+   "last_initial_residual": 1.5493125942187007e-14,
+   "match_distance_max": 0.0022484763497645083,
+   "max_at": {
+    "boundary_cell": false,
+    "fitting": "Wye1",
+    "position": [
+     0.13223935389290553,
+     0.03525060773758326,
+     -0.034332018123440604
+    ]
+   },
+   "min_scaled_jacobian": 0.13182221652439305,
+   "name": "wye90_shell_k4",
+   "nang": 24,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 12,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 19968,
+     "l2": 0.0007405459221261326,
+     "max": 0.005539429720849309
+    },
+    "Straight2": {
+     "cells": 19968,
+     "l2": 0.001112960687146655,
+     "max": 0.005000446722350671
+    },
+    "Straight3": {
+     "cells": 19968,
+     "l2": 0.001362105130963998,
+     "max": 0.005235757035658428
+    },
+    "Wye1": {
+     "cells": 258048,
+     "l2": 0.004528583318799529,
+     "max": 0.06705193492822781
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 59904,
+    "l2": 0.0011018802327098362,
+    "max": 0.005539429720849309
+   },
+   "retyped": [
+    "shell1_wall"
+   ],
+   "steps": 5,
+   "volume": 0.008236807964525878,
+   "wave_numbers": [
+    24.516858138842032,
+    20.10230760903599,
+    62.83185307179586
+   ]
+  },
+  {
+   "all": {
+    "cells": 7936,
+    "l2": 0.03506416769566928,
+    "max": 0.143786603690546
+   },
+   "boundary_cells": {
+    "cells": 1300,
+    "l2": 0.03649628716880649,
+    "max": 0.11813288021689483
+   },
+   "case": "duct_tap_rect",
+   "cells": 7936,
+   "check_cells_foam": 7936,
+   "check_max_non_orthogonality": 61.865835218877336,
+   "check_max_skewness": 1.549959849285056,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 7552,
+    "l2": 0.031820176749697955,
+    "max": 0.143786603690546
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 6636,
+    "l2": 0.0336075238046634,
+    "max": 0.143786603690546
+   },
+   "k": 1,
+   "keep_orientation": true,
+   "last_initial_residual": 9.014606260235202e-15,
+   "match_distance_max": 0.0015317000453924261,
+   "max_at": {
+    "boundary_cell": false,
+    "fitting": "Tee1",
+    "position": [
+     0.20125,
+     -0.07333022388954304,
+     -0.033805970159477734
+    ]
+   },
+   "min_scaled_jacobian": 0.4237856365378029,
+   "name": "duct_tap_rect_k1",
+   "nang": null,
+   "nang_h": 8,
+   "nang_w": 8,
+   "nrad": 0,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 128,
+     "l2": 0.047239015052288474,
+     "max": 0.11813288021689483
+    },
+    "Straight2": {
+     "cells": 128,
+     "l2": 0.03345265141759346,
+     "max": 0.09597151571433926
+    },
+    "Straight3": {
+     "cells": 128,
+     "l2": 0.013128305749378568,
+     "max": 0.0370479521763738
+    },
+    "Tee1": {
+     "cells": 7552,
+     "l2": 0.031820176749697955,
+     "max": 0.143786603690546
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 384,
+    "l2": 0.0389136464358972,
+    "max": 0.11813288021689483
+   },
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 7,
+   "volume": 0.010360000000000003,
+   "wave_numbers": [
+    22.43994752564139,
+    50.265482452110355,
+    35.06894124807814
+   ]
+  },
+  {
+   "all": {
+    "cells": 63488,
+    "l2": 0.015284036799561725,
+    "max": 0.08762612113333498
+   },
+   "boundary_cells": {
+    "cells": 5404,
+    "l2": 0.014468543398841908,
+    "max": 0.06602220243510015
+   },
+   "case": "duct_tap_rect",
+   "cells": 63488,
+   "check_cells_foam": 63488,
+   "check_max_non_orthogonality": 63.47763762074221,
+   "check_max_skewness": 1.8097125411864274,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 60416,
+    "l2": 0.018488168122785135,
+    "max": 0.08762612113333498
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 58084,
+    "l2": 0.015610707905916276,
+    "max": 0.08762612113333498
+   },
+   "k": 2,
+   "keep_orientation": true,
+   "last_initial_residual": 2.923878184401225e-12,
+   "match_distance_max": 0.0004622202775206902,
+   "max_at": {
+    "boundary_cell": false,
+    "fitting": "Tee1",
+    "position": [
+     0.19562499999999997,
+     -0.07654479704794327,
+     -0.03164778351780615
+    ]
+   },
+   "min_scaled_jacobian": 0.42378563653780255,
+   "name": "duct_tap_rect_k2",
+   "nang": null,
+   "nang_h": 16,
+   "nang_w": 16,
+   "nrad": 0,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 1024,
+     "l2": 0.0111168623045832,
+     "max": 0.036389595323849444
+    },
+    "Straight2": {
+     "cells": 1024,
+     "l2": 0.008776781404050932,
+     "max": 0.03136365091713689
+    },
+    "Straight3": {
+     "cells": 1024,
+     "l2": 0.004336072397904761,
+     "max": 0.011247812589806339
+    },
+    "Tee1": {
+     "cells": 60416,
+     "l2": 0.018488168122785135,
+     "max": 0.08762612113333498
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 3072,
+    "l2": 0.009569503388628225,
+    "max": 0.036389595323849444
+   },
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 25,
+   "volume": 0.010360000000000003,
+   "wave_numbers": [
+    22.43994752564139,
+    50.265482452110355,
+    35.06894124807814
+   ]
+  },
+  {
+   "all": {
+    "cells": 507904,
+    "l2": 6.124201909759777e+95,
+    "max": 2.2521129542346025e+97
+   },
+   "boundary_cells": {
+    "cells": 22060,
+    "l2": 6.2026089524772075e+93,
+    "max": 1.880241200106722e+95
+   },
+   "case": "duct_tap_rect",
+   "cells": 507904,
+   "check_cells_foam": 507904,
+   "check_max_non_orthogonality": 64.22085016492733,
+   "check_max_skewness": 1.958682814459742,
+   "check_mesh_ok": true,
+   "converged": false,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 483328,
+    "l2": 8.129059664325236e+95,
+    "max": 2.2521129542346025e+97
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 485844,
+    "l2": 6.683302573344393e+95,
+    "max": 2.2521129542346025e+97
+   },
+   "k": 4,
+   "keep_orientation": true,
+   "last_initial_residual": 0.9963887454615069,
+   "match_distance_max": 0.00012643492012409476,
+   "max_at": {
+    "boundary_cell": false,
+    "fitting": "Tee1",
+    "position": [
+     0.19223580564375234,
+     -0.04314473517783978,
+     -0.008678892748277283
+    ]
+   },
+   "min_scaled_jacobian": 0.42378563653779977,
+   "name": "duct_tap_rect_k4",
+   "nang": null,
+   "nang_h": 32,
+   "nang_w": 32,
+   "nrad": 0,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 8192,
+     "l2": 1.8678036194117258e+93,
+     "max": 1.2026896947214803e+94
+    },
+    "Straight2": {
+     "cells": 8192,
+     "l2": 3.56331949104647e+92,
+     "max": 2.6346598128173887e+93
+    },
+    "Straight3": {
+     "cells": 8192,
+     "l2": 5.244891444643063e+89,
+     "max": 2.2249473785156105e+90
+    },
+    "Tee1": {
+     "cells": 483328,
+     "l2": 8.129059664325236e+95,
+     "max": 2.2521129542346025e+97
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 24576,
+    "l2": 1.2704862125842922e+93,
+    "max": 1.2026896947214803e+94
+   },
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 200,
+   "volume": 0.010360000000000003,
+   "wave_numbers": [
+    22.43994752564139,
+    50.265482452110355,
+    35.06894124807814
+   ]
+  },
+  {
+   "all": {
+    "cells": 9472,
+    "l2": 0.0352723019582674,
+    "max": 0.14308268530065632
+   },
+   "boundary_cells": {
+    "cells": 1432,
+    "l2": 0.03683171251381682,
+    "max": 0.11811842469390865
+   },
+   "case": "duct_tap_round",
+   "cells": 9472,
+   "check_cells_foam": 9472,
+   "check_max_non_orthogonality": 61.26616961818426,
+   "check_max_skewness": 2.171125116934515,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 8960,
+    "l2": 0.031611064688039314,
+    "max": 0.14308268530065632
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 8040,
+    "l2": 0.033647118403197535,
+    "max": 0.14308268530065632
+   },
+   "k": 1,
+   "keep_orientation": true,
+   "last_initial_residual": 4.6291700324531005e-15,
+   "match_distance_max": 0.0015317000453924261,
+   "max_at": {
+    "boundary_cell": false,
+    "fitting": "Tee1",
+    "position": [
+     0.20125,
+     -0.07333022388954304,
+     -0.033805970159477734
+    ]
+   },
+   "min_scaled_jacobian": 0.432526043050062,
+   "name": "duct_tap_round_k1",
+   "nang": null,
+   "nang_h": 8,
+   "nang_w": 8,
+   "nrad": 0,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 128,
+     "l2": 0.04724345724571527,
+     "max": 0.11811842469390865
+    },
+    "Straight2": {
+     "cells": 128,
+     "l2": 0.03345408281277971,
+     "max": 0.09597200192279154
+    },
+    "Straight3": {
+     "cells": 256,
+     "l2": 0.007292263143522803,
+     "max": 0.018087230823870648
+    },
+    "Tee1": {
+     "cells": 8960,
+     "l2": 0.031611064688039314,
+     "max": 0.14308268530065632
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 512,
+    "l2": 0.03961178288239481,
+    "max": 0.11811842469390865
+   },
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 7,
+   "volume": 0.009961860127406451,
+   "wave_numbers": [
+    22.43994752564139,
+    50.265482452110355,
+    35.06894124807814
+   ]
+  },
+  {
+   "all": {
+    "cells": 75776,
+    "l2": 0.015169688789360926,
+    "max": 0.08745980721135138
+   },
+   "boundary_cells": {
+    "cells": 5928,
+    "l2": 0.01445549927201458,
+    "max": 0.06600275420174098
+   },
+   "case": "duct_tap_round",
+   "cells": 75776,
+   "check_cells_foam": 75776,
+   "check_max_non_orthogonality": 62.90110232248528,
+   "check_max_skewness": 2.4654412149017912,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 71680,
+    "l2": 0.018236496685342714,
+    "max": 0.08745980721135138
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 69848,
+    "l2": 0.015462469152594653,
+    "max": 0.08745980721135138
+   },
+   "k": 2,
+   "keep_orientation": true,
+   "last_initial_residual": 3.5082340558953415e-12,
+   "match_distance_max": 0.0004622202775206902,
+   "max_at": {
+    "boundary_cell": false,
+    "fitting": "Tee1",
+    "position": [
+     0.19562499999999997,
+     -0.07654479704794327,
+     -0.03164778351780615
+    ]
+   },
+   "min_scaled_jacobian": 0.43252604305005726,
+   "name": "duct_tap_round_k2",
+   "nang": null,
+   "nang_h": 16,
+   "nang_w": 16,
+   "nrad": 0,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 1024,
+     "l2": 0.011118049574733968,
+     "max": 0.036384911474483084
+    },
+    "Straight2": {
+     "cells": 1024,
+     "l2": 0.008776550662129515,
+     "max": 0.03136381888179518
+    },
+    "Straight3": {
+     "cells": 2048,
+     "l2": 0.0026669503651210497,
+     "max": 0.007113147944898986
+    },
+    "Tee1": {
+     "cells": 71680,
+     "l2": 0.018236496685342714,
+     "max": 0.08745980721135138
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 4096,
+    "l2": 0.009704391920997415,
+    "max": 0.036384911474483084
+   },
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 25,
+   "volume": 0.009964578728298267,
+   "wave_numbers": [
+    22.43994752564139,
+    50.265482452110355,
+    35.06894124807814
+   ]
+  },
+  {
+   "all": {
+    "cells": 606208,
+    "l2": 9.497367473124378e+92,
+    "max": 3.4395063632453785e+94
+   },
+   "boundary_cells": {
+    "cells": 24136,
+    "l2": 7.9128859622061725e+90,
+    "max": 1.8111253956681438e+92
+   },
+   "case": "duct_tap_round",
+   "cells": 606208,
+   "check_cells_foam": 606208,
+   "check_max_non_orthogonality": 63.65561342570555,
+   "check_max_skewness": 2.481585281466347,
+   "check_mesh_ok": true,
+   "converged": false,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 573440,
+    "l2": 1.257686749263717e+93,
+    "max": 3.4395063632453785e+94
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 582072,
+    "l2": 1.0379973555821354e+93,
+    "max": 3.4395063632453785e+94
+   },
+   "k": 4,
+   "keep_orientation": true,
+   "last_initial_residual": 0.9900181508128247,
+   "match_distance_max": 0.00012643492012409476,
+   "max_at": {
+    "boundary_cell": false,
+    "fitting": "Tee1",
+    "position": [
+     0.1947714816641074,
+     -0.03930843190778344,
+     -0.0055427151358892765
+    ]
+   },
+   "min_scaled_jacobian": 0.43252604305005465,
+   "name": "duct_tap_round_k4",
+   "nang": null,
+   "nang_h": 32,
+   "nang_w": 32,
+   "nrad": 0,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 8192,
+     "l2": 2.188115331432633e+90,
+     "max": 1.231073860403953e+91
+    },
+    "Straight2": {
+     "cells": 8192,
+     "l2": 1.7716000638534126e+90,
+     "max": 9.194875425295064e+90
+    },
+    "Straight3": {
+     "cells": 16384,
+     "l2": 1.1261370200993654e+86,
+     "max": 5.83430869461981e+86
+    },
+    "Tee1": {
+     "cells": 573440,
+     "l2": 1.257686749263717e+93,
+     "max": 3.4395063632453785e+94
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 32768,
+    "l2": 1.9239693410222633e+90,
+    "max": 1.231073860403953e+91
+   },
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 200,
+   "volume": 0.00996525960825184,
+   "wave_numbers": [
+    22.43994752564139,
+    50.265482452110355,
+    35.06894124807814
+   ]
+  },
+  {
+   "all": {
+    "cells": 576,
+    "l2": 0.03914041893656853,
+    "max": 0.11751694496875964
+   },
+   "boundary_cells": {
+    "cells": 336,
+    "l2": 0.045934141590215985,
+    "max": 0.11751694496875964
+   },
+   "case": "duct",
+   "cells": 576,
+   "check_cells_foam": 576,
+   "check_max_non_orthogonality": 0.0,
+   "check_max_skewness": 5.508678912473774e-15,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 576,
+    "l2": 0.03914041893656853,
+    "max": 0.11751694496875964
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 240,
+    "l2": 0.02688513042167001,
+    "max": 0.08430885142509659
+   },
+   "k": 1,
+   "keep_orientation": true,
+   "last_initial_residual": 2.016108643216022e-15,
+   "match_distance_max": 1.6783841843332958e-16,
+   "max_at": {
+    "boundary_cell": true,
+    "fitting": "Straight0",
+    "position": [
+     0.2750000000000002,
+     -0.04166666666666673,
+     -0.04166666666666665
+    ]
+   },
+   "min_scaled_jacobian": 0.9999999999999973,
+   "name": "duct_k1",
+   "nang": null,
+   "nang_h": 6,
+   "nang_w": 12,
+   "nrad": 0,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 576,
+     "l2": 0.03914041893656853,
+     "max": 0.11751694496875964
+    }
+   },
+   "precision": "full",
+   "rest": null,
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 2,
+   "volume": 0.008000000000000002,
+   "wave_numbers": [
+    26.92793703076966,
+    51.407879786014796,
+    62.83185307179586
+   ]
+  },
+  {
+   "all": {
+    "cells": 4608,
+    "l2": 0.00965517461078911,
+    "max": 0.03233690343664353
+   },
+   "boundary_cells": {
+    "cells": 1528,
+    "l2": 0.012575183704577728,
+    "max": 0.03233690343664353
+   },
+   "case": "duct",
+   "cells": 4608,
+   "check_cells_foam": 4608,
+   "check_max_non_orthogonality": 0.0,
+   "check_max_skewness": 1.5456078231874553e-14,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 4608,
+    "l2": 0.00965517461078911,
+    "max": 0.03233690343664353
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 3080,
+    "l2": 0.00781145823435112,
+    "max": 0.026402411683557392
+   },
+   "k": 2,
+   "keep_orientation": true,
+   "last_initial_residual": 3.8109465803620256e-15,
+   "match_distance_max": 2.230452372859658e-16,
+   "max_at": {
+    "boundary_cell": true,
+    "fitting": "Straight0",
+    "position": [
+     0.38750000000000007,
+     -0.04583333333333341,
+     -0.04583333333333332
+    ]
+   },
+   "min_scaled_jacobian": 0.9999999999999972,
+   "name": "duct_k2",
+   "nang": null,
+   "nang_h": 12,
+   "nang_w": 24,
+   "nrad": 0,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 4608,
+     "l2": 0.00965517461078911,
+     "max": 0.03233690343664353
+    }
+   },
+   "precision": "full",
+   "rest": null,
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 2,
+   "volume": 0.008000000000000004,
+   "wave_numbers": [
+    26.92793703076966,
+    51.407879786014796,
+    62.83185307179586
+   ]
+  },
+  {
+   "all": {
+    "cells": 36864,
+    "l2": 0.002437322766465567,
+    "max": 0.01016123079670117
+   },
+   "boundary_cells": {
+    "cells": 6504,
+    "l2": 0.0034432185526824285,
+    "max": 0.01016123079670117
+   },
+   "case": "duct",
+   "cells": 36864,
+   "check_cells_foam": 36864,
+   "check_max_non_orthogonality": 0.0,
+   "check_max_skewness": 3.9968149353412744e-14,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 36864,
+    "l2": 0.002437322766465567,
+    "max": 0.01016123079670117
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 30360,
+    "l2": 0.0021617888195878455,
+    "max": 0.007386595745031976
+   },
+   "k": 4,
+   "keep_orientation": true,
+   "last_initial_residual": 8.367481662396737e-15,
+   "match_distance_max": 2.238801616996866e-16,
+   "max_at": {
+    "boundary_cell": true,
+    "fitting": "Straight0",
+    "position": [
+     0.39375,
+     -0.043749999999999976,
+     0.006250000000000024
+    ]
+   },
+   "min_scaled_jacobian": 0.9999999999999971,
+   "name": "duct_k4",
+   "nang": null,
+   "nang_h": 24,
+   "nang_w": 48,
+   "nrad": 0,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 36864,
+     "l2": 0.002437322766465567,
+     "max": 0.01016123079670117
+    }
+   },
+   "precision": "full",
+   "rest": null,
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 2,
+   "volume": 0.008000000000000002,
+   "wave_numbers": [
+    26.92793703076966,
+    51.407879786014796,
+    62.83185307179586
+   ]
+  },
+  {
+   "all": {
+    "cells": 214272,
+    "l2": 2.0861495528167777e+34,
+    "max": 6.5942733429223485e+35
+   },
+   "boundary_cells": {
+    "cells": 12324,
+    "l2": 3.548460831727114e+32,
+    "max": 8.836140121736753e+33
+   },
+   "case": "duct_tap_rect",
+   "cells": 214272,
+   "check_cells_foam": 214272,
+   "check_max_non_orthogonality": 63.97745846416247,
+   "check_max_skewness": 1.9070810023517877,
+   "check_mesh_ok": true,
+   "converged": false,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 203904,
+    "l2": 2.7690836941339563e+34,
+    "max": 6.5942733429223485e+35
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 201948,
+    "l2": 2.343478022942748e+34,
+    "max": 6.5942733429223485e+35
+   },
+   "k": 3,
+   "keep_orientation": true,
+   "last_initial_residual": 0.9755152431025949,
+   "match_distance_max": 0.00021820224768316296,
+   "max_at": {
+    "boundary_cell": false,
+    "fitting": "Tee1",
+    "position": [
+     0.18820225595405238,
+     -0.043316602877922994,
+     -0.011324103163612388
+    ]
+   },
+   "min_scaled_jacobian": 0.42378563653780094,
+   "name": "duct_tap_rect_k3",
+   "nang": null,
+   "nang_h": 24,
+   "nang_w": 24,
+   "nrad": 0,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 3456,
+     "l2": 5.50014498797836e+31,
+     "max": 2.4732623736802827e+32
+    },
+    "Straight2": {
+     "cells": 3456,
+     "l2": 5.392508922206242e+31,
+     "max": 1.9315851480923657e+32
+    },
+    "Straight3": {
+     "cells": 3456,
+     "l2": 2.4701149048755995e+28,
+     "max": 9.612015133596316e+28
+    },
+    "Tee1": {
+     "cells": 203904,
+     "l2": 2.7690836941339563e+34,
+     "max": 6.5942733429223485e+35
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 10368,
+    "l2": 5.146546554886242e+31,
+    "max": 2.4732623736802827e+32
+   },
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 200,
+   "volume": 0.010360000000000003,
+   "wave_numbers": [
+    22.43994752564139,
+    50.265482452110355,
+    35.06894124807814
+   ]
+  },
+  {
+   "all": {
+    "cells": 7936,
+    "l2": 0.042526948754743235,
+    "max": 0.2127005818967709
+   },
+   "boundary_cells": {
+    "cells": 1300,
+    "l2": 0.03766624860769018,
+    "max": 0.11965293905011187
+   },
+   "case": "duct_tap_rect_lim",
+   "cells": 7936,
+   "check_cells_foam": 7936,
+   "check_max_non_orthogonality": 61.865835218877336,
+   "check_max_skewness": 1.549959849285056,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 7552,
+    "l2": 0.04493507882900136,
+    "max": 0.2127005818967709
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 6636,
+    "l2": 0.046786822490086234,
+    "max": 0.2127005818967709
+   },
+   "k": 1,
+   "keep_orientation": true,
+   "laplacian": "Gauss linear limited corrected 0.5",
+   "last_initial_residual": 7.875235451924834e-12,
+   "match_distance_max": 0.0015317000453924261,
+   "max_at": {
+    "boundary_cell": false,
+    "fitting": "Tee1",
+    "position": [
+     0.15967169230073155,
+     -0.06719898676777325,
+     -0.027635508310457916
+    ]
+   },
+   "min_scaled_jacobian": 0.4237856365378029,
+   "name": "duct_tap_rect_lim_k1",
+   "nang": null,
+   "nang_h": 8,
+   "nang_w": 8,
+   "nrad": 0,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 128,
+     "l2": 0.04751165614756128,
+     "max": 0.11965293905011187
+    },
+    "Straight2": {
+     "cells": 128,
+     "l2": 0.03355351280166988,
+     "max": 0.09601229138379597
+    },
+    "Straight3": {
+     "cells": 128,
+     "l2": 0.014246981822655774,
+     "max": 0.041516854533438674
+    },
+    "Tee1": {
+     "cells": 7552,
+     "l2": 0.04493507882900136,
+     "max": 0.2127005818967709
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 384,
+    "l2": 0.039142083496887276,
+    "max": 0.11965293905011187
+   },
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 90,
+   "volume": 0.010360000000000003,
+   "wave_numbers": [
+    22.43994752564139,
+    50.265482452110355,
+    35.06894124807814
+   ]
+  },
+  {
+   "all": {
+    "cells": 63488,
+    "l2": 0.030506515585667818,
+    "max": 0.22291742200615317
+   },
+   "boundary_cells": {
+    "cells": 5404,
+    "l2": 0.015545608171399073,
+    "max": 0.06694613964071316
+   },
+   "case": "duct_tap_rect_lim",
+   "cells": 63488,
+   "check_cells_foam": 63488,
+   "check_max_non_orthogonality": 63.47763762074221,
+   "check_max_skewness": 1.8097125411864274,
+   "check_mesh_ok": true,
+   "converged": false,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "42357ca+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "focus": {
+    "cells": 60416,
+    "l2": 0.03951693858804885,
+    "max": 0.22291742200615317
+   },
+   "fvoptions_read": true,
+   "gmshToFoam_would_invert": 0,
+   "interior_cells": {
+    "cells": 58084,
+    "l2": 0.03488890068802792,
+    "max": 0.22291742200615317
+   },
+   "k": 2,
+   "keep_orientation": true,
+   "laplacian": "Gauss linear limited corrected 0.5",
+   "last_initial_residual": 0.0026984536230094036,
+   "match_distance_max": 0.0004622202775206902,
+   "max_at": {
+    "boundary_cell": false,
+    "fitting": "Tee1",
+    "position": [
+     0.1600428773401795,
+     -0.0672904818052484,
+     -0.023925834149589657
+    ]
+   },
+   "min_scaled_jacobian": 0.42378563653780255,
+   "name": "duct_tap_rect_lim_k2",
+   "nang": null,
+   "nang_h": 16,
+   "nang_w": 16,
+   "nrad": 0,
+   "per_fitting": {
+    "Straight0": {
+     "cells": 1024,
+     "l2": 0.011393507449015535,
+     "max": 0.03622021326235669
+    },
+    "Straight2": {
+     "cells": 1024,
+     "l2": 0.009531713029112139,
+     "max": 0.03140000805962728
+    },
+    "Straight3": {
+     "cells": 1024,
+     "l2": 0.006129997761154705,
+     "max": 0.022363342562453592
+    },
+    "Tee1": {
+     "cells": 60416,
+     "l2": 0.03951693858804885,
+     "max": 0.22291742200615317
+    }
+   },
+   "precision": "full",
+   "rest": {
+    "cells": 3072,
+    "l2": 0.010126080512727603,
+    "max": 0.03622021326235669
+   },
+   "retyped": [
+    "body_wall"
+   ],
+   "steps": 200,
+   "volume": 0.010360000000000003,
+   "wave_numbers": [
+    22.43994752564139,
+    50.265482452110355,
+    35.06894124807814
+   ]
+  }
+ ],
+ "version": 1
+}

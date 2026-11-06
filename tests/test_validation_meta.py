@@ -81,7 +81,9 @@ def test_planned_tasks_carry_known_features(build):
 
 
 def test_coverage_shows_unvalidated_features(build):
-    cases = [(c, build.case_meta(c)) for c in build.case_dirs()]
+    # the straight-pipe cases alone: the junctions are then uncovered
+    cases = [(c, build.case_meta(c)) for c in build.case_dirs()
+             if Path(c).name in ("poiseuille", "heated_rod")]
     md = "\n".join(build.coverage_md(cases, []))
     assert "`wye` (none)" in md and "`duct-tap` (none)" in md
     assert "`straight` (none)" not in md

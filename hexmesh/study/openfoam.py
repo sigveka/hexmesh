@@ -339,16 +339,25 @@ def run_solver(case: Path, solver: str, *, n_proc: int = 1, log: str | None = No
     return out
 
 
-def convert(case: Path, msh: Path, split_regions: bool = False) -> list[str]:
+def convert(case: Path, msh: Path, split_regions: bool = False,
+            keep_orientation: bool = False) -> list[str]:
     """``gmshToFoam`` *msh* into *case*, then retype the patches from the
     mesh's role manifest (decision 0013).  With *split_regions*, run
     ``splitMeshRegions -cellZones -overwrite`` first and retype each
-    region.  Returns the retyped patch names."""
+    region.  Returns the retyped patch names.
+
+    *keep_orientation* passes ``-keepOrientation``: gmshToFoam's own
+    orientation test misjudges strongly warped hexes and turns valid ones
+    inside out (docs/integrations/openfoam.md, task 0074).  Pass it only
+    for a mesh whose every hex is known right-handed, e.g. a positive
+    worst scaled Jacobian from ``Assembly.check_quality``."""
     from ..io.writers.openfoam_boundary import (
         apply_boundary_roles, apply_boundary_roles_to_regions, roles_path,
     )
     msh = Path(msh)
-    foam(f"gmshToFoam {msh.resolve()}", case, "log.gmshToFoam", mounts=[msh.resolve().parent])
+    keep = " -keepOrientation" if keep_orientation else ""
+    foam(f"gmshToFoam{keep} {msh.resolve()}", case, "log.gmshToFoam",
+         mounts=[msh.resolve().parent])
     if split_regions:
         foam("splitMeshRegions -cellZones -overwrite", case, "log.splitMeshRegions")
         done = apply_boundary_roles_to_regions(case, roles_path(msh))

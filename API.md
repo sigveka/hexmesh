@@ -1238,8 +1238,11 @@ optional):
 
 **OpenFOAM helpers** (`hexmesh.study.openfoam`, shared with the
 validation scripts):
-- `header`, `foam(cmd, case, log)`, `convert(case, msh, split_regions)`
-  and `check_mesh`;
+- `header`, `foam(cmd, case, log)`, `convert(case, msh, split_regions,
+  keep_orientation)` and `check_mesh`.  `keep_orientation=True` runs
+  `gmshToFoam -keepOrientation`.  gmshToFoam's own orientation test
+  flips valid, strongly warped hexes inside out (wye junctions, task
+  0074), so pass it when the worst scaled Jacobian is positive;
 - readers: `read_points`, `read_faces`, `read_labels`, `read_zone`,
   `read_internal`, `read_patch_faces`, `read_patch_values`;
 - `latest_time`, `face_geometry` / `cell_geometry` (OpenFOAM's own
