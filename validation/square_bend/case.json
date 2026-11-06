@@ -25,19 +25,19 @@
       "runner": "docker"
     }
   },
-  "status": "in progress",
+  "status": "accepted",
   "task": "0072",
   "gates": [
     {
-      "quantity": "rig inlet (plug, 7.5 $D_h$): peak $U/V_c$ on the symmetry plane at θ = 60° and 77.5°, k = 1, 2, 3",
+      "quantity": "matched inlet (a plug 12.6 $D_h$ upstream, the length fitted to the X_H = −0.50 profile alone): peak $U/V_c$ on the symmetry plane at θ = 60° and 77.5°, k = 1, 2, 3",
       "limit": "Richardson status converging; GCI reported"
     },
     {
-      "quantity": "rig inlet, finest level: the peak's gapwise position on the symmetry plane, every station (its outward shift through the bend)",
+      "quantity": "matched inlet, finest level: the peak's gapwise position on the symmetry plane at every station from X_H = −0.25 on (its outward shift through the bend)",
       "limit": "at the measured gapwise point"
     },
     {
-      "quantity": "reported, not gated: $U/V_c$ RMS difference per station, both inlets (5 % comparison; floor: the upstream mismatch); the matched inlet (12.6 $D_h$) as a sensitivity",
+      "quantity": "reported, not gated: X_H = −0.50 (the calibration station); $U/V_c$ RMS difference per station (5 % comparison, floor: the upstream mismatch); the rig inlet (plug at 7.5 $D_h$) as a sensitivity run",
       "limit": "reported"
     }
   ]

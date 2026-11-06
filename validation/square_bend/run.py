@@ -418,9 +418,12 @@ def _fields(case: Path):
 
 # --- analysis -----------------------------------------------------------------
 
-# The inlets (task 0072, design Q2): the rig's plug 7.5 D_h before the bend
-# is gated; the plug matched to X_H = -0.50 is a reported sensitivity.
-INLETS = ("rig", "matched")
+# The inlets (task 0072, design answer to Q3): the plug matched to
+# X_H = -0.50 alone is gated, from X_H = -0.25 on (X_H = -0.50 is its
+# calibration station, reported); the rig's plug at 7.5 D_h is a reported
+# sensitivity.
+INLETS = ("matched", "rig")
+GATED_INLET = "matched"
 
 
 def analyse(levels: list[dict], inlet: str = "rig") -> dict:
@@ -448,30 +451,38 @@ def table(row: dict) -> str:
 
 
 def recheck(data: dict) -> list[dict]:
-    """The gates from ``results.json`` (task 0072, design answers Q1-Q2),
-    on the rig inlet: the peak U's mesh convergence at GCI_STATIONS, and
-    at the finest level the peak's gapwise position on the symmetry plane
-    at every station, which carries its outward shift through the bend.
-    The U/V_c RMS against the measurements is reported (5 %, recorded as
-    missed; its floor is the upstream mismatch), for both inlets."""
+    """The gates from ``results.json`` (task 0072, design answers Q1-Q3),
+    on the matched inlet: the peak U's mesh convergence at GCI_STATIONS,
+    and at the finest level the peak's gapwise position on the symmetry
+    plane at every station from X_H = -0.25 on, which carries its outward
+    shift through the bend.  Reported: the calibration station
+    (MATCH_STATION), the U/V_c RMS against the measurements (5 %), and
+    the rig inlet's same checks."""
     out = []
-    for st, r in analyse(data["levels"], "rig").items():
-        out.append(stored.row(f"rig inlet: peak U/V_c on the symmetry plane, {st} (k = 1, 2, 3)",
-                              rich=r, gate="converging, as measured",
-                              ok=r["status"] == "converging",
-                              value=f"GCI {r['gci_fine']:.2%}" if r["gci_fine"] is not None
-                              else r["status"], note=r["note"]))
-    fine = max(stored.series(data, inlet="rig"), key=lambda r: r["k"])
-    for st, s in fine["stations"].items():
-        out.append(stored.row(f"rig inlet, {st}: peak position on the symmetry plane "
-                              f"(k = {fine['k']})", gate="at the measured gapwise point",
-                              ok=s["peak_gap_computed"] == s["peak_gap_measured"],
-                              value=f"g = {s['peak_gap_computed']:.1f} "
-                                    f"(measured {s['peak_gap_measured']:.1f})"))
     for inlet in INLETS:
-        lv = max(stored.series(data, inlet=inlet), key=lambda r: r["k"])
-        for st, s in lv["stations"].items():
-            out.append(stored.row(f"{inlet} inlet, {st}: U/V_c RMS difference (k = {lv['k']})",
+        gated = inlet == GATED_INLET
+        for st, r in analyse(data["levels"], inlet).items():
+            out.append(stored.row(f"{inlet} inlet: peak U/V_c on the symmetry plane, {st} "
+                                  "(k = 1, 2, 3)", rich=r,
+                                  gate="converging, as measured" if gated else None,
+                                  ok=r["status"] == "converging" if gated else None,
+                                  value=f"GCI {r['gci_fine']:.2%}" if r["gci_fine"] is not None
+                                  else r["status"], note=r["note"]))
+        fine = max(stored.series(data, inlet=inlet), key=lambda r: r["k"])
+        for st, s in fine["stations"].items():
+            g = gated and st != MATCH_STATION
+            hit = s["peak_gap_computed"] == s["peak_gap_measured"]
+            out.append(stored.row(f"{inlet} inlet, {st}: peak position on the symmetry plane "
+                                  f"(k = {fine['k']})",
+                                  gate="at the measured gapwise point" if g else None,
+                                  ok=hit if g else None,
+                                  value=f"g = {s['peak_gap_computed']:.1f} "
+                                        f"(measured {s['peak_gap_measured']:.1f})",
+                                  note="" if g else ("calibration station" if gated else
+                                                     "sensitivity: " + ("at" if hit else "off")
+                                                     + " the measured point")))
+        for st, s in fine["stations"].items():
+            out.append(stored.row(f"{inlet} inlet, {st}: U/V_c RMS difference (k = {fine['k']})",
                                   value=f"{s['u_rms_diff']:.3f}",
                                   note="5 % comparison: " +
                                        ("within" if s["u_rms_diff"] <= 0.05 else "missed")))

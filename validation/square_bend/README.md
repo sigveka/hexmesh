@@ -17,7 +17,7 @@ default).
 |---|---|
 | Duct | 40 × 40 mm (D_h = 40 mm), bend radii 72 / 112 mm (mean 92 mm, radius ratio 2.3), 90°, 10 D_h downstream to a zero-pressure outlet |
 | Flow | V_c = 0.0198 m/s, Re = V_c D_h / ν = 790 (De 368), laminar steady `simpleFoam` (SIMPLEC, `linearUpwind`) |
-| Inlets | **rig** (gated): a plug at the contraction exit, 7.5 D_h before the bend.  **matched** (reported): a plug 12.6 D_h before the bend, the distance whose developing profile in a straight duct best matches X_H = −0.50 (`match_inlet`, k = 2).  `--inlets rig matched` |
+| Inlets | **matched** (gated): a plug 12.6 D_h before the bend, the distance whose developing profile in a straight duct best matches X_H = −0.50 alone (`match_inlet`, k = 2), so X_H = −0.50 is its calibration station and isn't gated.  **rig** (a reported sensitivity): a plug at the contraction exit, 7.5 D_h before the bend.  `--inlets matched rig` |
 | Mesh | hexmesh's H section (`layout="h"`, decision 0036), graded to every wall: `first_cell` D_h/120 at k = 1; 12 cells per side; k = 1, 2, 3 by `refined(k)` |
 | Comparison | U/V_c (and V/V_c) at every point of Table I, interpolated linearly in the cell centres' Delaunay tetrahedra; RMS per station; the gapwise peak on the symmetry plane |
 

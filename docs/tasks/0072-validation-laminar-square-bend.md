@@ -1,6 +1,6 @@
 # 0072 — Validation (V3): laminar flow in a 90° square-duct bend (Taylor, Whitelaw & Yianneskis, Re 790)
 
-- **Status:** ready (design answered Q3, 2026-11-06)
+- **Status:** done
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (category V3); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V3 (experiment: Taylor, Whitelaw & Yianneskis 1982)
 - **Features:** `section:rect`, `straight`, `bend`
@@ -123,6 +123,15 @@ the O-H mesh can be added as a reported, ungated comparison.
     and the peak position per station.  The RMS rows are reported for
     both inlets.
   - `case.json`'s gates follow the answers.
+- **After the answer to Q3 (2026-11-06):**
+  - `recheck` gates the matched inlet: the peak U converging at θ = 60°
+    and 77.5°, and the peak position at every station from X_H = −0.25
+    on.
+  - X_H = −0.50 is reported as the calibration station.  The rig inlet's
+    rows are reported, marked "sensitivity".
+  - The default `--inlets` order is now `matched rig`.
+  - No reruns: both series were already stored.
+  - `case.json` is `accepted`, and RESULTS.md was rewritten to match.
 
 ## Questions for design
 
@@ -213,7 +222,16 @@ the Q2 answer above, which was too strict.
 
 ## Outcome
 
-_Blocked on Q3 (Q1–Q2 answered); both inlet series and their results are complete.  The tables below are the matched inlet (k = 3); the rig inlet is in RESULTS.md._
+**Done, accepted** (on the answers to Q1–Q3).  Gated, on the matched
+inlet, and every gate passes:
+- the peak U converges: order 3.84 and GCI 0.05 % at θ = 60°, order
+  5.25 and GCI 0.01 % at 77.5°;
+- the peak's gapwise position matches the measurement at the six
+  stations from X_H = −0.25 on (0.5 → 0.3 → 0.1, the outward shift).
+
+The 5 % RMS comparison is reported and missed at five of seven stations.
+The rig inlet is a reported sensitivity run, whose checks fail in part
+(RESULTS.md).  The tables below are the matched inlet at k = 3.
 
 - **Files:**
   - `validation/square_bend/`: `run.py`, `README.md`, `RESULTS.md`,
