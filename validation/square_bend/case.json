@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "title": "Laminar flow in a 90° square-duct bend, Re 790",
+  "category": "V3",
+  "references": [
+    {
+      "source": "taylor_and_whitelaw_etal_1981 (NASA CR-3367, Table I)",
+      "role": "primary"
+    }
+  ],
+  "tags": {
+    "regime": [
+      "laminar"
+    ],
+    "physics": [
+      "flow"
+    ],
+    "features": [
+      "section:rect",
+      "straight",
+      "bend"
+    ],
+    "toolchain": {
+      "openfoam": "v2406",
+      "runner": "docker"
+    }
+  },
+  "status": "in progress",
+  "task": "0072",
+  "gates": [
+    {
+      "quantity": "RMS difference of U/V_c per station, finest level",
+      "limit": "within 5 % of V_c at every station (provisional)"
+    },
+    {
+      "quantity": "gapwise position of the peak U on the symmetry plane",
+      "limit": "shifts outward through the bend, as measured"
+    }
+  ]
+}
