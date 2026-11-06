@@ -51,6 +51,10 @@ re-importing.
   shared end, build the same assembly as reading both together.
 - A selection from a port with `up_to` builds only the expected parts.
 - `join` rejects a direction or section mismatch with the numbers.
+- **The `hexmesh` CLI reads PCF** (task 0098, Q5): once the readers are
+  in `interchange.importers`, `hexmesh validate | estimate | describe |
+  preview | advise | build` accept a `.pcf` file with `--spec`.  The
+  `cli_input_unreadable` error for PCF goes.  No new architecture edge.
 - **Log:** after cut + join, the log has three entries (import, cut,
   join); replaying it on a fresh import gives an identical model;
   `undo()` after the join restores the cut state.

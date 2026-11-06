@@ -99,6 +99,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0096](0096-pcf-line-numbers.md) | PCF errors name the line: record `Provenance.line` | done | 0040, 0032 |
 | [0097](0097-describe-and-preview.md) | `describe` and `preview`: what a network is, without GMSH | done | 0040, 0019 |
 | [0098](0098-advise-and-cli.md) | `advise` (the resolution advisor) and the `hexmesh` CLI | done | 0040 |
+| [0100](0100-trace-tied-rectangle-counts.md) | Trace why rectangle side counts are tied next to circles and shells | ready | 0041 |
 
 ### Validation
 
@@ -143,6 +144,8 @@ or a long run.
      0094 and 0096 done;
    - validation graphs: **0099** after 0098 (it edits the same
      `results.json` files);
+   - rectangle cost (decision 0041): **0100** (trace the ties), then
+     the B and C tasks from its outcome;
    - general branches (decision 0031): **0060 → 0061 / 0062 → 0063**.
      0060 carries a design note from 0081: the duct-tap front end leaves
      `Tee`;

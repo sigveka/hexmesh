@@ -309,6 +309,23 @@ Status set back to ready.  The coding session was on 0076 (the user's
   All are `info` limits.  A design decision on them (or a bend
   validation case) would replace the judgement.
 
+**Design answers to Q5–Q7** (2026-11-05; the user: "yes"):
+- **Q5:** agreed.  The CLI takes descriptions only for now, and a `.pcf`
+  input gets `cli_input_unreadable`.  "The `hexmesh` CLI reads PCF"
+  is added to task 0066's acceptance.  No new edge in `ALLOWED_EDGES`.
+- **Q6:** agreed.  A class between two measured levels, along the
+  observed order between them, is measured data: `"validated": true`,
+  with the basis "interpolated between measured k = a and b".  Only
+  extrapolation past the finest level is `"validated": false`.
+- **Q7:** the four limits stand, as `info` limits.  The report names
+  the ones that are judgement (`MAX_AXIAL_ASPECT_FITTING`,
+  `MAX_AXIAL_ASPECT_BUDGET`).  Task 0072 (the square-duct bend against
+  experiment) is the first data for the fitting limit.
+- **Tied counts** (Agent notes): the cell cost they cause (10M for
+  `hvac_branched`, 20M for `cooling_channels`) is taken up as a design
+  question in [decision 0041](../decisions/0041-per-side-counts-on-rectangles.md)
+  (proposed).  No change to 0098.
+
 ## Agent notes
 
 - **One density per assembly.**
