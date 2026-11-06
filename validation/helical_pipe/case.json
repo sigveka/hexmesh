@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "title": "Laminar flow in a helical pipe (the SIET coil)",
+  "category": "V3",
+  "references": [
+    {
+      "source": "deamicis_and_cammi_etal_2014 (the SIET coil; Ito (1959) as their eq. 2; Fig. 12 digitised in data/)",
+      "role": "primary"
+    }
+  ],
+  "tags": {
+    "regime": [
+      "laminar"
+    ],
+    "physics": [
+      "flow"
+    ],
+    "features": [
+      "section:circle",
+      "straight",
+      "spline"
+    ],
+    "toolchain": {
+      "openfoam": "v2406",
+      "runner": "docker"
+    }
+  },
+  "status": "in progress",
+  "task": "0075",
+  "gates": [
+    {
+      "quantity": "the spline's distance from the exact helix (32 points per turn)",
+      "limit": "within 0.1 % of $d$"
+    },
+    {
+      "quantity": "Darcy friction factor $f$, finest level, at Re 1800, 2400 and 3000",
+      "limit": "within 5 % of Ito (1959)"
+    },
+    {
+      "quantity": "mesh convergence of $f$ at each Re (nang 8, 12, 16)",
+      "limit": "Richardson status converging; GCI reported"
+    },
+    {
+      "quantity": "reported, not gated: the digitised measured points (Fig. 12); f per pair of consecutive turns",
+      "limit": "reported"
+    }
+  ]
+}

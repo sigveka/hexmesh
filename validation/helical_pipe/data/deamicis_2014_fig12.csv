@@ -1,0 +1,31 @@
+# De Amicis et al. (2014), Prog. Nucl. Energy 76, 206-215, Fig. 12: measured Darcy
+# friction factor of the SIET coil ("Experimental Data", red circles), digitised
+# 2026-11-06 (task 0075) from a 600 dpi render of the paper's page 9.  See README.md.
+# re, f: the marker centroid.  u_re, u_f: the reading uncertainty (1 sigma).
+# f_hi, f_lo: the error-bar ends as drawn; NaN where another marker hides the bar.
+# hidden: 1 where another marker covers part of the circle (centroid biased).
+# laminar: 1 for Re <= 3200, below the transition the paper places at Re ~ 3200.
+re,f,u_re,u_f,f_hi,f_lo,hidden,laminar
+1801,0.0665,25,0.0006,nan,nan,1,1
+1885,0.0646,5,0.0001,0.0687,0.0576,0,1
+1890,0.0571,5,0.0001,0.0641,0.0466,0,1
+2056,0.0613,5,0.0001,0.0656,0.0569,0,1
+2113,0.0563,5,0.0001,0.0616,0.0511,0,1
+2274,0.0580,25,0.0006,nan,nan,1,1
+2317,0.0526,5,0.0001,0.0597,0.0457,0,1
+2446,0.0511,5,0.0001,0.0518,0.0457,0,1
+2454,0.0520,25,0.0006,nan,nan,1,1
+2540,0.0530,5,0.0001,0.0567,0.0494,0,1
+2672,0.0480,5,0.0001,0.0547,0.0416,0,1
+2805,0.0483,5,0.0001,0.0523,0.0443,0,1
+2961,0.0493,25,0.0006,nan,nan,1,1
+3003,0.0468,5,0.0001,0.0506,0.0429,0,1
+3195,0.0445,5,0.0001,0.0480,0.0412,0,1
+3242,0.0433,5,0.0001,0.0456,0.0411,0,0
+3440,0.0411,5,0.0001,0.0437,0.0386,0,0
+3545,0.0403,5,0.0001,0.0423,0.0384,0,0
+3808,0.0395,5,0.0001,0.0409,0.0381,0,0
+3868,0.0390,5,0.0001,0.0410,0.0368,0,0
+4165,0.0374,5,0.0001,0.0390,0.0358,0,0
+4662,0.0368,25,0.0006,nan,nan,1,0
+4789,0.0371,5,0.0001,0.0383,0.0359,0,0

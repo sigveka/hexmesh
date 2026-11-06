@@ -31,7 +31,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 CASES = ("poiseuille", "heated_rod", "layered_conduction", "heated_pipe", "womersley",
-         "stenosis", "stenosis_pulsatile", "rect_duct", "mms", "turbulent_pipe", "square_bend")
+         "stenosis", "stenosis_pulsatile", "rect_duct", "mms", "turbulent_pipe", "square_bend",
+         "helical_pipe")
 
 
 def _load(name: str, rel: str):

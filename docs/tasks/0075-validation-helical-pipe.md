@@ -1,6 +1,6 @@
 # 0075 — Validation (V3): laminar flow in a helical pipe (spline pipe)
 
-- **Status:** ready (design answered Q2, 2026-11-06)
+- **Status:** blocked (f's convergence gate fails at Re 3000: Q3)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (V3, with V4 secondary); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V3 (experiment: De Amicis et al. 2014; V4 correlation, Manlapaz & Churchill 1980, secondary)
 - **Features:** `section:circle`, `straight`, `spline`
@@ -121,6 +121,31 @@ heat transfer in coils.
   - Cost: 432 cells per section at nang 12 and 768 at nang 16.  At about
     1 d per layer, 3.5 turns (906 d) is 0.4M / 0.7M cells, so three
     levels of 87k–700k cells are affordable.
+- **The runs (2026-11-06, after the answer to Q2):**
+  - `validation/helical_pipe/run.py`: 3 Re × nang 8, 12, 16, about
+    2 h 45 min on 4 processes.
+  - Every solve but Re 3000 at nang 8 met the residual target in
+    210–720 SIMPLE steps.  That one ran the full 5000.
+- **f from turn means of p:** under helical symmetry, the difference
+  between consecutive turns' volume-mean pressures is exactly one turn's
+  pressure drop.  Turns 2→3 and 3→4 agree to 10⁻⁶, so the flow is
+  developed within the first turn.
+- **The bulk velocity (a definition fixed after the coarse trial):**
+  - The mesh carries 0.5–1.4 % more than the nominal U_B (by level): the
+    faceted section is smaller than πa², and the inlet parabola is set
+    at face centres.
+  - So f and Re use the measured bulk velocity, and Ito is evaluated at
+    that Re.
+  - With the nominal U_B, the coarse trial read +6.9 % instead of +4.8 %
+    from Ito.
+  - This was decided on the single trial level (Re 2400, nang 8), before
+    the study.  It changes the quantity's definition to the standard one,
+    not the gate.
+- **The data:** `data/deamicis_2014_fig12.csv` holds the paper's points,
+  digitised by marker colour from a 600 dpi render (method in
+  `data/README.md`).
+- **The development length:** with a Poiseuille inlet, the 5 d straight
+  and the first turn suffice.  More turns would only add cost.
 
 ## Questions for design
 
@@ -181,6 +206,44 @@ the gate fixed now, before any run.
   to do.  If tables arrive, the gate against them is a new decision
   before any rerun, not a change to this one.
 
+- **Q3. f converges too slowly at the higher Dean numbers**
+  (`validation/helical_pipe/RESULTS.md`).
+  - The Ito gate passes at all three Re: +0.36 %, +1.26 % and +1.92 % at
+    nang 16.
+  - Mesh convergence over nang 8, 12, 16:
+    - Re 1800 converges (order 1.29, GCI 2.0 %).
+    - Re 2400 is `converging` only formally (order 0.04, GCI 130 %).
+    - Re 3000 is `diverging`: the fine-pair difference exceeds the
+      coarse pair's.  **Fail.**
+  - It isn't the Re drift between levels.  The error falls monotonically
+    toward Ito at every Re, so the coarse levels are outside the
+    asymptotic range at De 270–340.
+  - Options:
+    - (a) rerun on nang 12, 16, 24 (nang 24 is about 1.8M cells; roughly
+      3–4 h for the three Re).  The gate is unchanged, on finer levels,
+      chosen now that nang 8 is known to be too coarse;
+    - (b) record the case as rejected on the convergence gate, as run;
+    - (c) something else.
+
 ## Outcome
 
-_Not done._
+_Blocked on Q3; the runs and results for nang 8, 12, 16 are complete._
+
+- **Files:** `validation/helical_pipe/` (`run.py`, `README.md`,
+  `RESULTS.md`, `case.json`, `results.json`, and `data/`: Fig. 12
+  digitised, with its README); `validation/tools/recheck.py` (the case
+  added).
+- **For RESEARCH §7.9 (the SIET coil, laminar, v2406):**
+
+  | Re | De | f (nang 16) | vs Ito | fc/fs | convergence, nang 8 → 16 |
+  |---|---|---|---|---|---|
+  | 1800 | 201 | 0.06668 | +0.36 % | 1.884 | order 1.29, GCI 2.0 % |
+  | 2400 | 269 | 0.05606 | +1.26 % | 2.112 | order 0.04 (not asymptotic) |
+  | 3000 | 336 | 0.04918 | +1.92 % | 2.316 | diverging |
+
+  The spline is 3.4e-4 d from the helix at 32 points per turn.  The
+  digitised measured points lie 3.7 % below Ito on average.
+- **Surprises:**
+  - the bulk-velocity excess from the faceted inlet;
+  - how quickly the flow develops (within one turn).
+

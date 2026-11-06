@@ -1,0 +1,562 @@
+{
+ "case": "helical_pipe",
+ "extra": {
+  "reference": "De Amicis et al. (2014), the SIET coil; Ito (1959) as their eq. (2)",
+  "richardson_f": {
+   "1800": {
+    "bounds": [
+     0.06667592355012511,
+     0.06820874807690594
+    ],
+    "differences": [
+     0.0010563856176471903,
+     0.00047643890913363907
+    ],
+    "e_a": 0.007145591448395394,
+    "e_ext": 0.01614350255218845,
+    "extrapolated": 0.06561664113647243,
+    "gci_fine": 0.019858787798723635,
+    "note": "",
+    "order": 1.291037964224423,
+    "oscillatory": false,
+    "status": "converging"
+   },
+   "2400": {
+    "bounds": [
+     0.05606087632162409,
+     0.05768731897808736
+    ],
+    "differences": [
+     0.000956833336819285,
+     0.0006696093196439865
+    ],
+    "e_a": 0.011944324876450446,
+    "e_ext": 25.690208160162907,
+    "extrapolated": -0.002270571230423122,
+    "gci_fine": 1.300627357691406,
+    "note": "",
+    "order": 0.03967574230071025,
+    "oscillatory": false,
+    "status": "converging"
+   },
+   "3000": {
+    "bounds": [
+     0.04917713846523605,
+     0.05050678735192979
+    ],
+    "differences": [
+     0.0005083461861222494,
+     0.0008213027005714857
+    ],
+    "e_a": null,
+    "e_ext": null,
+    "extrapolated": null,
+    "gci_fine": null,
+    "note": "the differences don't shrink (|ε32| 0.000508 ≤ |ε21| 0.000821): no asymptotic range",
+    "order": null,
+    "oscillatory": false,
+    "status": "diverging"
+   }
+  },
+  "spline_deviation": {
+   "chord_sag_over_d": {
+    "12": 0.005178684582951926,
+    "16": 0.002913010077910458,
+    "8": 0.011652040311641833
+   },
+   "interior_max_over_d": 0.00015595032568574264,
+   "max_over_d": 0.00034088920631553994,
+   "points_per_turn": 32
+  }
+ },
+ "format": "hexmesh.validation.results",
+ "levels": [
+  {
+   "cells": 100416,
+   "check_cells_foam": 100416,
+   "check_max_non_orthogonality": 28.1282636051,
+   "check_max_skewness": 0.452964303057,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "6c00261",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "f": 0.06820874807690594,
+   "f_err_ito": 0.03295481760657393,
+   "f_ito": 0.06603265400799448,
+   "f_per_pair": [
+    0.06818412917410828,
+    0.06820874807690594,
+    0.06820879316574037
+   ],
+   "fc_over_fs": 1.9456984494629241,
+   "layers_per_turn": 130,
+   "min_scaled_jacobian": 0.7727974664563291,
+   "name": "re1800_n8",
+   "nang": 8,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 4,
+   "precision": "full",
+   "re": 1800,
+   "re_bulk": 1825.6412011143277,
+   "steps": 298,
+   "turn_agreement": 6.610418121777428e-07,
+   "turn_mean_p": [
+    31.768460954518936,
+    22.694804008337133,
+    13.617893729423427,
+    4.540964705754987
+   ],
+   "u_bulk_per_pair": [
+    1.0142463881935284,
+    1.014245111730182,
+    1.0142458237605645
+   ],
+   "u_bulk_per_turn": [
+    1.0142476649577883,
+    1.0142451114292688,
+    1.0142451120310954,
+    1.0142465354900334
+   ]
+  },
+  {
+   "cells": 338688,
+   "check_cells_foam": 338688,
+   "check_max_non_orthogonality": 33.249483654,
+   "check_max_skewness": 0.483751426334,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "6c00261",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "f": 0.06715236245925875,
+   "f_err_ito": 0.012406342812146143,
+   "f_ito": 0.06632945648358013,
+   "f_per_pair": [
+    0.06712888277752933,
+    0.06715236245925875,
+    0.06715242818775932
+   ],
+   "fc_over_fs": 1.9022547967968526,
+   "layers_per_turn": 195,
+   "min_scaled_jacobian": 0.7517476896048852,
+   "name": "re1800_n12",
+   "nang": 12,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 6,
+   "precision": "full",
+   "re": 1800,
+   "re_bulk": 1812.9564253061192,
+   "steps": 210,
+   "turn_agreement": 9.787965480345662e-07,
+   "turn_mean_p": [
+    30.844331537907713,
+    22.03485815188828,
+    13.222276877891384,
+    4.409682581222941
+   ],
+   "u_bulk_per_pair": [
+    1.0071964941689395,
+    1.0071980140589551,
+    1.0071982653242588
+   ],
+   "u_bulk_per_turn": [
+    1.0071949767156458,
+    1.0071980116222334,
+    1.0071980164956766,
+    1.007198514152841
+   ]
+  },
+  {
+   "cells": 803328,
+   "check_cells_foam": 803328,
+   "check_max_non_orthogonality": 35.9951107465,
+   "check_max_skewness": 0.499165568927,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "6f836a7",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "f": 0.06667592355012511,
+   "f_err_ito": 0.0036346278928529596,
+   "f_ito": 0.06643445901235222,
+   "f_per_pair": [
+    0.06665279174389577,
+    0.06667592355012511,
+    0.06667598361437084
+   ],
+   "fc_over_fs": 1.884121803858199,
+   "layers_per_turn": 260,
+   "min_scaled_jacobian": 0.7409000482976861,
+   "name": "re1800_n16",
+   "nang": 16,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 8,
+   "precision": "full",
+   "re": 1800,
+   "re_bulk": 1808.5058147904497,
+   "steps": 319,
+   "turn_agreement": 9.008386014919267e-07,
+   "turn_mean_p": [
+    30.47582243146794,
+    21.771719303305357,
+    13.064570502308605,
+    4.357411279727797
+   ],
+   "u_bulk_per_pair": [
+    1.004724014905182,
+    1.004725452661361,
+    1.004725601391292
+   ],
+   "u_bulk_per_turn": [
+    1.0047225768077448,
+    1.0047254530026188,
+    1.0047254523201028,
+    1.0047257504624811
+   ]
+  },
+  {
+   "cells": 100416,
+   "check_cells_foam": 100416,
+   "check_max_non_orthogonality": 28.1282636051,
+   "check_max_skewness": 0.452964303057,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "6f836a7",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "f": 0.05768731897808736,
+   "f_err_ito": 0.048102408508303496,
+   "f_ito": 0.055039773317752415,
+   "f_per_pair": [
+    0.05766023794207938,
+    0.05768731897808736,
+    0.05768738120825061
+   ],
+   "fc_over_fs": 2.1942592576626354,
+   "layers_per_turn": 130,
+   "min_scaled_jacobian": 0.7727974664563291,
+   "name": "re2400_n8",
+   "nang": 8,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 4,
+   "precision": "full",
+   "re": 2400,
+   "re_bulk": 2434.375439492209,
+   "steps": 718,
+   "turn_agreement": 1.078749443550464e-06,
+   "turn_mean_p": [
+    26.872987166633525,
+    19.19861846959752,
+    11.52067154953353,
+    3.842704047777565
+   ],
+   "u_bulk_per_pair": [
+    1.0143248280795065,
+    1.0143230997884203,
+    1.014323912196612
+   ],
+   "u_bulk_per_turn": [
+    1.0143265557531758,
+    1.0143231004058373,
+    1.0143230991710033,
+    1.0143247252222207
+   ]
+  },
+  {
+   "cells": 338688,
+   "check_cells_foam": 338688,
+   "check_max_non_orthogonality": 33.249483654,
+   "check_max_skewness": 0.483751426334,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "6f836a7",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "f": 0.05673048564126808,
+   "f_err_ito": 0.026246296087007126,
+   "f_ito": 0.055279600869281346,
+   "f_per_pair": [
+    0.05670453225325655,
+    0.05673048564126808,
+    0.056730556910358484
+   ],
+   "fc_over_fs": 2.1428589303332366,
+   "layers_per_turn": 195,
+   "min_scaled_jacobian": 0.7517476896048852,
+   "name": "re2400_n12",
+   "nang": 12,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 6,
+   "precision": "full",
+   "re": 2400,
+   "re_bulk": 2417.4475150546523,
+   "steps": 390,
+   "turn_agreement": 1.2562749922562233e-06,
+   "turn_mean_p": [
+    26.06133365682221,
+    18.61881766083824,
+    11.172865467029055,
+    3.72689983185104
+   ],
+   "u_bulk_per_pair": [
+    1.0072677826725427,
+    1.0072697979394385,
+    1.0072700743925105
+   ],
+   "u_bulk_per_turn": [
+    1.007265767976734,
+    1.0072697973683513,
+    1.0072697985105257,
+    1.0072703502744955
+   ]
+  },
+  {
+   "cells": 803328,
+   "check_cells_foam": 803328,
+   "check_max_non_orthogonality": 35.9951107465,
+   "check_max_skewness": 0.499165568927,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "6f836a7",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "f": 0.05606087632162409,
+   "f_err_ito": 0.012576973253130008,
+   "f_ito": 0.055364557759511344,
+   "f_per_pair": [
+    0.05603514964129361,
+    0.05606087632162409,
+    0.0560609407350965
+   ],
+   "fc_over_fs": 2.11235610305491,
+   "layers_per_turn": 260,
+   "min_scaled_jacobian": 0.7409000482976861,
+   "name": "re2400_n16",
+   "nang": 16,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 8,
+   "precision": "full",
+   "re": 2400,
+   "re_bulk": 2411.499774279621,
+   "steps": 561,
+   "turn_agreement": 1.1489915363593894e-06,
+   "turn_mean_p": [
+    25.627456837079883,
+    18.30894274536554,
+    10.987039802123173,
+    3.665126104621246
+   ],
+   "u_bulk_per_pair": [
+    1.004789596589976,
+    1.0047915726165086,
+    1.0047917332763419
+   ],
+   "u_bulk_per_turn": [
+    1.004787620982699,
+    1.0047915721972531,
+    1.0047915730357642,
+    1.0047918935169196
+   ]
+  },
+  {
+   "cells": 100416,
+   "check_cells_foam": 100416,
+   "check_max_non_orthogonality": 28.1282636051,
+   "check_max_skewness": 0.452964303057,
+   "check_mesh_ok": true,
+   "converged": false,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "6f836a7",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "f": 0.05050678735192979,
+   "f_err_ito": 0.05274714552089854,
+   "f_ito": 0.047976180763652475,
+   "f_per_pair": [
+    0.050477804522242466,
+    0.05050678735192979,
+    0.050506866192734756
+   ],
+   "fc_over_fs": 2.4015164714690775,
+   "layers_per_turn": 130,
+   "min_scaled_jacobian": 0.7727974664563291,
+   "name": "re3000_n8",
+   "nang": 8,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 4,
+   "precision": "full",
+   "re": 3000,
+   "re_bulk": 3043.097021853013,
+   "steps": 5000,
+   "turn_agreement": 1.560994256522008e-06,
+   "turn_mean_p": [
+    23.5305970114079,
+    16.811613511592782,
+    10.088801753026793,
+    3.3659681857550123
+   ],
+   "u_bulk_per_pair": [
+    1.0143679054115542,
+    1.0143656739510043,
+    1.0143665275337317
+   ],
+   "u_bulk_per_turn": [
+    1.0143701347752838,
+    1.0143656760478248,
+    1.0143656718541838,
+    1.0143673832132796
+   ]
+  },
+  {
+   "cells": 338688,
+   "check_cells_foam": 338688,
+   "check_max_non_orthogonality": 33.249483654,
+   "check_max_skewness": 0.483751426334,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "6f836a7",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "f": 0.04999844116580754,
+   "f_err_ito": 0.037741277463577916,
+   "f_ito": 0.048180064002091655,
+   "f_per_pair": [
+    0.04997059082581429,
+    0.04999844116580754,
+    0.04999851860642554
+   ],
+   "fc_over_fs": 2.360830336094347,
+   "layers_per_turn": 195,
+   "min_scaled_jacobian": 0.7517476896048852,
+   "name": "re3000_n12",
+   "nang": 12,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 6,
+   "precision": "full",
+   "re": 3000,
+   "re_bulk": 3021.957044800156,
+   "steps": 656,
+   "turn_agreement": 1.5488606484037604e-06,
+   "turn_mean_p": [
+    22.971055674048717,
+    16.411732885634528,
+    9.848729229340973,
+    3.2857115326633854
+   ],
+   "u_bulk_per_pair": [
+    1.0073170863810514,
+    1.0073190149333853,
+    1.0073193123248092
+   ],
+   "u_bulk_per_turn": [
+    1.0073151590951082,
+    1.0073190136669947,
+    1.0073190161997758,
+    1.0073196084498426
+   ]
+  },
+  {
+   "cells": 803328,
+   "check_cells_foam": 803328,
+   "check_max_non_orthogonality": 35.9951107465,
+   "check_max_skewness": 0.499165568927,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-06",
+    "gmsh": "4.12.1",
+    "hexmesh": "6f836a7",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "f": 0.04917713846523605,
+   "f_err_ito": 0.019161907905840492,
+   "f_ito": 0.04825252796808757,
+   "f_per_pair": [
+    0.0491498093146611,
+    0.04917713846523605,
+    0.049177206079937155
+   ],
+   "fc_over_fs": 2.3163231867847083,
+   "layers_per_turn": 260,
+   "min_scaled_jacobian": 0.7409000482976861,
+   "name": "re3000_n16",
+   "nang": 16,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 8,
+   "precision": "full",
+   "re": 3000,
+   "re_bulk": 3014.5040679627464,
+   "steps": 720,
+   "turn_agreement": 1.3749214211600247e-06,
+   "turn_mean_p": [
+    22.482691702622557,
+    16.062884410417045,
+    9.639489680008822,
+    3.2160839576992863
+   ],
+   "u_bulk_per_pair": [
+    1.004833298402823,
+    1.0048346893209155,
+    1.004834858287584
+   ],
+   "u_bulk_per_turn": [
+    1.0048319083445016,
+    1.004834688461144,
+    1.0048346901806868,
+    1.004835026394481
+   ]
+  }
+ ],
+ "version": 1
+}
