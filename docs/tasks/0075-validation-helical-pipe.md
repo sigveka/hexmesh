@@ -1,6 +1,6 @@
 # 0075 — Validation (V3): laminar flow in a helical pipe (spline pipe)
 
-- **Status:** blocked (Q4: nang 24 costs ~16 h, not 3–4 h; rerun stopped)
+- **Status:** ready (design answered Q4, 2026-11-06: nang 24 from the mapped nang 16 field)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (V3, with V4 secondary); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V3 (experiment: De Amicis et al. 2014; V4 correlation, Manlapaz & Churchill 1980, secondary)
 - **Features:** `section:circle`, `straight`, `spline`
@@ -274,6 +274,25 @@ the gate fixed now, before any run.
     a driver change.  It wasn't measured, so it's a guess at 2–3 h per
     Re;
   - (c) another set of levels.  That is a change to the study design.
+
+**Design answer to Q4** (2026-11-06; the user: "let us do b").  The
+machine time is given (the user, via the coding session).
+- **(b): start each nang 24 case from the converged nang 16 field,**
+  mapped onto the nang 24 mesh (`mapFields` or the driver's own
+  interpolation).  The flow is steady, so the start changes only the
+  path to convergence, not the converged answer.  The convergence
+  target (p residual 1e-7) and the gate are unchanged.
+- **Re 1800 first.**  Record its wall time and steps against the
+  unmapped run (306 steps, 5 h, unconverged), then run 2400 and 3000.
+- **Timeouts:** set the driver's limit so that one case can finish
+  (the user gave about 6–9 h for the set).
+- **Addition to the Q3 outcome rule:** a level that doesn't finish
+  leaves the case **blocked, undecided**, not accepted or rejected.
+  Report what ran and stop.
+- **As before:** check `df -h .` and for other heavy runs first.
+  Delete each OpenFOAM case once its numbers are in `results.json`.
+- (c), other levels, isn't taken: it would change the study after the
+  coarse results, and a 16 → 20 step is too small to pin the order.
 
 ## Outcome
 
