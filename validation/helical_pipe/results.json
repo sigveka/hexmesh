@@ -1,6 +1,16 @@
 {
  "case": "helical_pipe",
  "extra": {
+  "map_sources": {
+   "re1800_n24": {
+    "converged": true,
+    "f": 0.06667592355012511,
+    "f_vs_stored": 0.0,
+    "nang": 16,
+    "steps": 319,
+    "wall_s": 2881.5339306259993
+   }
+  },
   "reference": "De Amicis et al. (2014), the SIET coil; Ito (1959) as their eq. (2)",
   "richardson_f": {
    "1800": {

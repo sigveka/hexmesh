@@ -1,6 +1,6 @@
 # 0075 — Validation (V3): laminar flow in a helical pipe (spline pipe)
 
-- **Status:** ready (design answered Q4, 2026-11-06: nang 24 from the mapped nang 16 field)
+- **Status:** blocked (Q5: mapped nang 24 also unfinished; undecided)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (V3, with V4 secondary); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V3 (experiment: De Amicis et al. 2014; V4 correlation, Manlapaz & Churchill 1980, secondary)
 - **Features:** `section:circle`, `straight`, `spline`
@@ -293,6 +293,52 @@ machine time is given (the user, via the coding session).
   Delete each OpenFOAM case once its numbers are in `results.json`.
 - (c), other levels, isn't taken: it would change the study after the
   coarse results, and a 16 → 20 step is too small to pin the order.
+
+**Q5: the mapped nang 24 run didn't finish either; case blocked,
+undecided** (2026-11-06, under the Q4 rule).
+- **The driver** (uncommitted when run, committed with this note):
+  - `MAP_FROM = {24: 16}`: the nang 16 fields from the first run had
+    been deleted under the disk rule, so each Re first re-solves nang 16
+    as a source in `work/`, outside the stored levels.
+  - `mapFields <source> -consistent -sourceTime latestTime` then fills
+    the nang 24 initial field.  The source is deleted after the target
+    solve.
+  - Each level now stores `wall_s` and `init_from`.  The sources go in
+    `extra.map_sources`.
+  - A 3-step smoke test (nang 8 → 12) checked the mapping.  The inlet's
+    `uniformFixedValue` BC survives it.
+- **Re 1800, run alone with a 4.5 h timeout:**
+  - The nang 16 source took 319 steps in 48 min, with f 0.06668,
+    identical to the stored level (`f_vs_stored` 0.0).
+  - nang 24 from the mapped field was at **step 263** when the timeout
+    hit, about 3.3 h of solving at 45 s per step.  Unconverged.
+  - By then p was at 1.9e-7 (target 1e-7), and U at 3.6e-8–7.0e-8
+    (target 1e-8).
+
+  | step | p residual, unmapped | p residual, mapped |
+  |---|---|---|
+  | 26 | 2.6e-2 | 2.0e-2 |
+  | 101 | 1.3e-3 | 4.0e-5 |
+  | 201 | 4.2e-5 | 8.4e-7 |
+  | 251 | 1.0e-5 | 1.9e-7 |
+  | 301 | 2.1e-6 | — |
+
+  - The mapped start gains about 1.5 decades in p by step 100.  After
+    that, both fall at the same rate (about 2.2× per 25 steps).  U, not
+    p, sets the stop.
+  - **Estimate:** about 330 steps to converge (about 4.1 h), so about
+    5 h for Re 1800 with its source.  Re 2400 and 3000 took 561 and 720
+    steps at nang 16 (against 319), so at the same ratio they would need
+    roughly 9 h and 11 h.  The set needs **about 25 h**.
+- **The case was deleted.**  As in Q4 it couldn't be restarted, because
+  the write interval is the end time.  A restartable driver would write
+  fields periodically, e.g. every 50 steps, and resume from
+  `latestTime`.
+- **Per the rule, 0075 is blocked and undecided.**  Neither accepted nor
+  rejected.  What ran: nang 12 and 16 at all three Re (stored), and two
+  unfinished nang 24 attempts at Re 1800.
+- **For design:** whether to spend about 25 h of machine time (perhaps
+  over several nights, with restartable cases), or another route.
 
 ## Outcome
 

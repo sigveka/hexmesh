@@ -38,6 +38,11 @@ Gates (design answer to Q2, fixed before the runs): f within 5 % of Ito
 Re; the spline within 0.1 % of d of the helix.  The digitised measured
 points of the paper's Fig. 12 (``data/``) are reported, not gated.
 
+Each nang 24 solve starts from the converged nang 16 field, mapped
+(``MAP_FROM``; design answer to Q4).  The flow is steady, so the start
+changes only the path to convergence.  The nang 16 source is solved
+again for the purpose, and its f is checked against the stored level's.
+
 Run:   python3 validation/helical_pipe/run.py --np 4      # nang 12, 16, 24
 Recheck: python3 -m validation.tools.recheck helical_pipe
 """
@@ -51,6 +56,7 @@ import math
 import re
 import shutil
 import sys
+import time
 from pathlib import Path
 
 import numpy as np
@@ -91,6 +97,8 @@ F_LIMIT = 0.05                # f against Ito
 # wasn't in the asymptotic range at De 270-340.  Its runs stay in
 # results.json, reported.
 LEVELS = (12, 16, 24)
+#: level → the level whose converged field starts it (design answer to Q4)
+MAP_FROM = {24: 16}
 LAYERS_PER_TURN = {8: 130, 12: 195, 16: 260, 24: 390}   # about 2, 1.33, 1, 0.67 d per layer
 LAYERS_IN = {8: 3, 12: 4, 16: 6, 24: 9}
 
@@ -346,8 +354,12 @@ def friction(cc, vol, p, U) -> dict:
             "f_per_pair": f}
 
 
-def run_level(re_: float, nang: int, work: Path, end_time: int, n_proc: int) -> dict:
-    case = work / f"re{re_}_n{nang}"
+def run_level(re_: float, nang: int, work: Path, end_time: int, n_proc: int,
+              init_from: Path | None = None, case: Path | None = None) -> dict:
+    """Solve one level in *case* (default ``work/re<Re>_n<nang>``),
+    started from *init_from*'s latest field, mapped, if given."""
+    t0 = time.monotonic()
+    case = case or work / f"re{re_}_n{nang}"
     if case.exists():
         shutil.rmtree(case)
     case.mkdir(parents=True)
@@ -361,6 +373,9 @@ def run_level(re_: float, nang: int, work: Path, end_time: int, n_proc: int) -> 
     write_case(case, re_, end_time)
     of.convert(case, msh, keep_orientation=sj > 0)
     check = of.check_mesh(case)
+    if init_from is not None:
+        of.foam(f"mapFields {Path(init_from).resolve()} -consistent -sourceTime latestTime",
+                case, "log.mapFields", mounts=[Path(init_from).resolve()])
     log = of.run_solver(case, "simpleFoam", n_proc=n_proc)
     steps = re.findall(r"^Time = (\d+)", log, re.M)
     cc, vol, p, U = _fields(case)
@@ -375,6 +390,8 @@ def run_level(re_: float, nang: int, work: Path, end_time: int, n_proc: int) -> 
             "converged": "solution converged in" in log,
             **fr, "re_bulk": re_b, "f": f, "f_ito": ito(re_b), "f_err_ito": f / ito(re_b) - 1,
             "fc_over_fs": f / (64 / re_b),
+            "init_from": None if init_from is None else f"nang {MAP_FROM[nang]}, mapped",
+            "wall_s": time.monotonic() - t0,
             "turn_agreement": fr["f_per_pair"][-1] / fr["f_per_pair"][GATED_PAIR] - 1}
 
 
@@ -451,14 +468,38 @@ def main(argv=None) -> dict:
     for re_ in args.res:
         for nang in args.levels:
             r = stored.run_level(store, f"re{re_}_n{nang}",
-                                 lambda re_=re_, nang=nang: run_level(
-                                     re_, nang, args.work, args.end_time, args.n_proc),
+                                 lambda re_=re_, nang=nang: _mapped_level(store, re_, nang, args),
                                  args.work / f"re{re_}_n{nang}", args.keep_work)
             print(table([r]), flush=True)
     rich = analyse(store.levels())
     store.put_extra("richardson_f", rich)
     print(table(store.levels()), flush=True)
     return rich
+
+
+def _mapped_level(store, re_: int, nang: int, args) -> dict:
+    """Level (re_, nang), started from its ``MAP_FROM`` level's field if
+    it has one.  That source is solved again in ``work/`` and deleted
+    afterwards; its f against the stored level's is kept in extras."""
+    src_nang = MAP_FROM.get(nang)
+    if src_nang is None:
+        return run_level(re_, nang, args.work, args.end_time, args.n_proc)
+    src = args.work / f"re{re_}_n{src_nang}_source"
+    s = run_level(re_, src_nang, args.work, args.end_time, args.n_proc, case=src)
+    ref = store.level(f"re{re_}_n{src_nang}")
+    sources = dict(store.data.get("extra", {}).get("map_sources", {}))
+    sources[f"re{re_}_n{nang}"] = {
+        "nang": src_nang, "steps": s["steps"], "converged": s["converged"], "f": s["f"],
+        "wall_s": s["wall_s"],
+        "f_vs_stored": None if ref is None else s["f"] / ref["f"] - 1}
+    store.put_extra("map_sources", sources)
+    print(f"[re={re_} nang={src_nang} source] f {s['f']:.5f}, {s['steps']} steps, "
+          f"{s['wall_s'] / 60:.0f} min", flush=True)
+    try:
+        return run_level(re_, nang, args.work, args.end_time, args.n_proc, init_from=src)
+    finally:
+        if not args.keep_work:
+            shutil.rmtree(src, ignore_errors=True)
 
 
 if __name__ == "__main__":
