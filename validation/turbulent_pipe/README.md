@@ -20,8 +20,8 @@ default).
 | Driving | `meanVelocityForce`, U_b = 1 m/s.  ν = U_b D / Re_b |
 | Model | `kOmegaSST`, steady `simpleFoam`, `linearUpwind` |
 | Wall-resolved (`lowre_*`) | the wall cell 1 viscous unit high at McKeon's u_τ (`first_cell`), radial growth ≤ 1.15.  Walls: k = 0, `omegaWallFunction`, `nutLowReWallFunction` |
-| Wall functions (`wf_*`) | the wall cell 100 viscous units high, its centre near y⁺ 50.  `kqRWallFunction`, `omegaWallFunction`, `nutkWallFunction` |
-| Sensitivity (`wfu_*`, `wfs_*`) | the `wf` meshes with `nutUWallFunction` / `nutUSpaldingWallFunction` |
+| Wall functions (`wfs_*`, gated) | the wall cell 100 viscous units high, its centre near y⁺ 50.  `kqRWallFunction`, `omegaWallFunction`, `nutUSpaldingWallFunction` |
+| Wall functions, reported (`wf_*`, `wfu_*`) | the same meshes with OpenFOAM's standard `nutkWallFunction`, and with `nutUWallFunction` |
 | Re_b | 19 000 and 37 700 (the DNS at Re_τ 550 and 1000), and 10⁵ (f only) |
 | Levels | lowre_550 at k = 1, 2, 4 (`refined`).  lowre_1000 and lowre_1e5 at k = 2.  The wall-function cases at k = 1 |
 

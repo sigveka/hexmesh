@@ -1,8 +1,9 @@
 # Results: fully developed turbulent pipe flow, k-ω SST
 
-**Status: in progress.**  Task 0049 is blocked on its questions for
-design.  The U_c/U_b gate fails, and so do both of the wall-function
-gates.
+**Status: accepted** (task 0049; design answers 2026-11-06).  The mesh's
+part is gated: f, and mesh convergence.  The turbulence model's part is
+reported: U_c/U_b and u⁺ against the DNS, and the standard wall
+functions.
 
 - **Run:** 2026-11-06, with OpenFOAM v2406 (Docker
   `opencfd/openfoam-default:2406`) and gmsh 4.12.1, at hexmesh 42357ca
@@ -17,14 +18,28 @@ gates.
 
 ## Gates
 
-| case | level | first-cell y⁺ (max) | Re_τ | f vs McKeon | gate | U_c/U_b vs DNS | gate |
-|---|---|---|---|---|---|---|---|
-| lowre_550 | k = 4 | 0.12 | 553 | +2.41 % | 3 %: **pass** | −3.98 % | 3 %: **fail** |
-| lowre_1000 | k = 2 | 0.24 | 997 | −0.55 % | 3 %: **pass** | −4.68 % | 3 %: **fail** |
-| lowre_1e5 | k = 2 | 0.24 | 2364 | −1.60 % | 3 %: **pass** | — | |
-| wf_550 | k = 1 | 46.5 | 527 | −7.26 % | 5 %: **fail** | −7.64 % | 3 %: **fail** |
-| wf_1000 | k = 1 | 47.2 | 963 | −7.08 % | 5 %: **fail** | −6.71 % | 3 %: **fail** |
-| wf_1e5 | k = 1 | 47.6 | 2296 | −7.22 % | 5 %: **fail** | — | |
+| quantity | value | gate | verdict |
+|---|---|---|---|
+| f, lowre_550 (k = 4, first-cell y⁺ 0.12) | +2.41 % | within 3 % of McKeon | pass |
+| f, lowre_1000 (k = 2, y⁺ 0.24) | −0.55 % | within 3 % | pass |
+| f, lowre_1e5 (k = 2, y⁺ 0.24) | −1.60 % | within 3 % | pass |
+| f, wfs_550 / wfs_1000 / wfs_1e5 (Spalding, y⁺ ≈ 48) | −0.37 / −2.04 / −3.27 % | within 5 % | pass |
+| f, lowre_550, k = 1, 2, 4 | order 0.84, GCI 2.7 % | Richardson converging | pass |
+| U_c/U_b, lowre_550, k = 1, 2, 4 | order 0.98, GCI 0.1 % | Richardson converging | pass |
+
+f **converges slowly**, from below: its extrapolation is +4.6 % from
+McKeon (+3.4 % from the DNS's f).  The gate applies to the finest level,
+as the task set it.
+
+## Reported (not gated)
+
+| quantity | value | note |
+|---|---|---|
+| U_c/U_b, lowre_550 (k = 4) | −3.98 % from the DNS | 3 % comparison **missed**: k-ω SST's weak outer wake, a model bias (mesh-converged, GCI 0.1 %) |
+| U_c/U_b, lowre_1000 (k = 2) | −4.68 % | missed, as above |
+| f, wf (nutkWallFunction), Re_b 19 000 / 37 700 / 10⁵ | −7.26 / −7.08 / −7.22 % | under-predicts by about 7 %: `docs/integrations/openfoam.md` |
+| f, wfu (nutUWallFunction) | −5.34 / −6.53 / −7.29 % | |
+| U_c/U_b, every wall-function variant | −6.4 to −7.6 % | |
 
 Against the DNS's own f, lowre_550 at k = 4 is +1.22 % and lowre_1000 is
 −0.48 %.
@@ -61,12 +76,12 @@ slightly high at y⁺ 100.  The wake is weaker than the DNS's, by about
 1 u⁺ at the centre.  That is the U_c deficit.  `results.json` holds the
 full profiles.
 
-## Wall-function sensitivity (reported, not gated)
+## Wall functions
 
-The meshes and the k and ω wall functions are the same as `wf_*`; only
-the nut wall function changes.
+The meshes and the k and ω wall functions are the same for all three;
+only the nut wall function changes.
 
-| Re_b | nutkWallFunction (gated) | nutUWallFunction | nutUSpaldingWallFunction |
+| Re_b | nutkWallFunction | nutUWallFunction | nutUSpaldingWallFunction (gated) |
 |---|---|---|---|
 | 19 000 | −7.26 % | −5.34 % | −0.37 % |
 | 37 700 | −7.08 % | −6.53 % | −2.04 % |

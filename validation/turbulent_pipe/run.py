@@ -26,11 +26,11 @@ velocity to U_b.  Steady ``simpleFoam``; post-processing in Python.
 - **lowre**: wall-resolved, the wall cell 1 viscous unit high at the
   design u_τ (``first_cell``; the achieved y⁺ is measured);
 - **wf**: wall functions (``kqRWallFunction``, ``omegaWallFunction``,
-  ``nutkWallFunction``: OpenFOAM's standard pairing, the gated variant),
-  the wall cell 100 viscous units high (its centre near y⁺ 50);
-- **wfu**, **wfs**: the same with ``nutUWallFunction`` and
-  ``nutUSpaldingWallFunction``, the wall function's sensitivity
-  (reported, not gated).
+  ``nutkWallFunction``: OpenFOAM's standard pairing, reported), the wall
+  cell 100 viscous units high (its centre near y⁺ 50);
+- **wfu**, **wfs**: the same with ``nutUWallFunction`` (reported) and
+  ``nutUSpaldingWallFunction`` (the gated wall-function variant, task
+  0049's design answer Q3).
 
 lowre_550 runs at k = 1, 2, 4 (``refined(k)``: nang, nrad and the axial
 layers ×k, the radial growth its k-th root, so the wall cell shrinks too).
@@ -96,8 +96,8 @@ CASES = {
     "wf_1000": dict(re_b=37700, dns=1000, wall_yplus=100, wall="wf", levels=(1,)),
     "wf_1e5": dict(re_b=1e5, dns=None, wall_yplus=100, wall="wf", levels=(1,)),
 }
-# the nut wall function's sensitivity: the same meshes, velocity-based
-# (nutU) and Spalding's continuous law (nutUSpalding) in place of nutk
+# the same meshes with the velocity-based nutU and Spalding's continuous
+# law (nutUSpalding, the gated variant) in place of nutk
 for _re in ("550", "1000", "1e5"):
     for _w in ("wfu", "wfs"):
         CASES[f"{_w}_{_re}"] = dict(CASES[f"wf_{_re}"], wall=_w)
@@ -480,30 +480,46 @@ def table(levels: list[dict]) -> str:
     return "\n".join(lines)
 
 
+# The gated wall treatments (task 0049, design answers 2026-11-06): the
+# mesh's part is gated, the turbulence model's reported.  The validated
+# wall-function variant is Spalding's law; nutk and nutU are reported.
+F_GATE = {"lowre": 0.03, "wfs": 0.05}
+UC_LIMIT = 0.03                 # U_c/U_b against the DNS: reported (SST's wake)
+
+
 def recheck(data: dict) -> list[dict]:
-    """The gates from ``results.json`` (task 0093): f within 3 % of
-    McKeon (wall-resolved, finest level) or 5 % (wall functions); U_c/U_b
-    within 3 % of the DNS.  Richardson rows for lowre_550's f and U_c;
-    the wall-function sensitivity cases (wfu, wfs) reported."""
-    levels = {lv["name"]: lv for lv in data["levels"]}
+    """The gates from ``results.json`` (task 0049, design answers Q1-Q3):
+    f within 3 % of McKeon (wall-resolved, finest level) and 5 %
+    (Spalding wall functions); lowre_550's f and U_c/U_b converging under
+    refinement (GCI reported).  U_c/U_b against the DNS, and the nutk and
+    nutU wall functions, are reported."""
     rich = analyse(data["levels"])
-    out = [stored.row(f"lowre_550 {q} (k = 1, 2, 4)", rich=rich[q]) for q in ("f", "uc_over_ub")
-           if q in rich]
+    out = []
+    for q in ("f", "uc_over_ub"):
+        if q in rich:
+            r = rich[q]
+            note = f"GCI {r['gci_fine']:.2%}" if r["status"] == "converging" else r["note"]
+            if q == "f" and r["status"] == "converging":
+                ext = r["extrapolated"] / mckeon(CASES["lowre_550"]["re_b"]) - 1
+                note += f"; extrapolated {ext:+.2%} from McKeon (converging slowly)"
+            out.append(stored.row(f"lowre_550 {q} (k = 1, 2, 4)", rich=r,
+                                  gate="converging", ok=r["status"] == "converging",
+                                  note=note))
     for name in sorted({lv["case"] for lv in data["levels"]}):
         c = CASES[name]
         lv = max((x for x in data["levels"] if x["case"] == name), key=lambda x: x["k"])
-        gated = c["wall"] in ("lowre", "wf")
-        lim = 0.03 if c["wall"] == "lowre" else 0.05
+        lim = F_GATE.get(c["wall"])
         out.append(stored.row(f"{name} f (k = {lv['k']})",
-                              gate=f"within {lim:.0%} of McKeon" if gated else None,
-                              ok=abs(lv["f_err_mckeon"]) <= lim if gated else None,
+                              gate=f"within {lim:.0%} of McKeon" if lim else None,
+                              ok=abs(lv["f_err_mckeon"]) <= lim if lim else None,
                               value=f"{lv['f_err_mckeon']:+.2%}",
                               note=f"y+ first {lv['yplus_first_max']:.2f}"))
         if "uc_err" in lv:
+            within = abs(lv["uc_err"]) <= UC_LIMIT
             out.append(stored.row(f"{name} U_c/U_b (k = {lv['k']})",
-                                  gate="within 3 % of the DNS" if gated else None,
-                                  ok=abs(lv["uc_err"]) <= 0.03 if gated else None,
-                                  value=f"{lv['uc_err']:+.2%}"))
+                                  value=f"{lv['uc_err']:+.2%}",
+                                  note=f"3 % comparison with the DNS: "
+                                       f"{'within' if within else 'missed'}"))
     return out
 
 

@@ -1,6 +1,6 @@
 # 0049 — Validation: fully developed turbulent pipe flow (RANS, k-ω SST)
 
-- **Status:** ready (design answered Q1–Q3, 2026-11-06)
+- **Status:** done
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (its "turbulent pipe DNS" case); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V2 (DNS profiles; V4 friction-factor correlation as secondary)
 - **Features:** `section:circle`, `straight`
@@ -117,6 +117,18 @@ are the model's, not the mesh's.
   stopped changing at the 12th digit by step 6000.
   `dpdx_drift_50` (the relative change over the last 50 steps) is
   stored per level as the convergence measure.
+- **After the design answers (2026-11-06):**
+  - `recheck` gates f (lowre at 3 %, wfs at 5 %, finest level) and
+    Richardson `converging` for lowre_550's f and U_c/U_b.
+  - The f row carries the GCI and the +4.6 % extrapolation.
+  - U_c/U_b, u⁺, and the nutk and nutU variants are reported rows, with
+    "3 % comparison: missed" where it applies.
+  - No reruns: the stored results already held every gated quantity.
+  - `case.json` is `accepted`.
+  - The nutk warning is in `docs/integrations/openfoam.md` (Known
+    quirks).
+  - No source for SST's centreline deficit was at hand, so none is
+    cited.
 
 ## Questions for design
 
@@ -179,23 +191,30 @@ its result is known.
 
 ## Outcome
 
-_Blocked on Q1–Q3; the runs and results are complete._
+**Done, accepted** (on the design answers above).
 
 - **Files:**
   - `validation/turbulent_pipe/`: `run.py`, `README.md`, `RESULTS.md`,
     `case.json`, `results.json`, and `data/` (2 DNS files with a README,
     CC-BY-4.0);
   - `docs/references.bib` (the dataset);
-  - `docs/integrations/openfoam.md` (the periodic pipe).
+  - `docs/integrations/openfoam.md`: the periodic pipe, and the nutk
+    under-prediction.
+- **Gates (all pass):**
+  - f within 3 % of McKeon: +2.41 % (Re_τ 550, k = 4), −0.55 %, −1.60 %;
+  - f with Spalding wall functions within 5 %: −0.37, −2.04, −3.27 %;
+  - lowre_550 f and U_c/U_b converging: orders 0.84 and 0.98, GCI 2.7 %
+    and 0.1 %.
 - **For RESEARCH §7 (k-ω SST, v2406, periodic pipe):**
 
   | Re_b (Re_τ) | variant | f vs McKeon | f vs DNS | U_c/U_b vs DNS | first-cell y⁺ |
   |---|---|---|---|---|---|
-  | 19 000 (550) | wall-resolved, k = 4 | +2.41 % (extrap. +4.6 %) | +1.22 % | −3.98 % | 0.12 |
-  | 37 700 (1000) | wall-resolved, k = 2 | −0.55 % | −0.48 % | −4.68 % | 0.24 |
+  | 19 000 (550) | wall-resolved, k = 4 | +2.41 % (extrap. +4.6 %) | +1.22 % | −3.98 % (missed, model) | 0.12 |
+  | 37 700 (1000) | wall-resolved, k = 2 | −0.55 % | −0.48 % | −4.68 % (missed, model) | 0.24 |
   | 10⁵ | wall-resolved, k = 2 | −1.60 % | — | — | 0.24 |
-  | 19 000 / 37 700 / 10⁵ | nutk wall functions | −7.26 / −7.08 / −7.22 % | −8.3 / −7.0 % | −7.6 / −6.7 % | 46–48 |
-  | same | Spalding | −0.37 / −2.04 / −3.27 % | | −7.2 / −6.4 % | 48 |
+  | 19 000 / 37 700 / 10⁵ | Spalding wall functions (gated) | −0.37 / −2.04 / −3.27 % | | −7.2 / −6.4 % | 48 |
+  | same | nutk wall functions (reported) | −7.26 / −7.08 / −7.22 % | −8.3 / −7.0 % | −7.6 / −6.7 % | 46–48 |
+  | same | nutU wall functions (reported) | −5.34 / −6.53 / −7.29 % | | −7.5 / −6.7 % | 48 |
 
 - **Run times (4 MPI processes):** the whole set took 2 h 50 min.
   lowre_550 at k = 4 (184k cells) took 15 400 SIMPLE steps and most of
@@ -204,5 +223,9 @@ _Blocked on Q1–Q3; the runs and results are complete._
   - the faceted wall: with R − r as the wall distance, the wall-resolved
     u⁺ read wrong by about a viscous unit at nang 12;
   - the nut wall function's large effect.
-- **Follow-ups:** the turbulent bend (0050) needs Q3's answer for its
-  wall treatment.
+- **Follow-ups (for design):**
+  - `advise` still rejects `wall.treatment = "wall-function"`
+    (`advice_wall_function_unsupported`, decision 0040).  With this case
+    accepted, that can be lifted for Spalding's law, at y⁺ ≈ 50 in pipe
+    flow.
+  - The turbulent bend (0050) can use the Spalding set.

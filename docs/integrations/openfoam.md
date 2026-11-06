@@ -138,6 +138,19 @@ All *verified* on v1912, 2026-10-25, on `examples/insulated_pipe`
 
 ## Known quirks
 
+- **`nutkWallFunction` under-predicts f by about 7 % in fully developed
+  pipe flow at y⁺ ≈ 45** (v2406 in Docker, `kOmegaSST`, 2026-11-06,
+  task 0049).  *Verified* in `validation/turbulent_pipe` (periodic
+  pipe, wall cell 100 viscous units high, centre at y⁺ 46–48).  With
+  OpenFOAM's standard set (`kqRWallFunction`, `omegaWallFunction`,
+  `nutkWallFunction`), f is −7.26 / −7.08 / −7.22 % from McKeon et al.
+  at Re_b 19 000 / 37 700 / 10⁵.  `nutUWallFunction` gives −5.3 / −6.5 /
+  −7.3 %.  **`nutUSpaldingWallFunction` gives −0.37 / −2.04 / −3.27 %,
+  and is the validated wall-function variant.**  Ring resolution (nrad
+  3–12) and nang (12–48) changed f by ≤ 0.3 %, so it isn't the mesh.
+  U_c/U_b is 6.4–7.6 % low with all three; the wall-resolved model is
+  4 % low too (SST's wake).
+
 - **`gmshToFoam` turns valid warped hexes inside out** (v2406 in
   Docker, 2026-11-06, task 0074).  Its `correctOrientation`
   (`applications/utilities/mesh/conversion/gmshToFoam/gmshToFoam.C`

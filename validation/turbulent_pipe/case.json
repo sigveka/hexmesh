@@ -28,16 +28,24 @@
       "runner": "docker"
     }
   },
-  "status": "in progress",
+  "status": "accepted",
   "task": "0049",
   "gates": [
     {
-      "quantity": "friction factor $f$, finest level",
-      "limit": "within 3 % of McKeon et al. eq. 3.5 (wall-resolved); within 5 % (wall functions)"
+      "quantity": "friction factor $f$, wall-resolved, finest level (Re_b 19 000, 37 700, 10⁵)",
+      "limit": "within 3 % of McKeon et al. eq. 3.5"
     },
     {
-      "quantity": "$U_c / U_b$",
-      "limit": "within 3 % of the DNS at the matching $Re_\\tau$"
+      "quantity": "friction factor $f$, Spalding wall functions (`nutUSpaldingWallFunction`), Re_b 19 000, 37 700, 10⁵",
+      "limit": "within 5 % of McKeon et al. eq. 3.5"
+    },
+    {
+      "quantity": "mesh convergence of $f$ and $U_c/U_b$ (wall-resolved, Re_τ 550, k = 1, 2, 4)",
+      "limit": "Richardson status converging; order, extrapolation and GCI reported"
+    },
+    {
+      "quantity": "reported, not gated: $U_c/U_b$ against the DNS (3 % comparison, missed: k-ω SST's wake); u⁺(y⁺) against the DNS; the `nutkWallFunction` and `nutUWallFunction` variants",
+      "limit": "reported"
     }
   ]
 }
