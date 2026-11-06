@@ -99,7 +99,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0096](0096-pcf-line-numbers.md) | PCF errors name the line: record `Provenance.line` | done | 0040, 0032 |
 | [0097](0097-describe-and-preview.md) | `describe` and `preview`: what a network is, without GMSH | done | 0040, 0019 |
 | [0098](0098-advise-and-cli.md) | `advise` (the resolution advisor) and the `hexmesh` CLI | done | 0040 |
-| [0100](0100-trace-tied-rectangle-counts.md) | Trace why rectangle side counts are tied next to circles and shells | ready | 0041 |
+| [0100](0100-trace-tied-rectangle-counts.md) | Trace why rectangle side counts are tied next to circles and shells | done | 0041 |
 
 ### Validation
 
