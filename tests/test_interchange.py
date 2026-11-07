@@ -159,7 +159,7 @@ def test_model_rejects_foreign_classes_and_reused_ids():
 
 def test_builder_imports_no_importer():
     """Constraint 1: the builder and the model know no source format."""
-    for f in ("build.py", "model.py"):
+    for f in ("build.py", "graph.py", "insulation.py", "model.py"):
         tree = ast.parse((ROOT / "hexmesh" / "interchange" / f).read_text(encoding="utf-8"))
         mods = [n.module or "" for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)] + \
                [a.name for n in ast.walk(tree) if isinstance(n, ast.Import) for a in n.names]
