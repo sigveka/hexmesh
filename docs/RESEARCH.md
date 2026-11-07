@@ -1331,6 +1331,24 @@ amendment 3):
   Its gate path is covered by the unit tests and the recheck of stored
   values.
 
+**The refinement axis: use h/h₁ = 1/k, not N^(−1/3)** (task 0099,
+2026-11-07, `0dd0102`).  A representative cell size from the cell count,
+h = (V/N)^(1/3), assumes every direction refines by the same factor.
+`layered_conduction` refines only across the layers, not axially, so
+N^(−1/3) gave an observed order of 3.02 where the true order is 2.01.
+With h/h₁ = 1/k from the refinement factor, every observed order in the
+graphs equals the recheck's.  The rule: compute orders from the
+refinement factor of the directions that refine, never from N.  It
+applies anywhere an order or a class is read off cell counts (the
+advisor, task 0098, calibrates on k; keep it so).
+
+**The graphs** (task 0099): 16 PNGs, 35–83 kB each, deterministic
+(256-colour), drawn from `results.json` by `validation/tools/plots.py`.
+Each carries `sources` and `source-sha256` chunks, and a meta test fails
+on a stale one with the command to redraw it.  Not drawn: the time-step
+levels, `square_bend`'s rig-inlet sensitivity run, and its gapwise peak
+positions.
+
 ### 7.13 Turbulent pipe flow with k-ω SST (task 0049)
 
 Task 0049 (done 2026-11-06, `adc540f`): a periodic fully developed pipe,
