@@ -16,6 +16,7 @@ The builder and the model import no importer.  The part classes share names with
 """
 
 from .build import build, build_pieces
+from . import operations                 # noqa: F401  (registers the model operations)
 from .model import (
     FORMATTERS, PART_TYPES, Bend, Connection, InlineEquipment, Joint, Junction, Network,
     NetworkModel, Part, Polyline, Port, Provenance, Reducer, Section, Straight, Terminal,

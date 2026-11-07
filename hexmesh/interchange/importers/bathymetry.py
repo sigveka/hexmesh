@@ -45,6 +45,7 @@ import numpy as np
 
 from ...errors import ReaderError
 from ..model import NetworkModel, Polyline, Provenance
+from ..operations import import_entry
 
 
 # ---------------------------------------------------------------------------
@@ -117,6 +118,11 @@ def read_bathymetry(
     model.add_part(Polyline, [p.copy() for p in xyz], id="route", name="PIPE",
                    type="PIPE", provenance=Provenance(source=str(surface_path),
                                                       format="bathymetry", record="route"))
+    import_entry(model, "bathymetry",
+                 [str(surface_path)] + ([str(route)] if isinstance(route, (str, Path)) else []),
+                 {"burial_depth": burial_depth, "surface_format": surface_format,
+                  "route_format": route_format, "unit_scale": unit_scale,
+                  "max_segment_length": max_segment_length})
     return model
 
 

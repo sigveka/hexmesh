@@ -1,6 +1,6 @@
 # 0066 — Network interchange, stage 1b: select, cut, join, merge, and the public API
 
-- **Status:** ready (after 0065)
+- **Status:** done
 - **Decision:** [0032 — Network interchange](../decisions/0032-network-interchange.md) (items 3 and 6)
 - **Depends on:** 0065.
 
@@ -86,7 +86,62 @@ right after it and say so in *Outcome*.
 
 ## Agent notes
 
-_None yet._
+- **The builder connects ports by position.**  `Connection`s were
+  recorded but never read.  So a cut must reach the builder's graph:
+  - `graph._graph` and `graph._pieces` skip a pair of points that a
+    `model.cuts` entry separates.  They key on the two parts and the cut
+    ports' positions, which also covers a host straight split around a
+    tap.
+  - If the other points there still join the two sides, `_graph` raises
+    `model_cut_bypassed`.  That happens at a zero-length weld, where
+    three ports meet; `cut_at` cuts every pair.
+- **`join` requires the builder's tolerance.**  It accepts a wider
+  `tol=`, but the builder joins only within its own tolerance, so a
+  wider join needs `build(..., tol=...)` too.  This is documented.  The
+  builder doesn't join declared connections beyond its tolerance, since
+  placement would reject the gap anyway.
+- **Ports aren't shared between parts** in this model: each part has its
+  own, and neighbouring ones coincide.  So "split a port into two" is
+  `cut_at(port)`, which cuts the port from every port it meets.
+  `Port.tag` was added, so that `names=` can name both new open ends.
+- **Names:** an open end at a cut, or where a part outside the selection
+  meets the ones built, is named by its `tag`, or `<network>_<port id>`.
+  It isn't counted in `<network>_end<k>`.  Builds without cuts or
+  selections name exactly as before; the 43 test PCF fixtures are
+  unchanged.
+- **The selection's provenance:** the `Assembly` has no provenance field
+  (`Edge.origin` is diagnostic and never saved).  So `build` records the
+  selection in `model.report["selection"]` (parts and how), and the
+  acceptance's identical `to_dict()` holds.
+- **The log:**
+  - `import_entry` writes `{op: "import", args: {importer, source,
+    options}}`, with `read_pcf`'s arguments as given.
+  - `merge` stores the other model's whole log.  `replay` re-reads it
+    through `model.IMPORTERS`, a registry like `FORMATTERS`: PCF
+    registers one, bathymetry logs its import but registers none.
+  - `undo` keeps the state from before the first logged operation and
+    replays all but the last entry onto a copy of it.
+- **The merge acceptance needs identified components.**  PCF labels
+  without `COMPONENT-IDENTIFIER` count per type within a file
+  (`PIPE_1`, …).  Two sheets read separately then label differently from
+  one read of both, and labels are in `to_dict()`.  The test's sheets
+  carry `COMPONENT-IDENTIFIER`, as real isometric sheets do.  This is
+  stated in the GUIDE.
+- **`io.readers` → `interchange` stays in `ALLOWED_EDGES`.**  The design
+  note asked both to keep `hexmesh.io.readers` as a re-export and to
+  remove that edge, and a re-export is that edge.
+  - The modules are now `sys.modules` aliases of the importers, so
+    `hexmesh.io.readers.pcf is hexmesh.interchange.importers.pcf`.
+  - A new test (`test_io_readers_only_re_export`) checks they hold no
+    code of their own.
+  - The edge's reason says so.  The edge can go when the re-export
+    does (a deprecation is design's call).
+- **The CLI's `--spec`** is a `PipeSpec` description, or a list of
+  `{"nominal", "spec"}` per size.  A size the list lacks is the new code
+  `cli_spec_size_missing`.
+- **The helical-pipe driver** (task 0075, Q5) was prepared in the same
+  session, on the user's request.  Commit 8b863f0, separate from this
+  task.
 
 ## Questions for design
 
@@ -94,4 +149,51 @@ _None._
 
 ## Outcome
 
-_Not done._
+**Done.**
+
+**Commits:**
+- 9370c9b: readers moved to `interchange.importers`; the CLI reads PCF;
+- e9236ca: `build.py` split into `graph.py` (the parts graph, pieces,
+  roots, open ends) and `insulation.py` (planning).  No behaviour
+  change: all 43 test PCF fixtures, with and without insulation, give
+  identical `to_dict()` or errors before and after;
+- the operations commit.
+
+**Files:**
+- `hexmesh/interchange/` (`operations.py` and `importers/` new; `model.py`,
+  `graph.py`, `build.py`, `__init__.py`);
+- `hexmesh/io/readers/` (re-exports);
+- `hexmesh/agent/cli.py`, `hexmesh/errors.py` (14 codes);
+- tests: `test_interchange_operations.py` (new, 9),
+  `test_agent_advise.py` (the CLI PCF test replaces the "waits" test),
+  `test_architecture.py` (+1), `test_interchange.py`;
+- `API.md`, `docs/GUIDE.md`, `CHANGELOG.md`.
+
+**Acceptance:**
+- The valve fixture, cut at the valve, gives two selections and two
+  assemblies.  Both validate and mesh with hexes = predicted.  Joining
+  them back reproduces the original `to_dict()`.
+- Two sheets read separately, merged (`prefix=`) and joined, build the
+  same assembly as one read of both files.  The same holds with
+  `infer=True` instead of the join.
+- `select(from_port=…, up_to=[elbow])` builds pipe, valve, pipe and
+  elbow only.  A port in `up_to` isn't crossed.
+- `join` rejects a gap (0.01 m), a direction (180°) and a section
+  (0.1 against 0.05), each with the numbers.
+- The CLI reads a `.pcf` with `--spec`, and its validate, estimate and
+  describe results equal those of the saved assembly.
+- After cut + join, the log has three entries.  Replaying it on a fresh
+  import gives an identical model, and `undo()` after the join restores
+  the cut state.
+
+**Suite:** 3562 passed, 15 skipped, no failures (19 min).
+
+**Surprises:**
+- Connections were never used for connectivity (see the notes).
+- The design note's re-export and edge removal conflict.
+
+**Follow-ups (proposed):**
+- Stage 2's JSON-LD document should serialise `cuts`, `log` and
+  `Port.tag`.  The log is plain data already.
+- Whether to deprecate `hexmesh.io.readers`, which would remove the last
+  allowed edge.

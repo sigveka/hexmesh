@@ -562,6 +562,45 @@ Pipeline routes from `hexmesh.interchange.read_bathymetry` bend at
 their vertices without fittings, so build them with
 `to_assembly(pipe, kinks="spline")`.
 
+### Cutting, joining and merging networks
+
+The network model (`net.to_model()`) can be broken and put back
+together without re-importing:
+
+```python
+from hexmesh import interchange as ix
+
+m = ix.read_pcf("line.pcf").to_model()
+valve = m.parts["7"]                              # part ids are the file's component index
+m.cut_at(valve.ports[1], names=("valve_out", "pump_feed"))
+up = ix.build(m, pipe, m.select(from_port=m.parts["0"].ports[0]))
+down = ix.build(m, pipe, m.select(from_port=m.parts["8"].ports[0]))
+m.join(valve.ports[1], m.parts["8"].ports[0])     # back to the whole line
+m.undo()                                          # …or to the cut state again
+
+sheet = ix.NetworkModel.merge(ix.read_pcf("sheet1.pcf").to_model(),
+                              ix.read_pcf("sheet2.pcf").to_model(), prefix="s2_")
+```
+
+- **select** chooses parts to build: by id, by network, or everything
+  reachable from a port (`up_to=` stops at ports or parts).
+- **cut** / **cut_at** disconnect ports that meet.  Both sides become
+  open ends, named by `names=` or `<network>_<port id>`.
+- **join** connects two open ports.  It checks their distance, that they
+  face each other and that their sections match, and gives the numbers
+  when they don't.
+- **merge** unites two models.  Clashing ids are an error unless
+  `prefix=` renames the second model's.  `infer=True` connects the ends
+  that meet.
+- Each cut, join and merge is logged in `m.log`, after the importer's
+  entry.  `m.replay(fresh)` re-applies the log to a new import of the
+  same file, and `m.undo()` reverts the last operation.
+
+Two sheets of one isometric merge into the same assembly as reading
+both files together only if their components carry
+`COMPONENT-IDENTIFIER`.  Otherwise each file numbers its labels from 1
+(`PIPE_1`, …).
+
 ---
 
 ## Examples

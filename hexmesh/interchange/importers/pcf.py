@@ -93,6 +93,7 @@ import numpy as np
 from ...errors import HexmeshWarning, ReaderError
 from .. import model as _m
 from ..build import INSULATION, TOL_FLOOR, TOL_RELATIVE  # noqa: F401  (re-exported)
+from ..operations import import_entry
 
 INCH = 0.0254
 
@@ -242,6 +243,9 @@ class NetworkSpec:
     insulation_thickness: dict = field(default_factory=dict)
     coord_scale: float = 1e-3
     report:     dict = field(default_factory=dict)
+    #: how ``read_pcf`` was called (``{"source": [...], "options": {...}}``),
+    #: for the model's import log entry (task 0066)
+    read_args:  dict = field(default_factory=dict)
 
     def to_assembly(self, spec, *, axial_cell: float | None = None,
                     kinks: str = "error", tol: float | None = None,
@@ -414,6 +418,7 @@ def read_pcf(
     -------
     NetworkSpec
     """
+    called = _read_args(path, unit_scale, ignore_types, joint_max)     # as given
     if isinstance(path, (list, tuple)):
         if not path:
             raise ReaderError("read_pcf: empty list of files",
@@ -430,6 +435,7 @@ def read_pcf(
             net.pipelines.update(n.pipelines)
             net.insulation_thickness.update(n.insulation_thickness)
             net.connections += n.connections
+        net.read_args = called
         return net
     path = Path(path)
     if not path.exists():
@@ -526,7 +532,24 @@ def read_pcf(
                     else (n.get("END-POINT") or [None])[0])
             if nums and len(nums) >= 3:
                 n["_point"] = np.array(nums[:3], dtype=float) * scale
+    spec.read_args = called
     return spec
+
+
+def _read_args(path, unit_scale, ignore_types, joint_max) -> dict:
+    """``read_pcf``'s arguments as JSON data: the import log entry."""
+    paths = path if isinstance(path, (list, tuple)) else [path]
+    return {"source": [str(p) for p in paths],
+            "options": {"unit_scale": unit_scale, "joint_max": joint_max,
+                        "ignore_types": None if ignore_types is None else sorted(ignore_types)}}
+
+
+def _reread(source, options: dict) -> "_m.NetworkModel":
+    """``model.IMPORTERS["pcf"]``: the model of a logged import."""
+    opts = dict(options)
+    if opts.get("ignore_types") is not None:
+        opts["ignore_types"] = set(opts["ignore_types"])
+    return read_pcf(source[0] if len(source) == 1 else list(source), **opts).to_model()
 
 
 def _on_off(value) -> str | None:
@@ -795,6 +818,7 @@ def _format(part, at, name) -> str:
 
 
 _m.register_formatter(FORMAT, _format)
+_m.IMPORTERS[FORMAT] = _reread
 
 
 def _bend_radius_attr(value: str, bore: float, coord_scale: float) -> float | None:
@@ -835,6 +859,8 @@ def _to_model(net: NetworkSpec) -> "_m.NetworkModel":
     its index in the file), one ``Terminal`` per equipment connection, and
     the ``END-CONNECTION-PIPELINE`` points as declared connections."""
     model = _m.NetworkModel(report={"ignored": net.report.get("ignored", {})})
+    if net.read_args:
+        import_entry(model, FORMAT, net.read_args["source"], net.read_args["options"])
     for name, a in net.pipelines.items():
         model.networks[name] = _m.Network(
             name, kind="pipeline", insulation_thickness=net.insulation_thickness.get(name),

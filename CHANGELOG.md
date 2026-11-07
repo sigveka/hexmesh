@@ -59,6 +59,23 @@
 - Validation results now record each level's `nang`, `nrad`, `nang_w`
   and `nang_h`.
 
+**Cut, join and merge network models** (decision 0032; task 0066).
+
+- `NetworkModel.select`, `cut`, `cut_at`, `join` and
+  `NetworkModel.merge`: break a network at a valve, build each side, and
+  join it back.  Or merge two files and join them at their shared end.
+- Every cut, join and merge is logged in `model.log`, after the
+  importer's entry.  `replay` re-applies the log to a fresh import, and
+  `undo` reverts the last operation.
+- The builder leaves cut ports as open ends.  It names an end at a cut,
+  or at a selection's boundary, from its port.  Other names are
+  unchanged.
+- The readers moved to `hexmesh.interchange.importers`, and
+  `hexmesh.interchange` exports `read_pcf` and `read_bathymetry`.
+  `hexmesh.io.readers` still re-exports them.
+- `hexmesh validate | estimate | describe | preview | advise | build`
+  read a `.pcf` with `--spec SPEC.json`.
+
 **Shells around a rectangle keep unequal counts** (decision 0041,
 option B; task 0101).
 

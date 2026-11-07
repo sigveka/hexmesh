@@ -40,6 +40,7 @@ from .model import BUILDERS, Bend, NetworkModel, Reducer, Section, Straight, Ter
 from .graph import (
     TOL_FLOOR, TOL_RELATIVE, _Comp, _comps, _unit, _model_tolerance, _name, _Part, _ports,
     _source, _part_id, _describe, _graph, _joints_from, _pieces_hint, _check_tree,
+    _cut_index, _boundary_names,
     _end_names, _choose_root, _orient, _equipment_ends, _reject_unsupported, _pieces,
 )
 from .insulation import (
@@ -296,15 +297,20 @@ def build(model: NetworkModel, spec, selection=None, *, axial_cell: float | None
 
     Names: each fitting is labelled with its part's ``name``; open ends
     are ``<network>_end<k>`` (``k`` counts the network's open ends in model
-    order), or a terminal's name.
+    order), or a terminal's name.  An open end at a cut, or where a part
+    outside *selection* meets it, is named by its port's ``tag``, or
+    ``<network>_<port id>`` (task 0066), and isn't counted in ``k``.
+
+    Cuts (``model.cuts``): ports a cut separates aren't joined.
 
     *spec*: a ``PipeSpec``, or a callable of a ``Section`` (first
     parameter named ``section`` or annotated ``Section``), or of the
     nominal size in metres (``spec(bore)``).  *selection*: part ids to
-    build (default all); terminals outside it are ignored.  The other
-    options are as for ``NetworkSpec.to_assembly``.  ``model.report``
-    records the tolerance, the joints absorbed and the largest lateral
-    offset.
+    build (default all), e.g. a ``Selection`` from ``model.select``;
+    terminals outside it are ignored.  The other options are as for
+    ``NetworkSpec.to_assembly``.  ``model.report`` records the tolerance,
+    the joints absorbed, the largest lateral offset and, under
+    ``"selection"``, the parts built and how they were chosen.
     """
     from ..assembly import AssemblyError
     if kinks not in ("error", "spline"):
@@ -321,6 +327,9 @@ def build(model: NetworkModel, spec, selection=None, *, axial_cell: float | None
                  and (selection is None or t.id in selection)]
     asm, report = _build(model, comps, terminals, spec, axial_cell, kinks, tol, lc, inlet,
                          insulation, insulation_nrad)
+    if selection is not None:
+        report["selection"] = {"parts": sorted(selection),
+                               "how": dict(getattr(selection, "how", {}))}
     model.report = report
     return asm
 
@@ -348,7 +357,7 @@ def build_pieces(model: NetworkModel, spec, *, axial_cell: float | None = None,
     ignored = model.report.get("ignored", {})
     terminals = [t for t in model.parts.values() if isinstance(t, Terminal)]
     out, reports = {}, {}
-    for k, ks in enumerate(_pieces(comps, tol), start=1):
+    for k, ks in enumerate(_pieces(comps, tol, _cut_index(model)), start=1):
         sub = [comps[i] for i in ks]
         ids = {c.part.id for c in sub}
         pts = [x for c in sub for x in (c.start, c.end, c.branch, c.branch2) if x is not None]
@@ -408,9 +417,10 @@ def _build(model, comps, terminals, spec, axial_cell, kinks, tol, lc, inlet, ins
     parts = [_Part(c, l, _ports(c)) for c, l in zip(comps, labels) if c.kind != "joint"]
     if not parts:
         raise AssemblyError("the network model has only joints.", code="network_only_joints")
-    nodes, at_node = _graph(parts, joints, tol)
+    nodes, at_node = _graph(parts, joints, tol, _cut_index(model))
     _check_tree(parts, nodes, lambda: _pieces_hint(model, whole, tol))
-    names = _end_names(parts, nodes)
+    boundary = _boundary_names(model, parts, nodes, {c.part.id for c in whole}, tol)
+    names = {**_end_names(parts, nodes, skip=boundary), **boundary}
     equipment = _equipment_ends(model, terminals, parts, nodes, names, tol,
                                 lambda p: _describe(p.comp, p.label))
     root = _choose_root(parts, nodes, names, inlet, tol)

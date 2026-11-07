@@ -214,12 +214,36 @@ def _describe(c: _Comp, label: str) -> str:
     return describe(c.part, at, label)
 
 
-def _graph(parts: list[_Part], joints: list[_Comp], tol: float):
+def _cut_index(model: NetworkModel) -> dict:
+    """``model.cuts`` by part: {part a, part b} → [(the two ports' points)]
+    (task 0066)."""
+    owner = {q: part.id for part in model.parts.values() for q in part.ports}
+    out: dict[frozenset, list] = {}
+    for c in model.cuts:
+        pa, pb = model.ports[c.a].position, model.ports[c.b].position
+        if pa is not None and pb is not None:
+            out.setdefault(frozenset((owner[c.a], owner[c.b])), []).append((pa, pb))
+    return out
+
+
+def _blocked(cuts: dict, a, b, x, y, tol: float) -> bool:
+    """Whether a cut separates part *a* at point *x* from part *b* at *y*."""
+    if not cuts or a is b or a is None or b is None:
+        return False
+    return any(min(np.linalg.norm(x - u) + np.linalg.norm(y - v),
+                   np.linalg.norm(x - v) + np.linalg.norm(y - u)) <= 2 * tol
+               for u, v in cuts.get(frozenset((a.id, b.id)), ()))
+
+
+def _graph(parts: list[_Part], joints: list[_Comp], tol: float, cuts: dict | None = None):
     """Cluster port points into nodes: node → [(part, port)], and node →
     the joints at it.  A joint's two ends are one node (it is absorbed,
-    never a part), so a zero-length weld does not count as a component."""
+    never a part), so a zero-length weld does not count as a component.
+    Points that a cut separates (*cuts*, ``_cut_index``) aren't joined; a
+    cut that the other points join anyway raises ``model_cut_bypassed``."""
     from ..assembly import AssemblyError
     pts = [x for p in parts for x in p.ports] + [x for j in joints for x in (j.start, j.end)]
+    who = [p.comp.part for p in parts for _ in p.ports] + [j.part for j in joints for _ in (0, 1)]
     root = list(range(len(pts)))
 
     def find(i):
@@ -227,13 +251,23 @@ def _graph(parts: list[_Part], joints: list[_Comp], tol: float):
             root[i] = root[root[i]]
             i = root[i]
         return i
+    held = []
     for i in range(len(pts)):
         for j in range(i):
-            if np.linalg.norm(pts[i] - pts[j]) <= tol:
+            if np.linalg.norm(pts[i] - pts[j]) <= tol and \
+                    _blocked(cuts, who[i], who[j], pts[i], pts[j], tol):
+                held.append((i, j))
+            elif np.linalg.norm(pts[i] - pts[j]) <= tol:
                 root[find(i)] = find(j)
     base = sum(len(p.ports) for p in parts)
     for m in range(len(joints)):
         root[find(base + 2 * m + 1)] = find(base + 2 * m)
+    for i, j in held:
+        if find(i) == find(j):
+            raise AssemblyError(
+                f"the cut between {who[j].name} and {who[i].name} at {np.round(pts[i], 4)} "
+                f"is bypassed: other ports there still join them; cut_at() each port",
+                code="model_cut_bypassed", where={"source": _source(who[i])})
     ids: dict[int, int] = {}
     nodes: list[list[tuple[int, int]]] = []
     i = 0
@@ -280,7 +314,7 @@ def _joints_from(joints: list[_Comp], x: np.ndarray) -> list[_Comp]:
 
 def _pieces_hint(model, comps: list[_Comp], tol: float) -> str:
     """For a network that isn't one piece: its pieces, and what to do."""
-    pieces = _pieces(comps, tol)
+    pieces = _pieces(comps, tol, _cut_index(model))
     if len(pieces) < 2:
         return ""
     return (f".  The model holds {len(pieces)} unconnected pieces: "
@@ -344,11 +378,12 @@ def _entries(parts, nodes, root: tuple[int, int]) -> str | None:
     return None
 
 
-def _end_names(parts, nodes) -> dict[int, str | None]:
+def _end_names(parts, nodes, skip=()) -> dict[int, str | None]:
     """Open-end node → ``<network>_end<k>`` (model order), None for a part
-    in no network."""
+    in no network.  The nodes in *skip* (named by ``_boundary_names``)
+    aren't counted."""
     ends = sorted((k, q, n) for n, at in enumerate(nodes) if len(at) == 1
-                  for k, q in at)
+                  for k, q in at if n not in skip)
     count: dict[str, int] = {}
     out = {}
     for k, q, n in ends:
@@ -358,6 +393,37 @@ def _end_names(parts, nodes) -> dict[int, str | None]:
             continue
         count[pipe] = count.get(pipe, 0) + 1
         out[n] = f"{pipe}_end{count[pipe]}"
+    return out
+
+
+def _boundary_names(model: NetworkModel, parts, nodes, ids, tol: float) -> dict[int, str]:
+    """Open-end node → name, for the ends at a cut or at the boundary of
+    the parts built (*ids*): where, in the whole model, another part's
+    port meets this one (task 0066).  The name is the port's ``tag``, or
+    ``<network>_<port id>``."""
+    cut = {q for c in model.cuts for q in (c.a, c.b)}
+    out = {}
+    for n, at in enumerate(nodes):
+        if len(at) != 1:
+            continue
+        k, q = at[0]
+        part, x = parts[k].comp.part, parts[k].ports[q]
+        if part is None:
+            continue
+        mine = [(np.linalg.norm(model.ports[p].position - x), p) for p in part.ports
+                if model.ports[p].position is not None]
+        if not mine or min(mine)[0] > tol:
+            continue
+        pid = min(mine)[1]
+        outside = any(other.id not in ids and not isinstance(other, Terminal)
+                      and model.ports[r].position is not None
+                      and np.linalg.norm(model.ports[r].position - x) <= tol
+                      for other in model.parts.values() if other is not part
+                      for r in other.ports)
+        if pid in cut or outside:
+            port = model.ports[pid]
+            out[n] = _name(port.tag) if port.tag else \
+                f"{_name(part.system) or 'end'}_{_name(pid)}"
     return out
 
 
@@ -479,11 +545,12 @@ def _reject_unsupported(comps: list[_Comp]) -> None:
                                 where={"part": _part_id(c), "source": _source(c)})
 
 
-def _pieces(comps: list[_Comp], tol: float) -> list[list[int]]:
+def _pieces(comps: list[_Comp], tol: float, cuts: dict | None = None) -> list[list[int]]:
     """The connected pieces, as component indices in model order, pieces in
     the order of their first component.  Components connect where their
-    points meet within *tol*; a tap or wye also connects to a pipe its
-    centre lies on."""
+    points meet within *tol*, unless a cut separates them (*cuts*,
+    ``_cut_index``); a tap or wye also connects to a pipe its centre lies
+    on."""
     pts, owner = [], []
     for k, c in enumerate(comps):
         centre = c.centre if c.kind in ("seton", "ypiece") else None
@@ -502,7 +569,9 @@ def _pieces(comps: list[_Comp], tol: float) -> list[list[int]]:
     for i in range(len(pts)):
         near = np.flatnonzero(np.linalg.norm(pts[:i] - pts[i], axis=1) <= tol)
         for j in near:
-            root[find(owner[i])] = find(owner[j])
+            if not _blocked(cuts, comps[owner[i]].part, comps[owner[j]].part, pts[i], pts[j],
+                            tol):
+                root[find(owner[i])] = find(owner[j])
     for k, c in enumerate(comps):
         if c.kind not in ("seton", "ypiece") or c.centre is None:
             continue

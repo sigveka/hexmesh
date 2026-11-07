@@ -89,6 +89,12 @@ def register_formatter(fmt: str, fn: Callable) -> None:
 #: imported (``hexmesh.interchange`` imports it), so the model doesn't
 #: import the module that imports it (no module cycle; DESIGN §3.1).
 BUILDERS: dict[str, Callable] = {}
+#: the model operations (``select``, ``cut``, …), registered by
+#: ``hexmesh.interchange.operations`` the same way
+OPERATIONS: dict[str, Callable] = {}
+#: importer name → ``f(source, options) -> NetworkModel``: how ``replay``
+#: re-reads the model a merged log entry came from.  Importers register theirs.
+IMPORTERS: dict[str, Callable] = {}
 
 
 def describe(part: "Part", at=None, name: str | None = None) -> str:
@@ -113,7 +119,9 @@ class Port:
     ``flow``: "in" (flow enters the part here) or "out", when the source
     says; None otherwise.  ``insulation``: "on" / "off" overrides the
     part's status at this port; None follows the part.  ``equipment``: a
-    tag ``{"tag": …, "nozzle": …}`` (decision 0032, item 7)."""
+    tag ``{"tag": …, "nozzle": …}`` (decision 0032, item 7).  ``tag``: the
+    name of the open end this port becomes at a cut or a selection's
+    boundary (task 0066); None: ``<network>_<port id>``."""
 
     id:         str
     position:   np.ndarray | None
@@ -123,6 +131,7 @@ class Port:
     insulation: str | None = None
     equipment:  dict | None = None
     provenance: Provenance | None = None
+    tag:        str | None = None
 
 
 @dataclass(eq=False)
@@ -242,6 +251,29 @@ class Connection:
 
 
 @dataclass(eq=False)
+class Cut:
+    """Ports *a* and *b*, which meet, are not connected (task 0066): the
+    builder leaves both as open ends.  Made by ``NetworkModel.cut`` and
+    ``cut_at``, undone by ``join``."""
+
+    a: str
+    b: str
+
+
+class Selection(frozenset):
+    """Part ids to build (``NetworkModel.select``; ``build`` takes it like
+    any set of ids).  ``how``: the arguments that made it, by id, which
+    ``build`` records in ``model.report["selection"]``."""
+
+    how: dict
+
+    def __new__(cls, ids, how: dict | None = None):
+        self = super().__new__(cls, ids)
+        self.how = dict(how or {})
+        return self
+
+
+@dataclass(eq=False)
 class Network:
     """A named set of parts (a PCF pipeline, an IFC system).  ``kind``:
     what the source calls it ("pipeline", "system"), for messages.
@@ -263,13 +295,19 @@ class NetworkModel:
     """Ports, parts (in source order), connections and networks.
 
     ``report`` collects what the importer and the builder found (records
-    ignored, the tolerance used, joints absorbed, …)."""
+    ignored, the tolerance used, joints absorbed, …).  ``cuts``: the
+    ``Cut``s made.  ``log``: the operations applied, in order (task 0066;
+    decision 0032, settled 2026-10-29).  The importer writes the first
+    entry, and ``cut``, ``cut_at``, ``join`` and ``merge`` append theirs.
+    Each entry has ``op``, ``args`` (by id), ``time`` and ``version``."""
 
     ports:       dict = field(default_factory=dict)       # id → Port
     parts:       dict = field(default_factory=dict)       # id → Part, source order
     connections: list = field(default_factory=list)
     networks:    dict = field(default_factory=dict)       # name → Network
     report:      dict = field(default_factory=dict)
+    cuts:        list = field(default_factory=list)
+    log:         list = field(default_factory=list)
 
     # --- construction ------------------------------------------------------
 
@@ -322,6 +360,88 @@ class NetworkModel:
 
     def positions(self, part: Part) -> list:
         return [self.ports[p].position for p in part.ports]
+
+    # --- operations (task 0066; hexmesh.interchange.operations) --------------
+
+    def select(self, parts=None, *, network: str | None = None, from_port: str | None = None,
+               up_to=()) -> Selection:
+        """The parts to build, as a ``Selection``: give one of *parts* (ids),
+        *network* (a name) or *from_port*.
+
+        *from_port*: the parts reachable from that port, starting with its
+        own part and never crossing back through it.  *up_to*: port ids
+        not crossed, and part ids that are included but not crossed.
+        Attached terminals come with the parts.  Not logged; ``build``
+        records it in ``model.report["selection"]``.
+
+        >>> side = model.select(from_port="p0", up_to=["7"])   # up to the valve
+        >>> asm = build(model, spec, side)
+        """
+        return OPERATIONS["select"](self, parts, network, from_port, up_to)
+
+    def cut(self, connection) -> Cut:
+        """Disconnect two ports that meet: *connection* is a ``Connection``
+        or a pair of port ids.  Both become open ends, named by their
+        ``tag`` or ``<network>_<port id>``.  Logged.
+
+        >>> model.cut(("p13", "p14"))
+        """
+        return OPERATIONS["cut"](self, connection)
+
+    def cut_at(self, port: str, names: tuple | None = None) -> list:
+        """Disconnect *port* from every port it meets, and return the
+        ``Cut``s.  *names*: tags for (*port*, the other port), with one
+        other port only.  Logged.
+
+        >>> model.cut_at("p14", names=("to_valve", "from_valve"))
+        """
+        return OPERATIONS["cut_at"](self, port, names)
+
+    def join(self, port_a: str, port_b: str, *, tol: float | None = None) -> Connection:
+        """Connect two open ports, and return the declared ``Connection``.
+
+        The ports must lie within *tol* (default: the builder's tolerance
+        for this model), point in opposite directions (within
+        ``JOIN_ANGLE_TOL`` degrees) and have the same section; otherwise
+        ``AssemblyError`` gives the numbers.  A cut between them is undone.
+        The builder joins ports within its own tolerance, so a *tol* above
+        it needs ``build(..., tol=...)`` too.  Logged.
+
+        >>> model.join("p13", "p14")
+        """
+        return OPERATIONS["join"](self, port_a, port_b, tol)
+
+    @staticmethod
+    def merge(a: "NetworkModel", b: "NetworkModel", *, prefix: str | None = None,
+              infer: bool = False, tol: float | None = None) -> "NetworkModel":
+        """A new model: the union of *a* and *b*, which aren't changed.
+
+        Ids are kept.  A port or part id in both raises ``AssemblyError``
+        listing them, unless *prefix* is given: then *b*'s ids get it.
+        Networks of one name are united.  *infer*: add an inferred
+        ``Connection`` between each open port of *a* and one of *b* within
+        *tol*; otherwise connect them with ``join``.  The log is *a*'s, then
+        a ``merge`` entry holding *b*'s log.
+
+        >>> line = NetworkModel.merge(sheet1, sheet2, prefix="s2_")
+        >>> line.join("p9", "s2_p0")
+        """
+        return OPERATIONS["merge"](a, b, prefix, infer, tol)
+
+    def replay(self, source: "NetworkModel") -> "NetworkModel":
+        """Apply this model's logged operations (after its import entry) to
+        *source*, a fresh import of the same file, in place; return it.  A
+        ``merge`` entry re-reads its other model through its importer.
+
+        >>> fresh = read_pcf("line.pcf").to_model()
+        >>> model.replay(fresh)
+        """
+        return OPERATIONS["replay"](self, source)
+
+    def undo(self) -> None:
+        """Undo the last logged operation: the model as it was before it, by
+        replaying all but the last entry on the state before the first."""
+        OPERATIONS["undo"](self)
 
     # --- building ----------------------------------------------------------
 

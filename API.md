@@ -1127,8 +1127,8 @@ asm = ix.build(m, pipe)            # or m.to_assembly(pipe)
 
 | Class | Fields |
 |---|---|
-| `NetworkModel` | `ports` (id → `Port`), `parts` (id → `Part`, in order), `connections`, `networks` (name → `Network`), `report`; `add_port(position, **kw)`, `add_part(cls, positions_or_ports, **kw)`, `to_assembly`, `to_assemblies` |
-| `Port` | `id`, `position`, `direction`, `flow` ("in" / "out" / None), `section`, `insulation` ("on" / "off" / None: the part's), `equipment` (`{"tag", "nozzle"}`), `provenance` |
+| `NetworkModel` | `ports` (id → `Port`), `parts` (id → `Part`, in order), `connections`, `networks` (name → `Network`), `report`, `cuts`, `log`; `add_port(position, **kw)`, `add_part(cls, positions_or_ports, **kw)`, `to_assembly`, `to_assemblies`; the operations below |
+| `Port` | `id`, `position`, `direction`, `flow` ("in" / "out" / None), `section`, `insulation` ("on" / "off" / None: the part's), `equipment` (`{"tag", "nozzle"}`), `provenance`, `tag` (the open end's name at a cut or a selection's boundary) |
 | `Part` | `id`, `ports` (ids, in order), `name` (the fitting's label; default `<TYPE>_<id>`), `type`, `system` (its network), `insulation`, `attributes`, `provenance`, `reject` (why it can't be built) |
 | `Straight`, `InlineEquipment` | two ports; meshed as a straight |
 | `Bend` | two ports; `corner` (where the tangent legs meet), `stated_angle` (°), `stated_radius` (m), `stated_names` (how messages name them) |
@@ -1138,6 +1138,8 @@ asm = ix.build(m, pipe)            # or m.to_assembly(pipe)
 | `Terminal` | one port: names the open end there and marks it as equipment; `check_point` must agree with it |
 | `Polyline` | ports in order: straights, or a spline with `kinks="spline"` |
 | `Connection` | `a`, `b` (port ids), `origin` ("declared" / "inferred"), `distance`, `provenance` (the declaring record).  Recorded; the builder still joins parts by position within the tolerance |
+| `Cut` | `a`, `b` (port ids): ports that meet but are not connected |
+| `Selection` | a `frozenset` of part ids, with `how` (the arguments that made it) |
 | `Network` | `name`, `parts`, `kind` ("pipeline", "system": for messages), `insulation_thickness`, `attributes` |
 | `Section` | `shape` ("circle" / "rect"), `nominal`, `diameter`, `width`, `height`; `bore` = `nominal` |
 | `Provenance` | `source`, `format`, `record`, `record_id`, `line`, `guid`, `attributes` |
@@ -1148,6 +1150,45 @@ name=None)` applies it (default `part <id> (<TYPE> <name> at <point>)`).
 The PCF reader's formatter adds the file name and the line of the
 record's keyword: `component 1 (ELBOW ELBOW_1 at [1. 0. 0.], plant.pcf:7)`
 (task 0096).
+
+### Operations: select, cut, join, merge (task 0066)
+
+Networks can be broken and rebuilt without re-importing.  Ports
+*connect* where they meet within the builder's tolerance (as `build`
+joins them), unless a `Cut` separates them.
+
+| Method | Does | Logged |
+|---|---|---|
+| `select(parts=None, *, network=None, from_port=None, up_to=())` | one of: part ids; a network's parts; or the parts reachable from a port (its own part first, never back through it).  `up_to`: ports not crossed, and parts included but not crossed.  Terminals at the parts come along.  Returns a `Selection` for `build` | no |
+| `cut(connection)` | disconnect two connected ports (a `Connection`, or a pair of ids); returns the `Cut` | yes |
+| `cut_at(port, names=None)` | disconnect *port* from every port it meets; `names`: tags for (*port*, the other), with one other only | yes |
+| `join(port_a, port_b, *, tol=None)` | connect two open ports: within *tol* (default the builder's), facing each other within `JOIN_ANGLE_TOL` (1°), same section; undoes a cut between them; returns the declared `Connection` | yes |
+| `NetworkModel.merge(a, b, *, prefix=None, infer=False, tol=None)` | a new model, *a* ∪ *b*; shared ids are an error unless `prefix` renames *b*'s; networks of one name unite; `infer`: an inferred `Connection` between each pair of *a*'s and *b*'s open ports that meet | yes (*a*'s log, then a `merge` entry holding *b*'s) |
+| `replay(source)` | apply the log (after its import entry) to *source*, a fresh import, in place; a `merge` re-reads its other model through `IMPORTERS` | — |
+| `undo()` | revert the last logged operation (replays the rest on the state before the first) | — |
+
+```python
+m = ix.read_pcf("line.pcf").to_model()
+m.cut_at("p14", names=("valve_out", "pump_feed"))
+a = ix.build(m, pipe, m.select(from_port="p0"))
+b = ix.build(m, pipe, m.select(from_port="p15"))
+m.join("p14", "p15")                 # ix.build(m, pipe) is the original line again
+```
+
+- **The log.**  `model.log` is a list of `{op, args, time, version}`.
+  `args` names ports and parts by id.  The importer writes the first
+  entry: `{"op": "import", "args": {"importer": "pcf", "source": [...],
+  "options": {...}}}`.  `read_bathymetry` writes one too, but registers
+  no re-reader.
+- **Names.**  At a cut, or where a part outside the selection meets the
+  ones built, an open end is named by its port's `tag`, or
+  `<network>_<port id>`.  It isn't counted in the `<network>_end<k>`
+  numbering.
+- **Errors** (`AssemblyError`) carry the ids and, for `join`, the
+  numbers: `join_gap` (the distance), `join_direction` (the angle),
+  `join_section`, `join_port_not_open`.  A cut that other ports at the
+  same point bypass (a zero-length weld) is `model_cut_bypassed` at
+  build; `cut_at` separates them all.
 
 ### `build(model, spec, selection=None, *, axial_cell=None, kinks="error", tol=None, lc=None, inlet=None, insulation=False, insulation_nrad=2) -> Assembly`
 
@@ -1162,9 +1203,11 @@ and ports' status and the network's thickness.
 - `spec`: a `PipeSpec`, or a callable.  A callable whose first parameter
   is named `section` or annotated `Section` gets the port's `Section`;
   any other gets its nominal size in metres (`spec(bore)`, 0 if unknown).
-- `selection`: the part ids to build (default all).
+- `selection`: the part ids to build (default all), e.g. a `Selection`.
 - `model.report`: the tolerance, the joints absorbed or dropped, the
-  largest lateral offset.
+  largest lateral offset, and `selection` (the parts built, and how they
+  were chosen).  The `Assembly` itself doesn't record them, so a
+  selected build's `to_dict()` is unchanged by how it was chosen.
 
 ### `build_pieces(model, spec, *, …) -> dict[str, Assembly]`
 
@@ -1400,6 +1443,7 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `counts_mismatch` | cell counts that must match between two sections or sides do not | `AssemblyError` |
 | `cross_unsupported` | a network cross (four-way junction) | `AssemblyError` |
 | `curve_constraint_conflict` | a curve given two different transfinite constraints | `AssemblyError` |
+| `cut_names_ambiguous` | cut_at(names=…) on a port that meets more than one port | `AssemblyError` |
 | `description_format_invalid` | an assembly description in another format | `AssemblyError` |
 | `description_version_unsupported` | an assembly description of an unsupported version | `AssemblyError` |
 | `drum_axis_zero` | a drum with a zero axis | `EquipmentError` |
@@ -1441,6 +1485,10 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `interface_degree` | an interface already used as the inlet or outlet of another fitting | `AssemblyError` |
 | `interface_not_in_assembly` | an interface from another assembly | `AssemblyError` |
 | `interface_not_open` | an interface that is not an open end | `AssemblyError` |
+| `join_direction` | join: two ports that don't face each other | `AssemblyError` |
+| `join_gap` | join: two ports farther apart than the tolerance | `AssemblyError` |
+| `join_port_not_open` | join: a port already connected to another | `AssemblyError` |
+| `join_section` | join: two ports with different sections | `AssemblyError` |
 | `joint_between_fittings` | a joint between two non-straight fittings, with no run to absorb it | `AssemblyError` |
 | `junction_degree` | more than two components meet at a point that is not a junction part | `AssemblyError` |
 | `junction_insulation_differs` | a junction's legs carry different insulation thicknesses | `AssemblyError` |
@@ -1461,6 +1509,7 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `layout_corners_invalid` | a face whose corners are not one per quadrant | `LayoutError` |
 | `layout_not_supported` | a section layout that this fitting does not support yet | `LayoutNotSupported` |
 | `layout_unknown` | an unknown section layout | `SpecError` |
+| `merge_id_clash` | merge: a port or part id in both models, without prefix= | `AssemblyError` |
 | `mesh_not_all_hex` | a mesh with elements other than hexahedra | `StudyError` |
 | `mesh_order_invalid` | a mesh order other than 1 or 2 | `AssemblyError` |
 | `mesh_order_needs_volume` | order=2 asked of a surface or line mesh | `AssemblyError` |
@@ -1470,8 +1519,14 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `meshed_sj_low` | meshed corner scaled Jacobian low but allowed (warning) | `HexmeshWarning` |
 | `miter_cut_above_maximum` | each miter cut turns more than MAX_MITER_CUT | `AssemblyError` |
 | `miter_cut_below_minimum` | each miter cut turns less than MIN_MITER_CUT | `AssemblyError` |
+| `model_cut_bypassed` | a cut whose ports other ports still join | `AssemblyError` |
 | `model_id_duplicate` | a network-model port or part id already used | `AssemblyError` |
+| `model_id_unknown` | a port, part or network id not in the network model | `AssemblyError` |
 | `model_part_type_unknown` | a class that is not a network-model part type | `AssemblyTypeError` |
+| `model_port_already_open` | cut_at on a port that meets no other port | `AssemblyError` |
+| `model_ports_not_met` | cut: two ports that aren't connected | `AssemblyError` |
+| `model_replay_needs_source` | replay: a log entry no registered importer can re-read | `AssemblyError` |
+| `model_undo_empty` | undo with no logged operation | `AssemblyError` |
 | `msh_format_invalid` | a file that is not a valid .msh file | `ReaderError` |
 | `msh_has_no_recipe` | a .msh file without a hexmesh recipe | `AssemblyError` |
 | `n_layers_unresolvable` | no axial layer count up to the maximum passes the checks | `AssemblyError` |
@@ -1558,6 +1613,7 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `section_predicted_sj_below_minimum` | a section's predicted scaled Jacobian below PREDICTED_SJ_MIN | `AssemblyError` |
 | `section_quality_reject` | a section rejected by its quality check | `AssemblyError` |
 | `section_quality_warning` | a section's predicted quality is low (warning) | `HexmeshWarning` |
+| `selection_invalid` | select() without exactly one of parts, network and from_port | `AssemblyError` |
 | `seton_host_missing` | a set-on with no straight pipe through its centre | `AssemblyError` |
 | `seton_host_too_short` | a set-on's host pipe too short around the branch | `AssemblyError` |
 | `seton_offset_unsupported` | a tangential or offset set-on | `AssemblyError` |
