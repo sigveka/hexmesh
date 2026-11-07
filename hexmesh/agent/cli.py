@@ -20,6 +20,11 @@
     hexmesh advise    NETWORK --inputs inputs.json
     hexmesh apply     NETWORK --table table.json
     hexmesh build     NETWORK --out mesh.msh [--order 2]
+    hexmesh manifest                  # what all of this is: read it first (task 0102)
+
+``hexmesh`` is the console script a ``pip install`` (``-e .`` from a
+checkout) creates; ``python3 -m hexmesh.agent.cli`` is the same command
+without it.
 
 *NETWORK* is an ``Assembly`` description (``Assembly.save``, ``.json``),
 or a PCF file (``.pcf``) with ``--spec SPEC.json`` (task 0066).  *SPEC*
@@ -44,9 +49,8 @@ from pathlib import Path
 
 from hexmesh import Assembly, HexmeshError, HexmeshWarning, PipeSpec, __version__
 
-EXIT_OK, EXIT_INVALID, EXIT_FAILURE = 0, 1, 2
-COMMANDS = ("schema", "validate", "estimate", "describe", "preview", "advise", "apply",
-            "build")
+from ._commands import COMMANDS, EXIT_FAILURE, EXIT_INVALID, EXIT_OK  # noqa: F401 (re-export)
+from ._commands import parser as _commands_parser
 
 
 class _Failure(Exception):
@@ -118,6 +122,8 @@ def _validate(asm: Assembly) -> dict:
 
 def _run(args) -> tuple[bool, object]:
     from hexmesh import agent
+    if args.command == "manifest":
+        return True, agent.manifest()
     if args.command == "schema":
         return True, agent.schema()
     if args.command == "validate":
@@ -166,25 +172,7 @@ def _run(args) -> tuple[bool, object]:
 
 
 def _parser() -> argparse.ArgumentParser:
-    ap = argparse.ArgumentParser(prog="hexmesh", description=__doc__.strip().split("\n\n")[0])
-    sub = ap.add_subparsers(dest="command", required=True)
-    for name in COMMANDS:
-        p = sub.add_parser(name)
-        if name == "schema":
-            continue
-        p.add_argument("network", help="an Assembly description (.json, Assembly.save), "
-                                       "or a PCF file (.pcf) with --spec")
-        p.add_argument("--spec", help="for a .pcf network: a PipeSpec description, or a "
-                                      'list of {"nominal", "spec"} (JSON)')
-        if name == "advise":
-            p.add_argument("--inputs", help="the advisor's inputs (JSON)")
-        if name == "apply":
-            p.add_argument("--table", help="a resolution table from advise (JSON)")
-        if name in ("preview", "build"):
-            p.add_argument("--out", help="the file to write")
-        if name == "build":
-            p.add_argument("--order", type=int, default=1, choices=(1, 2))
-    return ap
+    return _commands_parser(__doc__.strip().split("\n\n")[0])
 
 
 def _emit(payload: dict) -> None:

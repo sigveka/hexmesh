@@ -1946,10 +1946,14 @@ True
 Bends, junctions and switches may be less accurate at the same counts.
 
 **`hexmesh`**, the console script (`hexmesh.agent.cli:main`;
-`hexmesh-study` is unchanged):
+`hexmesh-study` is unchanged).  `pip install` (`pip install -e .` from a
+checkout) creates it.  Without an install, run `python3 -m
+hexmesh.agent.cli COMMAND …` from the repository root, which is the same
+command:
 
 | command | output (`result`) |
 |---------|-------------------|
+| `hexmesh manifest` | the manifest (below): read it first |
 | `hexmesh schema` | the JSON Schema |
 | `hexmesh validate NET` | `{ok, errors, warnings, complete}`; `complete` is false when validation stopped at its first error |
 | `hexmesh estimate NET` | `{cells, exact, per_fitting}` |
@@ -1971,6 +1975,36 @@ Bends, junctions and switches may be less accurate at the same counts.
   the same input gives the same bytes.
 - Exit codes: 0 when `ok`; 1 for invalid input (including `validate`
   errors); 2 for a failure, such as an unreachable budget.
+
+## Manifest (`hexmesh.agent.manifest`, `hexmesh manifest`)
+
+An agent should read the manifest first (task 0102; decision 0040,
+amendment 2026-11-07).  `manifest()` returns one JSON document that says
+what hexmesh does, how its commands chain and what it accepts.  It is
+built from the registries, needs no GMSH session, is deterministic, and
+is strict JSON (no NaN).
+
+| key | holds |
+|---|---|
+| `version`, `manifest_version`, `schema` | hexmesh's version; the manifest's; the description format and version that `schema` describes |
+| `invocation`, `envelope` | the two ways to run a command; the output object and the exit codes |
+| `commands` | each subcommand, from the CLI's parser: its arguments (help, choices, defaults), its `result`, whether it needs GMSH |
+| `workflow` | the steps from a description or a PCF file to a mesh, each with its command and what it hands to the next |
+| `support` | per fitting type (`FITTING_TYPES`) and probe spec (circle, circle with shells, H and O-H rectangles, rectangular shells, a circle in a rectangle, `n_outer = 8`): `{"supported": true}`, or the `code`, `error` class and `message` the library raised; `Closure` is `"probed": false` |
+| `limits` | `LIMITS`: value, unit, kind, doc |
+| `errors` | `CODES`: each code's one-line rule |
+| `advise` | the report's format and version, the calibration's, the scope caveat, and per accuracy class its maximum error and, per calibrated series, its basis (measured, interpolated, extrapolated) and whether it is validated |
+| `validation` | every validation case (title, status, category, gates, levels, cells) and, per feature tag, the cases that cover it |
+| `conventions` | lengths as given, angles in degrees, the 8× rule, topology vs density, orders from k |
+
+The support matrix is **probed**: each fitting is built after a short
+`Straight` on each probe spec and run through `Assembly.validate()`.  The
+probe takes over a second, so its result is package data:
+`hexmesh/agent/support.json`, written by `python3 -m hexmesh.agent._probe`.
+`validation` is package data too: `hexmesh/agent/validation.json`,
+written by `python3 -m validation.tools.summary`.  The tests probe and
+summarise again, and fail with these commands when the library or a case
+has changed.
 
 ## Physical groups
 

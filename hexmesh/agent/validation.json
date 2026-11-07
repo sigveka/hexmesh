@@ -1,0 +1,407 @@
+{
+ "cases": {
+  "heated_pipe": {
+   "case": "heated_pipe",
+   "category": "V1",
+   "cells": [
+    10944,
+    295488
+   ],
+   "gates": [
+    {
+     "limit": "Mesh OK per region, every level",
+     "quantity": "checkMesh"
+    },
+    {
+     "limit": "within 0.1 % at every level",
+     "quantity": "energy balance"
+    },
+    {
+     "limit": "within 1 % of $48/11$",
+     "quantity": "extrapolated $\\mathrm{Nu}$"
+    },
+    {
+     "limit": "within 0.5 %",
+     "quantity": "extrapolated solid $\\Delta T$s"
+    }
+   ],
+   "levels": 3,
+   "status": "accepted",
+   "task": "0035",
+   "title": "Heated multi-layer pipe with laminar flow (full CHT)"
+  },
+  "heated_rod": {
+   "case": "heated_rod",
+   "category": "V1",
+   "cells": [
+    216,
+    55296
+   ],
+   "gates": [
+    {
+     "limit": "within 0.1 % of exact",
+     "quantity": "extrapolated centre excess $\\Delta T_0$"
+    }
+   ],
+   "levels": 10,
+   "status": "accepted",
+   "task": "0033",
+   "title": "Solid rod with uniform heat generation"
+  },
+  "helical_pipe": {
+   "case": "helical_pipe",
+   "category": "V3",
+   "cells": [
+    100416,
+    803328
+   ],
+   "gates": [
+    {
+     "limit": "within 0.1 % of $d$",
+     "quantity": "the spline's distance from the exact helix (32 points per turn)"
+    },
+    {
+     "limit": "within 5 % of Ito (1959)",
+     "quantity": "Darcy friction factor $f$, finest level, at Re 1800, 2400 and 3000"
+    },
+    {
+     "limit": "Richardson status converging; GCI reported",
+     "quantity": "mesh convergence of $f$ at each Re (nang 12, 16, 24)"
+    },
+    {
+     "limit": "reported",
+     "quantity": "reported, not gated: the digitised measured points (Fig. 12); f per pair of consecutive turns"
+    }
+   ],
+   "levels": 9,
+   "status": "in progress",
+   "task": "0075",
+   "title": "Laminar flow in a helical pipe (the SIET coil)"
+  },
+  "layered_conduction": {
+   "case": "layered_conduction",
+   "category": "V1",
+   "cells": [
+    456,
+    7296
+   ],
+   "gates": [
+    {
+     "limit": "Mesh OK, every region, every level",
+     "quantity": "checkMesh"
+    },
+    {
+     "limit": "$\\le 10^{-8}$ (relative; measured $5 \\times 10^{-12}$ to $1.2 \\times 10^{-9}$)",
+     "quantity": "energy balance through every interface and the outer wall"
+    },
+    {
+     "limit": "within 0.1 % of exact",
+     "quantity": "extrapolated $T_0$, $T(r_1)$, $T(r_2)$"
+    },
+    {
+     "limit": "$2 \\pm 0.2$",
+     "quantity": "L2 order per region"
+    }
+   ],
+   "levels": 6,
+   "status": "accepted",
+   "task": "0034",
+   "title": "Conduction through a heated multi-layer cylinder"
+  },
+  "mms": {
+   "case": "mms",
+   "category": "V1",
+   "cells": [
+    576,
+    606208
+   ],
+   "gates": [
+    {
+     "limit": "falls with refinement (orders reported, not gated)",
+     "quantity": "volume-weighted L2 error of T, every case"
+    }
+   ],
+   "levels": 51,
+   "status": "in progress",
+   "task": "0074",
+   "title": "Manufactured solutions for conduction on every fitting"
+  },
+  "poiseuille": {
+   "case": "poiseuille",
+   "category": "V1",
+   "cells": [
+    5184,
+    331776
+   ],
+   "gates": [
+    {
+     "limit": "within 0.1 % of exact",
+     "quantity": "extrapolated $\\Delta p$ and $u_\\mathrm{max}$"
+    },
+    {
+     "limit": "< 1 %",
+     "quantity": "fine-level |error|"
+    },
+    {
+     "limit": "decreases monotonically",
+     "quantity": "error over levels"
+    },
+    {
+     "limit": "$\\ge 1.5$",
+     "quantity": "$u_\\mathrm{max}$ observed order"
+    }
+   ],
+   "levels": 3,
+   "status": "accepted",
+   "task": "0020",
+   "title": "Laminar Hagen–Poiseuille pipe"
+  },
+  "rect_duct": {
+   "case": "rect_duct",
+   "category": "V1",
+   "cells": [
+    2000,
+    414720
+   ],
+   "gates": [
+    {
+     "limit": "within 0.1 % of exact",
+     "quantity": "Cartesian control: extrapolated $f\\,\\mathrm{Re}$ and $u_c$, every aspect ratio"
+    },
+    {
+     "limit": "< 1 %",
+     "quantity": "Cartesian control: finest-level |error|"
+    },
+    {
+     "limit": "$2 \\pm 0.2$, status converging (else the setup is suspect)",
+     "quantity": "Cartesian control: observed order"
+    },
+    {
+     "limit": "within 0.1 % of exact",
+     "quantity": "hexmesh H section (the accepted hexmesh result, task 0084): extrapolated $f\\,\\mathrm{Re}$ and $u_c$, every aspect ratio"
+    },
+    {
+     "limit": "< 1 %",
+     "quantity": "hexmesh H section: finest-level |error|"
+    },
+    {
+     "limit": "$2 \\pm 0.2$, status converging",
+     "quantity": "hexmesh H section: observed order"
+    },
+    {
+     "limit": "reported against the control, not gated (decision 0015 amendment 2)",
+     "quantity": "hexmesh O-H levels"
+    }
+   ],
+   "levels": 30,
+   "status": "accepted",
+   "task": "0071",
+   "title": "Laminar flow in rectangular ducts (aspect ratios 1, 2, 4)"
+  },
+  "square_bend": {
+   "case": "square_bend",
+   "category": "V3",
+   "cells": [
+    18576,
+    622080
+   ],
+   "gates": [
+    {
+     "limit": "Richardson status converging; GCI reported",
+     "quantity": "matched inlet (a plug 12.6 $D_h$ upstream, the length fitted to the X_H = −0.50 profile alone): peak $U/V_c$ on the symmetry plane at θ = 60° and 77.5°, k = 1, 2, 3"
+    },
+    {
+     "limit": "at the measured gapwise point",
+     "quantity": "matched inlet, finest level: the peak's gapwise position on the symmetry plane at every station from X_H = −0.25 on (its outward shift through the bend)"
+    },
+    {
+     "limit": "reported",
+     "quantity": "reported, not gated: X_H = −0.50 (the calibration station); $U/V_c$ RMS difference per station (5 % comparison, floor: the upstream mismatch); the rig inlet (plug at 7.5 $D_h$) as a sensitivity run"
+    }
+   ],
+   "levels": 6,
+   "status": "accepted",
+   "task": "0072",
+   "title": "Laminar flow in a 90° square-duct bend, Re 790"
+  },
+  "stenosis": {
+   "case": "stenosis",
+   "category": "V2",
+   "cells": [
+    122688,
+    981504
+   ],
+   "gates": [
+    {
+     "limit": "within 5 % of the DNS's $11.03\\,D$",
+     "quantity": "reattachment, by $u(0.48\\,D) = 0$ and by wall shear stress"
+    },
+    {
+     "limit": "within 2 % of the DNS peak",
+     "quantity": "centreline velocity, $x/D = -2 \\ldots 15$"
+    }
+   ],
+   "levels": 3,
+   "status": "accepted",
+   "task": "0032",
+   "title": "Smooth cosine constriction, Re = 500"
+  },
+  "stenosis_pulsatile": {
+   "case": "stenosis_pulsatile",
+   "category": "V2",
+   "cells": [
+    15336,
+    414072
+   ],
+   "gates": [
+    {
+     "limit": "within 5 % of the DNS, and above $3.65\\,u_c$",
+     "quantity": "throat centreline velocity at peak flow (p2, $x = 0$)"
+    },
+    {
+     "limit": "present, as in the DNS",
+     "quantity": "flow features of the paper's §3.1 (jet in acceleration, post-stenotic separation in late deceleration, upstream separation at $-1\\,D$ and $-2\\,D$, no permanent recirculation, laminar and axisymmetric)"
+    }
+   ],
+   "levels": 4,
+   "status": "accepted",
+   "task": "0068",
+   "title": "Pulsatile flow through the cosine constriction (Varghese et al., Part 2)"
+  },
+  "turbulent_pipe": {
+   "case": "turbulent_pipe",
+   "category": "V2",
+   "cells": [
+    576,
+    184320
+   ],
+   "gates": [
+    {
+     "limit": "within 3 % of McKeon et al. eq. 3.5",
+     "quantity": "friction factor $f$, wall-resolved, finest level (Re_b 19 000, 37 700, 10⁵)"
+    },
+    {
+     "limit": "within 5 % of McKeon et al. eq. 3.5",
+     "quantity": "friction factor $f$, Spalding wall functions (`nutUSpaldingWallFunction`), Re_b 19 000, 37 700, 10⁵"
+    },
+    {
+     "limit": "Richardson status converging; order, extrapolation and GCI reported",
+     "quantity": "mesh convergence of $f$ and $U_c/U_b$ (wall-resolved, Re_τ 550, k = 1, 2, 4)"
+    },
+    {
+     "limit": "reported",
+     "quantity": "reported, not gated: $U_c/U_b$ against the DNS (3 % comparison, missed: k-ω SST's wake); u⁺(y⁺) against the DNS; the `nutkWallFunction` and `nutUWallFunction` variants"
+    }
+   ],
+   "levels": 14,
+   "status": "accepted",
+   "task": "0049",
+   "title": "Fully developed turbulent pipe flow, k-ω SST"
+  },
+  "womersley": {
+   "case": "womersley",
+   "category": "V1",
+   "cells": [
+    7680,
+    491520
+   ],
+   "gates": [
+    {
+     "limit": "$\\le 1$ % of $u_c$; extrapolated within 0.3 %",
+     "quantity": "max profile error, finest level, every phase"
+    },
+    {
+     "limit": "amplitude within 1 %, phase within 2°",
+     "quantity": "axial pressure gradient, finest level"
+    },
+    {
+     "limit": "time error below space error at the finest level (or the split reported)",
+     "quantity": "time-step study"
+    },
+    {
+     "limit": "phase values change < 0.1 % between periods; periods reported",
+     "quantity": "periodicity"
+    }
+   ],
+   "levels": 4,
+   "status": "accepted",
+   "task": "0067",
+   "title": "Womersley flow (pulsatile laminar pipe flow)"
+  }
+ },
+ "features": {
+  "bend": [
+   "mms",
+   "square_bend"
+  ],
+  "duct-tap": [
+   "mms"
+  ],
+  "layers": [
+   "heated_pipe",
+   "layered_conduction",
+   "mms"
+  ],
+  "miter": [
+   "mms"
+  ],
+  "profiled-reducer": [
+   "mms",
+   "stenosis",
+   "stenosis_pulsatile"
+  ],
+  "projection": [
+   "mms"
+  ],
+  "section:circle": [
+   "heated_pipe",
+   "heated_rod",
+   "helical_pipe",
+   "layered_conduction",
+   "mms",
+   "poiseuille",
+   "stenosis",
+   "stenosis_pulsatile",
+   "turbulent_pipe",
+   "womersley"
+  ],
+  "section:rect": [
+   "mms",
+   "rect_duct",
+   "square_bend"
+  ],
+  "spline": [
+   "helical_pipe",
+   "mms"
+  ],
+  "stack-changes": [
+   "mms"
+  ],
+  "straight": [
+   "heated_pipe",
+   "heated_rod",
+   "helical_pipe",
+   "layered_conduction",
+   "mms",
+   "poiseuille",
+   "rect_duct",
+   "square_bend",
+   "stenosis",
+   "stenosis_pulsatile",
+   "turbulent_pipe",
+   "womersley"
+  ],
+  "tee": [
+   "mms"
+  ],
+  "transition": [
+   "mms"
+  ],
+  "wye": [
+   "mms"
+  ]
+ },
+ "format": "hexmesh.agent.validation",
+ "generated_by": "python3 -m validation.tools.summary (task 0102)",
+ "version": 1
+}

@@ -51,7 +51,7 @@ where = ["."]
 include = ["hexmesh*"]
 
 [tool.setuptools.package-data]
-"hexmesh.agent" = ["calibration.json"]   # advise's calibration (task 0098)
+"hexmesh.agent" = ["calibration.json", "support.json", "validation.json"]   # 0098, 0102
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

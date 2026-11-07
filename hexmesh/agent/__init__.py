@@ -25,6 +25,8 @@ package (``tests/test_architecture.py``).
   ``preview`` extra).
 - :func:`advise`: the resolution advisor, and :func:`apply`, which writes
   its resolution table into a description (task 0098).
+- :func:`manifest`: one JSON account of all of it, for an agent to read
+  first (task 0102).
 - ``hexmesh`` (``cli.main``): all of them as one command.
 
 The functions live in private modules (``_schema``, ``_describe``,
@@ -33,8 +35,10 @@ functions; ``python3 -m hexmesh.agent.schema`` is the one command.
 """
 
 from ._describe import describe
+from ._manifest import manifest
 from .advise import AdviceError, advise, apply
 from ._preview import preview
 from ._schema import dumps, schema
 
-__all__ = ["AdviceError", "advise", "apply", "describe", "dumps", "preview", "schema"]
+__all__ = ["AdviceError", "advise", "apply", "describe", "dumps", "manifest", "preview",
+           "schema"]

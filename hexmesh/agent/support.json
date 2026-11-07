@@ -1,0 +1,563 @@
+{
+ "fittings": {
+  "Bend": {
+   "probed": true,
+   "specs": {
+    "circle": {
+     "supported": true
+    },
+    "circle_in_rect": {
+     "supported": true
+    },
+    "circle_n_outer_8": {
+     "code": "section_not_supported",
+     "error": "AssemblyError",
+     "message": "Interface(inlet, pos=[0. 0. 0.]): assembly prototype supports n_outer=4 only, got 8: the n_outer=8 core centre patch has 8 sides and cannot bound a transfinite hex block",
+     "supported": false
+    },
+    "circle_shells": {
+     "supported": true
+    },
+    "rect_h": {
+     "supported": true
+    },
+    "rect_oh": {
+     "supported": true
+    },
+    "rect_shells": {
+     "supported": true
+    }
+   }
+  },
+  "Closure": {
+   "probed": false,
+   "why": "joins two existing interfaces of a loop (Assembly.close); checked there"
+  },
+  "Elbow": {
+   "probed": true,
+   "specs": {
+    "circle": {
+     "supported": true
+    },
+    "circle_in_rect": {
+     "code": "elbow_needs_circle",
+     "error": "AssemblyError",
+     "message": "fitting #1 Elbow(angle=90.0, schedule='long', n_layers=8, roll=0.0, axial_grading=1.0, toward=None): Elbow schedules are ASME pipe fittings, for circular pipes; use Bend(radius, angle, …) for a section with a rectangle",
+     "supported": false
+    },
+    "circle_n_outer_8": {
+     "code": "section_not_supported",
+     "error": "AssemblyError",
+     "message": "Interface(inlet, pos=[0. 0. 0.]): assembly prototype supports n_outer=4 only, got 8: the n_outer=8 core centre patch has 8 sides and cannot bound a transfinite hex block",
+     "supported": false
+    },
+    "circle_shells": {
+     "supported": true
+    },
+    "rect_h": {
+     "code": "elbow_needs_circle",
+     "error": "AssemblyError",
+     "message": "fitting #1 Elbow(angle=90.0, schedule='long', n_layers=8, roll=0.0, axial_grading=1.0, toward=None): Elbow schedules are ASME pipe fittings, for circular pipes; use Bend(radius, angle, …) for a section with a rectangle",
+     "supported": false
+    },
+    "rect_oh": {
+     "code": "elbow_needs_circle",
+     "error": "AssemblyError",
+     "message": "fitting #1 Elbow(angle=90.0, schedule='long', n_layers=8, roll=0.0, axial_grading=1.0, toward=None): Elbow schedules are ASME pipe fittings, for circular pipes; use Bend(radius, angle, …) for a section with a rectangle",
+     "supported": false
+    },
+    "rect_shells": {
+     "code": "elbow_needs_circle",
+     "error": "AssemblyError",
+     "message": "fitting #1 Elbow(angle=90.0, schedule='long', n_layers=8, roll=0.0, axial_grading=1.0, toward=None): Elbow schedules are ASME pipe fittings, for circular pipes; use Bend(radius, angle, …) for a section with a rectangle",
+     "supported": false
+    }
+   }
+  },
+  "MiterBend": {
+   "probed": true,
+   "specs": {
+    "circle": {
+     "supported": true
+    },
+    "circle_in_rect": {
+     "supported": true
+    },
+    "circle_n_outer_8": {
+     "code": "section_not_supported",
+     "error": "AssemblyError",
+     "message": "Interface(inlet, pos=[0. 0. 0.]): assembly prototype supports n_outer=4 only, got 8: the n_outer=8 core centre patch has 8 sides and cannot bound a transfinite hex block",
+     "supported": false
+    },
+    "circle_shells": {
+     "supported": true
+    },
+    "rect_h": {
+     "supported": true
+    },
+    "rect_oh": {
+     "supported": true
+    },
+    "rect_shells": {
+     "supported": true
+    }
+   }
+  },
+  "Reducer": {
+   "probed": true,
+   "specs": {
+    "circle": {
+     "supported": true
+    },
+    "circle_in_rect": {
+     "supported": true
+    },
+    "circle_n_outer_8": {
+     "code": "section_not_supported",
+     "error": "AssemblyError",
+     "message": "Interface(inlet, pos=[0. 0. 0.]): assembly prototype supports n_outer=4 only, got 8: the n_outer=8 core centre patch has 8 sides and cannot bound a transfinite hex block",
+     "supported": false
+    },
+    "circle_shells": {
+     "supported": true
+    },
+    "rect_h": {
+     "supported": true
+    },
+    "rect_oh": {
+     "supported": true
+    },
+    "rect_shells": {
+     "supported": true
+    }
+   }
+  },
+  "SplinePipe": {
+   "probed": true,
+   "specs": {
+    "circle": {
+     "supported": true
+    },
+    "circle_in_rect": {
+     "supported": true
+    },
+    "circle_n_outer_8": {
+     "code": "section_not_supported",
+     "error": "AssemblyError",
+     "message": "Interface(inlet, pos=[0. 0. 0.]): assembly prototype supports n_outer=4 only, got 8: the n_outer=8 core centre patch has 8 sides and cannot bound a transfinite hex block",
+     "supported": false
+    },
+    "circle_shells": {
+     "supported": true
+    },
+    "rect_h": {
+     "supported": true
+    },
+    "rect_oh": {
+     "supported": true
+    },
+    "rect_shells": {
+     "supported": true
+    }
+   }
+  },
+  "Straight": {
+   "probed": true,
+   "specs": {
+    "circle": {
+     "supported": true
+    },
+    "circle_in_rect": {
+     "supported": true
+    },
+    "circle_n_outer_8": {
+     "code": "section_not_supported",
+     "error": "AssemblyError",
+     "message": "Interface(inlet, pos=[0. 0. 0.]): assembly prototype supports n_outer=4 only, got 8: the n_outer=8 core centre patch has 8 sides and cannot bound a transfinite hex block",
+     "supported": false
+    },
+    "circle_shells": {
+     "supported": true
+    },
+    "rect_h": {
+     "supported": true
+    },
+    "rect_oh": {
+     "supported": true
+    },
+    "rect_shells": {
+     "supported": true
+    }
+   }
+  },
+  "Switch": {
+   "probed": true,
+   "specs": {
+    "circle": {
+     "code": null,
+     "error": "AttributeError",
+     "message": "'CircleShape' object has no attribute 'nang_w'",
+     "supported": false
+    },
+    "circle_in_rect": {
+     "code": null,
+     "error": "AttributeError",
+     "message": "'CircleShape' object has no attribute 'nang_w'",
+     "supported": false
+    },
+    "circle_n_outer_8": {
+     "code": null,
+     "error": "AttributeError",
+     "message": "'CircleShape' object has no attribute 'nang_w'",
+     "supported": false
+    },
+    "circle_shells": {
+     "code": null,
+     "error": "AttributeError",
+     "message": "'CircleShape' object has no attribute 'nang_w'",
+     "supported": false
+    },
+    "rect_h": {
+     "supported": true
+    },
+    "rect_oh": {
+     "supported": true
+    },
+    "rect_shells": {
+     "code": "switch_changes_shells",
+     "error": "AssemblyError",
+     "message": "fitting #1 Switch(length=0.2, n_layers=2, outlet=PipeSpec(core='fluid', layers=['fluid'])): Switch keeps the shells: the outlet's shells (names, outlines, nrad, mprg) must be the inlet's",
+     "supported": false
+    }
+   }
+  },
+  "Tee": {
+   "probed": true,
+   "specs": {
+    "circle": {
+     "supported": true
+    },
+    "circle_in_rect": {
+     "code": "junction_shells_not_circular",
+     "error": "AssemblyError",
+     "message": "Tee(run_length=None, branch_length=0.15, branch_radius=0.02, n_run=3, n_branch=3, n_turn=2, roll=0.0, toward=None, branch=None, face=None, margin=None, dome=None, sheet=None, n_wall=None, nrad=None, mprg=None) at Interface(#1, pos=[0.1 0.  0. ]): Tee: shell `box` is not circular; junction shells are circular only (decisions 0026, 0028)",
+     "supported": false
+    },
+    "circle_n_outer_8": {
+     "code": "block_vertices_not_distinct",
+     "error": "AssemblyError",
+     "message": "Tee(run_length=None, branch_length=0.15, branch_radius=0.02, n_run=3, n_branch=3, n_turn=2, roll=0.0, toward=None, branch=None, face=None, margin=None, dome=None, sheet=None, n_wall=None, nrad=None, mprg=None) at Interface(#1, pos=[0.1 0.  0. ]): block needs 8 distinct vertices, got (('A', 0, 0), ('A', 0, 1), ('A', 0, 2), ('A', 0, 3), ('A', 0, 4), ('A', 0, 5), ('A', 0, 6), ('A', 0, 7), ('Sa', 0, 0), ('Sa', 0, 1), ('Sa', 0, 2), ('Sa', 0, 3), ('Sa', 0, 4), ('Sa', 0, 5), ('Sa', 0, 6), ('Sa', 0, 7))",
+     "supported": false
+    },
+    "circle_shells": {
+     "supported": true
+    },
+    "rect_h": {
+     "supported": true
+    },
+    "rect_oh": {
+     "supported": true
+    },
+    "rect_shells": {
+     "code": "switch_changes_shells",
+     "error": "AssemblyError",
+     "message": "fitting #1 Tee(run_length=0.083, branch_length=0.15, branch_radius=None, n_run=3, n_branch=3, n_turn=2, roll=0.0, toward=None, branch=RectShape(half_w=0.02, half_h=0.02, nang_w=4, nang_h=4), face='wide', margin=2.0, dome=0.35, sheet=0.35, n_wall=3, nrad=1, mprg=1.0): Switch keeps the shells: the outlet's shells (names, outlines, nrad, mprg) must be the inlet's",
+     "supported": false
+    }
+   }
+  },
+  "Transition": {
+   "probed": true,
+   "specs": {
+    "circle": {
+     "supported": true
+    },
+    "circle_in_rect": {
+     "code": "switch_class_not_bridged",
+     "error": "AssemblyError",
+     "message": "fitting #1 Transition(outlet=PipeSpec(core='fluid', layers=['fluid']), length=0.2, n_layers=2, axial_grading=1.0): outlet spec differs from the inlet in shells: layer `box` present only at the inlet. That is switch class 1, which needs layer termination (task 0018); Transition keeps the layers",
+     "supported": false
+    },
+    "circle_n_outer_8": {
+     "code": "section_not_supported",
+     "error": "AssemblyError",
+     "message": "Interface(inlet, pos=[0. 0. 0.]): assembly prototype supports n_outer=4 only, got 8: the n_outer=8 core centre patch has 8 sides and cannot bound a transfinite hex block",
+     "supported": false
+    },
+    "circle_shells": {
+     "code": "switch_class_not_bridged",
+     "error": "AssemblyError",
+     "message": "fitting #1 Transition(outlet=PipeSpec(core='fluid', layers=['fluid']), length=0.2, n_layers=2, axial_grading=1.0): outlet spec differs from the inlet in shells: layer `wall` present only at the inlet. That is switch class 1, which needs layer termination (task 0018); Transition keeps the layers",
+     "supported": false
+    },
+    "rect_h": {
+     "supported": true
+    },
+    "rect_oh": {
+     "supported": true
+    },
+    "rect_shells": {
+     "code": "switch_class_not_bridged",
+     "error": "AssemblyError",
+     "message": "fitting #1 Transition(outlet=PipeSpec(core='fluid', layers=['fluid']), length=0.2, n_layers=2, axial_grading=1.0): outlet spec differs from the inlet in shells: layer `wall` present only at the inlet. That is switch class 1, which needs layer termination (task 0018); Transition keeps the layers",
+     "supported": false
+    }
+   }
+  },
+  "Wye": {
+   "probed": true,
+   "specs": {
+    "circle": {
+     "supported": true
+    },
+    "circle_in_rect": {
+     "code": "junction_shells_not_circular",
+     "error": "AssemblyError",
+     "message": "Wye(angle=60.0, run_length=0.3, branch_length=0.3, n_run=None, n_branch=None, n_split=None, roll=0.0, toward=None) at Interface(#1, pos=[0.1 0.  0. ]): Wye: shell `box` is not circular; junction shells are circular only (decisions 0026, 0028)",
+     "supported": false
+    },
+    "circle_n_outer_8": {
+     "code": "junction_needs_rot_0_n_outer_4",
+     "error": "AssemblyError",
+     "message": "Wye(angle=60.0, run_length=0.3, branch_length=0.3, n_run=None, n_branch=None, n_split=None, roll=0.0, toward=None) at Interface(#1, pos=[0.1 0.  0. ]): Wye prototype requires rot = 0 and n_outer = 4",
+     "supported": false
+    },
+    "circle_shells": {
+     "supported": true
+    },
+    "rect_h": {
+     "code": "wye_needs_circle",
+     "error": "AssemblyError",
+     "message": "Wye(angle=60.0, run_length=0.3, branch_length=0.3, n_run=None, n_branch=None, n_split=None, roll=0.0, toward=None) at Interface(#1, pos=[0.1 0.  0. ]): Wye prototype supports circular cores only",
+     "supported": false
+    },
+    "rect_oh": {
+     "code": "wye_needs_circle",
+     "error": "AssemblyError",
+     "message": "Wye(angle=60.0, run_length=0.3, branch_length=0.3, n_run=None, n_branch=None, n_split=None, roll=0.0, toward=None) at Interface(#1, pos=[0.1 0.  0. ]): Wye prototype supports circular cores only",
+     "supported": false
+    },
+    "rect_shells": {
+     "code": "wye_needs_circle",
+     "error": "AssemblyError",
+     "message": "Wye(angle=60.0, run_length=0.3, branch_length=0.3, n_run=None, n_branch=None, n_split=None, roll=0.0, toward=None) at Interface(#1, pos=[0.1 0.  0. ]): Wye prototype supports circular cores only",
+     "supported": false
+    }
+   }
+  }
+ },
+ "method": "each fitting after a short Straight on each spec, through Assembly.validate() (no GMSH session); 'supported' or what it raised",
+ "specs": {
+  "circle": {
+   "layout": "oh",
+   "shape": "circle",
+   "spec": {
+    "core": {
+     "layout": "oh",
+     "mprg": 1.0,
+     "name": "fluid",
+     "nrad": 2,
+     "shape": {
+      "nang": 4,
+      "radius": 0.05,
+      "type": "circle"
+     }
+    },
+    "mbmp": 1.0,
+    "n_outer": 4,
+    "nang": 4,
+    "nang_h": null,
+    "nang_w": null,
+    "rot": 0.0,
+    "shells": []
+   },
+   "stack": "single layer"
+  },
+  "circle_in_rect": {
+   "layout": "oh",
+   "shape": "circle",
+   "spec": {
+    "core": {
+     "layout": "oh",
+     "mprg": 1.0,
+     "name": "fluid",
+     "nrad": 2,
+     "shape": {
+      "nang": 4,
+      "radius": 0.05,
+      "type": "circle"
+     }
+    },
+    "mbmp": 1.0,
+    "n_outer": 4,
+    "nang": 4,
+    "nang_h": null,
+    "nang_w": null,
+    "rot": 0.0,
+    "shells": [
+     {
+      "mprg": 1.0,
+      "name": "box",
+      "nrad": 2,
+      "outer": {
+       "half_h": 0.07,
+       "half_w": 0.07,
+       "nang_h": 4,
+       "nang_w": 4,
+       "type": "rect"
+      },
+      "type": "shell"
+     }
+    ]
+   },
+   "stack": "a circle in a rectangle"
+  },
+  "circle_n_outer_8": {
+   "layout": "oh",
+   "shape": "circle",
+   "spec": {
+    "core": {
+     "layout": "oh",
+     "mprg": 1.0,
+     "name": "fluid",
+     "nrad": 2,
+     "shape": {
+      "nang": 8,
+      "radius": 0.05,
+      "type": "circle"
+     }
+    },
+    "mbmp": 1.0,
+    "n_outer": 8,
+    "nang": 8,
+    "nang_h": null,
+    "nang_w": null,
+    "rot": 0.0,
+    "shells": []
+   },
+   "stack": "single layer, n_outer = 8"
+  },
+  "circle_shells": {
+   "layout": "oh",
+   "shape": "circle",
+   "spec": {
+    "core": {
+     "layout": "oh",
+     "mprg": 1.0,
+     "name": "fluid",
+     "nrad": 2,
+     "shape": {
+      "nang": 4,
+      "radius": 0.05,
+      "type": "circle"
+     }
+    },
+    "mbmp": 1.0,
+    "n_outer": 4,
+    "nang": 4,
+    "nang_h": null,
+    "nang_w": null,
+    "rot": 0.0,
+    "shells": [
+     {
+      "dR": 0.005,
+      "mprg": 1.0,
+      "name": "wall",
+      "nrad": 1,
+      "type": "shell"
+     }
+    ]
+   },
+   "stack": "circular shells"
+  },
+  "rect_h": {
+   "layout": "h",
+   "shape": "rect",
+   "spec": {
+    "core": {
+     "layout": "h",
+     "mprg": 1.0,
+     "name": "fluid",
+     "nrad": 0,
+     "shape": {
+      "half_h": 0.03,
+      "half_w": 0.05,
+      "nang_h": 4,
+      "nang_w": 4,
+      "type": "rect"
+     }
+    },
+    "mbmp": 1.0,
+    "n_outer": 4,
+    "nang": null,
+    "nang_h": 4,
+    "nang_w": 4,
+    "rot": 0.0,
+    "shells": []
+   },
+   "stack": "single layer"
+  },
+  "rect_oh": {
+   "layout": "oh",
+   "shape": "rect",
+   "spec": {
+    "core": {
+     "layout": "oh",
+     "mprg": 1.0,
+     "name": "fluid",
+     "nrad": 2,
+     "shape": {
+      "half_h": 0.03,
+      "half_w": 0.05,
+      "nang_h": 4,
+      "nang_w": 4,
+      "type": "rect"
+     }
+    },
+    "mbmp": 1.0,
+    "n_outer": 4,
+    "nang": null,
+    "nang_h": 4,
+    "nang_w": 4,
+    "rot": 0.0,
+    "shells": []
+   },
+   "stack": "single layer"
+  },
+  "rect_shells": {
+   "layout": "h",
+   "shape": "rect",
+   "spec": {
+    "core": {
+     "layout": "h",
+     "mprg": 1.0,
+     "name": "fluid",
+     "nrad": 0,
+     "shape": {
+      "half_h": 0.03,
+      "half_w": 0.05,
+      "nang_h": 4,
+      "nang_w": 4,
+      "type": "rect"
+     }
+    },
+    "mbmp": 1.0,
+    "n_outer": 4,
+    "nang": null,
+    "nang_h": 4,
+    "nang_w": 4,
+    "rot": 0.0,
+    "shells": [
+     {
+      "dR": 0.005,
+      "mprg": 1.0,
+      "name": "wall",
+      "nrad": 1,
+      "type": "shell"
+     }
+    ]
+   },
+   "stack": "rectangular shells"
+  }
+ }
+}

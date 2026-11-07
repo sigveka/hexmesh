@@ -1,6 +1,6 @@
 # 0102 — `hexmesh manifest`: one machine-readable account of the suite
 
-- **Status:** ready
+- **Status:** done (2026-11-07; three findings for design, none blocking)
 - **Decision:** [0040 — Agents for users](../decisions/0040-user-agents-network-design-and-resolution.md), amendment 2026-11-07 (foundation D2)
 - **Depends on:** 0095, 0097, 0098 (done).
 
@@ -74,3 +74,92 @@ data); a generator for it under `validation/tools/`; tests; `API.md`;
 
 **Out of scope.**  The plugin (E) and an MCP server, which read the
 manifest; prose documentation beyond API.md.
+
+## Agent notes
+
+- **Step 4, why `hexmesh` isn't on PATH:** hexmesh isn't installed in
+  this environment at all.  `pip show hexmesh` finds no package, and
+  `import hexmesh` fails outside the checkout.  The code runs only
+  because the repository root is the working directory.
+  `pyproject.toml` declares the script (`[project.scripts] hexmesh =
+  "hexmesh.agent.cli:main"`), and `pip install -e .` would create it.  I
+  left the environment as it is.  API.md, the CLI docstring and the
+  manifest's `invocation` name both forms.
+- **The support matrix is stored, not computed per call.**  The probe
+  takes about 1.3 s, most of it the wye's layout, and `hexmesh manifest`
+  must run under 2 s.  So `python3 -m hexmesh.agent._probe` writes
+  `hexmesh/agent/support.json` (package data, like `calibration.json`).
+  `test_the_stored_support_matrix_is_the_library_s` probes again and
+  fails, naming that command, if any entry differs.  So it is still
+  probed, not declared.  `hexmesh manifest` takes about 0.6 s.
+- **The probe:** each fitting is built after a 0.1 m `Straight` on seven
+  specs, then run through `Assembly.validate()`, with no GMSH session.
+  The specs are: circle, circle with a shell, H rectangle, O-H
+  rectangle, H rectangle with a shell, a circle in a rectangle, and a
+  circle with `n_outer = 8`.  Each fitting is built as it is meant to
+  be used on that shape:
+  - a Reducer to the same spec at 0.8×;
+  - a Transition to the other shape;
+  - a Tee as a duct tap (`branch=RectShape`) on rectangles;
+  - a Switch from H with an O-H outlet.
+  `Closure` is `"probed": false`: it joins two existing interfaces of a
+  loop.  Of the 70 entries, 43 are supported.
+- **Found by the probe (for design):**
+  - **A Switch on a circular section raises an uncoded
+    `AttributeError`** ("'CircleShape' object has no attribute
+    'nang_w'"), not a `HexmeshError`.  The manifest records it as code
+    `null`.  It should be a coded error such as `switch_needs_rect`.
+    That needs a new code, so it is proposed, not done.
+  - **A duct tap on a rectangle with a shell is rejected with
+    `switch_changes_shells`**, a Switch's message, so the tap's error
+    names the wrong fitting.
+  - **A Tee on `n_outer = 8` raises `block_vertices_not_distinct`**
+    before `section_not_supported`.  The probe records what the library
+    raises first, as specified.
+- **Import cycle:** `cli` runs `agent.manifest()` and the manifest reads
+  the CLI's parser, which made a cycle (cli → agent → _manifest → cli),
+  and `test_architecture` rejects cycles.  The command table (COMMANDS,
+  RESULTS, NEEDS_GMSH, the exit codes) and the parser moved into a leaf
+  module, `hexmesh/agent/_commands.py`; `cli` re-exports what it used to
+  define.  `RESULTS` (each command's `result`, one line) is new, and a
+  test checks it covers `COMMANDS`.
+- **`errors` "with their hints":** `CODES` holds one line per code, the
+  rule.  Hints are per raise, with the values of that error, so there is
+  no per-code hint to list.  The manifest gives the rule.
+- **`validation`:** per case, the title, status, category, task, gates,
+  and from `results.json` the number of levels and the cell range.  Per
+  feature tag, the cases.  No orders: per §7.12 they belong to the
+  recheck, from k.
+- **`advise`:** the classes' basis comes per calibrated series (circle;
+  rectangle a/b 1, 2, 4), since each has its own: measured,
+  interpolated or extrapolated, and validated or not.
+
+## Outcome
+
+**Done.**
+
+**Files:**
+- new: `hexmesh/agent/_manifest.py`, `_probe.py`, `_commands.py`,
+  `support.json` and `validation.json` (package data, in
+  `pyproject.toml`); `validation/tools/summary.py`;
+  `tests/test_agent_manifest.py` (8 tests);
+- changed: `hexmesh/agent/cli.py` (`manifest`; the table moved out),
+  `hexmesh/agent/__init__.py`, `API.md` (a Manifest section, both
+  invocation forms), `CHANGELOG.md`.
+
+**Acceptance:**
+- Every subcommand, code, limit and fitting type is in the manifest,
+  checked against its registry.
+- `n_outer = 8` is unsupported, with `section_not_supported` and the
+  library's message.  The stored matrix equals a fresh probe.
+- The validation summary equals a fresh one, and a planted `case.json`
+  change shows.
+- Two runs give identical output, strict JSON, with no GMSH session.
+- The CLI takes about 0.6 s (tested at < 2 s).
+
+**Suite:** 3591 passed, 15 skipped, no failures.
+
+**Follow-ups (proposed):**
+- a coded error for a Switch on a circle;
+- the duct tap's error on shelled rectangles should name the tap;
+- decision 0040's plugin (E) can read `hexmesh manifest`.
