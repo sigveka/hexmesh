@@ -7,6 +7,7 @@ this coil (decision 0012, V3; task 0075).
 
 ```bash
 python3 validation/helical_pipe/run.py --np 4          # 3 Re × nang 12, 16, 24 (24 from mapped 16)
+# resumable: run it again with the same --work after an interruption
 python3 -m validation.tools.recheck helical_pipe        # gates, from results.json
 ```
 

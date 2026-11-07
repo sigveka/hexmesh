@@ -562,6 +562,19 @@ All v1912, gmsh 4.12.1, 2026-10-25.
     on `p` and the axial component, or on the measured quantities
     between output times (as the heated-pipe driver does), not on `U`.
 
+- **`purgeWrite` forgets the times of earlier solver runs** (v2406 in
+  Docker, `simpleFoam`, task 0075, 2026-11-07).
+  - Setup: a solve in chunks.  Each chunk is a separate `simpleFoam`
+    run, with `startFrom latestTime`, `writeInterval 20`, `purgeWrite 1`
+    and `endTime` raised by 20 per chunk.
+  - After three chunks, all of `20/`, `40/` and `60/` were still there.
+    `purgeWrite` counts only the times its own run wrote.
+  - A driver that resumes in chunks must delete old times itself.  The
+    helical-pipe driver keeps `0` and the latest (`_purge`).
+  - The restart itself is clean: each chunk prints "Reading/calculating
+    face flux field phi", reading the written `phi`, and the time
+    continues (`Time = 21` after 20).
+
 ## Gaps in hexmesh's OpenFOAM support
 
 - **`hexmesh/io/writers/openfoam.py` (`write_openfoam_case`)** — noted

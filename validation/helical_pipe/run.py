@@ -43,6 +43,13 @@ Each nang 24 solve starts from the converged nang 16 field, mapped
 changes only the path to convergence.  The nang 16 source is solved
 again for the purpose, and its f is checked against the stored level's.
 
+Each solve runs in chunks of ``CHUNK`` (50) steps (design answer to
+Q5).  After each chunk the latest fields are kept, older times deleted,
+and f appended to the case's ``f_history.json`` (stored in the level as
+``f_history``).  An interrupted level (a timeout, a stopped night)
+resumes from its latest time when the driver is run again with the same
+``--work``; it loses at most one chunk.
+
 Run:   python3 validation/helical_pipe/run.py --np 4      # nang 12, 16, 24
 Recheck: python3 -m validation.tools.recheck helical_pipe
 """
@@ -52,6 +59,7 @@ from __future__ import annotations
 import argparse
 import csv
 import importlib.util
+import json
 import math
 import re
 import shutil
@@ -99,6 +107,9 @@ F_LIMIT = 0.05                # f against Ito
 LEVELS = (12, 16, 24)
 #: level → the level whose converged field starts it (design answer to Q4)
 MAP_FROM = {24: 16}
+#: steps per solver chunk: fields are written, f recorded and the case can
+#: resume after every chunk (design answer to Q5)
+CHUNK = 50
 LAYERS_PER_TURN = {8: 130, 12: 195, 16: 260, 24: 390}   # about 2, 1.33, 1, 0.67 d per layer
 LAYERS_IN = {8: 3, 12: 4, 16: 6, 24: 9}
 
@@ -203,13 +214,13 @@ def read_data(path: Path = DATA) -> list[dict]:
 HDR = of.header
 
 CONTROL = """application     simpleFoam;
-startFrom       startTime;
+startFrom       latestTime;
 startTime       0;
 stopAt          endTime;
 endTime         {end_time};
 deltaT          1;
 writeControl    timeStep;
-writeInterval   {end_time};
+writeInterval   {chunk};
 purgeWrite      0;
 writeFormat     ascii;
 writePrecision  12;
@@ -303,7 +314,7 @@ def write_case(case: Path, re_: float, end_time: int) -> None:
     t0 = tangent(0.0)
     files = {
         "system/controlDict": HDR("dictionary", "controlDict", "system")
-        + CONTROL.format(end_time=end_time),
+        + CONTROL.format(end_time=end_time, chunk=CHUNK),
         "system/fvSchemes": HDR("dictionary", "fvSchemes", "system") + SCHEMES,
         "system/fvSolution": HDR("dictionary", "fvSolution", "system") + SOLUTION,
         "constant/transportProperties": HDR("dictionary", "transportProperties", "constant")
@@ -357,42 +368,94 @@ def friction(cc, vol, p, U) -> dict:
 def run_level(re_: float, nang: int, work: Path, end_time: int, n_proc: int,
               init_from: Path | None = None, case: Path | None = None) -> dict:
     """Solve one level in *case* (default ``work/re<Re>_n<nang>``),
-    started from *init_from*'s latest field, mapped, if given."""
+    started from *init_from*'s latest field, mapped, if given.
+
+    The solve runs in chunks of ``CHUNK`` steps.  Only ``0`` and the
+    latest fields are kept (``_purge``), and f after each chunk is appended to
+    ``f_history.json``.  A case set up before (``setup.json``) resumes
+    from its latest time, so an interrupted level loses at most one
+    chunk."""
     t0 = time.monotonic()
     case = case or work / f"re{re_}_n{nang}"
-    if case.exists():
-        shutil.rmtree(case)
-    case.mkdir(parents=True)
-    asm = assembly(nang)
-    with Session(f"helix-{re_}-{nang}"):
-        cells = asm.cell_count()
-        print(f"[re={re_} nang={nang}] predicted cells: {cells}", flush=True)
-        msh = case / "mesh.msh"
-        asm.write_openfoam(str(msh))
-        sj = asm.check_quality("scaled_jacobian").worst
-    write_case(case, re_, end_time)
-    of.convert(case, msh, keep_orientation=sj > 0)
-    check = of.check_mesh(case)
-    if init_from is not None:
-        of.foam(f"mapFields {Path(init_from).resolve()} -consistent -sourceTime latestTime",
-                case, "log.mapFields", mounts=[Path(init_from).resolve()])
-    log = of.run_solver(case, "simpleFoam", n_proc=n_proc)
-    steps = re.findall(r"^Time = (\d+)", log, re.M)
-    cc, vol, p, U = _fields(case)
-    fr = friction(cc, vol, p, U)
+    setup = case / "setup.json"
+    if setup.exists():
+        meta = json.loads(setup.read_text(encoding="utf-8"))
+        print(f"[re={re_} nang={nang}] resuming at step {_latest_step(case)}", flush=True)
+    else:
+        if case.exists():
+            shutil.rmtree(case)
+        case.mkdir(parents=True)
+        asm = assembly(nang)
+        with Session(f"helix-{re_}-{nang}"):
+            cells = asm.cell_count()
+            print(f"[re={re_} nang={nang}] predicted cells: {cells}", flush=True)
+            msh = case / "mesh.msh"
+            asm.write_openfoam(str(msh))
+            sj = asm.check_quality("scaled_jacobian").worst
+        write_case(case, re_, end_time)
+        of.convert(case, msh, keep_orientation=sj > 0)
+        msh.unlink()
+        check = of.check_mesh(case)
+        if init_from is not None:
+            of.foam(f"mapFields {Path(init_from).resolve()} -consistent -sourceTime latestTime",
+                    case, "log.mapFields", mounts=[Path(init_from).resolve()])
+        meta = {"cells": cells, "sj": sj, "counts": stored.counts(asm), "check": check,
+                "init_from": None if init_from is None else f"nang {MAP_FROM[nang]}, mapped",
+                "wall_s": 0.0}
+        setup.write_text(json.dumps(meta), encoding="utf-8")
+    hist_path = case / "f_history.json"
+    hist = json.loads(hist_path.read_text(encoding="utf-8")) if hist_path.exists() else []
+    converged = bool(hist) and hist[-1]["converged"]
+    while not converged and _latest_step(case) < end_time:
+        stop = min(_latest_step(case) + CHUNK, end_time)
+        _set_end_time(case, stop)
+        log = of.run_solver(case, "simpleFoam", n_proc=n_proc)
+        with open(case / "log.simpleFoam.all", "a", encoding="utf-8") as out:
+            out.write(log)
+        converged = "solution converged in" in log
+        _purge(case)
+        fr = friction(*_fields(case))
+        hist.append({"step": _latest_step(case), "f": fr["f_per_pair"][GATED_PAIR],
+                     "converged": converged})
+        hist_path.write_text(json.dumps(hist), encoding="utf-8")
+        meta["wall_s"] += time.monotonic() - t0
+        t0 = time.monotonic()
+        setup.write_text(json.dumps(meta), encoding="utf-8")
+        print(f"[re={re_} nang={nang}] step {hist[-1]['step']}: f {hist[-1]['f']:.6f}"
+              + (", converged" if converged else ""), flush=True)
+    fr = friction(*_fields(case))
     f = fr["f_per_pair"][GATED_PAIR]
     re_b = re_ * fr["u_bulk_per_pair"][GATED_PAIR] / U_B         # ν = U_B d / re_
-    return {"re": re_, "nang": nang, "cells": cells, "layers_per_turn": LAYERS_PER_TURN[nang],
-            "area_ratio": area_ratio(nang),
-            "min_scaled_jacobian": sj, **stored.counts(asm),
-            **{f"check_{k}": v for k, v in check.items()},
-            "steps": int(steps[-1]) if steps else 0,
-            "converged": "solution converged in" in log,
+    meta["wall_s"] += time.monotonic() - t0
+    return {"re": re_, "nang": nang, "cells": meta["cells"],
+            "layers_per_turn": LAYERS_PER_TURN[nang], "area_ratio": area_ratio(nang),
+            "min_scaled_jacobian": meta["sj"], **meta["counts"],
+            **{f"check_{k}": v for k, v in meta["check"].items()},
+            "steps": _latest_step(case), "converged": converged,
             **fr, "re_bulk": re_b, "f": f, "f_ito": ito(re_b), "f_err_ito": f / ito(re_b) - 1,
-            "fc_over_fs": f / (64 / re_b),
-            "init_from": None if init_from is None else f"nang {MAP_FROM[nang]}, mapped",
-            "wall_s": time.monotonic() - t0,
+            "fc_over_fs": f / (64 / re_b), "init_from": meta["init_from"],
+            "wall_s": meta["wall_s"], "f_history": hist,
             "turn_agreement": fr["f_per_pair"][-1] / fr["f_per_pair"][GATED_PAIR] - 1}
+
+
+def _latest_step(case: Path) -> int:
+    return int(float(of.latest_time(case).name))
+
+
+def _purge(case: Path) -> None:
+    """Delete every time but 0 and the latest.  ``purgeWrite`` can't: it
+    forgets the times of earlier solver runs (docs/integrations/openfoam.md)."""
+    latest = of.latest_time(case)
+    for d in case.iterdir():
+        if d.is_dir() and d != latest and d.name != "0" and re.fullmatch(r"[\d.e+-]+", d.name):
+            shutil.rmtree(d)
+
+
+def _set_end_time(case: Path, end: int) -> None:
+    path = case / "system/controlDict"
+    text = re.sub(r"^endTime\s+\d+;", f"endTime         {end};",
+                  path.read_text(encoding="utf-8"), count=1, flags=re.M)
+    path.write_text(text, encoding="utf-8")
 
 
 # --- analysis -----------------------------------------------------------------
@@ -484,23 +547,25 @@ def _mapped_level(store, re_: int, nang: int, args) -> dict:
     src_nang = MAP_FROM.get(nang)
     if src_nang is None:
         return run_level(re_, nang, args.work, args.end_time, args.n_proc)
+    target = args.work / f"re{re_}_n{nang}"
     src = args.work / f"re{re_}_n{src_nang}_source"
-    s = run_level(re_, src_nang, args.work, args.end_time, args.n_proc, case=src)
-    ref = store.level(f"re{re_}_n{src_nang}")
-    sources = dict(store.data.get("extra", {}).get("map_sources", {}))
-    sources[f"re{re_}_n{nang}"] = {
-        "nang": src_nang, "steps": s["steps"], "converged": s["converged"], "f": s["f"],
-        "wall_s": s["wall_s"],
-        "f_vs_stored": None if ref is None else s["f"] / ref["f"] - 1}
-    store.put_extra("map_sources", sources)
-    print(f"[re={re_} nang={src_nang} source] f {s['f']:.5f}, {s['steps']} steps, "
-          f"{s['wall_s'] / 60:.0f} min", flush=True)
+    if not (target / "setup.json").exists():          # not yet mapped: solve the source
+        s = run_level(re_, src_nang, args.work, args.end_time, args.n_proc, case=src)
+        ref = store.level(f"re{re_}_n{src_nang}")
+        sources = dict(store.data.get("extra", {}).get("map_sources", {}))
+        sources[f"re{re_}_n{nang}"] = {
+            "nang": src_nang, "steps": s["steps"], "converged": s["converged"], "f": s["f"],
+            "wall_s": s["wall_s"],
+            "f_vs_stored": None if ref is None else s["f"] / ref["f"] - 1}
+        store.put_extra("map_sources", sources)
+        print(f"[re={re_} nang={src_nang} source] f {s['f']:.5f}, {s['steps']} steps, "
+              f"{s['wall_s'] / 60:.0f} min", flush=True)
     try:
         return run_level(re_, nang, args.work, args.end_time, args.n_proc, init_from=src)
     finally:
-        if not args.keep_work:
+        # the source is needed only until the target is mapped (setup.json)
+        if not args.keep_work and (target / "setup.json").exists():
             shutil.rmtree(src, ignore_errors=True)
-
 
 if __name__ == "__main__":
     main()
