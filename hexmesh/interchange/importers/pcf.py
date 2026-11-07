@@ -90,7 +90,7 @@ from typing import Iterator
 
 import numpy as np
 
-from ...errors import HexmeshWarning, ReaderError
+from ...errors import HexmeshWarning, ReaderError, ReaderFileNotFound
 from .. import model as _m
 from ..build import INSULATION, TOL_FLOOR, TOL_RELATIVE  # noqa: F401  (re-exported)
 from ..operations import import_entry
@@ -439,7 +439,10 @@ def read_pcf(
         return net
     path = Path(path)
     if not path.exists():
-        raise FileNotFoundError(f"PCF file not found: {path}")
+        raise ReaderFileNotFound(f"PCF file not found: {path}", code="pcf_file_not_found",
+                                 where={"source": {"file": str(path)}},
+                                 hint="check the path; relative paths are from the working "
+                                      "directory")
 
     if ignore_types is None:
         ignore_types = {"SUPPORT", "BOLT", "INSTRUMENT-COMPONENT", "PIPE-DIRECTION-BREAK"}

@@ -240,7 +240,8 @@ def cut_at(model: NetworkModel, port: str, names) -> list[Cut]:
         if len(others) != 1:
             raise AssemblyError(f"cut_at: port {port!r} meets {len(others)} ports "
                                 f"({', '.join(others)}); names= needs exactly one",
-                                code="cut_names_ambiguous", where={"field": "names"}, value=others)
+                                code="cut_names_ambiguous", where={"field": "names"}, value=others,
+                                hint="pass names= with exactly one of them")
     _begin(model)
     if names is not None:
         model.ports[port].tag, model.ports[others[0]].tag = names
@@ -301,7 +302,8 @@ def join(model: NetworkModel, a: str, b: str, tol) -> Connection:
     if gap > tol:
         raise AssemblyError(f"join: ports {a!r} and {b!r} are {gap:.6g} m apart, more than the "
                             f"tolerance {tol:.6g} m", code="join_gap", where={"field": "port"},
-                            value=gap, limit={"max": tol})
+                            value=gap, limit={"max": tol},
+                                                      hint=f"join(..., tol={gap * 1.01:.3g}) if that gap is meant; otherwise move a port")
     da, db = _outward(model, a), _outward(model, b)
     if da is not None and db is not None:
         angle = math.degrees(math.acos(max(-1.0, min(1.0, float(-da @ db)))))
@@ -349,7 +351,8 @@ def merge(a: NetworkModel, b: NetworkModel, prefix, infer, tol) -> NetworkModel:
         raise AssemblyError(f"merge: {len(clash)} ids are in both models ({', '.join(clash[:8])}"
                             f"{', …' if len(clash) > 8 else ''}); pass prefix= to rename the "
                             f"second's", code="merge_id_clash", where={"field": "ids"},
-                            value=clash[:20])
+                            value=clash[:20],
+                                         hint="pass prefix= to rename the second model's ids")
     out = _state(a)
     out.ports.update(b2.ports)
     out.parts.update(b2.parts)

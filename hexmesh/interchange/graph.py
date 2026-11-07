@@ -338,7 +338,8 @@ def _check_tree(parts, nodes, hint=lambda: "") -> None:
                                         f"built from a network (decision 0023)",
                                         code="network_loop",
                                         where={"part": _part_id(parts[j]),
-                                               "source": _source(parts[j])})
+                                               "source": _source(parts[j])},
+                                        hint="cut_at() one port on the loop, build the tree, and close the loop with Assembly.close()")
                 seen.add(j)
                 stack.append((j, n))
     missing = [k for k in range(len(parts)) if k not in seen]
@@ -445,7 +446,8 @@ def _choose_root(parts, nodes, names, inlet, tol):
             known = ", ".join(str(names[e[2]]) for e in ends if names.get(e[2]))
             raise AssemblyError(f"inlet {inlet!r} is not an open end"
                                 + (f" (open ends: {known})" if known else ""),
-                                code="inlet_not_open_end", where={"field": "inlet"}, value=inlet)
+                                code="inlet_not_open_end", where={"field": "inlet"}, value=inlet,
+                                hint="inlet= takes an open end's name or position")
         bad = _entries(parts, nodes, pick[0][:2])
         if bad:
             raise AssemblyError(f"from inlet {inlet!r}, {bad}",

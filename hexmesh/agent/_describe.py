@@ -40,6 +40,7 @@ import warnings
 import numpy as np
 
 from hexmesh import Assembly, HexmeshError, HexmeshWarning
+from hexmesh.assembly import AssemblyTypeError
 from hexmesh.interchange import NetworkModel
 
 #: units of the output.  An assembly's lengths are in its own unit
@@ -56,8 +57,10 @@ def describe(x) -> dict:
     if isinstance(x, dict):
         x = Assembly.from_dict(x)
     if not isinstance(x, Assembly):
-        raise TypeError(f"describe() takes an Assembly, its to_dict() description or a "
-                        f"NetworkModel, not {type(x).__name__}")
+        raise AssemblyTypeError(f"describe() takes an Assembly, its to_dict() description or a "
+                                f"NetworkModel, not {type(x).__name__}",
+                                code="agent_input_type", value=type(x).__name__,
+                                hint="pass an Assembly, assembly.to_dict(), or a NetworkModel")
     return _assembly(x)
 
 

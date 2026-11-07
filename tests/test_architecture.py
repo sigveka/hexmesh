@@ -34,6 +34,13 @@ functions count the same as module-level ones.
   of a ``HexmeshError`` or ``HexmeshWarning`` class passes ``code=`` as a
   string literal registered in ``hexmesh.errors.CODES``, and every
   registered code is used (see :func:`code_violations`).
+- **No bare built-in raise** (decision 0040; task 0106): ``raise
+  ValueError``, ``TypeError``, ``RuntimeError``, ``KeyError``,
+  ``NotImplementedError`` or ``AttributeError`` in ``hexmesh/`` only from
+  the reviewed :data:`BARE_ALLOWED` list, each entry with its reason (see
+  :func:`bare_raise_violations`).  A user's error is a coded
+  ``HexmeshError``, an internal invariant an ``InternalError``.  The list
+  only shrinks: every entry must still be needed.
 
 Each check returns its violations, so the planted-violation tests at the
 end run the same code on a synthetic tree.
@@ -94,8 +101,26 @@ RULE_CYCLE = "DESIGN §3.1, no module cycles"
 RULE_SHAPES = "DESIGN §3.1, shapes and section layouts own their behaviour"
 RULE_ENCODING = "decision 0039, text I/O names its encoding"
 RULE_CODES = "decision 0040, every error carries a registered code"
+RULE_BARE = "decision 0040, no bare built-in raise"
 #: the roots of the coded error and warning classes (``hexmesh/errors.py``)
-CODED_ROOTS = {"HexmeshError", "HexmeshWarning"}
+CODED_ROOTS = {"HexmeshError", "HexmeshWarning", "InternalError"}
+#: built-in exceptions hexmesh code must not raise bare (task 0106)
+BARE = {"ValueError", "TypeError", "RuntimeError", "KeyError", "NotImplementedError",
+        "AttributeError"}
+#: (module, enclosing function, exception) raised bare on purpose: the reason
+BARE_ALLOWED = {
+    ("hexmesh/interchange/__init__.py", "__getattr__", "AttributeError"):
+        "the module __getattr__ protocol: a missing attribute must be an AttributeError",
+    ("hexmesh/errors.py", "_Fields._set", "KeyError"):
+        "the code registry's own guard: an unregistered code is a programming error, "
+        "and the code check (test_every_error_is_coded) finds it statically",
+    ("hexmesh/assembly/sweep.py", "Sweep.path", "NotImplementedError"):
+        "an abstract method: each sweep fitting overrides it",
+    ("hexmesh/core/cross_section.py", "LayeredCrossSection.get", "KeyError"):
+        "a lookup by name, in the mapping protocol; internal callers only",
+    ("hexmesh/core/region.py", "MaterialGraph.interface_label", "KeyError"):
+        "a lookup by name, in the mapping protocol; internal callers only",
+}
 #: ``X.open(...)`` on these modules is not a text-file open (binary by
 #: default, or a dataset or model)
 BINARY_OPENERS = {"gzip", "bz2", "lzma", "tarfile", "zipfile", "wave", "dbm", "shelve",
@@ -416,7 +441,8 @@ def code_violations(root: Path) -> list[str]:
     ``wrap`` without a ``code=`` string literal in ``CODES``, or in a module
     that neither imports nor defines the class; and codes in
     ``CODES`` that nothing uses.  A class whose ``__init__`` passes the
-    code itself (``PreflightFailed``) is constructed without one."""
+    code itself (``PreflightFailed``, or ``InternalError`` through
+    ``_set``) is constructed without one."""
     trees = {p: ast.parse(p.read_text(encoding="utf-8"), str(p))
              for p in modules(root).values()}
     bases = {n.name: {_base_name(b) for b in n.bases}
@@ -432,7 +458,7 @@ def code_violations(root: Path) -> list[str]:
     for tree in trees.values():
         for cls in (n for n in ast.walk(tree) if isinstance(n, ast.ClassDef) and n.name in coded):
             for n in ast.walk(cls):
-                if isinstance(n, ast.Call) and _base_name(n.func) == "__init__":
+                if isinstance(n, ast.Call) and _base_name(n.func) in ("__init__", "_set"):
                     code = next((kw.value for kw in n.keywords if kw.arg == "code"), None)
                     if isinstance(code, ast.Constant):
                         self_coded.add(cls.name)
@@ -470,6 +496,35 @@ def code_violations(root: Path) -> list[str]:
 
 
 # --- the real tree -------------------------------------------------------------
+
+def bare_raises(root: Path) -> list[tuple[tuple[str, str, str], int]]:
+    """Every ``raise`` of a :data:`BARE` exception in ``hexmesh/``, as
+    ((module, enclosing qualified name, exception), line)."""
+    out = []
+    for path in modules(root).values():
+        rel = path.relative_to(root).as_posix()
+
+        def visit(node, scope):
+            for child in ast.iter_child_nodes(node):
+                if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                    visit(child, scope + (child.name,))
+                    continue
+                if isinstance(child, ast.Raise) and child.exc is not None:
+                    exc = child.exc.func if isinstance(child.exc, ast.Call) else child.exc
+                    name = _base_name(exc)
+                    if name in BARE:
+                        out.append(((rel, ".".join(scope), name), child.lineno))
+                visit(child, scope)
+        visit(ast.parse(path.read_text(encoding="utf-8"), str(path)), ())
+    return out
+
+
+def bare_raise_violations(root: Path, allowed=None) -> list[str]:
+    """Bare built-in raises not in *allowed* (default :data:`BARE_ALLOWED`)."""
+    allowed = BARE_ALLOWED if allowed is None else allowed
+    return [f"{rel}:{line}: raise {exc} in {scope or 'the module'}"
+            for (rel, scope, exc), line in bare_raises(root) if (rel, scope, exc) not in allowed]
+
 
 def agent_violations(root: Path) -> list[str]:
     """Imports by ``hexmesh.agent`` of anything but :data:`AGENT_IMPORTS`
@@ -547,6 +602,19 @@ def test_text_io_names_its_encoding():
     assert not bad, (f"{RULE_ENCODING}; pass encoding=\"utf-8\" (and newline=\"\\n\" for "
                      "files OpenFOAM or a shell reads):\n  " + "\n  ".join(bad))
 
+
+
+def test_no_bare_builtin_raise():
+    bad = bare_raise_violations(ROOT)
+    assert not bad, (f"{RULE_BARE}; a user's error is a coded HexmeshError subclass (keep the "
+                     "built-in in its bases, as SpecTypeError does), an internal invariant an "
+                     "InternalError:\n  " + "\n  ".join(bad))
+
+
+def test_bare_allow_list_still_needed():
+    found = {key for key, _ in bare_raises(ROOT)}
+    stale = sorted(set(BARE_ALLOWED) - found)
+    assert not stale, f"BARE_ALLOWED entries no longer raised (remove them): {stale}"
 
 
 def test_every_error_is_coded():
@@ -730,3 +798,18 @@ def test_planted_unused_code(tmp_path):
     assert code_violations(root) == [
         "hexmesh/errors.py: code 'self_coded' is registered but never used",
         "hexmesh/errors.py: code 'size_not_positive' is registered but never used"]
+
+
+@pytest.mark.parametrize("text, n", [
+    ("def f():\n    raise ValueError('x')\n", 1),
+    ("class C:\n    def m(self):\n        raise KeyError\n", 1),          # a bare name too
+    ("raise NotImplementedError('module level')\n", 1),
+    ("def f():\n    raise InternalError('x')\n", 0),
+    ("def f():\n    raise AssertionError('unreachable')\n", 0),             # an invariant
+    ("def f():\n    raise FileNotFoundError('p')\n", 0),
+    ("def allowed():\n    raise TypeError('x')\n", 0),                     # on the list
+])
+def test_planted_bare_raise(tmp_path, text, n):
+    root = _tree(tmp_path, {"hexmesh/assembly/x.py": text})
+    bad = bare_raise_violations(root, {("hexmesh/assembly/x.py", "allowed", "TypeError"): "test"})
+    assert len(bad) == n, bad

@@ -67,6 +67,7 @@ from .interface import Frame, junction_roll, junction_toward, rolled
 from .projection import Tube, TubeUnion
 from .signature import check_port_pairs
 from .tee import thicknesses
+from ..errors import InternalError
 
 _SAMPLES = 9            # interior points per spline edge
 ANGLE_RANGE = (limits.WYE_ANGLE_MIN, limits.WYE_ANGLE_MAX)   # registered, task 0095
@@ -140,7 +141,7 @@ class Skeleton:
         while self.nearest(c + (lo + step) * v)[0] < rho:
             lo += step
             if lo > 20 * rho:
-                raise ValueError("wall projection: ray does not leave the wye")
+                raise InternalError("wall projection: ray does not leave the wye")
         hi = lo + step
         for _ in range(60):
             mid = 0.5 * (lo + hi)
@@ -305,17 +306,20 @@ class Wye:
     def check(self, spec: PipeSpec) -> None:
         if not spec.core_shape.is_round:
             raise AssemblyError("Wye prototype supports circular cores only",
-                                code="wye_needs_circle")
+                                code="wye_needs_circle",
+                                hint="a Wye needs a circular main; a rectangular duct branches with a duct tap (Tee(branch=, face=))")
         for sh, outline in zip(spec.shells, spec.outlines[1:]):
             if not outline.is_round:
                 raise AssemblyError(f"Wye: shell `{sh.name}` is not circular; junction "
                                     f"shells are circular only (decisions 0026, 0028)",
-                                    code="junction_shells_not_circular", where={"label": sh.name})
+                                    code="junction_shells_not_circular", where={"label": sh.name},
+                                    hint=f"give shell `{sh.name}` dR= (a circle) instead of outer=")
         if spec.shells:
             self._check_shells(spec)
         if spec.rot != 0 or spec.n_outer != 4:
             raise AssemblyError("Wye prototype requires rot = 0 and n_outer = 4",
-                                code="junction_needs_rot_0_n_outer_4", where={"field": "rot"})
+                                code="junction_needs_rot_0_n_outer_4", where={"field": "rot"},
+                                hint="use PipeSpec(rot=0, n_outer=4)")
         if self.toward is not None:
             raise AssemblyError("Wye: toward is resolved by Assembly.add(); add the "
                                 "fitting to an assembly",
@@ -328,7 +332,8 @@ class Wye:
                 f"Wye angle {self.angle:g}° is outside the prototype range "
                 f"{lo:g}°–{hi:g}°",
                 code="angle_out_of_range", where={"field": "angle"}, value=self.angle,
-                limit={"min": "WYE_ANGLE_MIN", "max": "WYE_ANGLE_MAX"})
+                limit={"min": "WYE_ANGLE_MIN", "max": "WYE_ANGLE_MAX"},
+                hint=f"an angle in [{lo:g}, {hi:g}]°")
         g = self.placement(spec.core_shape.max_extent)
         if self.run_length <= g["s_in"]:
             raise AssemblyError(
@@ -336,14 +341,16 @@ class Wye:
                 f"(R·(tan(angle/2) + {_IN_MARGIN:g}): the inlet station clears "
                 f"the daughters)",
                 code="run_length_too_short", where={"field": "run_length"}, value=self.run_length,
-                limit={"min_exclusive": float(g["s_in"])})
+                limit={"min_exclusive": float(g["s_in"])},
+                hint=f"run_length > {g['s_in']:.4g}")
         if self.branch_length <= g["s_out"]:
             raise AssemblyError(
                 f"branch_length must exceed {g['s_out']:.4g} at {self.angle:g}° "
                 f"(R·(cot(angle/2) + {_OUT_MARGIN:g}): the daughter stations "
                 f"clear each other)",
                 code="branch_length_too_short", where={"field": "branch_length"},
-                value=self.branch_length, limit={"min_exclusive": float(g["s_out"])})
+                value=self.branch_length, limit={"min_exclusive": float(g["s_out"])},
+                hint=f"branch_length > {g['s_out']:.4g}")
         for name in _COUNTS:
             n = getattr(self, name)
             if n is None:
@@ -366,19 +373,25 @@ class Wye:
                 f"cells' quality collapses (single-layer wyes go down to "
                 f"{ANGLE_RANGE[0]:g}°)",
                 code="wye_shell_angle_below_minimum", where={"field": "angle"}, value=self.angle,
-                limit="WYE_SHELL_MIN_ANGLE")
+                limit="WYE_SHELL_MIN_ANGLE",
+                hint=f"angle >= {limits.WYE_SHELL_MIN_ANGLE:g}°, or no shells")
         R = spec.core_shape.max_extent
         T = spec.outlines[-1].radius - R
         h = math.radians(self.angle) / 2
         allowed = R * min(limits.WYE_SHELL_TAN_FACTOR * math.tan(h), limits.WYE_SHELL_MAX)
         if T > allowed:
+            wider = math.degrees(2 * math.atan(T / (R * limits.WYE_SHELL_TAN_FACTOR)))
+            hint = f"total shell thickness <= {allowed:.4g}"
+            if T <= R * limits.WYE_SHELL_MAX and wider <= ANGLE_RANGE[1]:
+                hint += f", or angle >= {math.ceil(wider * 10) / 10:g}°"
             raise AssemblyError(
                 f"Wye at {self.angle:g}°: total shell thickness {T:.4g} "
                 f"({T / R:.3g} R) exceeds the limit {allowed:.4g} ({allowed / R:.3g} R "
                 f"= R · min({limits.WYE_SHELL_TAN_FACTOR:g} tan(angle/2), "
                 f"{limits.WYE_SHELL_MAX:g})): the daughters' shells fold where they "
                 f"meet",
-                code="wye_shells_too_thick", value=float(T), limit={"max": float(allowed)})
+                code="wye_shells_too_thick", value=float(T), limit={"max": float(allowed)},
+                hint=hint)
 
     def layout(self, frames: list[Frame], spec: PipeSpec) -> BlockLayout:
         # Declared in the rolled inlet frame; fill() binds the inlet face

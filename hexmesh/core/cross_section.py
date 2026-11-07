@@ -49,6 +49,8 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from ..errors import InternalError
+
 if TYPE_CHECKING:
     from .shape import Shape
 
@@ -128,11 +130,11 @@ class CrossSection:
 
     def __post_init__(self) -> None:
         if len(self.outer_points) not in (4, 8):
-            raise ValueError(
+            raise InternalError(
                 f"outer_points must have 4 or 8 entries, got {len(self.outer_points)}."
             )
         if len(self.outer_curves) != len(self.outer_points):
-            raise ValueError(
+            raise InternalError(
                 f"outer_curves length ({len(self.outer_curves)}) must match "
                 f"outer_points length ({len(self.outer_points)})."
             )

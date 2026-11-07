@@ -34,15 +34,25 @@ same fields.  Each layer raises its own subclass: :class:`SpecError` in
 builder, :class:`ReaderError` in ``interchange.importers``, ``LayoutError`` for block
 layouts, ``EquipmentError``,
 ``StudyError``.  A former ``TypeError`` stays one (``SpecTypeError``,
-``AssemblyTypeError``).
+``AssemblyTypeError``), and so does a former ``RuntimeError``
+(``SpecUsageError``, ``study.openfoam.FoamCommandFailed``) or
+``FileNotFoundError`` (``ReaderFileNotFound``; task 0106).
+
+An internal invariant that fails is an :class:`InternalError` (code
+``internal_invariant``): a bug in hexmesh, not the user's input.  It is a
+``RuntimeError``, not a ``HexmeshError``, and its message asks for a
+report.
 """
 
 from __future__ import annotations
 
 import math
 
-__all__ = ["HexmeshError", "HexmeshWarning", "SpecError", "SpecTypeError", "ReaderError",
-           "CODES", "jsonable"]
+__all__ = ["HexmeshError", "HexmeshWarning", "SpecError", "SpecTypeError", "SpecUsageError",
+           "ReaderError", "ReaderFileNotFound", "InternalError", "CODES", "jsonable"]
+
+#: where an :class:`InternalError` asks to be reported
+ISSUES = "https://github.com/sigveka/hexmesh/issues"
 
 
 def jsonable(x):
@@ -122,9 +132,31 @@ class SpecTypeError(SpecError, TypeError):
     ``TypeError``, as it was before task 0094."""
 
 
+class SpecUsageError(SpecError, RuntimeError):
+    """A :class:`SpecError` for ``PipeSpec`` methods called out of order
+    (``core()`` twice, ``shell()`` first): still a ``RuntimeError``, as it
+    was before task 0106."""
+
+
 class ReaderError(HexmeshError):
     """A file an ``interchange.importers`` reader can't read (its units, its format);
     ``where["source"]`` names the file."""
+
+
+class ReaderFileNotFound(ReaderError, FileNotFoundError):
+    """A reader's input file that does not exist: still a
+    ``FileNotFoundError`` (task 0106)."""
+
+
+class InternalError(_Fields, RuntimeError):
+    """An internal invariant that failed: a bug in hexmesh, not the user's
+    input (task 0106).  Code ``internal_invariant``; the message asks for a
+    report, with the input that caused it."""
+
+    def __init__(self, message: str, *, where: dict | None = None, value=None):
+        super().__init__(f"{message} (an internal check failed: this is a bug in hexmesh; "
+                         f"please report it, with the input that caused it, at {ISSUES})")
+        self._set(code="internal_invariant", where=where, value=value, limit=None, hint=None)
 
 
 class HexmeshWarning(_Fields, UserWarning):
@@ -159,6 +191,8 @@ CODES: dict[str, str] = {
         "a section in transitional flow, graded as turbulent (advice note)",
     "advice_wall_function_unsupported":
         "wall functions asked of advise (they wait for task 0049)",
+    "agent_input_type":
+        "an agent function given something other than an Assembly or its description",
     "angle_looks_like_radians":
         "a fitting angle so small it was probably given in radians (warning)",
     "angle_on_duct_tap": "a Tee angle other than 90 on a duct tap",
@@ -225,6 +259,7 @@ CODES: dict[str, str] = {
     "fill_order_invalid": "a fill order that is not a permutation of the fittings",
     "first_cell_out_of_range": "a first cell not in (0, layer thickness]",
     "first_cell_unsupported": "first_cell= on a core that does not support it",
+    "fitting_declares_no_strategies": "a fitting class without strategies (DESIGN A4)",
     "fitting_fields_unknown": "unknown fields in a fitting's description",
     "fitting_invalid": "a fitting fails its checks when added",
     "fitting_names_not_unique": "fitting names that are not unique",
@@ -248,6 +283,7 @@ CODES: dict[str, str] = {
     "interface_degree": "an interface already used as the inlet or outlet of another fitting",
     "interface_not_in_assembly": "an interface from another assembly",
     "interface_not_open": "an interface that is not an open end",
+    "internal_invariant": "an internal check that failed: a bug in hexmesh, to report",
     "join_direction": "join: two ports that don't face each other",
     "join_gap": "join: two ports farther apart than the tolerance",
     "join_port_not_open": "join: a port already connected to another",
@@ -319,8 +355,10 @@ CODES: dict[str, str] = {
     "nozzle_unknown": "a drum has no nozzle of that name",
     "nrad_on_h_core": "nrad= on an H core, which has no ring",
     "openfoam_boundary_unparsable": "an OpenFOAM boundary file that can't be parsed",
+    "openfoam_command_failed": "an OpenFOAM command that exited with an error",
     "openfoam_needs_order_1": "write_openfoam asked for a second-order mesh",
     "openfoam_patches_unmapped": "OpenFOAM patches not in the role manifest (warning)",
+    "openfoam_value_uniform": "an OpenFOAM field read as a list holds a uniform value",
     "option_invalid": "an option outside its allowed values",
     "other_runs_active": "other pytest or OpenFOAM runs are active on the machine",
     "other_runs_unchecked": "other runs on the machine can't be checked (warning)",
@@ -333,6 +371,7 @@ CODES: dict[str, str] = {
     "pcf_component_incomplete":
         "a PCF component with fewer than two end points, skipped (warning)",
     "pcf_component_unsupported": "a PCF component type hexmesh does not read, skipped (warning)",
+    "pcf_file_not_found": "a PCF path that does not exist",
     "pcf_no_files": "read_pcf given an empty list of files",
     "pcf_type_inferred": "an unknown PCF type read as an inline straight or reducer (warning)",
     "pcf_unit_scale_override": "unit_scale overrides the PCF's units header (warning)",
@@ -356,6 +395,7 @@ CODES: dict[str, str] = {
     "profile_table_invalid": "a profile table that is not a valid list of (s, r) pairs",
     "profile_too_short": "a profiled reducer too short for its profile",
     "profile_unknown": "an unknown profile",
+    "quality_mode_unknown": "an unknown aggregation mode for a hex quality metric",
     "reader_format_invalid": "a file whose contents a reader can't use",
     "rect_stack_counts_unequal":
         "a rectangle stack whose outline counts differ from the core's, or unequal per side with a circle",
@@ -397,6 +437,9 @@ CODES: dict[str, str] = {
     "shell_type_unknown": "an unknown shell type in a description",
     "size_not_positive": "a size or length that must be positive is not",
     "source_not_interface": "a source that is not an Interface",
+    "spec_core_twice": "PipeSpec.core() called a second time",
+    "spec_no_core": "a PipeSpec used before core() defined its core",
+    "spec_shell_before_core": "PipeSpec.shell() called before core()",
     "spline_points_coincide": "consecutive spline points coincide",
     "spline_points_invalid": "spline points that are not at least two 3-vectors",
     "spline_start_mismatch": "a spline that does not start at the inlet",

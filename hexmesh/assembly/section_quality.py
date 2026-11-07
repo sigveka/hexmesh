@@ -115,8 +115,10 @@ def section_quality(spec: PipeSpec) -> list[LayerQuality]:
     ``n_outer = 4``, as ``check_supported``.
     """
     if spec.n_outer != 4 or any(o.is_station for o in spec.outlines):
-        raise NotImplementedError("section_quality needs circle and rectangle "
-                                  "outlines and n_outer = 4")
+        raise AssemblyError("section_quality needs circle and rectangle "
+                            "outlines and n_outer = 4",
+                            code="section_not_supported",
+                            hint="use circle or rectangle layers and n_outer=4")
     quads, layer = [], []
     for i, grid in layout_of(spec).node_grids(spec):
         q = _quads(grid)

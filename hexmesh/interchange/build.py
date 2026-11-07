@@ -96,15 +96,24 @@ def _elbow_params(comp: _Comp) -> ElbowGeometry:
     intersection of its tangent legs: with a = start − C and b = end − C,
     θ = 180° − ∠(a, b), R = |a| / tan(θ/2), incoming direction −â."""
     if comp.centre is None:
-        raise ValueError("bend has no corner point (where its tangent legs meet)")
+        raise AssemblyError("bend has no corner point (where its tangent legs meet)",
+                            code="bend_geometry_invalid",
+                            hint="give the bend's CENTRE-POINT: where its tangent legs meet")
     a, b = comp.start - comp.centre, comp.end - comp.centre
     la, lb = float(np.linalg.norm(a)), float(np.linalg.norm(b))
     if la < 1e-12 or lb < 1e-12:
-        raise ValueError("bend corner point coincides with an end point")
+        raise AssemblyError("bend corner point coincides with an end point",
+                            code="bend_geometry_invalid",
+                            hint="the CENTRE-POINT is where the tangent legs meet, not an end "
+                                 "point")
     corner = math.degrees(math.acos(float(np.clip(np.dot(a, b) / (la * lb), -1, 1))))
     theta = 180.0 - corner
     if not 1e-6 < theta < 180.0 - 1e-6:
-        raise ValueError(f"bend legs give a bend angle of {theta:.4g}°")
+        raise AssemblyError(f"bend legs give a bend angle of {theta:.4g}°",
+                            code="bend_geometry_invalid", value=theta,
+                            limit={"min_exclusive": 0, "max_exclusive": 180},
+                            hint="check the end points and CENTRE-POINT: the legs must meet "
+                                 "at an angle strictly between 0° and 180°")
     incoming = -a / la
     bu = b / lb
     turn = _unit(bu - np.dot(bu, incoming) * incoming)
@@ -187,7 +196,8 @@ def _split_hosts(comps, labels, tol, seton_run):
             raise AssemblyError(f"{what}: tangential and offset set-ons are not "
                                 f"supported; a Tee branch is perpendicular and centred",
                                 code="seton_offset_unsupported",
-                                where={"part": _part_id(j_c), "source": _source(j_c)})
+                                where={"part": _part_id(j_c), "source": _source(j_c)},
+                                hint="centre the branch on the host pipe's axis (offset taps are task 0061)")
         if j_c.centre is None or j_c.branch is None:
             raise AssemblyError(f"{what}: needs a centre and a branch point",
                                 code="junction_points_missing",
@@ -224,7 +234,8 @@ def _split_hosts(comps, labels, tol, seton_run):
                     f"{what}: host pipe {labels[h]} is too short around the branch; "
                     f"the tee needs {run:.4g} m on each side of its centre",
                     code="seton_host_too_short", where={"part": _part_id(j_c), "source": _source(j_c)},
-                    value=float(min(t, L - t)), limit={"min_exclusive": float(run)})
+                    value=float(min(t, L - t)), limit={"min_exclusive": float(run)},
+                    hint=f"lengthen {labels[h]} or move the branch: {run:.4g} m of straight pipe on each side of its centre")
             a, b = c - run * axis, c + run * axis
             tee = replace(j_c, kind="tee", start=a, end=b, sec=host.sec, ins_junction=t_j)
             pieces = [replace(host, start=host.start.copy(), end=a, ins=(host.ins[0],) * 2),
@@ -252,7 +263,8 @@ def _split_hosts(comps, labels, tol, seton_run):
                     f"{run:.4g} m the Wye's inlet run needs",
                     code="ypiece_stem_too_short",
                     where={"part": _part_id(j_c), "source": _source(j_c)}, value=L,
-                    limit={"min_exclusive": float(run)})
+                    limit={"min_exclusive": float(run)},
+                    hint=f"a stem of more than {run:.4g} m")
             a = c - run * n
             wye = replace(j_c, kind="wye", start=a, end=a, sec=host.sec,
                           ins_junction=_junction_thickness([j_c.ins_junction, *host.ins], what))
@@ -390,7 +402,8 @@ def _build(model, comps, terminals, spec, axial_cell, kinks, tol, lc, inlet, ins
         if any(sh.name == INSULATION for sh in sample.shells):
             raise AssemblyError(f"insulation=True adds a shell named {INSULATION!r}; the "
                                 f"spec already has one",
-                                code="insulation_shell_exists", where={"field": "insulation"})
+                                code="insulation_shell_exists", where={"field": "insulation"},
+                                hint=f"drop insulation=True, or remove the spec's {INSULATION!r} shell")
         _resolve_insulation(model, comps)
     else:
         for c in comps:
@@ -536,7 +549,8 @@ def _place(report, parts, nodes, at_node, names, root, spec, axial_cell, kinks, 
                                     f"layout; not available yet",
                                     code="equal_tee_unsupported",
                                     where={"part": _part_id(p), "source": _source(p)}, value=rb,
-                                    limit={"max_exclusive": R})
+                                    limit={"max_exclusive": R},
+                                    hint="equal tees are planned through the wye-family layout")
             fitting = Tee(run, blen, rb, toward=tuple(_unit(b)))
             outs_at = [c.end, c.branch]
         else:
@@ -557,7 +571,8 @@ def _place(report, parts, nodes, at_node, names, root, spec, axial_cell, kinks, 
                     raise AssemblyError(f"{what}: daughters must have the stem's size "
                                         f"(Wye daughters keep the inlet's spec)",
                                         code="ypiece_daughter_size",
-                                        where={"part": _part_id(p), "source": _source(p)})
+                                        where={"part": _part_id(p), "source": _source(p)},
+                                        hint="give both daughters the stem's bore; reduce after the Y piece")
             side = d1 - np.dot(d1, axis) * axis            # BRANCH1 is the "right" daughter
             fitting = Wye(h1 + h2, run, l1, toward=tuple(_unit(side)))
             outs_at = [c.branch2, c.branch]                # [left, right]
@@ -703,7 +718,8 @@ def _place_chain(asm, iface, chain, end_dir, spec, kinks, tol, ins, to_junction,
                     raise AssemblyError(f"{label(k)}: insulation starts or stops inside a "
                                         f"spline run; it needs a straight component",
                                         code="insulation_change_in_spline",
-                                        where={"part": _part_id(c), "source": _source(c)})
+                                        where={"part": _part_id(c), "source": _source(c)},
+                                        hint="start or stop the insulation at a straight component")
                 pts = [frame.position] + [comps[i].end for i in range(k, j + 1)]
                 nxt = comps[j + 1] if j + 1 < len(comps) else None
                 end_t = (tuple(_start_direction(nxt)) if nxt is not None

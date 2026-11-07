@@ -72,7 +72,8 @@ def _junction_thickness(ts, what: str) -> float:
     if len(found) > 1:
         raise AssemblyError(f"{what}: its legs have insulation {found[0]:.4g} m and "
                             f"{found[-1]:.4g} m; a junction carries one thickness",
-                            code="junction_insulation_differs", value=found)
+                            code="junction_insulation_differs", value=found,
+                            hint="give the junction's legs one insulation thickness; change it on a straight pipe next to it")
     return found[0] if found else 0.0
 
 

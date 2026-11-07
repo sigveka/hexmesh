@@ -58,6 +58,11 @@ import numpy as np
 
 from .definition import StudyError
 
+
+class FoamCommandFailed(StudyError, RuntimeError):
+    """An OpenFOAM command that exited with an error: still a
+    ``RuntimeError``, as it was before task 0106."""
+
 OPENFOAM_RC = Path("/usr/share/openfoam/etc/bashrc")
 #: The image's environment, whatever its version directory.
 _DOCKER_RC = "for f in /usr/lib/openfoam/openfoam*/etc/bashrc; do source $f; done"
@@ -206,8 +211,11 @@ def foam(cmd: str, case: Path, log: str, mounts=()) -> str:
         if main:
             signal.signal(signal.SIGTERM, old)
     if proc.returncode != 0:
-        raise RuntimeError(f"{cmd} failed in {case} (see {log}):\n{stdout[-3000:]}"
-                           f"{err[-2000:]}")
+        raise FoamCommandFailed(f"{cmd} failed in {case} (see {log}):\n{stdout[-3000:]}"
+                                f"{err[-2000:]}", code="openfoam_command_failed",
+                                where={"label": cmd.split()[0]}, value=proc.returncode,
+                                hint=f"read {Path(case) / log}; have_openfoam() checks the "
+                                     f"runner ({_runner})")
     return stdout
 
 
@@ -452,7 +460,9 @@ def read_patch_values(path: Path, patch: str, n: int | None = None):
     words = text[k:].split(None, 3)
     if words[1] == "uniform":
         if n is None:
-            raise ValueError(f"{patch}: uniform value, expected a list")
+            raise StudyError(f"{patch}: uniform value, expected a list",
+                             code="openfoam_value_uniform", where={"label": patch},
+                             hint="pass n=, the patch's face count (read_patch_faces)")
         return np.full(n, float(words[2].rstrip(";")))
     _, body = _list_body(text, k)
     return np.array(body.split(), float)

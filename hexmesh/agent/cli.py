@@ -77,7 +77,8 @@ def _network(args) -> Assembly:
         if not args.spec:
             raise HexmeshError(f"{path}: a PCF network needs --spec SPEC.json (a PipeSpec "
                                "description, or one per nominal size)",
-                               code="cli_input_unreadable", where={"field": "spec"})
+                               code="cli_input_unreadable", where={"field": "spec"},
+                               hint=f"hexmesh <command> {path} --spec SPEC.json")
         return read_pcf(path).to_assembly(_spec(_read_json(args.spec, "spec"), args.spec))
     return Assembly.from_dict(_read_json(path, "network"))
 
@@ -101,7 +102,8 @@ def _spec(d, path: str):
         raise HexmeshError(f"spec {path} has no entry for nominal size {bore:g} m "
                            f"(it has {', '.join(f'{n:g}' for n, _ in sizes)})",
                            code="cli_spec_size_missing", where={"source": {"file": str(path)}},
-                           value=bore, limit=[n for n, _ in sizes])
+                           value=bore, limit=[n for n, _ in sizes],
+                           hint=f"add an entry for nominal {bore:g} to {path}")
     return by_bore
 
 
@@ -144,13 +146,15 @@ def _run(args) -> tuple[bool, object]:
     if args.command == "preview":
         if not args.out:
             raise HexmeshError("preview needs --out PATH.png", code="cli_input_unreadable",
-                               where={"field": "out"})
+                               where={"field": "out"},
+                                                               hint="hexmesh preview NETWORK --out view.png")
         agent.preview(asm, args.out)
         return True, {"path": str(args.out)}
     if args.command == "advise":
         if not args.inputs:
             raise HexmeshError("advise needs --inputs inputs.json", code="cli_input_unreadable",
-                               where={"field": "inputs"})
+                               where={"field": "inputs"},
+                                                                    hint="hexmesh advise NETWORK --inputs inputs.json")
         report = agent.advise(asm, _read_json(args.inputs, "inputs"))
         if report["error"] is not None:
             raise _Failure({**report["error"], "report": report})
@@ -158,12 +162,14 @@ def _run(args) -> tuple[bool, object]:
     if args.command == "apply":
         if not args.table:
             raise HexmeshError("apply needs --table table.json", code="cli_input_unreadable",
-                               where={"field": "table"})
+                               where={"field": "table"},
+                                                                 hint="hexmesh apply NETWORK --table table.json")
         return True, agent.apply(asm.to_dict(), _read_json(args.table, "table"))
     if args.command == "build":
         if not args.out:
             raise HexmeshError("build needs --out PATH.msh", code="cli_input_unreadable",
-                               where={"field": "out"})
+                               where={"field": "out"},
+                                                             hint="hexmesh build NETWORK --out mesh.msh")
         from hexmesh import Session
         with Session("hexmesh-cli"):
             asm.write(str(args.out), order=args.order)

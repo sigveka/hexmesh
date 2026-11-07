@@ -138,6 +138,7 @@ class TestValidationBeforeGmsh:
 
     def test_n_outer_8_rejected(self):
         asm = Assembly(_spec(n_outer=8))
-        asm.add(Straight(0.3, n_layers=2))
-        with pytest.raises(AssemblyError, match="n_outer=4 only"):
-            asm.validate()
+        # add() checks the section before the fitting resolves (task 0106)
+        with pytest.raises(AssemblyError, match="n_outer=4 only") as e:
+            asm.add(Straight(0.3, n_layers=2))
+        assert e.value.code == "section_not_supported"

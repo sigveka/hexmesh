@@ -38,6 +38,7 @@ from ..core.cross_section import CrossSection
 from ..core.spec import PipeSpec
 from ..sections import oh
 from .interface import Frame
+from ..errors import InternalError
 
 
 def curve_endpoints(curve: int) -> tuple[int, int]:
@@ -109,7 +110,7 @@ def _oriented(curve: int, start: int, end: int) -> int:
         return abs(curve)
     if (t0, t1) == (end, start):
         return -abs(curve)
-    raise RuntimeError(
+    raise InternalError(
         f"curve {abs(curve)} does not join points {start} and {end} "
         f"(endpoints {t0}, {t1}): face topology is inconsistent"
     )
@@ -195,7 +196,7 @@ def connect_patch(in_cs: CrossSection, out_cs: CrossSection, g_in: dict, g_out: 
     Same return as ``connect_aligned``; the side faces are the walls.
     *planar_radial* has nothing to apply to (no corner lines)."""
     if prev_outer_axial is not None or prev_outer_side_surfs is not None:
-        raise ValueError("a one-patch face has no layers outside its core (task 0086)")
+        raise InternalError("a one-patch face has no layers outside its core (task 0086)")
     geo = gmsh.model.occ
     axial_curve = axial_curve or _occ.line
     side_surface = side_surface or geo.addSurfaceFilling

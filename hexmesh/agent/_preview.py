@@ -32,6 +32,7 @@ from pathlib import Path
 import numpy as np
 
 from hexmesh import Assembly
+from hexmesh.assembly import AssemblyTypeError
 from hexmesh.interchange import NetworkModel
 
 from ._describe import centreline
@@ -62,8 +63,10 @@ def preview(x, path) -> Path:
     elif isinstance(x, Assembly):
         lines, outlines, labels = _assembly_geometry(x)
     else:
-        raise TypeError(f"preview() takes an Assembly, its to_dict() description or a "
-                        f"NetworkModel, not {type(x).__name__}")
+        raise AssemblyTypeError(f"preview() takes an Assembly, its to_dict() description or a "
+                                f"NetworkModel, not {type(x).__name__}",
+                                code="agent_input_type", value=type(x).__name__,
+                                hint="pass an Assembly, assembly.to_dict(), or a NetworkModel")
     fig = Figure(figsize=SIZE, dpi=DPI)
     axes = fig.subplots(2, 2)
     projections = [(t, (lambda p, ij=ij: p[..., list(ij)])) for t, ij in VIEWS]

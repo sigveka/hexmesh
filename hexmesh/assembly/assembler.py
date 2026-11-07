@@ -540,6 +540,10 @@ class Assembly:
         resolve = getattr(fitting, "resolve", None)
         if resolve is not None:
             try:
+                # before resolve(), which may build the fitting's block layout
+                # (a Tee's shortest run): an unsupported section is named
+                # first (task 0106)
+                check_supported(source.spec)
                 fitting = resolve(source.frame, source.spec, self.axial_cell,
                                   None if target is None else target.frame)
             except ValueError as e:
@@ -619,7 +623,7 @@ class Assembly:
                         value=len(attached), limit=1)
             try:
                 check_supported(iface.spec)
-            except NotImplementedError as e:
+            except AssemblyError as e:
                 raise AssemblyError.wrap(e, f"{iface}: {e}",
                                          code="section_not_supported",
                                          interface=iface.index) from None

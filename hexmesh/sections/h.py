@@ -48,6 +48,7 @@ from . import oh
 from ._gmsh_helpers import (add_line, add_line_loop, add_point, add_surface, plane,
                             set_recombine_surface, set_transfinite_curve,
                             set_transfinite_surface)
+from ..errors import InternalError
 
 NAME = "h"
 #: signature layout kind (``assembly.signature``)
@@ -215,7 +216,7 @@ def build_h_rect(spec, position, h_axis, v_axis, lc: float,
     wall grading here (inside one, the sweep sets them)."""
     shape = spec.core_shape
     if not isinstance(shape, RectShape):
-        raise TypeError(f"the H face needs a rectangle, got {shape.label}")
+        raise InternalError(f"the H face needs a rectangle, got {shape.label}")
     cx, cy, cz = (float(c) for c in position)
     xyz = plane(cx, cy, cz, h_axis, v_axis, stretch)
     lvl = levels(spec)[0]

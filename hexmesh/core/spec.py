@@ -42,7 +42,7 @@ import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from ..errors import SpecError, SpecTypeError
+from ..errors import SpecError, SpecTypeError, SpecUsageError
 from .grading import bump_for_first_cell, bump_for_ratio, progression_for_first_cell
 from .params import describe
 from .shape import (LAYOUTS, CircleShape, RectShape, Shape, longest_radial, core_wall_span,
@@ -53,13 +53,22 @@ if TYPE_CHECKING:
     pass
 
 
+def _nang_hint(nang: int, divisor: int) -> str:
+    """The nearest ``nang`` values divisible by *divisor*."""
+    lo = nang // divisor * divisor
+    near = [n for n in (lo, lo + divisor) if n > 0]
+    return " or ".join(f"nang={n}" for n in near) + f" (a multiple of {divisor})"
+
+
 def _check_layer_name(name) -> None:
     """Layer names become group names (``fluid_inlet``,
     ``interface_fluid_steel``), so keep them to ``[A-Za-z0-9_]``."""
     if not isinstance(name, str) or not re.fullmatch(r"[A-Za-z0-9_]+", name):
         raise SpecError(f"layer name {name!r} must be letters, digits and _ only "
                          "(it becomes part of physical group names)",
-                        code="layer_name_invalid", where={"field": "name"}, value=name)
+                        code="layer_name_invalid", where={"field": "name"}, value=name,
+                        hint=(f"e.g. {re.sub(r'[^A-Za-z0-9_]', '_', name)!r}"
+                              if isinstance(name, str) and name else None))
 
 
 class LayoutNotSupported(SpecError):
@@ -121,7 +130,9 @@ class LayerSpec:
     def __post_init__(self) -> None:
         if (self.dR is None) == (self.outer is None):
             raise SpecError(f"shell `{self.name}`: give exactly one of dR and outer",
-                            code="shell_outline_args", where={"label": self.name})
+                            code="shell_outline_args", where={"label": self.name},
+                            hint="dR= for a shell of even thickness, or outer= (a shape) for "
+                                 "its own outline")
         if self.dR is not None and self.dR <= 0:
             raise SpecError(f"LayerSpec.dR must be positive, got {self.dR!r}",
                             code="size_not_positive", where={"label": self.name, "field": "dR"},
@@ -213,7 +224,7 @@ class PipeSpec:
             raise SpecError(
                 f"PipeSpec n_outer must be a positive multiple of 4, got {n_outer!r}.",
                 code="n_outer_invalid", where={"field": "n_outer"}, value=n_outer,
-                limit="a positive multiple of 4")
+                limit="a positive multiple of 4", hint="use n_outer=4, the default")
         if not mbmp > 0:
             raise SpecError(f"PipeSpec mbmp must be positive, got {mbmp!r}.",
                             code="value_not_positive", where={"field": "mbmp"}, value=mbmp,
@@ -236,7 +247,7 @@ class PipeSpec:
                     f"PipeSpec nang={nang} must be divisible by n_outer//4={divisor} "
                     f"(n_outer={n_outer}).",
                     code="nang_not_divisible", where={"field": "nang"}, value=nang,
-                    limit={"multiple_of": divisor})
+                    limit={"multiple_of": divisor}, hint=_nang_hint(nang, divisor))
 
     # ------------------------------------------------------------------
     # Builder methods
@@ -344,7 +355,9 @@ class PipeSpec:
             ``first_cell=`` and ``mprg=`` resolve to it.
         """
         if self._core is not None:
-            raise RuntimeError("PipeSpec.core() may only be called once.")
+            raise SpecUsageError("PipeSpec.core() may only be called once.", code="spec_core_twice",
+                                 hint="add further layers with .shell(); start a new PipeSpec "
+                                      "for another core")
         if layout is not None and layout not in LAYOUTS:
             raise SpecError(f"layout must be one of {sorted(LAYOUTS)}, got {layout!r}",
                             code="layout_unknown", where={"field": "layout"}, value=layout,
@@ -420,12 +433,13 @@ class PipeSpec:
             if shape.is_round or shape.is_station:
                 raise SpecError(f"layout='h' needs a rectangular core, got a {shape.label}",
                                 code="h_layout_needs_rectangle",
-                                where={"label": name, "field": "layout"})
+                                where={"label": name, "field": "layout"},
+                                hint=f"a {shape.label} takes layout='oh', the default")
             if self._n_outer != 4:
                 raise SpecError("layout='h' needs n_outer = 4",
                                 code="h_layout_needs_n_outer_4",
                                 where={"label": name, "field": "n_outer"}, value=self._n_outer,
-                                limit=4)
+                                limit=4, hint="use PipeSpec(n_outer=4)")
             if sum(x is not None for x in (mprg, first_cell, wall_bump)) > 1:
                 raise SpecTypeError("pass one of mprg=, first_cell= or wall_bump=",
                                     code="grading_args_conflict", where={"label": name})
@@ -450,7 +464,9 @@ class PipeSpec:
         elif wall_bump is not None:
             raise SpecTypeError("wall_bump= is an H core's grading (layout='h')",
                                 code="wall_bump_needs_h_layout",
-                                where={"label": name, "field": "wall_bump"})
+                                where={"label": name, "field": "wall_bump"},
+                                hint="pass layout='h' with it, or grade an O-H core with mprg= "
+                                     "or first_cell=")
         if first_cell is not None:
             if not shape.is_round:
                 raise SpecTypeError("first_cell= supports circular cores only",
@@ -534,10 +550,13 @@ class PipeSpec:
             Mutually exclusive with ``mprg``.
         """
         if self._core is None:
-            raise RuntimeError("Call PipeSpec.core() before .shell().")
+            raise SpecUsageError("Call PipeSpec.core() before .shell().",
+                                 code="spec_shell_before_core",
+                                 hint="PipeSpec(nang=…).core(name, shape, nrad=…).shell(…)")
         if nrad is None:
             raise SpecTypeError(f"shell `{name}`: nrad is required",
-                                code="shell_nrad_missing", where={"label": name, "field": "nrad"})
+                                code="shell_nrad_missing", where={"label": name, "field": "nrad"},
+                                hint="pass nrad=, the cells across the shell (e.g. nrad=2)")
         _check_layer_name(name)
         layer = LayerSpec(name=name, dR=dR, nrad=nrad, mprg=1.0, outer=outer)
         inner = self.outlines[-1]
@@ -585,7 +604,7 @@ class PipeSpec:
                              f"needs n_outer = 4, got {self._n_outer}",
                             code="rect_stack_needs_n_outer_4",
                             where={"label": name, "field": "n_outer"}, value=self._n_outer,
-                            limit=4)
+                            limit=4, hint="use PipeSpec(n_outer=4)")
         names = self.layer_names + [name]
         core = outlines[0].counts
         if all(type(o).side_curve != "arc" for o in outlines):
@@ -596,7 +615,8 @@ class PipeSpec:
                         f"the core's counts; layer `{lname}` has {o.counts} "
                         f"(nang_w, nang_h), the core {core}",
                         code="rect_stack_counts_unequal", where={"label": name},
-                        value=o.counts, limit=core)
+                        value=o.counts, limit=core,
+                        hint=f"give layer `{lname}` nang_w={core[0]}, nang_h={core[1]}")
             return
         want = core[0]
         for lname, o in zip(names, outlines):
@@ -607,7 +627,8 @@ class PipeSpec:
                     f"0041); layer `{lname}` has {o.counts} (nang_w, nang_h), the core "
                     f"{want} per side",
                     code="rect_stack_counts_unequal", where={"label": name},
-                    value=o.counts, limit=(want, want))
+                    value=o.counts, limit=(want, want),
+                    hint=f"give layer `{lname}` nang_w={want}, nang_h={want}")
 
     # ------------------------------------------------------------------
     # Derived properties
@@ -623,7 +644,8 @@ class PipeSpec:
     @property
     def core_shape(self) -> Shape:
         if self._core is None:
-            raise RuntimeError("PipeSpec has no core defined.")
+            raise SpecUsageError("PipeSpec has no core defined.", code="spec_no_core",
+                                 hint="call .core(name, shape, nrad=…) first")
         return self._core[1]
 
     @property
@@ -634,7 +656,8 @@ class PipeSpec:
     def outlines(self) -> list[Shape]:
         """Every layer's outline, core first (decision 0026)."""
         if self._core is None:
-            raise RuntimeError("PipeSpec has no core defined.")
+            raise SpecUsageError("PipeSpec has no core defined.", code="spec_no_core",
+                                 hint="call .core(name, shape, nrad=…) first")
         out = [self._core[1]]
         for sh in self._shells:
             out.append(sh.outline(out[-1]))
@@ -741,7 +764,8 @@ class PipeSpec:
                 raise SpecError(
                     f"{type(shape).__name__}.{name}={n} does not match "
                     f"PipeSpec({name}={mine})."
-                , code="shape_counts_mismatch", where={"field": name}, value=n, limit=mine)
+                , code="shape_counts_mismatch", where={"field": name}, value=n, limit=mine,
+                hint=f"give the shape {name}={mine}, or leave the PipeSpec's {name} unset")
         for name, n in counts.items():
             if getattr(self, f"_{name}") is None:
                 setattr(self, f"_{name}", n)
@@ -753,7 +777,8 @@ class PipeSpec:
                     f"PipeSpec nang={self._nang} must be divisible by "
                     f"n_outer//4={divisor} (n_outer={self._n_outer}).",
                     code="nang_not_divisible", where={"field": "nang"},
-                    value=self._nang, limit={"multiple_of": divisor})
+                    value=self._nang, limit={"multiple_of": divisor},
+                    hint=_nang_hint(self._nang, divisor))
 
     # ------------------------------------------------------------------
     # Serialisation (docs/tasks/0006)
@@ -767,7 +792,8 @@ class PipeSpec:
         with the same progression.
         """
         if self._core is None:
-            raise RuntimeError("PipeSpec has no core defined.")
+            raise SpecUsageError("PipeSpec has no core defined.", code="spec_no_core",
+                                 hint="call .core(name, shape, nrad=…) first")
         name, shape = self._core
         if not hasattr(shape, "to_dict"):
             raise SpecTypeError(f"cannot serialise core shape {type(shape).__name__}",

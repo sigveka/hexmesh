@@ -23,6 +23,8 @@ from itertools import combinations
 
 import numpy as np
 
+from ..errors import InternalError
+
 
 @dataclass(frozen=True)
 class Tube:
@@ -200,7 +202,7 @@ class TubeUnion:
                 out[take], best = c[take], np.where(take, d, best)
         out[np.isinf(best)] = np.nan
         if np.isnan(out).any():
-            raise ValueError("wall projection found no point on the wall for "
+            raise InternalError("wall projection found no point on the wall for "
                              f"{int(np.isnan(out[:, 0]).sum())} node(s)")
         return out
 

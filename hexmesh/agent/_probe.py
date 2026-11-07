@@ -78,10 +78,13 @@ def _other_shape(key: str) -> PipeSpec:
 
 def _switched(key: str) -> PipeSpec | None:
     """A Switch's outlet: given from an H inlet (it carries the O-H ring),
-    the default otherwise."""
-    if PROBE_SPECS[key][1] == "h":
-        return PROBE_SPECS["rect_oh"][3](1.0)
-    return None
+    with the inlet's shells (a Switch keeps them); the default otherwise."""
+    if PROBE_SPECS[key][1] != "h":
+        return None
+    out = PROBE_SPECS["rect_oh"][3](1.0)
+    for sh in PROBE_SPECS[key][3](1.0).shells:
+        out = out.shell(sh.name, dR=sh.dR, nrad=sh.nrad, mprg=sh.mprg, outer=sh.outer)
+    return out
 
 
 # Each fitting, as built for a probe: f(spec key, spec builder) -> fitting.

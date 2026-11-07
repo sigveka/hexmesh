@@ -2,6 +2,40 @@
 
 ## Unreleased
 
+**Every user-facing error coded, internal errors marked** (decision 0040;
+task 0106).
+
+- The last 21 user-reachable bare `ValueError`, `TypeError`,
+  `RuntimeError` and `NotImplementedError` raises now carry codes.  Each
+  keeps its built-in class, so existing `except` clauses still work:
+  - `SpecUsageError` (a `RuntimeError`) for `PipeSpec.core()` twice,
+    `shell()` before `core()`, and a spec with no core;
+  - `ReaderFileNotFound` (a `FileNotFoundError`) for a missing PCF file;
+  - `study.openfoam.FoamCommandFailed` (a `RuntimeError`) for a failed
+    OpenFOAM command;
+  - `agent_input_type`, `fitting_declares_no_strategies`,
+    `quality_mode_unknown` and `openfoam_value_uniform`;
+  - `check_supported` raises `section_not_supported` itself.
+- **`InternalError`** (code `internal_invariant`, a `RuntimeError`) marks
+  a failed internal check: a bug in hexmesh, not in the input.  Its
+  message asks for a report.  21 former bare raises use it.
+- **Three rejections fixed** (found by the manifest's probe, task 0102):
+  - a `Switch` on a circle now raises `switch_needs_rectangle`; it used
+    to raise an `AttributeError`;
+  - a duct tap on a shelled H rectangle now raises
+    `junction_shells_unsupported`; it used to raise the internal Switch's
+    `switch_changes_shells`;
+  - an unsupported section (`n_outer = 8`) now raises
+    `section_not_supported` in `add()`, before a `Tee` or `Wye` builds its
+    layout.
+- The support matrix now shows that a `Switch` on a shelled rectangle is
+  supported; the probe had given it a shell-less outlet.
+- **Hints:** 58 of 443 coded raises had one; now 134 of 464 do.  They are
+  in spec and section errors, the fittings' fit checks (each with the
+  length, angle, count or `rot` to use), the PCF and network builder, and
+  the CLI.  For example, `nang_not_divisible` suggests "nang=4 or nang=6
+  (a multiple of 2)".
+
 **Laterals: `Tee(angle=…)`** (decision 0031 stage 1; task 0060).
 
 - `angle` (degrees, default 90) leans the branch from the run's

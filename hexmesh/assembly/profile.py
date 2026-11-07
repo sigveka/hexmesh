@@ -135,7 +135,8 @@ class Profile:
             raise AssemblyError(f"venturi with beta {beta:g} and a {divergent:g}° "
                                 f"divergent needs length >= {need:.6g}, got {self.length:.6g}",
                                 code="profile_too_short", where={"field": "length"},
-                                value=self.length, limit={"min": need})
+                                value=self.length, limit={"min": need},
+                                hint=f"length >= {need:.6g}, a larger beta, or a wider divergent angle")
         s = np.array([0.0, l1, l1 + l2, need, max(need, self.length)]) / self.length
         x = np.array([1.0, beta, beta, 1.0, 1.0])
         self.kinks = tuple(float(v) for v in s[1:4])

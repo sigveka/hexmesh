@@ -581,6 +581,12 @@ class TapTemplate:
                                 "perpendicular (shoe taps are task 0063)",
                                 code="angle_on_duct_tap", where={"field": "angle"},
                                 value=tee.angle, limit=90)
+        if spec.shells:             # on either layout, before an H main's switch legs
+            raise AssemblyError("Tee: duct taps are single-layer; shelled duct taps are "
+                                "not supported yet (decisions 0026, 0028)",
+                                code="junction_shells_unsupported",
+                                hint="drop the shells, or a pipe tee (a circular main) carries "
+                                     "them")
         if spec.layout == "h":
             return self._check_h(spec, tuned)
         if tee.nrad is not None or tee.mprg is not None:
@@ -595,10 +601,6 @@ class TapTemplate:
                                 "by Assembly.add(); add the fitting to an assembly",
                                 code="fitting_not_resolved", where={"field": "run_length"},
                                 hint="add the fitting to an assembly")
-        if spec.shells:
-            raise AssemblyError("Tee: duct taps are single-layer; shelled duct taps are "
-                                "not supported yet (decisions 0026, 0028)",
-                                code="junction_shells_unsupported")
         if spec.rot != 0 or spec.n_outer != 4:
             raise AssemblyError("Tee: a duct tap requires rot = 0 and n_outer = 4",
                                 code="junction_needs_rot_0_n_outer_4", where={"field": "rot"})

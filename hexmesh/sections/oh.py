@@ -64,6 +64,7 @@ import numpy as np
 from ..core.grading import bump, progression
 from ..core.shape import LAYOUTS, BlendShape, CircleShape, RectShape
 from ..core.shape import outline as outer_outline
+from ..errors import InternalError
 
 #: signature layout kinds (``assembly.signature``)
 NAME = "oh"
@@ -160,7 +161,7 @@ def outline(shape, k: int, s, inner: bool = False) -> np.ndarray:
         return _circle_inner(shape, k, s)
     if isinstance(shape, RectShape):
         return _rect_inner(shape, k, s)
-    raise TypeError(f"no outline for {type(shape).__name__}")
+    raise InternalError(f"no outline for {type(shape).__name__}")
 
 
 def corner0_angle(spec) -> float:

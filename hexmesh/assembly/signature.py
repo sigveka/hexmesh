@@ -53,9 +53,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .errors import AssemblyError
+from .errors import AssemblyError, AssemblyTypeError
 from ..core.spec import LayerSpec, PipeSpec
 from ..sections import h, oh
+from ..errors import InternalError
 
 # What a class needs, for error messages.
 BRIDGES = {
@@ -114,7 +115,7 @@ def signature(spec: PipeSpec) -> Signature:
         layers = [LayerSig(name, oh.CORE_KIND, spec._core_nrad, spec._core_mprg)]
     for sh in spec.shells:
         if not isinstance(sh, LayerSpec):
-            raise ValueError(f"no signature for a {type(sh).__name__} layer")
+            raise InternalError(f"no signature for a {type(sh).__name__} layer")
         layers.append(LayerSig(sh.name, oh.RING_KIND, sh.nrad, sh.mprg))
     c = spec.side_counts
     period = 360.0 / spec.n_outer if c[0] == c[1] else 180.0
@@ -194,7 +195,11 @@ def strategies_for(fitting, k: int) -> frozenset:
     """Classes *fitting* can bridge on its port pair inlet → outlet *k*."""
     s = getattr(fitting, "strategies", None)
     if s is None:
-        raise TypeError(f"{type(fitting).__name__} declares no strategies (DESIGN A4)")
+        raise AssemblyTypeError(f"{type(fitting).__name__} declares no strategies (DESIGN A4)",
+                                code="fitting_declares_no_strategies",
+                                value=type(fitting).__name__,
+                                hint="declare the switch classes it bridges, e.g. "
+                                     "strategies = frozenset({0}) on the class")
     return s[k] if isinstance(s, tuple) else s
 
 

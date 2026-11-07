@@ -259,15 +259,19 @@ def check_supported(spec: PipeSpec) -> None:
     """Raise if *spec* uses a cross-section the prototype cannot fill."""
     shape = spec.core_shape
     if shape.is_station:
-        raise NotImplementedError(
+        raise AssemblyError(
             f"assembly supports circular and rectangular cores, "
-            f"got {type(shape).__name__}."
+            f"got {type(shape).__name__}.",
+            code="section_not_supported", value=type(shape).__name__,
+            hint="use a CircleShape or RectShape core"
         )
     if spec.n_outer != 4:
-        raise NotImplementedError(
+        raise AssemblyError(
             f"assembly prototype supports n_outer=4 only, got {spec.n_outer}: "
             f"the n_outer=8 core centre patch has 8 sides and cannot bound a "
-            f"transfinite hex block"
+            f"transfinite hex block",
+            code="section_not_supported", where={"field": "n_outer"}, value=spec.n_outer,
+            limit=4, hint="use n_outer=4 (n_outer=8 comes with task 0088)"
         )
     check_outlines(spec)
 

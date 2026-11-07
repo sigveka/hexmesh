@@ -44,6 +44,8 @@ from typing import Literal
 import numpy as np
 from numpy.linalg import det, inv, norm
 
+from .errors import HexmeshError
+
 # ---------------------------------------------------------------------------
 # Hex topology constants (verified on the unit cube — det = 1 at every vertex)
 # ---------------------------------------------------------------------------
@@ -330,7 +332,9 @@ def _aggregate(values: list[float], mode: _AggMode) -> float:
         return sum(values) / len(values)
     if mode == "sum":
         return sum(values)
-    raise ValueError(f"Unknown aggregation mode {mode!r}; expected min/max/mean/sum")
+    raise HexmeshError(f"Unknown aggregation mode {mode!r}; expected min/max/mean/sum",
+                       code="quality_mode_unknown", where={"field": "mode"}, value=mode,
+                       limit=["min", "max", "mean", "sum"])
 
 
 def _hex_face_metric(

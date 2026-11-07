@@ -28,6 +28,7 @@ import gmsh
 import pytest
 
 from hexmesh import Assembly, Bend, PipeSpec, Session, Straight
+from hexmesh.errors import InternalError
 from hexmesh.examples import ALL
 from hexmesh.io import read_recipe
 from hexmesh.io.writers import msh_comments
@@ -91,7 +92,7 @@ def test_no_timestamp_host_or_path(gmsh_session, tmp_path):
 
 def test_a_line_starting_with_dollar_is_refused(monkeypatch):
     monkeypatch.setattr(msh_comments, "LOGO_LINES", ("$EndComments",))
-    with pytest.raises(ValueError, match="end the block"):
+    with pytest.raises(InternalError, match="end the block"):        # an invariant (task 0106)
         msh_comments.block("hexmesh 0", "write", {}, tool="gmsh 0", msh=("4.1", False))
 
 

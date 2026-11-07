@@ -170,6 +170,7 @@ class Switch:
         """The H face of an O-H *spec* (ungraded), unless ``outlet`` is given."""
         if self.outlet is not None:
             return self.outlet
+        self._check_rectangle("inlet", spec)       # before reading its counts (task 0106)
         if spec.layout != "oh":
             raise AssemblyError("Switch from an H inlet needs outlet= (the O-H spec, "
                                 "with its nrad)",
@@ -180,6 +181,15 @@ class Switch:
         for s in spec.shells:
             out = out.shell(s.name, dR=s.dR, nrad=s.nrad, mprg=s.mprg, outer=s.outer)
         return out
+
+    @staticmethod
+    def _check_rectangle(end: str, s: PipeSpec) -> None:
+        if s.core_shape.side_curve != "line":
+            raise AssemblyError(f"Switch changes a rectangular duct's section; the {end} "
+                                f"core is a {s.core_shape.label}",
+                                code="switch_needs_rectangle", where={"field": end},
+                                hint="a Switch joins the O-H and H faces of a rectangle; a "
+                                     "circular section has only the O-H face")
 
     @staticmethod
     def _ends(spec: PipeSpec, out: PipeSpec) -> tuple[PipeSpec, PipeSpec]:
@@ -203,10 +213,7 @@ class Switch:
                                 value=self.n_layers, limit={"min": 1})
         out = self.outlet_spec(spec)
         for end, s in (("inlet", spec), ("outlet", out)):
-            if s.core_shape.side_curve != "line":
-                raise AssemblyError(f"Switch changes a rectangular duct's section; the {end} "
-                                    f"core is a {s.core_shape.label}",
-                                    code="switch_needs_rectangle", where={"field": end})
+            self._check_rectangle(end, s)
         if {spec.layout, out.layout} != {"oh", "h"}:
             raise AssemblyError(f"Switch joins an O-H and an H face; got layout "
                                 f"{spec.layout!r} at the inlet and {out.layout!r} at the outlet",

@@ -1395,13 +1395,22 @@ Each layer raises its own subclass:
 |-------|-----------|--------|
 | `SpecError` | `core`, `sections`: specs and shapes | |
 | `SpecTypeError` | a wrong combination of spec arguments | `TypeError` |
+| `SpecUsageError` | `PipeSpec` methods out of order (`core()` twice, `shell()` first, no core) | `RuntimeError` |
 | `AssemblyError` | `assembly`, the network builder (`hexmesh.interchange`) | |
 | `AssemblyTypeError` | a wrong argument type to the assembly | `TypeError` |
 | `EquipmentError` | drums and nozzles | |
 | `LayoutError` | block layouts (`assembly.blocks`) | |
 | `ReaderError` | `interchange.importers`, and the files `io.writers` read back | |
+| `ReaderFileNotFound` | a reader's input file that does not exist | `FileNotFoundError` |
 | `StudyError`, `PreflightFailed` | `hexmesh.study` | |
 | `StudyTypeError` | a study's post-processing result | `TypeError` |
+| `FoamCommandFailed` | an OpenFOAM command that exits with an error (`hexmesh.study.openfoam`) | `RuntimeError` |
+
+A failed internal check, a bug in hexmesh rather than in the input, is an
+`InternalError` with code `internal_invariant` (task 0106). It shares the
+fields, but it is a `RuntimeError`, not a `HexmeshError`, so `except
+HexmeshError` doesn't hide it. Its message asks for a report, with the
+input that caused it, at <https://github.com/sigveka/hexmesh/issues>.
 
 When the assembly re-raises a fitting's error with its location, it keeps
 the fitting's `code`, `value`, `limit` and `hint` and adds `fitting` and
@@ -1427,6 +1436,7 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `advice_not_validated` | advice that rests on no validated case (advice note) | advice note |
 | `advice_regime_transitional` | a section in transitional flow, graded as turbulent (advice note) | advice note |
 | `advice_wall_function_unsupported` | wall functions asked of advise (they wait for task 0049) | `AdviceError` |
+| `agent_input_type` | an agent function given something other than an Assembly or its description | `AssemblyTypeError` |
 | `angle_looks_like_radians` | a fitting angle so small it was probably given in radians (warning) | `HexmeshWarning` |
 | `angle_on_duct_tap` | a Tee angle other than 90 on a duct tap | `AssemblyError` |
 | `angle_out_of_range` | a bend or wye angle outside its open range | `AssemblyError` |
@@ -1491,6 +1501,7 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `fill_order_invalid` | a fill order that is not a permutation of the fittings | `AssemblyError` |
 | `first_cell_out_of_range` | a first cell not in (0, layer thickness] | `SpecError` |
 | `first_cell_unsupported` | first_cell= on a core that does not support it | `SpecTypeError` |
+| `fitting_declares_no_strategies` | a fitting class without strategies (DESIGN A4) | `AssemblyTypeError` |
 | `fitting_fields_unknown` | unknown fields in a fitting's description | `AssemblyError` |
 | `fitting_invalid` | a fitting fails its checks when added | `AssemblyError` |
 | `fitting_names_not_unique` | fitting names that are not unique | `AssemblyError` |
@@ -1514,6 +1525,7 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `interface_degree` | an interface already used as the inlet or outlet of another fitting | `AssemblyError` |
 | `interface_not_in_assembly` | an interface from another assembly | `AssemblyError` |
 | `interface_not_open` | an interface that is not an open end | `AssemblyError` |
+| `internal_invariant` | an internal check that failed: a bug in hexmesh, to report | `InternalError` |
 | `join_direction` | join: two ports that don't face each other | `AssemblyError` |
 | `join_gap` | join: two ports farther apart than the tolerance | `AssemblyError` |
 | `join_port_not_open` | join: a port already connected to another | `AssemblyError` |
@@ -1583,8 +1595,10 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `nozzle_unknown` | a drum has no nozzle of that name | `EquipmentError` |
 | `nrad_on_h_core` | nrad= on an H core, which has no ring | `SpecError` |
 | `openfoam_boundary_unparsable` | an OpenFOAM boundary file that can't be parsed | `ReaderError` |
+| `openfoam_command_failed` | an OpenFOAM command that exited with an error | `FoamCommandFailed` |
 | `openfoam_needs_order_1` | write_openfoam asked for a second-order mesh | `AssemblyError` |
 | `openfoam_patches_unmapped` | OpenFOAM patches not in the role manifest (warning) | `HexmeshWarning` |
+| `openfoam_value_uniform` | an OpenFOAM field read as a list holds a uniform value | `StudyError` |
 | `option_invalid` | an option outside its allowed values | `AssemblyError`, `EquipmentError`, `HexmeshError`, `ReaderError`, `StudyError` |
 | `other_runs_active` | other pytest or OpenFOAM runs are active on the machine | `StudyError` |
 | `other_runs_unchecked` | other runs on the machine can't be checked (warning) | `HexmeshWarning` |
@@ -1596,6 +1610,7 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `part_rejected` | a network part the importer marked unbuildable | `AssemblyError` |
 | `pcf_component_incomplete` | a PCF component with fewer than two end points, skipped (warning) | `HexmeshWarning` |
 | `pcf_component_unsupported` | a PCF component type hexmesh does not read, skipped (warning) | `HexmeshWarning` |
+| `pcf_file_not_found` | a PCF path that does not exist | `ReaderFileNotFound` |
 | `pcf_no_files` | read_pcf given an empty list of files | `ReaderError` |
 | `pcf_type_inferred` | an unknown PCF type read as an inline straight or reducer (warning) | `HexmeshWarning` |
 | `pcf_unit_scale_override` | unit_scale overrides the PCF's units header (warning) | `HexmeshWarning` |
@@ -1619,6 +1634,7 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `profile_table_invalid` | a profile table that is not a valid list of (s, r) pairs | `AssemblyError` |
 | `profile_too_short` | a profiled reducer too short for its profile | `AssemblyError` |
 | `profile_unknown` | an unknown profile | `AssemblyError` |
+| `quality_mode_unknown` | an unknown aggregation mode for a hex quality metric | `HexmeshError` |
 | `reader_format_invalid` | a file whose contents a reader can't use | `ReaderError` |
 | `rect_stack_counts_unequal` | a rectangle stack whose outline counts differ from the core's, or unequal per side with a circle | `SpecError` |
 | `rect_stack_needs_n_outer_4` | a stack with a rectangle and n_outer other than 4 | `SpecError` |
@@ -1635,9 +1651,9 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `rot_mismatch` | outlet and inlet sections differ in rot | `AssemblyError` |
 | `run_length_too_short` | a junction's run too short for its branch | `AssemblyError` |
 | `sampling_invalid` | a study's sampling block that is not valid | `StudyError` |
-| `section_nonorth_above_maximum` | a section's predicted non-orthogonality above OUTLINE_NONORTH_MAX | `AssemblyError` |
 | `second_order_inverted` | second-order hexes with a Jacobian determinant <= 0 | `AssemblyError` |
 | `second_order_unsupported` | order=2 on a fitting that can't be raised to second order (the wye) | `AssemblyError` |
+| `section_nonorth_above_maximum` | a section's predicted non-orthogonality above OUTLINE_NONORTH_MAX | `AssemblyError` |
 | `section_not_supported` | a section (layout, n_outer) the assembly does not support | `AssemblyError` |
 | `section_predicted_sj_below_minimum` | a section's predicted scaled Jacobian below PREDICTED_SJ_MIN | `AssemblyError` |
 | `section_quality_reject` | a section rejected by its quality check | `AssemblyError` |
@@ -1656,6 +1672,9 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `shell_type_unknown` | an unknown shell type in a description | `SpecError` |
 | `size_not_positive` | a size or length that must be positive is not | `AssemblyError`, `EquipmentError`, `SpecError` |
 | `source_not_interface` | a source that is not an Interface | `AssemblyTypeError` |
+| `spec_core_twice` | PipeSpec.core() called a second time | `SpecUsageError` |
+| `spec_no_core` | a PipeSpec used before core() defined its core | `SpecUsageError` |
+| `spec_shell_before_core` | PipeSpec.shell() called before core() | `SpecUsageError` |
 | `spline_points_coincide` | consecutive spline points coincide | `AssemblyError` |
 | `spline_points_invalid` | spline points that are not at least two 3-vectors | `AssemblyError` |
 | `spline_start_mismatch` | a spline that does not start at the inlet | `AssemblyError` |

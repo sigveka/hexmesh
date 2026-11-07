@@ -625,7 +625,8 @@ class Reducer(Sweep):
             raise AssemblyError(
                 f"outlet spec differs from the inlet in rot ({spec.rot!r} vs "
                 f"{self.outlet.rot!r}); a reducer may change radii only",
-                code="rot_mismatch", where={"field": "rot"}, value=self.outlet.rot, limit=spec.rot)
+                code="rot_mismatch", where={"field": "rot"}, value=self.outlet.rot, limit=spec.rot,
+                hint=f"give the outlet spec rot={spec.rot!r}")
         for name, a, b in zip(spec.layer_names, spec.outlines, self.outlet.outlines):
             if type(a) is not type(b):
                 raise AssemblyError(
@@ -637,12 +638,14 @@ class Reducer(Sweep):
             raise AssemblyError(f"Reducer changes sizes, not layouts: layout {spec.layout!r} "
                                 f"at the inlet, {self.outlet.layout!r} at the outlet",
                                 code="reducer_layout_change", where={"field": "layout"},
-                                value=self.outlet.layout, limit=spec.layout)
+                                value=self.outlet.layout, limit=spec.layout,
+                                hint=f"give the outlet spec layout={spec.layout!r}; a Switch changes the layout")
         kinds = {(s.wall_grading or ("uniform",))[0] for s in (spec, self.outlet)}
         if spec.layout == "h" and "bump" in kinds and len(kinds) > 1:
             raise AssemblyError("Reducer: grade both ends of an H duct (first_cell=, mprg= "
                                 "or wall_bump=), or neither (the stations interpolate it)",
-                                code="reducer_grading_one_end", where={"field": "outlet"})
+                                code="reducer_grading_one_end", where={"field": "outlet"},
+                                hint="pass the same grading (first_cell=, mprg= or wall_bump=) to both ends, or to neither")
         if self.profile is not None:
             self._check_profile(spec)
 
@@ -801,13 +804,15 @@ class Transition(Sweep):
                     f"{_counts(x)} vs outlet {_counts(y)} (a circle's nang must "
                     f"equal the rectangle's nang_w and nang_h)",
                     code="counts_mismatch", where={"label": lname}, value=_counts(y),
-                    limit=_counts(x))
+                    limit=_counts(x),
+                    hint=f"give layer `{lname}` the same counts at both ends ({_counts(x)})")
         # rot is placement, not connectivity (task 0019): check it here
         if a.rot != b.rot:
             raise AssemblyError(f"outlet spec differs from the inlet in rot ({a.rot!r} "
                                 f"vs {b.rot!r})",
                                 code="rot_mismatch", where={"field": "rot"}, value=b.rot,
-                                limit=a.rot)
+                                limit=a.rot,
+                                hint=f"give the outlet spec rot={a.rot!r}")
         if spec.shells:
             self._check_nested(spec)
 
@@ -886,7 +891,8 @@ class Transition(Sweep):
                 f"and the blend at least one of the {n} layers; use n_layers >= {m + 1} or a "
                 f"longer transition",
                 code="switch_too_short", where={"field": "n_layers"}, value=n,
-                limit={"min": m + 1})
+                limit={"min": m + 1},
+                hint=f"n_layers >= {m + 1}, or a longer transition")
         return m, self.length * m / n
 
     def _parts(self, frames: list[Frame], spec: PipeSpec):

@@ -170,7 +170,8 @@ def _check_circle(spec: PipeSpec) -> None:
         if not o.is_round:
             raise AssemblyError(f"Tee: shell `{sh.name}` is not circular; junction "
                                 f"shells are circular only (decisions 0026, 0028)",
-                                code="junction_shells_not_circular", where={"label": sh.name})
+                                code="junction_shells_not_circular", where={"label": sh.name},
+                                hint=f"give shell `{sh.name}` dR= (a circle) instead of outer=")
 
 
 def turning_height(R: float, r: float, T: float, angle: float = 90.0) -> float:
@@ -318,7 +319,8 @@ class Tee:
                 raise AssemblyError(f"Tee: branch nang {self.branch.nang} must be the main's "
                                     f"{spec.core_shape.nang}",
                                     code="counts_mismatch", where={"field": "branch"},
-                                    value=self.branch.nang, limit=spec.core_shape.nang)
+                                    value=self.branch.nang, limit=spec.core_shape.nang,
+                                    hint=f"give the branch nang={spec.core_shape.nang}")
             self = replace(self, branch_radius=self.branch.radius, branch=None)
         tee = junction_toward(self, inlet, spec)      # counts keep their defaults
         if tee.run_length is None:
@@ -468,7 +470,8 @@ class Tee:
         T = thicknesses(spec)[-1]
         if spec.rot != 0 or spec.n_outer != 4:
             raise AssemblyError("Tee prototype requires rot = 0 and n_outer = 4",
-                                code="junction_needs_rot_0_n_outer_4", where={"field": "rot"})
+                                code="junction_needs_rot_0_n_outer_4", where={"field": "rot"},
+                                hint="use PipeSpec(rot=0, n_outer=4)")
         if self.toward is not None:
             raise AssemblyError("Tee: toward is resolved by Assembly.add(); add the "
                                 "fitting to an assembly",
@@ -491,7 +494,8 @@ class Tee:
             raise AssemblyError(f"branch radius {r} must be in (0, main radius {R})",
                                 code="branch_radius_out_of_range",
                                 where={"field": "branch_radius"}, value=r,
-                                limit={"min_exclusive": 0, "max_exclusive": R})
+                                limit={"min_exclusive": 0, "max_exclusive": R},
+                                hint=f"a branch radius in (0, {TEE_MAX_RATIO * R:.4g}): r/R at most TEE_MAX_RATIO")
         if r > TEE_MAX_RATIO * R:
             raise AssemblyError(f"Tee: branch ratio r/R {r / R:.4g} is above TEE_MAX_RATIO "
                                 f"{TEE_MAX_RATIO:g}: the saddle's sides fold the cells",
@@ -506,7 +510,8 @@ class Tee:
             raise AssemblyError(f"run_length must exceed {what} {reach:.4g} (branch radius "
                                 f"+ shells)",
                                 code="run_length_too_short", where={"field": "run_length"},
-                                value=self.run_length, limit={"min_exclusive": reach})
+                                value=self.run_length, limit={"min_exclusive": reach},
+                                hint=f"run_length > {reach:.4g}, or run_length=None to resolve it")
         z1 = turning_height(R, r, T, self.angle)
         if self.branch_length <= z1:
             where = ("height" if self.angle == 90 else "distance along the branch axis")
@@ -515,7 +520,8 @@ class Tee:
                 f"(outer main radius + outer branch radius / 2"
                 f"{', at its acute side' if self.angle != 90 else ''})",
                 code="branch_length_too_short", where={"field": "branch_length"},
-                value=self.branch_length, limit={"min_exclusive": z1}
+                value=self.branch_length, limit={"min_exclusive": z1},
+                hint=f"branch_length > {z1:.4g}",
             )
         for n in (self.n_run, self.n_branch, self.n_turn):
             if n < 1:

@@ -96,7 +96,7 @@ from typing import Protocol, runtime_checkable
 
 import numpy as np
 
-from ..errors import SpecError
+from ..errors import InternalError, SpecError
 from .params import param
 
 
@@ -408,7 +408,7 @@ def core_wall_span(radius: float, layout: str = "oh") -> float:
     last bit (task 0084, Agent notes).
     """
     if layout != "oh":
-        raise ValueError(f"layout {layout!r} has no core ring")
+        raise InternalError(f"layout {layout!r} has no core ring")
     rho = LAYOUTS["oh"]["ratio"] * radius
     return radius - (math.hypot(rho + rho / math.sqrt(2), rho / math.sqrt(2)) - rho)
 
@@ -444,7 +444,7 @@ def outline(shape, k: int, s) -> np.ndarray:
         return _circle_outline(shape, k, s)
     if isinstance(shape, RectShape):
         return _rect_outline(shape, k, s)
-    raise TypeError(f"no outline for {type(shape).__name__}")
+    raise InternalError(f"no outline for {type(shape).__name__}")
 
 
 @dataclass(frozen=True)

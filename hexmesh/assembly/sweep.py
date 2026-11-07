@@ -37,6 +37,7 @@ from ..sections import h, layout_of
 from .corners import canonical_geom, connect_layer, curve_endpoints, frame_offset
 from .interface import Frame, build_face, outer_radius, roll_mismatch
 from .signature import check_port_pairs, classify, signature
+from ..errors import InternalError
 
 
 @dataclass(frozen=True)
@@ -234,15 +235,15 @@ class Path:
 
     def __post_init__(self) -> None:
         if len(self.layers) != len(self.frames) - 1:
-            raise ValueError("Path needs one layer count per slab")
+            raise InternalError("Path needs one layer count per slab")
         if self.fill is not None and len(self.fill) != len(self.layers):
-            raise ValueError("Path needs one fill count per slab")
+            raise InternalError("Path needs one fill count per slab")
         if self.prism and any(n != 1 for n in self.layers):
-            raise ValueError("prism slabs need one axial layer each (no interior wall nodes)")
+            raise InternalError("prism slabs need one axial layer each (no interior wall nodes)")
         if any(n < 1 for n in self.layers):
-            raise ValueError("every slab needs at least one axial layer")
+            raise InternalError("every slab needs at least one axial layer")
         if self.blend and any(n != 1 for n in self.layers):
-            raise ValueError("blend slabs need one axial layer each (no interior wall nodes)")
+            raise InternalError("blend slabs need one axial layer each (no interior wall nodes)")
 
     def spec_at(self, k: int, default: PipeSpec) -> PipeSpec:
         return default if self.specs is None else self.specs[k]
@@ -334,10 +335,10 @@ def _fill_slab(in_face: LayeredCrossSection, out_face: LayeredCrossSection,
         n_fill = len(in_face.layers)
     pairs = list(zip(in_face.layers[:n_fill], out_face.layers[:n_fill]))
     if len(pairs) != n_fill:
-        raise ValueError(f"slab fills {n_fill} layers but a face has fewer")
+        raise InternalError(f"slab fills {n_fill} layers but a face has fewer")
     for (a, _), (b, _) in pairs:
         if a != b:
-            raise ValueError(f"slab would join layer `{a}` to layer `{b}`")
+            raise InternalError(f"slab would join layer `{a}` to layer `{b}`")
     prev_axial = prev_side = None
     for idx, ((name, in_cs), (_, out_cs)) in enumerate(pairs):
         vols, side, axial, deferred = connect_layer(
@@ -449,7 +450,8 @@ class Sweep:
                                 hint="Assembly(axial_cell=...)")
         if self.stack_changes:
             raise AssemblyError("stack_changes indices need an explicit n_layers",
-                                code="stack_changes_need_n_layers", where={"field": "n_layers"})
+                                code="stack_changes_need_n_layers", where={"field": "n_layers"},
+                                hint="give n_layers= with stack_changes (they index its cell boundaries)")
         L = self.centreline_length(inlet, spec, outlet)
         n = max(1, math.ceil(L / axial_cell - 1e-9))
         while not self.layers_ok(n, inlet, spec, outlet):
@@ -513,7 +515,8 @@ class Sweep:
                 f"path bends with radius {path.min_radius:.4g}, tighter than "
                 f"{what} {R:.4g}",
                 code="bend_radius_below_outer_radius", where={"field": "radius"},
-                value=float(path.min_radius), limit={"min_exclusive": float(R)}
+                value=float(path.min_radius), limit={"min_exclusive": float(R)},
+                hint=f"a bend radius above {R:.4g}",
             )
         if path.axial is None and not path.prism:
             for k, turn in enumerate(path.turns()):

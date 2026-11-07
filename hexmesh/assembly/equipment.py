@@ -54,7 +54,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from ..errors import HexmeshError
+from ..errors import HexmeshError, InternalError
 from ..core.params import param
 from ..core.spec import PipeSpec
 from .interface import Frame, outer_radius
@@ -236,7 +236,7 @@ class Drum:
         R = self.radius
         rho = abs(rho)
         if rho > R:
-            raise ValueError(f"radius {rho} is outside the drum (R = {R})")
+            raise InternalError(f"radius {rho} is outside the drum (R = {R})")
         if self.head == "ellipsoidal_2_1":
             return 0.5 * R * math.sqrt(max(0.0, 1.0 - (rho / R) ** 2))
         if self.head == "hemispherical":

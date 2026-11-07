@@ -33,6 +33,8 @@ from contextlib import contextmanager
 import gmsh
 import numpy as np
 
+from .errors import InternalError
+
 _ends: dict[int, tuple[int, int]] = {}
 _kind: dict[int, str] = {}
 _discarded: list[int] = []
@@ -140,7 +142,7 @@ def _model_endpoints(curve: int) -> tuple[int, int]:
     """
     pts = [t for _, t in gmsh.model.getBoundary([(1, curve)], oriented=False)]
     if len(pts) != 2:
-        raise RuntimeError(f"curve {curve} has {len(pts)} end points")
+        raise InternalError(f"curve {curve} has {len(pts)} end points")
     lo = gmsh.model.getParametrizationBounds(1, curve)[0][0]
     x0 = np.asarray(gmsh.model.getValue(1, curve, [lo]))
     d = [np.linalg.norm(np.asarray(gmsh.model.getValue(0, p, [])) - x0) for p in pts]

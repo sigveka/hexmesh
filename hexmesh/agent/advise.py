@@ -68,7 +68,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from hexmesh import Assembly, HexmeshError, HexmeshWarning, __version__
-from hexmesh.assembly import limits
+from hexmesh.assembly import AssemblyTypeError, limits
 from hexmesh.core.grading import (bump, bump_for_first_cell, first_cell_height,
                                   progression_for_first_cell)
 from hexmesh.core.shape import core_wall_span
@@ -641,8 +641,10 @@ def advise(x, inputs: dict) -> dict:
     elif isinstance(x, dict):
         d = Assembly.from_dict(x).to_dict()
     else:
-        raise TypeError(f"advise() takes an Assembly or its to_dict() description, "
-                        f"not {type(x).__name__}")
+        raise AssemblyTypeError(f"advise() takes an Assembly or its to_dict() description, "
+                                f"not {type(x).__name__}",
+                                code="agent_input_type", value=type(x).__name__,
+                                hint="pass an Assembly or assembly.to_dict()")
     asm = Assembly.from_dict(d)
     sections = _sections(asm, inp)
     scale = LENGTH_UNITS[inp["length_unit"]]

@@ -41,7 +41,7 @@ import json
 import re
 from pathlib import Path
 
-from ...errors import ReaderError
+from ...errors import InternalError, ReaderError
 
 BEGIN, END = "hexmesh-recipe-begin", "hexmesh-recipe-end"
 WRAP = 200                  # recipe characters per line (gmsh re-wraps at 255)
@@ -90,7 +90,7 @@ def block(generator: str, write: str, recipe: dict | None, *, tool: str,
         lines += [BEGIN, *(text[i:i + WRAP] for i in range(0, len(text), WRAP)), END]
     for line in lines[1:]:
         if line.startswith("$") or "\n" in line:
-            raise ValueError(f"$Comments line would end the block: {line[:60]!r}")
+            raise InternalError(f"$Comments line would end the block: {line[:60]!r}")
     return lines + ["$EndComments"]
 
 

@@ -51,6 +51,7 @@ from ._gmsh_helpers import (
     set_transfinite_curve, set_transfinite_line, set_transfinite_line_bump,
     set_transfinite_surface, set_recombine_surface,
 )
+from ..errors import SpecError
 
 # Interior samples per spline curve; the spline through them stands for the
 # station shape (one axial layer per slab, so no surface carries nodes).
@@ -197,9 +198,11 @@ def build_oh_circle8(
     replaces this face by a sub-partition of the 4-corner one (task 0088).
     """
     if shape.nang % 2 != 0:
-        raise ValueError(
+        raise SpecError(
             f"build_oh_circle8 requires nang to be even (each 45° arc needs "
-            f"nang//2 divisions); got nang={shape.nang}."
+            f"nang//2 divisions); got nang={shape.nang}.",
+            code="nang_not_divisible", where={"field": "nang"}, value=shape.nang,
+            limit={"multiple_of": 2}, hint=f"nang={shape.nang - 1} or nang={shape.nang + 1}"
         )
     xyz = plane(cx, cy, cz, h_axis, v_axis, None)
     inner, outer = oh.core_corners(shape, 8, rot)
@@ -399,7 +402,8 @@ def build_annulus(
     by *dR* (a circle's radius + dR; a rectangle's half-sizes + dR).  See
     ``build_ring``."""
     if dR <= 0:
-        raise ValueError(f"dR must be positive, got {dR!r}")
+        raise SpecError(f"dR must be positive, got {dR!r}", code="size_not_positive",
+                        where={"field": "dR"}, value=dR, limit={"min_exclusive": 0})
     return build_ring(inner, inner.shape.grown(dR), lc, nrad, mprg, mbmp, rot, stretch)
 
 
