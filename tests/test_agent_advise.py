@@ -386,12 +386,47 @@ def test_validate_with_two_errors_is_incomplete(monkeypatch, tmp_path):
     assert len(out["errors"]) == 2 or out["complete"] is False
 
 
-def test_pcf_waits_for_task_0066(monkeypatch, tmp_path):
+PCF_LINE = """\
+UNITS-BORE MM
+UNITS-CO-ORDS MM
+PIPELINE-REFERENCE L-1
+PIPE
+    END-POINT 0 0 0 100
+    END-POINT 1000 0 0 100
+ELBOW
+    END-POINT 1000 0 0 100
+    END-POINT 1150 150 0 100
+    CENTRE-POINT 1150 0 0
+PIPE
+    END-POINT 1150 150 0 100
+    END-POINT 1150 800 0 100
+"""
+
+
+def test_cli_reads_pcf_with_a_spec(monkeypatch, tmp_path):
+    """A .pcf network with --spec (task 0066): the same answers as the
+    assembly read_pcf builds, saved and passed as a description."""
+    from hexmesh.interchange import read_pcf
     pcf = tmp_path / "line.pcf"
-    pcf.write_text("PIPE\n", encoding="utf-8")
+    pcf.write_text(PCF_LINE, encoding="utf-8")
+    spec = PipeSpec(nang=4).core("fluid", radius=0.05, nrad=2)
+    one = tmp_path / "spec.json"
+    one.write_text(json.dumps(spec.to_dict()), encoding="utf-8")
+    sizes = tmp_path / "sizes.json"
+    sizes.write_text(json.dumps([{"nominal": 0.1, "spec": spec.to_dict()}]), encoding="utf-8")
+    net = tmp_path / "line.json"
+    read_pcf(pcf).to_assembly(spec).save(net)
+    for cmd in ("validate", "estimate", "describe"):
+        _, want = _cli(monkeypatch, cmd, str(net))
+        for s in (one, sizes):
+            code, raw = _cli(monkeypatch, cmd, str(pcf), "--spec", str(s))
+            assert code == 0 and json.loads(raw)["result"] == json.loads(want)["result"], cmd
     code, raw = _cli(monkeypatch, "describe", str(pcf))
-    out = json.loads(raw)
-    assert code == 1 and "task 0066" in out["error"]["message"]
+    assert code == 1 and json.loads(raw)["error"]["code"] == "cli_input_unreadable"
+    sizes.write_text(json.dumps([{"nominal": 0.05, "spec": spec.to_dict()}]), encoding="utf-8")
+    code, raw = _cli(monkeypatch, "estimate", str(pcf), "--spec", str(sizes))
+    err = json.loads(raw)["error"]
+    assert code == 1 and err["code"] == "cli_spec_size_missing" and err["value"] == 0.1
 
 
 def test_calibration_is_read_as_utf8():

@@ -21,10 +21,10 @@
     hexmesh apply     NETWORK --table table.json
     hexmesh build     NETWORK --out mesh.msh [--order 2]
 
-*NETWORK* is an ``Assembly`` description (``Assembly.save``, ``.json``).
-A PCF file waits for task 0066 (``hexmesh.agent`` may not import
-``io.readers``): build it with ``read_pcf(...).to_assembly(spec)`` and
-``save()`` that.
+*NETWORK* is an ``Assembly`` description (``Assembly.save``, ``.json``),
+or a PCF file (``.pcf``) with ``--spec SPEC.json`` (task 0066).  *SPEC*
+is a ``PipeSpec`` description (``PipeSpec.to_dict``) for every part, or a
+list of ``{"nominal": metres, "spec": {...}}``, one per nominal size.
 
 Output: one JSON object on stdout, ``{"version", "command", "ok",
 "result"}`` or ``{…, "ok": false, "error"}``, with sorted keys and
@@ -42,7 +42,7 @@ import sys
 import warnings
 from pathlib import Path
 
-from hexmesh import Assembly, HexmeshError, HexmeshWarning, __version__
+from hexmesh import Assembly, HexmeshError, HexmeshWarning, PipeSpec, __version__
 
 EXIT_OK, EXIT_INVALID, EXIT_FAILURE = 0, 1, 2
 COMMANDS = ("schema", "validate", "estimate", "describe", "preview", "advise", "apply",
@@ -69,13 +69,36 @@ def _read_json(path: str, what: str) -> dict:
 def _network(args) -> Assembly:
     path = Path(args.network)
     if path.suffix.lower() == ".pcf":
-        # hexmesh.agent may not import io.readers (DESIGN §3.1); task 0066
-        # moves the readers into interchange.importers
-        raise HexmeshError(f"{path}: PCF input waits for task 0066; build the assembly with "
-                           "read_pcf(...).to_assembly(spec) and save() it", code=
-                           "cli_input_unreadable", where={"source": {"file": str(path)}},
-                           hint="pass an Assembly description (.json)")
+        from hexmesh.interchange import read_pcf
+        if not args.spec:
+            raise HexmeshError(f"{path}: a PCF network needs --spec SPEC.json (a PipeSpec "
+                               "description, or one per nominal size)",
+                               code="cli_input_unreadable", where={"field": "spec"})
+        return read_pcf(path).to_assembly(_spec(_read_json(args.spec, "spec"), args.spec))
     return Assembly.from_dict(_read_json(path, "network"))
+
+
+def _spec(d, path: str):
+    """``--spec``: a ``PipeSpec`` description, or ``[{"nominal", "spec"}, …]``
+    as a callable of the nominal bore (metres, to 1e-6 relative)."""
+    if isinstance(d, dict):
+        return PipeSpec.from_dict(d)
+    try:
+        sizes = [(float(e["nominal"]), PipeSpec.from_dict(e["spec"])) for e in d]
+    except (TypeError, KeyError, ValueError) as e:
+        raise HexmeshError(f"spec {path}: a PipeSpec description or a list of "
+                           f'{{"nominal", "spec"}}: {e}', code="cli_input_unreadable",
+                           where={"source": {"file": str(path)}}) from None
+
+    def by_bore(bore: float) -> PipeSpec:
+        for nominal, spec in sizes:
+            if abs(nominal - bore) <= 1e-6 * max(nominal, bore):
+                return spec
+        raise HexmeshError(f"spec {path} has no entry for nominal size {bore:g} m "
+                           f"(it has {', '.join(f'{n:g}' for n, _ in sizes)})",
+                           code="cli_spec_size_missing", where={"source": {"file": str(path)}},
+                           value=bore, limit=[n for n, _ in sizes])
+    return by_bore
 
 
 def _validate(asm: Assembly) -> dict:
@@ -149,7 +172,10 @@ def _parser() -> argparse.ArgumentParser:
         p = sub.add_parser(name)
         if name == "schema":
             continue
-        p.add_argument("network", help="an Assembly description (.json, Assembly.save)")
+        p.add_argument("network", help="an Assembly description (.json, Assembly.save), "
+                                       "or a PCF file (.pcf) with --spec")
+        p.add_argument("--spec", help="for a .pcf network: a PipeSpec description, or a "
+                                      'list of {"nominal", "spec"} (JSON)')
         if name == "advise":
             p.add_argument("--inputs", help="the advisor's inputs (JSON)")
         if name == "apply":

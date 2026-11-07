@@ -512,7 +512,7 @@ Schema and options: [API.md](../API.md#study-runner-hexmeshstudy).
 ## Reading plant data
 
 ```python
-from hexmesh.io.readers.pcf import read_pcf
+from hexmesh.interchange import read_pcf
 
 net = read_pcf("line.pcf")                       # Isogen PCF; units from its header
 asm = net.to_assembly(pipe)                      # or pipe=lambda bore: PipeSpec(...)
@@ -558,7 +558,7 @@ It checks every component against its PCF end points and raises
 `AssemblyError` naming the component on any gap; nothing is snapped.  The
 tolerance scales with the model (at least 0.11").
 
-Pipeline routes from `hexmesh.io.readers.bathymetry.read_bathymetry` bend at
+Pipeline routes from `hexmesh.interchange.read_bathymetry` bend at
 their vertices without fittings, so build them with
 `to_assembly(pipe, kinks="spline")`.
 

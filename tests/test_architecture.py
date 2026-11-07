@@ -71,7 +71,9 @@ PRIVATE_OK = {"hexmesh._occ"}
 
 #: dependency edges outside the order, each with the task that removes it
 ALLOWED_EDGES = {
-    ("io.readers", "interchange"): "task 0066 moves the readers into interchange.importers",
+    # task 0066: the readers are in interchange.importers; io.readers only
+    # re-exports them for the public name (test_io_readers_only_re_export)
+    ("io.readers", "interchange"): "a re-export of interchange.importers (decision 0037 item 4)",
 }
 #: module cycles today, each with the task that removes it
 ALLOWED_CYCLES: dict[frozenset, str] = {}
@@ -506,6 +508,27 @@ def test_allowed_edges_still_needed():
     used = {(capability(i.module), capability(i.target)) for i in imports(ROOT)}
     gone = [e for e in ALLOWED_EDGES if e not in used]
     assert not gone, f"no longer needed; delete from ALLOWED_EDGES: {gone}"
+
+
+def test_io_readers_only_re_export():
+    """The io.readers → interchange edge is a re-export only (task 0066):
+    each module holds a docstring, imports, ``__all__`` and the
+    ``sys.modules`` alias, and no code of its own."""
+    for path in sorted((ROOT / "hexmesh/io/readers").glob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in tree.body:
+            if isinstance(node, (ast.Import, ast.ImportFrom)):
+                continue
+            if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant):
+                continue                                     # the docstring
+            if isinstance(node, ast.Assign) and len(node.targets) == 1:
+                tgt = node.targets[0]
+                if isinstance(tgt, ast.Name) and tgt.id == "__all__":
+                    continue
+                if isinstance(tgt, ast.Subscript) and ast.unparse(tgt) == "sys.modules[__name__]":
+                    continue
+            raise AssertionError(f"{path.relative_to(ROOT)}:{node.lineno}: io.readers only "
+                                 f"re-exports interchange.importers (task 0066)")
 
 
 def test_shape_sites_cap():

@@ -31,7 +31,7 @@ Every error a user's input can cause is a :class:`HexmeshError`, a
 field as JSON-safe data.  Warnings are :class:`HexmeshWarning` with the
 same fields.  Each layer raises its own subclass: :class:`SpecError` in
 ``core`` and ``sections``, ``AssemblyError`` in ``assembly`` and the
-builder, :class:`ReaderError` in ``io.readers``, ``LayoutError`` for block
+builder, :class:`ReaderError` in ``interchange.importers``, ``LayoutError`` for block
 layouts, ``EquipmentError``,
 ``StudyError``.  A former ``TypeError`` stays one (``SpecTypeError``,
 ``AssemblyTypeError``).
@@ -123,7 +123,7 @@ class SpecTypeError(SpecError, TypeError):
 
 
 class ReaderError(HexmeshError):
-    """A file an ``io.readers`` reader can't read (its units, its format);
+    """A file an ``interchange.importers`` reader can't read (its units, its format);
     ``where["source"]`` names the file."""
 
 
@@ -193,6 +193,7 @@ CODES: dict[str, str] = {
     "chord_turn_above_maximum": "a sweep slab turns more than straight axial edges allow",
     "cli_input_unreadable":
         "a hexmesh CLI input file or argument that is missing or unreadable",
+    "cli_spec_size_missing": "a CLI --spec list without an entry for a PCF nominal size",
     "close_onto_itself": "an interface closed onto itself",
     "close_source_not_outlet": "close() from an interface that is not an outlet",
     "close_target_not_inlet": "close() onto an interface that is not an inlet",

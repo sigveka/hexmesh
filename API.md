@@ -922,7 +922,12 @@ The manifest, `<stem>.roles.json`, looks like this:
 | `retype_boundary_text(text, groups)` | The text transformation: `(new_text, retyped, unknown)` |
 | `roles_path(msh)`, `write_roles(path, groups, not_written)`, `read_roles(path_or_dict)` | Manifest helpers |
 
-## Readers (`hexmesh.io.readers`)
+## Readers (`hexmesh.interchange.importers`)
+
+The importers live in `hexmesh.interchange.importers` (task 0066), and
+`hexmesh.interchange` exports `read_pcf` and `read_bathymetry`.
+`hexmesh.io.readers` (and `hexmesh.io.readers.pcf`, `.bathymetry`)
+still re-export them, unchanged.
 
 ### `pcf.read_pcf(path, unit_scale=None, ignore_types=None, joint_max=1.6e-3) -> NetworkSpec`
 
@@ -1323,7 +1328,7 @@ Each layer raises its own subclass:
 | `AssemblyTypeError` | a wrong argument type to the assembly | `TypeError` |
 | `EquipmentError` | drums and nozzles | |
 | `LayoutError` | block layouts (`assembly.blocks`) | |
-| `ReaderError` | `io.readers`, and the files `io.writers` read back | |
+| `ReaderError` | `interchange.importers`, and the files `io.writers` read back | |
 | `StudyError`, `PreflightFailed` | `hexmesh.study` | |
 | `StudyTypeError` | a study's post-processing result | `TypeError` |
 
@@ -1383,6 +1388,7 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `chain_gap` | a network component does not start at the previous outlet | `AssemblyError` |
 | `chord_turn_above_maximum` | a sweep slab turns more than straight axial edges allow | `AssemblyError` |
 | `cli_input_unreadable` | a hexmesh CLI input file or argument that is missing or unreadable | `HexmeshError` |
+| `cli_spec_size_missing` | a CLI --spec list without an entry for a PCF nominal size | `HexmeshError` |
 | `close_onto_itself` | an interface closed onto itself | `AssemblyError` |
 | `close_source_not_outlet` | close() from an interface that is not an outlet | `AssemblyError` |
 | `close_target_not_inlet` | close() onto an interface that is not an inlet | `AssemblyError` |
@@ -1897,10 +1903,13 @@ Bends, junctions and switches may be less accurate at the same counts.
 | `hexmesh apply NET --table T.json` | the description with the table applied |
 | `hexmesh build NET --out M.msh [--order 2]` | `{path, cells, order}`; the only command that needs GMSH; the `.msh` carries its recipe block |
 
-- *NET* is an `Assembly` description (`Assembly.save`).  A PCF file
-  waits for task 0066, because `hexmesh.agent` may not import
-  `io.readers`.  Until then, `save()` the assembly that
-  `read_pcf(...).to_assembly(spec)` builds.
+- *NET* is an `Assembly` description (`Assembly.save`), or a PCF file
+  (`.pcf`) with `--spec SPEC.json` (task 0066).
+  - *SPEC* is a `PipeSpec` description (`PipeSpec.to_dict()`), used for
+    every part, or a list of `{"nominal": metres, "spec": {...}}`, one
+    per nominal size.
+  - A size the list lacks is `cli_spec_size_missing`, naming the sizes
+    it has.
 - stdout is one JSON object: `{version, command, ok, result}`, or
   `{…, ok: false, error}`.  Keys are sorted and lines end in `\n`, so
   the same input gives the same bytes.
