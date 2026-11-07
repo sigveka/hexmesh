@@ -1,6 +1,6 @@
 # 0105 — CI green again: the Windows gmshToFoam test
 
-- **Status:** in progress
+- **Status:** done (2026-11-07)
 - **Decision:** [0039 — Platform support](../decisions/0039-platform-support.md)
 - **Depends on:** none.  First of the public-readiness tasks (0105, 0106,
   0078).
@@ -71,6 +71,18 @@ red badge is the first thing a visitor sees.
   `convert` path, task 0105.  Nothing new for
   `docs/integrations/openfoam.md`: no tool behaviour was involved.
 - No code change, so no CHANGELOG entry.
+- **A second red job, found on the way** (run 42384385873, task 0060's
+  push): macOS, Python 3.x, `test_the_cli_emits_it_in_its_envelope_quickly`
+  took 2.51 s against the 2.0 s bound (task 0102).  `manifest()` itself
+  takes 4 ms.  The ~0.6 s the command takes locally is starting Python and
+  importing numpy and `hexmesh.assembly`, which a cold runner stretches.
+  The bound tested the machine.  Now:
+  - `test_the_manifest_does_no_expensive_work`: `manifest()` in-process
+    under 0.2 s.  That catches what 0102 guarded against: the live probe
+    it replaced took 1.3 s.
+  - The CLI test times the command against a baseline `python -c "import
+    hexmesh.agent"` in a fresh interpreter, after one warm-up run.  It must
+    be under 1 s over that baseline.
 
 ## Questions for design
 
@@ -79,10 +91,13 @@ _None._
 ## Outcome
 
 - **Files:** `tests/test_openfoam_runner.py` (one test rewritten, both
-  parameters kept).
+  parameters kept); `tests/test_agent_manifest.py` (the timing test
+  against a baseline, plus a new in-process test: 9 tests).
 - **Local:** `tests/test_openfoam_runner.py` 22 passed.  The last full
   suite (task 0060, today) had 3664 passed and 0 failed, and this change
   touches only this test.
-- **CI:** pending the push.  Acceptance is all six `tests` jobs plus
-  OpenFOAM Docker green on main.  The status stays *in progress* until
-  that run is seen.
+- **CI:** run 42388951317 (`d611efd`) passed all seven jobs: ubuntu,
+  macOS and windows at Python 3.10 and 3.x, plus OpenFOAM v2406 in Docker.
+  That is the first green run since 2026-11-05.  macOS passed the old
+  2.0 s manifest bound this time, so that failure came and went with the
+  runner.  The baseline-timed test (`098415b`) removes it.

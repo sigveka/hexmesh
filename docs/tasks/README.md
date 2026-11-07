@@ -104,7 +104,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0102](0102-agent-manifest.md) | `hexmesh manifest`: one machine-readable account of the suite | done | 0040 |
 | [0103](0103-network-angled-tees.md) | The network builder takes angled tees | ready (after 0060) | 0031 |
 | [0104](0104-junction-nonorthogonality-prediction.md) | Junctions predict non-orthogonality in `validate()` | ready (after 0060) | 0031 |
-| [0105](0105-windows-ci-green.md) | CI green again: the Windows gmshToFoam test | in progress | 0039 |
+| [0105](0105-windows-ci-green.md) | CI green again: the Windows gmshToFoam test | done | 0039 |
 | [0106](0106-error-coverage-and-hints.md) | Every user-facing error coded, and hints where they help | ready (after 0105) | 0040 |
 
 ### Validation

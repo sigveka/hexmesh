@@ -118,15 +118,32 @@ def test_deterministic_strict_json_and_no_gmsh_session(m):
     assert not gmsh.isInitialized()
 
 
-def test_the_cli_emits_it_in_its_envelope_quickly():
+def _timed(*args) -> tuple[float, subprocess.CompletedProcess]:
     t0 = time.perf_counter()
-    out = subprocess.run([sys.executable, "-m", "hexmesh.agent.cli", "manifest"], cwd=ROOT,
-                         capture_output=True, check=True)
+    out = subprocess.run([sys.executable, *args], cwd=ROOT, capture_output=True, check=True)
+    return time.perf_counter() - t0, out
+
+
+def test_the_manifest_does_no_expensive_work():
+    """It reads stored data: about 4 ms; the live probe it replaced took
+    1.3 s (task 0102)."""
+    t0 = time.perf_counter()
+    manifest()
     took = time.perf_counter() - t0
-    again = subprocess.run([sys.executable, "-m", "hexmesh.agent.cli", "manifest"], cwd=ROOT,
-                           capture_output=True, check=True)
+    assert took < 0.2, f"manifest() took {took:.2f} s: is it probing live?"
+
+
+def test_the_cli_emits_it_in_its_envelope_quickly():
+    """The command adds little to starting Python and importing hexmesh
+    (about 0.6 s together locally, 2.5 s on a cold CI runner): timed
+    against that baseline, not the wall clock (task 0105)."""
+    _timed("-c", "import hexmesh.agent")               # warm the file cache
+    base, _ = _timed("-c", "import hexmesh.agent")
+    took, out = _timed("-m", "hexmesh.agent.cli", "manifest")
+    _, again = _timed("-m", "hexmesh.agent.cli", "manifest")
     assert out.stdout == again.stdout and out.stderr == b""
     d = json.loads(out.stdout)
     assert d["command"] == "manifest" and d["ok"] is True
     assert d["result"]["format"] == "hexmesh.agent.manifest"
-    assert took < 2.0, f"hexmesh manifest took {took:.2f} s"
+    assert took - base < 1.0, (f"hexmesh manifest took {took:.2f} s, {took - base:.2f} s "
+                               f"over importing hexmesh ({base:.2f} s)")
