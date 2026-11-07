@@ -903,6 +903,8 @@ Tags: `conduction`, `section:circle`, `section:rect`, `layers`, `straight`, `ben
 
 Gates: volume-weighted L2 error of T, every case: falls with refinement (orders reported, not gated).
 
+<p><img src="../validation/mms/img/straight.png" width="68%"> <img src="../validation/mms/img/straight_section.png" width="29%"></p>
+
 Case: `validation/mms/`: [README.md](../validation/mms/README.md), [RESULTS.md](../validation/mms/RESULTS.md), [case.json](../validation/mms/case.json).
 
 #### Laminar Hagen–Poiseuille pipe
@@ -983,6 +985,8 @@ Tags: `rans:kOmegaSST`, `flow`, `section:circle`, `straight`, `OpenFOAM v2406 (d
 
 Gates: friction factor $f$, wall-resolved, finest level (Re_b 19 000, 37 700, 10⁵): within 3 % of McKeon et al. eq. 3.5; friction factor $f$, Spalding wall functions (`nutUSpaldingWallFunction`), Re_b 19 000, 37 700, 10⁵: within 5 % of McKeon et al. eq. 3.5; mesh convergence of $f$ and $U_c/U_b$ (wall-resolved, Re_τ 550, k = 1, 2, 4): Richardson status converging; order, extrapolation and GCI reported; reported, not gated: $U_c/U_b$ against the DNS (3 % comparison, missed: k-ω SST's wake); u⁺(y⁺) against the DNS; the `nutkWallFunction` and `nutUWallFunction` variants: reported.
 
+<p><img src="../validation/turbulent_pipe/img/lowre_550.png" width="68%"> <img src="../validation/turbulent_pipe/img/lowre_550_section.png" width="29%"></p>
+
 Case: `validation/turbulent_pipe/`: [README.md](../validation/turbulent_pipe/README.md), [RESULTS.md](../validation/turbulent_pipe/RESULTS.md), [case.json](../validation/turbulent_pipe/case.json).
 
 ### V3: experiment
@@ -995,6 +999,8 @@ Tags: `laminar`, `flow`, `section:circle`, `straight`, `spline`, `OpenFOAM v2406
 
 Gates: the spline's distance from the exact helix (32 points per turn): within 0.1 % of $d$; Darcy friction factor $f$, finest level, at Re 1800, 2400 and 3000: within 5 % of Ito (1959); mesh convergence of $f$ at each Re (nang 12, 16, 24): Richardson status converging; GCI reported; reported, not gated: the digitised measured points (Fig. 12); f per pair of consecutive turns: reported.
 
+<p><img src="../validation/helical_pipe/img/n12.png" width="68%"> <img src="../validation/helical_pipe/img/n12_section.png" width="29%"></p>
+
 Case: `validation/helical_pipe/`: [README.md](../validation/helical_pipe/README.md), [RESULTS.md](../validation/helical_pipe/RESULTS.md), [case.json](../validation/helical_pipe/case.json).
 
 #### Laminar flow in a 90° square-duct bend, Re 790
@@ -1004,6 +1010,8 @@ Case: `validation/helical_pipe/`: [README.md](../validation/helical_pipe/README.
 Tags: `laminar`, `flow`, `section:rect`, `straight`, `bend`, `OpenFOAM v2406 (docker)`.
 
 Gates: matched inlet (a plug 12.6 $D_h$ upstream, the length fitted to the X_H = −0.50 profile alone): peak $U/V_c$ on the symmetry plane at θ = 60° and 77.5°, k = 1, 2, 3: Richardson status converging; GCI reported; matched inlet, finest level: the peak's gapwise position on the symmetry plane at every station from X_H = −0.25 on (its outward shift through the bend): at the measured gapwise point; reported, not gated: X_H = −0.50 (the calibration station); $U/V_c$ RMS difference per station (5 % comparison, floor: the upstream mismatch); the rig inlet (plug at 7.5 $D_h$) as a sensitivity run: reported.
+
+<p><img src="../validation/square_bend/img/k1.png" width="68%"> <img src="../validation/square_bend/img/k1_section.png" width="29%"></p>
 
 Case: `validation/square_bend/`: [README.md](../validation/square_bend/README.md), [RESULTS.md](../validation/square_bend/RESULTS.md), [case.json](../validation/square_bend/case.json).
 
