@@ -1,7 +1,15 @@
 # Results: laminar flow in a helical pipe (the SIET coil)
 
-**Status: in progress.**  Task 0075 is blocked on Q3: the convergence
-gate fails at Re 3000.
+**Status: in progress, undecided.**  Task 0075 is blocked on Q5.
+- Design moved the convergence study to nang 12, 16, 24 (Q3), because
+  nang 8 is too coarse at these Dean numbers.
+- nang 24 (2.71M cells) hasn't finished at any Re.  Two attempts at Re
+  1800, one from rest and one from the mapped nang 16 field (Q4), each
+  stopped unconverged after 4.5–5 h.  The set needs about 25 h.
+- Under the Q4 rule, an unfinished level leaves the case neither
+  accepted nor rejected.
+- The nang 8–16 results below stand as measured.  The nang 8 runs are
+  reported, but not in the Richardson series.
 
 - **Run:** 2026-11-06, with OpenFOAM v2406 (Docker
   `opencfd/openfoam-default:2406`) and gmsh 4.12.1, on 4 MPI processes.

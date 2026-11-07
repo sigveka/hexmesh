@@ -37,7 +37,7 @@
       "limit": "within 5 % of Ito (1959)"
     },
     {
-      "quantity": "mesh convergence of $f$ at each Re (nang 8, 12, 16)",
+      "quantity": "mesh convergence of $f$ at each Re (nang 12, 16, 24)",
       "limit": "Richardson status converging; GCI reported"
     },
     {

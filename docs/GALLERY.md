@@ -895,6 +895,16 @@ Gates: checkMesh: Mesh OK, every region, every level; energy balance through eve
 
 Case: `validation/layered_conduction/`: [README.md](../validation/layered_conduction/README.md), [RESULTS.md](../validation/layered_conduction/RESULTS.md), [case.json](../validation/layered_conduction/case.json).
 
+#### Manufactured solutions for conduction on every fitting
+
+**Status:** in progress (task 0074).  **Reference:** manufactured: $T_m = \sin(a x + 0.3)\,\sin(b y + 0.7)\,\sin(c z + 1.1)$, source $S = (a^2 + b^2 + c^2)\,T_m$.
+
+Tags: `conduction`, `section:circle`, `section:rect`, `layers`, `straight`, `bend`, `miter`, `spline`, `profiled-reducer`, `transition`, `tee`, `duct-tap`, `wye`, `stack-changes`, `projection`, `OpenFOAM v2406 (docker)`.
+
+Gates: volume-weighted L2 error of T, every case: falls with refinement (orders reported, not gated).
+
+Case: `validation/mms/`: [README.md](../validation/mms/README.md), [RESULTS.md](../validation/mms/RESULTS.md), [case.json](../validation/mms/case.json).
+
 #### Laminar Hagen–Poiseuille pipe
 
 **Status:** accepted (task 0020).  **Reference:** exact: $u = 2\bar{U}\left(1 - r^2/R^2\right)$, $\Delta p = 32\,\mu \bar{U} L / D^2$.
@@ -935,7 +945,6 @@ Planned:
 
 | Task | Status |
 |---|---|
-| [0074: Verification (V1): manufactured solutions for conduction on every fitting's mesh](tasks/0074-validation-mms-conduction.md) | ready (on the v2406 runner, after 0035's Docker option exists) |
 | [0077: Verification (V1): FEniCSx toolchain, and second-order export checked end to end](tasks/0077-validation-fenicsx-second-order.md) | ready (step 1 any time; steps 2–4 after 0076) |
 
 ### V2: high-fidelity simulation
@@ -966,21 +975,43 @@ Gates: throat centreline velocity at peak flow (p2, $x = 0$): within 5 % of the 
 
 Case: `validation/stenosis_pulsatile/`: [README.md](../validation/stenosis_pulsatile/README.md), [RESULTS.md](../validation/stenosis_pulsatile/RESULTS.md), [case.json](../validation/stenosis_pulsatile/case.json).
 
-Planned:
+#### Fully developed turbulent pipe flow, k-ω SST
 
-| Task | Status |
-|---|---|
-| [0049: Validation: fully developed turbulent pipe flow (RANS, k-ω SST)](tasks/0049-validation-turbulent-pipe.md) | ready (after 0043) |
+**Status:** accepted (task 0049).  **Reference:** el_khoury_and_schlatter_etal_2013 (data: el_khoury_and_schlatter_etal_2013_data); mckeon_and_zagarola_etal_2005 (secondary).
+
+Tags: `rans:kOmegaSST`, `flow`, `section:circle`, `straight`, `OpenFOAM v2406 (docker)`.
+
+Gates: friction factor $f$, wall-resolved, finest level (Re_b 19 000, 37 700, 10⁵): within 3 % of McKeon et al. eq. 3.5; friction factor $f$, Spalding wall functions (`nutUSpaldingWallFunction`), Re_b 19 000, 37 700, 10⁵: within 5 % of McKeon et al. eq. 3.5; mesh convergence of $f$ and $U_c/U_b$ (wall-resolved, Re_τ 550, k = 1, 2, 4): Richardson status converging; order, extrapolation and GCI reported; reported, not gated: $U_c/U_b$ against the DNS (3 % comparison, missed: k-ω SST's wake); u⁺(y⁺) against the DNS; the `nutkWallFunction` and `nutUWallFunction` variants: reported.
+
+Case: `validation/turbulent_pipe/`: [README.md](../validation/turbulent_pipe/README.md), [RESULTS.md](../validation/turbulent_pipe/RESULTS.md), [case.json](../validation/turbulent_pipe/case.json).
 
 ### V3: experiment
+
+#### Laminar flow in a helical pipe (the SIET coil)
+
+**Status:** in progress (task 0075).  **Reference:** deamicis_and_cammi_etal_2014 (the SIET coil; Ito (1959) as their eq. 2; Fig. 12 digitised in data/).
+
+Tags: `laminar`, `flow`, `section:circle`, `straight`, `spline`, `OpenFOAM v2406 (docker)`.
+
+Gates: the spline's distance from the exact helix (32 points per turn): within 0.1 % of $d$; Darcy friction factor $f$, finest level, at Re 1800, 2400 and 3000: within 5 % of Ito (1959); mesh convergence of $f$ at each Re (nang 12, 16, 24): Richardson status converging; GCI reported; reported, not gated: the digitised measured points (Fig. 12); f per pair of consecutive turns: reported.
+
+Case: `validation/helical_pipe/`: [README.md](../validation/helical_pipe/README.md), [RESULTS.md](../validation/helical_pipe/RESULTS.md), [case.json](../validation/helical_pipe/case.json).
+
+#### Laminar flow in a 90° square-duct bend, Re 790
+
+**Status:** accepted (task 0072).  **Reference:** taylor_and_whitelaw_etal_1981 (NASA CR-3367, Table I).
+
+Tags: `laminar`, `flow`, `section:rect`, `straight`, `bend`, `OpenFOAM v2406 (docker)`.
+
+Gates: matched inlet (a plug 12.6 $D_h$ upstream, the length fitted to the X_H = −0.50 profile alone): peak $U/V_c$ on the symmetry plane at θ = 60° and 77.5°, k = 1, 2, 3: Richardson status converging; GCI reported; matched inlet, finest level: the peak's gapwise position on the symmetry plane at every station from X_H = −0.25 on (its outward shift through the bend): at the measured gapwise point; reported, not gated: X_H = −0.50 (the calibration station); $U/V_c$ RMS difference per station (5 % comparison, floor: the upstream mismatch); the rig inlet (plug at 7.5 $D_h$) as a sensitivity run: reported.
+
+Case: `validation/square_bend/`: [README.md](../validation/square_bend/README.md), [RESULTS.md](../validation/square_bend/RESULTS.md), [case.json](../validation/square_bend/case.json).
 
 Planned:
 
 | Task | Status |
 |---|---|
 | [0050: Validation: turbulent flow in a 90° bend (Sudo et al. 1998)](tasks/0050-validation-turbulent-bend.md) | ready (after 0049) |
-| [0072: Validation (V3): laminar flow in a 90° square-duct bend (Taylor, Whitelaw & Yianneskis, Re 790)](tasks/0072-validation-laminar-square-bend.md) | ready (after 0071 and 0084) |
-| [0075: Validation (V3): laminar flow in a helical pipe (spline pipe)](tasks/0075-validation-helical-pipe.md) | ready (on the v2406 runner) |
 | [0079: Validation (V3): a Taylor bubble rising in stagnant liquid (VOF)](tasks/0079-validation-taylor-bubble.md) | ready (on the v2406 runner) |
 
 ### V4: correlation or standard
@@ -991,22 +1022,22 @@ _No cases yet._
 
 Which hexmesh features each case exercises (decision 0012's fixed list). Marks: ● accepted, ◐ in progress, ○ planned, ✗ rejected; planned cases are named by task.  Rows marked *(none)* have no validation case, existing or planned.
 
-| Feature | heated_pipe<br>V1 | heated_rod<br>V1 | layered_conduction<br>V1 | poiseuille<br>V1 | rect_duct<br>V1 | stenosis<br>V2 | stenosis_pulsatile<br>V2 | womersley<br>V1 | 0049<br>V2 | 0050<br>V3 | 0072<br>V3 | 0074<br>V1 | 0075<br>V3 | 0077<br>V1 | 0079<br>V3 |
+| Feature | heated_pipe<br>V1 | heated_rod<br>V1 | helical_pipe<br>V3 | layered_conduction<br>V1 | mms<br>V1 | poiseuille<br>V1 | rect_duct<br>V1 | square_bend<br>V3 | stenosis<br>V2 | stenosis_pulsatile<br>V2 | turbulent_pipe<br>V2 | womersley<br>V1 | 0050<br>V3 | 0077<br>V1 | 0079<br>V3 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `section:circle` | ● | ● | ● | ● |  | ● | ● | ● | ○ | ○ |  | ○ | ○ | ○ | ○ |
-| `section:rect` |  |  |  |  | ● |  |  |  |  |  | ○ | ○ |  |  |  |
-| `layers` | ● |  | ● |  |  |  |  |  |  |  |  | ○ |  |  |  |
-| `straight` | ● | ● | ● | ● | ● | ● | ● | ● | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
-| `bend` |  |  |  |  |  |  |  |  |  | ○ | ○ | ○ |  | ○ |  |
-| `miter` |  |  |  |  |  |  |  |  |  |  |  | ○ |  |  |  |
-| `spline` |  |  |  |  |  |  |  |  |  |  |  | ○ | ○ |  |  |
-| `profiled-reducer` |  |  |  |  |  | ● | ● |  |  |  |  | ○ |  |  |  |
-| `transition` |  |  |  |  |  |  |  |  |  |  |  | ○ |  |  |  |
-| `tee` |  |  |  |  |  |  |  |  |  |  |  | ○ |  | ○ |  |
-| `duct-tap` |  |  |  |  |  |  |  |  |  |  |  | ○ |  |  |  |
-| `wye` |  |  |  |  |  |  |  |  |  |  |  | ○ |  |  |  |
-| `stack-changes` |  |  |  |  |  |  |  |  |  |  |  | ○ |  |  |  |
-| `projection` |  |  |  |  |  |  |  |  |  |  |  | ○ |  | ○ |  |
+| `section:circle` | ● | ● | ◐ | ● | ◐ | ● |  |  | ● | ● | ● | ● | ○ | ○ | ○ |
+| `section:rect` |  |  |  |  | ◐ |  | ● | ● |  |  |  |  |  |  |  |
+| `layers` | ● |  |  | ● | ◐ |  |  |  |  |  |  |  |  |  |  |
+| `straight` | ● | ● | ◐ | ● | ◐ | ● | ● | ● | ● | ● | ● | ● | ○ | ○ | ○ |
+| `bend` |  |  |  |  | ◐ |  |  | ● |  |  |  |  | ○ | ○ |  |
+| `miter` |  |  |  |  | ◐ |  |  |  |  |  |  |  |  |  |  |
+| `spline` |  |  | ◐ |  | ◐ |  |  |  |  |  |  |  |  |  |  |
+| `profiled-reducer` |  |  |  |  | ◐ |  |  |  | ● | ● |  |  |  |  |  |
+| `transition` |  |  |  |  | ◐ |  |  |  |  |  |  |  |  |  |  |
+| `tee` |  |  |  |  | ◐ |  |  |  |  |  |  |  |  | ○ |  |
+| `duct-tap` |  |  |  |  | ◐ |  |  |  |  |  |  |  |  |  |  |
+| `wye` |  |  |  |  | ◐ |  |  |  |  |  |  |  |  |  |  |
+| `stack-changes` |  |  |  |  | ◐ |  |  |  |  |  |  |  |  |  |  |
+| `projection` |  |  |  |  | ◐ |  |  |  |  |  |  |  |  | ○ |  |
 
 ---
 
