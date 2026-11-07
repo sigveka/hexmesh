@@ -74,7 +74,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0063](0063-duct-shoe-taps.md) | General branches, stage 4: shoe taps on ducts | ready (after 0057, 0060; round or narrow shoes after 0033) | 0031, 0027 |
 | [0064](0064-pcf-reader-robustness.md) | PCF reader robustness: annotations, unknown inline components, several networks | done | 0023 |
 | [0065](0065-network-model-and-builder.md) | Network interchange 1a: the network model, and the builder out of `pcf.py` | done | 0032 |
-| [0066](0066-network-model-operations.md) | Network interchange 1b: select, cut, join, merge, and the public API | ready (after 0065) | 0032 |
+| [0066](0066-network-model-operations.md) | Network interchange 1b: select, cut, join, merge, and the public API | done | 0032 |
 | [0069](0069-duct-tap-pillow-prototype.md) | Prototype: duct tap with a pillowed ring (hole on the wall) | done (Q1 answered: B adopted, decision 0033) | 0033 |
 | [0070](0070-duct-tap-merge-into-tee.md) | Duct taps: the pillowed tap in `Tee` | done | 0033, 0027 |
 | [0073](0073-validation-metadata-and-coverage.md) | Validation metadata (`case.json`), categories and a coverage matrix in the gallery | done (Q1, not blocking: `conduction` tag) | 0012 |
@@ -118,7 +118,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0071](0071-validation-rectangular-duct.md) | Validation: fully developed laminar flow in rectangular ducts | V1 | done | 0012, 0015 |
 | [0072](0072-validation-laminar-square-bend.md) | Validation: laminar 90° square-duct bend (Taylor et al., Re 790) | V3 | done | 0012, 0015 |
 | [0074](0074-validation-mms-conduction.md) | Verification: manufactured solutions for conduction on every fitting's mesh | V1 | blocked (questions Q1–Q3; results complete) | 0012, 0015 |
-| [0075](0075-validation-helical-pipe.md) | Validation: laminar flow in a helical pipe (spline pipe) | V3 | blocked (Q5: nang 24 needs ~25 h; undecided) | 0012, 0015 |
+| [0075](0075-validation-helical-pipe.md) | Validation: laminar flow in a helical pipe (spline pipe) | V3 | blocked (held by the user: run nang 24 over nights, Q5; not started) | 0012, 0015 |
 | [0077](0077-validation-fenicsx-second-order.md) | Verification: FEniCSx toolchain, and second-order export checked end to end | V1 | ready (step 1 any time; 2–4 after 0076) | 0034, 0012, 0015 |
 | [0079](0079-validation-taylor-bubble.md) | Validation: a Taylor bubble rising in stagnant liquid (VOF) | V3 | ready (v2406 runner) | 0012, 0015 |
 | [0099](0099-validation-graphs.md) | Validation results as graphs: convergence, layouts, the stenosis against DNS | docs | ready (after 0098) | 0012, 0015, 0036 |

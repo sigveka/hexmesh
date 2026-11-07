@@ -85,7 +85,7 @@ armour-wire mechanics, and fitting-level umbilical terminations.
 | Stage | Needs |
 |---|---|
 | A | decision 0021 stage 1 (layer name vs material); a check of the fluid-layer assumptions |
-| B | the layer-outline machinery (decision 0026); a section abstraction that isn't tied to the O-H face (as 0021, constraint 4) |
+| B | the layer-outline machinery (decision 0026); a section abstraction that isn't tied to the O-H face (as 0021, constraint 4); **per-arc counts on a circle** ([decision 0041](0041-per-side-counts-on-rectangles.md) option C, in its general form), for irregular Voronoi cells; `n_outer = 6` for hexagonal cells |
 | C | stage B; the generalised port signatures; the sweep machinery shared with profiles (0008) and stack changes (0006) |
 
 ## Constraints for decisions going forward

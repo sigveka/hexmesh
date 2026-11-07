@@ -1,6 +1,6 @@
 # 0075 — Validation (V3): laminar flow in a helical pipe (spline pipe)
 
-- **Status:** blocked (Q5: mapped nang 24 also unfinished; undecided)
+- **Status:** blocked (held by the user: run nang 24 over nights, Q5; not started)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (V3, with V4 secondary); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V3 (experiment: De Amicis et al. 2014; V4 correlation, Manlapaz & Churchill 1980, secondary)
 - **Features:** `section:circle`, `straight`, `spline`
@@ -339,6 +339,23 @@ undecided** (2026-11-06, under the Q4 rule).
   unfinished nang 24 attempts at Re 1800.
 - **For design:** whether to spend about 25 h of machine time (perhaps
   over several nights, with restartable cases), or another route.
+
+**Design answer to Q5** (2026-11-07; the user: "I choose 1 but hold off
+on starting it for now").
+- **The plan:** finish the study as designed: nang 24 at Re 1800, 2400
+  and 3000, about 25 h in all, split over nights.
+- **A restartable driver first:** write the fields every 50 steps, and
+  resume from `latestTime`, so that no run is lost to a time limit.
+  Also record f every 50 steps, as evidence of whether f has settled
+  before the residual target.  It is reported, not a stopping rule: the
+  convergence target (p 1e-7; U as the case sets it) is unchanged.
+- **Held:** no long runs until the user says go.  Preparing the driver
+  and testing it on a short case is fine; ask the user if in doubt.
+- **As before:** check `df -h .` and for other heavy runs before each
+  night's run.  Restart files for a 2.71M-cell case are large: keep only
+  the latest time and delete the case once its numbers are saved.
+- Shortening the pipe isn't taken: it would change the study and need
+  the coarse levels rerun.
 
 ## Outcome
 

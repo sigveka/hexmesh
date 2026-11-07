@@ -185,3 +185,66 @@ circles included, so it bounds the whole assembly.
 outlines may have `nang_w ≠ nang_h`, each outline taking the core's
 counts.  A circular outline in a stack with a rectangle keeps equal
 counts.
+
+## C's form, if it is done (2026-11-06, design session)
+
+**The user agreed** to the count per arc (2026-11-06), and **C stays on
+hold**: no task.  These points fix its form, so that a later task
+doesn't build a narrower version:
+
+1. **General per-arc counts, not two alternating counts.**  Each of a
+   circle's arcs carries its own count.  The main user is decision
+   0035 stage B: cell-decomposed multi-core sections (umbilicals)
+   have irregular Voronoi cells, whose sides each need their own count.
+   A round duct tap on a rectangle, a circle → rectangle `Transition`
+   and a non-square `BundleSpec` tile are special cases.  Hexagonal
+   rod-bundle cells also need `n_outer = 6`, which is a separate change.
+2. **In the generic `CircleShape`, not a special circle type.**
+   - The precedent: `RectShape` holds `nang_w` and `nang_h`, and a
+     square is the case where they are equal (`core/shape.py:26`).
+   - A second circle type would break "one description per concept"
+     (DESIGN §3.1) and raise the shape-specific-site cap, which only
+     goes down.
+   - `CircleShape(radius, nang=…)` keeps its meaning: one count on every
+     arc.  Per-arc counts are an optional field.
+3. **Fittings opt in.**  A fitting that doesn't handle unequal arcs
+   rejects them with a coded error, as `check_supported` rejects
+   `n_outer = 8` today.  Support arrives fitting by fitting.
+4. **Topology and density.**  A circle's count *pattern* (which arcs
+   are equal, and their ratios) is **topology**: it sets the section's
+   symmetry and signature class.  A uniform multiplier on all arcs is
+   **density**.  So `Reducer`'s "same topology and density" still holds,
+   and `refined(k)` still nests.  CLAUDE.md's parameter list and DESIGN
+   gain this sentence when C is tasked.
+5. **Acceptance for the C task:** the 28 example meshes byte-identical,
+   and every existing port signature unchanged.
+
+**An ellipse: an idea only** (the user, 2026-11-06: "just an idea,
+nothing planned").  Making the
+circle a special case of an ellipse (a = b) follows the same "one
+concept" argument.  It is kept out of C, as a separate question:
+- **For:**
+  - elliptical sections in vascular networks (decision 0018) and
+    ovalised bends;
+  - an exact laminar solution (Poiseuille in an ellipse), a V1
+    validation case;
+  - unequal arcs arise naturally, so it would use C's per-arc counts.
+- **Against, and to settle first:**
+  - **Shells:** an offset of an ellipse isn't an ellipse.  A wall of
+    constant thickness needs a parallel-curve outline (a spline), or
+    the wall is taken as a second ellipse with varying thickness.
+  - **Every circle site is analytic:** exact wall projection, the
+    tee/wye intersection curves (RESEARCH §3, §4), bend-radius checks and
+    the advisor's calibration.  Each needs an elliptical form or a
+    rejection.
+  - **OCC:** the realised curve must stay a `gp_Circ` when a = b, so
+    that meshes stay byte-identical.  That is a dispatch, as with
+    squares, but it must be checked.
+  - **One generalisation at a time:** doing per-arc counts and the
+    ellipse in one change would make a failed byte-identical check hard
+    to attribute.
+- **HVAC note:** HVAC's "flat oval" ducts are stadiums (a rectangle with
+  semicircular ends), not ellipses.  If HVAC is the motivation, a
+  stadium shape matters more.
+- **State:** nothing planned.  Kept here so the points above aren't
+  lost.
