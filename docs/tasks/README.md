@@ -104,6 +104,8 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0102](0102-agent-manifest.md) | `hexmesh manifest`: one machine-readable account of the suite | done | 0040 |
 | [0103](0103-network-angled-tees.md) | The network builder takes angled tees | ready (after 0060) | 0031 |
 | [0104](0104-junction-nonorthogonality-prediction.md) | Junctions predict non-orthogonality in `validate()` | ready (after 0060) | 0031 |
+| [0105](0105-windows-ci-green.md) | CI green again: the Windows gmshToFoam test | ready | 0039 |
+| [0106](0106-error-coverage-and-hints.md) | Every user-facing error coded, and hints where they help | ready (after 0105) | 0040 |
 
 ### Validation
 
@@ -135,6 +137,9 @@ first `ready` item whose prerequisites are done.  The tracks marked
 *alongside* may be picked up whenever the main track waits on the user
 or a long run.
 
+0. **Public readiness** (the repository is public; the user, 2026-11-07):
+   **0105 → 0106 → 0078** (CI green on Windows; every user-facing error
+   coded, with hints; the README front page).  Before other work.
 1. **The H section** (decision 0036; 0082, 0083, 0084 and 0090 done):
    - **0085 → 0086 → 0087**, strictly in sequence.  0085 (in progress)
      builds the capped switch (decision 0036 amendment, 2026-11-04).
