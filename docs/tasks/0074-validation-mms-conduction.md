@@ -1,6 +1,6 @@
 # 0074 — Verification (V1): manufactured solutions for conduction on every fitting's mesh
 
-- **Status:** blocked (questions Q1–Q3; results complete)
+- **Status:** ready (design answered Q1–Q3, 2026-11-07: the Q1 checks and the Q2 measurement)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (V1); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V1 (exact: manufactured solutions)
 - **Features:** `section:circle`, `section:rect`, `layers`, `straight`, `bend`, `miter`, `spline`, `profiled-reducer`, `transition`, `tee`, `duct-tap`, `wye`, `stack-changes`, `projection`
@@ -164,6 +164,53 @@ useful); different conductivities per layer (interface physics: tasks
   the scheme there; the max error doesn't fall.  Should `refined` raise
   `n_split` once the folding is solved, or should convergence studies of
   wyes refine `nang` and the axial counts only, and say so?
+
+**Design answers** (2026-11-07; the user: "reply the hexmesh coding agent
+with your answers").
+- **Q1: neither yet.  First tell geometry error from scheme error.**
+  - A constant worst scaled Jacobian under `refined(k)` is expected: a
+    refined mapping keeps its cell angles.  It doesn't explain the
+    order by itself.
+  - The reducer is the warning sign: a cone has the straight's O-H
+    topology and a smooth mapping, so it should match the straight's
+    1.60.  0.95 points to a geometry error that doesn't shrink, e.g. a
+    profile chord tolerance (`chord_tol`) or station interpolation that
+    `refined(k)` doesn't tighten.  The transition's blended stations
+    may do the same.
+  - The tees and the miter more likely show the scheme on kinked grid
+    lines across block interfaces: a property of a conformal block
+    mesh, not a bug.
+  - **The checks** (no gate change):
+    1. does `refined(k)` tighten the reducer's and the transition's
+       geometric tolerances (chords, stations)?  Measure the wall's
+       distance from the exact surface per k;
+    2. OpenFOAM's skewness per k for each flagged fitting, and where
+       the error sits (block interfaces or not);
+    3. the flagged fittings once more with a skew-corrected gradient
+       (e.g. `pointCellsLeastSquares`, or corrected interpolation): does
+       the order recover?
+  - **Then:** a geometry error is a fitting fix (a task from design).
+    A scheme-on-kink error is accepted and documented: expect
+    first-order local error in that fitting, in the CFD guidance and
+    RESEARCH.
+- **Q2: treat it as a mesh defect first.**
+  - A tap 59× denser than its neighbours (7552 hexes against 128),
+    with thin cells throughout, suggests wrong counts or layout in the
+    fitting.
+  - Measure **one** aspect metric (`checkMesh` aspect and the edge
+    ratio, both) at k = 1, 2 and 3.  If it grows with k, it's a fitting
+    defect: refinement must not stretch cells.  Also say what sets the
+    tap's counts (which spec field or rule).
+  - Meanwhile, a solver note for users (more non-orthogonal correctors,
+    or an implicit correction) goes in `docs/integrations/openfoam.md`
+    as a stopgap, with the numbers.
+- **Q3: refine `nang` and the axial counts, and say so.**  A wye study
+  doesn't refine the split region (`n_split` capped at 6, task 0056),
+  so its error there isn't verified.  The report says that, per case.
+  Raising `n_split` in `refined` waits for the folding fix.
+- **Acceptance:** accept the case on what is verified (the fittings that
+  converge at the straight's order; the wye outside its split region).
+  The flagged fittings and the duct tap are reported, pending the checks.
 
 ## Outcome
 

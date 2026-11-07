@@ -102,6 +102,8 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0100](0100-trace-tied-rectangle-counts.md) | Trace why rectangle side counts are tied next to circles and shells | done | 0041 |
 | [0101](0101-untie-rectangular-shell-counts.md) | Unequal side counts through a stack of rectangular outlines | done | 0041, 0026 |
 | [0102](0102-agent-manifest.md) | `hexmesh manifest`: one machine-readable account of the suite | done | 0040 |
+| [0103](0103-network-angled-tees.md) | The network builder takes angled tees | ready (after 0060) | 0031 |
+| [0104](0104-junction-nonorthogonality-prediction.md) | Junctions predict non-orthogonality in `validate()` | ready (after 0060) | 0031 |
 
 ### Validation
 
@@ -118,7 +120,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0068](0068-validation-pulsatile-stenosis.md) | Validation: pulsatile flow through the cosine stenosis (Varghese et al., Part 2) | V2 | done | 0012, 0015 |
 | [0071](0071-validation-rectangular-duct.md) | Validation: fully developed laminar flow in rectangular ducts | V1 | done | 0012, 0015 |
 | [0072](0072-validation-laminar-square-bend.md) | Validation: laminar 90° square-duct bend (Taylor et al., Re 790) | V3 | done | 0012, 0015 |
-| [0074](0074-validation-mms-conduction.md) | Verification: manufactured solutions for conduction on every fitting's mesh | V1 | blocked (questions Q1–Q3; results complete) | 0012, 0015 |
+| [0074](0074-validation-mms-conduction.md) | Verification: manufactured solutions for conduction on every fitting's mesh | V1 | ready (design answered Q1–Q3, 2026-11-07: the Q1 checks and the Q2 measurement) | 0012, 0015 |
 | [0075](0075-validation-helical-pipe.md) | Validation: laminar flow in a helical pipe (spline pipe) | V3 | blocked (held by the user: run nang 24 over nights, Q5; not started) | 0012, 0015 |
 | [0077](0077-validation-fenicsx-second-order.md) | Verification: FEniCSx toolchain, and second-order export checked end to end | V1 | ready (step 1 any time; 2–4 after 0076) | 0034, 0012, 0015 |
 | [0079](0079-validation-taylor-bubble.md) | Validation: a Taylor bubble rising in stagnant liquid (VOF) | V3 | ready (v2406 runner) | 0012, 0015 |
@@ -149,7 +151,9 @@ or a long run.
      `results.json` files);
    - rectangle cost (decision 0041): **0101** (shells around
      rectangles; 0100 done).  C (unequal arcs on a circle) is held;
-   - general branches (decision 0031): **0060 → 0061 / 0062 → 0063**.
+   - general branches (decision 0031): **0060 → 0061 / 0062 → 0063**;
+     after 0060, **0103** (angled tees in networks) and **0104**
+     (junction non-orthogonality).
      0060 carries a design note from 0081: the duct-tap front end leaves
      `Tee`;
    - network interchange: **0066**.  Its design note: the readers move

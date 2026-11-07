@@ -4,7 +4,8 @@
   recommended
 - **Date:** 2026-10-29
 - **Tasks:** 0060 (stage 1, `angle`), 0061 (stage 2, `offset`), 0062
-  (stage 3, `twist`), 0063 (stage 4, duct shoe taps)
+  (stage 3, `twist`), 0063 (stage 4, duct shoe taps); 0103 and 0104
+  (amendment 2026-11-07)
 
 ## Context
 
@@ -169,3 +170,50 @@ knee issues (task 0056), no shells yet (0053), and its redesign ahead
     for useful offsets (stage 1/2 prototypes measure);
   - that a twisted straight with projected walls keeps acceptable skew
     for useful twists.
+
+## Amendment: the lateral's effective range (2026-11-07; the user: "yes, do that")
+
+**Measured** in task 0060 (stage 1, `Tee(angle=…)`):
+- `TEE_MAX_RATIO` = 0.95.  Above it the meshed scaled Jacobian falls
+  below the straight-edge prediction (by 0.07 at r/R 0.97; 0.30 against
+  0.57 at 0.99).
+- The worst cell is always the turn block at the acute crotch.
+- The smallest r/R that passes the 0.1 floor, by branch angle:
+
+  | angle | smallest r/R |
+  |---|---|
+  | 90° | 0.20 |
+  | 60° | 0.29 |
+  | 45° | 0.50 |
+  | 35° | 0.875 |
+  | 30° | none |
+
+- Laterals below about 57° always warn.
+- Small-ratio junctions reach 75–78° non-orthogonality, 90° included,
+  and nothing reports it before meshing.
+
+**Decided:**
+1. **No minimum angle limit.**  The usable angle depends on r/R, so one
+   bound is wrong at one end or adds nothing at the other.  The quality
+   tiers reject, and the rejection's hint names the angle and the
+   smallest r/R that would pass at it.
+   - **Condition:** the rejection rests on the predicted quality, and
+     above r/R 0.95 the prediction proved optimistic.  Task 0060
+     confirms that predicted and meshed quality agree at the lowest
+     passing angles (35° at 0.875, 45° at 0.50).  If they don't, a
+     margin or a cap at those angles is added first.
+2. **DESIGN §7.1** gains the effective range (the table above), once
+   that confirmation is in, replacing the 90°-only prototype numbers
+   (r/R 0.3–0.95, nang 4).
+3. **30° laterals:** not supported by this layout.  A different crotch
+   layout is held; the 30° benchmark (Štigler, RESEARCH §7.2) also
+   needs the wye family.
+4. **Task 0103:** the network builder passes an angled tee to
+   `Tee(angle=…)` instead of rejecting it (`tee_branch_angled`).
+5. **Task 0104:** junctions predict non-orthogonality in `validate()`,
+   on the same tiers as `mesh()` (`OUTLINE_NONORTH_WARN` 70°,
+   `OUTLINE_NONORTH_MAX` 80°).
+
+**Verified vs. assumed:** this record assumed the topology valid "for α
+down to about 30°".  Measured: valid down to 35° (at r/R ≥ 0.875), not
+at 30°.
