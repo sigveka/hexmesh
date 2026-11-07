@@ -41,6 +41,12 @@ functions count the same as module-level ones.
   :func:`bare_raise_violations`).  A user's error is a coded
   ``HexmeshError``, an internal invariant an ``InternalError``.  The list
   only shrinks: every entry must still be needed.
+- **The light commands load neither gmsh nor scipy** (decision 0040,
+  amendment 2026-11-07; task 0107): in a fresh interpreter every
+  ``hexmesh`` command but ``build`` leaves ``gmsh`` out of
+  ``sys.modules``, ``validate`` and ``estimate`` leave ``scipy`` out too,
+  and with gmsh unimportable they all still work while ``build`` gives
+  ``gmsh_unavailable``.  The manifest's ``needs_gmsh`` must agree.
 
 Each check returns its violations, so the planted-violation tests at the
 end run the same code on a synthetic tree.
@@ -49,6 +55,9 @@ end run the same code on a synthetic tree.
 from __future__ import annotations
 
 import ast
+import json
+import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -62,7 +71,8 @@ ORDER = ("core", "sections", "assembly", "interchange", "study",
 #: shared leaves: anyone may import them; they import only leaves
 LEAVES = {"hexmesh._occ", "hexmesh.session", "hexmesh.quality_hex",
           "hexmesh.version",            # task 0091: assembly stamps the version
-          "hexmesh.errors"}             # task 0094: every layer's error classes
+          "hexmesh.errors",             # task 0094: every layer's error classes
+          "hexmesh._gmsh"}              # task 0107: gmsh, loaded on first use
 #: the public API ``hexmesh.agent`` may import (task 0097): the package
 #: roots, and the documented registries the schema reads
 AGENT_IMPORTS = {"hexmesh", "hexmesh.assembly", "hexmesh.interchange", "hexmesh.errors",
@@ -74,7 +84,7 @@ WRITERS_USERS = {"assembly", "study"}
 #: may import anything
 FREE = {"root", "examples"}
 #: private names that may cross packages (DESIGN §3.1)
-PRIVATE_OK = {"hexmesh._occ"}
+PRIVATE_OK = {"hexmesh._occ", "hexmesh._gmsh"}     # _gmsh: task 0107
 
 #: dependency edges outside the order, each with the task that removes it
 ALLOWED_EDGES = {
@@ -813,3 +823,102 @@ def test_planted_bare_raise(tmp_path, text, n):
     root = _tree(tmp_path, {"hexmesh/assembly/x.py": text})
     bad = bare_raise_violations(root, {("hexmesh/assembly/x.py", "allowed", "TypeError"): "test"})
     assert len(bad) == n, bad
+
+
+# --- the light commands (task 0107) -------------------------------------------
+
+#: Runs every ``hexmesh`` command in one fresh interpreter and prints, per
+#: command, its envelope and the heavy modules loaded so far.  Arguments:
+#: block (gmsh unimportable), plant (a module to run ``import gmsh`` in),
+#: the work directory.
+_RUN_COMMANDS = r"""
+import io, json, sys
+from pathlib import Path
+block, plant, work = sys.argv[1] == "1", sys.argv[2], Path(sys.argv[3])
+if block:
+    sys.modules["gmsh"] = None
+import hexmesh.agent
+if plant:
+    exec("import gmsh", __import__(plant, fromlist=["_"]).__dict__)
+from hexmesh.agent import _commands, cli
+net, inputs = str(work / "net.json"), str(work / "inputs.json")
+args = {"validate": [net], "estimate": [net], "describe": [net],
+        "preview": [net, "--out", str(work / "view.png")],
+        "advise": [net, "--inputs", inputs], "apply": [net, "--table", str(work / "table.json")],
+        "build": [net, "--out", str(work / "mesh.msh")]}
+class Out:
+    def __init__(self): self.buffer = io.BytesIO()
+    def flush(self): pass
+out, real = {}, sys.stdout
+for c in _commands.COMMANDS:
+    if c == "build" and not block:
+        continue                                   # it meshes: not a light command
+    sys.stdout = Out()
+    cli.main([c, *args.get(c, [])])
+    env, sys.stdout = json.loads(sys.stdout.buffer.getvalue()), real
+    if c == "advise" and env["ok"]:
+        (work / "table.json").write_text(json.dumps(env["result"]["table"]), encoding="utf-8")
+    out[c] = {"envelope": {k: env.get(k) for k in ("ok", "error")},
+              "heavy": sorted({m.split(".")[0] for m in sys.modules
+                               if m.split(".")[0] in ("gmsh", "scipy") and sys.modules[m]})}
+print(json.dumps(out))
+"""
+
+
+def run_commands(work: Path, *, block: bool = False, plant: str = "") -> dict:
+    """{command: {envelope, heavy}} from a fresh interpreter (see
+    :data:`_RUN_COMMANDS`)."""
+    if not (work / "net.json").exists():
+        from hexmesh import Assembly, Bend, PipeSpec, Straight, Tee
+        a = Assembly(PipeSpec(nang=4).core("fluid", radius=0.05, nrad=3)
+                     .shell("steel", dR=0.005, nrad=1), direction=[1, 0, 0], up=[0, 0, 1])
+        a.add(Straight(0.3, n_layers=3))
+        main, branch = a.add(Tee(branch_length=0.2, branch_radius=0.03), names=["main", "branch"])
+        a.add(main, Bend(0.2, 90, n_layers=4))
+        a.add(branch, Straight(0.2, n_layers=2))
+        a.save(work / "net.json")
+        (work / "inputs.json").write_text(json.dumps(
+            {"fluid": "water", "flow": {"velocity": 0.005}, "accuracy": "coarse"}),
+            encoding="utf-8")
+    p = subprocess.run([sys.executable, "-c", _RUN_COMMANDS, "1" if block else "0", plant,
+                        str(work)], cwd=ROOT, capture_output=True, text=True, timeout=600)
+    assert p.returncode == 0, p.stderr
+    return json.loads(p.stdout)
+
+
+def light_violations(runs: dict) -> list[str]:
+    """Light commands that loaded gmsh, or (validate, estimate) scipy."""
+    from hexmesh.agent._commands import NEEDS_GMSH
+    bad = []
+    for c, r in runs.items():
+        if c not in NEEDS_GMSH and "gmsh" in r["heavy"]:
+            bad.append(f"{c}: gmsh loaded")
+        if c in ("validate", "estimate") and "scipy" in r["heavy"]:
+            bad.append(f"{c}: scipy loaded")
+    return bad
+
+
+def test_the_light_commands_load_neither_gmsh_nor_scipy(tmp_path):
+    runs = run_commands(tmp_path)
+    assert all(r["envelope"]["ok"] for r in runs.values()), runs
+    assert light_violations(runs) == []
+
+
+def test_planted_top_level_gmsh_import(tmp_path):
+    """``import gmsh`` run in a light module, as a top-level import would."""
+    bad = light_violations(run_commands(tmp_path, plant="hexmesh.agent._commands"))
+    assert "validate: gmsh loaded" in bad and "estimate: gmsh loaded" in bad, bad
+
+
+def test_without_gmsh_only_build_fails_and_the_manifest_says_so(tmp_path):
+    from hexmesh.agent import manifest
+    runs = run_commands(tmp_path, block=True)
+    needs = {c: d["needs_gmsh"] for c, d in manifest()["commands"].items()}
+    assert set(runs) == set(needs)
+    for c, r in runs.items():
+        env = r["envelope"]
+        if needs[c]:
+            assert env["ok"] is False and env["error"]["code"] == "gmsh_unavailable", (c, env)
+            assert "pip install gmsh" in env["error"]["hint"]
+        else:
+            assert env["ok"] is True, (c, env)

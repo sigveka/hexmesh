@@ -45,9 +45,8 @@ import math
 from dataclasses import dataclass, field
 
 import numpy as np
-import gmsh
-from scipy.interpolate import CubicSpline
 
+from .._gmsh import gmsh
 from ..errors import HexmeshError
 from .. import _occ
 from ..sections import layout_of
@@ -494,6 +493,7 @@ class BlockLayout:
             ctl = np.vstack([pa, np.asarray(e.geom.points, dtype=float), pb])
             s = np.concatenate([[0.0], np.cumsum(np.linalg.norm(np.diff(ctl, axis=0), axis=1))])
             if isinstance(e.geom, Spline):
+                from scipy.interpolate import CubicSpline   # 0.14 s: build only (task 0107)
                 pts = CubicSpline(s / s[-1], ctl, axis=0)(t)
             else:
                 pts = np.column_stack([np.interp(t, s / s[-1], ctl[:, i]) for i in range(3)])

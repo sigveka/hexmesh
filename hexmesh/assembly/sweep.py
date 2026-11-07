@@ -26,8 +26,8 @@ import math
 from dataclasses import dataclass, field, replace
 
 import numpy as np
-import gmsh
 
+from .._gmsh import gmsh
 from . import limits
 from .errors import AssemblyError
 from .. import _occ

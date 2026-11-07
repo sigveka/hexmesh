@@ -44,8 +44,8 @@ from pathlib import PurePath
 from typing import Iterable
 
 import numpy as np
-import gmsh
 
+from .._gmsh import gmsh
 from ..errors import HexmeshError, HexmeshWarning
 from .errors import AssemblyError, AssemblyTypeError
 from .. import _occ

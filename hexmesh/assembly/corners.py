@@ -29,9 +29,9 @@ from __future__ import annotations
 import math
 from typing import Callable
 
-import gmsh
 import numpy as np
 
+from .._gmsh import gmsh
 from .errors import AssemblyError
 from .. import _occ
 from ..core.cross_section import CrossSection

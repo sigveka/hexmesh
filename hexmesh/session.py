@@ -17,7 +17,8 @@ assembly is conformal by construction (DESIGN.md P2).
 
 from __future__ import annotations
 
-import gmsh
+from . import _gmsh
+from ._gmsh import gmsh
 
 
 class Session:
@@ -36,6 +37,7 @@ class Session:
         self.verbose = verbose
 
     def __enter__(self) -> "Session":
+        _gmsh.load()                    # GmshUnavailable here, not mid-build
         gmsh.initialize()
         gmsh.option.setNumber("General.Verbosity", 5 if self.verbose else 1)
         gmsh.model.add(self.name)

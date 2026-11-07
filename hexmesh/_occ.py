@@ -30,9 +30,9 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 
-import gmsh
 import numpy as np
 
+from ._gmsh import gmsh
 from .errors import InternalError
 
 _ends: dict[int, tuple[int, int]] = {}

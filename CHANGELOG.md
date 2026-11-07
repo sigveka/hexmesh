@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+**The light commands load neither gmsh nor scipy** (decision 0040,
+amendment 2026-11-07; task 0107).
+
+- gmsh is imported on first use, through `hexmesh._gmsh`; `Session`
+  imports it when it starts.  `scipy.interpolate` is imported only where a
+  spline edge is meshed.
+- `import hexmesh.agent` takes 0.27 s, down from 0.52 s.  `hexmesh
+  validate` on a small network takes 0.37 s, down from 0.64 s.
+- Where gmsh can't load, `import hexmesh` and every command but `build`
+  still work.  `build` and `Session` raise `GmshUnavailable` (an
+  `ImportError`, code `gmsh_unavailable`); its hint gives the install
+  command and, on Linux, the system libraries.
+- Meshes are unchanged: all 28 gallery examples are byte-identical.
+
 **Every user-facing error coded, internal errors marked** (decision 0040;
 task 0106).
 

@@ -106,7 +106,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0104](0104-junction-nonorthogonality-prediction.md) | Junctions predict non-orthogonality in `validate()` | ready (after 0060) | 0031 |
 | [0105](0105-windows-ci-green.md) | CI green again: the Windows gmshToFoam test | done | 0039 |
 | [0106](0106-error-coverage-and-hints.md) | Every user-facing error coded, and hints where they help | done | 0040 |
-| [0107](0107-light-commands-without-gmsh.md) | The light commands load neither gmsh nor scipy | ready (after 0106) | 0040 |
+| [0107](0107-light-commands-without-gmsh.md) | The light commands load neither gmsh nor scipy | done | 0040 |
 
 ### Validation
 

@@ -20,14 +20,10 @@ reduce boilerplate and centralise entity creation.
 from __future__ import annotations
 import math
 
-import gmsh
 import numpy as np
 
+from .._gmsh import gmsh
 from .. import _occ
-
-
-geo  = gmsh.model.occ
-mesh = gmsh.model.mesh
 
 
 def add_physical_group(dim: int, tags: list[int], name: str) -> int:
@@ -38,7 +34,7 @@ def add_physical_group(dim: int, tags: list[int], name: str) -> int:
 
 
 def add_point(x: float, y: float, z: float, lc: float) -> int:
-    return geo.addPoint(x, y, z, lc)
+    return gmsh.model.occ.addPoint(x, y, z, lc)
 
 
 def add_line(start: int, end: int) -> int:
@@ -70,7 +66,7 @@ def add_conic_arc(start: int, center: int, end: int, center_xyz,
 
     c = np.asarray(center_xyz, dtype=float)
     def coords(t):   # OCC pads boxes by its tolerance; the centre is exact
-        bb = np.asarray(geo.getBoundingBox(0, t))
+        bb = np.asarray(gmsh.model.occ.getBoundingBox(0, t))
         return 0.5 * (bb[:3] + bb[3:])
 
     p0, p2 = coords(start), coords(end)
@@ -78,7 +74,7 @@ def add_conic_arc(start: int, center: int, end: int, center_xyz,
     cos_d = float(u0 @ u2) / float(np.linalg.norm(u0) * np.linalg.norm(u2))
     m = c + (u0 + u2) / (1.0 + cos_d)                 # tangent intersection
     m = m + (s - 1.0) * b * float((m - c) @ b)        # stretch it back
-    mid = geo.addPoint(*m)
+    mid = gmsh.model.occ.addPoint(*m)
     tag = _occ.bspline([start, mid, end], degree=2,
                          weights=[1.0, math.sqrt((1.0 + cos_d) / 2.0), 1.0],
                          knots=[0.0, 1.0], multiplicities=[3, 3])
@@ -106,11 +102,11 @@ def plane(cx, cy, cz, h_axis, v_axis, stretch):
 
 
 def add_line_loop(tags: list[int]) -> int:
-    return geo.addCurveLoop(tags)
+    return gmsh.model.occ.addCurveLoop(tags)
 
 
 def add_surface(loop: int) -> int:
-    return geo.addPlaneSurface([loop])
+    return gmsh.model.occ.addPlaneSurface([loop])
 
 
 def set_transfinite_line(tags: list[int], n: int, progression: float = 1.0) -> None:
@@ -120,18 +116,18 @@ def set_transfinite_line(tags: list[int], n: int, progression: float = 1.0) -> N
     """
     if _occ.in_build:
         return
-    geo.synchronize()   # OCC: entities must exist before mesh constraints
+    gmsh.model.occ.synchronize()   # OCC: entities must exist before mesh constraints
     for t in tags:
-        mesh.setTransfiniteCurve(t, n + 1, "Progression", progression)
+        gmsh.model.mesh.setTransfiniteCurve(t, n + 1, "Progression", progression)
 
 
 def set_transfinite_line_bump(tags: list[int], n: int, bump: float = 1.0) -> None:
     """Apply Transfinite Line with Bump to a list of curve tags."""
     if _occ.in_build:
         return
-    geo.synchronize()
+    gmsh.model.occ.synchronize()
     for t in tags:
-        mesh.setTransfiniteCurve(t, n + 1, "Bump", bump)
+        gmsh.model.mesh.setTransfiniteCurve(t, n + 1, "Bump", bump)
 
 
 def set_transfinite_curve(tag: int, n: int, kind: str = "Progression",
@@ -139,21 +135,21 @@ def set_transfinite_curve(tag: int, n: int, kind: str = "Progression",
     """Transfinite curve *tag* of *n* divisions, any gmsh law."""
     if _occ.in_build:
         return
-    geo.synchronize()
-    mesh.setTransfiniteCurve(tag, n + 1, kind, coef)
+    gmsh.model.occ.synchronize()
+    gmsh.model.mesh.setTransfiniteCurve(tag, n + 1, kind, coef)
 
 
 def set_transfinite_surface(tags: list[int]) -> None:
     if _occ.in_build:
         return
-    geo.synchronize()
+    gmsh.model.occ.synchronize()
     for t in tags:
-        mesh.setTransfiniteSurface(t)
+        gmsh.model.mesh.setTransfiniteSurface(t)
 
 
 def set_recombine_surface(tags: list[int]) -> None:
     if _occ.in_build:
         return
-    geo.synchronize()
+    gmsh.model.occ.synchronize()
     for t in tags:
-        mesh.setRecombine(2, t)
+        gmsh.model.mesh.setRecombine(2, t)

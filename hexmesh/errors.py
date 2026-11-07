@@ -49,7 +49,8 @@ from __future__ import annotations
 import math
 
 __all__ = ["HexmeshError", "HexmeshWarning", "SpecError", "SpecTypeError", "SpecUsageError",
-           "ReaderError", "ReaderFileNotFound", "InternalError", "CODES", "jsonable"]
+           "ReaderError", "ReaderFileNotFound", "GmshUnavailable", "InternalError", "CODES",
+           "jsonable"]
 
 #: where an :class:`InternalError` asks to be reported
 ISSUES = "https://github.com/sigveka/hexmesh/issues"
@@ -146,6 +147,12 @@ class ReaderError(HexmeshError):
 class ReaderFileNotFound(ReaderError, FileNotFoundError):
     """A reader's input file that does not exist: still a
     ``FileNotFoundError`` (task 0106)."""
+
+
+class GmshUnavailable(HexmeshError, ImportError):
+    """gmsh could not be imported, so this call can't build or mesh: still
+    an ``ImportError`` (task 0107).  The commands that only read and
+    count work without gmsh."""
 
 
 class InternalError(_Fields, RuntimeError):
@@ -268,6 +275,7 @@ CODES: dict[str, str] = {
     "fitting_quality_warning": "a fitting's predicted quality is low (warning)",
     "fitting_type_unknown": "an unknown fitting type in a description",
     "full_width_tap_tunables": "pillowed-tap tunables given to a full-width duct tap",
+    "gmsh_unavailable": "gmsh could not be imported: only build and meshing need it",
     "grading_args_conflict": "both mprg= and first_cell= given",
     "grading_unreachable": "no grading coefficient reaches the target with the cell count",
     "h_layout_needs_n_outer_4": "layout='h' with n_outer other than 4",

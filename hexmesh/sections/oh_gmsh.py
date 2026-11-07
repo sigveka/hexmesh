@@ -36,9 +36,9 @@ the oblique cut face of a miter joint; circles become ellipses).
 from __future__ import annotations
 
 
-import gmsh
 import numpy as np
 
+from .._gmsh import gmsh
 from .. import _occ
 from dataclasses import dataclass, field
 

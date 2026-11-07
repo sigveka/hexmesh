@@ -1405,12 +1405,19 @@ Each layer raises its own subclass:
 | `StudyError`, `PreflightFailed` | `hexmesh.study` | |
 | `StudyTypeError` | a study's post-processing result | `TypeError` |
 | `FoamCommandFailed` | an OpenFOAM command that exits with an error (`hexmesh.study.openfoam`) | `RuntimeError` |
+| `GmshUnavailable` | gmsh could not be imported, at a call that builds or meshes | `ImportError` |
 
 A failed internal check, a bug in hexmesh rather than in the input, is an
 `InternalError` with code `internal_invariant` (task 0106). It shares the
 fields, but it is a `RuntimeError`, not a `HexmeshError`, so `except
 HexmeshError` doesn't hide it. Its message asks for a report, with the
 input that caused it, at <https://github.com/sigveka/hexmesh/issues>.
+
+gmsh is imported on first use (task 0107): only building and meshing
+need it.  `import hexmesh`, and the `schema`, `manifest`, `validate`,
+`estimate`, `describe`, `preview`, `advise` and `apply` commands, work
+where gmsh can't load; `build` and `Session` then raise `GmshUnavailable`
+(code `gmsh_unavailable`), whose hint says how to install it.
 
 When the assembly re-raises a fitting's error with its location, it keeps
 the fitting's `code`, `value`, `limit` and `hint` and adds `fitting` and
@@ -1510,6 +1517,7 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `fitting_quality_warning` | a fitting's predicted quality is low (warning) | `HexmeshWarning` |
 | `fitting_type_unknown` | an unknown fitting type in a description | `AssemblyError` |
 | `full_width_tap_tunables` | pillowed-tap tunables given to a full-width duct tap | `AssemblyError` |
+| `gmsh_unavailable` | gmsh could not be imported: only build and meshing need it | `GmshUnavailable` |
 | `grading_args_conflict` | both mprg= and first_cell= given | `SpecTypeError` |
 | `grading_unreachable` | no grading coefficient reaches the target with the cell count | `SpecError` |
 | `h_layout_needs_n_outer_4` | layout='h' with n_outer other than 4 | `SpecError` |
