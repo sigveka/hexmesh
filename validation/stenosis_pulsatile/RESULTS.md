@@ -11,6 +11,21 @@ MPI processes (`decomposePar` method simple).  Reference: the DNS of
 [`varghese_and_frankel_etal_2007b`], Purdue database `Axi_puls`
 (downloaded 2026-10-31), velocities in u_c.
 
+<!-- graphs:start -->
+## Graphs
+
+_Drawn from `results.json` by `python3 -m validation.tools.plots`; don't edit between the markers._
+
+<img src="figure.png" width="100%" alt="The throat peak's difference from the DNS against cell size.">
+
+The throat peak's difference from the DNS against cell size.
+
+<img src="img/periodic.png" width="100%" alt="The pulsatile throat peak, and Womersley's pressure-gradient amplitude and phase, per level against their references.">
+
+The pulsatile throat peak, and Womersley's pressure-gradient amplitude and phase, per level against their references.
+
+<!-- graphs:end -->
+
 ## Levels
 
 | Level | Cells | min SJ | max non-orth. (°) | periods to periodic | last change | steps per period | wall time per period |

@@ -10,6 +10,17 @@ method simple).  Reference: the exact developed solution (README.md):
 Nu = 48/11 = 4.3636, dT_b/dx = 16.000 K/m, ΔT steel 0.058343 K,
 ΔT insulation 163.464 K.
 
+<!-- graphs:start -->
+## Graphs
+
+_Drawn from `results.json` by `python3 -m validation.tools.plots`; don't edit between the markers._
+
+<img src="figure.png" width="100%" alt="The Nusselt number and the solid temperature differences against cell size.">
+
+The Nusselt number and the solid temperature differences against cell size.
+
+<!-- graphs:end -->
+
 ## Levels
 
 | Level | Cells (fluid / steel / insulation) | min SJ | max non-orth. fluid (°) | iterations | solver time (s) | mass balance | energy balance |

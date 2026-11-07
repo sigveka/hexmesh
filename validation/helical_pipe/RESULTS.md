@@ -18,6 +18,17 @@
   Ito (1959), as the paper's eq. (2).
 - **Recheck:** `python3 -m validation.tools.recheck helical_pipe`.
 
+<!-- graphs:start -->
+## Graphs
+
+_Drawn from `results.json` by `python3 -m validation.tools.plots`; don't edit between the markers._
+
+<img src="figure.png" width="100%" alt="The friction factor's difference from Ito's correlation per level.">
+
+The friction factor's difference from Ito's correlation per level.
+
+<!-- graphs:end -->
+
 ## Geometry
 
 - **The coil:** d = 12.53 mm, helix diameter 1 m, pitch 0.8 m per turn,

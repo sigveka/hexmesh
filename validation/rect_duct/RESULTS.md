@@ -20,6 +20,21 @@ is meshed exactly (area − 4ab ≤ 2.4e-16 relative), so the exact solution
 is also the meshed geometry's: there's no geometric deficit to separate,
 unlike the pipe.
 
+<!-- graphs:start -->
+## Graphs
+
+_Drawn from `results.json` by `python3 -m validation.tools.plots`; don't edit between the markers._
+
+<img src="figure.png" width="100%" alt="The H section's f·Re and centreline errors for each aspect ratio.">
+
+The H section's f·Re and centreline errors for each aspect ratio.
+
+<img src="img/layouts.png" width="100%" alt="f·Re for the four layouts: H and the Cartesian control coincide; O-H doesn't converge regularly.">
+
+f·Re for the four layouts: H and the Cartesian control coincide; O-H doesn't converge regularly.
+
+<!-- graphs:end -->
+
 ## Gates (Cartesian control and H section)
 
 The control:

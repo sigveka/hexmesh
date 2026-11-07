@@ -16,6 +16,17 @@ functions.
     1.2417.
 - **Recheck:** `python3 -m validation.tools.recheck turbulent_pipe`.
 
+<!-- graphs:start -->
+## Graphs
+
+_Drawn from `results.json` by `python3 -m validation.tools.plots`; don't edit between the markers._
+
+<img src="figure.png" width="100%" alt="f and U_c/U_b at Re_τ 550 against cell size, from their extrapolated values and from McKeon et al.">
+
+f and U_c/U_b at Re_τ 550 against cell size, from their extrapolated values and from McKeon et al.
+
+<!-- graphs:end -->
+
 ## Gates
 
 | quantity | value | gate | verdict |

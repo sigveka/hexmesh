@@ -11,6 +11,21 @@ Reference: Purdue database, `Axi_stdy/Re500/vel.dat`: DNS peak centreline
 measure (axial velocity at r = 0.48 D turning positive, between the 1 D
 stations).
 
+<!-- graphs:start -->
+## Graphs
+
+_Drawn from `results.json` by `python3 -m validation.tools.plots`; don't edit between the markers._
+
+<img src="figure.png" width="100%" alt="Reattachment and centreline differences from the DNS against cell size.">
+
+Reattachment and centreline differences from the DNS against cell size.
+
+<img src="img/centreline.png" width="100%" alt="The centreline velocity of each level against the DNS stations, and the reattachment length per level.">
+
+The centreline velocity of each level against the DNS stations, and the reattachment length per level.
+
+<!-- graphs:end -->
+
 ## Levels
 
 `Assembly.refined(k)`, k = 2, 3, 4.  k = 1 (15 336 cells) has no steady

@@ -20,6 +20,11 @@ Stored results (task 0093): ``results.json`` next to every accepted
 written deterministically; the recheck reproduces every gate from it
 with no OpenFOAM; and a driver's level store reuses, reruns and cleans
 up as specified.
+
+Graphs (task 0099): every case's ``figure.png`` and the four extra graphs
+exist, are drawn from the current ``results.json`` (their
+``source-sha256`` chunk), small, deterministic and embedded in
+``RESULTS.md``.
 """
 
 import importlib.util
@@ -228,3 +233,58 @@ def test_write_is_deterministic_and_capped(tmp_path):
     assert path.read_bytes() == first                          # the old file stands
     with pytest.raises(ValueError, match="results of 'demo'"):
         stored.Store(path, "other")
+
+
+# --- graphs (task 0099) ---------------------------------------------------------
+
+EXTRA_GRAPHS = ("rect_duct/img/layouts.png", "stenosis/img/centreline.png",
+                "stenosis_pulsatile/img/periodic.png", "heated_rod/img/series.png")
+
+
+@pytest.fixture(scope="module")
+def plots():
+    pytest.importorskip("matplotlib")
+    pytest.importorskip("PIL")
+    return _load("plots", "validation/tools/plots.py")
+
+
+def _graphs():
+    return [ROOT / "validation" / c / "figure.png" for c in recheck.CASES] + \
+        [ROOT / "validation" / g for g in EXTRA_GRAPHS]
+
+
+def test_plots_cover_every_case(plots):
+    assert set(plots.CASES) == set(recheck.CASES)
+
+
+@pytest.mark.parametrize("png", _graphs(), ids=lambda p: str(p.relative_to(ROOT / "validation")))
+def test_every_graph_is_current_small_and_embedded(plots, png):
+    assert png.exists(), f"{png.relative_to(ROOT)} missing: python3 -m validation.tools.plots"
+    assert plots.stale(png) is None, plots.stale(png)
+    assert png.stat().st_size < 250_000
+    chunks = plots.text_chunks(png)
+    assert set(chunks) == {plots.SHA_KEY, plots.SOURCES_KEY}     # no software or time
+    case = png.relative_to(ROOT / "validation").parts[0]
+    results = (ROOT / "validation" / case / "RESULTS.md").read_text(encoding="utf-8")
+    block = results[results.index(plots.GRAPHS_START):results.index(plots.GRAPHS_END)]
+    assert png.relative_to(ROOT / "validation" / case).as_posix() in block
+
+
+def test_a_changed_results_json_makes_its_graph_stale(plots, tmp_path, monkeypatch):
+    case = tmp_path / "validation" / "poiseuille"
+    (case).mkdir(parents=True)
+    raw = (ROOT / "validation/poiseuille/results.json").read_bytes()
+    (case / "results.json").write_bytes(raw)
+    png = case / "figure.png"
+    png.write_bytes((ROOT / "validation/poiseuille/figure.png").read_bytes())
+    monkeypatch.setattr(plots, "ROOT", tmp_path)
+    assert plots.stale(png) is None
+    (case / "results.json").write_bytes(raw.replace(b'"coarse"', b'"coarse2"', 1))
+    why = plots.stale(png)
+    assert why and "python3 -m validation.tools.plots poiseuille" in why
+
+
+def test_graphs_are_deterministic(plots, tmp_path):
+    data = json.loads((ROOT / "validation/poiseuille/results.json").read_text(encoding="utf-8"))
+    first = plots.poiseuille(data, tmp_path / "a")[0].read_bytes()
+    assert plots.poiseuille(data, tmp_path / "b")[0].read_bytes() == first

@@ -122,7 +122,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0075](0075-validation-helical-pipe.md) | Validation: laminar flow in a helical pipe (spline pipe) | V3 | blocked (held by the user: run nang 24 over nights, Q5; not started) | 0012, 0015 |
 | [0077](0077-validation-fenicsx-second-order.md) | Verification: FEniCSx toolchain, and second-order export checked end to end | V1 | ready (step 1 any time; 2–4 after 0076) | 0034, 0012, 0015 |
 | [0079](0079-validation-taylor-bubble.md) | Validation: a Taylor bubble rising in stagnant liquid (VOF) | V3 | ready (v2406 runner) | 0012, 0015 |
-| [0099](0099-validation-graphs.md) | Validation results as graphs: convergence, layouts, the stenosis against DNS | docs | ready (after 0098) | 0012, 0015, 0036 |
+| [0099](0099-validation-graphs.md) | Validation results as graphs: convergence, layouts, the stenosis against DNS | docs | done | 0012, 0015, 0036 |
 
 
 ### Order

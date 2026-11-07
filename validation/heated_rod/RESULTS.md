@@ -5,6 +5,21 @@ Exact centre excess ΔT₀ = 1 K.  Errors are relative to ΔT₀, signed where
 marked.  Judged per decision 0015 as amended 2026-10-27: on O-H sections
 the observed order is reported, not gated.
 
+<!-- graphs:start -->
+## Graphs
+
+_Drawn from `results.json` by `python3 -m validation.tools.plots`; don't edit between the markers._
+
+<img src="figure.png" width="100%" alt="The centre excess ΔT₀ of both series against cell size.">
+
+The centre excess ΔT₀ of both series against cell size.
+
+<img src="img/series.png" width="100%" alt="The uniform and graded series' L2 and maximum field errors.">
+
+The uniform and graded series' L2 and maximum field errors.
+
+<!-- graphs:end -->
+
 ## Levels
 
 | series | nang | nrad | cells | Mesh OK | max non-orth. (°) | max skewness | energy balance | ΔT₀ error | L2 error | max error (at r/R) |

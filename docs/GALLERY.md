@@ -869,6 +869,8 @@ Gates: checkMesh: Mesh OK per region, every level; energy balance: within 0.1 % 
 
 <p><img src="../validation/heated_pipe/img/k1.png" width="68%"> <img src="../validation/heated_pipe/img/k1_section.png" width="29%"></p>
 
+<img src="../validation/heated_pipe/figure.png" width="70%">
+
 Case: `validation/heated_pipe/`: [README.md](../validation/heated_pipe/README.md), [RESULTS.md](../validation/heated_pipe/RESULTS.md), [case.json](../validation/heated_pipe/case.json).
 
 #### Solid rod with uniform heat generation
@@ -880,6 +882,8 @@ Tags: `conduction`, `section:circle`, `straight`, `OpenFOAM v1912 (native)`.
 Gates: extrapolated centre excess $\Delta T_0$: within 0.1 % of exact.
 
 <p><img src="../validation/heated_rod/img/uniform-1.png" width="68%"> <img src="../validation/heated_rod/img/uniform-1_section.png" width="29%"></p>
+
+<img src="../validation/heated_rod/figure.png" width="70%">
 
 Case: `validation/heated_rod/`: [README.md](../validation/heated_rod/README.md), [RESULTS.md](../validation/heated_rod/RESULTS.md), [case.json](../validation/heated_rod/case.json).
 
@@ -893,6 +897,8 @@ Gates: checkMesh: Mesh OK, every region, every level; energy balance through eve
 
 <p><img src="../validation/layered_conduction/img/k1.png" width="68%"> <img src="../validation/layered_conduction/img/k1_section.png" width="29%"></p>
 
+<img src="../validation/layered_conduction/figure.png" width="70%">
+
 Case: `validation/layered_conduction/`: [README.md](../validation/layered_conduction/README.md), [RESULTS.md](../validation/layered_conduction/RESULTS.md), [case.json](../validation/layered_conduction/case.json).
 
 #### Manufactured solutions for conduction on every fitting
@@ -904,6 +910,8 @@ Tags: `conduction`, `section:circle`, `section:rect`, `layers`, `straight`, `ben
 Gates: volume-weighted L2 error of T, every case: falls with refinement (orders reported, not gated).
 
 <p><img src="../validation/mms/img/straight.png" width="68%"> <img src="../validation/mms/img/straight_section.png" width="29%"></p>
+
+<img src="../validation/mms/figure.png" width="70%">
 
 Case: `validation/mms/`: [README.md](../validation/mms/README.md), [RESULTS.md](../validation/mms/RESULTS.md), [case.json](../validation/mms/case.json).
 
@@ -917,6 +925,8 @@ Gates: extrapolated $\Delta p$ and $u_\mathrm{max}$: within 0.1 % of exact; fine
 
 <p><img src="../validation/poiseuille/img/coarse.png" width="68%"> <img src="../validation/poiseuille/img/coarse_section.png" width="29%"></p>
 
+<img src="../validation/poiseuille/figure.png" width="70%">
+
 Case: `validation/poiseuille/`: [README.md](../validation/poiseuille/README.md), [RESULTS.md](../validation/poiseuille/RESULTS.md), [case.json](../validation/poiseuille/case.json).
 
 #### Laminar flow in rectangular ducts (aspect ratios 1, 2, 4)
@@ -929,6 +939,8 @@ Gates: Cartesian control: extrapolated $f\,\mathrm{Re}$ and $u_c$, every aspect 
 
 <p><img src="../validation/rect_duct/img/h_ar1_k1.png" width="68%"> <img src="../validation/rect_duct/img/h_ar1_k1_section.png" width="29%"></p>
 
+<img src="../validation/rect_duct/figure.png" width="70%">
+
 Case: `validation/rect_duct/`: [README.md](../validation/rect_duct/README.md), [RESULTS.md](../validation/rect_duct/RESULTS.md), [case.json](../validation/rect_duct/case.json).
 
 #### Womersley flow (pulsatile laminar pipe flow)
@@ -940,6 +952,8 @@ Tags: `laminar`, `transient`, `flow`, `section:circle`, `straight`, `OpenFOAM v2
 Gates: max profile error, finest level, every phase: $\le 1$ % of $u_c$; extrapolated within 0.3 %; axial pressure gradient, finest level: amplitude within 1 %, phase within 2°; time-step study: time error below space error at the finest level (or the split reported); periodicity: phase values change < 0.1 % between periods; periods reported.
 
 <p><img src="../validation/womersley/img/k1.png" width="68%"> <img src="../validation/womersley/img/k1_section.png" width="29%"></p>
+
+<img src="../validation/womersley/figure.png" width="70%">
 
 Case: `validation/womersley/`: [README.md](../validation/womersley/README.md), [RESULTS.md](../validation/womersley/RESULTS.md), [case.json](../validation/womersley/case.json).
 
@@ -961,6 +975,8 @@ Gates: reattachment, by $u(0.48\,D) = 0$ and by wall shear stress: within 5 % of
 
 <p><img src="../validation/stenosis/img/k2.png" width="68%"> <img src="../validation/stenosis/img/k2_section.png" width="29%"></p>
 
+<img src="../validation/stenosis/figure.png" width="70%">
+
 Case: `validation/stenosis/`: [README.md](../validation/stenosis/README.md), [RESULTS.md](../validation/stenosis/RESULTS.md), [case.json](../validation/stenosis/case.json).
 
 #### Pulsatile flow through the cosine constriction (Varghese et al., Part 2)
@@ -975,6 +991,8 @@ Gates: throat centreline velocity at peak flow (p2, $x = 0$): within 5 % of the 
 
 <p><img src="../validation/stenosis_pulsatile/img/coarse.png" width="68%"> <img src="../validation/stenosis_pulsatile/img/coarse_section.png" width="29%"></p>
 
+<img src="../validation/stenosis_pulsatile/figure.png" width="70%">
+
 Case: `validation/stenosis_pulsatile/`: [README.md](../validation/stenosis_pulsatile/README.md), [RESULTS.md](../validation/stenosis_pulsatile/RESULTS.md), [case.json](../validation/stenosis_pulsatile/case.json).
 
 #### Fully developed turbulent pipe flow, k-ω SST
@@ -986,6 +1004,8 @@ Tags: `rans:kOmegaSST`, `flow`, `section:circle`, `straight`, `OpenFOAM v2406 (d
 Gates: friction factor $f$, wall-resolved, finest level (Re_b 19 000, 37 700, 10⁵): within 3 % of McKeon et al. eq. 3.5; friction factor $f$, Spalding wall functions (`nutUSpaldingWallFunction`), Re_b 19 000, 37 700, 10⁵: within 5 % of McKeon et al. eq. 3.5; mesh convergence of $f$ and $U_c/U_b$ (wall-resolved, Re_τ 550, k = 1, 2, 4): Richardson status converging; order, extrapolation and GCI reported; reported, not gated: $U_c/U_b$ against the DNS (3 % comparison, missed: k-ω SST's wake); u⁺(y⁺) against the DNS; the `nutkWallFunction` and `nutUWallFunction` variants: reported.
 
 <p><img src="../validation/turbulent_pipe/img/lowre_550.png" width="68%"> <img src="../validation/turbulent_pipe/img/lowre_550_section.png" width="29%"></p>
+
+<img src="../validation/turbulent_pipe/figure.png" width="70%">
 
 Case: `validation/turbulent_pipe/`: [README.md](../validation/turbulent_pipe/README.md), [RESULTS.md](../validation/turbulent_pipe/RESULTS.md), [case.json](../validation/turbulent_pipe/case.json).
 
@@ -1001,6 +1021,8 @@ Gates: the spline's distance from the exact helix (32 points per turn): within 0
 
 <p><img src="../validation/helical_pipe/img/n12.png" width="68%"> <img src="../validation/helical_pipe/img/n12_section.png" width="29%"></p>
 
+<img src="../validation/helical_pipe/figure.png" width="70%">
+
 Case: `validation/helical_pipe/`: [README.md](../validation/helical_pipe/README.md), [RESULTS.md](../validation/helical_pipe/RESULTS.md), [case.json](../validation/helical_pipe/case.json).
 
 #### Laminar flow in a 90° square-duct bend, Re 790
@@ -1012,6 +1034,8 @@ Tags: `laminar`, `flow`, `section:rect`, `straight`, `bend`, `OpenFOAM v2406 (do
 Gates: matched inlet (a plug 12.6 $D_h$ upstream, the length fitted to the X_H = −0.50 profile alone): peak $U/V_c$ on the symmetry plane at θ = 60° and 77.5°, k = 1, 2, 3: Richardson status converging; GCI reported; matched inlet, finest level: the peak's gapwise position on the symmetry plane at every station from X_H = −0.25 on (its outward shift through the bend): at the measured gapwise point; reported, not gated: X_H = −0.50 (the calibration station); $U/V_c$ RMS difference per station (5 % comparison, floor: the upstream mismatch); the rig inlet (plug at 7.5 $D_h$) as a sensitivity run: reported.
 
 <p><img src="../validation/square_bend/img/k1.png" width="68%"> <img src="../validation/square_bend/img/k1_section.png" width="29%"></p>
+
+<img src="../validation/square_bend/figure.png" width="70%">
 
 Case: `validation/square_bend/`: [README.md](../validation/square_bend/README.md), [RESULTS.md](../validation/square_bend/RESULTS.md), [case.json](../validation/square_bend/case.json).
 

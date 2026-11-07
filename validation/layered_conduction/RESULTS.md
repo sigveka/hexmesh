@@ -8,6 +8,17 @@ without `+local`, because of a bug in the check, since fixed.  Also
 gmsh 4.12.1, OpenFOAM v1912, 2026-10-28.  Errors are signed and relative
 to the total temperature rise T₀ − 300 K.
 
+<!-- graphs:start -->
+## Graphs
+
+_Drawn from `results.json` by `python3 -m validation.tools.plots`; don't edit between the markers._
+
+<img src="figure.png" width="100%" alt="Point temperatures and the L2 error per region, both at second order.">
+
+Point temperatures and the L2 error per region, both at second order.
+
+<!-- graphs:end -->
+
 ## Gates
 
 | gate | fixed | convection |

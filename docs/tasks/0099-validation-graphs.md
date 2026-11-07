@@ -1,6 +1,6 @@
 # 0099 — Validation results as graphs: convergence, layouts, and the stenosis against DNS
 
-- **Status:** ready (after 0098)
+- **Status:** done (2026-11-07)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md); [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) (what a series shows); [0036](../decisions/0036-cartesian-rectangular-section.md) (the H section's evidence)
 - **Depends on:** 0098, which edits `validation/tools/` and the
   `poiseuille` and `rect_duct` `results.json` files.  Start after its
@@ -113,3 +113,102 @@ and `img/*.png`; the cases' `RESULTS.md`; `tests/test_validation_meta.py`;
   deleted (CLAUDE.md, disk rule), so they need reruns.  Add them case by
   case when a case is rerun anyway, as a small PNG rendered with VTK.
 - Interactive plots.
+
+## Agent notes
+
+- **The x-axis is h/h₁ = 1/k, not N^(−1/3).**  `layered_conduction`
+  doesn't refine axially: its cells grow 4×, not 8×, per halving of h.
+  So N^(−1/3) gave it an apparent order of 3.02 where the recheck says
+  2.01.  `plots._h` takes h from each level's `k` or `factor`, or from
+  its `nang` (helical_pipe).  The Richardson ratios come from the same
+  h, so every legend order equals the recheck's (checked case by case).
+- **Cases with no exact solution** plot a distance:
+  - `square_bend`: from the stored extrapolated value (its gate is the
+    Richardson status);
+  - `turbulent_pipe`: f and U_c/U_b from their extrapolated values,
+    and f from McKeon;
+  - `stenosis`, `stenosis_pulsatile`, `helical_pipe`: from the
+    DNS or the correlation, without reference slopes, since the error
+    has a floor there, not an order.
+  The legend's Richardson status is then of the values themselves, as
+  in the recheck.
+- **Gate bands:** where a gate is on the extrapolated value, not on a
+  level, the band says so ("gate tolerance, on the extrapolated
+  value").  Levels above it don't fail.
+- **`periodic.png` lives in `stenosis_pulsatile/img/`** and is embedded
+  in both RESULTS.md files.  It draws on two results files, so each PNG
+  records a `sources` chunk (the case names) next to `source-sha256`,
+  the hash over those files in order.  The staleness test reads both.
+- **`heated_rod`:** `figure.png` already holds the gated ΔT₀ for both
+  series on one plot.  So `img/series.png` holds the field's L2 and
+  maximum errors per series (reported, not gated), rather than a
+  duplicate.
+- **`layered_conduction`:** only the fixed-wall variant is drawn; the
+  convection variant's numbers lie on the same lines (caption).
+  `mms`: 16 fittings, more than the six colours, so four panels of four
+  (straight runs, size and shape changes, tees and taps, wyes).  The
+  duct taps' k = 4 levels didn't converge and are left out, as in the
+  recheck.
+- **Not drawn:** the time-step levels (`womersley` k2-dt2,
+  `stenosis_pulsatile` k2-co0.25) and `square_bend`'s rig inlet.  The
+  gapwise peak positions aren't drawn either; they are a categorical
+  match, already in the table.  `helical_pipe` is in progress: its
+  figure has nang 8, 12 and 16 and goes stale when nang 24 lands.
+- **PNGs are 256-colour** (Pillow median cut, no dither): 35–83 kB
+  against 100–260 kB as RGB, where `mms` exceeded 250 kB.  matplotlib
+  draws, and Pillow writes, so the only chunks are IHDR, pHYs, tEXt
+  (`sources`, `source-sha256`), IDAT and IEND.
+- **Palette:** Okabe–Ito without yellow, which is too faint on white;
+  black is the reference.  H is always blue and the Cartesian control
+  orange (open markers, since it coincides with H); O-H is vermilion,
+  graded and graded H sky blue.  The palette validator passes CVD
+  separation (worst adjacent ΔE 9.6).  Contrast against white is below
+  3:1 for orange, purple and sky blue, so every series also has its own
+  marker and a legend entry.
+- **`validation/README.md` didn't exist**; it is new, with the recheck
+  and plots commands.
+
+## Outcome
+
+**Done.**
+
+**Graphs (16):**
+
+| File | Size |
+|---|---|
+| `figure.png` for all 12 cases (10 accepted, plus `mms` and `helical_pipe` in progress) | 35–83 kB |
+| `rect_duct/img/layouts.png` | 55 kB |
+| `stenosis/img/centreline.png` | 49 kB |
+| `stenosis_pulsatile/img/periodic.png` (also in `womersley`'s RESULTS.md) | 51 kB |
+| `heated_rod/img/series.png` | 49 kB |
+
+**Files:**
+- `validation/tools/plots.py` (new);
+- the PNGs above;
+- the 12 `RESULTS.md` files: a "Graphs" section before the first `##`
+  heading, between markers;
+- `validation/README.md` (new);
+- `docs/GALLERY.md` (`--markdown-only`: the 12 `figure.png` lines);
+- `tests/test_validation_meta.py`: +19 tests (16 graphs current, small
+  and embedded; coverage; a planted change makes a graph stale with the
+  command; determinism).
+
+**Acceptance:**
+- Two runs of `python3 -m validation.tools.plots` give byte-identical
+  PNGs (sha256 of all 16).
+- The staleness test passes, and fails on a planted change to
+  `poiseuille/results.json`.
+- No `results.json` or `case.json` changes, and the recheck is
+  unchanged.
+
+**Suite:** 3582 passed, 15 skipped, no failures.
+
+**What the data couldn't show:** nothing asked for was missing.  The
+graphs that wanted the time-step levels, the rig inlet or the gapwise
+positions weren't asked for and weren't drawn.
+
+**Surprises:** N^(−1/3) misstates h for cases that don't refine axially
+(see the notes); hence the relative h.
+
+**Follow-ups (proposed):** regenerate `helical_pipe`'s figure after the
+nang 24 run, which the staleness test enforces.

@@ -10,6 +10,17 @@ convergence, and the peak's position through the bend.
   Table I (`data/`).
 - **Recheck:** `python3 -m validation.tools.recheck square_bend`.
 
+<!-- graphs:start -->
+## Graphs
+
+_Drawn from `results.json` by `python3 -m validation.tools.plots`; don't edit between the markers._
+
+<img src="figure.png" width="100%" alt="The peak velocity at θ = 60° and 77.5° against cell size, from its extrapolated value.">
+
+The peak velocity at θ = 60° and 77.5° against cell size, from its extrapolated value.
+
+<!-- graphs:end -->
+
 ## Inlets
 
 - **Matched (gated):** a plug 12.6 D_h before the bend.  The length is

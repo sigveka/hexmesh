@@ -8,6 +8,21 @@ v2406 (`opencfd/openfoam-default:2406` in Docker), k2 and k4 on 4 MPI
 processes (`decomposePar` method simple).  Reference: the exact solution
 (README.md).
 
+<!-- graphs:start -->
+## Graphs
+
+_Drawn from `results.json` by `python3 -m validation.tools.plots`; don't edit between the markers._
+
+<img src="figure.png" width="100%" alt="Amplitude, centreline and profile errors against cell size.">
+
+Amplitude, centreline and profile errors against cell size.
+
+<img src="../stenosis_pulsatile/img/periodic.png" width="100%" alt="The pressure-gradient amplitude and phase per level against the exact solution, beside the pulsatile stenosis's throat peak (drawn with stenosis_pulsatile).">
+
+The pressure-gradient amplitude and phase per level against the exact solution, beside the pulsatile stenosis's throat peak (drawn with stenosis_pulsatile).
+
+<!-- graphs:end -->
+
 ## Levels
 
 `nang`/`nrad`/axial layers ×k; Δt ∝ 1/k (Co ≈ 0.47 on every level).

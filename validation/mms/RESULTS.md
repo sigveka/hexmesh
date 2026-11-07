@@ -7,6 +7,17 @@ k = 4 ran on 4 MPI processes.  Error = T − T_m at the cell centres; the
 field's amplitude is 1.  The numbers below are recomputed from
 `results.json` by `python3 -m validation.tools.recheck mms`.
 
+<!-- graphs:start -->
+## Graphs
+
+_Drawn from `results.json` by `python3 -m validation.tools.plots`; don't edit between the markers._
+
+<img src="figure.png" width="100%" alt="The L2 error of the manufactured solution on every fitting against cell size.">
+
+The L2 error of the manufactured solution on every fitting against cell size.
+
+<!-- graphs:end -->
+
 ## Gate: the error falls with refinement
 
 It falls in every case, over its converged levels.  For the duct taps,

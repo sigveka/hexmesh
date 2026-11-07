@@ -4,6 +4,17 @@
 was blocked by sagging walls in `Straight` (history below); task 0025
 fixed them.
 
+<!-- graphs:start -->
+## Graphs
+
+_Drawn from `results.json` by `python3 -m validation.tools.plots`; don't edit between the markers._
+
+<img src="figure.png" width="100%" alt="Δp and u_max errors fall with refinement; u_max at second order, Δp below it.">
+
+Δp and u_max errors fall with refinement; u_max at second order, Δp below it.
+
+<!-- graphs:end -->
+
 ## With exact walls (after task 0025)
 
 Run 2026-10-26: hexmesh 4ba565b, gmsh 4.12.1, OpenFOAM v1912.
