@@ -6,8 +6,9 @@
   resolution is where I want to start", for agents that serve users of
   the framework, not its development)
 - **Tasks:** 0094 (foundation A; done), 0095 (B), 0097 (C), 0098 (D),
-  0096 (PCF line numbers; done).  The plugin (E) after decision 0032's
-  stage 2 (the network document).
+  0096 (PCF line numbers; done), 0102 (D2, the manifest; amendment
+  2026-11-07).  The plugin (E) after decision 0032's stage 2 (the
+  network document) and 0102.
 - **Builds on:** decision 0019 (agent SDK, proposed): this decision is
   its first stage.  Decision 0032 (network interchange): the network
   model is what an agent writes.
@@ -212,3 +213,35 @@ over the same tool layer.
     classes (laminar and conduction cases exist; turbulent ones, 0049,
     don't yet);
   - that a Claude Code plugin reaches the first users.
+
+## Amendment: the manifest, foundation D2 (2026-11-07; the user: "yes")
+
+**Why.**  `essens describe` gives an agent one machine-readable
+account of a tool: its commands, pipeline, contracts and limits.
+hexmesh has the parts (`hexmesh schema`, `CODES`, `LIMITS`,
+`FITTING_TYPES`, the calibration file), but no single entry point.
+An agent can't learn the workflow, what each fitting supports, or
+which features are validated, without reading the docs or meeting the
+errors.
+
+**Decision.**  A `hexmesh manifest` command and `hexmesh.agent.manifest()`,
+built entirely from the registries, so it can't drift:
+- the version, and the schema and data-contract versions;
+- the commands: inputs, outputs, the JSON envelope, exit codes;
+- the workflow: description → `validate` → `estimate` → `advise` →
+  `apply` → `build`, and where `describe` and `preview` fit;
+- **support:** per fitting, which sections, layouts and layer stacks it
+  accepts, found by probing the library's own checks on a fixed set of
+  specs (no hand-kept table);
+- the limits (with units and kinds) and the error codes (with hints);
+- the advisor's accuracy classes, their basis and its scope caveat;
+- **validation:** per feature, the cases, their status and gates;
+- the conventions: lengths as given, the 8× rule, topology and density.
+
+The name is `manifest`, because `describe` already describes a network.
+The plugin (E) and a later MCP server read it.
+
+**Consequences.**  No DESIGN change (`agent` is already in §3.1).  The
+validation summary must ship as package data, since `validation/`
+isn't installed.  Future expansions: none affected; the manifest only
+reports what the registries hold.

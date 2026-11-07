@@ -101,6 +101,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0098](0098-advise-and-cli.md) | `advise` (the resolution advisor) and the `hexmesh` CLI | done | 0040 |
 | [0100](0100-trace-tied-rectangle-counts.md) | Trace why rectangle side counts are tied next to circles and shells | done | 0041 |
 | [0101](0101-untie-rectangular-shell-counts.md) | Unequal side counts through a stack of rectangular outlines | done | 0041, 0026 |
+| [0102](0102-agent-manifest.md) | `hexmesh manifest`: one machine-readable account of the suite | ready | 0040 |
 
 ### Validation
 
@@ -141,7 +142,8 @@ or a long run.
 2. **Alongside, no blockers:**
    - user agents (decision 0040): **0095 → 0097 → 0098** (schema,
      describe and preview, advise and the CLI).  Then **0066** and the
-     network document (decision 0032 stage 2, accepted), then the plugin.
+     network document (decision 0032 stage 2, accepted) and **0102**
+     (the manifest), then the plugin.
      0094 and 0096 done;
    - validation graphs: **0099** after 0098 (it edits the same
      `results.json` files);
