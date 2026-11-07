@@ -76,6 +76,54 @@ Doubling every density parameter doubles the nodes in each direction:
 
 ---
 
+## With an agent
+
+hexmesh can be driven by an AI agent as well as by hand. Every command
+returns JSON in one envelope (`{command, ok, result, version}`), and
+every error carries a stable code. `hexmesh manifest` describes the whole
+tool in one document: the commands and how they chain, what each fitting
+supports, the limits, the error codes, and what has been validated. An
+agent reads it first.
+
+A session that builds the network at the top of this page, and then
+refines it:
+
+> **You:** Read `hexmesh manifest`. Build me a water header: 200 mm bore,
+> 6 mm steel, 25 mm insulation. A 0.4 m straight, a tee to a 120 mm
+> branch that drops its insulation right after the tee, 0.4 m more, then
+> a 60° wye into two 0.3 m legs.
+>
+> **Agent:** Writes `header.json` (to `hexmesh schema`), and runs
+> `hexmesh validate` (no errors, no warnings) and `hexmesh estimate`:
+> 18 012 cells, exact. `hexmesh preview` draws it.
+>
+> **You:** Refine it for water at 1 cm/s, fine accuracy, but stay under
+> 200 000 cells.
+>
+> **Agent:** `hexmesh advise` says fine accuracy needs 641 680 cells. To
+> fit the budget it first stretched the straights' cells (axial aspect 6
+> → 12, 536 432 cells), then fell back to medium: `nang` 12, `nrad` 6,
+> 72 048 cells. It also notes that it was calibrated on developed flow in
+> straight runs, so the junctions may be less accurate. `hexmesh apply`
+> writes the counts in, `validate` passes again, and `hexmesh build`
+> writes the mesh.
+
+Every number above is what the commands return for that network. Under
+the conversation, the agent runs:
+
+```bash
+hexmesh manifest                                 # the whole tool, as JSON: read first
+hexmesh validate header.json                     # errors and warnings, each with a code
+hexmesh estimate header.json                     # the exact cell count, before meshing
+hexmesh advise header.json --inputs inputs.json  # counts for an accuracy class or a budget
+hexmesh apply header.json --table table.json     # write the counts in
+hexmesh build header.json --out header.msh       # the only step that runs gmsh
+```
+
+`python3 -m hexmesh.agent.cli <command>` works too, without installing.
+
+---
+
 ## Fittings
 
 <table>
