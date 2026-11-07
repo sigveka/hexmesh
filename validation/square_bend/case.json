@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "title": "Laminar flow in a 90° square-duct bend, Re 790",
+  "headline": "peak velocity at the measured position at six stations; peak U/V_c converging (GCI ≤ 0.05 %)",
   "category": "V3",
   "references": [
     {

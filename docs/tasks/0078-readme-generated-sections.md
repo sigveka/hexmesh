@@ -1,6 +1,6 @@
 # 0078 — README: generated numbers, validation table, hero image and checks
 
-- **Status:** ready
+- **Status:** done (2026-11-07)
 - **Decision:** none (documentation).  The layout was agreed with the
   user on 2026-10-31; the README and `docs/WHY.md` were drafted by the
   design session.
@@ -70,7 +70,71 @@ If the version changes, bump `CITATION.cff`'s `version` with
 
 ## Agent notes
 
-_None yet._
+- **The blocks** are written by `write_readme()` in `build.py`, after
+  GALLERY.md on every run.
+  - It replaces only the content between each pair of markers, and fails
+    if a pair is missing or duplicated.
+  - It writes only when the text changes, so a second `--markdown-only`
+    prints "README.md unchanged".
+  - A check that strips both blocks found the rest of the README
+    byte-identical.
+- **Metrics:** the hand-written format is kept.
+  - The fitting comes from `min_sj_fitting` ("#1 Tee" → "the tee").
+  - "one core" means `jobs == 1`, as before.
+  - The date is now `metrics.json`'s, 2026-11-05.  The hand line said
+    2026-10-30.
+  - The cell count uses `fmt_int`, the gallery's narrow no-break space
+    (U+202F), where the README had a plain space.  It renders the same.
+- **Validation table:** one row per `case.json`, in category order, then
+  by task.
+  - *Case* is its `title`; *Result* is its `headline`.
+  - *Reference* is "kind (Vn), citation".  The kind is the primary
+    source's leading word when it is one ("exact", "manufactured", "DNS"),
+    otherwise the category's ("simulation", "experiment").  The citation
+    comes from `docs/references.bib` by the reference's `key`, or by the
+    source's first word when that is a key.
+  - *Status* is an icon and the status.
+  - The planned tasks (`planned_cases`, as in GALLERY.md) are collapsed
+    into one row.
+- **The headlines** were checked against each RESULTS.md, the authority.
+  `recheck` re-derives the extrapolated values from `results.json`, and
+  for the cases it marks "(rounded)" those differ in the last digits.
+  The heated pipe's shell ΔTs, for example, are +0.0014 % / −0.0022 %
+  there, against −0.0001 % / −0.0008 % in RESULTS.md.
+  - Corrected from the hand-written lines:
+    - stenosis: "11.12 D vs 11.03 D (+0.9 %)" was k2's τ_w = 0 value.
+      The accepted gate is 10.970 D by u(0.48 D) = 0, −0.50 % (k4);
+    - heated rod: "within 0.1 %" was the gate.  It is −0.007 % and
+      −0.010 %, now "within 0.01 %";
+    - Womersley: "≤ 1 %" was the gate.  It is 0.31 % at worst;
+    - pulsatile stenosis: "separation and recirculation as in the DNS at
+      all six phases" became "the five flow features of its §3.1 as in
+      the DNS", which is Gate 2's wording.
+  - Kept: Poiseuille, layered conduction and heated pipe (+0.080 %;
+    −0.0001 %, −0.0008 %).
+  - New: rect_duct, square_bend, turbulent_pipe, mms and helical_pipe.
+    `helical_pipe` says "the nang 24 level is running"; update it when
+    0075 ends.
+- **Hero:** `hero_worker` meshes `insulated_network` and drops every hex
+  whose centroid has y < 0 and z > 0.
+  - Whole cells, not a VTK clip: in the straights the cut planes are
+    mesh planes, and in the junctions real cell faces show.
+  - Faces are coloured by material with the gallery's `PALETTE`, as in
+    the section images.
+  - About 12 s.  A full gallery run renders it; `--hero` renders only it.
+- **The README code block test** runs the block with `exec` in a
+  `tmp_path`.  The fast test drops the `asm.write…` line.  The slow one
+  (`-m slow`) runs the block as written and checks the `.msh`.  Both
+  compare it with `insulated_tee.build()`: cell count and fitting types,
+  and the count against the metrics table.  The `slow` marker's
+  description in `pyproject.toml` now covers both slow tests.
+- **Link test:** headings are slugged as GitHub does: lowercase,
+  punctuation dropped, spaces to hyphens, `-1` for repeats.
+  `<a id=…>` counts too.  Code spans and fences are skipped.  42 links
+  are checked (README 23, WHY 7, GUIDE 12); a planted test checks that a
+  missing file, image and anchor are each caught.
+- **Not touched:** the README's "With an agent" section, which is empty
+  in HEAD (heading only).  It is the design session's.
 
 ## Questions for design
 
@@ -78,4 +142,32 @@ _None._
 
 ## Outcome
 
-_Not done._
+- **Files:**
+  - `docs/gallery/build.py`: the README blocks, the hero, `--hero`;
+  - `README.md`: the two blocks regenerated, and the hero as the first
+    image;
+  - `docs/gallery/img/hero.png` (new, 263 KiB);
+  - `validation/case.schema.json` (`headline`) and the 12 `case.json`
+    files;
+  - `tests/test_readme.py` (new);
+  - `hexmesh/__init__.py` (points to `docs/GUIDE.md`);
+  - `pyproject.toml` (the `slow` marker's description);
+  - `CHANGELOG.md`.
+- **Accept:**
+  - `build.py --markdown-only` rewrites the two blocks and nothing else;
+    a second run prints "README.md unchanged";
+  - the hero shows the core, steel and insulation through the tee and
+    the right-hand wye leg;
+  - `tests/test_readme.py`: 6 passed, plus the slow block test, which
+    passed when run with `-m slow` (the whole file in 11 s);
+  - full suite (3 workers, beside the 0075 run): 3684 passed, 15
+    skipped, 0 failed.  That is 6 more than 0107.
+- **Surprises:**
+  - the validation table had five cases wrong or missing, and three
+    result lines quoted gates or stale values (see *Agent notes*);
+  - `recheck`'s values for "(rounded)" cases differ in the last digits
+    from RESULTS.md.
+- **Proposed follow-ups:**
+  - when 0075 finishes, update `helical_pipe`'s `headline` and status,
+    then run `build.py --markdown-only`;
+  - the README's "With an agent" section is empty (design's).

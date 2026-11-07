@@ -61,5 +61,5 @@ testpaths = ["tests"]
 addopts = "-n auto -m 'not openfoam and not slow'"
 markers = [
     "openfoam: needs an OpenFOAM installation (gmshToFoam, splitMeshRegions, ...); opt-in with -m openfoam",
-    "slow: builds the package and installs it into a venv (tests/test_install.py); opt-in with -m slow",
+    "slow: long runs: the package built and installed into a venv (tests/test_install.py), the README's example meshed (tests/test_readme.py); opt-in with -m slow",
 ]

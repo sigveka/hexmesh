@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "title": "Solid rod with uniform heat generation",
+  "headline": "centre ΔT extrapolated within 0.01 % (uniform and graded cells)",
   "category": "V1",
   "references": [
     {

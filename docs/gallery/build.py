@@ -17,7 +17,8 @@ Example gallery: meshes every example, renders it, measures it, and writes
     python3 docs/gallery/build.py                   # every example, one at a time
     python3 docs/gallery/build.py --jobs 4          # four examples at once
     python3 docs/gallery/build.py --only tee wye    # re-run some, keep the rest
-    python3 docs/gallery/build.py --markdown-only   # rewrite GALLERY.md only
+    python3 docs/gallery/build.py --markdown-only   # rewrite GALLERY.md and the README's blocks
+    python3 docs/gallery/build.py --hero            # render img/hero.png only
     python3 docs/gallery/build.py --validation      # validation meshes, all cases
     python3 docs/gallery/build.py --validation poiseuille
 
@@ -44,6 +45,14 @@ are active, are contended.
 
 Writes ``docs/gallery/img/<name>.png`` (overview), ``<name>_section.png``
 (inlet cross-section), ``docs/gallery/metrics.json`` and ``docs/GALLERY.md``.
+A full run also renders ``img/hero.png``, the README's cut-away of
+``insulated_network``.
+
+**README.md** (task 0078): every run, ``--markdown-only`` included,
+rewrites two marked blocks, ``readme:metrics`` (``insulated_tee``'s
+numbers from ``metrics.json``) and ``readme:validation`` (one row per
+``case.json``, its ``headline`` as the result, and the planned tasks in
+one row), and nothing else.  ``readme:features`` is hand-written.
 """
 
 from __future__ import annotations
@@ -267,6 +276,114 @@ def worker(qualname: str, out: Path) -> None:
     m.update(predicted=result.predicted, meshed=result.meshed,
              build_s=round(build, 2))
     out.write_text(json.dumps(m, indent=1), encoding="utf-8")
+
+
+HERO = "sections.insulated_network"
+
+
+def hero_worker(out: Path) -> None:
+    """``img/hero.png``: :data:`HERO` with the quarter towards the viewer
+    (y < 0, z > 0) cut away, whole cells, so the O-H core, the steel and
+    the insulation show through the header, the tee and the wye; faces
+    coloured by material as in the section images (task 0078)."""
+    import gmsh
+    import numpy as np
+    import vtk
+    from hexmesh import Session
+
+    module = importlib.import_module(f"hexmesh.examples.{HERO}")
+    with Session("hero"):
+        asm = module.build()
+        asm.mesh()
+        materials = list(asm.volumes)
+        roles = asm.group_roles()
+        tags, xyz, _ = gmsh.model.mesh.getNodes()
+        xyz = xyz.reshape(-1, 3)
+        index = {int(t): i for i, t in enumerate(tags)}
+        cells: dict[str, np.ndarray] = {}
+        for dim, tag in gmsh.model.getPhysicalGroups(3):
+            name = gmsh.model.getPhysicalName(dim, tag)
+            if roles.get(name) != "volume" or name not in materials:
+                continue
+            hexes = []
+            for v in gmsh.model.getEntitiesForPhysicalGroup(dim, tag):
+                types, _, nodes = gmsh.model.mesh.getElements(3, v)
+                for typ, conn in zip(types, nodes):
+                    if typ == 5:                              # 8-node hexahedron
+                        hexes.append(np.asarray(conn, dtype=np.int64).reshape(-1, 8))
+            cells[name] = np.vectorize(index.get)(np.vstack(hexes))
+
+    def rgb(h):
+        return tuple(int(h[i:i + 2], 16) / 255 for i in (1, 3, 5))
+
+    points = vtk.vtkPoints()
+    for q in xyz:
+        points.InsertNextPoint(*q)
+    ren = vtk.vtkRenderer()
+    ren.SetBackground(1, 1, 1)
+    kept = []
+    for name, conn in cells.items():
+        c = xyz[conn].mean(axis=1)
+        conn = conn[~((c[:, 1] < 0) & (c[:, 2] > 0))]      # the quarter cut away
+        kept.append(conn)
+        grid = vtk.vtkUnstructuredGrid()
+        grid.SetPoints(points)
+        for h in conn:                    # gmsh's hex node order is VTK's
+            grid.InsertNextCell(vtk.VTK_HEXAHEDRON, 8, [int(i) for i in h])
+        surface = vtk.vtkDataSetSurfaceFilter()
+        surface.SetInputData(grid)
+        mapper = vtk.vtkDataSetMapper()
+        mapper.SetInputConnection(surface.GetOutputPort())
+        actor = vtk.vtkActor()
+        actor.SetMapper(mapper)
+        prop = actor.GetProperty()
+        prop.SetColor(*rgb(PALETTE[materials.index(name) % len(PALETTE)]))
+        prop.EdgeVisibilityOn()
+        prop.SetEdgeColor(*rgb(EDGE))
+        prop.SetLineWidth(0.5)
+        ren.AddActor(actor)
+
+    pts = xyz[np.unique(np.vstack(kept))]
+    centre = pts.mean(axis=0)
+    cam = ren.GetActiveCamera()
+    d = np.array([-0.35, -1.0, 0.75])
+    cam.SetPosition(*(centre + d / np.linalg.norm(d)))
+    cam.SetFocalPoint(*centre)
+    cam.SetViewUp(0, 0, 1)
+    ren.ResetCamera()
+    cam.Zoom(1.2)
+    size = (1000, 560)
+    win = vtk.vtkRenderWindow()
+    win.SetOffScreenRendering(1)
+    win.SetMultiSamples(8)
+    win.AddRenderer(ren)
+    win.SetSize(2 * size[0], 2 * size[1])
+    win.Render()
+    grab = vtk.vtkWindowToImageFilter()
+    grab.SetInput(win)
+    grab.Update()
+    writer = vtk.vtkPNGWriter()
+    writer.SetFileName(str(out))
+    writer.SetInputConnection(grab.GetOutputPort())
+    writer.Write()
+    from PIL import Image, ImageChops
+    im = Image.open(out).convert("RGB")
+    box = ImageChops.difference(im, Image.new("RGB", im.size, "white")).getbbox()
+    pad = int(0.03 * max(box[2] - box[0], box[3] - box[1]))
+    im = im.crop((max(box[0] - pad, 0), max(box[1] - pad, 0),
+                  min(box[2] + pad, im.width), min(box[3] + pad, im.height)))
+    im.resize((size[0], round(im.height * size[0] / im.width)), Image.LANCZOS).save(out)
+
+
+def run_hero() -> None:
+    """Render ``img/hero.png`` in its own process (one GMSH session)."""
+    IMG.mkdir(parents=True, exist_ok=True)
+    env = dict(os.environ, PYTHONPATH=str(ROOT))
+    p = subprocess.run([sys.executable, __file__, "--hworker", str(IMG / "hero.png")],
+                       env=env, capture_output=True, text=True)
+    if p.returncode:
+        raise SystemExit(f"hero: FAILED\n{p.stderr[-2000:]}")
+    print(f"wrote {(IMG / 'hero.png').relative_to(ROOT)}", flush=True)
 
 
 def load_case(case: str):
@@ -633,6 +750,107 @@ def validation_md() -> str:
     return "\n".join(out)
 
 
+# --------------------------------------------------------------------------
+# README.md: the generated blocks (task 0078)
+# --------------------------------------------------------------------------
+
+README = ROOT / "README.md"
+BIB = ROOT / "docs" / "references.bib"
+#: the example whose numbers the README quotes, beside its code block
+README_EXAMPLE = "sections.insulated_tee"
+#: a reference's kind when its source doesn't start with one
+KIND_V = {"V1": "exact", "V2": "simulation", "V3": "experiment", "V4": "correlation"}
+STATUS_ICON = {"accepted": "✅", "in progress": "🔄", "planned": "📋", "rejected": "❌"}
+
+
+def readme_block(text: str, name: str, body: str) -> str:
+    """*text* with the ``readme:<name>`` block's content replaced by *body*."""
+    start, end = f"<!-- readme:{name}:start -->", f"<!-- readme:{name}:end -->"
+    if text.count(start) != 1 or text.count(end) != 1:
+        raise SystemExit(f"README.md: needs exactly one {start} … {end}")
+    a, b = text.index(start) + len(start), text.index(end)
+    return text[:a] + "\n" + body.strip("\n") + "\n" + text[b:]
+
+
+def cite(key: str) -> str | None:
+    """"Varghese et al. 2007" for a docs/references.bib key, or None."""
+    m = re.search(r"@\w+\{" + re.escape(key) + r",(.*?)\n\}", BIB.read_text(encoding="utf-8"),
+                  re.S)
+    if not m:
+        return None
+    author = re.search(r"^\s*author\s*=\s*\{(.+)\},?\s*$", m.group(1), re.M)
+    year = re.search(r"^\s*year\s*=\s*\{?(\d{4})", m.group(1), re.M)
+    if not author or not year:
+        return None
+    last = [a.split(",")[0].strip().strip("{}") for a in author.group(1).split(" and ")]
+    who = last[0] if len(last) == 1 else (f"{last[0]} and {last[1]}" if len(last) == 2
+                                         else f"{last[0]} et al.")
+    return f"{who} {year.group(1)}"
+
+
+def reference_md(meta: dict) -> str:
+    """"DNS (V2), Varghese et al. 2007": the primary reference's kind (its
+    source's first word or two, else the category's), category, citation."""
+    ref = next(r for r in meta["references"] if r["role"] == "primary")
+    head = re.split(r"[:,(]", ref["source"], maxsplit=1)[0].strip()
+    kind = head if 0 < len(head.split()) <= 2 and "_" not in head \
+        and (head.islower() or head.isupper()) else KIND_V[meta["category"]]
+    key = ref.get("key") or ref["source"].split()[0]
+    who = cite(key)
+    return f"{kind} ({meta['category']})" + (f", {who}" if who else "")
+
+
+def readme_metrics_md(metrics: dict, meta: dict) -> str:
+    m = metrics[README_EXAMPLE]
+    where = re.sub(r"^#\d+ ", "", m["min_sj_fitting"]).lower()
+    cells = f"{fmt_int(m['predicted'])} = {fmt_int(m['meshed'])}"
+    cores = "one core" if meta["jobs"] == 1 else f"{meta['jobs']} examples at once"
+    return "\n".join([
+        f"What it gives (the gallery's `hexmesh.examples.{README_EXAMPLE}`):", "",
+        "| cells (predicted = meshed) | regions | min scaled Jacobian (where) | min SICN | build |",
+        "|---|---|---|---|---|",
+        f"| {cells} | {' · '.join(m['materials'])} | {m['min_sj']:.2f} (the {where}) "
+        f"| {m['min_sicn']:.2f} | {m['build_s']:.1f} s |", "",
+        f"<sub>gmsh {meta['gmsh']}, {cores}, {meta['date']}.  Every example's numbers: "
+        f"[GALLERY.md](docs/GALLERY.md).</sub>"])
+
+
+def readme_validation_md() -> str:
+    cases = [(c, case_meta(c)) for c in case_dirs()]
+    order = list(CATEGORIES_V)
+    cases.sort(key=lambda cm: (order.index(cm[1]["category"]), cm[1]["task"]))
+    lines = ["Each case is meshed by hexmesh, solved with OpenFOAM, and judged by grid",
+             "convergence against gates set in advance.", "",
+             "| Case | Reference | Result | Status |", "|---|---|---|---|"]
+    for _, m in cases:
+        lines.append(f"| {m['title']} | {reference_md(m)} | {m.get('headline', '')} "
+                     f"| {STATUS_ICON[m['status']]} {m['status']} |")
+    planned = planned_cases({m["task"] for _, m in cases})
+    if planned:
+        short = [re.sub(r"^(Validation|Verification)( \(V\d\))?: ", "", p["title"])
+                 for p in planned]
+        titles = "; ".join(s[:1].lower() + s[1:] if s[1:2].islower() else s
+                           for s in short)                  # "FEniCSx" stays
+        titles = titles[:1].upper() + titles[1:]
+        cats = sorted({p["category"] for p in planned})
+        kinds = ", ".join(f"{KIND_V[c]} ({c})" for c in cats)
+        lines.append(f"| {titles} | {kinds} | | {STATUS_ICON['planned']} planned |")
+    return "\n".join(lines)
+
+
+def write_readme(metrics: dict, meta: dict) -> bool:
+    """Rewrite README.md's ``metrics`` and ``validation`` blocks; True if
+    that changed the file."""
+    text = README.read_text(encoding="utf-8")
+    new = text
+    if metrics.get(README_EXAMPLE) and "error" not in metrics[README_EXAMPLE] and meta:
+        new = readme_block(new, "metrics", readme_metrics_md(metrics, meta))
+    new = readme_block(new, "validation", readme_validation_md())
+    if new != text:
+        README.write_text(new, encoding="utf-8", newline="\n")
+    return new != text
+
+
 def write_markdown(metrics: dict, meta: dict) -> None:
     from hexmesh.examples import CATEGORIES
 
@@ -705,7 +923,10 @@ def main() -> None:
     ap.add_argument("--validation", nargs="*", metavar="CASE",
                     help="render validation meshes into their READMEs "
                          "(all cases with meshes() if none named)")
+    ap.add_argument("--hero", action="store_true",
+                    help="render only img/hero.png (a full run renders it too)")
     ap.add_argument("--worker", nargs=2, help=argparse.SUPPRESS)
+    ap.add_argument("--hworker", nargs=1, help=argparse.SUPPRESS)
     ap.add_argument("--vworker", nargs=3, help=argparse.SUPPRESS)
     args = ap.parse_args()
 
@@ -714,6 +935,12 @@ def main() -> None:
         return
     if args.vworker:
         validation_worker(args.vworker[0], args.vworker[1], Path(args.vworker[2]))
+        return
+    if args.hworker:
+        hero_worker(Path(args.hworker[0]))
+        return
+    if args.hero:
+        run_hero()
         return
 
     from hexmesh.examples import ALL
@@ -743,8 +970,11 @@ def main() -> None:
                 "cpus": os.cpu_count(), "jobs": args.jobs}
         METRICS.write_text(json.dumps({**saved, "meta": meta, "examples": metrics},
                                       indent=1), encoding="utf-8")
+        if not args.only:
+            run_hero()
     write_markdown(metrics, meta)
     print(f"wrote {GALLERY.relative_to(ROOT)}")
+    print("wrote README.md" if write_readme(metrics, meta) else "README.md unchanged")
 
 
 if __name__ == "__main__":

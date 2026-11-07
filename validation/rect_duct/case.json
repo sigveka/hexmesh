@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "title": "Laminar flow in rectangular ducts (aspect ratios 1, 2, 4)",
+  "headline": "f·Re extrapolated within 0.011 % at aspect ratios 1, 2 and 4 (H section)",
   "category": "V1",
   "references": [
     {

@@ -35,7 +35,8 @@ Quick start
         asm.write("elbow.msh")
         print(asm.check_quality())
 
-See ``README.md`` and ``API.md``; the design rules are in ``DESIGN.md``.
+See ``README.md``, ``docs/GUIDE.md`` (the user's guide) and ``API.md``; the
+design rules are in ``DESIGN.md``.
 """
 
 from .assembly import (

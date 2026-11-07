@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "title": "Laminar Hagen–Poiseuille pipe",
+  "headline": "Δp and u_max extrapolated within 0.03 % (+0.030 %, −0.007 %)",
   "category": "V1",
   "references": [
     {

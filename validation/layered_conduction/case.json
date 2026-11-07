@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "title": "Conduction through a heated multi-layer cylinder",
+  "headline": "temperatures extrapolated within 0.001 %; second order in every region",
   "category": "V1",
   "references": [
     {

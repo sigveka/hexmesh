@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "title": "Womersley flow (pulsatile laminar pipe flow)",
+  "headline": "profile error at most 0.31 % of u_c at every phase",
   "category": "V1",
   "references": [
     {

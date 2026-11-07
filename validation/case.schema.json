@@ -82,6 +82,11 @@
       "description": "Optional: a caveat a reader needs before trusting the comparison, e.g. a reference's known mismatch (task 0068).",
       "type": "string",
       "minLength": 1
+    },
+    "headline": {
+      "description": "Optional: the result in one line, for the README's validation table, e.g. \"reattachment 10.97 D vs the database's 11.03 D (−0.5 %)\"; its numbers from RESULTS.md (task 0078).",
+      "type": "string",
+      "minLength": 1
     }
   }
 }

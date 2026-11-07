@@ -26,7 +26,7 @@ with fluid, wall and insulation as separate regions for conjugate heat
 transfer.
 
 <p>
-<img src="docs/gallery/img/insulated_network.png" width="66%" alt="An insulated header with a tee and a wye, all hexahedra">
+<img src="docs/gallery/img/hero.png" width="66%" alt="An insulated header with a tee and a wye, a quarter cut away: the fluid's O-grid core, the steel wall and the insulation, all hexahedra">
 <img src="docs/gallery/img/insulated_tee_section.png" width="30%" alt="Cross-section: O-grid fluid core, steel wall, insulation">
 </p>
 
@@ -66,9 +66,9 @@ What it gives (the gallery's `hexmesh.examples.sections.insulated_tee`):
 
 | cells (predicted = meshed) | regions | min scaled Jacobian (where) | min SICN | build |
 |---|---|---|---|---|
-| 13 164 = 13 164 | fluid · steel · insulation | 0.32 (the tee) | 0.11 | 7.2 s |
+| 13 164 = 13 164 | fluid · steel · insulation | 0.32 (the tee) | 0.11 | 7.2 s |
 
-<sub>gmsh 4.12.1, one core, 2026-10-30.  Every example's numbers: [GALLERY.md](docs/GALLERY.md).</sub>
+<sub>gmsh 4.12.1, one core, 2026-11-05.  Every example's numbers: [GALLERY.md](docs/GALLERY.md).</sub>
 <!-- readme:metrics:end -->
 
 Doubling every density parameter doubles the nodes in each direction:
@@ -168,14 +168,19 @@ convergence against gates set in advance.
 
 | Case | Reference | Result | Status |
 |---|---|---|---|
-| Hagen–Poiseuille pipe | exact (V1) | Δp and u_max extrapolated within 0.03 % | ✅ accepted |
-| Heated rod, uniform source | exact (V1) | centre ΔT extrapolated within 0.1 % | ✅ accepted |
-| Multi-layer conduction (rod, steel, insulation) | exact (V1) | temperatures within 0.001 %, second order | ✅ accepted |
-| Womersley pulsatile flow | exact (V1) | profile error ≤ 1 % of u_c at every phase | ✅ accepted |
-| Cosine stenosis, Re 500 | DNS (V2), Varghese et al. 2007 | reattachment 11.12 D vs 11.03 D (+0.9 %) | ✅ accepted |
-| Cosine stenosis, pulsatile (Womersley, α 7.5) | DNS (V2), Varghese et al. 2007 | throat peak at peak flow −1.3 % of the DNS; separation and recirculation as in the DNS at all six phases | ✅ accepted |
-| Heated insulated pipe, full CHT | exact (V1) | Nu extrapolated within 0.08 % of 48/11; shell ΔTs within 0.001 % | ✅ accepted |
-| Rectangular duct; square-duct bend; turbulent pipe and bend; helical pipe | exact, experiment, DNS | | 📋 planned |
+| Laminar Hagen–Poiseuille pipe | exact (V1) | Δp and u_max extrapolated within 0.03 % (+0.030 %, −0.007 %) | ✅ accepted |
+| Solid rod with uniform heat generation | exact (V1) | centre ΔT extrapolated within 0.01 % (uniform and graded cells) | ✅ accepted |
+| Conduction through a heated multi-layer cylinder | exact (V1) | temperatures extrapolated within 0.001 %; second order in every region | ✅ accepted |
+| Heated multi-layer pipe with laminar flow (full CHT) | exact (V1) | Nu extrapolated +0.08 % from 48/11; shell ΔTs within 0.001 % | ✅ accepted |
+| Womersley flow (pulsatile laminar pipe flow) | exact (V1) | profile error at most 0.31 % of u_c at every phase | ✅ accepted |
+| Laminar flow in rectangular ducts (aspect ratios 1, 2, 4) | exact (V1) | f·Re extrapolated within 0.011 % at aspect ratios 1, 2 and 4 (H section) | ✅ accepted |
+| Manufactured solutions for conduction on every fitting | manufactured (V1) | L2 error of T falls with refinement on all 16 fittings | 🔄 in progress |
+| Smooth cosine constriction, Re = 500 | DNS (V2), Varghese et al. 2007 | reattachment 10.97 D vs the database's 11.03 D (−0.5 %) | ✅ accepted |
+| Fully developed turbulent pipe flow, k-ω SST | simulation (V2), El Khoury et al. 2013 | f within 2.5 % of McKeon et al. at three Re; within 3.3 % with wall functions | ✅ accepted |
+| Pulsatile flow through the cosine constriction (Varghese et al., Part 2) | DNS (V2), Varghese et al. 2007 | throat peak at peak flow −1.3 % from the DNS; the five flow features of its §3.1 as in the DNS | ✅ accepted |
+| Laminar flow in a 90° square-duct bend, Re 790 | experiment (V3), Taylor et al. 1981 | peak velocity at the measured position at six stations; peak U/V_c converging (GCI ≤ 0.05 %) | ✅ accepted |
+| Laminar flow in a helical pipe (the SIET coil) | experiment (V3), De Amicis et al. 2014 | f +0.4 % to +1.9 % from Ito at nang 16; the nang 24 level is running | 🔄 in progress |
+| Turbulent flow in a 90° bend (Sudo et al. 1998); FEniCSx toolchain, and second-order export checked end to end; a Taylor bubble rising in stagnant liquid (VOF) | exact (V1), experiment (V3) | | 📋 planned |
 <!-- readme:validation:end -->
 
 Categories, the coverage matrix (which features are validated and which

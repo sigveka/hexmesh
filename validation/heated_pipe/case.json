@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "title": "Heated multi-layer pipe with laminar flow (full CHT)",
+  "headline": "Nu extrapolated +0.08 % from 48/11; shell ΔTs within 0.001 %",
   "category": "V1",
   "references": [
     {

@@ -2,6 +2,34 @@
 
 ## Unreleased
 
+**The README's numbers are generated** (task 0078).
+
+- `docs/gallery/build.py` rewrites two marked blocks of `README.md` on
+  every run, `--markdown-only` included, and nothing else in the file:
+  - the `insulated_tee` metrics, from `metrics.json`;
+  - the validation table, one row per `case.json`.
+- **`case.json` gains an optional `headline`**: the result in one line,
+  with its numbers from RESULTS.md.  All 12 cases have one.
+- **The validation table had drifted:**
+  - it listed `rect_duct`, `square_bend` and `turbulent_pipe` as planned
+    (they are accepted), and left out `mms` and `helical_pipe` (in
+    progress);
+  - the stenosis line quoted an older reattachment length (11.12 D); the
+    accepted result is 10.97 D against the database's 11.03 D (−0.5 %);
+  - the heated rod and Womersley lines quoted their gates (0.1 %, 1 %),
+    not the results (0.01 %, 0.31 %).
+- **A cut-away hero image** (`docs/gallery/img/hero.png`,
+  `build.py --hero`): `insulated_network` with a quarter removed, so the
+  fluid core, the steel and the insulation show through the tee and the
+  wye.
+- **New tests** (`tests/test_readme.py`):
+  - the README's first code block builds the gallery's `insulated_tee`,
+    with the cell count the metrics table quotes; a slow variant runs it
+    as written, meshing included;
+  - every relative link and image in `README.md`, `docs/WHY.md` and
+    `docs/GUIDE.md` resolves, anchors included;
+  - `CITATION.cff`'s version matches `pyproject.toml`'s.
+
 **The light commands load neither gmsh nor scipy** (decision 0040,
 amendment 2026-11-07; task 0107).
 
