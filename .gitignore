@@ -18,3 +18,6 @@ dist/
 
 # Validation work directories (task 0020)
 validation/*/work/
+
+# Essens working store (local only; lint with --scratch)
+.essens/
