@@ -7,6 +7,7 @@
   the framework, not its development)
 - **Tasks:** 0094 (foundation A; done), 0095 (B), 0097 (C), 0098 (D),
   0096 (PCF line numbers; done), 0102 (D2, the manifest; amendment
+  2026-11-07); 0107 (light commands without gmsh; amendment
   2026-11-07).  The plugin (E) after decision 0032's stage 2 (the
   network document) and 0102.
 - **Builds on:** decision 0019 (agent SDK, proposed): this decision is
@@ -245,3 +246,27 @@ The plugin (E) and a later MCP server read it.
 validation summary must ship as package data, since `validation/`
 isn't installed.  Future expansions: none affected; the manifest only
 reports what the registries hold.
+
+## Amendment: the light commands need no gmsh (2026-11-07; the user: "ye")
+
+Proposed by the coding session, from the user ("suggest this for
+design").  **Measured** (`python3 -X importtime`, 2026-11-07):
+`import hexmesh.agent` takes 0.52 s.  Of that, gmsh is 0.13 s and
+`scipy.interpolate` 0.14 s (for one `CubicSpline` call), though only
+`build` and `Assembly.mesh()` use gmsh.  Eight modules import gmsh at the
+top.
+
+**Decided:**
+1. **A foundation property:** every agent command except `build`
+   (schema, manifest, validate, estimate, describe, preview, advise,
+   apply) runs without importing gmsh or scipy.
+   The manifest's per-command `needs_gmsh` is then true by construction.
+2. **A guard in `test_architecture`:** in a fresh interpreter,
+   `import hexmesh.agent` leaves gmsh and scipy out of `sys.modules`.
+   It checks modules, not time, so it holds on every machine.
+3. **A broken or missing gmsh** surfaces at the first meshing call, with
+   a code of its own (`gmsh_unavailable`).  The error carries the
+   original import error, a hint with the fix (`pip install gmsh`; on
+   Linux the system libraries CI installs), and the commands that still
+   work without gmsh.
+4. **Task 0107**, after 0106 and before 0078.
