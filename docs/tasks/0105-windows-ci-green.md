@@ -1,6 +1,6 @@
 # 0105 — CI green again: the Windows gmshToFoam test
 
-- **Status:** ready
+- **Status:** in progress
 - **Decision:** [0039 — Platform support](../decisions/0039-platform-support.md)
 - **Depends on:** none.  First of the public-readiness tasks (0105, 0106,
   0078).
@@ -42,3 +42,47 @@ red badge is the first thing a visitor sees.
   main.
 - The test checks the path form OpenFOAM receives, on every platform.
 - Full suite: no new failures.
+
+## Agent notes
+
+- **What the command held** (run 42376137627, windows-latest, Python
+  3.10): `gmshToFoam C:\Users\runneradmin\AppData\Local\Temp\pytest-of-runneradmin\pytest-0\popen-gw1\test_convert_keep_orientation_0\mesh.msh`.
+- **Verdict: the test was wrong, the code is right.**  `convert` names
+  the mesh by its host path, and `foam` passes it to the runner.  On
+  Windows the only runner is Docker: the native runner is Linux-only, and
+  under WSL Python itself runs in Linux, so its paths are POSIX (decision
+  0039).  `docker_argv` mounts the host directory at `/work/N` and
+  `container_command` rewrites every host path under it to the container
+  path, with `\` turned into `/`.  The test faked `foam`, so it saw the
+  command *before* that rewrite.  On the CI path above, the rewrite gives
+  `gmshToFoam -keepOrientation /work/0/mesh.msh`, with
+  `C:\Users\…\test_convert_keep_orientation_0` mounted at `/work/0`
+  (checked with `PureWindowsPath` on Linux).  The existing
+  `test_container_paths_on_windows` (drive-letter paths) already covered
+  the rewrite itself.
+- **The test now** checks that the host command is exactly
+  `gmshToFoam[ -keepOrientation] <resolved host path>`.  It then passes
+  that command through `docker_argv` and checks that the container
+  command ends with `gmshToFoam[ -keepOrientation] /work/0/mesh.msh`: the
+  form OpenFOAM receives, the same on every host.  A failure prints both
+  commands.
+- **For decision 0039's Windows notes** (design moves it): Windows with
+  the Docker runner hands OpenFOAM POSIX paths; confirmed on the
+  `convert` path, task 0105.  Nothing new for
+  `docs/integrations/openfoam.md`: no tool behaviour was involved.
+- No code change, so no CHANGELOG entry.
+
+## Questions for design
+
+_None._
+
+## Outcome
+
+- **Files:** `tests/test_openfoam_runner.py` (one test rewritten, both
+  parameters kept).
+- **Local:** `tests/test_openfoam_runner.py` 22 passed.  The last full
+  suite (task 0060, today) had 3664 passed and 0 failed, and this change
+  touches only this test.
+- **CI:** pending the push.  Acceptance is all six `tests` jobs plus
+  OpenFOAM Docker green on main.  The status stays *in progress* until
+  that run is seen.

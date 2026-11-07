@@ -212,13 +212,23 @@ def test_decompose_the_time_the_solver_starts_from(tmp_path, control, want):
     assert of.start_time_option(tmp_path) == want
 
 
-@pytest.mark.parametrize("keep, want", [(False, "gmshToFoam /"), (True, "gmshToFoam -keepOrientation /")])
-def test_convert_keep_orientation_flag(monkeypatch, tmp_path, keep, want):
+@pytest.mark.parametrize("keep, flag", [(False, ""), (True, " -keepOrientation")])
+def test_convert_keep_orientation_flag(monkeypatch, tmp_path, keep, flag):
     """``keep_orientation`` skips gmshToFoam's orientation test, which flips
-    valid warped hexes (task 0074); off by default."""
+    valid warped hexes (task 0074); off by default.
+
+    Checked as OpenFOAM receives it: ``convert`` names the mesh by its host
+    path (``C:\\…`` on Windows) and the Docker runner rewrites it to the
+    container's POSIX path, so the command OpenFOAM runs is the same on
+    every host (task 0105)."""
     ran = []
-    monkeypatch.setattr(of, "foam", lambda cmd, *a, **k: ran.append(cmd) or "")
+    monkeypatch.setattr(of, "foam", lambda cmd, case, log, mounts=(): ran.append(
+        (cmd, case, mounts)) or "")
     import hexmesh.io.writers.openfoam_boundary as ob
     monkeypatch.setattr(ob, "apply_boundary_roles", lambda case, roles: [])
     of.convert(tmp_path, tmp_path / "mesh.msh", keep_orientation=keep)
-    assert ran[0].startswith(want)
+    cmd, case, mounts = ran[0]
+    assert cmd == f"gmshToFoam{flag} {(tmp_path / 'mesh.msh').resolve()}"
+    argv = of.docker_argv(cmd, Path(case).resolve(), [Path(m).resolve() for m in mounts],
+                          image="img")
+    assert argv[-1].endswith(f"; gmshToFoam{flag} /work/0/mesh.msh"), (cmd, argv[-1])
