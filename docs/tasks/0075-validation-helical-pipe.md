@@ -1,6 +1,6 @@
 # 0075 — Validation (V3): laminar flow in a helical pipe (spline pipe)
 
-- **Status:** blocked (held by the user: run nang 24 over nights, Q5; not started)
+- **Status:** in progress (the user's go, 2026-11-07: nang 24 at Re 1800, 2400, 3000 running, about 25 h)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (V3, with V4 secondary); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V3 (experiment: De Amicis et al. 2014; V4 correlation, Manlapaz & Churchill 1980, secondary)
 - **Features:** `section:circle`, `straight`, `spline`
@@ -356,6 +356,14 @@ on starting it for now").
   the latest time and delete the case once its numbers are saved.
 - Shortening the pipe isn't taken: it would change the study and need
   the coarse levels rerun.
+
+**The nang 24 run** (2026-11-07, the user: "start the 25h run").
+- Started 21:10 with `python3 validation/helical_pipe/run.py --np 4`
+  (default `--work validation/helical_pipe/work`), detached.  Before it:
+  25 GB free, no other heavy run.  The stored nang 12 and 16 levels are
+  reused; each Re re-solves its nang 16 source, then maps it to nang 24.
+- To resume after a stop: run the same command again; it continues from
+  the latest 50-step chunk.
 
 ## Outcome
 
