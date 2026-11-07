@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+**Laterals: `Tee(angle=…)`** (decision 0031 stage 1; task 0060).
+
+- `angle` (degrees, default 90) leans the branch from the run's
+  downstream direction: 45 is a 45° lateral.  The saddle is the exact
+  cylinder–cylinder intersection, shells included; walls stay on their
+  cylinders.  `angle=90` meshes identically to before.
+- The room checks are measured on the acute side: `run_length` must
+  exceed the hole's reach downstream, `branch_length` the turning
+  station's distance along the leaning axis.
+- The predicted-quality tiers are unchanged and set the range: a 45°
+  lateral needs r/R ≥ 0.50, 35° needs 0.875, and 30° is rejected at every
+  ratio.  Laterals below about 57° always warn.  A lateral's message
+  names the smallest r/R that reaches the tier at its angle, and
+  `run_length=None` falls back to the shortest run passing the minimum
+  when none reaches the warning tier.
+- **New limit `TEE_MAX_RATIO` (0.95).**  A pipe tee with r/R above it is
+  rejected (`tee_ratio_above_max`), and r = R is `equal_tee_unsupported`.
+  Up to 0.95 the meshed corner SJ is within 0.025 of the prediction; at
+  0.99 it was 0.30 against 0.57.
+- New codes `tee_angle_out_of_range` and `angle_on_duct_tap`.  Saved
+  tees now write `"angle"`.
+
 **Structured errors** (decision 0040; task 0094).
 
 - Every error that bad input can cause is now a `hexmesh.HexmeshError`.

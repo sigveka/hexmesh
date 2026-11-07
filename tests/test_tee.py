@@ -3,6 +3,7 @@ Tee block layout (hexmesh/assembly/tee.py).  Conformance is covered by the
 kit (tests/test_fitting_conformance.py); these tests cover the tee itself.
 """
 
+import math
 import warnings
 
 import gmsh
@@ -263,3 +264,98 @@ def test_default_run_length_needs_an_assembly():
         tee.check(_spec())
     with pytest.raises(TypeError, match="missing required argument.*branch_radius"):
         Tee(0.2, 0.25)
+
+
+# -- laterals: Tee(angle=…) (task 0060) --------------------------------------
+
+from hexmesh.assembly.tee import lean, saddle_point, tip_reach, turning_height  # noqa: E402
+
+
+@pytest.mark.parametrize("angle", [30, 45, 60, 75, 90])
+def test_saddle_points_on_both_cylinders(angle):
+    """RESEARCH §3.1 with h = 0: every point on the main cylinder and on the
+    branch cylinder, whose axis is (cos α, 0, sin α)."""
+    ca, sa = lean(angle)
+    d = np.array([ca, 0.0, sa])
+    for phi in np.linspace(0, 2 * math.pi, 37):
+        p = np.array(saddle_point(R, 0.6 * R, ca, sa, phi))
+        assert math.hypot(p[1], p[2]) == pytest.approx(R, abs=1e-15)
+        assert np.linalg.norm(p - (p @ d) * d) == pytest.approx(0.6 * R, abs=1e-15)
+        assert p @ d > 0                         # the branch side of the main axis
+
+
+def test_lateral_reaches_farther_downstream():
+    up, down = tip_reach(R, 0.6 * R, 45)
+    assert up < 0.6 * R < down                    # the acute side is downstream
+    assert tip_reach(R, 0.6 * R, 90) == (0.6 * R, 0.6 * R)
+    assert turning_height(R, 0.6 * R, 0.0, 45) > turning_height(R, 0.6 * R, 0.0)
+
+
+def test_lateral_branch_port_on_the_analytic_axis():
+    """The branch outlet leans by α from the run's downstream direction, in
+    the branch plane, also in an oblique assembly; its up is in that plane."""
+    direction = np.array([1.0, 1.0, 0.2]) / np.linalg.norm([1.0, 1.0, 0.2])
+    asm = Assembly(_spec(), direction=list(direction), up=[0, 0, 1], lc=0.05)
+    asm.add(Straight(0.2, n_layers=2))
+    tee = Tee(run_length=0.3, branch_length=0.5, branch_radius=0.9 * R, angle=45)
+    main, branch = asm.add(tee, names=["main", "branch"])
+    inlet = asm.edges[1].ports[0].frame
+    o = inlet.position + 0.3 * inlet.normal
+    d = math.cos(math.radians(45)) * inlet.normal + math.sin(math.radians(45)) * inlet.up
+    np.testing.assert_allclose(branch.frame.position, o + 0.5 * d, atol=1e-9)
+    np.testing.assert_allclose(branch.frame.normal, d, atol=1e-9)
+    assert abs(branch.frame.up @ np.cross(inlet.normal, inlet.up)) < 1e-9
+    np.testing.assert_allclose(main.frame.position, o + 0.3 * inlet.normal, atol=1e-9)
+    asm.validate()
+
+
+@pytest.mark.parametrize("kw, code, message", [
+    (dict(angle=0), "tee_angle_out_of_range", r"angle 0° must be in \(0, 90\]"),
+    (dict(angle=100), "tee_angle_out_of_range", r"angle 100° must be in \(0, 90\]"),
+    (dict(angle=45, run=0.2), "run_length_too_short", r"acute-side tip\) 0\.2273"),
+    (dict(angle=45, run=0.3, branch=0.2), "branch_length_too_short",
+     r"distance along the branch axis 0\.2951 .* at its acute side"),
+])
+def test_lateral_rejected_before_gmsh(kw, code, message):
+    with pytest.raises(AssemblyError, match=message) as e:
+        _tee_asm(0.9, **kw)[0].validate()
+    assert e.value.code == code
+    assert not gmsh.isInitialized()
+
+
+def test_steep_lateral_rejected_naming_the_angle():
+    """30° is below PREDICTED_SJ_MIN at every branch ratio (task 0060)."""
+    with pytest.raises(AssemblyError, match=r"no run_length reaches it: .* at angle 30°; no "
+                       r"ratio up to TEE_MAX_RATIO 0\.95 reaches it there") as e:
+        _tee_asm(0.9, angle=30, run=None, branch=0.8)[0].validate()
+    assert e.value.code == "predicted_sj_below_minimum"
+
+
+def test_lateral_hint_names_the_smallest_ratio():
+    """45° passes PREDICTED_SJ_MIN from r/R 0.50 (task 0060; meshed SJ =
+    predicted there to 1e-3)."""
+    with pytest.raises(AssemblyError, match=r"at angle 45°; r/R 0\.50\d or more reaches it "
+                       r"there, or a larger angle"):
+        _tee_asm(0.3, angle=45, run=None, branch=0.8)[0].validate()
+    with pytest.warns(UserWarning, match=r"at angle 45°; no ratio up to TEE_MAX_RATIO"):
+        _tee_asm(0.6, angle=45, run=None, branch=0.8)[0].validate()
+
+
+@pytest.mark.parametrize("ratio, code, hint", [
+    (0.96, "tee_ratio_above_max", "an equal tee, or a branch radius <= 0.95 R"),
+    (1.0, "equal_tee_unsupported", "equal tees are planned through the wye-family layout"),
+])
+def test_branch_ratio_cut_off(ratio, code, hint):
+    with pytest.raises(AssemblyError) as e:
+        _tee_asm(ratio)[0].validate()
+    assert e.value.code == code and e.value.hint.startswith(hint)
+    _tee_asm(0.95)[0].validate()                 # at the cut-off: accepted
+
+
+def test_duct_tap_rejects_a_lean():
+    spec = PipeSpec(nang=4).core("air", RectShape(half_w=0.1, half_h=0.05, nang_w=4, nang_h=2))
+    asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1], lc=0.05)
+    with pytest.raises(AssemblyError) as e:
+        asm.add(Tee(branch_length=0.2, branch=RectShape(half_w=0.02, half_h=0.02, nang_w=4,
+                                                        nang_h=2), angle=45))
+    assert e.value.code == "angle_on_duct_tap"

@@ -644,25 +644,46 @@ A pipe along a cubic spline through `points`, parametrised by chord length.
 - **Validation.** It rejects curvature tighter than the outer radius, and
   more than 30° of turn per layer.
 
-### `Tee(run_length=None, branch_length, branch_radius, n_run=3, n_branch=3, n_turn=2, roll=0.0, toward=None, branch=None, face=None, margin=None, dome=None, sheet=None, n_wall=None)`
+### `Tee(run_length=None, branch_length, branch_radius, n_run=3, n_branch=3, n_turn=2, roll=0.0, toward=None, angle=90.0, branch=None, face=None, margin=None, dome=None, sheet=None, n_wall=None)`
 
-A perpendicular, centred side-branch tee, built as a block layout.
+A centred side-branch tee, perpendicular or a lateral (`angle`), built as
+a block layout.
 
 - **Ports.** `port_names = ("main", "branch")`; it returns `[main, branch]`.
   The main outlet is `2·run_length` downstream of the inlet and keeps the
   inlet's `up`. The branch leaves along the inlet's `up` rolled by `roll`
   about the main axis (0: `up`; 90: `right`) and ends `branch_length` from
-  the main axis.
+  the main axis, measured along the branch axis.
 - **Orientation.** `roll` must be a multiple of the section's period (90°
   for a circle), so the junction's corners land on the inlet face's: 45° is
   rejected, naming 90°. `toward=(x, y, z)` gives the branch direction
   instead; `add()` picks the nearest allowed roll and rejects a direction
   more than 1° off it (`limits.JUNCTION_TOWARD_TOL`), naming the angle.
-  Other branch angles need a twisting fitting (decision 0024).
+  Its component across the run sets the roll, and `angle` the lean.
+  Other rolls need a twisting fitting (decision 0024).
+- **Laterals** (decision 0031, task 0060). `angle` is the angle in degrees
+  from the run's downstream direction to the branch axis, in (0, 90]: 90 is
+  a tee, 45 a 45° lateral leaning downstream. The axis passes through the
+  T-point; the branch port's `up` is the axis's normal in the branch plane.
+  The saddle is the exact cylinder–cylinder intersection (RESEARCH §3.1),
+  so the hole reaches farther downstream (the acute side) than upstream,
+  and the room checks below are measured there. The worst cell sits at the
+  acute crotch, and quality falls with the angle. The smallest r/R that
+  passes `PREDICTED_SJ_MIN` at a long run is 0.20 at 90°, 0.29 at 60°,
+  0.50 at 45° and 0.875 at 35°; reaching `PREDICTED_SJ_WARN` needs 0.57 at
+  90°, 0.88 at 60°, and no ratio below about 57°, so **those laterals
+  always warn**. **30° laterals are rejected at every ratio** (0.074 at
+  r/R 0.9). The meshed SJ equals the prediction at these edges (to 1e-3).
+  A lateral's rejection or warning names the smallest r/R that reaches
+  the tier at its angle (`Tee.smallest_ratio`). A branch leaning upstream is the same lateral
+  with the run reversed. Duct taps reject `angle` (`angle_on_duct_tap`;
+  shoe taps are task 0063).
 - **Run length.** `run_length=None` (or omitted) is resolved by `add()` to
   `branch_radius + T + R/2` (T the total shell thickness), or the shortest
   run whose predicted quality reaches the warning tier below, whichever is
-  longer; the number is stored, so `to_dict()` stays explicit.
+  longer (for a lateral, the hole's downstream reach + R/2; where no run
+  reaches the warning tier, the shortest that passes the minimum); the
+  number is stored, so `to_dict()` stays explicit.
   `branch_length` and `branch_radius` are required.
 - **Layers.** `n_run`, `n_branch` and `n_turn` are the axial layers of the
   runs, the branch, and the turning blocks.
@@ -674,10 +695,17 @@ A perpendicular, centred side-branch tee, built as a block layout.
   to rounding: the faces are plates through cylinder points (3e-4 of the
   radius), and `mesh()` projects the nodes the rest of the way (decision
   0029, task 0051).
-- **Limits.** Circular layers, `rot = 0`, and `branch_radius` below the
-  main radius. With T the total shell thickness, `run_length` must exceed
-  `branch_radius + T`, and `branch_length` the turning station's height,
-  `R + T + (branch_radius + T)/2`. Both are checked before GMSH.
+- **Limits.** Circular layers, `rot = 0`, and a branch ratio r/R of at
+  most `limits.TEE_MAX_RATIO` (0.95): above it the saddle's curved sides
+  pull the meshed quality below the prediction (0.30 against 0.57 at
+  0.99). It is rejected with the hint "an equal tee, or a branch radius
+  ≤ 0.95 R"; r = R is `equal_tee_unsupported` (planned through the
+  wye-family layout). With T the total shell thickness, `run_length` must
+  exceed `branch_radius + T` (for a lateral, the outer hole's reach
+  downstream), and `branch_length` the turning station's height,
+  `R + T + (branch_radius + T)/2` (for a lateral, its distance along the
+  branch axis that clears the main by that much on the acute side). Both
+  are checked before GMSH.
 - **Predicted quality.** `validate()` computes the layout's min corner
   scaled Jacobian before GMSH (`Tee.predicted_sj`). Below
   `limits.PREDICTED_SJ_MIN` (0.1) it raises; below
@@ -1400,6 +1428,7 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `advice_regime_transitional` | a section in transitional flow, graded as turbulent (advice note) | advice note |
 | `advice_wall_function_unsupported` | wall functions asked of advise (they wait for task 0049) | `AdviceError` |
 | `angle_looks_like_radians` | a fitting angle so small it was probably given in radians (warning) | `HexmeshWarning` |
+| `angle_on_duct_tap` | a Tee angle other than 90 on a duct tap | `AssemblyError` |
 | `angle_out_of_range` | a bend or wye angle outside its open range | `AssemblyError` |
 | `argument_missing` | a required fitting argument is missing | `AssemblyTypeError` |
 | `assembly_already_built` | fittings added or changed after the assembly was built | `AssemblyError` |
@@ -1661,7 +1690,9 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `tail_closed` | add() after the tail was closed, with no interface given | `AssemblyError` |
 | `tap_does_not_fit` | a duct tap that does not fit its main | `AssemblyError`, `LayoutError` |
 | `tap_ring_override_on_oh_main` | duct-tap ring overrides on an O-H main | `AssemblyError` |
+| `tee_angle_out_of_range` | a Tee's angle outside (0, 90] degrees | `AssemblyError` |
 | `tee_branch_angled` | a network tee whose branch is not perpendicular | `AssemblyError` |
+| `tee_ratio_above_max` | a pipe Tee's branch ratio above TEE_MAX_RATIO | `AssemblyError` |
 | `tee_run_asymmetric` | a network tee whose run ports are not symmetric | `AssemblyError` |
 | `terminal_end_taken` | an open end attached to two terminals | `AssemblyError` |
 | `terminal_name_duplicate` | two network ends with the same name | `AssemblyError` |
@@ -1756,6 +1787,7 @@ Kinds:
 | `OUTLINE_NONORTH_MAX` | 80 | `deg` | error | predicted or meshed non-orthogonality above this is rejected |
 | `PREDICTED_SJ_WARN` | 0.3 | `1` | warn | predicted or meshed min corner scaled Jacobian below this warns |
 | `PREDICTED_SJ_MIN` | 0.1 | `1` | error | predicted or meshed min corner scaled Jacobian below this is rejected |
+| `TEE_MAX_RATIO` | 0.95 | `1` | error | largest branch radius of a pipe tee, over the main radius |
 | `DUCT_TAP_MAX_RATIO` | 0.93 | `1` | error | largest reach across of a duct tap, over the face's half-width |
 | `DUCT_TAP_NARROW_ASPECT_WARN` | 3 | `1` | warn | a tap on the narrow face of a duct this deep (depth / width) or deeper warns |
 | `SWITCH_MIN_LENGTH` | 1.25 | `t` | error | shortest Switch, in ring thicknesses |

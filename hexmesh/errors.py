@@ -161,6 +161,7 @@ CODES: dict[str, str] = {
         "wall functions asked of advise (they wait for task 0049)",
     "angle_looks_like_radians":
         "a fitting angle so small it was probably given in radians (warning)",
+    "angle_on_duct_tap": "a Tee angle other than 90 on a duct tap",
     "angle_out_of_range": "a bend or wye angle outside its open range",
     "argument_missing": "a required fitting argument is missing",
     "assembly_already_built": "fittings added or changed after the assembly was built",
@@ -430,7 +431,10 @@ CODES: dict[str, str] = {
     "tail_closed": "add() after the tail was closed, with no interface given",
     "tap_does_not_fit": "a duct tap that does not fit its main",
     "tap_ring_override_on_oh_main": "duct-tap ring overrides on an O-H main",
+    "tee_angle_out_of_range":
+        "a Tee's angle outside (0, 90] degrees",
     "tee_branch_angled": "a network tee whose branch is not perpendicular",
+    "tee_ratio_above_max": "a pipe Tee's branch ratio above TEE_MAX_RATIO",
     "tee_run_asymmetric": "a network tee whose run ports are not symmetric",
     "terminal_end_taken": "an open end attached to two terminals",
     "terminal_name_duplicate": "two network ends with the same name",

@@ -105,6 +105,14 @@ PREDICTED_SJ_MIN = _limit(
     "PREDICTED_SJ_MIN", 0.1, "1", "error",
     "predicted or meshed min corner scaled Jacobian below this is rejected")
 
+#: Pipe tees (decision 0031 amendment, task 0060): the largest branch ratio
+#: r/R.  Above it the saddle's curved sides pull the meshed corner SJ below
+#: the straight-edge prediction: at r/R 0.95 by at most 0.025, at 0.97 by
+#: 0.07 and at 0.99 by 0.27 (nang 8, 90°: 0.30 against 0.57 predicted).
+TEE_MAX_RATIO = _limit(
+    "TEE_MAX_RATIO", 0.95, "1", "error",
+    "largest branch radius of a pipe tee, over the main radius")
+
 #: Duct taps (decision 0033, task 0070): the largest across ratio q/a of a
 #: tap inside the face (q its reach across, a the face's half-width).  The
 #: ±y tube blocks thin as q → a: at 0.95 a 1:1 duct's rectangular tap

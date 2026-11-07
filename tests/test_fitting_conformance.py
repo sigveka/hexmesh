@@ -183,12 +183,14 @@ def _spline(spec, points, **kw):
     return asm
 
 
-def _tee(ratio, direction=(0, 1, 0), spec=None):
-    """Straight → Tee → Straight on both outlets."""
+def _tee(ratio, direction=(0, 1, 0), spec=None, angle=90):
+    """Straight → Tee → Straight on both outlets; a lateral at *angle* < 90
+    resolves its run and reaches farther along its leaning axis."""
     asm = Assembly(spec or _one(), direction=list(direction), up=[0, 0, 1], lc=0.1)
     asm.add(Straight(0.2, n_layers=2))
-    main, branch = asm.add(Tee(run_length=0.2, branch_length=0.25,
-                               branch_radius=ratio * 0.1), names=["main", "branch"])
+    kw = (dict(run_length=0.2, branch_length=0.25) if angle == 90 else
+          dict(branch_length=0.6, angle=angle))
+    main, branch = asm.add(Tee(branch_radius=ratio * 0.1, **kw), names=["main", "branch"])
     asm.add(main, Straight(0.2, n_layers=2))
     asm.add(branch, Straight(0.2, n_layers=2))
     return asm
@@ -254,6 +256,11 @@ CASES = {
     "tee-0.5-2layer":      lambda: _tee(0.5, spec=_two()),
     "tee-0.9-3layer":      lambda: _tee(0.9, spec=_three()),
     "tee-0.5-3layer-oblique": lambda: _tee(0.5, direction=(1, 1, 0.2), spec=_three()),
+    "lateral-45-0.9":      lambda: _tee(0.9, angle=45),
+    "lateral-45-0.9-3layer-oblique": lambda: _tee(0.9, direction=(1, 1, 0.2), spec=_three(),
+                                                  angle=45),
+    "lateral-60-0.6":      lambda: _tee(0.6, angle=60),
+    "lateral-60-0.9-3layer": lambda: _tee(0.9, spec=_three(), angle=60),
     "tee-duct-rect-2-wide":   lambda: _duct_tap("rect"),
     "tee-duct-rect-2-narrow": lambda: _duct_tap("rect", face="narrow", roll=180),
     "tee-duct-rect-3-wide":   lambda: _duct_tap("rect", aspect=3, direction=(1, 1, 0.2)),
@@ -595,7 +602,8 @@ def _tee_deviation(tee, inlet, spec, x) -> float:
     boundaries, each the union of a main cylinder and a branch cylinder
     (z ≥ 0 along the branch axis) grown by the shells' cumulative
     thickness (decision 0028), relative to the outer radius."""
-    o, ex, _, ez = tee._origin_basis(inlet)
+    o, ex, _, _ = tee._origin_basis(inlet)
+    _, ez, _ = tee._branch_axes(inlet)          # the branch axis: leaning for a lateral
     R, r = spec.core_shape.radius, tee.branch_radius
     v = x - o
     dm = np.linalg.norm(v - np.outer(v @ ex, ex), axis=1)

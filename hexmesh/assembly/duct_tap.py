@@ -576,6 +576,11 @@ class TapTemplate:
 
     def check(self, spec: PipeSpec, tuned: bool = True) -> None:
         tee = self.tee
+        if tee.angle != 90:
+            raise AssemblyError("Tee: angle= is for pipe tees; a duct tap's branch is "
+                                "perpendicular (shoe taps are task 0063)",
+                                code="angle_on_duct_tap", where={"field": "angle"},
+                                value=tee.angle, limit=90)
         if spec.layout == "h":
             return self._check_h(spec, tuned)
         if tee.nrad is not None or tee.mprg is not None:
