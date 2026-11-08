@@ -53,7 +53,7 @@
    "category": "V3",
    "cells": [
     100416,
-    803328
+    2711232
    ],
    "gates": [
     {
@@ -73,7 +73,7 @@
      "quantity": "reported, not gated: the digitised measured points (Fig. 12); f per pair of consecutive turns"
     }
    ],
-   "levels": 9,
+   "levels": 11,
    "status": "in progress",
    "task": "0075",
    "title": "Laminar flow in a helical pipe (the SIET coil)"
@@ -121,8 +121,8 @@
      "quantity": "volume-weighted L2 error of T, every case"
     }
    ],
-   "levels": 51,
-   "status": "in progress",
+   "levels": 99,
+   "status": "accepted",
    "task": "0074",
    "title": "Manufactured solutions for conduction on every fitting"
   },

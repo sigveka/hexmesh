@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "title": "Manufactured solutions for conduction on every fitting",
-  "headline": "L2 error of T falls with refinement on all 16 fittings",
+  "headline": "L2 error falls on all 16 fittings; 5 converge at the straight's order, the rest reported",
   "category": "V1",
   "references": [
     {
@@ -35,7 +35,7 @@
       "runner": "docker"
     }
   },
-  "status": "in progress",
+  "status": "accepted",
   "task": "0074",
   "gates": [
     {

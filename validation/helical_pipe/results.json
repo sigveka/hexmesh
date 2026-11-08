@@ -4,11 +4,19 @@
   "map_sources": {
    "re1800_n24": {
     "converged": true,
-    "f": 0.06667592355012511,
-    "f_vs_stored": 0.0,
+    "f": 0.06667592399670394,
+    "f_vs_stored": 6.69775235273562e-09,
     "nang": 16,
     "steps": 319,
-    "wall_s": 2881.5339306259993
+    "wall_s": 3826.0325171368895
+   },
+   "re2400_n24": {
+    "converged": true,
+    "f": 0.056060876222285214,
+    "f_vs_stored": -1.77198222761632e-09,
+    "nang": 16,
+    "steps": 563,
+    "wall_s": 3141.053189626953
    }
   },
   "reference": "De Amicis et al. (2014), the SIET coil; Ito (1959) as their eq. (2)",
@@ -575,6 +583,199 @@
     1.0048346901806868,
     1.004835026394481
    ]
+  },
+  {
+   "area_ratio": 0.9992862058229083,
+   "cells": 2711232,
+   "check_cells_foam": 2711232,
+   "check_max_non_orthogonality": 38.8674991217,
+   "check_max_skewness": 0.514597128599,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-08",
+    "gmsh": "4.12.1",
+    "hexmesh": "c8c7c76+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "f": 0.06632748073996393,
+   "f_err_ito": -0.002741257610404668,
+   "f_history": [
+    {
+     "converged": false,
+     "f": 0.0662828018815311,
+     "step": 50
+    },
+    {
+     "converged": false,
+     "f": 0.06634367747097505,
+     "step": 100
+    },
+    {
+     "converged": false,
+     "f": 0.06632906123448613,
+     "step": 150
+    },
+    {
+     "converged": false,
+     "f": 0.06632786550917547,
+     "step": 200
+    },
+    {
+     "converged": false,
+     "f": 0.06632747134114034,
+     "step": 250
+    },
+    {
+     "converged": false,
+     "f": 0.06632747740350728,
+     "step": 300
+    },
+    {
+     "converged": true,
+     "f": 0.06632748073996393,
+     "step": 322
+    }
+   ],
+   "f_ito": 0.06650980123877623,
+   "f_per_pair": [
+    0.06630461382300813,
+    0.06632748073996393,
+    0.06632753012591873
+   ],
+   "fc_over_fs": 1.8709782047035735,
+   "init_from": "nang 16, mapped",
+   "layers_per_turn": 390,
+   "min_scaled_jacobian": 0.7298417043415031,
+   "name": "re1800_n24",
+   "nang": 24,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 12,
+   "precision": "full",
+   "re": 1800,
+   "re_bulk": 1805.3241848650653,
+   "steps": 322,
+   "turn_agreement": 7.445775755954287e-07,
+   "turn_mean_p": [
+    30.210434259379557,
+    21.58223936759494,
+    12.951042746886342,
+    4.319838121222481
+   ],
+   "u_bulk_per_pair": [
+    1.0029563660561636,
+    1.0029578804805919,
+    1.0029579721843978
+   ],
+   "u_bulk_per_turn": [
+    1.0029548520561766,
+    1.0029578800561505,
+    1.0029578809050332,
+    1.0029580634637623
+   ],
+   "wall_s": 17910.43169810099
+  },
+  {
+   "area_ratio": 0.9992862058229083,
+   "cells": 2711232,
+   "check_cells_foam": 2711232,
+   "check_max_non_orthogonality": 38.8674991217,
+   "check_max_skewness": 0.514597128599,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "date": "2026-11-08",
+    "gmsh": "4.12.1",
+    "hexmesh": "c8c7c76+local",
+    "openfoam": "v2406",
+    "python": "3.12.3",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "f": 0.055567029736969364,
+   "f_err_ito": 0.00255417844317396,
+   "f_history": [
+    {
+     "converged": false,
+     "f": 0.05544160065520441,
+     "step": 50
+    },
+    {
+     "converged": false,
+     "f": 0.05558039718744041,
+     "step": 100
+    },
+    {
+     "converged": false,
+     "f": 0.05556877064555531,
+     "step": 150
+    },
+    {
+     "converged": false,
+     "f": 0.05556728716652508,
+     "step": 200
+    },
+    {
+     "converged": false,
+     "f": 0.05556669400167881,
+     "step": 250
+    },
+    {
+     "converged": false,
+     "f": 0.05556704626019327,
+     "step": 300
+    },
+    {
+     "converged": false,
+     "f": 0.05556703082000134,
+     "step": 350
+    },
+    {
+     "converged": true,
+     "f": 0.055567029736969364,
+     "step": 398
+    }
+   ],
+   "f_ito": 0.055425463213626194,
+   "f_per_pair": [
+    0.05554154401782773,
+    0.055567029736969364,
+    0.05556708222884184
+   ],
+   "fc_over_fs": 2.090059559356228,
+   "init_from": "nang 16, mapped",
+   "layers_per_turn": 390,
+   "min_scaled_jacobian": 0.7298417043415031,
+   "name": "re2400_n24",
+   "nang": 24,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 12,
+   "precision": "full",
+   "re": 2400,
+   "re_bulk": 2407.251430065265,
+   "steps": 398,
+   "turn_agreement": 9.446585991224055e-07,
+   "turn_mean_p": [
+    25.312606064772847,
+    18.084096389895887,
+    10.852241157616213,
+    3.620377694274927
+   ],
+   "u_bulk_per_pair": [
+    1.0030194394019785,
+    1.0030214291938604,
+    1.0030215262404834
+   ],
+   "u_bulk_per_turn": [
+    1.0030174508659317,
+    1.0030214279380252,
+    1.0030214304496958,
+    1.0030216220312709
+   ],
+   "wall_s": 20107.045419474074
   }
  ],
  "version": 1

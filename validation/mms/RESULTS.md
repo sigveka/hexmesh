@@ -1,6 +1,9 @@
 # Results: manufactured solutions for conduction on every fitting
 
-**Status: in progress** (task 0074, blocked on its questions for design).
+**Status: accepted** on what is verified (task 0074; design answers
+2026-11-07): the straight, bend, spline, stack change and rectangular
+duct converge at the straight's order; the wyes outside their split
+region.  The other fittings are reported, with the checks below.
 Run on 2026-11-06 with OpenFOAM v2406 (Docker `opencfd/openfoam-default:2406`)
 and gmsh 4.12.1, at hexmesh 42357ca with this task's uncommitted changes.
 k = 4 ran on 4 MPI processes.  Error = T − T_m at the cell centres; the
@@ -61,7 +64,10 @@ than 0.3 below the straight's last order (1.60).
   `n_split` at `WYE_N_SPLIT_MAX` = 6 at every k (task 0056).  So the
   split region gets no finer across its turning layers, and its error
   stalls: the max error doesn't fall at all.  The order is therefore the
-  cap's, not the scheme's.
+  cap's, not the scheme's.  **Per case (design answer to Q3):** in
+  wye60, wye90, wye60_shell and wye90_shell, `nang` and the axial counts
+  are refined and the split region is not, so their error in the split
+  region is not verified.
 - **The tees, the transition and the reducer converge at about first
   order** (0.93–1.28).  Their fitting cells keep a constant worst scaled
   Jacobian under refinement (tee 0.258, transition 0.577).  Gauss-linear
@@ -70,12 +76,109 @@ than 0.3 below the straight's last order (1.60).
   explicit non-orthogonal correction stops contracting: about 0.92 per
   corrector at k = 2, and 1.04 at k = 3, where the residual grows 1.43×
   per 10-corrector step.  The meshes pass `checkMesh` (non-orthogonality
-  64°, worst scaled Jacobian 0.42), but the tap's 7552 hexes at k = 1 have
-  edge ratios of 12–13 throughout, with 60°+ non-orthogonality.  The wyes,
+  64°, worst scaled Jacobian 0.42).  The tap's 7552 hexes at k = 1 have
+  edge ratios up to 13 (median 3; "12–13 throughout" in the first
+  version of this file was the maximum), and 60°+ non-orthogonality.  The wyes,
   at 80° but with lower aspect, converge.  A pseudo-transient (Euler,
   Δt 1e-3) gives the same solution and barely damps the iteration.
   `limited corrected 0.5` (the `*_lim` levels in `results.json`) is
   worse at k = 1 (L2 0.0425 against 0.0351) and didn't converge at k = 2.
+
+## The design answers' checks (2026-11-07)
+
+Run on 2026-11-07 with the same toolchain, at hexmesh c8c7c76 plus this
+task's driver changes, on 3 MPI processes beside the 0075 run.  The
+levels are in `results.json` as diagnostic series:
+- `<case>_loc`: the same scheme again.  It reproduces the stored levels
+  to every printed digit;
+- `<case>_lsq`: `gradSchemes` `pointCellsLeastSquares`;
+- `<case>_skew`: `interpolationSchemes` `skewCorrected linear`;
+- `straight_lsq`.
+
+**Check 1: the geometry tightens.**  The wall's deviation from the exact
+surface between neighbouring stations, per k:
+
+| fitting | k = 1 | k = 2 | k = 4 | |
+|---|---|---|---|---|
+| reducer, chord gap / R (n_layers 8, 16, 32) | 0.0281 | 0.0075 | 0.0019 | second order |
+| transition | 0 | 0 | 0 | exact: the node blend is linear in u, so the true wall is ruled like the slabs |
+
+The reducer's stations are evenly spaced at every k (neighbour ratio
+1.000).  Neither fitting has a geometry error that refinement leaves.
+
+**Check 2: skewness and where the error sits.**
+- `checkMesh` max skewness per k (from the first study):
+  - reducer 0.54, 0.48, 0.51 (the same cells as the straight's);
+  - miter 0.67 at every k;
+  - transition 2.14 → 2.28;
+  - tee 1.61 → 1.90;
+  - tee_shells 2.59 → 2.94.
+- **Block interfaces** (cells with a face between two gmsh volumes):
+  - in the tee, the error in those cells converges at 0.84 (k 2 → 4)
+    and in the rest at 1.04, so it isn't concentrated there;
+  - the reducer and the miter are built as one volume per station slab,
+    so every cell touches an interface, and in the transition 87 % do
+    (42 092 of 48 384 at k = 4).  For these the split says nothing.
+
+**Check 3: a skew-aware gradient.**  Fitting L2 order, k 2 → 4:
+
+| fitting | Gauss linear | `skewCorrected` interpolation | `pointCellsLeastSquares` | below `straight_lsq` |
+|---|---|---|---|---|
+| straight | 1.60 | | 1.83 | — |
+| miter | 1.14 | 1.14 | 1.67 | 0.16 |
+| tee_shells | 1.04 | 1.04 | 1.49 | 0.34 |
+| tee | 1.03 | 1.03 | 1.32 | 0.51 |
+| transition | 0.97 | 0.97 | 1.24 | 0.59 |
+| reducer | 0.95 | 0.95 | 0.97 | 0.86 |
+
+- `skewCorrected` changes nothing, to 13 digits.  The `corrected` snGrad
+  interpolates the gradient with a hard-coded `linear`
+  (`docs/integrations/openfoam.md`).
+- **The miter recovers:** its first order is the scheme on its kinked
+  grid lines.
+- **The rest don't.**  What they share is a boundary non-orthogonality
+  that refinement doesn't shrink.  This is the angle between a wall
+  face's normal and the vector from its cell's centre to the face
+  centre.  `fixedValue`'s snGrad has no correction for it.  In the
+  fitting's wall faces, k = 1 → 2 → 4:
+
+  | fitting | median | max |
+  |---|---|---|
+  | straight | ≈ 0 | 1.7° at k = 4 |
+  | bend | 1.3°, 1.2°, 1.3° | 1.9° → 1.7° |
+  | reducer | 21°, 23°, 24° | 29° → 32° |
+  | transition | 13°, 14°, 12° | 44° → 52° |
+  | tee | 9.4°, 8.9°, 9.1° (p90 27°, 22°, 23°) | 61° → 67° |
+
+- The wall is in the right place.  But on a sloped wall, or one that
+  turns into the branch, the near-wall cells follow the axis, not the
+  wall's normal.
+- The reducer has no interior skew to speak of (its skewness is the
+  straight's) and the most wall non-orthogonality.  It gains nothing
+  from the better gradient.
+
+**Q2: the duct taps' aspect doesn't grow with k.**  k = 1, 2, 3:
+
+| | rect tap | round tap |
+|---|---|---|
+| hex edge ratio in the tap, max | 13.1, 12.5, 12.3 | 13.1, 12.5, 12.3 |
+| … median | 3.1, 3.0, 3.0 | 3.2, 3.0, 3.0 |
+| `checkMesh` max aspect, whole mesh | 12.0, 12.8, 13.7 | 22.2, 24.8, 25.8 |
+| `checkMesh` max non-orthogonality | 61.9, 63.5, 64.0 | 61.3, 62.9, 63.4 |
+| tap hexes / a neighbouring straight's (k = 1; both ×k³) | 7552 / 128 | 8960 / 128 |
+
+- The round tap's whole-mesh aspect of 22–26 is in its branch straight
+  (edge ratio 15.3 at every k), not in the tap.
+- **What sets the tap's counts:**
+  - across and deep: the main duct's `nang_w` and `nang_h` (8 and 8);
+  - the O-grid's radial count: `n_wall`, from `DuctTap.wall_cells`.  It
+    is a ceiling that makes cells about as long as the branch's along
+    the main: 8 (rect) and 13 (round) at k = 1, scaled by `refined`;
+  - axially: the Tee's `n_run` and `n_branch` (defaults);
+  - the main's `nrad`.
+- Refinement doesn't stretch the tap's cells, so by design's rule the
+  stall at k ≥ 3 isn't a refinement defect of the fitting.  A stopgap
+  for users is in `docs/integrations/openfoam.md`.
 
 ## gmshToFoam
 

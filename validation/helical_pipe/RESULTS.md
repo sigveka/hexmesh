@@ -1,11 +1,25 @@
 # Results: laminar flow in a helical pipe (the SIET coil)
 
-**Status: in progress, undecided.**  Task 0075 is blocked on Q5.
+**Status: in progress, undecided.**  Task 0075 is held by the user until
+better hardware (2026-11-08); Re 3000's nang 24 level is missing.
 - Design moved the convergence study to nang 12, 16, 24 (Q3), because
   nang 8 is too coarse at these Dean numbers.
-- nang 24 (2.71M cells) hasn't finished at any Re.  Two attempts at Re
-  1800, one from rest and one from the mapped nang 16 field (Q4), each
-  stopped unconverged after 4.5–5 h.  The set needs about 25 h.
+- **nang 24 at Re 1800 and 2400 is done** (2026-11-07/08, the restartable
+  driver, mapped from the nang 16 field, np 4, v2406 in Docker):
+
+  | Re | steps | wall | f, nang 24 | vs Ito | f (nang 12, 16, 24) |
+  |---|---|---|---|---|---|
+  | 1800 | 322 | 5.0 h | 0.06633 | −0.27 % | converging, order 1.93, GCI 0.55 % |
+  | 2400 | 398 | 5.6 h | 0.05557 | +0.26 % | converging, order 1.90, GCI 0.95 % |
+
+  The re-solved nang 16 sources matched the stored levels' f to 1e-8.
+  Wall times overlapped other runs on the machine (task 0074's
+  diagnostics, on 3 processes, for about an hour).
+- **Re 3000's nang 24 isn't run.**  It was stopped 6 minutes into its
+  nang 16 source when the user postponed the run; the case was deleted.
+  At nang 16 its f is +1.92 % from Ito.
+- Earlier: two attempts at Re 1800 (from rest, and mapped without
+  chunks, Q4 and Q5) stopped unconverged after 4.5–5 h.
 - Under the Q4 rule, an unfinished level leaves the case neither
   accepted nor rejected.
 - The nang 8–16 results below stand as measured.  The nang 8 runs are

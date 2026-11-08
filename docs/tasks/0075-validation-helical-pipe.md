@@ -1,6 +1,6 @@
 # 0075 — Validation (V3): laminar flow in a helical pipe (spline pipe)
 
-- **Status:** in progress (the user's go, 2026-11-07: nang 24 at Re 1800, 2400, 3000 running, about 25 h)
+- **Status:** blocked (held by the user until better hardware (2026-11-08); nang 24 done at Re 1800 and 2400, Re 3000 to run)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (V3, with V4 secondary); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V3 (experiment: De Amicis et al. 2014; V4 correlation, Manlapaz & Churchill 1980, secondary)
 - **Features:** `section:circle`, `straight`, `spline`
@@ -364,6 +364,19 @@ on starting it for now").
   reused; each Re re-solves its nang 16 source, then maps it to nang 24.
 - To resume after a stop: run the same command again; it continues from
   the latest 50-step chunk.
+- **Postponed** (2026-11-08, the user via the design session: "the long
+  run has to be postponed until I have access to better hardware").
+  - The driver (pid 2998724) was stopped by SIGTERM after 12 h 42 min;
+    its solver container stopped with it.
+  - Done and stored in `results.json`: nang 24 at Re 1800 (322 steps,
+    5.0 h) and Re 2400 (398 steps, 5.6 h).  Both are converging on
+    nang 12, 16, 24: order 1.93, GCI 0.55 %; order 1.90, GCI 0.95 %.
+    f is −0.27 % and +0.26 % from Ito.
+  - Re 3000 had run 6 minutes of its nang 16 source.  That case (326 MB)
+    was deleted, and `work/` is empty.
+  - To finish: run the same command again.  It reuses every stored level
+    and runs only Re 3000 (its nang 16 source, then nang 24, about 11 h
+    by the Q5 estimate).
 
 ## Outcome
 

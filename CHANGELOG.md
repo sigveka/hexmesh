@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+**The manufactured-solution study is accepted** (task 0074; V1,
+`validation/mms/`).
+- **Verified:** the straight, bend, spline, stack change and
+  rectangular duct converge at the straight's order, and the wyes outside
+  their split region.  The other fittings are reported.
+- **The miter's first order is the scheme on its kinked grid lines:**
+  least-squares gradients lift it to 1.67, the straight's 1.83 under the
+  same scheme.
+- **The reducer, transition and tees stay near first order with either
+  gradient.**  Their wall faces keep a non-orthogonality that refinement
+  doesn't shrink (reducer median 21–24°), and `fixedValue` doesn't
+  correct for it.  Their geometry tightens (reducer, second order) or is
+  exact (transition).
+- **The duct taps' cell aspect doesn't grow under refinement.**
+  `laplacianFoam`'s stall beyond k = 2 has a stopgap note in
+  `docs/integrations/openfoam.md`.
+- `study.openfoam.check_mesh` also returns `max_aspect_ratio`.
+
 **The README's numbers are generated** (task 0078).
 
 - `docs/gallery/build.py` rewrites two marked blocks of `README.md` on

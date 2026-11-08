@@ -223,12 +223,31 @@ def duct():
 CASES = {f.__name__: f for f in (
     straight, bend, miter, spline, reducer, transition, tee, tee_shells, stack_change,
     wye60, wye90, wye60_shell, wye90_shell, duct_tap_rect, duct_tap_round, duct)}
-#: diagnostic series: a case's mesh with a damped laplacian.  The duct taps'
-#: explicit non-orthogonal correction stops contracting at k = 3 (task 0074,
-#: Agent notes); "limited corrected 0.5" converges but is a different scheme
-LAPLACIAN = {"duct_tap_rect_lim": "Gauss linear limited corrected 0.5",
-             "duct_tap_round_lim": "Gauss linear limited corrected 0.5"}
+#: diagnostic series: a case's mesh with other schemes, as ``fvSchemes``
+#: edits (old, new).  The duct taps' explicit non-orthogonal correction stops
+#: contracting at k = 3 (task 0074, Agent notes); "limited corrected 0.5"
+#: converges but is a different scheme
+LIMITED = [("Gauss linear corrected", "Gauss linear limited corrected 0.5")]
+SCHEME_EDITS = {"duct_tap_rect_lim": LIMITED, "duct_tap_round_lim": LIMITED}
 CASES.update({"duct_tap_rect_lim": duct_tap_rect, "duct_tap_round_lim": duct_tap_round})
+#: the fittings flagged in the first study (task 0074, Q1), and the design
+#: answer's checks on them: ``_loc`` the same scheme again, for where the
+#: error sits; ``_lsq`` least-squares cell gradients; ``_skew`` skew-corrected
+#: interpolation.  Orders that recover with a skew-aware scheme point at the
+#: scheme on the mesh, not at the mesh's geometry
+FLAGGED = ("miter", "reducer", "transition", "tee", "tee_shells")
+VARIANTS = {"loc": [],
+            "lsq": [("gradSchemes     { default Gauss linear; }",
+                     "gradSchemes     { default pointCellsLeastSquares; }")],
+            "skew": [("interpolationSchemes { default linear; }",
+                      "interpolationSchemes { default skewCorrected linear; }")]}
+for _case in FLAGGED:
+    for _v, _edits in VARIANTS.items():
+        CASES[f"{_case}_{_v}"] = CASES[_case]
+        SCHEME_EDITS[f"{_case}_{_v}"] = _edits
+#: the baseline under the least-squares gradients, for the ``_lsq`` orders
+CASES["straight_lsq"] = CASES["straight"]
+SCHEME_EDITS["straight_lsq"] = VARIANTS["lsq"]
 
 
 def assembly(case: str, k: int = 1) -> tuple[Assembly, list[int]]:
@@ -239,7 +258,7 @@ def assembly(case: str, k: int = 1) -> tuple[Assembly, list[int]]:
 def meshes():
     """(label, caption, build) per mesh shown in README.md."""
     return [(name, f"{name}, k = 1", lambda n=name: assembly(n)[0]) for name in CASES
-            if name not in LAPLACIAN]
+            if name not in SCHEME_EDITS]
 
 
 # --- the manufactured solution ----------------------------------------------
@@ -300,7 +319,17 @@ SIMPLE
 """
 
 
-def write_case(case: Path, end_time: int, w: np.ndarray, laplacian: str | None = None) -> None:
+def schemes(edits=()) -> str:
+    """``fvSchemes``' body with *edits* (old, new) applied."""
+    text = SCHEMES
+    for old, new in edits:
+        if text.count(old) != 1:
+            raise ValueError(f"fvSchemes edit: {old!r} not found once")
+        text = text.replace(old, new)
+    return text
+
+
+def write_case(case: Path, end_time: int, w: np.ndarray, edits=()) -> None:
     for d in ("0", "constant", "system"):
         (case / d).mkdir(parents=True, exist_ok=True)
     source = f"""mms
@@ -342,7 +371,7 @@ boundaryField
         "system/controlDict": H("dictionary", "controlDict", "system")
         + CONTROL.format(end_time=end_time),
         "system/fvSchemes": H("dictionary", "fvSchemes", "system")
-        + (SCHEMES.replace("Gauss linear corrected", laplacian) if laplacian else SCHEMES),
+        + schemes(edits),
         "system/fvSolution": H("dictionary", "fvSolution", "system") + SOLUTION,
         "constant/transportProperties": H("dictionary", "transportProperties", "constant")
         + "DT              DT [0 2 -1 0 0 0 0] 1;\n",
@@ -375,33 +404,45 @@ def foam_would_invert(p: np.ndarray) -> np.ndarray:
     return bad
 
 
-def _centroids(asm: Assembly) -> tuple[np.ndarray, np.ndarray, int]:
+def _centroids(asm: Assembly) -> tuple[np.ndarray, np.ndarray, int, np.ndarray, float]:
     """Every hex's vertex centroid and its fitting index, from the mesh in
-    the current gmsh session, and how many hexes gmshToFoam's orientation
-    test would flip."""
+    the current gmsh session; how many hexes gmshToFoam's orientation test
+    would flip; each hex's gmsh volume (its block); and the largest ratio of
+    a hex's longest to shortest edge."""
     tags, x, _ = gmsh.model.mesh.getNodes()
     pos = np.full(int(tags.max()) + 1, -1)
     pos[tags.astype(int)] = np.arange(len(tags))
     x = x.reshape(-1, 3)
-    cents, owners, flips = [], [], 0
+    cents, owners, flips, blocks, ratio = [], [], 0, [], 0.0
     for index, vols in asm.fitting_volumes().items():
         for v in vols:
             for t, _, nodes in zip(*gmsh.model.mesh.getElements(3, v)):
                 p = x[pos[nodes.reshape(len(nodes) // 8, 8).astype(int)]]
                 cents.append(p.mean(axis=1))
                 owners.append(np.full(len(p), index))
+                blocks.append(np.full(len(p), v))
                 flips += int(foam_would_invert(p).sum())
-    return np.vstack(cents), np.concatenate(owners), flips
+                ends = np.asarray(_HEX_EDGES)
+                e = np.linalg.norm(p[:, ends[:, 1]] - p[:, ends[:, 0]], axis=2)
+                ratio = max(ratio, float((e.max(axis=1) / e.min(axis=1)).max()))
+    return np.vstack(cents), np.concatenate(owners), flips, np.concatenate(blocks), ratio
 
 
-def _errors(err, vol, mask) -> dict:
+#: a hex's 12 edges (gmsh vertex order)
+_HEX_EDGES = ((0, 1), (1, 2), (2, 3), (3, 0), (4, 5), (5, 6), (6, 7), (7, 4),
+              (0, 4), (1, 5), (2, 6), (3, 7))
+
+
+def _errors(err, vol, mask) -> dict | None:
+    if not mask.any():
+        return None
     v = vol[mask]
     return {"l2": float(math.sqrt(np.sum(v * err[mask] ** 2) / v.sum())),
             "max": float(np.abs(err[mask]).max()), "cells": int(mask.sum())}
 
 
 def results(case: Path, w: np.ndarray, cents: np.ndarray, owners: np.ndarray,
-            focus: list[int], names: dict[int, str]) -> dict:
+            focus: list[int], names: dict[int, str], blocks: np.ndarray | None = None) -> dict:
     from scipy.spatial import cKDTree
     mesh = case / "constant/polyMesh"
     pts, faces = of.read_points(mesh / "points"), of.read_faces(mesh / "faces")
@@ -417,6 +458,18 @@ def results(case: Path, w: np.ndarray, cents: np.ndarray, owners: np.ndarray,
     boundary[owner[len(neigh):]] = True
     worst = int(np.argmax(np.abs(err)))
     per = {names[i]: _errors(err, vol, fit == i) for i in sorted(set(fit.tolist()))}
+    split = {}
+    if blocks is not None:
+        # cells with a face on a block interface: a face between two gmsh
+        # volumes, where grid lines may kink (task 0074, Q1 check 2)
+        blk = blocks[near]
+        inner = np.arange(len(neigh))
+        cut = blk[owner[inner]] != blk[neigh]
+        at = np.zeros(len(T), bool)
+        at[owner[inner][cut]] = at[neigh[cut]] = True
+        split = {"focus_block_interface": _errors(err, vol, in_focus & at),
+                 "focus_block_interior": _errors(err, vol, in_focus & ~at),
+                 "max_at_block_interface": bool(at[worst])}
     return {
         "volume": float(vol.sum()),
         "all": _errors(err, vol, np.ones(len(T), bool)),
@@ -428,6 +481,7 @@ def results(case: Path, w: np.ndarray, cents: np.ndarray, owners: np.ndarray,
         "max_at": {"fitting": names[int(fit[worst])], "boundary_cell": bool(boundary[worst]),
                    "position": cc[worst].tolist()},
         "match_distance_max": float(dist.max()),
+        **split,
     }
 
 
@@ -443,7 +497,7 @@ def run_level(name: str, k: int, work: Path, end_time: int, n_proc: int = 1) -> 
         msh = case / "mesh.msh"
         asm.write_openfoam(str(msh))
         sj = asm.check_quality("scaled_jacobian").worst
-        cents, owners, flips = _centroids(asm)
+        cents, owners, flips, blocks, edge_ratio = _centroids(asm)
         lo, hi = cents.min(axis=0), cents.max(axis=0)
     names = {e.index: e.name for e in asm.edges}
     d = 2 * R
@@ -452,10 +506,10 @@ def run_level(name: str, k: int, work: Path, end_time: int, n_proc: int = 1) -> 
     if k != 1:
         with Session(f"mms-{name}-box"):
             a1.mesh()
-            c1, _, _ = _centroids(a1)
+            c1 = _centroids(a1)[0]
             lo, hi = c1.min(axis=0), c1.max(axis=0)
     w = wave_numbers(lo, hi, d)
-    write_case(case, end_time, w, LAPLACIAN.get(name))
+    write_case(case, end_time, w, SCHEME_EDITS.get(name, ()))
     # every hex right-handed (gmsh's corner Jacobians), so gmshToFoam's
     # orientation test, which flips warped junction hexes, is skipped
     retyped = of.convert(case, msh, keep_orientation=sj > 0)
@@ -463,7 +517,10 @@ def run_level(name: str, k: int, work: Path, end_time: int, n_proc: int = 1) -> 
     solve = of.run_solver(case, "laplacianFoam", n_proc=n_proc)
     res = [float(v) for v in re.findall(r"Initial residual = ([\d.e+-]+)", solve)]
     out = {"case": name, "k": k, "cells": cells, "focus": [names[i] for i in focus],
-           "laplacian": LAPLACIAN.get(name, "Gauss linear corrected"),
+           "laplacian": dict(SCHEME_EDITS.get(name, ())).get("Gauss linear corrected",
+                                                              "Gauss linear corrected"),
+           "scheme_edits": [list(e) for e in SCHEME_EDITS.get(name, ())],
+           "max_edge_ratio": edge_ratio,
            "wave_numbers": w.tolist(), "min_scaled_jacobian": sj, "retyped": retyped,
            "keep_orientation": sj > 0, "gmshToFoam_would_invert": flips,
            **{f"check_{key}": v for key, v in check.items()},
@@ -473,7 +530,7 @@ def run_level(name: str, k: int, work: Path, end_time: int, n_proc: int = 1) -> 
            "steps": len(re.findall(r"^Time = ", solve, re.M)),
            "last_initial_residual": res[-1] if res else None,
            "converged": "reached convergence" in solve or (bool(res) and res[-1] < 1e-10)}
-    out.update(results(case, w, cents, owners, focus, names))
+    out.update(results(case, w, cents, owners, focus, names, blocks))
     return out
 
 

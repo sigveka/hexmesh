@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "title": "Laminar flow in a helical pipe (the SIET coil)",
-  "headline": "f +0.4 % to +1.9 % from Ito at nang 16; the nang 24 level is running",
+  "headline": "f within 0.3 % of Ito at nang 24 (Re 1800, 2400), converging; Re 3000's nang 24 to run",
   "category": "V3",
   "references": [
     {

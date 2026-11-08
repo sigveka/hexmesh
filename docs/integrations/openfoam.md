@@ -575,6 +575,41 @@ All v1912, gmsh 4.12.1, 2026-10-25.
     face flux field phi", reading the written `phi`, and the time
     continues (`Time = 21` after 20).
 
+- **`interpolationSchemes` doesn't reach the `corrected` laplacian's
+  non-orthogonal correction; `gradSchemes` does** (v2406 in Docker,
+  `laplacianFoam`; task 0074, 2026-11-07).
+  - Evidence: the MMS tee, transition and shelled tee with `default
+    skewCorrected linear` give the baseline's L2 to 13 digits (tee k = 4:
+    0.0025386356057860 vs …1351).  The edited `fvSchemes` was the one
+    run.
+  - Cause, in `src/finiteVolume/lnInclude/correctedSnGrad.C`: the
+    correction interpolates the cell gradient with a hard-coded
+    `linear<…>(mesh).dotInterpolate`.  Only the gradient comes from
+    `gradSchemes`, as `grad(T)`.
+  - So a skew-aware *gradient* (`pointCellsLeastSquares`) changes the
+    result: in the same cases, the order in the fitting rose from about 1
+    to 1.24–1.49.
+
+- **A refined duct tap stalls `laplacianFoam`'s explicit non-orthogonal
+  correction** (v2406 in Docker, `laplacianFoam`, steady, `Gauss linear
+  corrected`, 10 correctors per step; task 0074, 2026-11-06; a stopgap
+  note for users, design answer to Q2, 2026-11-07).
+  - The meshes are the MMS duct taps (`validation/mms/`, rectangular and
+    round branch on a 2R × R duct).  They pass `checkMesh`:
+    non-orthogonality 62–64°, worst scaled Jacobian 0.42.
+  - The correction contracts by about 0.92 per corrector at k = 2, and
+    grows by 1.04 at k = 3, where the residual grows 1.43× per step.
+  - **Tried, without effect beyond k = 2:**
+    - `limited corrected 0.5`: worse at k = 1 (L2 0.0425 against 0.0351)
+      and no convergence at k = 2;
+    - a pseudo-transient (Euler, Δt 1e-3) at k = 2: the identical
+      solution (L2 equal to 12 digits), and barely more damping.
+  - **Stopgap:** solve a duct tap at k ≤ 2 of the MMS case's density,
+    where the standard settings converge in a few steps.  Watch the
+    initial residual across steps; a value that stops falling is this
+    case, not a slow start.  Whether the tap's cell aspect is a fitting
+    defect is task 0074's Q2.  Its measurement is in that task.
+
 ## Gaps in hexmesh's OpenFOAM support
 
 - **`hexmesh/io/writers/openfoam.py` (`write_openfoam_case`)** — noted

@@ -903,7 +903,7 @@ Case: `validation/layered_conduction/`: [README.md](../validation/layered_conduc
 
 #### Manufactured solutions for conduction on every fitting
 
-**Status:** in progress (task 0074).  **Reference:** manufactured: $T_m = \sin(a x + 0.3)\,\sin(b y + 0.7)\,\sin(c z + 1.1)$, source $S = (a^2 + b^2 + c^2)\,T_m$.
+**Status:** accepted (task 0074).  **Reference:** manufactured: $T_m = \sin(a x + 0.3)\,\sin(b y + 0.7)\,\sin(c z + 1.1)$, source $S = (a^2 + b^2 + c^2)\,T_m$.
 
 Tags: `conduction`, `section:circle`, `section:rect`, `layers`, `straight`, `bend`, `miter`, `spline`, `profiled-reducer`, `transition`, `tee`, `duct-tap`, `wye`, `stack-changes`, `projection`, `OpenFOAM v2406 (docker)`.
 
@@ -1056,20 +1056,20 @@ Which hexmesh features each case exercises (decision 0012's fixed list). Marks: 
 
 | Feature | heated_pipe<br>V1 | heated_rod<br>V1 | helical_pipe<br>V3 | layered_conduction<br>V1 | mms<br>V1 | poiseuille<br>V1 | rect_duct<br>V1 | square_bend<br>V3 | stenosis<br>V2 | stenosis_pulsatile<br>V2 | turbulent_pipe<br>V2 | womersley<br>V1 | 0050<br>V3 | 0077<br>V1 | 0079<br>V3 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `section:circle` | ● | ● | ◐ | ● | ◐ | ● |  |  | ● | ● | ● | ● | ○ | ○ | ○ |
-| `section:rect` |  |  |  |  | ◐ |  | ● | ● |  |  |  |  |  |  |  |
-| `layers` | ● |  |  | ● | ◐ |  |  |  |  |  |  |  |  |  |  |
-| `straight` | ● | ● | ◐ | ● | ◐ | ● | ● | ● | ● | ● | ● | ● | ○ | ○ | ○ |
-| `bend` |  |  |  |  | ◐ |  |  | ● |  |  |  |  | ○ | ○ |  |
-| `miter` |  |  |  |  | ◐ |  |  |  |  |  |  |  |  |  |  |
-| `spline` |  |  | ◐ |  | ◐ |  |  |  |  |  |  |  |  |  |  |
-| `profiled-reducer` |  |  |  |  | ◐ |  |  |  | ● | ● |  |  |  |  |  |
-| `transition` |  |  |  |  | ◐ |  |  |  |  |  |  |  |  |  |  |
-| `tee` |  |  |  |  | ◐ |  |  |  |  |  |  |  |  | ○ |  |
-| `duct-tap` |  |  |  |  | ◐ |  |  |  |  |  |  |  |  |  |  |
-| `wye` |  |  |  |  | ◐ |  |  |  |  |  |  |  |  |  |  |
-| `stack-changes` |  |  |  |  | ◐ |  |  |  |  |  |  |  |  |  |  |
-| `projection` |  |  |  |  | ◐ |  |  |  |  |  |  |  |  | ○ |  |
+| `section:circle` | ● | ● | ◐ | ● | ● | ● |  |  | ● | ● | ● | ● | ○ | ○ | ○ |
+| `section:rect` |  |  |  |  | ● |  | ● | ● |  |  |  |  |  |  |  |
+| `layers` | ● |  |  | ● | ● |  |  |  |  |  |  |  |  |  |  |
+| `straight` | ● | ● | ◐ | ● | ● | ● | ● | ● | ● | ● | ● | ● | ○ | ○ | ○ |
+| `bend` |  |  |  |  | ● |  |  | ● |  |  |  |  | ○ | ○ |  |
+| `miter` |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |  |
+| `spline` |  |  | ◐ |  | ● |  |  |  |  |  |  |  |  |  |  |
+| `profiled-reducer` |  |  |  |  | ● |  |  |  | ● | ● |  |  |  |  |  |
+| `transition` |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |  |
+| `tee` |  |  |  |  | ● |  |  |  |  |  |  |  |  | ○ |  |
+| `duct-tap` |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |  |
+| `wye` |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |  |
+| `stack-changes` |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |  |
+| `projection` |  |  |  |  | ● |  |  |  |  |  |  |  |  | ○ |  |
 
 ---
 

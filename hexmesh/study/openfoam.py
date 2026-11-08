@@ -374,8 +374,8 @@ def convert(case: Path, msh: Path, split_regions: bool = False,
 
 
 def check_mesh(case: Path, region: str | None = None) -> dict:
-    """``checkMesh`` (of *region*): Mesh OK, cells, max non-orthogonality
-    and skewness."""
+    """``checkMesh`` (of *region*): Mesh OK, cells, max non-orthogonality,
+    skewness and aspect ratio."""
     out = (foam(f"checkMesh -region {region}", case, f"log.checkMesh.{region}") if region
            else foam("checkMesh", case, "log.checkMesh"))
     return {
@@ -384,6 +384,7 @@ def check_mesh(case: Path, region: str | None = None) -> dict:
         "max_non_orthogonality": float(
             re.search(r"non-orthogonality Max: ([\d.e+-]+)", out).group(1)),
         "max_skewness": float(re.search(r"Max skewness = ([\d.e+-]+)", out).group(1)),
+        "max_aspect_ratio": float(re.search(r"Max aspect ratio = ([\d.e+-]+)", out).group(1)),
     }
 
 

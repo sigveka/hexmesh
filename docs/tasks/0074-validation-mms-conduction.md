@@ -1,6 +1,6 @@
 # 0074 — Verification (V1): manufactured solutions for conduction on every fitting's mesh
 
-- **Status:** ready (design answered Q1–Q3, 2026-11-07: the Q1 checks and the Q2 measurement)
+- **Status:** done (2026-11-08)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (V1); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V1 (exact: manufactured solutions)
 - **Features:** `section:circle`, `section:rect`, `layers`, `straight`, `bend`, `miter`, `spline`, `profiled-reducer`, `transition`, `tee`, `duct-tap`, `wye`, `stack-changes`, `projection`
@@ -133,6 +133,36 @@ useful); different conductivities per layer (interface physics: tasks
   - The planned-task test points at 0050.
   - The all-gates-pass test applies to `accepted` cases, so 0049 and
     0072 can report failing gates.
+- **The design answers' checks (2026-11-07/08).**  Numbers and tables
+  are in `validation/mms/RESULTS.md`, "The design answers' checks".
+  - **Driver:**
+    - `LAPLACIAN` became `SCHEME_EDITS`: `fvSchemes` edits per series.
+    - New diagnostic series `<flagged>_loc`, `_lsq` and `_skew`, and
+      `straight_lsq`.
+    - Every level now also stores `max_edge_ratio`, `scheme_edits`, and
+      the focus error split by block-interface cells
+      (`focus_block_interface`, `focus_block_interior`,
+      `max_at_block_interface`).
+    - `_errors` returns None for an empty set: the miter's and reducer's
+      cells all touch a slab interface, so their first run of the series
+      failed at k = 1.
+  - `study.openfoam.check_mesh` also returns `max_aspect_ratio`.
+  - **Measured outside the driver** (scratch scripts; the numbers are in
+    RESULTS.md):
+    - the reducer's chord gaps per k;
+    - the transition's blend (linear in u, so exact);
+    - the wall-face non-orthogonality per k (straight, bend, reducer,
+      transition, tee);
+    - the duct taps' aspect at k = 1, 2, 3, with `checkMesh`.
+  - **A false lead, noted so it isn't repeated:** a fixed-angle radial
+    sag of the transition (via `BlendShape.extent`) falls only at first
+    order.  That's an artefact: `extent` is a support function and isn't
+    linear in u, while the mesh's nodes follow the linear node blend.
+  - **Cost:** the 48 diagnostic levels (5 fittings × 3 series × 3
+    levels, and `straight_lsq`) took about 56 min on 3 processes,
+    beside the 0075 run (log times: 41, 14 and 1 min).
+  - **Corrected:** RESULTS.md had "edge ratios of 12–13 throughout" for
+    the duct taps.  That is the maximum; the median is 3.
 
 ## Questions for design
 
@@ -214,7 +244,44 @@ with your answers").
 
 ## Outcome
 
-_Blocked on Q1–Q3; the harness and the results are complete._
+**Done (2026-11-08): the case is accepted on what is verified** (design
+answer, "Acceptance").  The straight, bend, spline, stack change and
+rectangular duct converge at the straight's order, and the wyes outside
+their split region.  The flagged fittings and the duct taps are reported
+with the checks.
+- **Q1:**
+  - **check 1:** no geometry error that refinement leaves.  The reducer's
+    chord gap falls at second order (0.028, 0.0075, 0.0019 R), and the
+    transition's wall is exact (a ruled node blend);
+  - **check 2:** skewness per k is flat (reducer, miter) or rises a
+    little (transition, tees).  In the tee the error isn't concentrated
+    at block interfaces;
+  - **check 3:** least-squares gradients recover the **miter** (1.67
+    against `straight_lsq`'s 1.83): the scheme on kinked grid lines, as
+    design expected.  They don't recover the reducer (0.97), the
+    transition (1.24) or the tees (1.32, 1.49).  `skewCorrected`
+    interpolation changes nothing: OpenFOAM doesn't use it there.
+  - **What the unrecovered four share:** a wall-face non-orthogonality
+    that refinement doesn't shrink.  Medians: reducer 21–24°, transition
+    12–14°, tee 9°; straight about 0°, bend 1.3°.  `fixedValue`'s
+    boundary snGrad has no correction for it.
+- **Q2:** the taps' aspect doesn't grow with k (edge ratio max 13.1 →
+  12.3, median 3).  By design's rule, not a refinement defect.  What
+  sets the counts is in RESULTS.md.  The stopgap note is in
+  `docs/integrations/openfoam.md`.
+- **Q3:** said per wye case in RESULTS.md.
+- **Proposed follow-up for design:** which kind is the wall
+  non-orthogonality?
+  - If accepted as a scheme property ("expect first-order local error
+    next to sloped walls in OpenFOAM's `fixedValue`"), it goes into the
+    CFD guidance and RESEARCH.
+  - If treated as a fitting matter, the fix would make the reducer's and
+    transition's near-wall grid lines normal to the wall.
+  - A measurement that would tell them apart: the reducer at a smaller
+    constriction (wall slope), to see whether the order tracks the
+    angle.
+
+_The first study's outcome:_
 
 - **Files:**
   - `validation/mms/` (`run.py`, `README.md`, `RESULTS.md`,
