@@ -248,3 +248,15 @@ concept" argument.  It is kept out of C, as a separate question:
   stadium shape matters more.
 - **State:** nothing planned.  Kept here so the points above aren't
   lost.
+
+## Amendment: C is off hold, for 1.0 (2026-11-08; the user: "per-arc count yes", accepted with decision 0042)
+
+Per-arc counts on `CircleShape` are a 1.0 exit criterion (decision
+0042, criterion 3, milestone 0.7), in the form fixed above under "C's
+form, if it is done": general per-arc counts in the generic
+`CircleShape` (an optional field; `nang` keeps its meaning); fittings opt
+in, rejecting unequal arcs with a coded error until they support them;
+the count pattern is topology, a uniform multiplier density; the 28
+example meshes and every port signature unchanged.  They are reviewed
+with the rest of the public surface before the 1.0 freeze.  Tasks follow
+in milestone order.  The ellipse stays an idea, outside 1.0.

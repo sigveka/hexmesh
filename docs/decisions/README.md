@@ -56,6 +56,7 @@ rejected.  Records are written in design sessions, and they are the only way
 | [0039](0039-platform-support.md) | Platform support: meshing on Linux, macOS, Windows; OpenFOAM through Linux, WSL or Docker | accepted |
 | [0040](0040-user-agents-network-design-and-resolution.md) | Agents for users: network design and resolution first (decision 0019's first stage) | accepted |
 | [0041](0041-per-side-counts-on-rectangles.md) | Per-side counts on rectangles next to circles and shells | accepted |
+| [0042](0042-road-to-1-0.md) | The road to 1.0: what 1.0 promises, and what must be true first | accepted |
 
 ## Future expansions
 
