@@ -113,6 +113,15 @@ profile shows one).
      (not checked: the counts may change the curves' points), that saves
      one more build per `add`, but not `advise`'s.
 
+**Design answer (2026-11-08, the user: "add a note for the vectorizing so
+it can be picked up in the future"):** held.  Vectorising moves wye wall
+nodes by rounding, which conflicts with the stability statement 0115
+publishes (reproducible meshes; node changes noted).  It is recorded in
+RESEARCH §8 (proposed actions) with what a future task needs: the
+speed-up measured first, a node-position tolerance in place of the byte
+check for wye meshes, and a CHANGELOG note.  The curve-sharing
+alternative isn't pursued: unverified, and it doesn't help `advise`.
+
 ## Outcome
 
 **Done: the primer session's wall projection falls by 56 %** (2 430 →

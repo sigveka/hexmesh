@@ -1443,6 +1443,7 @@ The fittings below the straight's order, and why (the design checks):
 | Local refinement | Single-sheet (pillow) insertion inside a fitting, ending on the outermost wall; ports unchanged | §9.5 |
 | Port-face compatibility | Classify port-face pairs (classes 0–3) by mesh signature in `validate()`; decision 0011 (proposed) | §9.6 |
 | Stenosis benchmark | Varying-radius sweep (decision 0008); OpenFOAM validation against the Varghese/Purdue data | §7.3 |
+| Wye wall projection (speed) | Vectorise `Skeleton.to_wall`: march and bisect a curve's points together with the vectorised `Skeleton.distance`, instead of scalar `nearest` (83 392 calls for 4 layouts; one layout 0.55–0.67 s after 0112's cache).  **Moves wye wall nodes by rounding**, so it is a deliberate, changelogged mesh change after a release: measure the speed-up first; replace the byte-identical gallery check by a node-position tolerance for wye meshes; say in CHANGELOG that wye meshes change (0115's stability statement).  Held by design, 2026-11-08 | task 0112, Q1 |
 
 ---
 

@@ -119,8 +119,12 @@ Rules that follow:
 **Context.**  Python 3.10 reached its end of life in October 2026.  The
 last two CI runs (42466812439, 42468603272) failed on
 `windows-latest, Python 3.10` in `actions/setup-python`, before any
-test ran; every other job passed.  **Assumed, not verified:** that the
-runner image no longer provides 3.10.  Task 0113 reads the log.
+test ran; every other job passed.  ~~Assumed: that the runner image no
+longer provides 3.10.~~  **Corrected (2026-11-08, task 0113):** the log
+shows a 504 from GitHub's download of `python-3.10.11-win32-x64.zip`, a
+transient server error; macOS and Linux at 3.10 passed in the same runs.
+CI was also red on every job for an unrelated test bug (NumPy 2's
+`repr`), fixed in 0113.  The drop stands on end of life alone.
 
 **Decided:**
 1. `requires-python = ">=3.11"`.  CI's oldest version is 3.11, beside

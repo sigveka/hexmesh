@@ -150,7 +150,7 @@ or a long run.
    **0105 → 0106 → 0107 → 0078** (CI green on Windows; every user-facing
    error coded, with hints; the light commands without gmsh; the README
    front page).  Before other work.
-   Then, before the launch post (0110 and 0108 done; 0112 in progress):
+   Then, before the launch post (0110, 0108 and 0112 done):
    **0113** (Python 3.11 floor; CI green) → **0114** (a PCF sample;
    `--insulation`) → **0115** (release 0.5.0, last).  After the launch
    (the user, 2026-11-08): **0103** (angled tees in networks) → **0104**
