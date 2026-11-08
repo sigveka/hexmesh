@@ -14,17 +14,24 @@
 The README and the guides (task 0078): the README's first code block
 builds the network the gallery measures, with the cell count its metrics
 table quotes; every relative link and image in ``README.md``,
-``docs/WHY.md`` and ``docs/GUIDE.md`` resolves, anchors included; and
-``CITATION.cff`` carries ``pyproject.toml``'s version.
+``docs/WHY.md`` and ``docs/GUIDE.md`` resolves, anchors included;
+``CITATION.cff`` carries ``pyproject.toml``'s version; and every number
+the "With an agent" primer quotes is what the commands return for its
+network (task 0110).
 """
 
+import io
+import json
 import re
+import sys
 from collections import Counter
 from pathlib import Path
 
 import pytest
 
-from hexmesh.examples.sections import insulated_tee
+from hexmesh import _gmsh
+from hexmesh.agent import cli
+from hexmesh.examples.sections import insulated_network, insulated_tee
 
 ROOT = Path(__file__).resolve().parents[1]
 README = ROOT / "README.md"
@@ -139,3 +146,165 @@ def test_citation_version_is_the_package_s():
     assert version("CITATION.cff", r"^version: *(\S+)") == \
         version("pyproject.toml", r'^version *= *("[^"]+")'), \
         "bump CITATION.cff's version with pyproject.toml's"
+
+
+# --- the agent primer (task 0110) ----------------------------------------------
+
+def primer(text: str) -> str:
+    """The "With an agent" section as one line: blockquote marks dropped,
+    whitespace collapsed, so a regex can span the prose's line breaks."""
+    section = text.split("\n## With an agent\n")[1].split("\n---\n")[0]
+    return re.sub(r"\s+", " ", " ".join(re.sub(r"^> ?", "", l) for l in section.splitlines()))
+
+
+N = r"(\d[\d ]*\d|\d)"                 # 641 680: digit groups split by spaces
+
+#: What the primer says, as (what, regex): one group per value.
+CLAIMS = {
+    "the budget": r"stay under " + N + " cells",
+    "the velocity, cm/s": r"water at " + N + " cm/s",
+    "the accuracy asked": r"cm/s, (\w+) accuracy",
+    "estimate's cells": r"`hexmesh estimate`: " + N + " cells",
+    "the cells at the accuracy asked": r"(?:\w+) accuracy needs " + N + " cells",
+    "the straights' axial aspect, before": r"axial aspect " + N + " →",
+    "the straights' axial aspect, after": r"axial aspect \d+ → " + N + ",",
+    "the cells with stretched straights": r"axial aspect \d+ → \d+, " + N + " cells",
+    "the accuracy it fell back to": r"then fell back to (\w+):",
+    "nang": r"`nang` " + N,
+    "nrad": r"`nrad` " + N,
+    "the cells advised": r"`nrad` \d+, " + N + " cells",
+}
+
+
+def said(text: str) -> dict:
+    out = {}
+    for what, rx in CLAIMS.items():
+        m = re.search(rx, text)
+        assert m, f"README primer: no longer says {what} (pattern {rx!r})"
+        v = m.group(1)
+        out[what] = int(v.replace(" ", "")) if v[0].isdigit() else v
+    return out
+
+
+class _Out:
+    def __init__(self):
+        self.buffer = io.BytesIO()
+
+    def flush(self):
+        pass
+
+
+def _cli(*argv) -> dict:
+    out, real = _Out(), sys.stdout
+    sys.stdout = out
+    try:
+        cli.main([str(a) for a in argv])
+    finally:
+        sys.stdout = real
+    payload = json.loads(out.buffer.getvalue())
+    assert "result" in payload, f"hexmesh {argv[0]}: {payload['error']['message']}"
+    return payload
+
+
+@pytest.fixture(scope="module")
+def got(tmp_path_factory):
+    """The primer's session, run through the CLI on its network with the
+    inputs its prose gives, with gmsh's loader made to fail: no command
+    here may touch gmsh."""
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(_gmsh, "load", _no_gmsh)
+        return _session(tmp_path_factory.mktemp("primer"))
+
+
+def _no_gmsh():
+    raise AssertionError("the primer's commands reached gmsh")
+
+
+def _session(tmp: Path) -> dict:
+    claims = said(primer(README.read_text(encoding="utf-8")))
+    net, inputs, table = tmp / "header.json", tmp / "inputs.json", tmp / "table.json"
+    asm = insulated_network.build()
+    asm.save(net)
+    inputs.write_text(json.dumps({"fluid": "water",
+                                  "flow": {"velocity": claims["the velocity, cm/s"] / 100},
+                                  "accuracy": claims["the accuracy asked"],
+                                  "budget": claims["the budget"]}), encoding="utf-8")
+    validated = _cli("validate", net)["result"]
+    estimate = _cli("estimate", net)["result"]
+    advice = _cli("advise", net, "--inputs", inputs)["result"]
+    table.write_text(json.dumps(advice["table"]), encoding="utf-8")
+    applied = tmp / "applied.json"
+    applied.write_text(json.dumps(_cli("apply", net, "--table", table)["result"]),
+                       encoding="utf-8")
+    steps = advice["budget_steps"]
+    aspect = re.fullmatch(r"straights' axial aspect (\d+) → (\d+)", steps[0]["step"])
+    fallback = re.fullmatch(r"accuracy (\w+) → (\w+)", steps[-1]["step"])
+    return {
+        "claims": claims, "asm": asm,
+        "validated": validated, "advice": advice,
+        "revalidated": _cli("validate", applied)["result"],
+        "values": {
+            **{k: claims[k] for k in ("the budget", "the velocity, cm/s",
+                                      "the accuracy asked")},
+            "estimate's cells": estimate["cells"],
+            "the cells at the accuracy asked": steps[0]["cells_before"],
+            "the straights' axial aspect, before": int(aspect[1]),
+            "the straights' axial aspect, after": int(aspect[2]),
+            "the cells with stretched straights": steps[0]["cells_after"],
+            "the accuracy it fell back to": advice["totals"]["accuracy"],
+            "nang": advice["density"]["nang"],
+            "nrad": advice["density"]["nrad"],
+            "the cells advised": advice["totals"]["cells"],
+        },
+        "fell_from": fallback and fallback[1],
+    }
+
+
+def stale(claims: dict, values: dict) -> list[str]:
+    return [f"README primer: {what} is {claims[what]}; the commands give {values[what]}"
+            for what in CLAIMS if claims[what] != values[what]]
+
+
+def test_the_primer_quotes_what_the_commands_return(got):
+    assert stale(got["claims"], got["values"]) == []
+    assert len(got["advice"]["budget_steps"]) == 2          # stretch, then one class down
+    assert got["fell_from"] == got["claims"]["the accuracy asked"]
+    assert got["advice"]["totals"]["within_budget"]
+
+
+def test_the_primer_s_validations_and_note(got):
+    text = primer(README.read_text(encoding="utf-8"))
+    assert "`hexmesh validate` (no errors, no warnings)" in text
+    assert got["validated"]["ok"] and got["validated"]["warnings"] == []
+    assert "`validate` passes again" in text and got["revalidated"]["ok"]
+    assert "calibrated on developed flow in straight runs" in text
+    assert "advice_calibration_scope" in [n["code"] for n in got["advice"]["notes"]]
+
+
+def test_a_planted_wrong_number_is_named(got):
+    text = primer(README.read_text(encoding="utf-8")).replace("72 048 cells", "72 049 cells")
+    assert stale(said(text), got["values"]) == \
+        ["README primer: the cells advised is 72049; the commands give 72048"]
+
+
+def test_the_primer_describes_its_network(got):
+    """Each dimension the prose gives, against the example (in metres)."""
+    text = primer(README.read_text(encoding="utf-8"))
+    for phrase in ("200 mm bore, 6 mm steel, 25 mm insulation", "A 0.4 m straight",
+                   "a tee to a 120 mm branch that drops its insulation right after the tee",
+                   "0.4 m more", "a 60° wye into two 0.3 m legs"):
+        assert phrase in text, phrase
+    asm = got["asm"]
+    spec = asm.edges[0].ports[0].spec.to_dict()
+    assert spec["core"]["shape"]["radius"] * 2 == 0.2
+    assert [(s["name"], s["dR"]) for s in spec["shells"]] == [("steel", 0.006),
+                                                              ("insulation", 0.025)]
+    kinds = [(type(e.fitting).__name__, e.fitting) for e in asm.edges]
+    assert [k for k, _ in kinds] == ["Straight", "Tee", "Straight", "Straight", "Wye",
+                                     "Straight", "Straight"]
+    straight0, tee, tap, header, wye, left, right = (f for _, f in kinds)
+    assert straight0.length == 0.4 and header.length == 0.4
+    assert tee.branch_radius * 2 == 0.12
+    (at, bare), = tap.stack_changes
+    assert at == 1 and bare.layer_names == ["fluid", "steel"]
+    assert wye.angle == 60 and left.length == right.length == 0.3

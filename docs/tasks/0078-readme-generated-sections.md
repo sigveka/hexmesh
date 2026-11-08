@@ -133,8 +133,10 @@ If the version changes, bump `CITATION.cff`'s `version` with
   `<a id=…>` counts too.  Code spans and fences are skipped.  42 links
   are checked (README 23, WHY 7, GUIDE 12); a planted test checks that a
   missing file, image and anchor are each caught.
-- **Not touched:** the README's "With an agent" section, which is empty
-  in HEAD (heading only).  It is the design session's.
+- **Not touched:** the README's "With an agent" section (the design
+  session's, 6712f95).  An earlier version of this note called it empty:
+  a misreading of two partial views of the file.  It is complete; its
+  numbers are hand-written (task 0110).
 
 ## Questions for design
 
@@ -170,4 +172,5 @@ _None._
 - **Proposed follow-ups:**
   - when 0075 finishes, update `helical_pipe`'s `headline` and status,
     then run `build.py --markdown-only`;
-  - the README's "With an agent" section is empty (design's).
+  - ~~the README's "With an agent" section is empty~~: wrong, see
+    *Agent notes*.

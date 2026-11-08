@@ -107,7 +107,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0105](0105-windows-ci-green.md) | CI green again: the Windows gmshToFoam test | done | 0039 |
 | [0106](0106-error-coverage-and-hints.md) | Every user-facing error coded, and hints where they help | done | 0040 |
 | [0107](0107-light-commands-without-gmsh.md) | The light commands load neither gmsh nor scipy | done | 0040 |
-| [0110](0110-readme-agent-primer-checked.md) | The README's agent primer: its numbers checked | ready | 0040 |
+| [0110](0110-readme-agent-primer-checked.md) | The README's agent primer: its numbers checked | done (2 questions for design) | 0040 |
 | [0111](0111-hints-equipment-study.md) | Hints for equipment and study errors; the layout errors reviewed | ready (after 0110) | 0040 |
 
 ### Validation
