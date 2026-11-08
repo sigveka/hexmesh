@@ -273,3 +273,122 @@ def test_openfoam_check_mesh(gmsh_session, tmp_path):
         capture_output=True, text=True)
     assert run.returncode == 0, run.stdout[-2000:] + run.stderr[-2000:]
     assert "Mesh OK." in run.stdout, run.stdout[-3000:]
+
+
+# --- the layout cache (task 0112) -------------------------------------------------
+
+from hexmesh.assembly import wye as wye_module          # noqa: E402
+from hexmesh.assembly.interface import Frame            # noqa: E402
+
+
+def _fingerprint(lay):
+    """What a stale layout would get wrong: its counts and its vertices.
+    Each test below changes one input, and checks that the cache misses
+    (builds again) and returns what a fresh build gives.  Some inputs leave
+    this fingerprint as it was (``branch_length`` at fixed frames, the
+    core's ``mprg``); a miss is required for them all the same."""
+    return lay.cell_count(), sorted((repr(k), np.asarray(v).tobytes())
+                                    for k, v in lay.coords.items())
+
+
+@pytest.fixture
+def cached(monkeypatch):
+    """A clean cache, and how many layouts are built (misses)."""
+    monkeypatch.setattr(wye_module, "_LAYOUTS", type(wye_module._LAYOUTS)())
+    built = [0]
+    inner = Wye._layout
+
+    def counting(self, frames, spec):
+        built[0] += 1
+        return inner(self, frames, spec)
+    monkeypatch.setattr(Wye, "_layout", counting)
+    return built
+
+
+def _resolved(**kw):
+    asm, _, _ = _wye_asm(60, n_run=2, n_branch=2, n_split=2, **kw)
+    e = asm.edges[0]
+    return e.fitting, [p.frame for p in e.ports], asm.inlet.spec
+
+
+def _copy_frames(frames):
+    return [Frame(f.position.copy(), f.normal.copy(), f.up.copy()) for f in frames]
+
+
+def test_equal_values_hit_and_copies_are_independent(cached):
+    wye, frames, spec = _resolved()
+    a = wye.layout(frames, spec)
+    b = Wye(**{f: getattr(wye, f) for f in wye.__dataclass_fields__}).layout(
+        _copy_frames(frames), PipeSpec.from_dict(spec.to_dict()))
+    assert cached[0] == 1                                     # built once
+    assert _fingerprint(a) == _fingerprint(b) and a is not b
+    a.coords.clear()                                          # a caller's change
+    assert _fingerprint(wye.layout(frames, spec)) == _fingerprint(b)
+
+
+def _wye_changes(wye):
+    return {"angle": 70, "run_length": wye.run_length * 1.1,
+            "branch_length": wye.branch_length * 1.1, "n_run": 3, "n_branch": 3,
+            "n_split": 3, "roll": 90.0}
+
+
+@pytest.mark.parametrize("field", ["angle", "run_length", "branch_length", "n_run",
+                                   "n_branch", "n_split", "roll"])
+def test_a_changed_wye_field_misses(cached, field):
+    from dataclasses import replace
+    wye, frames, spec = _resolved()
+    base = _fingerprint(wye.layout(frames, spec))
+    other = replace(wye, **{field: _wye_changes(wye)[field]})
+    got = _fingerprint(other.layout(frames, spec))
+    assert cached[0] == 2                                    # missed
+    assert got == _fingerprint(other._layout(frames, spec))
+    if field != "branch_length":                             # the ports come from the frames
+        assert got != base
+
+
+def _rotate_z(v, deg=5.0):
+    c, s = math.cos(math.radians(deg)), math.sin(math.radians(deg))
+    v[:] = [c * v[0] - s * v[1], s * v[0] + c * v[1], v[2]]
+
+
+@pytest.mark.parametrize("port", [0, 1, 2])
+@pytest.mark.parametrize("vector", ["position", "normal", "up"])
+def test_a_frame_mutated_in_place_misses(cached, port, vector):
+    """Frames are frozen dataclasses holding arrays, which can still be
+    changed in place: the key reads their values at each call."""
+    wye, frames, spec = _resolved(direction=(1, 1, 0))
+    base = _fingerprint(wye.layout(frames, spec))
+    f = frames[port]
+    if vector == "position":
+        f.position[1] += 0.01
+    else:                         # keep the frame orthonormal: turn both vectors
+        _rotate_z(f.normal), _rotate_z(f.up)
+    got = _fingerprint(wye.layout(frames, spec))
+    assert cached[0] == 2                                    # missed
+    assert got == _fingerprint(wye._layout(frames, spec)) and got != base
+
+
+@pytest.mark.parametrize("spec", [
+    _spec(nang=8), _spec(nrad=4), _spec().shell("steel", dR=0.01, nrad=1),
+    PipeSpec(nang=4).core("fluid", CircleShape(radius=R, nang=4), nrad=3, mprg=0.8),
+    PipeSpec(nang=4).core("fluid", CircleShape(radius=1.1 * R, nang=4), nrad=3)],
+    ids=["nang", "nrad", "shell", "mprg", "radius"])
+def test_a_changed_spec_misses(cached, spec):
+    wye, frames, base_spec = _resolved()
+    base = _fingerprint(wye.layout(frames, base_spec))
+    got = _fingerprint(wye.layout(frames, spec))
+    assert cached[0] == 2                                    # missed
+    assert got == _fingerprint(wye._layout(frames, spec))
+    if spec.to_dict()["core"]["mprg"] == 1.0:                # mprg grades; no vertex moves
+        assert got != base
+
+
+def test_the_cache_is_bounded(cached, monkeypatch):
+    from dataclasses import replace
+    monkeypatch.setattr(wye_module, "LAYOUT_CACHE_SIZE", 3)
+    wye, frames, spec = _resolved()
+    for n in (2, 3, 4, 5, 6):
+        replace(wye, n_run=n).layout(frames, spec)
+    assert len(wye_module._LAYOUTS) == 3
+    replace(wye, n_run=2).layout(frames, spec)               # dropped: built again
+    assert cached[0] == 6

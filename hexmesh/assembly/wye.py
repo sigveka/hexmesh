@@ -49,8 +49,12 @@ Scope of this prototype: single-layer circular specs, ``rot = 0``,
 """
 
 from __future__ import annotations
+import copy
+import json
 import math
-from dataclasses import dataclass, replace
+import threading
+from collections import OrderedDict
+from dataclasses import dataclass, fields, replace
 
 import numpy as np
 
@@ -63,7 +67,7 @@ from .blocks import (
     ArcAbout, BlockLayout, LayoutError, Polyline, Spline, bind_face,
     corner_shift, face_patches, face_vertices,
 )
-from .interface import Frame, junction_roll, junction_toward, rolled
+from .interface import Frame, junction_roll, junction_toward, port_type, rolled
 from .projection import Tube, TubeUnion
 from .signature import check_port_pairs
 from .tee import thicknesses
@@ -153,6 +157,30 @@ class Skeleton:
 
     def curve(self, points, radius: float | None = None) -> Spline:
         return Spline(tuple(tuple(self.to_wall(p, radius)) for p in points))
+
+
+#: layouts kept by :meth:`Wye.layout`, least recently used dropped first
+LAYOUT_CACHE_SIZE = 32
+_LAYOUTS: OrderedDict = OrderedDict()
+_LAYOUTS_LOCK = threading.Lock()
+
+
+def _value(v):
+    """A hashable value of a field: arrays and sequences by their floats'
+    bytes, the rest by repr (exact for floats)."""
+    if isinstance(v, (np.ndarray, list, tuple)):
+        return ("array", np.asarray(v, dtype=float).tobytes())
+    return repr(v)
+
+
+def _layout_key(wye, frames, spec) -> tuple:
+    """Everything :meth:`Wye.layout` reads, by value: every field of the
+    wye, every frame's vectors, and the spec (its description and its
+    port type).  An equal wye at equal frames hits; any change misses."""
+    return (tuple((f.name, _value(getattr(wye, f.name))) for f in fields(wye)),
+            tuple(np.asarray(a, dtype=float).tobytes()
+                  for fr in frames for a in (fr.position, fr.normal, fr.up)),
+            json.dumps(spec.to_dict(), sort_keys=True), repr(port_type(spec)))
 
 
 # Axial counts, and the sentinels that identify their edges in resolve()
@@ -394,6 +422,25 @@ class Wye:
                 hint=hint)
 
     def layout(self, frames: list[Frame], spec: PipeSpec) -> BlockLayout:
+        """The wye's block layout at *frames* (inlet, left, right) for
+        *spec*, from a bounded cache keyed on their values (task 0112): the
+        wall curves cost about 0.45 s a layout, and ``cell_count``,
+        ``validate``, ``resolve`` and ``fill`` each ask for one.  Each call
+        gets its own deep copy, because ``fill`` binds faces into it."""
+        key = _layout_key(self, frames, spec)
+        with _LAYOUTS_LOCK:
+            hit = _LAYOUTS.get(key)
+            if hit is not None:
+                _LAYOUTS.move_to_end(key)
+        if hit is None:
+            hit = self._layout(frames, spec)
+            with _LAYOUTS_LOCK:
+                _LAYOUTS[key] = hit
+                while len(_LAYOUTS) > LAYOUT_CACHE_SIZE:
+                    _LAYOUTS.popitem(last=False)
+        return copy.deepcopy(hit)
+
+    def _layout(self, frames: list[Frame], spec: PipeSpec) -> BlockLayout:
         # Declared in the rolled inlet frame; fill() binds the inlet face
         # (built unrolled) with the corner shift.  Outlets are rolled already.
         A, L, Rp = rolled(frames[0], self.roll), frames[1], frames[2]

@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+**Networks with a wye are faster to check** (task 0112).
+- `Wye.layout` keeps its last 32 layouts, keyed on the wye's, the
+  frames' and the spec's values, and returns a copy of each.
+- `hexmesh advise` on the hero network halves, 2.9 s → 1.35 s: it builds
+  2 layouts instead of 5.  Run as separate commands, `validate` and
+  `estimate` are unchanged, at one layout each.
+- In one Python process, the README's agent session (`validate`,
+  `estimate`, `advise`, `apply`, `validate`) drops from about 6 s to
+  3.7 s, since the repeats no longer rebuild the wall.
+- Meshes are unchanged, byte for byte.
+
 **No validation result went through a hex that gmshToFoam turned inside
 out** (task 0108).
 - The audit rebuilt every level of every case (199 meshes and side
