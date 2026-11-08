@@ -76,6 +76,54 @@ Doubling every density parameter doubles the nodes in each direction:
 
 ---
 
+## From plant data (PCF)
+
+hexmesh reads PCF isometrics (Alias/Isogen's piping component file, which
+most plant-design tools export) and builds the network from them: no
+geometry to redraw.
+
+```python
+from hexmesh import PipeSpec
+from hexmesh.interchange import read_pcf
+
+def pipe(bore):              # bore: each line's nominal size from the file, in metres
+    return (PipeSpec(nang=8)
+            .core("fluid", radius=bore / 2, nrad=4)   # use your schedule's inside radius
+            .shell("steel", dR=0.004, nrad=2))
+
+asm = read_pcf("line.pcf").to_assembly(pipe, insulation=True)  # insulated where the file says
+print(asm.cell_count())
+asm.write_openfoam("line.msh")
+```
+
+- **Components become fittings.** Pipes, flanges and valves become
+  straights, elbows become bends, and concentric reducers become reducers.
+  Tees, set-ons and olets become tees, and Y pieces become wyes. Welds and
+  gaskets are absorbed rather than meshed as slivers.
+- **Several files and branched lines make one network.** Patches are named
+  after the file's components and open ends (`TEE_1`, `A_100_end3`, an
+  equipment nozzle `V_101_N1`), so a result traces back to the isometric.
+- **Insulation** comes from the file's `INSULATION ON` and thickness, and
+  stops where the file says (a bare valve or flange).
+- **Nothing is snapped.** Every component is checked against its end
+  points, and every error and warning names the component and its line in
+  the file:
+
+  ```json
+  {"code": "equal_tee_unsupported",
+   "message": "component 1 (TEE TEE_1 at [1.15 0. 0.], line.pcf:11): equal tees (branch radius 0.05, main radius 0.05) are planned through the wye-family layout; not available yet",
+   "where": {"part": "1", "source": {"file": "line.pcf", "line": 11, "record": "TEE"}}}
+  ```
+- **Not read yet:** equal tees, crosses, and angled, offset or tangential
+  tees. Each is rejected by name, as above.
+
+The `hexmesh` commands take a PCF file directly, with a JSON file mapping
+each nominal size to its section: `hexmesh validate line.pcf --spec
+sizes.json`. An agent can go from a plant isometric to a checked cell
+count without writing a line of Python.
+
+---
+
 ## With an agent
 
 hexmesh can be driven by an AI agent as well as by hand. Every command

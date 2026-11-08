@@ -111,6 +111,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0111](0111-hints-equipment-study.md) | Hints for equipment and study errors; the layout errors reviewed | ready (after 0110) | 0040 |
 | [0112](0112-wye-layout-cache.md) | Cache the wye's layout, so the light commands stay light | ready (after 0108) | 0040 |
 | [0113](0113-python-floor-311.md) | Python 3.11 is the oldest supported; CI green again | ready | 0039 |
+| [0114](0114-pcf-sample-and-cli-insulation.md) | A committed PCF sample, and insulation from the `hexmesh` commands | ready (after 0113) | 0032, 0040 |
 
 ### Validation
 
@@ -149,7 +150,7 @@ or a long run.
    error coded, with hints; the light commands without gmsh; the README
    front page).  Before other work.
    Then, before the launch post: **0113** (Python 3.11 floor; CI
-   green), **0110** (the primer's numbers
+   green), **0114** (a PCF sample; `--insulation`), **0110** (the primer's numbers
    checked), then **0108** (the inversion audit; serial, smallest levels
    first).  After the launch (the user, 2026-11-08): **0112** (the wye
    layout cache) → **0103** (angled tees in networks) → **0104**
