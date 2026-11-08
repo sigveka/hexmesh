@@ -6,7 +6,9 @@ junctions.  Each section ends with what it means for hexmesh under the rules
 in [`DESIGN.md`](../DESIGN.md).
 
 Citation keys refer to [`references.bib`](references.bib).  Local copies of
-open-access papers are in [`papers/`](papers/), named by citation key.
+open-access papers are kept in `docs/papers/`, named by citation key.
+That folder is local only (`*.pdf` is gitignored), so a fresh clone
+won't have it.
 
 ---
 

@@ -40,7 +40,7 @@ version, a minimal reproduction or code reference, and the date.
 
 ## Manuals
 
-Vendor manuals are kept in [`../manuals/`](../manuals/), which is **not in
+Vendor manuals are kept in `docs/manuals/`, which is **not in
 git** (`*.pdf` is gitignored).  A fresh clone won't have them; use the
 URLs below.
 
