@@ -112,7 +112,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0112](0112-wye-layout-cache.md) | Cache the wye's layout, so the light commands stay light | done (1 question for design) | 0040 |
 | [0113](0113-python-floor-311.md) | Python 3.11 is the oldest supported; CI green again | done | 0039 |
 | [0114](0114-pcf-sample-and-cli-insulation.md) | A committed PCF sample, and insulation from the `hexmesh` commands | done | 0032, 0040 |
-| [0115](0115-release-0-5-0.md) | Release 0.5.0: the launch version, its install line and a stability statement | in progress (tag waits for the user) | — |
+| [0115](0115-release-0-5-0.md) | Release 0.5.0: the launch version, its install line and a stability statement | in progress (release waits for the user) | — |
 
 ### Validation
 
