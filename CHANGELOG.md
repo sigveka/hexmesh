@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+**The network builder reads angled tees** (decision 0031; task 0103).
+- A PCF `TEE` whose branch leans becomes a lateral, `Tee(angle=…)`, at
+  the angle measured between the branch and the downstream run.  Set-ons
+  (`TEE-SET-ON`, `OLET`) lean the same way, and their host is split
+  around the run the lean needs.
+- Within 1° of square a tee is a plain 90° tee, as before.  Every
+  existing network builds the same assembly.
+- The `Tee` rejects what it can't mesh at `validate()`, by its quality
+  tiers.  The message gives the angle, the smallest r/R that passes
+  there and the file's line: a 35° lateral needs r/R 0.876.
+- `tee_branch_angled` now means a branch leaning **upstream** of the
+  build direction, which no `Tee` builds.  Its hint is to build from the
+  other end (`inlet=`).  The code stays.
+
 ## 0.5.0 (2026-11-08)
 
 The launch release.

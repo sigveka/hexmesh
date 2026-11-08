@@ -1030,10 +1030,10 @@ declared connections.  Messages name parts as `component <n> (<TYPE>
 | elbow, bend | `Bend`.  `CENTRE-POINT` is the corner where the tangent legs meet: θ = 180° − ∠(start − C, end − C), R = \|start − C\| / tan(θ/2).  Checked against `ANGLE` (hundredths of a degree) and `BEND-RADIUS` (`nD` × nominal size, or absolute) when present |
 | concentric reducer | `Reducer` |
 | eccentric reducer | rejected |
-| `TEE` | `Tee`: run from the two `END-POINT`s, branch `CENTRE-POINT` → `BRANCH1-POINT`, its radius from the branch bore (`spec(bore)`, or the main radius × bore ratio) |
-| `TEE-SET-ON`, `TEE-STUB`, `OLET` | the host `PIPE` through `CENTRE-POINT` is split: straight + `Tee` + straight.  The tee's run on each side of `CENTRE-POINT` is the `Tee`'s own default (`run_length=None`: r + T + R/2, or longer to reach `PREDICTED_SJ_WARN`; task 0054), from the spec's radii and shells; a host too short for it is rejected, naming the length needed |
+| `TEE` | `Tee`: run from the two `END-POINT`s, branch `CENTRE-POINT` → `BRANCH1-POINT`, its radius from the branch bore (`spec(bore)`, or the main radius × bore ratio).  A branch that leans is a lateral, `Tee(angle=…)` with the measured angle to the downstream run (task 0103); within 1° of square it is a plain 90° tee.  The range is DESIGN §7.1's: the `Tee`'s quality tiers reject an angle and ratio it can't mesh, at `validate()`, naming the smallest r/R that passes at that angle |
+| `TEE-SET-ON`, `TEE-STUB`, `OLET` | the host `PIPE` through `CENTRE-POINT` is split: straight + `Tee` + straight.  The tee's run on each side of `CENTRE-POINT` is the `Tee`'s own default (`run_length=None`: r + T + R/2, or longer to reach `PREDICTED_SJ_WARN`; task 0054), from the spec's radii and shells, and for an angled set-on its acute lean (task 0103); a host too short for it is rejected, naming the length needed |
 | `Y-PIECE-FABRICATED` | its stem `PIPE` (ending at `CENTRE-POINT`) is cut back by the `Wye`'s inlet run, r·(tan h + 0.6) with r the nominal radius, h half the angle; then `Wye`, `BRANCH1-POINT` as the right daughter |
-| rejected, naming the component and the limit | crosses, `Y-PIECE-FITTING`, tangential / offset set-ons (`TTSO`, `TTRF`, `TOSO`, `TORF`), equal tees, branches not perpendicular, asymmetric or non-coplanar Y pieces, daughters of another size, and the junctions' own limits (a wye's shell thickness and angle, a tee's predicted quality) |
+| rejected, naming the component and the limit | crosses, `Y-PIECE-FITTING`, tangential / offset set-ons (`TTSO`, `TTRF`, `TOSO`, `TORF`), equal tees, a branch leaning upstream of the build (`tee_branch_angled`: build from the other end with `inlet=`), asymmetric or non-coplanar Y pieces, daughters of another size, and the junctions' own limits (a wye's shell thickness and angle, a tee's predicted quality) |
 | joint | absorbed: the preceding straight run is extended over it, or else the following one starts at it; dropped at an open end next to a non-straight fitting; rejected between two non-straight fittings |
 
 **Parameters**
@@ -1719,7 +1719,7 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `tap_does_not_fit` | a duct tap that does not fit its main | `AssemblyError`, `LayoutError` |
 | `tap_ring_override_on_oh_main` | duct-tap ring overrides on an O-H main | `AssemblyError` |
 | `tee_angle_out_of_range` | a Tee's angle outside (0, 90] degrees | `AssemblyError` |
-| `tee_branch_angled` | a network tee whose branch is not perpendicular | `AssemblyError` |
+| `tee_branch_angled` | a network tee whose branch leans upstream of the build direction | `AssemblyError` |
 | `tee_ratio_above_max` | a pipe Tee's branch ratio above TEE_MAX_RATIO | `AssemblyError` |
 | `tee_run_asymmetric` | a network tee whose run ports are not symmetric | `AssemblyError` |
 | `terminal_end_taken` | an open end attached to two terminals | `AssemblyError` |

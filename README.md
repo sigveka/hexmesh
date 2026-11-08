@@ -115,8 +115,7 @@ asm.write_openfoam("pcf_line.msh")
    "message": "component 1 (TEE TEE_1 at [1.1 0.  0. ], line.pcf:19): equal tees (branch radius 0.05, main radius 0.05) are planned through the wye-family layout; not available yet",
    "where": {"part": "1", "source": {"file": "line.pcf", "line": 19, "record": "TEE"}}}
   ```
-- **Not read yet:** equal tees, crosses, and angled, offset or tangential
-  tees. Each is rejected by name, as above.
+- **Not read yet:** equal tees, crosses, and offset or tangential tees. Each is rejected by name, as above.
 
 The `hexmesh` commands take a PCF file directly, with a JSON file mapping
 each nominal size to its section: `hexmesh validate line.pcf --spec

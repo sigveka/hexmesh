@@ -486,7 +486,7 @@ CODES: dict[str, str] = {
     "tap_ring_override_on_oh_main": "duct-tap ring overrides on an O-H main",
     "tee_angle_out_of_range":
         "a Tee's angle outside (0, 90] degrees",
-    "tee_branch_angled": "a network tee whose branch is not perpendicular",
+    "tee_branch_angled": "a network tee whose branch leans upstream of the build direction",
     "tee_ratio_above_max": "a pipe Tee's branch ratio above TEE_MAX_RATIO",
     "tee_run_asymmetric": "a network tee whose run ports are not symmetric",
     "terminal_end_taken": "an open end attached to two terminals",

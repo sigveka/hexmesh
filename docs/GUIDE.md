@@ -559,9 +559,19 @@ upstream end) from which every junction is entered through its inlet.
 Fittings are labelled from the file (`TEE_1`, `OLET_2`, or the
 component's `COMPONENT-IDENTIFIER`) and open ends from the pipeline
 (`A_100_end3`), so wall and port patches can be traced back to the
-isometric.  Junctions the fittings can't build (crosses, equal, angled,
-offset or tangential tees, asymmetric Y pieces) are rejected naming the
+isometric.  Junctions the fittings can't build (crosses, equal, offset
+or tangential tees, asymmetric Y pieces) are rejected naming the
 component.
+
+A tee whose branch leans is built as a lateral, `Tee(angle=…)`, with the
+angle measured from the file (task 0103); within 1° of square it is a
+plain tee.  The range is DESIGN §7.1's.  The smallest branch ratio r/R
+that meshes is 0.20 at 90°, 0.29 at 60°, 0.50 at 45° and 0.875 at 35°;
+30° doesn't mesh.  Below that the `Tee` rejects it at `validate()`,
+naming the angle, the smallest ratio that passes there, and the file's
+line.  Laterals below about 57° always warn.  A branch has to lean
+downstream of the build, so one leaning the other way is
+`tee_branch_angled`: build from the other end (`inlet=`).
 
 With `insulation=True`, components marked `INSULATION ON` get an
 `insulation` shell of the pipeline's `INSULATION-THICKNESS`.  Where it
@@ -652,8 +662,9 @@ with `python3 docs/gallery/build.py` (needs `vtk`).
 
 ## Current limitations
 
-- **Tee:** perpendicular and centred branch, branch radius below the main
-  radius; shells circular, and the branch's copy the main's (no separate
+- **Tee:** centred branch, perpendicular or leaning downstream (a
+  lateral, `angle=`, in the range of DESIGN §7.1), branch radius below the
+  main radius; shells circular, and the branch's copy the main's (no separate
   branch wall thickness).
 - **Wye (prototype):** circular shells from 40°, total thickness up to
   0.65 R·tan(angle/2), at most 0.55 R (`API.md`), equal daughters with the inlet's

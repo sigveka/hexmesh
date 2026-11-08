@@ -49,6 +49,19 @@ from .insulation import (
 )
 
 
+#: a branch within this many degrees of perpendicular is built as a plain
+#: 90° tee, so networks drawn square build exactly as before (task 0103)
+_TEE_SQUARE_TOL = 1.0
+
+
+def _tee_angle(branch: np.ndarray, downstream: np.ndarray) -> float:
+    """``Tee(angle=…)`` for a branch direction: degrees between it and the
+    run's *downstream* direction, 90 within ``_TEE_SQUARE_TOL``.  Above 90
+    the branch leans upstream, which no Tee builds."""
+    a = math.degrees(math.acos(float(np.clip(np.dot(_unit(branch), _unit(downstream)), -1, 1))))
+    return 90.0 if abs(a - 90.0) <= _TEE_SQUARE_TOL else a
+
+
 def _section_spec(spec):
     """*spec* as the builder calls it: a ``PipeSpec`` as is, or a callable
     of a ``Section``.  A callable whose first parameter is named
@@ -419,7 +432,10 @@ def _build(model, comps, terminals, spec, axial_cell, kinks, tol, lc, inlet, ins
         rb = _branch_radius(spec, R, j_c.branch_sec, host.bore)
         if not rb < R:             # the junction rejects it, naming the radii
             return j_c.branch_bore
-        tee = Tee(None, 10 * R, rb).resolve(
+        # the host's flow direction isn't known yet: the acute lean, whose
+        # downstream reach is the longer (task 0103)
+        lean = _tee_angle(j_c.branch - j_c.centre, host.end - host.start)
+        tee = Tee(None, 10 * R, rb, angle=min(lean, 180.0 - lean)).resolve(
             Frame(np.zeros(3), np.array([1.0, 0, 0]), np.array([0, 0, 1.0])), main)
         return tee.run_length
 
@@ -525,13 +541,17 @@ def _place(report, parts, nodes, at_node, names, root, spec, axial_cell, kinks, 
         if p.kind == "tee":
             b = c.branch - centre
             blen = float(np.linalg.norm(b))
-            tilt = math.degrees(math.asin(min(1.0, abs(float(np.dot(_unit(b), axis))))))
-            if tilt > 1.0:
-                raise AssemblyError(f"{what}: branch at {90 - tilt:.4g}° to the run; a Tee "
-                                    f"branch is perpendicular (angled tees are not supported)",
+            angle = _tee_angle(b, axis)
+            if angle > 90.0:
+                raise AssemblyError(f"{what}: branch at {angle:.4g}° to the downstream run, "
+                                    f"leaning upstream; a Tee's branch leans downstream "
+                                    f"(angle in (0, 90])",
                                     code="tee_branch_angled",
-                                    where={"part": _part_id(p), "source": _source(p)}, value=90 - tilt,
-                                    limit=90)
+                                    where={"part": _part_id(p), "source": _source(p)},
+                                    value=angle, limit={"max": 90},
+                                    hint="build the network from the other end "
+                                         "(to_assembly(inlet=…)), so the run flows the "
+                                         "way the branch leans")
             if abs(float(np.linalg.norm(c.end - centre)) - run) > tol:
                 raise AssemblyError(f"{what}: run ports are not symmetric about "
                                     f"its centre",
@@ -551,7 +571,7 @@ def _place(report, parts, nodes, at_node, names, root, spec, axial_cell, kinks, 
                                     where={"part": _part_id(p), "source": _source(p)}, value=rb,
                                     limit={"max_exclusive": R},
                                     hint="equal tees are planned through the wye-family layout")
-            fitting = Tee(run, blen, rb, toward=tuple(_unit(b)))
+            fitting = Tee(run, blen, rb, toward=tuple(_unit(b)), angle=angle)
             outs_at = [c.end, c.branch]
         else:
             d1, d2 = _unit(c.branch - centre), _unit(c.branch2 - centre)

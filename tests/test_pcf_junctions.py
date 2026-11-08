@@ -302,8 +302,8 @@ PIPE
     END-POINT 1000 0 0 100
     END-POINT 1200 0 0 100
     CENTRE-POINT 1100 0 0
-    BRANCH1-POINT 1273.205 300 0 50
-""", r"TEE_1.*branch at 60° to the run"),
+    BRANCH1-POINT 926.795 300 0 50
+""", r"TEE_1.*branch at 120° to the downstream run, leaning upstream"),
     ("""TEE
     END-POINT 1000 0 0 100
     END-POINT 1300 0 0 100
@@ -424,3 +424,117 @@ PIPE
     assert asm.inlet.spec.core_shape.radius == pytest.approx(0.4 * 0.1)
     assert 0.05 in sizes
     asm.validate()
+
+
+# --- angled tees (task 0103) ------------------------------------------------------
+
+def _bore_spec(bore):
+    return PipeSpec(nang=4).core("fluid", CircleShape(radius=bore / 2, nang=4), nrad=3)
+
+
+def _lateral(angle, bore, lean=+1, pipe=None):
+    """A TEE at *angle* to the downstream run (x), branch of *bore* mm, its
+    branch pipe along the branch (or at *pipe* degrees); *lean* -1 mirrors
+    it upstream."""
+    c, s = math.cos(math.radians(angle)), math.sin(math.radians(angle))
+    bx, by = 1200 + lean * 400 * c, 400 * s
+    if pipe is not None:
+        c, s = math.cos(math.radians(pipe)), math.sin(math.radians(pipe))
+    return LINE + f"""TEE
+    END-POINT 1000 0 0 100
+    END-POINT 1400 0 0 100
+    CENTRE-POINT 1200 0 0
+    BRANCH1-POINT {bx:.3f} {by:.3f} 0 {bore}
+PIPE
+    END-POINT 1400 0 0 100
+    END-POINT 2400 0 0 100
+PIPE
+    END-POINT {bx:.3f} {by:.3f} 0 {bore}
+    END-POINT {bx + lean * 500 * c:.3f} {by + 500 * s:.3f} 0 {bore}
+"""
+
+
+def _tee(asm):
+    return next(e.fitting for e in asm.edges if isinstance(e.fitting, Tee))
+
+
+def test_a_45_degree_lateral_builds_and_meshes(tmp_path):
+    """r/R 0.6 at 45° (DESIGN §7.1: 0.50 is the floor there): built as
+    ``Tee(angle=45)``, every predicted cell meshed, none below the floor.
+    Below about 57° a lateral always warns."""
+    with pytest.warns(UserWarning, match=r"f0\.pcf:8: predicted corner scaled Jacobian .* "
+                                         r"PREDICTED_SJ_WARN"):
+        asm = _read(tmp_path, _lateral(45, 60)).to_assembly(_bore_spec)
+        asm.validate()                        # the Tee's quality tiers
+    tee = _tee(asm)
+    assert tee.angle == pytest.approx(45, abs=1e-6)
+    assert tee.branch_length == pytest.approx(0.4, abs=1e-5)
+    with Session("lateral"):
+        asm.mesh()
+        n = sum(len(t) for t in gmsh.model.mesh.getElements(3)[1])
+        assert n == asm.cell_count()
+        assert asm.check_quality("scaled_jacobian").worst > 0.1
+
+
+def test_a_35_degree_lateral_at_a_small_ratio_is_the_tee_s_rejection(tmp_path):
+    """The Tee's quality tier rejects it, with its hint (the angle and the
+    smallest r/R that passes there) and the file and line."""
+    asm = _read(tmp_path, _lateral(35, 50)).to_assembly(_bore_spec)
+    with pytest.raises(AssemblyError) as e:
+        asm.validate()                        # build and mesh validate first
+    err = e.value
+    assert err.code == "predicted_sj_below_minimum"
+    assert "at angle 35°; r/R 0.876 or more reaches it there" in err.hint
+    assert "f0.pcf:8" in str(err)
+    assert err.where["source"]["line"] == 8 and err.where["source"]["record"] == "TEE"
+
+
+def test_a_branch_within_a_degree_of_square_is_a_plain_tee(tmp_path):
+    """Networks drawn square, to within 1°, build exactly as before: as
+    before, only if the square port lands within the model tolerance
+    (89.8° misses by 1.4 mm here) and the branch pipe leaves it square."""
+    asm = _read(tmp_path, _lateral(89.8, 50, pipe=90)).to_assembly(_bore_spec)
+    assert _tee(asm).angle == 90
+    assert _tee(_read(tmp_path, _lateral(88.5, 50)).to_assembly(_bore_spec)).angle == \
+        pytest.approx(88.5, abs=1e-3)
+
+
+def test_an_upstream_lean_names_the_other_end(tmp_path):
+    with pytest.raises(AssemblyError) as e:
+        _read(tmp_path, _lateral(60, 50, lean=-1)).to_assembly(_bore_spec)
+    assert e.value.code == "tee_branch_angled" and e.value.value == pytest.approx(120, abs=1e-3)
+    assert "inlet=" in e.value.hint and "f0.pcf:8" in str(e.value)
+
+
+SETON = HEADER + """\
+PIPELINE-REFERENCE A-100
+PIPE
+    END-POINT 0 0 0 100
+    END-POINT 2000 0 0 100
+TEE-SET-ON
+    CENTRE-POINT 1000 0 0
+    BRANCH1-POINT {bx:.3f} 282.843 0 60
+    SKEY TESO
+PIPE
+    END-POINT {bx:.3f} 282.843 0 60
+    END-POINT {ex:.3f} 636.843 0 60
+"""
+
+
+@pytest.mark.parametrize("lean", [+1, -1])
+def test_an_angled_set_on_splits_its_host_for_its_lean(tmp_path, lean):
+    """A 45° set-on splits the host around a longer run than a square one
+    (the acute lean's reach).  Leaning against the build it is rejected,
+    and builds from the other end."""
+    text = SETON.format(bx=1000 + lean * 282.843, ex=1000 + lean * 636.843)
+    net = _read(tmp_path, text)
+    square = _read(tmp_path, SETON.format(bx=1000, ex=1000)).to_assembly(_spec(0.05))
+    if lean < 0:
+        with pytest.raises(AssemblyError, match="leaning upstream") as e:
+            net.to_assembly(_bore_spec)
+        assert e.value.code == "tee_branch_angled"
+        asm = net.to_assembly(_bore_spec, inlet=(2.0, 0.0, 0.0))
+    else:
+        asm = net.to_assembly(_bore_spec)
+    assert _tee(asm).angle == pytest.approx(45, abs=1e-3)
+    assert _tee(asm).run_length > _tee(square).run_length
