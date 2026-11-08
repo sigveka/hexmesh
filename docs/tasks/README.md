@@ -149,9 +149,10 @@ or a long run.
    front page).  Before other work.
    Then, before the launch post: **0110** (the primer's numbers
    checked), then **0108** (the inversion audit; serial, smallest levels
-   first).  After it: **0109** (MMS wall
-   slope), **0111** (equipment and study hints), **0112** (the wye
-   layout cache).
+   first).  After the launch (the user, 2026-11-08): **0112** (the wye
+   layout cache) → **0103** (angled tees in networks) → **0104**
+   (junction non-orthogonality) → **0111** (equipment and study hints)
+   → **0109** (MMS wall slope).
 1. **The H section** (decision 0036; 0082, 0083, 0084 and 0090 done):
    - **0085 → 0086 → 0087**, strictly in sequence.  0085 (in progress)
      builds the capped switch (decision 0036 amendment, 2026-11-04).
