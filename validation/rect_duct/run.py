@@ -415,7 +415,8 @@ def run_level(ratio: float, k: int, work: Path, end_time: int, n_proc: int = 1,
         asm.write_openfoam(str(msh))
         sj = asm.check_quality("scaled_jacobian").worst
     write_case(case, end_time, ratio)
-    retyped = of.convert(case, msh)
+    # every hex right-handed: skip gmshToFoam's orientation test (task 0108)
+    retyped = of.convert(case, msh, keep_orientation=sj > 0)
     return _solve(case, ratio, {"mesh": mesh, "ratio": ratio, "k": k, "cells": cells,
                                 "min_scaled_jacobian": sj, "retyped": retyped,
                                 **stored.counts(asm)}, n_proc)

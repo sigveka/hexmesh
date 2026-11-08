@@ -67,9 +67,6 @@ ROOT = HERE.parents[1]
 sys.path.insert(0, str(ROOT))
 
 from hexmesh import Session                                    # noqa: E402
-from hexmesh.io.writers.openfoam_boundary import (             # noqa: E402
-    apply_boundary_roles, roles_path,
-)
 from hexmesh.study import openfoam as of                       # noqa: E402
 
 
@@ -448,8 +445,9 @@ def run_level(name: str, k: int, work: Path, n_proc: int, targets: list[float],
             asm.write_openfoam(msh)
             out["min_scaled_jacobian"] = asm.check_quality("scaled_jacobian").worst
         write_case(case, dt=PERIOD / INLET_SAMPLES / 20)
-        of.foam(f"gmshToFoam {msh.name}", case, "log.gmshToFoam")
-        out["retyped"] = apply_boundary_roles(case, roles_path(msh))
+        # every hex right-handed: skip gmshToFoam's orientation test (task 0108)
+        out["retyped"] = of.convert(case, msh,
+                                    keep_orientation=out["min_scaled_jacobian"] > 0)
         check = of.foam("checkMesh", case, "log.checkMesh")
         out.update({
             "cells_foam": int(re.search(r"cells:\s+(\d+)", check).group(1)),

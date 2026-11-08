@@ -262,7 +262,9 @@ def run_level(series: str, k: int, work: Path, end_time: int) -> dict:
         sj = asm.check_quality("scaled_jacobian").worst
         spec = asm.inlet.spec
     write_case(case, end_time)
-    pois.foam(f"gmshToFoam {msh.name}", case, "log.gmshToFoam")
+    # every hex right-handed: skip gmshToFoam's orientation test (task 0108)
+    keep = " -keepOrientation" if sj > 0 else ""                 # no roles applied here
+    pois.foam(f"gmshToFoam{keep} {msh.name}", case, "log.gmshToFoam")
     check = pois.foam("checkMesh", case, "log.checkMesh")
     solve = pois.foam("laplacianFoam", case, "log.laplacianFoam")
     res = [float(v) for v in re.findall(r"Initial residual = ([\d.e+-]+)", solve)]

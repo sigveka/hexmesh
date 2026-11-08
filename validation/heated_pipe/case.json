@@ -24,7 +24,8 @@
     ],
     "toolchain": {
       "openfoam": "v2406",
-      "runner": "docker"
+      "runner": "docker",
+      "conversion": "gmshToFoam, with -keepOrientation when the worst scaled Jacobian is positive (task 0108); then splitMeshRegions -cellZones"
     }
   },
   "status": "accepted",

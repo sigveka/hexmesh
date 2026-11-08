@@ -443,8 +443,10 @@ def run_level(name: str, k: int, work: Path, end_time: int, n_proc: int) -> dict
         print(f"[{name} k={k}] predicted cells: {cells}", flush=True)
         msh = case / "mesh.msh"
         asm.write_openfoam(str(msh))
+        sj = asm.check_quality("scaled_jacobian").worst
     write_system(case, end_time, nu)
-    of.convert(case, msh)
+    # every hex right-handed: skip gmshToFoam's orientation test (task 0108)
+    of.convert(case, msh, keep_orientation=sj > 0)
     of.foam("createPatch -overwrite", case, "log.createPatch")
     write_fields(case, c["wall"])
     check = of.check_mesh(case)

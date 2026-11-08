@@ -22,6 +22,7 @@ import shutil
 import subprocess
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
+import numpy as np
 import pytest
 
 from hexmesh.study import openfoam as of
@@ -210,6 +211,83 @@ def test_decompose_the_time_the_solver_starts_from(tmp_path, control, want):
     for t in ("0.1", "0.5"):
         (tmp_path / t).mkdir()
     assert of.start_time_option(tmp_path) == want
+
+
+# --- gmshToFoam's orientation test (task 0108) ---------------------------------
+
+#: one of the six right-handed hexes gmshToFoam v2406 flipped in the MMS 90°
+#: wye at k = 4 (task 0074), gmsh's vertex order, rounded to 1e-9
+WYE_HEX = [[0.140454948, -0.035709517, 0.0329221], [0.140373787, -0.036716389, 0.033939752],
+           [0.16016109, -0.040652435, 0.0309896], [0.160091727, -0.0405037, 0.030681642],
+           [0.145205343, -0.035346842, 0.033262729], [0.145250608, -0.03635809, 0.034323306],
+           [0.16357587, -0.041767246, 0.032944481], [0.163469687, -0.041467103, 0.032435794]]
+CUBE = [[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0], [0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1]]
+#: each corner's three neighbours, right-handed in gmsh's hex order
+_CORNERS = ((1, 3, 4), (2, 0, 5), (3, 1, 6), (0, 2, 7), (7, 5, 0), (4, 6, 1), (5, 7, 2),
+            (6, 4, 3))
+
+
+def corner_sj(p) -> list[float]:
+    p = np.asarray(p, float)
+    out = []
+    for i, nb in enumerate(_CORNERS):
+        e = np.array([p[j] - p[i] for j in nb])
+        out.append(float(np.linalg.det(e / np.linalg.norm(e, axis=1)[:, None])))
+    return out
+
+
+def _msh(path: Path, hexes) -> Path:
+    """An MSH 2.2 ASCII file of *hexes*, as write_openfoam writes it: a
+    boundary quad first, element tags, node ids from 1."""
+    pts = np.asarray(hexes, float).reshape(-1, 3)
+    nodes = "".join(f"{i + 1} {x!r} {y!r} {z!r}\n" for i, (x, y, z) in enumerate(pts))
+    els = ["1 3 2 7 1 1 2 3 4"] + [f"{h + 2} 5 2 99 5 " + " ".join(str(8 * h + j + 1)
+                                                                  for j in range(8))
+                                    for h in range(len(hexes))]
+    path.write_text("$MeshFormat\n2.2 0 8\n$EndMeshFormat\n"
+                    f"$Nodes\n{len(pts)}\n{nodes}$EndNodes\n"
+                    f"$Elements\n{len(els)}\n" + "\n".join(els) + "\n$EndElements\n",
+                    encoding="utf-8")
+    return path
+
+
+def test_the_orientation_test_flips_the_0074_wye_hex():
+    """Right-handed at every corner, and gmshToFoam's test flips it."""
+    assert min(corner_sj(WYE_HEX)) > 0.13
+    assert of.foam_would_invert([WYE_HEX]).tolist() == [True]
+
+
+def test_the_orientation_test_keeps_a_cube_and_flips_a_mirrored_one():
+    assert corner_sj(CUBE) == [1.0] * 8
+    mirrored = [[-x, y, z] for x, y, z in CUBE]
+    assert of.foam_would_invert([CUBE, mirrored]).tolist() == [False, True]
+
+
+def test_would_invert_reads_the_written_msh(tmp_path):
+    msh = _msh(tmp_path / "m.msh", [CUBE, WYE_HEX, CUBE])
+    assert of.msh_hexes(msh).shape == (3, 8, 3)
+    np.testing.assert_allclose(of.msh_hexes(msh)[1], WYE_HEX)
+    assert of.would_invert(msh) == 1
+
+
+def test_msh_hexes_wants_msh_2_2(tmp_path):
+    msh = tmp_path / "m.msh"
+    msh.write_text("$MeshFormat\n4.1 0 8\n$EndMeshFormat\n", encoding="utf-8")
+    from hexmesh.errors import ReaderError
+    with pytest.raises(ReaderError, match="not MSH 2.2") as e:
+        of.msh_hexes(msh)
+    assert e.value.code == "msh_format_invalid"
+
+
+def test_a_straight_would_flip_nothing(tmp_path):
+    from hexmesh import Assembly, PipeSpec, Session, Straight
+    asm = Assembly(PipeSpec(nang=6).core("fluid", radius=0.05, nrad=3),
+                   direction=[1, 0, 0], up=[0, 0, 1])
+    asm.add(Straight(0.2, n_layers=4))
+    with Session("would-invert-straight"):
+        asm.write_openfoam(str(tmp_path / "s.msh"))
+    assert len(of.msh_hexes(tmp_path / "s.msh")) == asm.cell_count()
+    assert of.would_invert(tmp_path / "s.msh") == 0
 
 
 @pytest.mark.parametrize("keep, flag", [(False, ""), (True, " -keepOrientation")])

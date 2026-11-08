@@ -168,9 +168,21 @@ All *verified* on v1912, 2026-10-25, on `examples/insulated_pipe`
   1e-16).  **Fix:** `gmshToFoam -keepOrientation`, valid when every hex
   is known right-handed (positive worst scaled Jacobian):
   `hexmesh.study.openfoam.convert(..., keep_orientation=True)`.  It is
-  opt-in there.  `validation/mms/run.py` re-implements the test
-  (`foam_would_invert`) and stores per level how many hexes it would
-  have flipped.
+  opt-in there.  `hexmesh.study.openfoam.foam_would_invert` re-implements
+  the test, and `would_invert(msh)` counts on a written `.msh` (task
+  0108; it reproduces the wye's 6).
+  - **v1912 has the same test** (2026-11-08, task 0108):
+    `correctOrientation` in v1912's `gmshToFoam.C`
+    (gitlab.com/openfoam/core/openfoam, tag OpenFOAM-v1912) is
+    line-for-line v2406's: the cell centre is the vertex average, and
+    `points[f[0]] - cc` is dotted with `f.areaNormal(points)` for each
+    face.  It runs unless `-keepOrientation`, in both the MSH 2 and MSH 4
+    readers.
+  - **The validation drivers now pass `-keepOrientation`** when the worst
+    scaled Jacobian is positive (task 0108).  On a mesh the test wouldn't
+    flip, that gives the same `polyMesh`: the MMS tee at k = 1 (v2406,
+    Docker), converted both ways, gave identical `points`, `faces`,
+    `owner`, `neighbour`, `boundary`, zones and `sets/`.
 
 - **`gmshToFoam` skips a `$Comments` section** (v1912 native and v2406
   in Docker, MSH 2.2 ASCII, 2026-11-02, design session).

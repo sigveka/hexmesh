@@ -55,12 +55,9 @@ import numpy as np                                             # noqa: E402
 from scipy.special import jv                                   # noqa: E402
 
 from hexmesh import Assembly, PipeSpec, Session, Straight      # noqa: E402
-from hexmesh.io.writers.openfoam_boundary import (             # noqa: E402
-    apply_boundary_roles, roles_path,
-)
 from hexmesh.study import openfoam as of                       # noqa: E402
 from hexmesh.study.openfoam import (                           # noqa: E402
-    cell_geometry, face_geometry, foam, header as _header, read_faces, read_internal,
+    cell_geometry, convert, face_geometry, foam, header as _header, read_faces, read_internal,
     read_labels, read_patch_faces, read_points, read_zone,
 )
 
@@ -412,8 +409,8 @@ def run_level(name: str, factor: int, work: Path, n_proc: int, dt_factor: float 
                                              + CONTROL.format(t0=T0, end=T0, dt=dt, write=1), encoding="utf-8")
     (case / "system/fvSchemes").write_text(_header("dictionary", "fvSchemes", "system") + SCHEMES, encoding="utf-8")
     (case / "system/fvSolution").write_text(_header("dictionary", "fvSolution", "system") + SOLUTION, encoding="utf-8")
-    foam(f"gmshToFoam {msh.name}", case, "log.gmshToFoam")
-    retyped = apply_boundary_roles(case, roles_path(msh))
+    # every hex right-handed: skip gmshToFoam's orientation test (task 0108)
+    retyped = convert(case, msh, keep_orientation=sj > 0)
     check = foam("checkMesh", case, "log.checkMesh")
     write_case(case, factor, dt, T0 + PERIOD, times_1)
     foam("topoSet", case, "log.topoSet")

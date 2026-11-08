@@ -400,6 +400,23 @@ Open ends stay `patch`, and the split's `mappedWall` interfaces are left
 alone.  Verified with OpenFOAM v1912 and v2406; details in
 [docs/integrations/openfoam.md](integrations/openfoam.md).
 
+**`-keepOrientation` for junctions.**  `gmshToFoam`'s orientation test
+(v1912 and v2406) can turn a valid, strongly warped hex inside out: it
+happened to 6 hexes of a 90° wye.  `checkMesh` then fails.  When every
+hex is right-handed, which a positive worst scaled Jacobian shows, skip
+the test:
+
+```python
+sj = asm.check_quality("scaled_jacobian").worst          # in the session, after meshing
+from hexmesh.study import openfoam as of
+of.would_invert("pipe.msh")      # how many hexes the test would flip; no gmsh needed
+of.convert("case", "pipe.msh", keep_orientation=sj > 0)  # gmshToFoam -keepOrientation, then the roles
+```
+
+The validation cases all convert this way (task 0108).  A non-positive
+scaled Jacobian means the mesh itself has an inverted corner, which
+neither choice fixes: the mesh needs changing.
+
 **Buoyant and CHT solvers need OpenFOAM v2406 or later.**  Every hexmesh
 mesh with an O-H face is non-orthogonal at its corners (20°–40°).  The v1912 build's
 buoyant and compressible solvers (`buoyantSimpleFoam`,

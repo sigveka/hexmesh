@@ -432,6 +432,46 @@ class TestCaseTemplates:
             run_stage(study, rows, jobs=1, force=True)
 
 
+# --- the orientation flag (task 0108) -------------------------------------------
+
+@pytest.mark.parametrize("sj, keep", [(0.13, True), (0.0, False), (-0.2, False),
+                                      (None, False)])
+def test_keep_orientation_follows_the_worst_scaled_jacobian(sj, keep):
+    from hexmesh.errors import HexmeshWarning
+    from hexmesh.study.stages import keep_orientation
+    row = {"hash": "abc", "min_sj": sj, "min_sj_fitting": "Wye1"}
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        assert keep_orientation(row) is keep
+    codes = [w.message.code for w in caught if isinstance(w.message, HexmeshWarning)]
+    assert codes == ([] if keep else ["mesh_sj_not_positive"])
+
+
+def test_case_stage_passes_the_flag(tmp_path, monkeypatch):
+    """Each variant's case is converted with ``-keepOrientation`` exactly
+    when its mesh's worst scaled Jacobian is positive, and says so."""
+    from hexmesh.study import case_stage
+    from hexmesh.study import openfoam as of
+    study = _pipe_study(tmp_path, [{"U": 1, "nu": 1}, {"U": 2, "nu": 1}])
+    got = {}
+
+    def convert(case, msh, split_regions=False, keep_orientation=False):
+        got[case.parent.name] = keep_orientation
+        return []
+    monkeypatch.setattr(of, "convert", convert)
+    rows = [{"hash": h, "status": "meshed", "params": {"U": 1, "nu": 1}, "network": {},
+             "min_sj": sj, "min_sj_fitting": "Straight0"}
+            for h, sj in (("good", 0.7), ("bad", -0.1))]
+    for r in rows:
+        variant_dir(study, r["hash"]).mkdir(parents=True)
+    with pytest.warns(UserWarning, match="inverted hex corner"):
+        case_stage(study, rows, jobs=1)
+    assert got == {"good": True, "bad": False}
+    assert [r["status"] for r in rows] == ["case_ready", "case_ready"]
+    assert [json.loads((variant_dir(study, h) / "case.json").read_text(encoding="utf-8"))
+            ["keep_orientation"] for h in ("good", "bad")] == [True, False]
+
+
 def _without_psutil(monkeypatch):
     import sys
     monkeypatch.setitem(sys.modules, "psutil", None)          # import psutil fails

@@ -322,6 +322,8 @@ CODES: dict[str, str] = {
     "mesh_not_all_hex": "a mesh with elements other than hexahedra",
     "mesh_order_invalid": "a mesh order other than 1 or 2",
     "mesh_order_needs_volume": "order=2 asked of a surface or line mesh",
+    "mesh_sj_not_positive": "a mesh with an inverted hex corner, converted with gmshToFoam's "
+                            "orientation test on (warning)",
     "meshed_nonorth_above_maximum": "meshed non-orthogonality above OUTLINE_NONORTH_MAX",
     "meshed_nonorth_high": "meshed non-orthogonality high but allowed (warning)",
     "meshed_sj_below_minimum": "meshed corner scaled Jacobian below PREDICTED_SJ_MIN",

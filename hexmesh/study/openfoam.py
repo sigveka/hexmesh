@@ -358,7 +358,9 @@ def convert(case: Path, msh: Path, split_regions: bool = False,
     orientation test misjudges strongly warped hexes and turns valid ones
     inside out (docs/integrations/openfoam.md, task 0074).  Pass it only
     for a mesh whose every hex is known right-handed, e.g. a positive
-    worst scaled Jacobian from ``Assembly.check_quality``."""
+    worst scaled Jacobian from ``Assembly.check_quality``; the validation
+    drivers do (task 0108).  :func:`would_invert` counts the hexes the
+    test would flip.  Off by default."""
     from ..io.writers.openfoam_boundary import (
         apply_boundary_roles, apply_boundary_roles_to_regions, roles_path,
     )
@@ -371,6 +373,64 @@ def convert(case: Path, msh: Path, split_regions: bool = False,
         done = apply_boundary_roles_to_regions(case, roles_path(msh))
         return sorted(f"{region}/{p}" for region, ps in done.items() for p in ps)
     return apply_boundary_roles(case, roles_path(msh))
+
+
+#: OpenFOAM's hex model faces, outward (gmshToFoam keeps gmsh's vertex order)
+_FOAM_HEX_FACES = ((0, 4, 7, 3), (1, 2, 6, 5), (0, 1, 5, 4), (3, 7, 6, 2), (0, 3, 2, 1),
+                   (4, 5, 6, 7))
+
+
+def foam_would_invert(p: np.ndarray) -> np.ndarray:
+    """gmshToFoam's ``correctOrientation`` on hexes *p* (n, 8, 3), gmsh's
+    vertex order: True where it would flip the hex, i.e. where for any face
+    the vector from the face's first vertex to the vertex centroid is on
+    the wrong side of the face's area normal (triangles about the face
+    centre).  It misjudges strongly warped right-handed hexes
+    (docs/integrations/openfoam.md, task 0074)."""
+    p = np.asarray(p, dtype=float)
+    cc = p.mean(axis=1)
+    bad = np.zeros(len(p), bool)
+    for f in _FOAM_HEX_FACES:
+        q = p[:, f]
+        fc = q.mean(axis=1)
+        a = sum(np.cross(q[:, i] - fc, q[:, (i + 1) % 4] - fc) for i in range(4))
+        bad |= np.einsum("ij,ij->i", q[:, 0] - cc, a) < 0
+    return bad
+
+
+def msh_hexes(msh: Path) -> np.ndarray:
+    """The hexes of an MSH 2.2 ASCII file (``Assembly.write_openfoam``'s
+    format), as their corner points (n, 8, 3) in the file's vertex order.
+    Needs no GMSH."""
+    from ..errors import ReaderError
+    text = Path(msh).read_text(encoding="utf-8")
+    if "$MeshFormat\n2.2 0 " not in text:
+        raise ReaderError(f"{msh}: not MSH 2.2 ASCII, which write_openfoam writes",
+                          code="msh_format_invalid", where={"source": {"file": str(msh)}},
+                          hint="write it with Assembly.write_openfoam")
+    nodes = text.split("$Nodes\n", 1)[1].split("$EndNodes", 1)[0].split("\n", 1)[1]
+    xyz = np.array(nodes.split(), dtype=float).reshape(-1, 4)
+    pos = np.full(int(xyz[:, 0].max()) + 1, -1)
+    pos[xyz[:, 0].astype(int)] = np.arange(len(xyz))
+    corners = []
+    body = text.split("$Elements\n", 1)[1].split("$EndElements", 1)[0]
+    for line in body.splitlines()[1:]:
+        f = line.split()
+        if f[1] == "5":                                       # 8-node hexahedron
+            corners.append(f[3 + int(f[2]):])
+    ids = np.array(corners, dtype=int).reshape(-1, 8)
+    return xyz[pos[ids], 1:]
+
+
+def would_invert(msh: Path) -> int:
+    """How many hexes of *msh* (MSH 2.2 ASCII) gmshToFoam's orientation
+    test would turn inside out (:func:`foam_would_invert`), counted in
+    chunks.  At zero the default conversion is safe.  Otherwise the mesh
+    needs ``convert(..., keep_orientation=True)``, which is right only when
+    every hex is right-handed (a positive worst scaled Jacobian)."""
+    p = msh_hexes(msh)
+    return sum(int(foam_would_invert(p[i:i + 200_000]).sum())
+               for i in range(0, len(p), 200_000))
 
 
 def check_mesh(case: Path, region: str | None = None) -> dict:

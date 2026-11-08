@@ -384,26 +384,6 @@ boundaryField
 
 # --- one level ----------------------------------------------------------------
 
-#: OpenFOAM's hex model faces, outward (gmshToFoam keeps gmsh's vertex order)
-_FOAM_HEX_FACES = ((0, 4, 7, 3), (1, 2, 6, 5), (0, 1, 5, 4), (3, 7, 6, 2), (0, 3, 2, 1),
-                   (4, 5, 6, 7))
-
-
-def foam_would_invert(p: np.ndarray) -> np.ndarray:
-    """gmshToFoam's ``correctOrientation`` on hexes *p* (n, 8, 3): True
-    where it would flip the hex, i.e. where for any face the vector from
-    the face's first vertex to the vertex centroid is on the wrong side of
-    the face's area normal (triangles about the face centre)."""
-    cc = p.mean(axis=1)
-    bad = np.zeros(len(p), bool)
-    for f in _FOAM_HEX_FACES:
-        q = p[:, f]
-        fc = q.mean(axis=1)
-        a = sum(np.cross(q[:, i] - fc, q[:, (i + 1) % 4] - fc) for i in range(4))
-        bad |= np.einsum("ij,ij->i", q[:, 0] - cc, a) < 0
-    return bad
-
-
 def _centroids(asm: Assembly) -> tuple[np.ndarray, np.ndarray, int, np.ndarray, float]:
     """Every hex's vertex centroid and its fitting index, from the mesh in
     the current gmsh session; how many hexes gmshToFoam's orientation test
@@ -421,7 +401,7 @@ def _centroids(asm: Assembly) -> tuple[np.ndarray, np.ndarray, int, np.ndarray, 
                 cents.append(p.mean(axis=1))
                 owners.append(np.full(len(p), index))
                 blocks.append(np.full(len(p), v))
-                flips += int(foam_would_invert(p).sum())
+                flips += int(of.foam_would_invert(p).sum())
                 ends = np.asarray(_HEX_EDGES)
                 e = np.linalg.norm(p[:, ends[:, 1]] - p[:, ends[:, 0]], axis=2)
                 ratio = max(ratio, float((e.max(axis=1) / e.min(axis=1)).max()))

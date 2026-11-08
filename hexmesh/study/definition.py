@@ -47,8 +47,9 @@ placeholder uses, is an error.
 
 **case** (task 0043; needs ``"format": "openfoam"``): ``template`` is an
 OpenFOAM case directory without a mesh.  Each meshed variant gets a copy
-in ``variants/<hash>/case``: the mesh converted (``gmshToFoam``, and
-``splitMeshRegions -cellZones`` with ``split_regions``), its patches
+in ``variants/<hash>/case``: the mesh converted (``gmshToFoam``, with
+``-keepOrientation`` when the mesh's worst scaled Jacobian is positive,
+task 0108; and ``splitMeshRegions -cellZones`` with ``split_regions``), its patches
 retyped from the role manifest, and ``$name`` tokens in its dictionaries
 replaced by the variant's parameters
 (``hexmesh.study.openfoam.substitute_case``).

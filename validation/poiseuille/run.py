@@ -54,12 +54,9 @@ sys.path.insert(0, str(HERE.parents[1]))
 import gmsh                                                    # noqa: E402
 
 from hexmesh import Assembly, PipeSpec, Session, Straight      # noqa: E402
-from hexmesh.io.writers.openfoam_boundary import (             # noqa: E402
-    apply_boundary_roles, roles_path,
-)
 # Shared OpenFOAM helpers (task 0043), moved from this script.
 from hexmesh.study.openfoam import (                           # noqa: E402
-    foam, header as _header, latest_time as _latest_time,
+    convert, foam, header as _header, latest_time as _latest_time,
     read_faces, read_internal, read_labels, read_patch_faces, read_patch_values,
     openfoam_version, read_points, read_zone, runner,
 )
@@ -325,8 +322,8 @@ def run_level(name: str, factor: int, work: Path, end_time: int) -> dict:
         asm.write_openfoam(msh)
         sj = asm.check_quality("scaled_jacobian").worst
     write_case(case, end_time)
-    foam(f"gmshToFoam {msh.name}", case, "log.gmshToFoam")
-    retyped = apply_boundary_roles(case, roles_path(msh))
+    # every hex right-handed: skip gmshToFoam's orientation test (task 0108)
+    retyped = convert(case, msh, keep_orientation=sj > 0)
     check = foam("checkMesh", case, "log.checkMesh")
     foam("topoSet", case, "log.topoSet")
     solve = foam("simpleFoam", case, "log.simpleFoam")
@@ -356,6 +353,14 @@ def orders(rows: list[dict], key: str) -> list[float]:
 TREND_NANG = (6, 12, 24, 48, 96)
 
 
+def trend_assembly(nang: int) -> Assembly:
+    """:func:`nonorth_trend`'s pipe at *nang*."""
+    spec = PipeSpec(nang=nang).core("fluid", radius=R, nrad=nang // 2)
+    asm = Assembly(spec, position=[0, 0, 0], direction=[1, 0, 0], up=[0, 0, 1])
+    asm.add(Straight(2 * D, n_layers=4))
+    return asm
+
+
 def nonorth_trend(work: Path, nangs=TREND_NANG, keep_work: bool = False) -> list[dict]:
     """checkMesh only, on a 2 D pipe with this case's cross-section
     (``nrad`` = ``nang`` / 2) and 4 axial layers."""
@@ -366,14 +371,14 @@ def nonorth_trend(work: Path, nangs=TREND_NANG, keep_work: bool = False) -> list
             shutil.rmtree(case)
         case.mkdir(parents=True)
         with Session(f"poiseuille-trend-{nang}"):
-            spec = PipeSpec(nang=nang).core("fluid", radius=R, nrad=nang // 2)
-            asm = Assembly(spec, position=[0, 0, 0], direction=[1, 0, 0], up=[0, 0, 1])
-            asm.add(Straight(2 * D, n_layers=4))
+            asm = trend_assembly(nang)
             cells = asm.cell_count()
             msh = case / "pipe.msh"
             asm.write_openfoam(msh)
+            sj = asm.check_quality("scaled_jacobian").worst
         write_case(case, 1)
-        foam(f"gmshToFoam {msh.name}", case, "log.gmshToFoam")
+        keep = " -keepOrientation" if sj > 0 else ""     # task 0108; checkMesh only, no roles
+        foam(f"gmshToFoam{keep} {msh.name}", case, "log.gmshToFoam")
         check = foam("checkMesh", case, "log.checkMesh")
         rows.append({
             "nang": nang, "nrad": nang // 2, "cells": cells, "mesh_ok": "Mesh OK." in check,

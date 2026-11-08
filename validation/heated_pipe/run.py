@@ -502,7 +502,8 @@ def run_level(k: int, work: Path, end_time: int, n_proc: int) -> dict:
         asm.write_openfoam(str(msh))
         sj = asm.check_quality("scaled_jacobian").worst
     write_dicts(case, end_time)
-    retyped = of.convert(case, msh, split_regions=True)
+    # every hex right-handed: skip gmshToFoam's orientation test (task 0108)
+    retyped = of.convert(case, msh, split_regions=True, keep_orientation=sj > 0)
     checks = {r: of.check_mesh(case, r) for r in REGIONS}
     write_fields(case)
     of.foam("topoSet -region fluid", case, "log.topoSet")

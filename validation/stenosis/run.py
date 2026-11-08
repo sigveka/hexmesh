@@ -66,9 +66,6 @@ import sys                                                     # noqa: E402
 sys.path.insert(0, str(ROOT))
 
 from hexmesh import Assembly, PipeSpec, Reducer, Session, Straight   # noqa: E402
-from hexmesh.io.writers.openfoam_boundary import (             # noqa: E402
-    apply_boundary_roles, roles_path,
-)
 from hexmesh.study import openfoam as of                       # noqa: E402
 
 
@@ -468,8 +465,8 @@ def run_level(name: str, k: int, work: Path, max_time: float, n_proc: int) -> di
     # adjustTimeStep grows it
     first = min(CHUNK, max_time)
     write_case(case, first, delta_t=0.1 * L_STEN / (36 * k) / 8)
-    of.foam(f"gmshToFoam {msh.name}", case, "log.gmshToFoam")
-    retyped = apply_boundary_roles(case, roles_path(msh))
+    # every hex right-handed: skip gmshToFoam's orientation test (task 0108)
+    retyped = of.convert(case, msh, keep_orientation=sj > 0)
     check = of.foam("checkMesh", case, "log.checkMesh")
     scale = parabolic_inlet(case)
     geo = geometry(case)

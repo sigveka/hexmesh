@@ -1562,6 +1562,7 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `mesh_not_all_hex` | a mesh with elements other than hexahedra | `StudyError` |
 | `mesh_order_invalid` | a mesh order other than 1 or 2 | `AssemblyError` |
 | `mesh_order_needs_volume` | order=2 asked of a surface or line mesh | `AssemblyError` |
+| `mesh_sj_not_positive` | a mesh with an inverted hex corner, converted with gmshToFoam's orientation test on (warning) | `HexmeshWarning` |
 | `meshed_nonorth_above_maximum` | meshed non-orthogonality above OUTLINE_NONORTH_MAX | `AssemblyError` |
 | `meshed_nonorth_high` | meshed non-orthogonality high but allowed (warning) | `HexmeshWarning` |
 | `meshed_sj_below_minimum` | meshed corner scaled Jacobian below PREDICTED_SJ_MIN | `AssemblyError` |

@@ -360,6 +360,13 @@ MATCH_LENGTH = 40 * D           # the straight duct the match is made in
 INLET_K = 2                     # its level: one inlet for every level of the study
 
 
+def inlet_assembly(k: int) -> Assembly:
+    """The straight duct :func:`match_inlet` solves in, at level *k*."""
+    asm = Assembly(_spec(), position=[0, 0, 0], direction=[1, 0, 0], up=[0, 0, 1])
+    asm.add(Straight(MATCH_LENGTH, n_layers=round(AXIAL["up"] * MATCH_LENGTH / L_UP)))
+    return asm if k == 1 else asm.refined(k)
+
+
 def match_inlet(k: int, work: Path, end_time: int, n_proc: int) -> dict:
     """Developing flow from a plug inlet in a straight duct: the distance
     x* from the inlet whose U profile best matches *MATCH_STATION* (least
@@ -369,9 +376,7 @@ def match_inlet(k: int, work: Path, end_time: int, n_proc: int) -> dict:
     if case.exists():
         shutil.rmtree(case)
     case.mkdir(parents=True)
-    asm = Assembly(_spec(), position=[0, 0, 0], direction=[1, 0, 0], up=[0, 0, 1])
-    asm.add(Straight(MATCH_LENGTH, n_layers=round(AXIAL["up"] * MATCH_LENGTH / L_UP)))
-    asm = asm if k == 1 else asm.refined(k)
+    asm = inlet_assembly(k)
     with Session(f"square-bend-inlet-{k}"):
         msh = case / "mesh.msh"
         asm.write_openfoam(str(msh))

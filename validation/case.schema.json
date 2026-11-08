@@ -55,11 +55,12 @@
         },
         "toolchain": {
           "type": "object",
-          "required": ["openfoam", "runner"],
+          "required": ["openfoam", "runner", "conversion"],
           "additionalProperties": false,
           "properties": {
             "openfoam": {"type": "string", "pattern": "^v[0-9]{4}$"},
-            "runner": {"enum": ["native", "docker"]}
+            "runner": {"enum": ["native", "docker"]},
+            "conversion": {"description": "How the mesh reaches OpenFOAM: gmshToFoam's flags, and any mesh made otherwise (task 0108).", "type": "string", "minLength": 1}
           }
         }
       }

@@ -131,7 +131,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0077](0077-validation-fenicsx-second-order.md) | Verification: FEniCSx toolchain, and second-order export checked end to end | V1 | ready (step 1 any time; 2–4 after 0076) | 0034, 0012, 0015 |
 | [0079](0079-validation-taylor-bubble.md) | Validation: a Taylor bubble rising in stagnant liquid (VOF) | V3 | ready (v2406 runner) | 0012, 0015 |
 | [0099](0099-validation-graphs.md) | Validation results as graphs: convergence, layouts, the stenosis against DNS | docs | done | 0012, 0015, 0036 |
-| [0108](0108-gmshtofoam-inversion-audit.md) | Audit the validation cases for gmshToFoam's silent inversions | V1 | ready | 0012 |
+| [0108](0108-gmshtofoam-inversion-audit.md) | Audit the validation cases for gmshToFoam's silent inversions | V1 | done | 0012 |
 | [0109](0109-mms-wall-slope.md) | MMS: does the order track the wall slope? | V1 | ready (after 0108) | 0012 |
 
 

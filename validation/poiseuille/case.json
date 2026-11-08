@@ -22,7 +22,8 @@
     ],
     "toolchain": {
       "openfoam": "v1912",
-      "runner": "native"
+      "runner": "native",
+      "conversion": "gmshToFoam, with -keepOrientation when the worst scaled Jacobian is positive (task 0108)"
     }
   },
   "status": "accepted",

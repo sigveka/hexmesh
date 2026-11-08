@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+**No validation result went through a hex that gmshToFoam turned inside
+out** (task 0108).
+- The audit rebuilt every level of every case (199 meshes and side
+  meshes, 128 distinct) and counted the hexes gmshToFoam's orientation
+  test would flip.  Four MMS wye levels would be flipped (32 hexes), and
+  all four were converted with `-keepOrientation`.  Everything else
+  counts zero, and every mesh's worst scaled Jacobian is positive.
+  `validation/tools/orientation_audit.py`, results in its JSON.
+- **`hexmesh.study.openfoam`:** new `would_invert(msh)`, which counts
+  those hexes on a written `.msh` without gmsh, and `foam_would_invert`
+  and `msh_hexes`.  OpenFOAM v1912 and v2406 run the same test.
+- **The validation drivers** pass `keep_orientation=True` whenever the
+  worst scaled Jacobian is positive.  Each `case.json` says so, under
+  `toolchain.conversion`.  `convert()`'s default is unchanged.  The
+  GUIDE's OpenFOAM section says when to pass it.
+- **A study's case stage does the same.**  It converts with
+  `-keepOrientation` when the variant's worst scaled Jacobian is
+  positive.  Otherwise it converts with the test on and warns
+  `mesh_sj_not_positive`: the mesh has an inverted corner.
+
 **The manufactured-solution study is accepted** (task 0074; V1,
 `validation/mms/`).
 - **Verified:** the straight, bend, spline, stack change and

@@ -291,6 +291,24 @@ def load_case_run(study: Study, rows: list[dict]) -> None:
                 r.update({k: v for k, v in c.items() if k != "fingerprint"})
 
 
+def keep_orientation(row: dict) -> bool:
+    """Whether to convert the variant with ``-keepOrientation``: when its
+    mesh's worst scaled Jacobian is positive, every hex is right-handed and
+    gmshToFoam's orientation test, which flips valid warped hexes, is only
+    a risk (task 0108).  Otherwise the mesh has an inverted corner, a
+    defect the flag can't fix: convert with the test on, and warn."""
+    sj = row.get("min_sj")
+    if sj is not None and sj > 0:
+        return True
+    warnings.warn(HexmeshWarning(
+        f"variant {row['hash']}: worst scaled Jacobian {sj} in {row.get('min_sj_fitting')}: "
+        "the mesh has an inverted hex corner; converted with gmshToFoam's orientation test on",
+        code="mesh_sj_not_positive", where={"fitting": row.get("min_sj_fitting")}, value=sj,
+        limit={"min_exclusive": 0}, hint="check the fitting's mesh (Assembly.check_quality)"),
+        stacklevel=2)
+    return False
+
+
 def case_stage(study: Study, rows: list[dict], jobs: int | None = None) -> list[str]:
     """Make the OpenFOAM case of every meshed variant whose case is missing
     or out of date.  Returns the hashes done (ready or failed)."""
@@ -314,8 +332,10 @@ def case_stage(study: Study, rows: list[dict], jobs: int | None = None) -> list[
                 shutil.rmtree(case)
             shutil.copytree(template, case)
             out["substituted"] = substitute_case(case, row["params"])
+            out["keep_orientation"] = keep_orientation(row)
             out["retyped"] = convert(case, d / study.mesh_name,
-                                     bool(study.case.get("split_regions")))
+                                     bool(study.case.get("split_regions")),
+                                     keep_orientation=out["keep_orientation"])
             out["status"] = "case_ready"
         except Exception as e:                               # recorded, not raised
             out["status"], out["error"] = "case_failed", f"{type(e).__name__}: {e}"

@@ -27,6 +27,7 @@ exist, are drawn from the current ``results.json`` (their
 ``RESULTS.md``.
 """
 
+import ast
 import importlib.util
 import json
 from pathlib import Path
@@ -288,3 +289,48 @@ def test_graphs_are_deterministic(plots, tmp_path):
     data = json.loads((ROOT / "validation/poiseuille/results.json").read_text(encoding="utf-8"))
     first = plots.poiseuille(data, tmp_path / "a")[0].read_bytes()
     assert plots.poiseuille(data, tmp_path / "b")[0].read_bytes() == first
+
+
+# --- gmshToFoam's orientation test (task 0108) ---------------------------------
+
+def unguarded_conversions(src: str) -> list[str]:
+    """Each place in a driver's source that converts with gmshToFoam's
+    orientation test left on unconditionally: a ``convert(…)`` call without
+    ``keep_orientation=``, or a ``gmshToFoam`` command string without a
+    ``{keep}`` flag after it."""
+    bad = []
+    for node in ast.walk(ast.parse(src)):
+        if not isinstance(node, ast.Call):
+            continue
+        f = node.func
+        name = f.attr if isinstance(f, ast.Attribute) else getattr(f, "id", "")
+        if name == "convert" and "keep_orientation" not in [k.arg for k in node.keywords]:
+            bad.append(f"line {node.lineno}: convert() without keep_orientation")
+        for a in node.args[:1]:
+            text = ast.get_source_segment(src, a) or ""
+            if "gmshToFoam" in text and "gmshToFoam{keep}" not in text:
+                bad.append(f"line {node.lineno}: {text}")
+    return bad
+
+
+@pytest.mark.parametrize("driver", sorted(p.parent.name for p in
+                                          (ROOT / "validation").glob("*/run.py")))
+def test_every_driver_converts_with_keep_orientation(driver):
+    src = (ROOT / "validation" / driver / "run.py").read_text(encoding="utf-8")
+    assert unguarded_conversions(src) == []
+
+
+def test_planted_unguarded_conversions():
+    src = ('of.convert(case, msh)\n'
+           'of.convert(case, msh, keep_orientation=sj > 0)\n'
+           'foam(f"gmshToFoam {msh.name}", case, "log")\n'
+           'foam(f"gmshToFoam{keep} {msh.name}", case, "log")\n')
+    assert unguarded_conversions(src) == [
+        "line 1: convert() without keep_orientation",
+        'line 3: f"gmshToFoam {msh.name}"']
+
+
+def test_every_case_says_how_it_converts():
+    for c in sorted((ROOT / "validation").glob("*/case.json")):
+        conv = json.loads(c.read_text(encoding="utf-8"))["tags"]["toolchain"]["conversion"]
+        assert "-keepOrientation" in conv, c.parent.name

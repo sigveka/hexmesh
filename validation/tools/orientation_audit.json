@@ -1,0 +1,2929 @@
+{
+ "task": "0108",
+ "gmshToFoam": "v2406 orientation test, reimplemented (hexmesh.study.openfoam.foam_would_invert)",
+ "levels": [
+  {
+   "case": "heated_pipe",
+   "level": "k1",
+   "cells_stored": 10944,
+   "mesh": "heated_pipe:assembly(1,)",
+   "cells": 10944,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7933533402912328
+  },
+  {
+   "case": "heated_pipe",
+   "level": "k2",
+   "cells_stored": 87552,
+   "mesh": "heated_pipe:assembly(2,)",
+   "cells": 87552,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7518398074789753
+  },
+  {
+   "case": "heated_pipe",
+   "level": "k3",
+   "cells_stored": 295488,
+   "mesh": "heated_pipe:assembly(3,)",
+   "cells": 295488,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7372773368101213
+  },
+  {
+   "case": "heated_rod",
+   "level": "uniform-1",
+   "cells_stored": 216,
+   "mesh": "heated_rod:assembly('uniform', 1)",
+   "cells": 216,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7933533402912332
+  },
+  {
+   "case": "heated_rod",
+   "level": "uniform-2",
+   "cells_stored": 864,
+   "mesh": "heated_rod:assembly('uniform', 2)",
+   "cells": 864,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7518398074789758
+  },
+  {
+   "case": "heated_rod",
+   "level": "uniform-4",
+   "cells_stored": 3456,
+   "mesh": "heated_rod:assembly('uniform', 4)",
+   "cells": 3456,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7298640702516239
+  },
+  {
+   "case": "heated_rod",
+   "level": "uniform-8",
+   "cells_stored": 13824,
+   "mesh": "heated_rod:assembly('uniform', 8)",
+   "cells": 13824,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7185816018147894
+  },
+  {
+   "case": "heated_rod",
+   "level": "uniform-16",
+   "cells_stored": 55296,
+   "mesh": "heated_rod:assembly('uniform', 16)",
+   "cells": 55296,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7128680415908993
+  },
+  {
+   "case": "heated_rod",
+   "level": "graded-1",
+   "cells_stored": 216,
+   "mesh": "heated_rod:assembly('graded', 1)",
+   "cells": 216,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7933533402912332
+  },
+  {
+   "case": "heated_rod",
+   "level": "graded-2",
+   "cells_stored": 864,
+   "mesh": "heated_rod:assembly('graded', 2)",
+   "cells": 864,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7518398074789758
+  },
+  {
+   "case": "heated_rod",
+   "level": "graded-4",
+   "cells_stored": 3456,
+   "mesh": "heated_rod:assembly('graded', 4)",
+   "cells": 3456,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7298640702516239
+  },
+  {
+   "case": "heated_rod",
+   "level": "graded-8",
+   "cells_stored": 13824,
+   "mesh": "heated_rod:assembly('graded', 8)",
+   "cells": 13824,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7185816018147894
+  },
+  {
+   "case": "heated_rod",
+   "level": "graded-16",
+   "cells_stored": 55296,
+   "mesh": "heated_rod:assembly('graded', 16)",
+   "cells": 55296,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7128680415908993
+  },
+  {
+   "case": "helical_pipe",
+   "level": "re1800_n8",
+   "cells_stored": 100416,
+   "mesh": "helical_pipe:assembly(8,)",
+   "cells": 100416,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7727974664563291
+  },
+  {
+   "case": "helical_pipe",
+   "level": "re1800_n12",
+   "cells_stored": 338688,
+   "mesh": "helical_pipe:assembly(12,)",
+   "cells": 338688,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7517476896048852
+  },
+  {
+   "case": "helical_pipe",
+   "level": "re1800_n16",
+   "cells_stored": 803328,
+   "mesh": "helical_pipe:assembly(16,)",
+   "cells": 803328,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7409000482976861
+  },
+  {
+   "case": "helical_pipe",
+   "level": "re2400_n8",
+   "cells_stored": 100416,
+   "mesh": "helical_pipe:assembly(8,)",
+   "cells": 100416,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7727974664563291
+  },
+  {
+   "case": "helical_pipe",
+   "level": "re2400_n12",
+   "cells_stored": 338688,
+   "mesh": "helical_pipe:assembly(12,)",
+   "cells": 338688,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7517476896048852
+  },
+  {
+   "case": "helical_pipe",
+   "level": "re2400_n16",
+   "cells_stored": 803328,
+   "mesh": "helical_pipe:assembly(16,)",
+   "cells": 803328,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7409000482976861
+  },
+  {
+   "case": "helical_pipe",
+   "level": "re3000_n8",
+   "cells_stored": 100416,
+   "mesh": "helical_pipe:assembly(8,)",
+   "cells": 100416,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7727974664563291
+  },
+  {
+   "case": "helical_pipe",
+   "level": "re3000_n12",
+   "cells_stored": 338688,
+   "mesh": "helical_pipe:assembly(12,)",
+   "cells": 338688,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7517476896048852
+  },
+  {
+   "case": "helical_pipe",
+   "level": "re3000_n16",
+   "cells_stored": 803328,
+   "mesh": "helical_pipe:assembly(16,)",
+   "cells": 803328,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7409000482976861
+  },
+  {
+   "case": "helical_pipe",
+   "level": "re1800_n24",
+   "cells_stored": 2711232,
+   "mesh": "helical_pipe:assembly(24,)",
+   "cells": 2711232,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7298417043415031
+  },
+  {
+   "case": "helical_pipe",
+   "level": "re2400_n24",
+   "cells_stored": 2711232,
+   "mesh": "helical_pipe:assembly(24,)",
+   "cells": 2711232,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7298417043415031
+  },
+  {
+   "case": "layered_conduction",
+   "level": "fixed-1",
+   "cells_stored": 456,
+   "mesh": "layered_conduction:assembly(1,)",
+   "cells": 456,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7933533402912338
+  },
+  {
+   "case": "layered_conduction",
+   "level": "fixed-2",
+   "cells_stored": 1824,
+   "mesh": "layered_conduction:assembly(2,)",
+   "cells": 1824,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7518398074789752
+  },
+  {
+   "case": "layered_conduction",
+   "level": "fixed-4",
+   "cells_stored": 7296,
+   "mesh": "layered_conduction:assembly(4,)",
+   "cells": 7296,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7298640702516246
+  },
+  {
+   "case": "layered_conduction",
+   "level": "convection-1",
+   "cells_stored": 456,
+   "mesh": "layered_conduction:assembly(1,)",
+   "cells": 456,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7933533402912338
+  },
+  {
+   "case": "layered_conduction",
+   "level": "convection-2",
+   "cells_stored": 1824,
+   "mesh": "layered_conduction:assembly(2,)",
+   "cells": 1824,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7518398074789752
+  },
+  {
+   "case": "layered_conduction",
+   "level": "convection-4",
+   "cells_stored": 7296,
+   "mesh": "layered_conduction:assembly(4,)",
+   "cells": 7296,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7298640702516246
+  },
+  {
+   "case": "mms",
+   "level": "straight_k1",
+   "cells_stored": 864,
+   "mesh": "mms:assembly('straight', 1)",
+   "cells": 864,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7933533402912339
+  },
+  {
+   "case": "mms",
+   "level": "straight_k2",
+   "cells_stored": 6912,
+   "mesh": "mms:assembly('straight', 2)",
+   "cells": 6912,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7518398074789756
+  },
+  {
+   "case": "mms",
+   "level": "straight_k4",
+   "cells_stored": 55296,
+   "mesh": "mms:assembly('straight', 4)",
+   "cells": 55296,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7298640702516215
+  },
+  {
+   "case": "mms",
+   "level": "bend_k1",
+   "cells_stored": 1296,
+   "mesh": "mms:assembly('bend', 1)",
+   "cells": 1296,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.789533127112204
+  },
+  {
+   "case": "mms",
+   "level": "bend_k2",
+   "cells_stored": 10368,
+   "mesh": "mms:assembly('bend', 2)",
+   "cells": 10368,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7509341835041666
+  },
+  {
+   "case": "mms",
+   "level": "bend_k4",
+   "cells_stored": 82944,
+   "mesh": "mms:assembly('bend', 4)",
+   "cells": 82944,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7296442512848157
+  },
+  {
+   "case": "mms",
+   "level": "miter_k1",
+   "cells_stored": 1728,
+   "mesh": "mms:assembly('miter', 1)",
+   "cells": 1728,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7661413921052127
+  },
+  {
+   "case": "mms",
+   "level": "miter_k2",
+   "cells_stored": 13824,
+   "mesh": "mms:assembly('miter', 2)",
+   "cells": 13824,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7260258676208807
+  },
+  {
+   "case": "mms",
+   "level": "miter_k4",
+   "cells_stored": 110592,
+   "mesh": "mms:assembly('miter', 4)",
+   "cells": 110592,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7047931931017478
+  },
+  {
+   "case": "mms",
+   "level": "spline_k1",
+   "cells_stored": 1944,
+   "mesh": "mms:assembly('spline', 1)",
+   "cells": 1944,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7908397476700715
+  },
+  {
+   "case": "mms",
+   "level": "spline_k2",
+   "cells_stored": 15552,
+   "mesh": "mms:assembly('spline', 2)",
+   "cells": 15552,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.751249671782725
+  },
+  {
+   "case": "mms",
+   "level": "spline_k4",
+   "cells_stored": 124416,
+   "mesh": "mms:assembly('spline', 4)",
+   "cells": 124416,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7297211938536576
+  },
+  {
+   "case": "mms",
+   "level": "reducer_k1",
+   "cells_stored": 1296,
+   "mesh": "mms:assembly('reducer', 1)",
+   "cells": 1296,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7512600143587895
+  },
+  {
+   "case": "mms",
+   "level": "reducer_k2",
+   "cells_stored": 10368,
+   "mesh": "mms:assembly('reducer', 2)",
+   "cells": 10368,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7057226311370131
+  },
+  {
+   "case": "mms",
+   "level": "reducer_k4",
+   "cells_stored": 82944,
+   "mesh": "mms:assembly('reducer', 4)",
+   "cells": 82944,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.6834888357284965
+  },
+  {
+   "case": "mms",
+   "level": "transition_k1",
+   "cells_stored": 1044,
+   "mesh": "mms:assembly('transition', 1)",
+   "cells": 1044,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.5773502691896228
+  },
+  {
+   "case": "mms",
+   "level": "transition_k2",
+   "cells_stored": 8352,
+   "mesh": "mms:assembly('transition', 2)",
+   "cells": 8352,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.5773502691896171
+  },
+  {
+   "case": "mms",
+   "level": "transition_k4",
+   "cells_stored": 66816,
+   "mesh": "mms:assembly('transition', 4)",
+   "cells": 66816,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.5773502691896105
+  },
+  {
+   "case": "mms",
+   "level": "tee_k1",
+   "cells_stored": 2376,
+   "mesh": "mms:assembly('tee', 1)",
+   "cells": 2376,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.2576521280139983
+  },
+  {
+   "case": "mms",
+   "level": "tee_k2",
+   "cells_stored": 19008,
+   "mesh": "mms:assembly('tee', 2)",
+   "cells": 19008,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.2576521280139977
+  },
+  {
+   "case": "mms",
+   "level": "tee_k4",
+   "cells_stored": 152064,
+   "mesh": "mms:assembly('tee', 4)",
+   "cells": 152064,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.2576521280139985
+  },
+  {
+   "case": "mms",
+   "level": "tee_shells_k1",
+   "cells_stored": 4440,
+   "mesh": "mms:assembly('tee_shells', 1)",
+   "cells": 4440,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.2576521280139985
+  },
+  {
+   "case": "mms",
+   "level": "tee_shells_k2",
+   "cells_stored": 35520,
+   "mesh": "mms:assembly('tee_shells', 2)",
+   "cells": 35520,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.25765212801399767
+  },
+  {
+   "case": "mms",
+   "level": "tee_shells_k4",
+   "cells_stored": 284160,
+   "mesh": "mms:assembly('tee_shells', 4)",
+   "cells": 284160,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.2576521280139985
+  },
+  {
+   "case": "mms",
+   "level": "stack_change_k1",
+   "cells_stored": 1440,
+   "mesh": "mms:assembly('stack_change', 1)",
+   "cells": 1440,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7933533402912339
+  },
+  {
+   "case": "mms",
+   "level": "stack_change_k2",
+   "cells_stored": 11520,
+   "mesh": "mms:assembly('stack_change', 2)",
+   "cells": 11520,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7518398074789756
+  },
+  {
+   "case": "mms",
+   "level": "stack_change_k4",
+   "cells_stored": 92160,
+   "mesh": "mms:assembly('stack_change', 4)",
+   "cells": 92160,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7298640702516221
+  },
+  {
+   "case": "mms",
+   "level": "wye60_k1",
+   "cells_stored": 3996,
+   "mesh": "mms:assembly('wye60', 1)",
+   "cells": 3996,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.15644391160761778
+  },
+  {
+   "case": "mms",
+   "level": "wye60_k2",
+   "cells_stored": 26784,
+   "mesh": "mms:assembly('wye60', 2)",
+   "cells": 26784,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.1564436117454242
+  },
+  {
+   "case": "mms",
+   "level": "wye60_k4",
+   "cells_stored": 193536,
+   "mesh": "mms:assembly('wye60', 4)",
+   "cells": 193536,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.15644346188959568
+  },
+  {
+   "case": "mms",
+   "level": "wye90_k1",
+   "cells_stored": 4428,
+   "mesh": "mms:assembly('wye90', 1)",
+   "cells": 4428,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.16412149273679874
+  },
+  {
+   "case": "mms",
+   "level": "wye90_k2",
+   "cells_stored": 30240,
+   "mesh": "mms:assembly('wye90', 2)",
+   "cells": 30240,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.16412135454250307
+  },
+  {
+   "case": "mms",
+   "level": "wye90_k4",
+   "cells_stored": 221184,
+   "mesh": "mms:assembly('wye90', 4)",
+   "cells": 221184,
+   "would_invert": 6,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.13182221652438592
+  },
+  {
+   "case": "mms",
+   "level": "wye60_shell_k1",
+   "cells_stored": 5748,
+   "mesh": "mms:assembly('wye60_shell', 1)",
+   "cells": 5748,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.1564439116076183
+  },
+  {
+   "case": "mms",
+   "level": "wye60_shell_k2",
+   "cells_stored": 38496,
+   "mesh": "mms:assembly('wye60_shell', 2)",
+   "cells": 38496,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.15644361174542562
+  },
+  {
+   "case": "mms",
+   "level": "wye60_shell_k4",
+   "cells_stored": 278016,
+   "mesh": "mms:assembly('wye60_shell', 4)",
+   "cells": 278016,
+   "would_invert": 4,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.15644346188959898
+  },
+  {
+   "case": "mms",
+   "level": "wye90_shell_k1",
+   "cells_stored": 6372,
+   "mesh": "mms:assembly('wye90_shell', 1)",
+   "cells": 6372,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.1641214927367985
+  },
+  {
+   "case": "mms",
+   "level": "wye90_shell_k2",
+   "cells_stored": 43488,
+   "mesh": "mms:assembly('wye90_shell', 2)",
+   "cells": 43488,
+   "would_invert": 4,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.16412135454250223
+  },
+  {
+   "case": "mms",
+   "level": "wye90_shell_k4",
+   "cells_stored": 317952,
+   "mesh": "mms:assembly('wye90_shell', 4)",
+   "cells": 317952,
+   "would_invert": 18,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.13182221652439305
+  },
+  {
+   "case": "mms",
+   "level": "duct_tap_rect_k1",
+   "cells_stored": 7936,
+   "mesh": "mms:assembly('duct_tap_rect', 1)",
+   "cells": 7936,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.4237856365378029
+  },
+  {
+   "case": "mms",
+   "level": "duct_tap_rect_k2",
+   "cells_stored": 63488,
+   "mesh": "mms:assembly('duct_tap_rect', 2)",
+   "cells": 63488,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.42378563653780255
+  },
+  {
+   "case": "mms",
+   "level": "duct_tap_rect_k4",
+   "cells_stored": 507904,
+   "mesh": "mms:assembly('duct_tap_rect', 4)",
+   "cells": 507904,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.42378563653779977
+  },
+  {
+   "case": "mms",
+   "level": "duct_tap_round_k1",
+   "cells_stored": 9472,
+   "mesh": "mms:assembly('duct_tap_round', 1)",
+   "cells": 9472,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.432526043050062
+  },
+  {
+   "case": "mms",
+   "level": "duct_tap_round_k2",
+   "cells_stored": 75776,
+   "mesh": "mms:assembly('duct_tap_round', 2)",
+   "cells": 75776,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.43252604305005726
+  },
+  {
+   "case": "mms",
+   "level": "duct_tap_round_k4",
+   "cells_stored": 606208,
+   "mesh": "mms:assembly('duct_tap_round', 4)",
+   "cells": 606208,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.43252604305005465
+  },
+  {
+   "case": "mms",
+   "level": "duct_k1",
+   "cells_stored": 576,
+   "mesh": "mms:assembly('duct', 1)",
+   "cells": 576,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.9999999999999973
+  },
+  {
+   "case": "mms",
+   "level": "duct_k2",
+   "cells_stored": 4608,
+   "mesh": "mms:assembly('duct', 2)",
+   "cells": 4608,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.9999999999999972
+  },
+  {
+   "case": "mms",
+   "level": "duct_k4",
+   "cells_stored": 36864,
+   "mesh": "mms:assembly('duct', 4)",
+   "cells": 36864,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.9999999999999971
+  },
+  {
+   "case": "mms",
+   "level": "duct_tap_rect_k3",
+   "cells_stored": 214272,
+   "mesh": "mms:assembly('duct_tap_rect', 3)",
+   "cells": 214272,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.42378563653780094
+  },
+  {
+   "case": "mms",
+   "level": "duct_tap_rect_lim_k1",
+   "cells_stored": 7936,
+   "mesh": "mms:assembly('duct_tap_rect', 1)",
+   "cells": 7936,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.4237856365378029
+  },
+  {
+   "case": "mms",
+   "level": "duct_tap_rect_lim_k2",
+   "cells_stored": 63488,
+   "mesh": "mms:assembly('duct_tap_rect', 2)",
+   "cells": 63488,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.42378563653780255
+  },
+  {
+   "case": "mms",
+   "level": "transition_loc_k1",
+   "cells_stored": 1044,
+   "mesh": "mms:assembly('transition', 1)",
+   "cells": 1044,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.5773502691896228
+  },
+  {
+   "case": "mms",
+   "level": "transition_loc_k2",
+   "cells_stored": 8352,
+   "mesh": "mms:assembly('transition', 2)",
+   "cells": 8352,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.5773502691896171
+  },
+  {
+   "case": "mms",
+   "level": "transition_loc_k4",
+   "cells_stored": 66816,
+   "mesh": "mms:assembly('transition', 4)",
+   "cells": 66816,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.5773502691896105
+  },
+  {
+   "case": "mms",
+   "level": "transition_lsq_k1",
+   "cells_stored": 1044,
+   "mesh": "mms:assembly('transition', 1)",
+   "cells": 1044,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.5773502691896228
+  },
+  {
+   "case": "mms",
+   "level": "transition_lsq_k2",
+   "cells_stored": 8352,
+   "mesh": "mms:assembly('transition', 2)",
+   "cells": 8352,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.5773502691896171
+  },
+  {
+   "case": "mms",
+   "level": "transition_lsq_k4",
+   "cells_stored": 66816,
+   "mesh": "mms:assembly('transition', 4)",
+   "cells": 66816,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.5773502691896105
+  },
+  {
+   "case": "mms",
+   "level": "transition_skew_k1",
+   "cells_stored": 1044,
+   "mesh": "mms:assembly('transition', 1)",
+   "cells": 1044,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.5773502691896228
+  },
+  {
+   "case": "mms",
+   "level": "transition_skew_k2",
+   "cells_stored": 8352,
+   "mesh": "mms:assembly('transition', 2)",
+   "cells": 8352,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.5773502691896171
+  },
+  {
+   "case": "mms",
+   "level": "transition_skew_k4",
+   "cells_stored": 66816,
+   "mesh": "mms:assembly('transition', 4)",
+   "cells": 66816,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.5773502691896105
+  },
+  {
+   "case": "mms",
+   "level": "tee_loc_k1",
+   "cells_stored": 2376,
+   "mesh": "mms:assembly('tee', 1)",
+   "cells": 2376,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.2576521280139983
+  },
+  {
+   "case": "mms",
+   "level": "tee_loc_k2",
+   "cells_stored": 19008,
+   "mesh": "mms:assembly('tee', 2)",
+   "cells": 19008,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.2576521280139977
+  },
+  {
+   "case": "mms",
+   "level": "tee_loc_k4",
+   "cells_stored": 152064,
+   "mesh": "mms:assembly('tee', 4)",
+   "cells": 152064,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.2576521280139985
+  },
+  {
+   "case": "mms",
+   "level": "tee_lsq_k1",
+   "cells_stored": 2376,
+   "mesh": "mms:assembly('tee', 1)",
+   "cells": 2376,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.2576521280139983
+  },
+  {
+   "case": "mms",
+   "level": "tee_lsq_k2",
+   "cells_stored": 19008,
+   "mesh": "mms:assembly('tee', 2)",
+   "cells": 19008,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.2576521280139977
+  },
+  {
+   "case": "mms",
+   "level": "tee_lsq_k4",
+   "cells_stored": 152064,
+   "mesh": "mms:assembly('tee', 4)",
+   "cells": 152064,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.2576521280139985
+  },
+  {
+   "case": "mms",
+   "level": "tee_skew_k1",
+   "cells_stored": 2376,
+   "mesh": "mms:assembly('tee', 1)",
+   "cells": 2376,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.2576521280139983
+  },
+  {
+   "case": "mms",
+   "level": "tee_skew_k2",
+   "cells_stored": 19008,
+   "mesh": "mms:assembly('tee', 2)",
+   "cells": 19008,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.2576521280139977
+  },
+  {
+   "case": "mms",
+   "level": "tee_skew_k4",
+   "cells_stored": 152064,
+   "mesh": "mms:assembly('tee', 4)",
+   "cells": 152064,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.2576521280139985
+  },
+  {
+   "case": "mms",
+   "level": "tee_shells_loc_k1",
+   "cells_stored": 4440,
+   "mesh": "mms:assembly('tee_shells', 1)",
+   "cells": 4440,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.2576521280139985
+  },
+  {
+   "case": "mms",
+   "level": "tee_shells_loc_k2",
+   "cells_stored": 35520,
+   "mesh": "mms:assembly('tee_shells', 2)",
+   "cells": 35520,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.25765212801399767
+  },
+  {
+   "case": "mms",
+   "level": "tee_shells_loc_k4",
+   "cells_stored": 284160,
+   "mesh": "mms:assembly('tee_shells', 4)",
+   "cells": 284160,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.2576521280139985
+  },
+  {
+   "case": "mms",
+   "level": "tee_shells_lsq_k1",
+   "cells_stored": 4440,
+   "mesh": "mms:assembly('tee_shells', 1)",
+   "cells": 4440,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.2576521280139985
+  },
+  {
+   "case": "mms",
+   "level": "tee_shells_lsq_k2",
+   "cells_stored": 35520,
+   "mesh": "mms:assembly('tee_shells', 2)",
+   "cells": 35520,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.25765212801399767
+  },
+  {
+   "case": "mms",
+   "level": "tee_shells_lsq_k4",
+   "cells_stored": 284160,
+   "mesh": "mms:assembly('tee_shells', 4)",
+   "cells": 284160,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.2576521280139985
+  },
+  {
+   "case": "mms",
+   "level": "tee_shells_skew_k1",
+   "cells_stored": 4440,
+   "mesh": "mms:assembly('tee_shells', 1)",
+   "cells": 4440,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.2576521280139985
+  },
+  {
+   "case": "mms",
+   "level": "tee_shells_skew_k2",
+   "cells_stored": 35520,
+   "mesh": "mms:assembly('tee_shells', 2)",
+   "cells": 35520,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.25765212801399767
+  },
+  {
+   "case": "mms",
+   "level": "tee_shells_skew_k4",
+   "cells_stored": 284160,
+   "mesh": "mms:assembly('tee_shells', 4)",
+   "cells": 284160,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.2576521280139985
+  },
+  {
+   "case": "mms",
+   "level": "miter_loc_k1",
+   "cells_stored": 1728,
+   "mesh": "mms:assembly('miter', 1)",
+   "cells": 1728,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7661413921052127
+  },
+  {
+   "case": "mms",
+   "level": "miter_loc_k2",
+   "cells_stored": 13824,
+   "mesh": "mms:assembly('miter', 2)",
+   "cells": 13824,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7260258676208807
+  },
+  {
+   "case": "mms",
+   "level": "miter_loc_k4",
+   "cells_stored": 110592,
+   "mesh": "mms:assembly('miter', 4)",
+   "cells": 110592,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7047931931017478
+  },
+  {
+   "case": "mms",
+   "level": "miter_lsq_k1",
+   "cells_stored": 1728,
+   "mesh": "mms:assembly('miter', 1)",
+   "cells": 1728,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7661413921052127
+  },
+  {
+   "case": "mms",
+   "level": "miter_lsq_k2",
+   "cells_stored": 13824,
+   "mesh": "mms:assembly('miter', 2)",
+   "cells": 13824,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7260258676208807
+  },
+  {
+   "case": "mms",
+   "level": "miter_lsq_k4",
+   "cells_stored": 110592,
+   "mesh": "mms:assembly('miter', 4)",
+   "cells": 110592,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7047931931017478
+  },
+  {
+   "case": "mms",
+   "level": "miter_skew_k1",
+   "cells_stored": 1728,
+   "mesh": "mms:assembly('miter', 1)",
+   "cells": 1728,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7661413921052127
+  },
+  {
+   "case": "mms",
+   "level": "miter_skew_k2",
+   "cells_stored": 13824,
+   "mesh": "mms:assembly('miter', 2)",
+   "cells": 13824,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7260258676208807
+  },
+  {
+   "case": "mms",
+   "level": "miter_skew_k4",
+   "cells_stored": 110592,
+   "mesh": "mms:assembly('miter', 4)",
+   "cells": 110592,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7047931931017478
+  },
+  {
+   "case": "mms",
+   "level": "reducer_loc_k1",
+   "cells_stored": 1296,
+   "mesh": "mms:assembly('reducer', 1)",
+   "cells": 1296,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7512600143587895
+  },
+  {
+   "case": "mms",
+   "level": "reducer_loc_k2",
+   "cells_stored": 10368,
+   "mesh": "mms:assembly('reducer', 2)",
+   "cells": 10368,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7057226311370131
+  },
+  {
+   "case": "mms",
+   "level": "reducer_loc_k4",
+   "cells_stored": 82944,
+   "mesh": "mms:assembly('reducer', 4)",
+   "cells": 82944,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.6834888357284965
+  },
+  {
+   "case": "mms",
+   "level": "reducer_lsq_k1",
+   "cells_stored": 1296,
+   "mesh": "mms:assembly('reducer', 1)",
+   "cells": 1296,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7512600143587895
+  },
+  {
+   "case": "mms",
+   "level": "reducer_lsq_k2",
+   "cells_stored": 10368,
+   "mesh": "mms:assembly('reducer', 2)",
+   "cells": 10368,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7057226311370131
+  },
+  {
+   "case": "mms",
+   "level": "reducer_lsq_k4",
+   "cells_stored": 82944,
+   "mesh": "mms:assembly('reducer', 4)",
+   "cells": 82944,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.6834888357284965
+  },
+  {
+   "case": "mms",
+   "level": "reducer_skew_k1",
+   "cells_stored": 1296,
+   "mesh": "mms:assembly('reducer', 1)",
+   "cells": 1296,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7512600143587895
+  },
+  {
+   "case": "mms",
+   "level": "reducer_skew_k2",
+   "cells_stored": 10368,
+   "mesh": "mms:assembly('reducer', 2)",
+   "cells": 10368,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7057226311370131
+  },
+  {
+   "case": "mms",
+   "level": "reducer_skew_k4",
+   "cells_stored": 82944,
+   "mesh": "mms:assembly('reducer', 4)",
+   "cells": 82944,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.6834888357284965
+  },
+  {
+   "case": "mms",
+   "level": "straight_lsq_k1",
+   "cells_stored": 864,
+   "mesh": "mms:assembly('straight', 1)",
+   "cells": 864,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7933533402912339
+  },
+  {
+   "case": "mms",
+   "level": "straight_lsq_k2",
+   "cells_stored": 6912,
+   "mesh": "mms:assembly('straight', 2)",
+   "cells": 6912,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7518398074789756
+  },
+  {
+   "case": "mms",
+   "level": "straight_lsq_k4",
+   "cells_stored": 55296,
+   "mesh": "mms:assembly('straight', 4)",
+   "cells": 55296,
+   "would_invert": 0,
+   "kept_orientation": true,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7298640702516215
+  },
+  {
+   "case": "poiseuille",
+   "level": "coarse",
+   "cells_stored": 5184,
+   "mesh": "poiseuille:assembly(1,)",
+   "cells": 5184,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7933533402912328
+  },
+  {
+   "case": "poiseuille",
+   "level": "medium",
+   "cells_stored": 41472,
+   "mesh": "poiseuille:assembly(2,)",
+   "cells": 41472,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7518398074789749
+  },
+  {
+   "case": "poiseuille",
+   "level": "fine",
+   "cells_stored": 331776,
+   "mesh": "poiseuille:assembly(4,)",
+   "cells": 331776,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7298640702516203
+  },
+  {
+   "case": "rect_duct",
+   "level": "ar1_k1",
+   "cells_stored": 2160,
+   "mesh": "rect_duct:assembly(1, 1, 'oh')",
+   "cells": 2160,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7071067811865435
+  },
+  {
+   "case": "rect_duct",
+   "level": "ar1_k2",
+   "cells_stored": 17280,
+   "mesh": "rect_duct:assembly(1, 2, 'oh')",
+   "cells": 17280,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7071067811865422
+  },
+  {
+   "case": "rect_duct",
+   "level": "ar1_k4",
+   "cells_stored": 138240,
+   "mesh": "rect_duct:assembly(1, 4, 'oh')",
+   "cells": 138240,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7071067811865351
+  },
+  {
+   "case": "rect_duct",
+   "level": "ar2_k1",
+   "cells_stored": 3600,
+   "mesh": "rect_duct:assembly(2, 1, 'oh')",
+   "cells": 3600,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7071067811865422
+  },
+  {
+   "case": "rect_duct",
+   "level": "ar2_k2",
+   "cells_stored": 28800,
+   "mesh": "rect_duct:assembly(2, 2, 'oh')",
+   "cells": 28800,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7071067811865376
+  },
+  {
+   "case": "rect_duct",
+   "level": "ar2_k4",
+   "cells_stored": 230400,
+   "mesh": "rect_duct:assembly(2, 4, 'oh')",
+   "cells": 230400,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7071067811865235
+  },
+  {
+   "case": "rect_duct",
+   "level": "ar4_k1",
+   "cells_stored": 6480,
+   "mesh": "rect_duct:assembly(4, 1, 'oh')",
+   "cells": 6480,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7071067811865425
+  },
+  {
+   "case": "rect_duct",
+   "level": "ar4_k2",
+   "cells_stored": 51840,
+   "mesh": "rect_duct:assembly(4, 2, 'oh')",
+   "cells": 51840,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7071067811865199
+  },
+  {
+   "case": "rect_duct",
+   "level": "ar4_k4",
+   "cells_stored": 414720,
+   "mesh": "rect_duct:assembly(4, 4, 'oh')",
+   "cells": 414720,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7071067811864921
+  },
+  {
+   "case": "rect_duct",
+   "level": "cart_ar1_k1",
+   "cells_stored": 2000,
+   "mesh": null,
+   "note": "blockMesh: not converted by gmshToFoam"
+  },
+  {
+   "case": "rect_duct",
+   "level": "cart_ar1_k2",
+   "cells_stored": 16000,
+   "mesh": null,
+   "note": "blockMesh: not converted by gmshToFoam"
+  },
+  {
+   "case": "rect_duct",
+   "level": "cart_ar1_k4",
+   "cells_stored": 128000,
+   "mesh": null,
+   "note": "blockMesh: not converted by gmshToFoam"
+  },
+  {
+   "case": "rect_duct",
+   "level": "cart_ar2_k1",
+   "cells_stored": 3240,
+   "mesh": null,
+   "note": "blockMesh: not converted by gmshToFoam"
+  },
+  {
+   "case": "rect_duct",
+   "level": "cart_ar2_k2",
+   "cells_stored": 25920,
+   "mesh": null,
+   "note": "blockMesh: not converted by gmshToFoam"
+  },
+  {
+   "case": "rect_duct",
+   "level": "cart_ar2_k4",
+   "cells_stored": 207360,
+   "mesh": null,
+   "note": "blockMesh: not converted by gmshToFoam"
+  },
+  {
+   "case": "rect_duct",
+   "level": "cart_ar4_k1",
+   "cells_stored": 6480,
+   "mesh": null,
+   "note": "blockMesh: not converted by gmshToFoam"
+  },
+  {
+   "case": "rect_duct",
+   "level": "cart_ar4_k2",
+   "cells_stored": 51840,
+   "mesh": null,
+   "note": "blockMesh: not converted by gmshToFoam"
+  },
+  {
+   "case": "rect_duct",
+   "level": "cart_ar4_k4",
+   "cells_stored": 414720,
+   "mesh": null,
+   "note": "blockMesh: not converted by gmshToFoam"
+  },
+  {
+   "case": "rect_duct",
+   "level": "h_ar1_k1",
+   "cells_stored": 2000,
+   "mesh": "rect_duct:assembly(1, 1, 'h')",
+   "cells": 2000,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.9999999999999963
+  },
+  {
+   "case": "rect_duct",
+   "level": "h_ar1_k2",
+   "cells_stored": 16000,
+   "mesh": "rect_duct:assembly(1, 2, 'h')",
+   "cells": 16000,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.999999999999996
+  },
+  {
+   "case": "rect_duct",
+   "level": "h_ar1_k4",
+   "cells_stored": 128000,
+   "mesh": "rect_duct:assembly(1, 4, 'h')",
+   "cells": 128000,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.9999999999999962
+  },
+  {
+   "case": "rect_duct",
+   "level": "h_ar2_k1",
+   "cells_stored": 3240,
+   "mesh": "rect_duct:assembly(2, 1, 'h')",
+   "cells": 3240,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.9999999999999962
+  },
+  {
+   "case": "rect_duct",
+   "level": "h_ar2_k2",
+   "cells_stored": 25920,
+   "mesh": "rect_duct:assembly(2, 2, 'h')",
+   "cells": 25920,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.999999999999996
+  },
+  {
+   "case": "rect_duct",
+   "level": "h_ar2_k4",
+   "cells_stored": 207360,
+   "mesh": "rect_duct:assembly(2, 4, 'h')",
+   "cells": 207360,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.9999999999999961
+  },
+  {
+   "case": "rect_duct",
+   "level": "h_ar4_k1",
+   "cells_stored": 6480,
+   "mesh": "rect_duct:assembly(4, 1, 'h')",
+   "cells": 6480,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.9999999999999962
+  },
+  {
+   "case": "rect_duct",
+   "level": "h_ar4_k2",
+   "cells_stored": 51840,
+   "mesh": "rect_duct:assembly(4, 2, 'h')",
+   "cells": 51840,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.9999999999999959
+  },
+  {
+   "case": "rect_duct",
+   "level": "h_ar4_k4",
+   "cells_stored": 414720,
+   "mesh": "rect_duct:assembly(4, 4, 'h')",
+   "cells": 414720,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.999999999999996
+  },
+  {
+   "case": "rect_duct",
+   "level": "hg_ar2_k1",
+   "cells_stored": 3240,
+   "mesh": "rect_duct:assembly(2, 1, 'hg')",
+   "cells": 3240,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.9999999999999962
+  },
+  {
+   "case": "rect_duct",
+   "level": "hg_ar2_k2",
+   "cells_stored": 25920,
+   "mesh": "rect_duct:assembly(2, 2, 'hg')",
+   "cells": 25920,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.9999999999999948
+  },
+  {
+   "case": "rect_duct",
+   "level": "hg_ar2_k4",
+   "cells_stored": 207360,
+   "mesh": "rect_duct:assembly(2, 4, 'hg')",
+   "cells": 207360,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.9999999999999942
+  },
+  {
+   "case": "square_bend",
+   "level": "matched_k1",
+   "cells_stored": 23040,
+   "mesh": "square_bend:assembly(1, 0.5038617020694688)",
+   "cells": 23040,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.9994645874763601
+  },
+  {
+   "case": "square_bend",
+   "level": "matched_k2",
+   "cells_stored": 184320,
+   "mesh": "square_bend:assembly(2, 0.5038617020694688)",
+   "cells": 184320,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.9998661379095546
+  },
+  {
+   "case": "square_bend",
+   "level": "matched_k3",
+   "cells_stored": 622080,
+   "mesh": "square_bend:assembly(3, 0.5038617020694688)",
+   "cells": 622080,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.9999405050001413
+  },
+  {
+   "case": "square_bend",
+   "level": "rig_k1",
+   "cells_stored": 18576,
+   "mesh": "square_bend:assembly(1, 0.3)",
+   "cells": 18576,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.9994645874763601
+  },
+  {
+   "case": "square_bend",
+   "level": "rig_k2",
+   "cells_stored": 148608,
+   "mesh": "square_bend:assembly(2, 0.3)",
+   "cells": 148608,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.9998661379095546
+  },
+  {
+   "case": "square_bend",
+   "level": "rig_k3",
+   "cells_stored": 501552,
+   "mesh": "square_bend:assembly(3, 0.3)",
+   "cells": 501552,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.9999405050001413
+  },
+  {
+   "case": "stenosis",
+   "level": "k2",
+   "cells_stored": 122688,
+   "mesh": "stenosis:assembly(2,)",
+   "cells": 122688,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7318494706091423
+  },
+  {
+   "case": "stenosis",
+   "level": "k3",
+   "cells_stored": 414072,
+   "mesh": "stenosis:assembly(3,)",
+   "cells": 414072,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7176476152097224
+  },
+  {
+   "case": "stenosis",
+   "level": "k4",
+   "cells_stored": 981504,
+   "mesh": "stenosis:assembly(4,)",
+   "cells": 981504,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.710422510635222
+  },
+  {
+   "case": "stenosis_pulsatile",
+   "level": "coarse",
+   "cells_stored": 15336,
+   "mesh": "stenosis_pulsatile:assembly(1,)",
+   "cells": 15336,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7724131640611189
+  },
+  {
+   "case": "stenosis_pulsatile",
+   "level": "k2",
+   "cells_stored": 122688,
+   "mesh": "stenosis_pulsatile:assembly(2,)",
+   "cells": 122688,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7318494706091423
+  },
+  {
+   "case": "stenosis_pulsatile",
+   "level": "k3",
+   "cells_stored": 414072,
+   "mesh": "stenosis_pulsatile:assembly(3,)",
+   "cells": 414072,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7176476152097224
+  },
+  {
+   "case": "stenosis_pulsatile",
+   "level": "k2-co0.25",
+   "cells_stored": 122688,
+   "mesh": "stenosis_pulsatile:assembly(2,)",
+   "cells": 122688,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7318494706091423
+  },
+  {
+   "case": "turbulent_pipe",
+   "level": "lowre_550_k1",
+   "cells_stored": 2880,
+   "mesh": "turbulent_pipe:assembly('lowre_550', 1)",
+   "cells": 2880,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7518398074789752
+  },
+  {
+   "case": "turbulent_pipe",
+   "level": "lowre_550_k2",
+   "cells_stored": 23040,
+   "mesh": "turbulent_pipe:assembly('lowre_550', 2)",
+   "cells": 23040,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7298640702516239
+  },
+  {
+   "case": "turbulent_pipe",
+   "level": "lowre_550_k4",
+   "cells_stored": 184320,
+   "mesh": "turbulent_pipe:assembly('lowre_550', 4)",
+   "cells": 184320,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7185816018147854
+  },
+  {
+   "case": "turbulent_pipe",
+   "level": "lowre_1000_k2",
+   "cells_stored": 26112,
+   "mesh": "turbulent_pipe:assembly('lowre_1000', 2)",
+   "cells": 26112,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7298640702516239
+  },
+  {
+   "case": "turbulent_pipe",
+   "level": "lowre_1e5_k2",
+   "cells_stored": 31488,
+   "mesh": "turbulent_pipe:assembly('lowre_1e5', 2)",
+   "cells": 31488,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7298640702516239
+  },
+  {
+   "case": "turbulent_pipe",
+   "level": "wf_550_k1",
+   "cells_stored": 576,
+   "mesh": "turbulent_pipe:assembly('wf_550', 1)",
+   "cells": 576,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7518398074789752
+  },
+  {
+   "case": "turbulent_pipe",
+   "level": "wf_1000_k1",
+   "cells_stored": 672,
+   "mesh": "turbulent_pipe:assembly('wf_1000', 1)",
+   "cells": 672,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7518398074789752
+  },
+  {
+   "case": "turbulent_pipe",
+   "level": "wf_1e5_k1",
+   "cells_stored": 1056,
+   "mesh": "turbulent_pipe:assembly('wf_1e5', 1)",
+   "cells": 1056,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7518398074789752
+  },
+  {
+   "case": "turbulent_pipe",
+   "level": "wfu_550_k1",
+   "cells_stored": 576,
+   "mesh": "turbulent_pipe:assembly('wfu_550', 1)",
+   "cells": 576,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7518398074789752
+  },
+  {
+   "case": "turbulent_pipe",
+   "level": "wfs_550_k1",
+   "cells_stored": 576,
+   "mesh": "turbulent_pipe:assembly('wfs_550', 1)",
+   "cells": 576,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7518398074789752
+  },
+  {
+   "case": "turbulent_pipe",
+   "level": "wfu_1000_k1",
+   "cells_stored": 672,
+   "mesh": "turbulent_pipe:assembly('wfu_1000', 1)",
+   "cells": 672,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7518398074789752
+  },
+  {
+   "case": "turbulent_pipe",
+   "level": "wfs_1000_k1",
+   "cells_stored": 672,
+   "mesh": "turbulent_pipe:assembly('wfs_1000', 1)",
+   "cells": 672,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7518398074789752
+  },
+  {
+   "case": "turbulent_pipe",
+   "level": "wfu_1e5_k1",
+   "cells_stored": 1056,
+   "mesh": "turbulent_pipe:assembly('wfu_1e5', 1)",
+   "cells": 1056,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7518398074789752
+  },
+  {
+   "case": "turbulent_pipe",
+   "level": "wfs_1e5_k1",
+   "cells_stored": 1056,
+   "mesh": "turbulent_pipe:assembly('wfs_1e5', 1)",
+   "cells": 1056,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7518398074789752
+  },
+  {
+   "case": "womersley",
+   "level": "k1",
+   "cells_stored": 7680,
+   "mesh": "womersley:assembly(1,)",
+   "cells": 7680,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7730104532770294
+  },
+  {
+   "case": "womersley",
+   "level": "k2",
+   "cells_stored": 61440,
+   "mesh": "womersley:assembly(2,)",
+   "cells": 61440,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7409511253549579
+  },
+  {
+   "case": "womersley",
+   "level": "k4",
+   "cells_stored": 491520,
+   "mesh": "womersley:assembly(4,)",
+   "cells": 491520,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7242470728350172
+  },
+  {
+   "case": "womersley",
+   "level": "k2-dt2",
+   "cells_stored": 61440,
+   "mesh": "womersley:assembly(2,)",
+   "cells": 61440,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7409511253549579
+  },
+  {
+   "case": "square_bend",
+   "level": "inlet_k2",
+   "cells_stored": null,
+   "mesh": "square_bend:inlet_assembly(2,)",
+   "cells": 276480,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.9999999999999944
+  },
+  {
+   "case": "poiseuille",
+   "level": "trend-6",
+   "cells_stored": 432,
+   "mesh": "poiseuille:trend_assembly(6,)",
+   "cells": 432,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7933533402912334
+  },
+  {
+   "case": "poiseuille",
+   "level": "trend-12",
+   "cells_stored": 1728,
+   "mesh": "poiseuille:trend_assembly(12,)",
+   "cells": 1728,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7518398074789758
+  },
+  {
+   "case": "poiseuille",
+   "level": "trend-24",
+   "cells_stored": 6912,
+   "mesh": "poiseuille:trend_assembly(24,)",
+   "cells": 6912,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7298640702516243
+  },
+  {
+   "case": "poiseuille",
+   "level": "trend-48",
+   "cells_stored": 27648,
+   "mesh": "poiseuille:trend_assembly(48,)",
+   "cells": 27648,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7185816018147865
+  },
+  {
+   "case": "poiseuille",
+   "level": "trend-96",
+   "cells_stored": 110592,
+   "mesh": "poiseuille:trend_assembly(96,)",
+   "cells": 110592,
+   "would_invert": 0,
+   "kept_orientation": false,
+   "flipped_in_result": 0,
+   "min_scaled_jacobian": 0.7128680415908967
+  }
+ ],
+ "meshes": {
+  "heated_rod:assembly('uniform', 1)": {
+   "cells": 216,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7933533402912332,
+   "seconds": 0.3
+  },
+  "heated_rod:assembly('graded', 1)": {
+   "cells": 216,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7933533402912332,
+   "seconds": 0.2
+  },
+  "poiseuille:trend_assembly(6,)": {
+   "cells": 432,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7933533402912334,
+   "seconds": 0.2
+  },
+  "layered_conduction:assembly(1,)": {
+   "cells": 456,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7933533402912338,
+   "seconds": 0.4
+  },
+  "mms:assembly('duct', 1)": {
+   "cells": 576,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.9999999999999973,
+   "seconds": 0.2
+  },
+  "turbulent_pipe:assembly('wf_550', 1)": {
+   "cells": 576,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7518398074789752,
+   "seconds": 0.3
+  },
+  "turbulent_pipe:assembly('wfu_550', 1)": {
+   "cells": 576,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7518398074789752,
+   "seconds": 0.4
+  },
+  "turbulent_pipe:assembly('wfs_550', 1)": {
+   "cells": 576,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7518398074789752,
+   "seconds": 0.3
+  },
+  "turbulent_pipe:assembly('wf_1000', 1)": {
+   "cells": 672,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7518398074789752,
+   "seconds": 0.3
+  },
+  "turbulent_pipe:assembly('wfu_1000', 1)": {
+   "cells": 672,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7518398074789752,
+   "seconds": 0.3
+  },
+  "turbulent_pipe:assembly('wfs_1000', 1)": {
+   "cells": 672,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7518398074789752,
+   "seconds": 0.3
+  },
+  "heated_rod:assembly('uniform', 2)": {
+   "cells": 864,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7518398074789758,
+   "seconds": 0.5
+  },
+  "heated_rod:assembly('graded', 2)": {
+   "cells": 864,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7518398074789758,
+   "seconds": 0.4
+  },
+  "mms:assembly('straight', 1)": {
+   "cells": 864,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7933533402912339,
+   "seconds": 0.4
+  },
+  "mms:assembly('transition', 1)": {
+   "cells": 1044,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.5773502691896228,
+   "seconds": 1.3
+  },
+  "turbulent_pipe:assembly('wf_1e5', 1)": {
+   "cells": 1056,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7518398074789752,
+   "seconds": 0.4
+  },
+  "turbulent_pipe:assembly('wfu_1e5', 1)": {
+   "cells": 1056,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7518398074789752,
+   "seconds": 0.5
+  },
+  "turbulent_pipe:assembly('wfs_1e5', 1)": {
+   "cells": 1056,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7518398074789752,
+   "seconds": 0.5
+  },
+  "mms:assembly('bend', 1)": {
+   "cells": 1296,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.789533127112204,
+   "seconds": 2.1
+  },
+  "mms:assembly('reducer', 1)": {
+   "cells": 1296,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7512600143587895,
+   "seconds": 1.4
+  },
+  "mms:assembly('stack_change', 1)": {
+   "cells": 1440,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7933533402912339,
+   "seconds": 1.1
+  },
+  "mms:assembly('miter', 1)": {
+   "cells": 1728,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7661413921052127,
+   "seconds": 2.0
+  },
+  "poiseuille:trend_assembly(12,)": {
+   "cells": 1728,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7518398074789758,
+   "seconds": 0.8
+  },
+  "layered_conduction:assembly(2,)": {
+   "cells": 1824,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7518398074789752,
+   "seconds": 0.8
+  },
+  "mms:assembly('spline', 1)": {
+   "cells": 1944,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7908397476700715,
+   "seconds": 2.9
+  },
+  "rect_duct:assembly(1, 1, 'h')": {
+   "cells": 2000,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.9999999999999963,
+   "seconds": 0.8
+  },
+  "rect_duct:assembly(1, 1, 'oh')": {
+   "cells": 2160,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7071067811865435,
+   "seconds": 0.9
+  },
+  "mms:assembly('tee', 1)": {
+   "cells": 2376,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.2576521280139983,
+   "seconds": 3.1
+  },
+  "turbulent_pipe:assembly('lowre_550', 1)": {
+   "cells": 2880,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7518398074789752,
+   "seconds": 1.4
+  },
+  "rect_duct:assembly(2, 1, 'h')": {
+   "cells": 3240,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.9999999999999962,
+   "seconds": 1.3
+  },
+  "rect_duct:assembly(2, 1, 'hg')": {
+   "cells": 3240,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.9999999999999962,
+   "seconds": 1.5
+  },
+  "heated_rod:assembly('uniform', 4)": {
+   "cells": 3456,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7298640702516239,
+   "seconds": 1.3
+  },
+  "heated_rod:assembly('graded', 4)": {
+   "cells": 3456,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7298640702516239,
+   "seconds": 1.5
+  },
+  "rect_duct:assembly(2, 1, 'oh')": {
+   "cells": 3600,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7071067811865422,
+   "seconds": 1.8
+  },
+  "mms:assembly('wye60', 1)": {
+   "cells": 3996,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.15644391160761778,
+   "seconds": 4.3
+  },
+  "mms:assembly('wye90', 1)": {
+   "cells": 4428,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.16412149273679874,
+   "seconds": 3.0
+  },
+  "mms:assembly('tee_shells', 1)": {
+   "cells": 4440,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.2576521280139985,
+   "seconds": 5.2
+  },
+  "mms:assembly('duct', 2)": {
+   "cells": 4608,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.9999999999999972,
+   "seconds": 1.0
+  },
+  "poiseuille:assembly(1,)": {
+   "cells": 5184,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7933533402912328,
+   "seconds": 1.3
+  },
+  "mms:assembly('wye60_shell', 1)": {
+   "cells": 5748,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.1564439116076183,
+   "seconds": 4.4
+  },
+  "mms:assembly('wye90_shell', 1)": {
+   "cells": 6372,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.1641214927367985,
+   "seconds": 5.2
+  },
+  "rect_duct:assembly(4, 1, 'oh')": {
+   "cells": 6480,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7071067811865425,
+   "seconds": 2.4
+  },
+  "rect_duct:assembly(4, 1, 'h')": {
+   "cells": 6480,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.9999999999999962,
+   "seconds": 1.8
+  },
+  "mms:assembly('straight', 2)": {
+   "cells": 6912,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7518398074789756,
+   "seconds": 1.6
+  },
+  "poiseuille:trend_assembly(24,)": {
+   "cells": 6912,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7298640702516243,
+   "seconds": 1.8
+  },
+  "layered_conduction:assembly(4,)": {
+   "cells": 7296,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7298640702516246,
+   "seconds": 2.5
+  },
+  "womersley:assembly(1,)": {
+   "cells": 7680,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7730104532770294,
+   "seconds": 2.3
+  },
+  "mms:assembly('duct_tap_rect', 1)": {
+   "cells": 7936,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.4237856365378029,
+   "seconds": 3.2
+  },
+  "mms:assembly('transition', 2)": {
+   "cells": 8352,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.5773502691896171,
+   "seconds": 3.7
+  },
+  "mms:assembly('duct_tap_round', 1)": {
+   "cells": 9472,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.432526043050062,
+   "seconds": 3.8
+  },
+  "mms:assembly('bend', 2)": {
+   "cells": 10368,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7509341835041666,
+   "seconds": 4.6
+  },
+  "mms:assembly('reducer', 2)": {
+   "cells": 10368,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7057226311370131,
+   "seconds": 5.0
+  },
+  "heated_pipe:assembly(1,)": {
+   "cells": 10944,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7933533402912328,
+   "seconds": 7.3
+  },
+  "mms:assembly('stack_change', 2)": {
+   "cells": 11520,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7518398074789756,
+   "seconds": 4.0
+  },
+  "heated_rod:assembly('uniform', 8)": {
+   "cells": 13824,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7185816018147894,
+   "seconds": 3.8
+  },
+  "heated_rod:assembly('graded', 8)": {
+   "cells": 13824,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7185816018147894,
+   "seconds": 3.9
+  },
+  "mms:assembly('miter', 2)": {
+   "cells": 13824,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7260258676208807,
+   "seconds": 6.4
+  },
+  "stenosis_pulsatile:assembly(1,)": {
+   "cells": 15336,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7724131640611189,
+   "seconds": 7.7
+  },
+  "mms:assembly('spline', 2)": {
+   "cells": 15552,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.751249671782725,
+   "seconds": 7.5
+  },
+  "rect_duct:assembly(1, 2, 'h')": {
+   "cells": 16000,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.999999999999996,
+   "seconds": 4.3
+  },
+  "rect_duct:assembly(1, 2, 'oh')": {
+   "cells": 17280,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7071067811865422,
+   "seconds": 5.0
+  },
+  "square_bend:assembly(1, 0.3)": {
+   "cells": 18576,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.9994645874763601,
+   "seconds": 6.0
+  },
+  "mms:assembly('tee', 2)": {
+   "cells": 19008,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.2576521280139977,
+   "seconds": 7.3
+  },
+  "square_bend:assembly(1, 0.5038617020694688)": {
+   "cells": 23040,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.9994645874763601,
+   "seconds": 8.1
+  },
+  "turbulent_pipe:assembly('lowre_550', 2)": {
+   "cells": 23040,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7298640702516239,
+   "seconds": 7.4
+  },
+  "rect_duct:assembly(2, 2, 'h')": {
+   "cells": 25920,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.999999999999996,
+   "seconds": 8.9
+  },
+  "rect_duct:assembly(2, 2, 'hg')": {
+   "cells": 25920,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.9999999999999948,
+   "seconds": 8.0
+  },
+  "turbulent_pipe:assembly('lowre_1000', 2)": {
+   "cells": 26112,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7298640702516239,
+   "seconds": 6.8
+  },
+  "mms:assembly('wye60', 2)": {
+   "cells": 26784,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.1564436117454242,
+   "seconds": 9.2
+  },
+  "poiseuille:trend_assembly(48,)": {
+   "cells": 27648,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7185816018147865,
+   "seconds": 6.4
+  },
+  "rect_duct:assembly(2, 2, 'oh')": {
+   "cells": 28800,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7071067811865376,
+   "seconds": 6.5
+  },
+  "mms:assembly('wye90', 2)": {
+   "cells": 30240,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.16412135454250307,
+   "seconds": 9.7
+  },
+  "turbulent_pipe:assembly('lowre_1e5', 2)": {
+   "cells": 31488,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7298640702516239,
+   "seconds": 8.0
+  },
+  "mms:assembly('tee_shells', 2)": {
+   "cells": 35520,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.25765212801399767,
+   "seconds": 13.3
+  },
+  "mms:assembly('duct', 4)": {
+   "cells": 36864,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.9999999999999971,
+   "seconds": 8.0
+  },
+  "mms:assembly('wye60_shell', 2)": {
+   "cells": 38496,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.15644361174542562,
+   "seconds": 11.4
+  },
+  "poiseuille:assembly(2,)": {
+   "cells": 41472,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7518398074789749,
+   "seconds": 9.3
+  },
+  "mms:assembly('wye90_shell', 2)": {
+   "cells": 43488,
+   "would_invert": 4,
+   "min_scaled_jacobian": 0.16412135454250223,
+   "seconds": 16.1
+  },
+  "rect_duct:assembly(4, 2, 'oh')": {
+   "cells": 51840,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7071067811865199,
+   "seconds": 14.3
+  },
+  "rect_duct:assembly(4, 2, 'h')": {
+   "cells": 51840,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.9999999999999959,
+   "seconds": 13.9
+  },
+  "heated_rod:assembly('uniform', 16)": {
+   "cells": 55296,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7128680415908993,
+   "seconds": 14.1
+  },
+  "heated_rod:assembly('graded', 16)": {
+   "cells": 55296,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7128680415908993,
+   "seconds": 13.3
+  },
+  "mms:assembly('straight', 4)": {
+   "cells": 55296,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7298640702516215,
+   "seconds": 11.6
+  },
+  "womersley:assembly(2,)": {
+   "cells": 61440,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7409511253549579,
+   "seconds": 13.3
+  },
+  "mms:assembly('duct_tap_rect', 2)": {
+   "cells": 63488,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.42378563653780255,
+   "seconds": 14.1
+  },
+  "mms:assembly('transition', 4)": {
+   "cells": 66816,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.5773502691896105,
+   "seconds": 18.6
+  },
+  "mms:assembly('duct_tap_round', 2)": {
+   "cells": 75776,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.43252604305005726,
+   "seconds": 20.0
+  },
+  "mms:assembly('bend', 4)": {
+   "cells": 82944,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7296442512848157,
+   "seconds": 21.0
+  },
+  "mms:assembly('reducer', 4)": {
+   "cells": 82944,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.6834888357284965,
+   "seconds": 21.5
+  },
+  "heated_pipe:assembly(2,)": {
+   "cells": 87552,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7518398074789753,
+   "seconds": 18.9
+  },
+  "mms:assembly('stack_change', 4)": {
+   "cells": 92160,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7298640702516221,
+   "seconds": 20.1
+  },
+  "helical_pipe:assembly(8,)": {
+   "cells": 100416,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7727974664563291,
+   "seconds": 85.2
+  },
+  "mms:assembly('miter', 4)": {
+   "cells": 110592,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7047931931017478,
+   "seconds": 29.3
+  },
+  "poiseuille:trend_assembly(96,)": {
+   "cells": 110592,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7128680415908967,
+   "seconds": 25.8
+  },
+  "stenosis:assembly(2,)": {
+   "cells": 122688,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7318494706091423,
+   "seconds": 33.5
+  },
+  "stenosis_pulsatile:assembly(2,)": {
+   "cells": 122688,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7318494706091423,
+   "seconds": 35.0
+  },
+  "mms:assembly('spline', 4)": {
+   "cells": 124416,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7297211938536576,
+   "seconds": 32.0
+  },
+  "rect_duct:assembly(1, 4, 'h')": {
+   "cells": 128000,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.9999999999999962,
+   "seconds": 31.0
+  },
+  "rect_duct:assembly(1, 4, 'oh')": {
+   "cells": 138240,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7071067811865351,
+   "seconds": 32.6
+  },
+  "square_bend:assembly(2, 0.3)": {
+   "cells": 148608,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.9998661379095546,
+   "seconds": 52.8
+  },
+  "mms:assembly('tee', 4)": {
+   "cells": 152064,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.2576521280139985,
+   "seconds": 51.5
+  },
+  "square_bend:assembly(2, 0.5038617020694688)": {
+   "cells": 184320,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.9998661379095546,
+   "seconds": 56.6
+  },
+  "turbulent_pipe:assembly('lowre_550', 4)": {
+   "cells": 184320,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7185816018147854,
+   "seconds": 49.5
+  },
+  "mms:assembly('wye60', 4)": {
+   "cells": 193536,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.15644346188959568,
+   "seconds": 53.8
+  },
+  "rect_duct:assembly(2, 4, 'h')": {
+   "cells": 207360,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.9999999999999961,
+   "seconds": 52.4
+  },
+  "rect_duct:assembly(2, 4, 'hg')": {
+   "cells": 207360,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.9999999999999942,
+   "seconds": 54.2
+  },
+  "mms:assembly('duct_tap_rect', 3)": {
+   "cells": 214272,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.42378563653780094,
+   "seconds": 55.8
+  },
+  "mms:assembly('wye90', 4)": {
+   "cells": 221184,
+   "would_invert": 6,
+   "min_scaled_jacobian": 0.13182221652438592,
+   "seconds": 56.8
+  },
+  "rect_duct:assembly(2, 4, 'oh')": {
+   "cells": 230400,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7071067811865235,
+   "seconds": 58.7
+  },
+  "square_bend:inlet_assembly(2,)": {
+   "cells": 276480,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.9999999999999944,
+   "seconds": 57.1
+  },
+  "mms:assembly('wye60_shell', 4)": {
+   "cells": 278016,
+   "would_invert": 4,
+   "min_scaled_jacobian": 0.15644346188959898,
+   "seconds": 69.9
+  },
+  "mms:assembly('tee_shells', 4)": {
+   "cells": 284160,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.2576521280139985,
+   "seconds": 69.0
+  },
+  "heated_pipe:assembly(3,)": {
+   "cells": 295488,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7372773368101213,
+   "seconds": 100.6
+  },
+  "mms:assembly('wye90_shell', 4)": {
+   "cells": 317952,
+   "would_invert": 18,
+   "min_scaled_jacobian": 0.13182221652439305,
+   "seconds": 100.6
+  },
+  "poiseuille:assembly(4,)": {
+   "cells": 331776,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7298640702516203,
+   "seconds": 99.1
+  },
+  "helical_pipe:assembly(12,)": {
+   "cells": 338688,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7517476896048852,
+   "seconds": 174.0
+  },
+  "stenosis:assembly(3,)": {
+   "cells": 414072,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7176476152097224,
+   "seconds": 89.0
+  },
+  "stenosis_pulsatile:assembly(3,)": {
+   "cells": 414072,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7176476152097224,
+   "seconds": 88.9
+  },
+  "rect_duct:assembly(4, 4, 'oh')": {
+   "cells": 414720,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7071067811864921,
+   "seconds": 82.3
+  },
+  "rect_duct:assembly(4, 4, 'h')": {
+   "cells": 414720,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.999999999999996,
+   "seconds": 83.6
+  },
+  "womersley:assembly(4,)": {
+   "cells": 491520,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7242470728350172,
+   "seconds": 98.7
+  },
+  "square_bend:assembly(3, 0.3)": {
+   "cells": 501552,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.9999405050001413,
+   "seconds": 100.5
+  },
+  "mms:assembly('duct_tap_rect', 4)": {
+   "cells": 507904,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.42378563653779977,
+   "seconds": 99.4
+  },
+  "mms:assembly('duct_tap_round', 4)": {
+   "cells": 606208,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.43252604305005465,
+   "seconds": 120.6
+  },
+  "square_bend:assembly(3, 0.5038617020694688)": {
+   "cells": 622080,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.9999405050001413,
+   "seconds": 123.3
+  },
+  "helical_pipe:assembly(16,)": {
+   "cells": 803328,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7409000482976861,
+   "seconds": 347.7
+  },
+  "stenosis:assembly(4,)": {
+   "cells": 981504,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.710422510635222,
+   "seconds": 234.4
+  },
+  "helical_pipe:assembly(24,)": {
+   "cells": 2711232,
+   "would_invert": 0,
+   "min_scaled_jacobian": 0.7298417043415031,
+   "seconds": 1152.0
+  }
+ }
+}
