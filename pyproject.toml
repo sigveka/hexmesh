@@ -52,6 +52,7 @@ include = ["hexmesh*"]
 
 [tool.setuptools.package-data]
 "hexmesh.agent" = ["calibration.json", "support.json", "validation.json"]   # 0098, 0102
+"hexmesh.examples.applications" = ["*.pcf"]                                     # 0114
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

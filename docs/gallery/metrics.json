@@ -1,7 +1,7 @@
 {
  "meta": {
-  "date": "2026-11-05",
-  "commit": "dbfe4bc + uncommitted changes",
+  "date": "2026-11-08",
+  "commit": "ff306e4 + uncommitted changes",
   "gmsh": "4.12.1",
   "python": "3.12.3",
   "cpus": 8,
@@ -990,7 +990,7 @@
    },
    "predicted": 13164,
    "meshed": 13164,
-   "build_s": 7.23
+   "build_s": 7.95
   },
   "sections.insulated_network": {
    "fittings": 7,
@@ -1079,6 +1079,56 @@
    "predicted": 24704,
    "meshed": 24704,
    "build_s": 6.02
+  },
+  "applications.pcf_line": {
+   "fittings": 9,
+   "fitting_types": {
+    "Straight": 6,
+    "Tee": 1,
+    "Bend": 1,
+    "Reducer": 1
+   },
+   "volumes": 357,
+   "materials": [
+    "fluid",
+    "steel",
+    "insulation"
+   ],
+   "min_sicn": 0.062463469355020416,
+   "mean_sicn": 0.2729874303133148,
+   "min_sj": 0.2576521280139925,
+   "min_sj_fitting": "#1 Tee",
+   "max_aspect": 30.883498224653753,
+   "groups": {
+    "open_end": [
+     "fluid_A_100_end2",
+     "fluid_A_100_end3",
+     "fluid_V_101_N1",
+     "insulation_A_100_end2",
+     "insulation_A_100_end3",
+     "insulation_V_101_N1",
+     "steel_A_100_end2",
+     "steel_A_100_end3",
+     "steel_V_101_N1"
+    ],
+    "wall": [
+     "insulation_end",
+     "insulation_wall",
+     "steel_wall"
+    ],
+    "interface": [
+     "interface_fluid_steel",
+     "interface_steel_insulation"
+    ],
+    "volume": [
+     "fluid",
+     "insulation",
+     "steel"
+    ]
+   },
+   "predicted": 35712,
+   "meshed": 35712,
+   "build_s": 9.12
   }
  },
  "validation": {

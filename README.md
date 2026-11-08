@@ -66,9 +66,9 @@ What it gives (the gallery's `hexmesh.examples.sections.insulated_tee`):
 
 | cells (predicted = meshed) | regions | min scaled Jacobian (where) | min SICN | build |
 |---|---|---|---|---|
-| 13 164 = 13 164 | fluid · steel · insulation | 0.32 (the tee) | 0.11 | 7.2 s |
+| 13 164 = 13 164 | fluid · steel · insulation | 0.32 (the tee) | 0.11 | 8.0 s |
 
-<sub>gmsh 4.12.1, one core, 2026-11-05.  Every example's numbers: [GALLERY.md](docs/GALLERY.md).</sub>
+<sub>gmsh 4.12.1, one core, 2026-11-08.  Every example's numbers: [GALLERY.md](docs/GALLERY.md).</sub>
 <!-- readme:metrics:end -->
 
 Doubling every density parameter doubles the nodes in each direction:
@@ -84,6 +84,7 @@ geometry to redraw.
 
 ```python
 from hexmesh import PipeSpec
+from hexmesh.examples.applications.pcf_line import SAMPLE   # a line shipped with hexmesh
 from hexmesh.interchange import read_pcf
 
 def pipe(bore):              # bore: each line's nominal size from the file, in metres
@@ -91,9 +92,9 @@ def pipe(bore):              # bore: each line's nominal size from the file, in 
             .core("fluid", radius=bore / 2, nrad=4)   # use your schedule's inside radius
             .shell("steel", dR=0.004, nrad=2))
 
-asm = read_pcf("line.pcf").to_assembly(pipe, insulation=True)  # insulated where the file says
-print(asm.cell_count())
-asm.write_openfoam("line.msh")
+asm = read_pcf(SAMPLE).to_assembly(pipe, insulation=True)  # insulated where the file says
+print(asm.cell_count())                                    # 35712
+asm.write_openfoam("pcf_line.msh")
 ```
 
 - **Components become fittings.** Pipes, flanges and valves become
@@ -111,8 +112,8 @@ asm.write_openfoam("line.msh")
 
   ```json
   {"code": "equal_tee_unsupported",
-   "message": "component 1 (TEE TEE_1 at [1.15 0. 0.], line.pcf:11): equal tees (branch radius 0.05, main radius 0.05) are planned through the wye-family layout; not available yet",
-   "where": {"part": "1", "source": {"file": "line.pcf", "line": 11, "record": "TEE"}}}
+   "message": "component 1 (TEE TEE_1 at [1.1 0.  0. ], line.pcf:19): equal tees (branch radius 0.05, main radius 0.05) are planned through the wye-family layout; not available yet",
+   "where": {"part": "1", "source": {"file": "line.pcf", "line": 19, "record": "TEE"}}}
   ```
 - **Not read yet:** equal tees, crosses, and angled, offset or tangential
   tees. Each is rejected by name, as above.

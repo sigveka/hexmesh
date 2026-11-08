@@ -34,7 +34,7 @@ What each example shows, what its mesh looks like, and how good the cells are.  
 | [layer_outlines](#layer_outlines) | Layer outlines: a round conductor in a square filler in a round sheath. | 11 040 | 0.132 | 0.706 | 5.8 s |
 | [lagged_duct](#lagged_duct) | Lagged duct: a rectangular air duct with a steel wall and lagging, through a reducer and bends both ways. | 7 176 | 0.024 | 0.690 | 4.6 s |
 | [insulated_transition](#insulated_transition) | Insulated transition: an insulated round pipe becomes an insulated duct, turns, and the insulation stops. | 6 972 | 0.048 | 0.577 | 7.3 s |
-| [insulated_tee](#insulated_tee) | Insulated tee: a three-layer header with a side branch, the steel and the insulation running through the junction into the branch. | 13 164 | 0.107 | 0.316 | 7.2 s |
+| [insulated_tee](#insulated_tee) | Insulated tee: a three-layer header with a side branch, the steel and the insulation running through the junction into the branch. | 13 164 | 0.107 | 0.316 | 8.0 s |
 | [insulated_network](#insulated_network) | Insulated network: a three-layer header with a tee and a wye, the steel and the insulation running through both junctions, and one branch left bare. | 18 012 | 0.059 | 0.156 | 9.0 s |
 | **Networks: composing fittings into routes, branches and trees** | | | | | |
 | [pipe_network](#pipe_network) | Branched network built as a graph: a header with two side taps, each pointing a different way. | 11 496 | 0.189 | 0.316 | 2.9 s |
@@ -47,6 +47,7 @@ What each example shows, what its mesh looks like, and how good the cells are.  
 | [hvac_supply](#hvac_supply) | Ventilation supply run: a fan's round outlet, a flat duct through the building, and a square terminal. | 6 912 | 0.246 | 0.577 | 1.9 s |
 | [hvac_branched](#hvac_branched) | Branched ventilation supply: a fan's round outlet, a flat main duct with three taps, and a bend at the end of the run. | 24 704 | 0.157 | 0.421 | 6.0 s |
 | [cooling_channels](#cooling_channels) | Cooling channels: a supply pipe split by a wye into two flat rectangular channels, each returning to a round outlet. | 8 280 | 0.152 | 0.204 | 5.0 s |
+| [pcf_line](#pcf_line) | A plant line from a PCF isometric: the network comes from the file, not from Python. | 35 712 | 0.062 | 0.258 | 9.1 s |
 
 ## Fittings: one building block each
 
@@ -550,7 +551,7 @@ python3 -m hexmesh.examples.sections.insulated_tee
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 5: Straight ×3, Tee, Bend | 231 | 13 164 | 0.107 | 0.422 | 0.316 (#1 Tee) | 15.6 | 7.2 s |
+| 5: Straight ×3, Tee, Bend | 231 | 13 164 | 0.107 | 0.422 | 0.316 (#1 Tee) | 15.6 | 8.0 s |
 
 - **Open ends:** `fluid_branch_end`, `fluid_inlet`, `fluid_main_end`, `insulation_branch_end`, `insulation_inlet`, `insulation_main_end`, `steel_branch_end`, `steel_inlet`, `steel_main_end`
 - **Walls:** `insulation_wall`
@@ -851,6 +852,36 @@ python3 -m hexmesh.examples.applications.cooling_channels
 - **Walls:** `fluid_wall`
 - **Colours:** fluid blue; walls grey.
 
+### pcf_line
+
+**A plant line from a PCF isometric: the network comes from the file, not from Python.**
+
+<p><img src="gallery/img/pcf_line.png" width="68%" alt="pcf_line"> <img src="gallery/img/pcf_line_section.png" width="29%" alt="pcf_line, inlet section"></p>
+
+`SAMPLE` (`pcf_line.pcf`, shipped with the package, written for
+hexmesh) is one insulated 100 mm line, A-100.  It leaves vessel V-101's
+nozzle N1, passes a reducing tee to a 50 mm branch, then an elbow and a
+concentric reducer to 80 mm.  Last come a bare flanged valve and a pipe.
+`read_pcf` turns each component into a fitting, and `pipe` gives
+each nominal bore its section.  With `insulation=True` the file's 50 mm
+insulation is a third layer.  The valve is bare, so the insulation
+stops one cell inside it from each side (`insulation_end`).
+Patches: `*_V_101_N1` at the nozzle; the tee's branch and the line's
+end are open ends named by the file.
+
+```bash
+python3 -m hexmesh.examples.applications.pcf_line
+```
+
+| Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
+|---|---|---|---|---|---|---|---|
+| 9: Straight ×6, Tee, Bend, Reducer | 357 | 35 712 | 0.062 | 0.273 | 0.258 (#1 Tee) | 30.9 | 9.1 s |
+
+- **Open ends:** `fluid_A_100_end2`, `fluid_A_100_end3`, `fluid_V_101_N1`, `insulation_A_100_end2`, `insulation_A_100_end3`, `insulation_V_101_N1`, `steel_A_100_end2`, `steel_A_100_end3`, `steel_V_101_N1`
+- **Walls:** `insulation_end`, `insulation_wall`, `steel_wall`
+- **Interfaces:** `interface_fluid_steel`, `interface_steel_insulation`
+- **Colours:** fluid blue, steel orange, insulation green; walls grey.
+
 ## Validation
 
 Meshes from hexmesh solved with OpenFOAM and compared with a reference (decision 0012); each case is judged by grid convergence against gates set in advance (decision 0015).  Cases are grouped by their reference: V1 exact solutions (code verification), V2 high-fidelity simulations, V3 experiments, V4 correlations and standards.
@@ -1073,4 +1104,4 @@ Which hexmesh features each case exercises (decision 0012's fixed list). Marks: 
 
 ---
 
-Generated 2026-11-05 from hexmesh dbfe4bc + uncommitted changes, gmsh 4.12.1, Python 3.12.3, 8 CPUs, 1 job(s).
+Generated 2026-11-08 from hexmesh ff306e4 + uncommitted changes, gmsh 4.12.1, Python 3.12.3, 8 CPUs, 1 job(s).

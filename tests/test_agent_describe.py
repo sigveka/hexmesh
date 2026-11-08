@@ -89,13 +89,22 @@ def _spec():
 @pytest.mark.parametrize("name", ALL)
 def test_describe_every_example_without_gmsh(name):
     """No GMSH session, valid JSON, byte-identical across runs and between
-    the assembly and its saved description; cells equal cell_count()."""
+    the assembly and its saved description; cells equal cell_count().
+    A file's provenance (``origin``, task 0096) is never saved, so an
+    example read from a PCF (``pcf_line``) matches its description once
+    its origins are cleared, and differs only by them before."""
     assert not gmsh.isInitialized()
     asm = _example(name)
     text = json.dumps(describe(asm), sort_keys=True, allow_nan=False)
     assert not gmsh.isInitialized()
     assert text == json.dumps(describe(asm), sort_keys=True, allow_nan=False)
-    assert text == json.dumps(describe(asm.to_dict()), sort_keys=True, allow_nan=False)
+    saved = json.dumps(describe(asm.to_dict()), sort_keys=True, allow_nan=False)
+    if any(e.origin for e in asm.edges):
+        assert saved != text                       # the file:line is what's lost
+        for e in asm.edges:
+            e.origin = None
+        text = json.dumps(describe(asm), sort_keys=True, allow_nan=False)
+    assert text == saved
     d = json.loads(text)
     assert d["error"] is None
     assert d["totals"]["cells"] == asm.cell_count()

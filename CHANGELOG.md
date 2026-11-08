@@ -6,6 +6,20 @@
 2026); 3.11 is the oldest (task 0113, decision 0039).  CI tests 3.11 and
 the newest 3.x.
 
+**A PCF sample ships with the package, and the commands read its
+insulation** (task 0114).
+- `hexmesh.examples.applications.pcf_line`: an insulated line, written
+  for hexmesh, from a vessel nozzle through a reducing tee, an elbow, a
+  concentric reducer and a bare valve.  `SAMPLE` is its path, and it's in
+  the gallery.  The README's PCF code reads it, so it runs as written:
+  35 712 cells, 28 800 bare.
+- `--insulation` on every `hexmesh` command that reads a network: on a
+  PCF file it means `to_assembly(insulation=True)`.  On a description it
+  is `cli_input_unreadable`, since a description says where its
+  insulation is.
+- The README's quoted `equal_tee_unsupported` error is now what an
+  equal-tee variant of the sample gives, checked by a test.
+
 **Networks with a wye are faster to check** (task 0112).
 - `Wye.layout` keeps its last 32 layouts, keyed on the wye's, the
   frames' and the spec's values, and returns a copy of each.

@@ -429,6 +429,39 @@ def test_cli_reads_pcf_with_a_spec(monkeypatch, tmp_path):
     assert code == 1 and err["code"] == "cli_spec_size_missing" and err["value"] == 0.1
 
 
+def test_cli_insulation_on_the_shipped_sample(monkeypatch, tmp_path):
+    """``--insulation`` (task 0114) means ``to_assembly(insulation=True)``:
+    the insulated count with it, the bare one without, both Python's."""
+    from hexmesh.examples.applications import pcf_line
+    from hexmesh.interchange import read_pcf
+    sizes = tmp_path / "sizes.json"
+    sizes.write_text(json.dumps([{"nominal": b, "spec": pcf_line.pipe(b).to_dict()}
+                                 for b in (0.1, 0.08, 0.05)]), encoding="utf-8")
+    net = read_pcf(pcf_line.SAMPLE)
+    for flag, insulated in (((), False), (("--insulation",), True)):
+        code, raw = _cli(monkeypatch, "estimate", str(pcf_line.SAMPLE), "--spec", str(sizes),
+                         *flag)
+        want = net.to_assembly(pcf_line.pipe, insulation=insulated).cell_count()
+        assert code == 0 and json.loads(raw)["result"]["cells"] == want, flag
+    assert want > net.to_assembly(pcf_line.pipe).cell_count()
+
+
+def test_cli_insulation_on_a_description_is_an_input_error(monkeypatch, files):
+    _, net, _ = files
+    code, raw = _cli(monkeypatch, "estimate", str(net), "--insulation")
+    err = json.loads(raw)["error"]
+    assert code == 1 and err["code"] == "cli_input_unreadable"
+    assert err["where"] == {"field": "insulation"} and "insulation shell" in err["hint"]
+
+
+def test_every_network_command_takes_insulation():
+    from hexmesh.agent._commands import parser
+    sub = next(a for a in parser("")._actions if a.dest == "command")
+    takes = {name for name, p in sub.choices.items()
+             if any("--insulation" in a.option_strings for a in p._actions)}
+    assert takes == set(sub.choices) - {"manifest", "schema"}
+
+
 def test_calibration_is_read_as_utf8():
     src = (advise_mod.__file__)
     text = open(src, encoding="utf-8").read()

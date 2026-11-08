@@ -51,6 +51,9 @@ def parser(description: str = "") -> argparse.ArgumentParser:
                                        "or a PCF file (.pcf) with --spec")
         p.add_argument("--spec", help="for a .pcf network: a PipeSpec description, or a "
                                       'list of {"nominal", "spec"} (JSON)')
+        p.add_argument("--insulation", action="store_true",
+                       help="for a .pcf network: add the file's insulation where it says "
+                            "(to_assembly(insulation=True))")
         if name == "advise":
             p.add_argument("--inputs", help="the advisor's inputs (JSON)")
         if name == "apply":

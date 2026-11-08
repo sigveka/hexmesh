@@ -571,6 +571,14 @@ patches.  Junctions carry the insulation through (a bare branch ends it
 one cell into its first straight).  Ends at `END-CONNECTION-EQUIPMENT` records are named after the
 nozzle (`V_101_N1`) and are never extended by `extend_open_ends`.
 
+A sample ships with the package (task 0114):
+`hexmesh.examples.applications.pcf_line.SAMPLE`, one insulated line from a
+vessel nozzle through a reducing tee, an elbow, a concentric reducer and
+a bare valve.  `python3 -m hexmesh.examples.applications.pcf_line`
+meshes it.  From the `hexmesh` commands, `--insulation` does what
+`insulation=True` does: `hexmesh estimate line.pcf --spec sizes.json
+--insulation`.
+
 It checks every component against its PCF end points and raises
 `AssemblyError` naming the component on any gap; nothing is snapped.  The
 tolerance scales with the model (at least 0.11").

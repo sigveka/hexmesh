@@ -30,6 +30,9 @@ without it.
 or a PCF file (``.pcf``) with ``--spec SPEC.json`` (task 0066).  *SPEC*
 is a ``PipeSpec`` description (``PipeSpec.to_dict``) for every part, or a
 list of ``{"nominal": metres, "spec": {...}}``, one per nominal size.
+``--insulation`` adds the PCF file's insulation where it says, as
+``to_assembly(insulation=True)`` does (task 0114); a description carries
+its own, so there it is an input error.
 
 Output: one JSON object on stdout, ``{"version", "command", "ok",
 "result"}`` or ``{…, "ok": false, "error"}``, with sorted keys and
@@ -79,7 +82,14 @@ def _network(args) -> Assembly:
                                "description, or one per nominal size)",
                                code="cli_input_unreadable", where={"field": "spec"},
                                hint=f"hexmesh <command> {path} --spec SPEC.json")
-        return read_pcf(path).to_assembly(_spec(_read_json(args.spec, "spec"), args.spec))
+        return read_pcf(path).to_assembly(_spec(_read_json(args.spec, "spec"), args.spec),
+                                          insulation=args.insulation)
+    if args.insulation:
+        raise HexmeshError(f"{path}: --insulation is for a PCF network; a description "
+                           "already says where its insulation is",
+                           code="cli_input_unreadable", where={"field": "insulation"},
+                           hint="add an insulation shell to the description's PipeSpec, "
+                                "or drop --insulation")
     return Assembly.from_dict(_read_json(path, "network"))
 
 

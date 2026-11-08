@@ -2030,6 +2030,12 @@ command:
     per nominal size.
   - A size the list lacks is `cli_spec_size_missing`, naming the sizes
     it has.
+  - `--insulation` adds the PCF file's insulation where it says, as
+    `to_assembly(insulation=True)` does (task 0114).  A description
+    carries its own, so on one it is `cli_input_unreadable` with
+    `where: {field: "insulation"}`.
+  - A PCF to try it on ships with the package:
+    `hexmesh.examples.applications.pcf_line.SAMPLE`.
 - stdout is one JSON object: `{version, command, ok, result}`, or
   `{…, ok: false, error}`.  Keys are sorted and lines end in `\n`, so
   the same input gives the same bytes.

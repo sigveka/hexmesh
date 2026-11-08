@@ -1,6 +1,6 @@
 # 0113 — Python 3.11 is the oldest supported; CI green again
 
-- **Status:** in progress (all but CI on main, which needs the push)
+- **Status:** done
 - **Decision:** [0039 — Platform support](../decisions/0039-platform-support.md), amendment 2026-11-08 (the Python floor)
 - **Depends on:** none.  Before the launch post; first in the queue.
 
@@ -109,4 +109,6 @@ CI is red on main while the repository is public.
     comparison).
 - **Tests:** the five affected files, 184 passed; the full suite 3736
   passed, 15 skipped (2026-11-08).
-- **CI green on main:** pending the push.
+- **CI green on main:** run 42488319419 (ff306e4, 2026-11-08), all seven
+  jobs: Linux, macOS and Windows at Python 3.11 and 3.x, and OpenFOAM
+  v2406 in Docker.

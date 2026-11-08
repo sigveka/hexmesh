@@ -32,7 +32,10 @@ import pytest
 
 from hexmesh import _gmsh
 from hexmesh.agent import cli
+from hexmesh.assembly import AssemblyError
+from hexmesh.examples.applications import pcf_line
 from hexmesh.examples.sections import insulated_network, insulated_tee
+from hexmesh.interchange import read_pcf
 
 ROOT = Path(__file__).resolve().parents[1]
 README = ROOT / "README.md"
@@ -146,6 +149,54 @@ def test_citation_version_is_the_package_s():
     with open(ROOT / "pyproject.toml", "rb") as f:
         package = tomllib.load(f)["project"]["version"]
     assert citation == package, "bump CITATION.cff's version with pyproject.toml's"
+
+
+# --- from plant data (task 0114) ----------------------------------------------
+
+def pcf_section(text: str) -> str:
+    return text.split("\n## From plant data (PCF)\n")[1].split("\n---\n")[0]
+
+
+def test_the_pcf_block_counts_the_shipped_sample_s_cells(tmp_path, monkeypatch, capsys):
+    """Everything but the write (which meshes): it prints the count its
+    comment quotes, the example's."""
+    code = first_python_block(pcf_section(README.read_text(encoding="utf-8")))
+    quoted = int(re.search(r"^print\(asm\.cell_count\(\)\) +# (\d+)$", code, re.M).group(1))
+    code = "\n".join(l for l in code.splitlines() if "asm.write" not in l)
+    monkeypatch.chdir(tmp_path)
+    exec(compile(code, "README.md", "exec"), {})              # noqa: S102
+    assert int(capsys.readouterr().out) == quoted == pcf_line.build().cell_count()
+
+
+def _subset(small, big) -> bool:
+    if isinstance(small, dict):
+        return isinstance(big, dict) and all(k in big and _subset(v, big[k])
+                                             for k, v in small.items())
+    return small == big
+
+
+def test_the_pcf_section_s_error_is_what_an_equal_tee_gives(tmp_path, monkeypatch):
+    """The quoted ``equal_tee_unsupported``: the sample with its branch at
+    the run's 100 mm, saved as ``line.pcf``.  Code and message exact; the
+    ``where`` shown is part of the real one."""
+    quoted = json.loads(re.search(r"^  ```json\n(.*?)^  ```", pcf_section(
+        README.read_text(encoding="utf-8")), re.M | re.S).group(1))
+    text = pcf_line.SAMPLE.read_text(encoding="utf-8")
+    equal = text.replace("1100 300 0 50", "1100 300 0 100").replace("1100 800 0 50",
+                                                                    "1100 800 0 100")
+    assert equal.count(" 100\n") - text.count(" 100\n") == 3      # the branch point and pipe
+    monkeypatch.chdir(tmp_path)
+    Path("line.pcf").write_text(equal, encoding="utf-8")
+    with pytest.raises(AssemblyError) as e:
+        read_pcf("line.pcf").to_assembly(pcf_line.pipe, insulation=True)
+    got = e.value.to_dict()
+    assert (got["code"], got["message"]) == (quoted["code"], quoted["message"])
+    assert _subset(quoted["where"], got["where"]), got["where"]
+
+
+def test_a_planted_wrong_where_is_not_a_subset():
+    assert not _subset({"source": {"line": 11}}, {"source": {"line": 19, "file": "line.pcf"}})
+    assert _subset({"source": {"line": 19}}, {"part": "1", "source": {"line": 19}})
 
 
 # --- the agent primer (task 0110) ----------------------------------------------

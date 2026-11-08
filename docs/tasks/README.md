@@ -110,8 +110,8 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0110](0110-readme-agent-primer-checked.md) | The README's agent primer: its numbers checked | done (2 questions for design) | 0040 |
 | [0111](0111-hints-equipment-study.md) | Hints for equipment and study errors; the layout errors reviewed | ready (after 0110) | 0040 |
 | [0112](0112-wye-layout-cache.md) | Cache the wye's layout, so the light commands stay light | done (1 question for design) | 0040 |
-| [0113](0113-python-floor-311.md) | Python 3.11 is the oldest supported; CI green again | in progress (CI on main pending the push) | 0039 |
-| [0114](0114-pcf-sample-and-cli-insulation.md) | A committed PCF sample, and insulation from the `hexmesh` commands | ready (after 0113) | 0032, 0040 |
+| [0113](0113-python-floor-311.md) | Python 3.11 is the oldest supported; CI green again | done | 0039 |
+| [0114](0114-pcf-sample-and-cli-insulation.md) | A committed PCF sample, and insulation from the `hexmesh` commands | done | 0032, 0040 |
 | [0115](0115-release-0-5-0.md) | Release 0.5.0: the launch version, its install line and a stability statement | ready (after 0114) | — |
 
 ### Validation

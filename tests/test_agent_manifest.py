@@ -62,7 +62,7 @@ def test_every_registry_appears(m):
 
 def test_commands_come_from_the_parser(m):
     advise = {a["name"]: a for a in m["commands"]["advise"]["arguments"]}
-    assert set(advise) == {"network", "--spec", "--inputs"}
+    assert set(advise) == {"network", "--spec", "--insulation", "--inputs"}
     assert advise["network"]["positional"] and not advise["--inputs"]["positional"]
     assert m["commands"]["build"]["needs_gmsh"] and not m["commands"]["manifest"]["needs_gmsh"]
     assert {a["name"]: a["choices"] for a in m["commands"]["build"]["arguments"]}["--order"] \
