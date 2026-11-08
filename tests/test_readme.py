@@ -334,8 +334,11 @@ def test_the_primer_quotes_what_the_commands_return(got):
 
 def test_the_primer_s_validations_and_note(got):
     text = primer(README.read_text(encoding="utf-8"))
-    assert "`hexmesh validate` (no errors, no warnings)" in text
-    assert got["validated"]["ok"] and got["validated"]["warnings"] == []
+    assert ("`hexmesh validate` (no errors; one warning: the wye's predicted "
+            "non-orthogonality, 76°, at its crotch)") in text
+    warned = got["validated"]["warnings"]                    # task 0104
+    assert got["validated"]["ok"] and len(warned) == 1
+    assert "Wye" in warned[0]["message"] and "non-orthogonality 76." in warned[0]["message"]
     assert "`validate` passes again" in text and got["revalidated"]["ok"]
     assert "calibrated on developed flow in straight runs" in text
     assert "advice_calibration_scope" in [n["code"] for n in got["advice"]["notes"]]

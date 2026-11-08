@@ -675,7 +675,8 @@ with `python3 docs/gallery/build.py` (needs `vtk`).
   the crotch of wyes under 45°, both first order in `nang`; a layout with
   the creases on block edges is planned (decision 0029, task 0056).
   Default wyes are reliable to about `nrad` 6; at 120° with `nrad` 12
-  only `n_split` 3 is safe.  `refined(k)` of a wye may fold beyond
+  only `n_split` 3 is safe.  Every wye warns of a predicted
+  non-orthogonality of 72–82° at the crotch (task 0104).  `refined(k)` of a wye may fold beyond
   k = 2, and `mesh()` says so, naming the wye.  The wall error at the
   knee (3–6 % of R) doesn't converge with `nang`, so grid studies over
   wyes stop at k = 2.
@@ -684,7 +685,10 @@ with `python3 docs/gallery/build.py` (needs `vtk`).
   face, up to 0.93 of its width, or a rectangular tap as wide as the
   face, on single-layer ducts only.  A full-width tap's quality is set by
   its length along the main (short taps warn, very short ones fail).  Narrow-face taps on deep ducts (3:1)
-  mesh poorly (min SJ about 0.13, non-orthogonality to 82°) and warn.  A
+  mesh poorly (min SJ about 0.13, non-orthogonality to 82°) and warn.
+  `validate()` predicts every junction's non-orthogonality on the 70°/80°
+  tiers, before GMSH, naming the block; small-ratio tees (r/R about 0.3)
+  and narrow-face taps warn (task 0104).  A
   tap costs about 1.6–2.3× the cells of a plain run of the same length.
   A stack with a rectangle and a circle needs equal counts per side, and
   so does a circle ↔ rectangle `Transition`: a circle carries one count.

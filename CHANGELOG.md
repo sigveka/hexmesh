@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+**Junctions predict non-orthogonality** (decision 0031; task 0104).
+- `validate()` predicts a tee's, a duct tap's or a wye's worst
+  non-orthogonality before GMSH, from its block layout. It warns above
+  `OUTLINE_NONORTH_WARN` (70°) and rejects above `OUTLINE_NONORTH_MAX`
+  (80°) with the new code `predicted_nonorth_above_maximum`. The message
+  names the block and what lowers it.
+- The wye only warns, as for its scaled Jacobian, until its layout
+  redesign.
+- **New warnings on existing networks.** Every wye warns (72–82°), so
+  these examples now warn: `fittings.wye`, `fittings.junction_walls`
+  (its 30° wye, 81.8°), `sections.insulated_network`,
+  `networks.bifurcation_tree` and `applications.cooling_channels`.
+  Tees with r/R about 0.3 and narrow-face duct taps also warn. No
+  example newly errors.
+
 **The network builder reads angled tees** (decision 0031; task 0103).
 - A PCF `TEE` whose branch leans becomes a lateral, `Tee(angle=…)`, at
   the angle measured between the branch and the downstream run.  Set-ons

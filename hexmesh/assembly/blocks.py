@@ -51,7 +51,7 @@ from ..errors import HexmeshError
 from .. import _occ
 from ..sections import layout_of
 from ..core.cross_section import interface_group_name
-from ..quality_hex import corner_scaled_jacobians
+from ..quality_hex import corner_scaled_jacobians, shared_face_angles
 from .corners import curve_endpoints
 from .sweep import CurveMesh, FillResult, _ruled
 
@@ -252,6 +252,17 @@ class BlockLayout:
                 use.setdefault(_key(*cyc), []).append((bi, cyc))
         return use
 
+    def _edge_starts(self) -> dict[frozenset, object]:
+        """Orientation of every edge: the declared a → b, else the first
+        traversal in block order — the order in which ``realise`` creates
+        undeclared edges, so both agree.  Edge key → its start vertex."""
+        start: dict[frozenset, object] = {k: e.a for k, e in self.edges.items()}
+        for ids, _ in self.blocks:
+            for group in _EDGES.values():
+                for a, b in group:
+                    start.setdefault(_key(ids[a], ids[b]), ids[a])
+        return start
+
     def _division_classes(self) -> dict[frozenset, tuple[int, tuple]]:
         """Edge key → (divisions, grading oriented edge.a → edge.b).
 
@@ -277,14 +288,7 @@ class BlockLayout:
                 parent[y], parity[y] = x, acc
             return x
 
-        # Orientation of every edge: the declared a → b, else the first
-        # traversal in block order — the order in which ``realise`` creates
-        # undeclared edges, so both agree.
-        start: dict[frozenset, object] = {k: e.a for k, e in self.edges.items()}
-        for ids, _ in self.blocks:
-            for group in _EDGES.values():
-                for a, b in group:
-                    start.setdefault(_key(ids[a], ids[b]), ids[a])
+        start = self._edge_starts()
 
         def flip(k, a) -> int:
             """1 if the block traverses edge *k* against its orientation."""
@@ -360,6 +364,109 @@ class BlockLayout:
             corner_scaled_jacobians(np.array([self.coords[v] for v in ids]))
             for ids, _ in self.blocks
         ])
+
+    def _fractions(self, a, b, n: int, start: dict) -> np.ndarray:
+        """Node fractions along edge *a* → *b*: its grading is oriented from
+        ``start`` (``_edge_starts``)."""
+        from ..core.grading import bump, progression
+        kind, coef = self._classes[_key(a, b)][1]
+        f = np.asarray(bump(n, coef) if kind == "Bump" else progression(n, coef))
+        return f if start[_key(a, b)] == a else 1.0 - f[::-1]
+
+    def _edge_nodes(self, a, b, f: np.ndarray) -> np.ndarray:
+        """Points at fractions *f* of the length of edge *a* → *b*, along
+        its declared geometry (straight if undeclared)."""
+        pa, pb = self.coords[a], self.coords[b]
+        e = self.edges.get(_key(a, b))
+        if e is None or isinstance(e.geom, Line):
+            return pa + np.outer(f, pb - pa)
+        if isinstance(e.geom, Spline):         # its control polyline: no scipy
+            pts = np.vstack([self.coords[e.a], np.asarray(e.geom.points, dtype=float),
+                             self.coords[e.b]])          # in validate (task 0107)
+            pts = pts if e.a == a else pts[::-1]
+        else:
+            pts = self._edge_points(a, b, 129)
+        s = np.concatenate([[0.0], np.cumsum(np.linalg.norm(np.diff(pts, axis=0), axis=1))])
+        return np.column_stack([np.interp(f * s[-1], s, pts[:, i]) for i in range(3)])
+
+    def cells(self):
+        """The hexes of the blocks (pure, approximate): each block cut by
+        its division counts at its edges' grading fractions, along its
+        edges' declared curves, and filled by transfinite interpolation
+        (Coons faces, a Gordon–Hall volume), as GMSH's transfinite meshing
+        does.  Wall faces are not projected (``walls``): on the conformance
+        kit's junctions that moved the worst angle by under 0.1° and cost
+        more than the rest (task 0104).  Returns ``(verts (N, 8, 3), conn
+        (N, 8), block (N,))``, nodes shared across blocks by position."""
+        if self._classes is None:
+            self._classes = self._division_classes()
+        start = self._edge_starts()
+        memo: dict = {}
+
+        def nodes_along(a, b, n):
+            """Edge a → b's n + 1 nodes, each edge computed once."""
+            k = (_key(a, b), n)
+            if k not in memo:
+                s = start[k[0]]
+                e = b if s == a else a
+                memo[k] = (s, self._edge_nodes(s, e, self._fractions(s, e, n, start)))
+            s, pts = memo[k]
+            return pts if s == a else pts[::-1]
+
+        verts, block = [], []
+        for bi, (ids, _) in enumerate(self.blocks):
+            n = {d: self._classes[_key(ids[g[0][0]], ids[g[0][1]])][0]
+                 for d, g in _EDGES.items()}
+            frac = {d: [self._fractions(ids[x], ids[y], n[d], start) for x, y in g]
+                    for d, g in _EDGES.items()}
+            # the edges' nodes, indexed like _EDGES: i-edges at (j, k) and
+            # j-edges at (i, k) = (0,0), (1,0), (0,1), (1,1); k-edges at
+            # (i, j) = (0,0), (1,0), (1,1), (0,1)
+            E = {d: [nodes_along(ids[x], ids[y], n[d]) for x, y in g] for d, g in _EDGES.items()}
+            # blending parameters: the mean of each direction's fractions
+            u, v, w = (np.mean(frac[d], axis=0) for d in "ijk")
+            I, J, K = len(u), len(v), len(w)
+            U, V, W = np.meshgrid(u, v, w, indexing="ij")
+            U, V, W = U[..., None], V[..., None], W[..., None]
+            ei = [e[:, None, None, :] for e in E["i"]]       # (I, 1, 1, 3)
+            ej = [e[None, :, None, :] for e in E["j"]]       # (1, J, 1, 3)
+            ek = [e[None, None, :, :] for e in E["k"]]       # (1, 1, K, 3)
+            c = np.array([self.coords[x] for x in ids])
+            # Gordon–Hall from the 12 edges: sum of the edge interpolants
+            # in each pair of directions minus twice the trilinear corners
+            edges_i = ((1 - V) * (1 - W) * ei[0] + V * (1 - W) * ei[1]
+                       + (1 - V) * W * ei[2] + V * W * ei[3])
+            edges_j = ((1 - U) * (1 - W) * ej[0] + U * (1 - W) * ej[1]
+                       + (1 - U) * W * ej[2] + U * W * ej[3])
+            edges_k = ((1 - U) * (1 - V) * ek[0] + U * (1 - V) * ek[1]
+                       + U * V * ek[2] + (1 - U) * V * ek[3])
+            tri = ((1 - U) * (1 - V) * (1 - W) * c[0] + U * (1 - V) * (1 - W) * c[1]
+                   + U * V * (1 - W) * c[2] + (1 - U) * V * (1 - W) * c[3]
+                   + (1 - U) * (1 - V) * W * c[4] + U * (1 - V) * W * c[5]
+                   + U * V * W * c[6] + (1 - U) * V * W * c[7])
+            g = edges_i + edges_j + edges_k - 2 * tri
+            hexes = np.stack([g[:-1, :-1, :-1], g[1:, :-1, :-1], g[1:, 1:, :-1], g[:-1, 1:, :-1],
+                              g[:-1, :-1, 1:], g[1:, :-1, 1:], g[1:, 1:, 1:], g[:-1, 1:, 1:]],
+                             axis=3).reshape(-1, 8, 3)
+            verts.append(hexes)
+            block.append(np.full(len(hexes), bi))
+        verts = np.concatenate(verts)
+        scale = float(np.ptp(verts.reshape(-1, 3), axis=0).max()) or 1.0
+        _, conn = np.unique(np.round(verts.reshape(-1, 3) / scale, 9), axis=0,
+                            return_inverse=True)
+        return verts, conn.reshape(-1, 8), np.concatenate(block)
+
+    def predicted_nonorth(self) -> tuple[float, int]:
+        """Largest non-orthogonality of :meth:`cells`, degrees, by
+        OpenFOAM's definition (``quality_hex.shared_face_angles``, as the
+        meshed check), and the block it is in (the worse of a face's two
+        cells' blocks; pure)."""
+        verts, conn, block = self.cells()
+        angles, a, b = shared_face_angles(verts, conn)
+        if not len(angles):
+            return 0.0, 0
+        i = int(np.argmax(angles))
+        return float(angles[i]), int(block[a[i]])
 
     def validate(self) -> dict:
         """Check topology, densities and corner Jacobians; return a report."""

@@ -68,6 +68,7 @@ from .blocks import (
     corner_shift, face_patches, face_vertices,
 )
 from .interface import Frame, junction_roll, junction_toward, port_type, rolled
+from .junction_quality import WYE_BLOCKS, _layout_key, nonorth_tiers
 from .projection import Tube, TubeUnion
 from .signature import check_port_pairs
 from .tee import thicknesses
@@ -163,24 +164,6 @@ class Skeleton:
 LAYOUT_CACHE_SIZE = 32
 _LAYOUTS: OrderedDict = OrderedDict()
 _LAYOUTS_LOCK = threading.Lock()
-
-
-def _value(v):
-    """A hashable value of a field: arrays and sequences by their floats'
-    bytes, the rest by repr (exact for floats)."""
-    if isinstance(v, (np.ndarray, list, tuple)):
-        return ("array", np.asarray(v, dtype=float).tobytes())
-    return repr(v)
-
-
-def _layout_key(wye, frames, spec) -> tuple:
-    """Everything :meth:`Wye.layout` reads, by value: every field of the
-    wye, every frame's vectors, and the spec (its description and its
-    port type).  An equal wye at equal frames hits; any change misses."""
-    return (tuple((f.name, _value(getattr(wye, f.name))) for f in fields(wye)),
-            tuple(np.asarray(a, dtype=float).tobytes()
-                  for fr in frames for a in (fr.position, fr.normal, fr.up)),
-            json.dumps(spec.to_dict(), sort_keys=True), repr(port_type(spec)))
 
 
 # Axial counts, and the sentinels that identify their edges in resolve()
@@ -618,11 +601,15 @@ class Wye:
         except LayoutError as e:
             raise AssemblyError.wrap(e, f"block layout invalid: {e}",
                                      code="block_layout_invalid") from None
+        found = nonorth_tiers(self, frames, spec, lambda: self.layout(frames, spec), WYE_BLOCKS,
+                              "the wye's layout sets it, at any angle; the layout "
+                              "redesign (decision 0043) measures alternatives",
+                              reject=False)
         if sj < limits.PREDICTED_SJ_MIN:
-            return [f"Wye at {self.angle:g}°: predicted min corner scaled Jacobian "
+            return found + [f"Wye at {self.angle:g}°: predicted min corner scaled Jacobian "
                     f"{sj:.3g} is below PREDICTED_SJ_MIN {limits.PREDICTED_SJ_MIN:g} "
                     f"(narrow wyes; the layout redesign is planned)"]
-        return []
+        return found
 
     def cell_count(self, frames: list[Frame], spec: PipeSpec) -> int:
         """Exact hex count of the block layout (pure; DESIGN P4)."""

@@ -394,6 +394,7 @@ CODES: dict[str, str] = {
     "port_roll_not_a_period": "port frames that differ by a roll that is not a period",
     "port_type_mismatch": "an interface's port type differs from the one the fitting declares",
     "post_result_not_dict": "a study's post-processing returns something other than a dict",
+    "predicted_nonorth_above_maximum": "a junction's predicted non-orthogonality above OUTLINE_NONORTH_MAX",
     "predicted_sj_below_minimum": "a fitting's predicted scaled Jacobian below PREDICTED_SJ_MIN",
     "preflight_failed": "study preflight found failing variants",
     "prepend_at_equipment_end": "prepend at an equipment end",

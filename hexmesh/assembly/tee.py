@@ -90,6 +90,7 @@ from .blocks import (
 )
 from .duct_tap import TapTemplate
 from .interface import Frame, junction_roll, junction_toward, outer_radius, rolled
+from .junction_quality import TEE_BLOCKS, nonorth_tiers
 from .limits import PREDICTED_SJ_MIN, PREDICTED_SJ_WARN, TEE_MAX_RATIO
 from .projection import Tube, TubeUnion
 from .signature import check_port_pairs
@@ -705,7 +706,9 @@ class Tee:
         except LayoutError as e:
             raise AssemblyError.wrap(e, f"block layout invalid: {e}",
                                      code="block_layout_invalid") from None
-        return found
+        return found + nonorth_tiers(
+            self, frames, spec, lambda: self.layout(frames, spec), TEE_BLOCKS,
+            "a larger branch ratio r/R, or a larger angle, lowers it")
 
     def cell_count(self, frames: list[Frame], spec: PipeSpec) -> int:
         """Exact hex count of the block layout (pure; DESIGN P4)."""

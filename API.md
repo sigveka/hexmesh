@@ -715,6 +715,23 @@ a block layout.
   junction core's quality is set by the branch ratio, about 0.26 at
   r/R 0.5 at any run. **Tees with r/R below about 0.57 always warn** (task
   0052).
+- **Predicted non-orthogonality** (task 0104). `validate()` also predicts
+  the junction's worst non-orthogonality, OpenFOAM's definition, from its
+  block layout before GMSH: the cells transfinite interpolation makes
+  from the block edges' curves, divisions and grading. Above
+  `limits.OUTLINE_NONORTH_WARN` (70°) it warns; above
+  `OUTLINE_NONORTH_MAX` (80°) it raises `predicted_nonorth_above_maximum`.
+  The message names the block (e.g. "the turn block on the branch's
+  downstream side") and what lowers it. The same check runs on duct taps
+  and wyes. Against the meshed value, over the conformance kit's
+  junctions and a sweep of tees and laterals (78 cases), the median
+  error is 0.5° and 59 cases are within 2°. The prediction is up to 3.4°
+  optimistic on large-ratio laterals (r/R 0.9, 35°–60°): a 35° lateral
+  meshing at 72.8° is predicted at 69.7° and doesn't warn. It is up to
+  15° pessimistic on 90° tees at r/R 0.9 with shells
+  (benchmarks/junction_nonorth.py). **Tees with r/R about 0.3
+  warn at every angle** (72–77°). An unchanged junction's prediction is
+  cached by value, so repeated `validate()` calls are cheap.
 - **Duct taps** (decision 0033, task 0070). On a rectangular main the tee
   is a duct tap: `branch=RectShape(half_w, half_h, nang_w, nang_h)` or
   `branch=CircleShape(radius, nang)` (`branch_radius` is the pipe
@@ -819,7 +836,10 @@ decision 0017).
   A pipe wall (T ≈ 0.04 R) is well inside.
 - **Quality warning.** `validate()` warns when the layout's predicted min
   corner SJ is below `PREDICTED_SJ_MIN` (0.1): single-layer wyes at 30°
-  and 35°.  There is no reject tier for the wye until its layout redesign.
+  and 35°.  It also warns when the predicted non-orthogonality (see the
+  tee's) is above `OUTLINE_NONORTH_WARN`: every wye does, at 72–82°, in
+  the ring at the crotch, highest at narrow angles.  There is no reject
+  tier for the wye, for either measure, until its layout redesign.
 - **Wall.** The union of the inlet and daughter tubes, with a sharp crotch
   crease. `mesh()` projects the junction's wall nodes onto it (decision
   0029), so they lie on it to rounding; the faces between them are
@@ -1632,6 +1652,7 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `port_roll_not_a_period` | port frames that differ by a roll that is not a period | `LayoutError` |
 | `port_type_mismatch` | an interface's port type differs from the one the fitting declares | `AssemblyError` |
 | `post_result_not_dict` | a study's post-processing returns something other than a dict | `StudyTypeError` |
+| `predicted_nonorth_above_maximum` | a junction's predicted non-orthogonality above OUTLINE_NONORTH_MAX | `AssemblyError` |
 | `predicted_sj_below_minimum` | a fitting's predicted scaled Jacobian below PREDICTED_SJ_MIN | `AssemblyError` |
 | `preflight_failed` | study preflight found failing variants | `PreflightFailed` |
 | `prepend_at_equipment_end` | prepend at an equipment end | `AssemblyError` |

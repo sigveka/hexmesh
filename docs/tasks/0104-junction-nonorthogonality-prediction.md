@@ -1,6 +1,6 @@
 # 0104 — Junctions predict non-orthogonality in `validate()`
 
-- **Status:** ready (after 0060)
+- **Status:** blocked (2 questions for design; the code is complete and committed)
 - **Decision:** [0031 — General branch junctions](../decisions/0031-general-branch-junctions.md), amendment 2026-11-07, item 5
 - **Depends on:** 0060.
 
@@ -46,3 +46,106 @@ shared; tests; `API.md`; `CHANGELOG.md`.
 
 **Out of scope.**  Changing junction layouts to lower the angle; that
 follows from the measurements, by decision.
+
+## Agent notes
+
+- **Step 1 refined: curved-edge cells, not straight edges.**  Hexes
+  between the straight-edge block corners were 7–12° off the meshed
+  value, so `BlockLayout.cells()` builds the cells gmsh's transfinite
+  meshing would make.
+  - Divisions and grading come from the layout's edge classes.
+  - Edge nodes go at graded length fractions along each edge's declared
+    curve.  A `Spline` is read through its control polyline, so
+    `validate()` stays scipy-free (task 0107).
+  - The volume is a Gordon–Hall edge blend.
+  - `predicted_nonorth()` takes the worst shared face with
+    `quality_hex.shared_face_angles`, the meshed check's definition.
+- **Wall projection is not predicted.**  `Assembly.mesh()` moves the
+  wall-face nodes onto `walls` afterwards.  Predicting that moved
+  lateral-45-0.9 by under 0.1° (its −3.4° stays) and cost more than all
+  the rest, so it was dropped.
+- **Shared code** lives in `assembly/junction_quality.py`:
+  - `nonorth_tiers`;
+  - block names by station prefix;
+  - a by-value cache, keyed by `_layout_key`, which moved there from
+    `wye.py` to avoid a module cycle.
+  It costs 35–290 ms per junction the first time and nothing after.
+- **The wye only warns above `OUTLINE_NONORTH_MAX`.**  This is the same
+  policy as its SJ tier ("no reject tier until its layout redesign").
+  Without it, `fittings.junction_walls` (30° wye, 81.8°) and the narrow
+  wye tests would newly error.  See *Questions for design*.
+
+## Questions for design
+
+1. **The wye's reject tier.**  Every wye predicts 72–82° (meshed
+   agrees within 1°).  Wyes under about 32° exceed 80°, among them
+   `fittings.junction_walls`'s 30° wye at 81.8°.  The prediction applies
+   `OUTLINE_NONORTH_MAX` to the wye as a warning only, as its SJ tier
+   already does.  Should that stand until decision 0043's redesign, or
+   should wyes above 80° be rejected (the example then changes)?
+2. **Optimism near the warning tier.**  The prediction is up to 3.4°
+   optimistic on r/R 0.9 laterals.  `tee-35-0.9-0sh-nang4` meshes at
+   72.8° but is predicted at 69.7°, so it doesn't warn, and `mesh()`
+   doesn't check junctions' meshed non-orthogonality (only switches').
+   The likely cause is the post-mesh wall projection, though predicting
+   it didn't close the gap: the worst block's nodes differ from the mesh
+   by up to 25 mm near the branch port, and that is unexplained.  Two
+   options:
+   - (a) check the meshed value in `mesh()` too, as for switches;
+   - (b) a margin on the predicted tier.
+   Which, if either?
+
+## Outcome
+
+- **Files:**
+  - `hexmesh/assembly/blocks.py`: `BlockLayout.cells()`,
+    `predicted_nonorth()`, `_edge_starts`, `_fractions` and
+    `_edge_nodes`;
+  - `hexmesh/assembly/junction_quality.py` (new);
+  - `tee.py`, `duct_tap.py` and `wye.py`, each `validate()`;
+  - `hexmesh/quality_hex.py` (`shared_face_angles`);
+  - `hexmesh/errors.py` (`predicted_nonorth_above_maximum`);
+  - `tests/test_junction_quality.py` (11 tests);
+  - `benchmarks/junction_nonorth.py` and `.json`;
+  - API.md, GUIDE and CHANGELOG.
+- **Predicted against meshed** (`benchmarks/junction_nonorth.json`):
+  78 cases, which are the kit's junctions plus 0060's sweep (angles 90,
+  75, 60, 45, 35; r/R 0.3, 0.6, 0.9; 0 or 2 shells; nang 4 or 8).  The
+  Tee rejected another 14 sweep cases.
+  - Median |error| 0.5°; 51 cases within 1°, 59 within 2°.
+  - Optimistic by more than 1° in 22 cases, at most 3.4°
+    (lateral-45-0.9, tee-60-0.9-0sh-nang8), all at r/R 0.6–0.9.
+  - Pessimistic by up to 14.9° (90° tees at r/R 0.9 with shells,
+    predicted 57°, meshed 42.5°), all well below the warning tier.
+  - Duct taps are exact (±0.1°); wyes are within 0.7°.
+  - The tiers disagree on 3 cases, all within 0.2–3° of 70°.
+  - Cost: 35–180 ms per junction, cached by value after.
+
+  | case | predicted | meshed |
+  |---|---|---|
+  | tee-0.5 | 61.4 | 61.4 |
+  | tee-0.9-oblique | 40.7 | 40.2 |
+  | lateral-45-0.9 | 63.2 | 66.6 |
+  | lateral-60-0.6 | 64.3 | 64.0 |
+  | wye-60 / wye-90 | 74.0 / 72.5 | 74.2 / 73.2 |
+  | wye 30° / 45° / 120° | 80.4 / 76.8 / 78.0 | 80.3 / 76.8 / 78.1 |
+  | tee-duct-rect-2-narrow | 75.1 | 75.1 |
+  | tee r/R 0.3, 60°–90° | 72.5–76.8 | 72.8–77.4 |
+- **Examples whose `validate()` changes:** these 5 now warn, and none
+  errors.  All the warnings are at wyes:
+  - `fittings.wye` (76.1°);
+  - `fittings.junction_walls` (30° wye, 81.8°, above MAX, warning only);
+  - `sections.insulated_network` (76.3°);
+  - `networks.bifurcation_tree` (3 wyes, 72.5–73.1°);
+  - `applications.cooling_channels` (73.1°).
+- **Full suite:** 3762 passed, 15 skipped and 8 failed, all on the
+  expected new wye warning:
+  - `test_projection.py::test_wye_projected_without_folds` (7), which
+    treats warnings as errors: the new warning is now ignored there, as
+    the SJ one already was;
+  - `test_readme.py::test_the_primer_s_validations_and_note`: the
+    README primer said "no errors, no warnings" for
+    `insulated_network`, and now names its one wye warning (76°).
+  The 8 pass after the fix, and the 11 new tests pass.
+- **Follow-ups:** the two questions above.  The wye's crotch ring
+  (72–82° in every wye) is input for task 0116's measurements.

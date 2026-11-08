@@ -103,7 +103,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0101](0101-untie-rectangular-shell-counts.md) | Unequal side counts through a stack of rectangular outlines | done | 0041, 0026 |
 | [0102](0102-agent-manifest.md) | `hexmesh manifest`: one machine-readable account of the suite | done | 0040 |
 | [0103](0103-network-angled-tees.md) | The network builder takes angled tees | done (3 questions for design) | 0031 |
-| [0104](0104-junction-nonorthogonality-prediction.md) | Junctions predict non-orthogonality in `validate()` | ready (after 0060) | 0031 |
+| [0104](0104-junction-nonorthogonality-prediction.md) | Junctions predict non-orthogonality in `validate()` | blocked (2 questions for design) | 0031 |
 | [0105](0105-windows-ci-green.md) | CI green again: the Windows gmshToFoam test | done | 0039 |
 | [0106](0106-error-coverage-and-hints.md) | Every user-facing error coded, and hints where they help | done | 0040 |
 | [0107](0107-light-commands-without-gmsh.md) | The light commands load neither gmsh nor scipy | done | 0040 |

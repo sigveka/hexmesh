@@ -143,7 +143,8 @@ refines it:
 > 0.4 m legs, each followed by 0.3 m.
 >
 > **Agent:** Writes `header.json` (to `hexmesh schema`), and runs
-> `hexmesh validate` (no errors, no warnings) and `hexmesh estimate`:
+> `hexmesh validate` (no errors; one warning: the wye's predicted
+> non-orthogonality, 76°, at its crotch) and `hexmesh estimate`:
 > 18 012 cells, exact. `hexmesh preview` draws it.
 >
 > **You:** Refine it for water at 1 cm/s, fine accuracy, but stay under

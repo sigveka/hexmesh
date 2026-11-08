@@ -59,6 +59,7 @@ from dataclasses import dataclass, replace
 import numpy as np
 
 from .errors import AssemblyError
+from .junction_quality import TAP_BLOCKS, nonorth_tiers
 from ..core.shape import CircleShape, RectShape
 from ..core.spec import PipeSpec
 from ..sections import h, oh
@@ -705,7 +706,8 @@ class TapTemplate:
         if spec.layout != "h":
             found = self.quality(frames, spec)
             _validate_layout(self.layout(frames, spec))
-            return found
+            return found + nonorth_tiers(self, frames, spec, lambda: self.layout(frames, spec),
+                                         TAP_BLOCKS, "a tap on the main's wide face lowers it (narrow-face taps predict about 72–75°)")
         found = []
         for part, fr, s in self._parts(frames, spec):
             if isinstance(part, TapTemplate):
@@ -713,6 +715,9 @@ class TapTemplate:
                         f"mprg {s._core_mprg:.4g})")
                 found += [m + ring for m in part.quality(fr, s)]
                 _validate_layout(part.layout(fr, s))
+                found += [m + ring for m in nonorth_tiers(
+                    part, fr, s, lambda part=part, fr=fr, s=s: part.layout(fr, s),
+                    TAP_BLOCKS, "a tap on the main's wide face lowers it (narrow-face taps predict about 72–75°)")]
             else:
                 found += part.validate(fr, s)
         return found
