@@ -1387,6 +1387,43 @@ OpenFOAM v2406, k-ω SST, against McKeon et al. (2005)
   give Spalding wall-function advice at y⁺ ≈ 50 in pipe flow.  Decision
   0040 keeps it wall-resolved first.
 
+### 7.14 Manufactured solutions: what limits the order at fittings (task 0074)
+
+Task 0074 (done 2026-11-08): conduction with a manufactured T on every
+fitting, OpenFOAM v2406 `laplacianFoam`, L2 error of T in the fitting,
+order from k 2→4 (§7.12).  Accepted on what is verified: the straight
+(1.60), bend (1.72), spline (1.90), stack change (1.81) and H rectangular
+duct (1.99) converge at the straight's order, and the wyes outside their
+split region.  Numbers and tables: `validation/mms/RESULTS.md`.
+
+The fittings below the straight's order, and why (the design checks):
+
+| fitting | order | geometry error left by refinement? | least-squares gradient | wall-face non-orthogonality (median) |
+|---|---|---|---|---|
+| miter | 1.14 | no | **recovers** (1.67 vs 1.83 straight) | — |
+| reducer (cosine) | 0.95 | no (chord gap falls at 2nd order) | 0.97 | 21–24° |
+| transition | 0.97 | no (ruled blend, exact wall) | 1.24 | 12–14° |
+| tee, with/without shells | 1.03 / 1.04 | no | 1.32 / 1.49 | 9° |
+| straight / bend | 1.60 / 1.72 | — | 1.83 (straight) | ≈ 0° / 1.3° |
+
+- **The miter** is the scheme on kinked grid lines: least squares
+  recovers it.
+- **The other four share a wall-face non-orthogonality that refinement
+  doesn't shrink**, and OpenFOAM's `fixedValue` boundary snGrad has no
+  non-orthogonal correction.  `skewCorrected` interpolation changes
+  nothing there.  **Taken as a scheme property** (design, 2026-11-08):
+  expect a first-order local error next to sloped walls with
+  `fixedValue` in OpenFOAM, at any refinement.  Not yet verified as the
+  only cause: task 0109 varies the reducer's wall slope to see whether
+  the order tracks the angle.
+- **The duct taps** (0.78, k 1→2): their aspect doesn't grow with k
+  (edge ratio max 13.1 → 12.3), so it isn't a refinement defect.
+- **The wyes** (0.34–0.51): `n_split` isn't refined with k, so the split
+  region isn't verified.
+- **gmshToFoam's orientation test** flips valid warped hexes
+  (`docs/integrations/openfoam.md`, 2026-11-06); the drivers use
+  `-keepOrientation` where every hex is right-handed (task 0108).
+
 ## 8. Proposed hexmesh actions
 
 | Area | Action | Source |

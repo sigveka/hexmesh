@@ -100,8 +100,11 @@ to its left, and it reaches them only through their public names
 
 `io.writers` is a leaf used by `assembly` and `study`.  `_occ` is the
 shared OCC helper for `sections` and `assembly`.  `errors` (the
-structured errors, task 0094) and `version` are shared leaves that
-every package may import.
+structured errors, task 0094), `version` and `_gmsh` (gmsh, loaded on
+first use; decision 0040, amendment 2026-11-07) are shared leaves that
+every package may import.  Only meshing loads gmsh; the agent commands
+other than `build` load neither gmsh nor scipy (a test in
+`test_architecture`).
 
 Rules:
 - **Shapes and section layouts own their behaviour.**  Code outside
@@ -446,9 +449,24 @@ or "plate" block with five faces on one smooth surface (degenerate
 cells), or run through to the main inlet and outlet faces, which would
 change their topology.
 
-Measured on the prototype (single layer, nang = 4): all-hex, no bad
-cells for r/R from 0.3 to 0.95, minimum SICN rising from 0.16 to 0.38
-with r/R.
+**Effective range** (decision 0031, amendment 2026-11-07; measured in
+task 0060).  The branch may lean (`Tee(angle=…)`, a lateral).  The
+branch-to-main radius ratio r/R is at most `TEE_MAX_RATIO` = 0.95; above
+it the meshed quality falls below the prediction.  The smallest r/R that
+passes the scaled-Jacobian floor (0.1), by angle:
+
+| angle | smallest r/R |
+|---|---|
+| 90° | 0.20 |
+| 60° | 0.29 |
+| 45° | 0.50 |
+| 35° | 0.875 |
+| 30° | none |
+
+There is no separate angle limit: the quality tiers reject, and the hint
+names the angle and the smallest r/R that passes at it.  Laterals below
+about 57° always warn.  The worst cell is the turn block at the acute
+crotch.  30° laterals need a different crotch layout (held).
 
 **Duct junctions and the H layout.**  Duct tees and taps keep O-H
 blocks inside.  They accept H ports by embedding the O-H ↔ H switch in

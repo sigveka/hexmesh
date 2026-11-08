@@ -214,6 +214,10 @@ knee issues (task 0056), no shells yet (0053), and its redesign ahead
    on the same tiers as `mesh()` (`OUTLINE_NONORTH_WARN` 70°,
    `OUTLINE_NONORTH_MAX` 80°).
 
+**Applied** (2026-11-08, the user: "yes"): task 0060 confirmed
+predicted and meshed quality agree at 35° and 45°; the table is in
+DESIGN §7.1, replacing the prototype numbers.
+
 **Verified vs. assumed:** this record assumed the topology valid "for α
 down to about 30°".  Measured: valid down to 35° (at r/R ≥ 0.875), not
 at 30°.

@@ -107,6 +107,8 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0105](0105-windows-ci-green.md) | CI green again: the Windows gmshToFoam test | done | 0039 |
 | [0106](0106-error-coverage-and-hints.md) | Every user-facing error coded, and hints where they help | done | 0040 |
 | [0107](0107-light-commands-without-gmsh.md) | The light commands load neither gmsh nor scipy | done | 0040 |
+| [0110](0110-readme-agent-primer-checked.md) | The README's agent primer: its numbers checked | ready | 0040 |
+| [0111](0111-hints-equipment-study.md) | Hints for equipment and study errors; the layout errors reviewed | ready (after 0110) | 0040 |
 
 ### Validation
 
@@ -128,6 +130,8 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0077](0077-validation-fenicsx-second-order.md) | Verification: FEniCSx toolchain, and second-order export checked end to end | V1 | ready (step 1 any time; 2–4 after 0076) | 0034, 0012, 0015 |
 | [0079](0079-validation-taylor-bubble.md) | Validation: a Taylor bubble rising in stagnant liquid (VOF) | V3 | ready (v2406 runner) | 0012, 0015 |
 | [0099](0099-validation-graphs.md) | Validation results as graphs: convergence, layouts, the stenosis against DNS | docs | done | 0012, 0015, 0036 |
+| [0108](0108-gmshtofoam-inversion-audit.md) | Audit the validation cases for gmshToFoam's silent inversions | V1 | ready | 0012 |
+| [0109](0109-mms-wall-slope.md) | MMS: does the order track the wall slope? | V1 | ready (after 0108) | 0012 |
 
 
 ### Order
@@ -142,6 +146,10 @@ or a long run.
    **0105 → 0106 → 0107 → 0078** (CI green on Windows; every user-facing
    error coded, with hints; the light commands without gmsh; the README
    front page).  Before other work.
+   Then, before the launch post: **0110** (the primer's numbers
+   checked), then **0108** (the inversion audit; serial, smallest levels
+   first).  After it: **0109** (MMS wall
+   slope), **0111** (equipment and study hints).
 1. **The H section** (decision 0036; 0082, 0083, 0084 and 0090 done):
    - **0085 → 0086 → 0087**, strictly in sequence.  0085 (in progress)
      builds the capped switch (decision 0036 amendment, 2026-11-04).

@@ -270,3 +270,6 @@ top.
    Linux the system libraries CI installs), and the commands that still
    work without gmsh.
 4. **Task 0107**, after 0106 and before 0078.
+
+**Applied** (2026-11-08, the user: "yes"): task 0107 is done;
+DESIGN §3.1 lists `_gmsh` with the shared leaves and states the rule.
