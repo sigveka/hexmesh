@@ -113,6 +113,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0113](0113-python-floor-311.md) | Python 3.11 is the oldest supported; CI green again | done | 0039 |
 | [0114](0114-pcf-sample-and-cli-insulation.md) | A committed PCF sample, and insulation from the `hexmesh` commands | done | 0032, 0040 |
 | [0115](0115-release-0-5-0.md) | Release 0.5.0: the launch version, its install line and a stability statement | in progress (release waits for the user) | — |
+| [0116](0116-wye-redesign-measurement.md) | The wye redesign, measured: the hub generalised, and the published topology's feasibility | ready (after 0103, 0104) | 0043, 0042 |
 
 ### Validation
 
@@ -154,8 +155,9 @@ or a long run.
    **0113** (Python 3.11 floor; CI green) → **0114** (a PCF sample;
    `--insulation`) → **0115** (release 0.5.0, last).  After the launch
    (the user, 2026-11-08): **0103** (angled tees in networks) → **0104**
-   (junction non-orthogonality) → **0111** (equipment and study hints)
-   → **0109** (MMS wall slope).
+   (junction non-orthogonality) → **0116** (the wye redesign measured;
+   decision 0043) → **0111** (equipment and study hints) → **0109** (MMS
+   wall slope).
 1. **The H section** (decision 0036; 0082, 0083, 0084 and 0090 done):
    - **0085 → 0086 → 0087**, strictly in sequence.  0085 (in progress)
      builds the capped switch (decision 0036 amendment, 2026-11-04).
