@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+## 0.5.0 (2026-11-08)
+
+The launch release.
+- **For agents:** structured, coded errors, and the `hexmesh` command
+  (`manifest`, `validate`, `estimate`, `describe`, `advise`, `apply`,
+  `build`).  It answers in JSON, and only `build` needs gmsh.
+- **From plant data:** PCF networks, with cut, join and merge, a shipped
+  sample and `--insulation`.
+- **Validation:** the manufactured-solution study is accepted, and no
+  published result went through a hex that gmshToFoam inverted.
+- **Fittings:** lateral tees (`Tee(angle=…)`) and second-order export.
+- **Breaking:** Python 3.11 is the oldest supported.
+
 **Breaking:** Python 3.10 is no longer supported (end of life, October
 2026); 3.11 is the oldest (task 0113, decision 0039).  CI tests 3.11 and
 the newest 3.x.

@@ -1,0 +1,23 @@
+{
+ "format": "hexmesh.assembly",
+ "version": 1,
+ "inlet": {
+  "position": [0.0, 0.0, 0.0],
+  "normal": [1.0, 0.0, 0.0],
+  "up": [0.0, 0.0, 1.0],
+  "spec": {
+   "nang": 4, "nang_w": null, "nang_h": null, "mbmp": 1.0,
+   "rot": 0.5235987755982988,
+   "n_outer": 4,
+   "core": {"name": "fluid", "shape": {"type": "circle", "radius": 0.05, "nang": 4},
+            "layout": "oh", "nrad": 2, "mprg": 1.0},
+   "shells": []
+  }
+ },
+ "edges": [
+  {"source": 0, "fitting": {"type": "Straight", "length": 0.3, "n_layers": 2}},
+  {"source": 1, "fitting": {"type": "Bend", "radius": 0.15, "angle": 90, "n_layers": 4}}
+ ],
+ "names": {},
+ "tail": 1
+}

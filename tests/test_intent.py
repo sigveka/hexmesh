@@ -19,6 +19,7 @@ mesh (node count, element count, physical group names).
 """
 
 import json
+from pathlib import Path
 
 import gmsh
 import numpy as np
@@ -26,7 +27,7 @@ import pytest
 
 from hexmesh.core.shape import RectShape
 
-from hexmesh.assembly import Assembly, Bend, Straight
+from hexmesh.assembly import Assembly, AssemblyError, Bend, Straight
 from hexmesh.assembly.intent import FITTING_TYPES, fitting_from_dict
 from hexmesh.core.spec import PipeSpec
 
@@ -126,3 +127,38 @@ def test_registry_is_explicit():
 def test_wrong_format_rejected():
     with pytest.raises(ValueError, match="not a hexmesh.assembly"):
         Assembly.from_dict({"format": "other"})
+
+
+# --- description versions: the README's stability promise (task 0115) -------------
+
+V1 = Path(__file__).parent / "data" / "description_v1.json"
+
+
+def test_version_1_loads_as_its_version_2_equivalent():
+    """A version-1 description (``rot`` in radians; hand-written to that
+    format) builds what the same description at version 2 (degrees) builds."""
+    v1 = json.loads(V1.read_text(encoding="utf-8"))
+    assert v1["version"] == 1 and v1["inlet"]["spec"]["rot"] == pytest.approx(np.pi / 6)
+    v2 = json.loads(json.dumps(v1))
+    v2["version"], v2["inlet"]["spec"]["rot"] = 2, 30.0
+    old, new = Assembly.from_dict(v1), Assembly.from_dict(v2)
+    assert old.inlet.spec.rot == pytest.approx(30.0, abs=1e-12)    # migrated, not misread
+    a, b = old.to_dict(), new.to_dict()
+    assert a["version"] == b["version"] == 2
+    a["inlet"]["spec"]["rot"] = b["inlet"]["spec"]["rot"]          # radians round-off only
+    assert a == b
+    assert old.cell_count() == new.cell_count() == 288
+    for i, j in zip(old.interfaces, new.interfaces):
+        assert np.allclose(i.frame.position, j.frame.position, atol=1e-12)
+        assert np.allclose(i.frame.up, j.frame.up, atol=1e-12)
+
+
+@pytest.mark.parametrize("version", [99, 0, None, "2"])
+def test_an_unknown_version_fails_naming_it(version):
+    d = json.loads(V1.read_text(encoding="utf-8"))
+    d["version"] = version
+    with pytest.raises(AssemblyError) as e:
+        Assembly.from_dict(d)
+    assert e.value.code == "description_version_unsupported"
+    assert e.value.value == version and e.value.where == {"field": "version"}
+    assert repr(version) in str(e.value)

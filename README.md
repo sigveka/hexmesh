@@ -17,7 +17,7 @@
 ![Python ≥ 3.11](https://img.shields.io/badge/python-%E2%89%A5%203.11-3776ab)
 ![gmsh 4.12](https://img.shields.io/badge/gmsh-4.12-555)
 ![OpenFOAM v1912 · v2406](https://img.shields.io/badge/OpenFOAM-v1912%20%C2%B7%20v2406-2a6ebb)
-![version 0.4.0](https://img.shields.io/badge/version-0.4.0-888)
+![version 0.5.0](https://img.shields.io/badge/version-0.5.0-888)
 ![BSD 3-Clause](https://img.shields.io/badge/licence-BSD--3--Clause-2e7d32)
 
 **Structured all-hex meshes for pipe and duct networks, junctions included.**
@@ -259,6 +259,7 @@ More in [Why hexmesh?](docs/WHY.md).
 ## Install
 
 ```bash
+pip install "hexmesh @ git+https://github.com/sigveka/hexmesh@v0.5.0"   # this release
 pip install -e .              # from a checkout; brings gmsh, numpy, scipy
 pip install -e ".[dev]"       # + pytest, for the test suite
 pip install hexmesh           # once it is on PyPI (not yet)
@@ -276,6 +277,24 @@ them without it.
 | meshing | yes | yes | yes |
 | studies and validation, OpenFOAM in Docker | yes | yes | yes (Docker Desktop) |
 | studies and validation, native OpenFOAM | yes | — | WSL only |
+
+### Stability
+
+hexmesh is at 0.x.  The Python API and the commands' JSON may still
+change between minor versions.  Every breaking change is marked
+**Breaking** in the [CHANGELOG](CHANGELOG.md), with what to do.
+
+- **Saved descriptions** (`Assembly.save`, `to_dict`) carry a format
+  version.  An older one either loads, migrated on load (version 1's
+  `rot` in radians is converted to degrees), or fails with
+  `description_version_unsupported`, naming its version.  It is never
+  misread.
+- **Error codes are stable.**  A code may be added; removing or renaming
+  one is a breaking change.
+- **Meshes are reproducible.**  The same description, hexmesh version,
+  gmsh version and system give the same mesh, byte for byte; every
+  gallery example is checked.  A change that moves nodes is noted in
+  the CHANGELOG.
 
 ---
 

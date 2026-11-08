@@ -143,12 +143,21 @@ def test_a_planted_broken_link_and_anchor(tmp_path):
 
 # --- versions --------------------------------------------------------------------
 
-def test_citation_version_is_the_package_s():
-    citation = re.search(r"^version: *(\S+)", (ROOT / "CITATION.cff").read_text(
-        encoding="utf-8"), re.M).group(1).strip("'\"")
+def test_the_version_agrees_everywhere():
+    """pyproject.toml's version is ``__version__``, CITATION.cff's, the
+    README badge's and the newest CHANGELOG release's (task 0115)."""
+    import hexmesh
     with open(ROOT / "pyproject.toml", "rb") as f:
         package = tomllib.load(f)["project"]["version"]
-    assert citation == package, "bump CITATION.cff's version with pyproject.toml's"
+    citation = re.search(r"^version: *(\S+)", (ROOT / "CITATION.cff").read_text(
+        encoding="utf-8"), re.M).group(1).strip("'\"")
+    badge = re.search(r"badge/version-([^-]+)-", README.read_text(encoding="utf-8")).group(1)
+    released = re.search(r"^## (\d+\.\d+\.\d+) \(", (ROOT / "CHANGELOG.md").read_text(
+        encoding="utf-8"), re.M).group(1)
+    assert {"__version__": hexmesh.__version__, "CITATION.cff": citation, "badge": badge,
+            "CHANGELOG": released} == dict.fromkeys(
+        ["__version__", "CITATION.cff", "badge", "CHANGELOG"], package), \
+        "bump them all with pyproject.toml's version"
 
 
 # --- from plant data (task 0114) ----------------------------------------------
