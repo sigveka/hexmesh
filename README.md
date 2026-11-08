@@ -239,6 +239,7 @@ them without it.
 | [Gallery](docs/GALLERY.md) | every example with its mesh, quality numbers and the code; the validation cases |
 | [Why hexmesh?](docs/WHY.md) | the case for structured all-hex networks, and when not to use hexmesh |
 | [Design](DESIGN.md) | the rules every fitting follows: interfaces first, fittings as fills, conformal by construction |
+| [Contributing](CONTRIBUTING.md) | reporting a bug, asking for a feature, and how changes are made: decisions first |
 
 ---
 

@@ -2,7 +2,7 @@
 
 - **Status:** accepted
 - **Date:** 2026-11-02 (accepted 2026-11-02 by the user: "I agree with your recommendations, go ahead")
-- **Tasks:** 0092
+- **Tasks:** 0092; 0113 (amendment 2026-11-08, the Python floor)
 
 ## Context
 
@@ -113,3 +113,23 @@ Rules that follow:
     after the `\n` rule);
   - that Docker Desktop accepts `C:\…` host paths in `-v` with the
     container side mapped (`/work/0`).
+
+## Amendment: Python 3.11 is the oldest supported (2026-11-08; the user: "I also want to drop 3.10 python")
+
+**Context.**  Python 3.10 reached its end of life in October 2026.  The
+last two CI runs (42466812439, 42468603272) failed on
+`windows-latest, Python 3.10` in `actions/setup-python`, before any
+test ran; every other job passed.  **Assumed, not verified:** that the
+runner image no longer provides 3.10.  Task 0113 reads the log.
+
+**Decided:**
+1. `requires-python = ">=3.11"`.  CI's oldest version is 3.11, beside
+   the newest (`3.x`), on all three platforms.
+2. Code kept only for 3.10 may go (e.g. the `tomllib` workaround in
+   `tests/test_readme.py`).  No other behaviour changes.
+3. The docs and badges say 3.11; CHANGELOG states the drop under
+   *Unreleased*, as a breaking change for 3.10 users.
+4. **The rule for the future:** the oldest supported Python is the
+   oldest one still in its upstream support window.  When it reaches end
+   of life, it is dropped in the next release, by a task under this
+   decision (no new decision needed).
