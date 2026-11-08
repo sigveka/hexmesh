@@ -24,6 +24,7 @@ import io
 import json
 import re
 import sys
+import tomllib
 from collections import Counter
 from pathlib import Path
 
@@ -140,12 +141,11 @@ def test_a_planted_broken_link_and_anchor(tmp_path):
 # --- versions --------------------------------------------------------------------
 
 def test_citation_version_is_the_package_s():
-    def version(name, pattern):              # tomllib is Python 3.11+; we support 3.10
-        m = re.search(pattern, (ROOT / name).read_text(encoding="utf-8"), re.M)
-        return m.group(1).strip("'\"")
-    assert version("CITATION.cff", r"^version: *(\S+)") == \
-        version("pyproject.toml", r'^version *= *("[^"]+")'), \
-        "bump CITATION.cff's version with pyproject.toml's"
+    citation = re.search(r"^version: *(\S+)", (ROOT / "CITATION.cff").read_text(
+        encoding="utf-8"), re.M).group(1).strip("'\"")
+    with open(ROOT / "pyproject.toml", "rb") as f:
+        package = tomllib.load(f)["project"]["version"]
+    assert citation == package, "bump CITATION.cff's version with pyproject.toml's"
 
 
 # --- the agent primer (task 0110) ----------------------------------------------

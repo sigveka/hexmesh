@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+**Breaking:** Python 3.10 is no longer supported (end of life, October
+2026); 3.11 is the oldest (task 0113, decision 0039).  CI tests 3.11 and
+the newest 3.x.
+
 **Networks with a wye are faster to check** (task 0112).
 - `Wye.layout` keeps its last 32 layouts, keyed on the wye's, the
   frames' and the spec's values, and returns a copy of each.

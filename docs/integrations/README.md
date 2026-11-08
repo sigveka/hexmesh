@@ -11,7 +11,7 @@ files here, and the installed tool itself, are the source of truth.
 | gmsh (+ OpenCASCADE) | **Backend**: realises geometry and mesh | [gmsh.md](gmsh.md) | 4.12.1 / OCC 7.6.3 (apt) |
 | OpenFOAM | **Consumer**: reads hexmesh output | [openfoam.md](openfoam.md) | v1912 (Debian `openfoam` 1912.200626) |
 | PCF (Isogen piping component file) | **Input format**: plant piping data | [pcf.md](pcf.md) | Reference Guide 2016 (13.0), rev. 2018 |
-| Linux, macOS, Windows | **Platforms** the suite and the Docker runner run on (decision 0039) | [platforms.md](platforms.md) | GitHub Actions `*-latest`, Python 3.10 and 3.x |
+| Linux, macOS, Windows | **Platforms** the suite and the Docker runner run on (decision 0039) | [platforms.md](platforms.md) | GitHub Actions `*-latest`, Python 3.11 and 3.x |
 | Cubit | **none: abandoned** (decision 0007, option A rejected) | — | — |
 
 Roles:

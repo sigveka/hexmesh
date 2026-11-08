@@ -109,8 +109,19 @@ def _canonical(model) -> dict:
         "connections": sorted((c.a, c.b, c.origin) for c in model.connections),
         "cuts": sorted((c.a, c.b) for c in model.cuts),
         "networks": {n: sorted(v.parts) for n, v in model.networks.items()},
-        "log": [(e["op"], e["args"]) for e in model.log],
+        "log": [(e["op"], _timeless(e["args"])) for e in model.log],
     }
+
+
+def _timeless(x):
+    """*x* without any ``time`` key at any depth: an import's provenance
+    carries its read time, so a replay a second later differs there
+    (task 0113: a CI failure when the two reads straddled a second)."""
+    if isinstance(x, dict):
+        return {k: _timeless(v) for k, v in x.items() if k != "time"}
+    if isinstance(x, (list, tuple)):
+        return type(x)(_timeless(v) for v in x)
+    return x
 
 
 def _hexes(asm) -> int:

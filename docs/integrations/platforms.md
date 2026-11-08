@@ -5,8 +5,8 @@
 only.
 
 **Versions:** GitHub Actions `ubuntu-latest`, `macos-latest` and
-`windows-latest`, Python 3.10 and 3.x (`.github/workflows/tests.yml`,
-task 0092).
+`windows-latest`, Python 3.11 and 3.x (`.github/workflows/tests.yml`;
+task 0092, and task 0113 for 3.11).
 
 **Features used:** `pathlib`, `subprocess`, Docker Desktop's `-v`
 mounts (`hexmesh.study.openfoam.docker_argv`).
@@ -38,6 +38,28 @@ failed.  `.gitattributes` sets `* text=auto eol=lf`.
 
 ### gmsh on Windows: ASCII `.msh` is CRLF
 See [gmsh.md](gmsh.md).
+
+### CI: `setup-python` fails on a 504 from the Python download — *verified*
+Two `windows-latest, Python 3.10` jobs failed in `actions/setup-python@v5`
+before any test ran (runs 42466812439 and 42468603272, 2026-11-08; task
+0113).
+- 3.10 wasn't in the runner's tool cache, so the action downloaded
+  `python-3.10.11-win32-x64.zip` from `actions/python-versions`
+  releases.  It got `Unexpected HTTP response: 504` three times and gave
+  up.
+- **The version was available**, only the download timed out.  Every
+  other job of those runs, macOS and Linux at 3.10 included, set up
+  Python and passed.
+- A version that isn't cached depends on that download.  Rerunning the
+  job is the fix for a one-off 504.  Since task 0113, CI tests 3.11 and
+  3.x.
+
+### NumPy 2 is what CI installs; this machine has 1.26 — *verified*
+`repr` of a NumPy scalar is `0.0` on NumPy 1 but `np.float64(0.0)` on
+NumPy 2.  A test that wrote coordinates with `{x!r}` passed here and
+failed on every CI job (runs 42476909094 and 42478255352, 2026-11-08;
+fixed in task 0113).  Format `float(x)`, or `x.tolist()` values, in
+text that's parsed back.
 
 ## Open questions
 

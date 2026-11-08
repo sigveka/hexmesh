@@ -44,7 +44,7 @@ pip install -e ".[gallery]"       # + vtk, Pillow, jsonschema: docs/gallery/buil
 pip install hexmesh               # once it is on PyPI (not yet)
 ```
 
-Python ≥ 3.10.  Developed and tested with GMSH 4.12; a clean install
+Python ≥ 3.11.  Developed and tested with GMSH 4.12; a clean install
 from PyPI gets the current gmsh (4.15.2 on 2026-11-02), with which the
 examples mesh as predicted too.  An existing gmsh installation (e.g. from
 your system's package manager) is used as is.  `hexmesh.__version__`

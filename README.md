@@ -14,7 +14,7 @@
        '---------'
 ```
 
-![Python ≥ 3.10](https://img.shields.io/badge/python-%E2%89%A5%203.10-3776ab)
+![Python ≥ 3.11](https://img.shields.io/badge/python-%E2%89%A5%203.11-3776ab)
 ![gmsh 4.12](https://img.shields.io/badge/gmsh-4.12-555)
 ![OpenFOAM v1912 · v2406](https://img.shields.io/badge/OpenFOAM-v1912%20%C2%B7%20v2406-2a6ebb)
 ![version 0.4.0](https://img.shields.io/badge/version-0.4.0-888)
@@ -263,7 +263,7 @@ pip install -e ".[dev]"       # + pytest, for the test suite
 pip install hexmesh           # once it is on PyPI (not yet)
 ```
 
-Python ≥ 3.10, gmsh ≥ 4.12.  An existing gmsh installation (e.g. from
+Python ≥ 3.11, gmsh ≥ 4.12.  An existing gmsh installation (e.g. from
 your system's package manager) is used as is.  Extras: `[bathymetry]`
 (GeoTIFF / NetCDF surfaces and shapefile routes), `[gallery]` (the
 gallery images), `[study]` (`psutil`, so studies can see other runs on

@@ -240,7 +240,8 @@ def _msh(path: Path, hexes) -> Path:
     """An MSH 2.2 ASCII file of *hexes*, as write_openfoam writes it: a
     boundary quad first, element tags, node ids from 1."""
     pts = np.asarray(hexes, float).reshape(-1, 3)
-    nodes = "".join(f"{i + 1} {x!r} {y!r} {z!r}\n" for i, (x, y, z) in enumerate(pts))
+    nodes = "".join(f"{i + 1} {float(x)!r} {float(y)!r} {float(z)!r}\n"   # NumPy 2's repr
+                    for i, (x, y, z) in enumerate(pts.tolist()))           # is np.float64(…)
     els = ["1 3 2 7 1 1 2 3 4"] + [f"{h + 2} 5 2 99 5 " + " ".join(str(8 * h + j + 1)
                                                                   for j in range(8))
                                     for h in range(len(hexes))]

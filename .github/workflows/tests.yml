@@ -16,7 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python: ["3.10", "3.x"]           # the oldest supported and the newest
+        python: ["3.11", "3.x"]           # the oldest supported and the newest (decision 0039)
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
