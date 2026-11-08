@@ -89,9 +89,10 @@ A session that builds the network at the top of this page, and then
 refines it:
 
 > **You:** Read `hexmesh manifest`. Build me a water header: 200 mm bore,
-> 6 mm steel, 25 mm insulation. A 0.4 m straight, a tee to a 120 mm
-> branch that drops its insulation right after the tee, 0.4 m more, then
-> a 60° wye into two 0.3 m legs.
+> 6 mm steel, 25 mm insulation. A 0.4 m straight; a tee to a 120 mm
+> branch, 0.3 m long, then 0.4 m more that goes bare after its first
+> cell; 0.4 m more header; then a 60° wye with 0.15 m of run and two
+> 0.4 m legs, each followed by 0.3 m.
 >
 > **Agent:** Writes `header.json` (to `hexmesh schema`), and runs
 > `hexmesh validate` (no errors, no warnings) and `hexmesh estimate`:

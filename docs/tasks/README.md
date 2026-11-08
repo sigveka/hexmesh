@@ -109,6 +109,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0107](0107-light-commands-without-gmsh.md) | The light commands load neither gmsh nor scipy | done | 0040 |
 | [0110](0110-readme-agent-primer-checked.md) | The README's agent primer: its numbers checked | done (2 questions for design) | 0040 |
 | [0111](0111-hints-equipment-study.md) | Hints for equipment and study errors; the layout errors reviewed | ready (after 0110) | 0040 |
+| [0112](0112-wye-layout-cache.md) | Cache the wye's layout, so the light commands stay light | ready (after 0108) | 0040 |
 
 ### Validation
 
@@ -149,7 +150,8 @@ or a long run.
    Then, before the launch post: **0110** (the primer's numbers
    checked), then **0108** (the inversion audit; serial, smallest levels
    first).  After it: **0109** (MMS wall
-   slope), **0111** (equipment and study hints).
+   slope), **0111** (equipment and study hints), **0112** (the wye
+   layout cache).
 1. **The H section** (decision 0036; 0082, 0083, 0084 and 0090 done):
    - **0085 → 0086 → 0087**, strictly in sequence.  0085 (in progress)
      builds the capped switch (decision 0036 amendment, 2026-11-04).

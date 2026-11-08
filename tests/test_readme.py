@@ -290,9 +290,10 @@ def test_a_planted_wrong_number_is_named(got):
 def test_the_primer_describes_its_network(got):
     """Each dimension the prose gives, against the example (in metres)."""
     text = primer(README.read_text(encoding="utf-8"))
-    for phrase in ("200 mm bore, 6 mm steel, 25 mm insulation", "A 0.4 m straight",
-                   "a tee to a 120 mm branch that drops its insulation right after the tee",
-                   "0.4 m more", "a 60° wye into two 0.3 m legs"):
+    for phrase in ("200 mm bore, 6 mm steel, 25 mm insulation", "A 0.4 m straight;",
+                   "a tee to a 120 mm branch, 0.3 m long, then 0.4 m more that goes bare "
+                   "after its first cell", "0.4 m more header",
+                   "a 60° wye with 0.15 m of run and two 0.4 m legs, each followed by 0.3 m"):
         assert phrase in text, phrase
     asm = got["asm"]
     spec = asm.edges[0].ports[0].spec.to_dict()
@@ -304,7 +305,8 @@ def test_the_primer_describes_its_network(got):
                                      "Straight", "Straight"]
     straight0, tee, tap, header, wye, left, right = (f for _, f in kinds)
     assert straight0.length == 0.4 and header.length == 0.4
-    assert tee.branch_radius * 2 == 0.12
+    assert tee.branch_radius * 2 == 0.12 and tee.branch_length == 0.3 and tap.length == 0.4
     (at, bare), = tap.stack_changes
     assert at == 1 and bare.layer_names == ["fluid", "steel"]
-    assert wye.angle == 60 and left.length == right.length == 0.3
+    assert wye.angle == 60 and wye.run_length == 0.15 and wye.branch_length == 0.4
+    assert left.length == right.length == 0.3

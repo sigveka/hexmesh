@@ -95,6 +95,15 @@ design's.
    vectorise the march, or both.  The vectorised march could move wall
    nodes by rounding, so it touches the meshes; a cache doesn't.  A task?
 
+**Design answers (2026-11-08, the user: "yes"):**
+1. The prose changes to the example: it now gives the branch (0.3 m, then
+   0.4 m that goes bare after its first cell) and the wye (0.15 m of run,
+   0.4 m legs, each followed by 0.3 m).  The dimension test asserts the
+   new phrases and the tee's, tap's and wye's lengths (design, with the
+   README edit).
+2. The cache: task 0112, after the launch.  Vectorising waits for its
+   measurement.
+
 ## Outcome
 
 - **Files:** `tests/test_readme.py` (4 tests: the numbers, the
