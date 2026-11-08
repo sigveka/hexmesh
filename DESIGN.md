@@ -3,7 +3,7 @@
 This document states the design philosophy of hexmesh: what the tool is,
 the rules every part of it follows, and how pipe fittings are assembled
 into a network.  Where current code deviates from these rules, the
-deviation is listed in [Current deviations](#current-deviations) and is
+deviation is listed in [Current deviations](#9-current-deviations) and is
 considered technical debt, not precedent.
 
 The mathematics behind individual fittings (frames, bend and miter
