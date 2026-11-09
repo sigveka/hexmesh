@@ -117,6 +117,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0117](0117-written-junction-nodes-experiment.md) | Written nodes (route B3): one hex block placed by hexmesh, between two transfinite straights | ready (after 0118, only if the cube misses) | 0043 |
 | [0118](0118-junction-cube-probe.md) | The oriented junction cube, measured: equal tees and laterals on 6-faced blocks | ready | 0043 |
 | [0119](0119-volunteer-tool-and-helical-card.md) | Volunteer runs: the tool, the runners, and the helical pipe's card | ready | 0044, 0012 |
+| [0121](0121-idealised-aorta-example.md) | Example: an idealised aorta (arch, branches, taper and the iliac bifurcation) | ready (after 0118 settles the wye route) | 0018, 0043 |
 
 ### Validation
 
