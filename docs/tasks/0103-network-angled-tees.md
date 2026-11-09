@@ -1,6 +1,6 @@
 # 0103 — The network builder takes angled tees
 
-- **Status:** done (3 questions for design)
+- **Status:** done
 - **Decision:** [0031 — General branch junctions](../decisions/0031-general-branch-junctions.md), amendment 2026-11-07, item 4
 - **Depends on:** 0060 (`Tee(angle=…)`).
 
@@ -127,6 +127,20 @@ laterals) can be built.
    so the run flows the way each branch leans.  It isn't done: the root
    is chosen once for the network, and two laterals leaning opposite ways
    have no such root.  A follow-up if plant files show it.
+
+**Design answers (2026-11-09, the user: "i agree"):**
+1. **Keep `tee_branch_angled`, with the narrowed meaning;** no new code.
+   The cases it no longer covers now build, so narrowing it breaks
+   nothing.  A separate upstream code would leave this one never raised
+   but unremovable (0.5.0's *Stability*: removing a code is breaking).
+   The CHANGELOG line stands.
+2. **Keep the 1° snap.**  The tilted-branch-pipe case was rejected
+   before 0103 too, so nothing regressed; dropping the snap would change
+   existing nearly square assemblies.  Revisit only if real plant files
+   show near-square tilts (e.g. millimetre rounding on short branches);
+   a change in 1.x is allowed with a CHANGELOG note.
+3. **Upstream leans built automatically:** not before 1.0.  A follow-up
+   only if plant files show it; the `inlet=` hint covers it.
 
 ## Outcome
 
