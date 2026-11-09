@@ -166,7 +166,8 @@
   year    = {2024},
   doi     = {10.1007/s00366-023-01834-7},
   url     = {https://opus.bibliothek.uni-augsburg.de/opus4/frontdoor/index/index/year/2023/docId/105077},
-  note    = {CC BY 4.0}
+  note    = {Open access, CC BY 4.0.  Junction "structured cube" of seven hexahedra (Sect. 3.1, Fig. 8); task 0118},
+  file    = {papers/bosnjak_and_pepe_etal_2024.pdf}
 }
 
 @inproceedings{verma_and_fischer_etal_2005,
@@ -779,4 +780,70 @@
   edition     = {1.0},
   year        = {2000},
   note        = {Not downloaded.  Grid stretching: keep the growth between neighbouring cells small (about 1.2 or less); the advisor's MAX_WALL_GROWTH (task 0098)}
+}
+
+% ---------------------------------------------------------------------------
+% Thermal mixing in T-junctions (validation candidates, LES resolution)
+% ---------------------------------------------------------------------------
+
+@techreport{oecdnea_2009,
+  author      = {{OECD Nuclear Energy Agency}},
+  title       = {{OECD/NEA}--{V}attenfall {T}-Junction Benchmark Specifications (Final Version, July 2009)},
+  institution = {OECD/NEA, Committee on the Safety of Nuclear Installations},
+  year        = {2009},
+  url         = {https://www.oecd-nea.org/nsd/csni/cfd/benchmarks/Specifications\%20of\%20T-Junction\%20Benchmark\%20Exercise.pdf},
+  note        = {Geometry (main D2 = 140 mm, branch D1 = 100 mm on top), inlets (cold 19 C, 9.0 l/s; hot 36 C, 6.0 l/s), thermocouple table A5, and the upstream LDV profiles as digital data (inlet boundary conditions).  Downstream data released after the blind phase (2010)},
+  file        = {papers/oecdnea_2009.pdf}
+}
+
+@techreport{smith_and_mahaffy_etal_2011,
+  author      = {Smith, B. L. and Mahaffy, J. H. and Angele, K. and Westin, J.},
+  title       = {Report of the {OECD/NEA}--{V}attenfall {T}-Junction Benchmark Exercise},
+  institution = {OECD Nuclear Energy Agency},
+  type        = {CSNI Report},
+  number      = {NEA/CSNI/R(2011)5},
+  year        = {2011},
+  url         = {https://oecd-nea.org/jcms/pl_19022},
+  note        = {The blind benchmark's synthesis: participants' models and cell counts (Table 7), comparisons with the downstream LDV and thermocouple data.  (c) OECD: own use and excerpts with acknowledgement},
+  file        = {papers/smith_and_mahaffy_etal_2011.pdf}
+}
+
+@article{kuczaj_and_komen_2010,
+  author  = {Kuczaj, A. K. and Komen, E. M. J.},
+  title   = {An Assessment of Large-Eddy Simulation Toward Thermal Fatigue Prediction},
+  journal = {Nuclear Technology},
+  volume  = {170},
+  number  = {1},
+  pages   = {2--15},
+  year    = {2010},
+  doi     = {10.13182/NT10-A9441},
+  note    = {Not downloaded (abstract only).  LES of T-junction mixing: mean cell size about one third of the Taylor microscale gives results close to much finer meshes}
+}
+
+@article{angele_and_howard_etal_2024,
+  author  = {Angele, Kristian and Howard, Richard and Veber, Pascal and Braillard, Olivier and Manera, Annalisa and Petrov, Victor},
+  title   = {An {NEA/OECD} benchmark-experiment for the validation of {CFD} for mixing and thermal fatigue in {T}-junction dead leg flows},
+  journal = {Nuclear Engineering and Design},
+  volume  = {417},
+  pages   = {112813},
+  year    = {2024},
+  doi     = {10.1016/j.nucengdes.2023.112813},
+  note    = {Open access, CC BY 4.0.  Equal-diameter tee (D = 41.6 mm, 9.5 mm steel wall), temperatures in the fluid and through the wall; test 49 is the benchmark.  Data on request},
+  file    = {papers/angele_and_howard_etal_2024.pdf}
+}
+
+% ---------------------------------------------------------------------------
+% Vascular geometry (illustrative examples)
+% ---------------------------------------------------------------------------
+
+@article{radl_and_jin_etal_2022,
+  author  = {Radl, Lukas and Jin, Yuan and Pepe, Antonio and Li, Jianning and Gsaxner, Christina and Zhao, Fen-hua and Egger, Jan},
+  title   = {{AVT}: Multicenter aortic vessel tree {CTA} dataset collection with ground truth segmentation masks},
+  journal = {Data in Brief},
+  volume  = {40},
+  pages   = {107801},
+  year    = {2022},
+  doi     = {10.1016/j.dib.2022.107801},
+  note    = {Open access article.  56 CTA scans with aorta and branch masks (figshare 10.6084/m9.figshare.14806362); the data's licence isn't stated on figshare and builds on other collections.  Not used: hexmesh's aorta is idealised},
+  file    = {papers/radl_and_jin_etal_2022.pdf}
 }
