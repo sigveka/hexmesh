@@ -4,7 +4,7 @@
   decision 0042's critical path).  The layout (A, B or C) is chosen by an
   amendment after task 0116.
 - **Date:** 2026-11-08
-- **Tasks:** 0116 (the measurement)
+- **Tasks:** 0116 (the measurement); 0117 (the B3 experiment, amendment 2026-11-09)
 
 ## Context
 
@@ -168,3 +168,79 @@ internally (users never choose a layout, decision 0031).
     unpartitioned neighbour (B1);
   - that the gates are reachable at all for an equal tee (Marcinnó's
     0.49 is for a symmetric bifurcation).
+
+## Amendment: the route after task 0116 (2026-11-09; the user: "yes")
+
+**Measured** (task 0116; `validation/tools/wye_redesign.json`), at
+`nang` 8, single layer and with one shell (0.1 R):
+
+| case | inverted | min SJ, meshed | crease chord, mitre / crotch (% R) | non-orth., meshed |
+|---|---|---|---|---|
+| control (today's 60° wye) | 0 | 0.156 | 2.9 / 0.85 | 77.8° |
+| A1 equal tee (station moved to 1.1 R) | 0; 2 with the shell | 0.058; 0 with the shell | 3.9 / 1.3 | 79.4° |
+| A2 equal lateral (0°/45°) | 28; 32 with the shell | −0.207 | 6.7 / 1.35 | 88.7° |
+| A3 unequal (±30°, R/√2) | 0 | 0.133; 0.114 with the shell | 4.8 / 0.68 | 79.4° |
+
+- **A misses the gates in every case, the control included** (SJ 0.3,
+  chord 1 % R).  The equal tee doesn't build at today's station rule,
+  and misses the 0.1 floor at a moved one.  The equal lateral folds:
+  the hub's back face stays square to the inlet while its front faces
+  follow the tilted daughters.  The failures are in the hub and the
+  crotch ring, the part A keeps.
+- **B2 is closed:** a 7-face transfinite volume fails at `generate(3)`
+  with or without `setCompound`, on gmsh 4.12.1 and 4.15.2
+  (`docs/integrations/gmsh.md`, reproducer in `evidence/`).
+- **B1 is closed** without a P2 or §7 change: an uncut neighbour's face
+  can't share entities with a cut port, and a switch block to it would
+  have 7 faces.  Only a coherence step (`removeDuplicateNodes`) makes
+  them conformal, which P2 forbids.
+- **B3** (hexmesh writes the junction's nodes) is scoped, not built.
+  P2 holds if the junction's port-face nodes are read from the ports'
+  own transfinite meshes and never recomputed.
+- **C** wasn't measured.  It would avoid A1's flat turn but not A2's
+  sheared hub.
+
+**Decided:**
+1. **A is rejected,** by this decision's rule: it fails the equal tee,
+   and it misses the gates on the control too.  A reworked hub (back
+   face along the daughters' bisector, 0116's follow-up) isn't pursued:
+   it would keep the crotch ring and the mitre chord.
+2. **B1 and B2 are rejected** (above).
+3. **B3 is the provisional route,** subject to one feasibility
+   experiment with gates fixed now (task 0117):
+   - **conformal by construction:** the written block's port-face nodes
+     are the neighbours' own node tags; no `removeDuplicateNodes`, no
+     node created twice;
+   - **OpenFOAM:** `gmshToFoam` then `checkMesh` (v2406) pass, with no
+     failed check, one connected region, and the physical groups as
+     patches;
+   - **no inverted cells,** by `would_invert` and the scaled Jacobian;
+   - **reproducible:** the `.msh` byte-identical on a rerun;
+   - **on gmsh 4.12 and 4.15.**
+4. **If the experiment passes,** B3 is taken.  Its realisation-path
+   consequences are decided by amendments before any implementation
+   task: decision 0007 (option C, native realisation, scoped to
+   junctions), DESIGN §5 (junction ports meshed first) and §6 (the fill
+   primitive), and second order (decision 0034, task 0076).
+5. **If it fails,** C, as this decision's rule says: an equal-tee
+   layout for 0.6, with equal laterals and unequal radii reconsidered
+   after it.
+
+**Consequences:**
+- **Milestone 0.6** grows: B3 is the largest item on decision 0042's
+  path.  No estimate is made before the experiment.
+- **Today's `Wye`** is unchanged until the route is built; its
+  warning-only tiers (task 0104) stand.
+- **`_wye_probe.py`** stays private until the route is chosen, then is
+  removed or folded in.
+- **Task 0104's follow-up** (port-face edges declared as lines) is held:
+  under B3 hexmesh places those nodes itself.
+- **Future expansions:** 0018 (vascular) is helped most by B3 (the
+  published topology generalises to n-furcations); 0035 and 0021 none;
+  0040 (agents): none until the API changes.
+
+**Verified vs. assumed:** verified, A's four cases and B1/B2 (task
+0116).  Assumed: that gmsh's discrete entities can be bounded by
+meshed transfinite surfaces and written with them (task 0117 checks);
+that B3's node placement can reach Marcinnó's quality (not measured
+here).

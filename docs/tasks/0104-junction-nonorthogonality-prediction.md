@@ -208,3 +208,6 @@ follows from the measurements, by decision.
     the port face in `cells()`.  Then re-measure the optimism.
 - **Full suite after step 5:** 3774 passed, 15 skipped, no failures.
   Every example's `validate()` result is unchanged from step 4.
+
+**Design (2026-11-09):** the port-face-edge follow-up is held (decision
+0043's amendment): under route B3 hexmesh places those nodes itself.

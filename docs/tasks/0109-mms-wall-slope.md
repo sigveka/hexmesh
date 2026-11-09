@@ -150,3 +150,8 @@ library code changed.
 - Users solving on a sloped wall with a fixed value see first order near
   it.  Whether the user guide should say so, and what to recommend, is
   design's call.
+
+**Design (2026-11-09, the user: "yes"):** moved to RESEARCH §7.14; the
+GUIDE's OpenFOAM section now says fixed-value walls are first order next
+to non-orthogonal wall faces.  The control on the transition and the tee
+is held.

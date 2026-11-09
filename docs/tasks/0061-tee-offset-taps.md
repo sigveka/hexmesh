@@ -1,6 +1,6 @@
 # 0061 — General branches, stage 2: `Tee(offset=…)`, tangential and offset taps
 
-- **Status:** done (questions for design: confirm the margin)
+- **Status:** done
 - **Decision:** [0031 — General branch junctions](../decisions/0031-general-branch-junctions.md) (stage 2); PCF mapping from [0023](../decisions/0023-pcf-branched-networks-insulation-equipment.md)
 - **Depends on:** 0060.
 
@@ -104,6 +104,12 @@ the PCF reader today.
    positions).  Is rejection the intended reading of step 4's "or"?
    Building them needs h = R − r at the wall: a separate layout, outside
    this task.
+
+**Design answers (2026-11-09, the user: "yes"):** both confirmed, and
+recorded in decision 0031's amendment of 2026-11-09.
+1. |h| ≤ r (`TEE_MAX_OFFSET_RATIO` 1.0) with |h| + r < R stands.
+2. Rejection is the intended reading: no silent move off the file's
+   point.  A tangential layout is asked about if plant files show it.
 
 ## Outcome
 

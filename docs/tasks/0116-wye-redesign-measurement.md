@@ -1,6 +1,6 @@
 # 0116 — The wye redesign, measured: can the hub take asymmetric and unequal daughters, and can the published topology be built?
 
-- **Status:** done (the choice of route is design's, by amendment to 0043)
+- **Status:** done (route chosen: decision 0043, amendment 2026-11-09)
 - **Decision:** [0043 — The wye-layout redesign](../decisions/0043-wye-layout-redesign.md) (measure first); [0042 — The road to 1.0](../decisions/0042-road-to-1-0.md), criterion 2
 - **Depends on:** 0112 (done).  A measurement: `Wye`'s public behaviour
   doesn't change in this task.
@@ -261,3 +261,9 @@ new private module.
 **Full suite:** 3775 passed, 15 skipped, no failures.  The one extra
 test over 0104's run is a per-module architecture check picking up
 `_wye_probe.py`.  No mesh was kept; the 4.15.2 scratch venv is deleted.
+
+**Design (2026-11-09, the user: "yes"):** decision 0043's amendment
+rejects A, B1 and B2 and takes B3 provisionally, subject to task 0117's
+experiment; C if it fails.  The follow-ups: the bisector hub isn't
+pursued; the discrete-entity experiment is task 0117; the tapered
+projector waits on the route.

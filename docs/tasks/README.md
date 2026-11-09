@@ -69,8 +69,8 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0058](0058-duct-tee-round-tap.md) | Duct tee: round tap on a rectangular duct | superseded by 0070 | 0027 |
 | [0059](0059-branched-hvac-example.md) | Example: a branched HVAC supply | done | 0027 |
 | [0060](0060-tee-angle-laterals.md) | General branches, stage 1: `Tee(angle=…)`, laterals | done | 0031 |
-| [0061](0061-tee-offset-taps.md) | General branches, stage 2: `Tee(offset=…)`, tangential and offset taps | done (questions for design) | 0031, 0023 |
-| [0062](0062-straight-twist.md) | General branches, stage 3: `Straight(twist=…)`, and `toward=` at any roll | done (questions for design) | 0031, 0029 |
+| [0061](0061-tee-offset-taps.md) | General branches, stage 2: `Tee(offset=…)`, tangential and offset taps | done | 0031, 0023 |
+| [0062](0062-straight-twist.md) | General branches, stage 3: `Straight(twist=…)`, and `toward=` at any roll | done | 0031, 0029 |
 | [0063](0063-duct-shoe-taps.md) | General branches, stage 4: shoe taps on ducts | ready (after 0057, 0060; round or narrow shoes after 0033) | 0031, 0027 |
 | [0064](0064-pcf-reader-robustness.md) | PCF reader robustness: annotations, unknown inline components, several networks | done | 0023 |
 | [0065](0065-network-model-and-builder.md) | Network interchange 1a: the network model, and the builder out of `pcf.py` | done | 0032 |
@@ -114,6 +114,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0114](0114-pcf-sample-and-cli-insulation.md) | A committed PCF sample, and insulation from the `hexmesh` commands | done | 0032, 0040 |
 | [0115](0115-release-0-5-0.md) | Release 0.5.0: the launch version, its install line and a stability statement | done | — |
 | [0116](0116-wye-redesign-measurement.md) | The wye redesign, measured: the hub generalised, and the published topology's feasibility | done | 0043, 0042 |
+| [0117](0117-written-junction-nodes-experiment.md) | Written nodes (route B3): one hex block placed by hexmesh, between two transfinite straights | ready | 0043 |
 
 ### Validation
 
@@ -157,7 +158,9 @@ or a long run.
    (the user, 2026-11-08): **0103** (angled tees in networks) → **0104**
    (junction non-orthogonality) → **0116** (the wye redesign measured;
    decision 0043) → **0111** (equipment and study hints) → **0109** (MMS
-   wall slope).
+   wall slope); all done, with 0061 and 0062.  Next (2026-11-09):
+   **0117** (route B3's experiment; decision 0043's amendment), first in
+   0.6's remaining junction work.
 1. **The H section** (decision 0036; 0082, 0083, 0084 and 0090 done):
    - **0085 → 0086 → 0087**, strictly in sequence.  0085 (in progress)
      builds the capped switch (decision 0036 amendment, 2026-11-04).

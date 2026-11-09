@@ -221,3 +221,35 @@ DESIGN §7.1, replacing the prototype numbers.
 **Verified vs. assumed:** this record assumed the topology valid "for α
 down to about 30°".  Measured: valid down to 35° (at r/R ≥ 0.875), not
 at 30°.
+
+## Amendment: offsets and twist as measured (2026-11-09; the user: "yes")
+
+**Measured** in task 0061 (stage 2, `Tee(offset=…)`) and task 0062
+(stage 3, `Straight(twist=…)`).
+
+**Decided:**
+1. **The offset limit is |h| ≤ r (`TEE_MAX_OFFSET_RATIO` = 1.0), with
+   |h| + r < R.**  The first failures are at h/r 1.38; none with h ≤ r,
+   even at |h| + r = 0.98 R.  Geometric reading: the branch's footprint
+   still covers the main's top line.
+2. **Tangential set-ons (TTSO/TTRF) are rejected,** naming the range,
+   not clamped: clamping would move the branch off the file's point
+   without saying so.  Building them (h = R − r) needs a layout of its
+   own, asked about if plant files show it.
+3. **The twist limit has two parts:**
+   - the **roll per layer** (face warp): `STRAIGHT_TWIST_WARN` 15° and
+     `STRAIGHT_TWIST_MAX` 30°, with an `n_layers` hint.  OpenFOAM v2406
+     `checkMesh -allGeometry` passes every case to 30°; 15° is a
+     judgement (face flatness ≥ 0.99), not a measured harm;
+   - the **wall shear** (twist per length; layers don't change it),
+     through the existing predicted SJ and non-orthogonality tiers.
+4. **An explicit twist is the user's.**  `toward=` takes the remaining
+   roll from the preceding straight only when it is untwisted; a
+   twisted one keeps its twist, and the junction is rejected, naming the
+   twist it needs.
+5. **DESIGN §6** gains the twisted straight's exactness rule (below).
+
+**Applied** (2026-11-09): DESIGN §6, after "use one axial layer per
+slab": "A twisted `Straight` places a station at every axial layer,
+rolled linearly with axial distance; every node lies on an exact
+station face, so its walls are exact without projection."

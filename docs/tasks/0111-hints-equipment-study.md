@@ -167,3 +167,8 @@ start (edfb74e).
 **Proposed follow-ups.**
 - `block_layout_invalid`: retire it, or have the fittings' wrap use it with a fitting-specific hint for `block_inverted`.
 - `study/sampling.py` (0/7) is the last unreviewed module that 0106 named.
+
+**Design (2026-11-09, the user: "yes"):** `block_layout_invalid` stays
+registered (removing a code is breaking, 0.5.0's *Stability*); raising
+it with a fitting-specific hint is fine when next in that code.
+`study/sampling.py` is reviewed in 0.8's API review (decision 0042).

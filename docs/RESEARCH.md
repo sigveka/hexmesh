@@ -1413,11 +1413,35 @@ The fittings below the straight's order, and why (the design checks):
 - **The other four share a wall-face non-orthogonality that refinement
   doesn't shrink**, and OpenFOAM's `fixedValue` boundary snGrad has no
   non-orthogonal correction.  `skewCorrected` interpolation changes
-  nothing there.  **Taken as a scheme property** (design, 2026-11-08):
-  expect a first-order local error next to sloped walls with
-  `fixedValue` in OpenFOAM, at any refinement.  Not yet verified as the
-  only cause: task 0109 varies the reducer's wall slope to see whether
-  the order tracks the angle.
+  nothing there.  **A scheme property, verified for the reducer** (task
+  0109, 2026-11-09): expect a first-order local error next to sloped
+  walls with `fixedValue` in OpenFOAM, at any refinement.  The reducer's
+  slope series:
+
+  | s0 | max slope | wall non-orth. median, k = 4 | order k 2→4 | control (exact wall flux) |
+  |---|---|---|---|---|
+  | 0.05 | 4.5° | 3.1° | 1.27 | 1.80 |
+  | 0.1 | 8.9° | 5.8° | 1.17 | 1.85 |
+  | 0.2 | 17.4° | 10.9° | 0.99 | 1.68 |
+  | 0.4 (0074's) | 32.1° | 15.3° | 0.95 | 1.84 |
+
+  - The order falls monotonically with the wall angle, and even 3°
+    costs 0.5 against the control.  Any nonzero angle leaves a
+    first-order term whose coefficient grows with tan θ, so these orders
+    are a blend.
+  - The control (a Neumann wall with the exact flux, same meshes) holds
+    1.68–1.85 with no trend: nothing else in the near-wall grid limits
+    the order.  Its absolute errors are 1.7–5.6× larger (it fixes the
+    flux, not the level), so it is a check, not a remedy.
+  - Off the wall the order falls with the angle too (1.20 → 0.98).
+  - **Cause, in v2406's source:** the non-orthogonal correction vectors
+    are zero on non-coupled patches and the patch delta is normal, so a
+    `fixedValue` wall's snGrad ignores the cell centre's tangential
+    offset (`docs/integrations/openfoam.md`).
+  - The wall angle isn't the slope: at the throat thin sheared cells
+    push it above; elsewhere it is below.
+  - Not run: the same control on the transition and the tee (the tee
+    also has interior kinks).  Held; no change to the reducer's grid.
 - **The duct taps** (0.78, k 1→2): their aspect doesn't grow with k
   (edge ratio max 13.1 → 12.3), so it isn't a refinement defect.
 - **The wyes** (0.34–0.51): `n_split` isn't refined with k, so the split

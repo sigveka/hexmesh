@@ -268,7 +268,10 @@ A filled surface may carry interior mesh nodes only where it is the
 exact surface.  A slab with several axial layers therefore needs exact
 side surfaces: straight slabs use ruled surfaces (a ruled surface
 between two identical parallel arcs is the cylinder).  Where no exact
-surface is available, use one axial layer per slab.  The conformance
+surface is available, use one axial layer per slab.  A twisted `Straight`
+places a station at every axial layer, rolled linearly with axial
+distance; every node lies on an exact station face, so its walls are
+exact without projection (decision 0031, amendment 2026-11-09).  The conformance
 kit checks every wall and interface node against its analytic surface.
 Where a face's exact surface can't be built as a conformal OCC surface
 (junctions whose wall crosses several smooth pieces, or a crease), the

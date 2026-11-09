@@ -1,6 +1,6 @@
 # 0062 — General branches, stage 3: `Straight(twist=…)`, and `toward=` at any roll
 
-- **Status:** done (questions for design)
+- **Status:** done
 - **Decision:** [0031 — General branch junctions](../decisions/0031-general-branch-junctions.md) (stage 3); walls by [0029](../decisions/0029-wall-exactness-by-node-projection.md)
 - **Depends on:** 0051's node projection; 0040's `toward=` / roll
   resolution.
@@ -123,6 +123,12 @@ laws.
    junction is rejected, naming the twist needed.  Adding to an existing
    twist would also work.  Is "explicit twist is the user's" the
    intended reading of step 4?
+
+**Design answers (2026-11-09, the user: "yes"):** all three confirmed,
+in decision 0031's amendment of 2026-11-09.
+1. The two-part limit stands as implemented.
+2. The wording is applied to DESIGN §6 through that amendment.
+3. Yes: an explicit twist is the user's.
 
 ## Outcome
 

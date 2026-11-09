@@ -427,6 +427,17 @@ and solid conduction work on both.  `hexmesh.study.openfoam` can run
 OpenFOAM in a container (`set_runner("docker:opencfd/openfoam-default:2406")`
 or `HEXMESH_OPENFOAM`).
 
+**Fixed-value walls that aren't square to the grid are first order next
+to the wall.**  OpenFOAM's `fixedValue` boundary gradient has no
+non-orthogonal correction, so wherever the wall faces are non-orthogonal
+(reducers, transitions, junctions; O-H corners) the error next to the
+wall converges at about first order, at any refinement.  Measured on a
+reducer: an order of 1.7–1.8 with an exact wall flux, but 1.3 down to
+0.95 with a fixed value, falling as the wall slopes more
+([RESEARCH §7.14](RESEARCH.md#714-manufactured-solutions-what-limits-the-order-at-fittings-task-0074)).
+Gentler slopes help; refinement alone lowers the error but not its
+order.
+
 ---
 
 ## Inlet and outlet runs
