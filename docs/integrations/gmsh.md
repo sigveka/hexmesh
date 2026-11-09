@@ -163,6 +163,33 @@ Consequence: a mesh and its `refined(k)` agree at the coarse nodes only to
   - Reproducer: `evidence/gmsh_compound_transfinite.py` (variants `six`,
     `plain`, `compound`, `recombine`).
 
+### Hand-written hexes between OCC volumes (gmsh 4.12.1 and 4.15.2, task 0117, 2026-11-10) — *verified*
+
+A discrete volume (`addDiscreteEntity(3, …)`) filled with hand-written
+hexes (`addNodes`, `addElementsByType`) can sit between transfinite OCC
+volumes, sharing their port surfaces' nodes by tag.  Tutorial x2 says
+"only built-in CAD entities can be hybrid … OpenCASCADE does not support
+this feature"; that didn't bite here:
+- `addDiscreteEntity(3, -1, [OCC surface tags…, discrete wall])` is
+  accepted, and `getBoundary` returns those surfaces.  Declaring no
+  boundary works the same.
+- The hexes reference the OCC surfaces' node tags (read with `getNodes`
+  after meshing) and survive `write` (MSH 2.2 and 4.1), a re-read,
+  `gmshToFoam` and `checkMesh` (v2406): one region, conformal, no
+  `removeDuplicateNodes`.  A discrete wall surface carrying quads joins
+  the straights' wall group as one connected OpenFOAM patch.
+- The `.msh` is byte-identical on a rerun, and between 4.12.1 and
+  4.15.2.
+- Order: mesh the port surfaces first.  A second `generate(3)` leaves
+  the written block in place and conformal; `refine()` splits it with
+  the rest, conformally.
+- `setOrder(2)` makes the written hexes Hex27, but a discrete wall has
+  no geometry: its high-order nodes sit on the chords (0.981 R at
+  `nang` 4), so the writer has to place them.
+
+Evidence: `evidence/gmsh_discrete_block.py` (run from the repository with
+`PYTHONPATH=.`; `--foam` adds the OpenFOAM step).
+
 ### A sub-partitioned face can't share entities with an uncut one (gmsh 4.12.1 and 4.15.2, task 0116 B1, 2026-11-09) — *verified*
 
 Box A's face x = 1 is one surface.  Boxes B1 and B2 meet it with the
@@ -523,14 +550,6 @@ the count only.
 - Can the transfinite cut lines of an `n_outer = 8` sub-partition
   reproduce the 4-corner face's nodes exactly?  Decision 0005,
   pre-acceptance check.
-- **Discrete entities on OCC boundaries** (documented, not verified;
-  design, 2026-11-09).  gmsh's tutorial x2 says: "only built-in CAD
-  entities can be hybrid, i.e. have discrete entities on their
-  boundary: OpenCASCADE does not support this feature"
-  (`tutorials/julia/x2.jl`, gmsh 4.14 source).  hexmesh builds with OCC,
-  so a discrete junction block bounded by OCC port surfaces (route B3,
-  decision 0043) may not be expressible.  Whether hexes in a discrete
-  volume can reference OCC surfaces' node tags without a declared
-  boundary is task 0117's first step.
 - Behaviour of the assembly path on 4.15.x is untested.  Only the legacy
-  wye and task 0116's two minimal experiments (B1, B2) were tried.
+  wye, task 0116's two minimal experiments (B1, B2) and task 0117's
+  written block were tried.
