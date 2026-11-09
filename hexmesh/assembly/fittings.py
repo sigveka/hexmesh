@@ -40,7 +40,7 @@ from ..core.shape import BlendShape
 from ..core.params import param
 from ..core.spec import PipeSpec
 from .interface import (Frame, check_outlines, half_extent, outer_radius, roll_mismatch,
-                        rotate, toward_roll)
+                        rolled, rotate, toward_roll)
 from . import limits
 from .limits import RADIANS_WARNING_BELOW
 from .profile import CHORD_TOL, Profile
@@ -105,6 +105,12 @@ class Straight(Sweep):
     (``0 < i < n_layers``).  ``((3, bare), (7, insulated))`` with
     ``n_layers=10`` leaves a bare gap of cells 3–6.  The outlet port carries
     the last stack.
+
+    *twist* (degrees, either sign) rotates the cross-section about the axis,
+    linearly in the axial distance from inlet to outlet: the outlet's ``up``
+    is the inlet's rolled by *twist* (decision 0031, task 0062).  A twisted
+    run has a station at every axial layer, so every node lies on an exact
+    station face.
     """
 
     strategies = frozenset({0, 1})   # switch classes it bridges (DESIGN A4)
@@ -120,10 +126,15 @@ class Straight(Sweep):
         "-",
         "(i, spec) pairs ending or starting outer layers from axial cell i on (decision 0006)",
         default=())
+    twist: float = param(
+        "deg", "rotation of the section about the axis, inlet → outlet, linear along it",
+        default=0.0)
 
     def ports(self, inlet: Frame, spec: PipeSpec) -> list[tuple[Frame, PipeSpec]]:
         out = Frame(inlet.position + self.length * inlet.normal,
                     inlet.normal, inlet.up)
+        if self.twist:
+            out = rolled(out, self.twist)
         return [(out, self.outlet_spec(spec))]
 
     def check(self, spec: PipeSpec) -> None:
@@ -132,8 +143,117 @@ class Straight(Sweep):
             raise AssemblyError(f"length must be positive, got {self.length!r}",
                                 code="size_not_positive", where={"field": "length"},
                                 value=self.length, limit={"min_exclusive": 0})
+        if self.twist and self.layer_twist() > limits.STRAIGHT_TWIST_MAX + 1e-9:
+            raise AssemblyError(
+                f"Straight: twist {self.twist:g}° rolls one axial layer by "
+                f"{self.layer_twist():.3g}°, above STRAIGHT_TWIST_MAX "
+                f"{limits.STRAIGHT_TWIST_MAX:g}°: its side faces warp by about as much",
+                code="twist_per_layer_above_maximum", where={"field": "n_layers"},
+                value=self.layer_twist(), limit="STRAIGHT_TWIST_MAX",
+                hint=f"n_layers >= {self.layers_for(limits.STRAIGHT_TWIST_MAX)}")
+
+    def layer_twist(self, n: int | None = None) -> float:
+        """The largest roll of one axial layer, degrees: the longest layer's,
+        when graded (the roll is linear in the axial distance)."""
+        u = self.fractions(self.n_layers if n is None else n)
+        return abs(self.twist) * float(np.diff(u).max())
+
+    def layers_for(self, roll: float) -> int:
+        """The fewest axial layers whose largest roll is at most *roll*."""
+        n = max(1, math.ceil(abs(self.twist) / roll - 1e-9))
+        while self.layer_twist(n) > roll + 1e-9 and n < limits.MAX_RESOLVED_LAYERS:
+            n += 1
+        return n
+
+    def layers_ok(self, n, inlet, spec, outlet=None) -> bool:
+        return self.layer_twist(n) <= limits.STRAIGHT_TWIST_WARN + 1e-9
+
+    def validate(self, frames: list[Frame], spec: PipeSpec) -> list[str]:
+        super().validate(frames, spec)
+        return self._twist_quality(spec) if self.twist else []
+
+    def _twist_quality(self, spec: PipeSpec) -> list[str]:
+        """The twist's tiers (task 0062): its roll per layer (face warp;
+        more layers lower it), and its wall shear, atan(R · twist / length),
+        through the predicted-quality tiers where the section alone passes
+        them (only a longer run or a smaller twist lowers it).  Raises below
+        the error tiers; returns the warnings."""
+        from .section_quality import section_quality, twist_quality
+        u = np.diff(self.fractions(self.n_layers))
+        k = int(np.argmax(u))
+        sj, nonorth, _ = twist_quality(spec, self.twist * u[k], self.length * u[k])
+        layers = section_quality(spec)
+        own_sj = min(q.min_sj for q in layers)
+        own_no = max(q.max_non_ortho for q in layers)
+        out = []
+        roll = self.layer_twist()
+        if roll > limits.STRAIGHT_TWIST_WARN + 1e-9:
+            out.append(f"twist {self.twist:g}° rolls one axial layer by {roll:.3g}°, above "
+                       f"STRAIGHT_TWIST_WARN {limits.STRAIGHT_TWIST_WARN:g}°: its side faces "
+                       f"warp by about as much; n_layers "
+                       f">= {self.layers_for(limits.STRAIGHT_TWIST_WARN)} reaches it")
+        for sj_name, no_name, code in (
+                ("PREDICTED_SJ_MIN", "OUTLINE_NONORTH_MAX", "predicted_sj_below_minimum"),
+                ("PREDICTED_SJ_WARN", "OUTLINE_NONORTH_WARN", None)):
+            sj_tier, no_tier = getattr(limits, sj_name), getattr(limits, no_name)
+            # only the tiers the section alone passes: its own warnings are its own
+            sj_tier = sj_tier if own_sj >= sj_tier else None
+            no_tier = no_tier if own_no <= no_tier else None
+            bad = []
+            if sj_tier is not None and sj < sj_tier:
+                bad.append((f"predicted corner scaled Jacobian {sj:.3f} is below "
+                            f"{sj_name} {sj_tier:g}", sj, sj_name, code))
+            if no_tier is not None and nonorth > no_tier:
+                bad.append((f"predicted non-orthogonality {nonorth:.1f}° is above "
+                            f"{no_name} {no_tier:g}°", nonorth, no_name,
+                            code and "predicted_nonorth_above_maximum"))
+            if not bad:
+                continue
+            rate = 0.99 * self._twist_rate(spec, sj_tier, no_tier)   # a margin for rounding
+            hint = (f"length >= {abs(self.twist) / rate:.4g} or |twist| <= "
+                    f"{rate * self.length:.4g}° (n_layers doesn't change it: the shear "
+                    f"is the twist per length)")
+            msg = "; ".join(m for m, *_ in bad) + f": the twist shears the wall cells; {hint}"
+            if code is not None:
+                _, value, name, c = bad[0]
+                if c == "predicted_sj_below_minimum":
+                    raise AssemblyError(msg, code="predicted_sj_below_minimum",
+                                        where={"field": "twist"}, value=float(value),
+                                        limit=name, hint=hint)
+                raise AssemblyError(msg, code="predicted_nonorth_above_maximum",
+                                    where={"field": "twist"}, value=float(value),
+                                    limit=name, hint=hint)
+            out.append(msg)
+            break
+        return out
+
+    def _twist_rate(self, spec: PipeSpec, min_sj: float | None = None,
+                    max_nonorth: float | None = None) -> float:
+        """The largest twist per length, degrees per unit length, whose
+        predicted quality passes the tier: the shear depends on it alone."""
+        from .section_quality import twist_quality
+        hi = abs(self.twist) / self.length
+        # a short probe layer, rolled at most 5°: the shear alone
+        dz = min(0.25 * outer_radius(spec), 5.0 / hi)
+
+        def ok(rate):
+            sj, nonorth, _ = twist_quality(spec, rate * dz, dz)
+            return (min_sj is None or sj >= min_sj) and (max_nonorth is None
+                                                         or nonorth <= max_nonorth)
+        lo = 0.0
+        for _ in range(40):
+            mid = 0.5 * (lo + hi)
+            lo, hi = (mid, hi) if ok(mid) else (lo, mid)
+        return lo
 
     def path(self, a: Frame, b: Frame, spec: PipeSpec) -> Path:
+        if self.twist:
+            # a station per layer, rolled in proportion to its distance
+            u = self.fractions(self.n_layers)
+            frames = [a] + [rolled(Frame(a.position + (b.position - a.position) * f,
+                                         a.normal, a.up), self.twist * f)
+                            for f in u[1:-1]] + [b]
+            return self.stacked(Path(frames, [1] * self.n_layers, twisted=True), spec)
         if not self.stack_changes:
             return Path([a, b], [self.n_layers], axial_grading=self.axial_grading)
         # A station at each change; graded sub-slabs continue the same

@@ -603,3 +603,42 @@ def test_an_offset_branch_axis_must_cross_the_centre(tmp_path):
     with pytest.raises(AssemblyError, match=r"branch axis passes 0\.005 m from CENTRE-POINT") as e:
         net.to_assembly(_bore_spec)
     assert e.value.code == "seton_offset_branch" and "move CENTRE-POINT" in e.value.hint
+
+
+# --- set-ons between the period's rolls (task 0062) ------------------------------
+
+def _second_branch(deg):
+    """A TEE with its branch to +y, then a set-on downstream whose branch is
+    *deg* from +y toward +z."""
+    a = math.radians(deg)
+    return HEADER + f"""\
+PIPELINE-REFERENCE A-100
+PIPE
+    END-POINT 0 0 0 100
+    END-POINT 1000 0 0 100
+TEE
+    END-POINT 1000 0 0 100
+    END-POINT 1200 0 0 100
+    CENTRE-POINT 1100 0 0
+    BRANCH1-POINT 1100 300 0 50
+PIPE
+    END-POINT 1200 0 0 100
+    END-POINT 2400 0 0 100
+TEE-SET-ON
+    CENTRE-POINT 1800 0 0
+    BRANCH1-POINT 1800 {300 * math.cos(a):.6f} {300 * math.sin(a):.6f} 50
+"""
+
+
+def test_a_set_on_at_an_odd_roll_twists_its_host(tmp_path):
+    """The host's upstream piece takes the roll between the period's steps
+    as a twist; the branch lands on BRANCH1-POINT; all hex."""
+    asm = _read(tmp_path, _second_branch(37)).to_assembly(_spec())
+    twists = [e.fitting.twist for e in asm.edges if isinstance(e.fitting, Straight)]
+    assert sorted(abs(t) for t in twists)[-1] == pytest.approx(37, abs=1e-4)
+    assert sum(1 for t in twists if t) == 1
+    with Session("odd-roll"), warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        asm.mesh()
+        assert {int(t) for t in gmsh.model.mesh.getElements(3)[0]} == {5}
+        assert sum(len(t) for t in gmsh.model.mesh.getElements(3)[1]) == asm.cell_count()

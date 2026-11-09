@@ -216,6 +216,7 @@ class Wye:
 
     strategies = frozenset({0})   # both port pairs: inlet → each daughter
     port_names = ("left", "right")
+    toward_offset = 90.0    # the roll of toward's direction from the junction's up
     #: why ``Assembly.mesh(order=2)`` rejects it (task 0076): measured on
     #: the example, the high-order hexes at the creases invert, more with
     #: refinement, and the wall error there doesn't fall
@@ -251,7 +252,7 @@ class Wye:
     def resolve(self, inlet: Frame, spec: PipeSpec, axial_cell=None, outlet=None) -> "Wye":
         # toward names the right daughter's side: the rolled frame's right,
         # 90° from its up.
-        wye = junction_toward(self, inlet, spec, offset=90.0)
+        wye = junction_toward(self, inlet, spec, offset=self.toward_offset)
         unset = [n for n in _COUNTS if getattr(wye, n) is None]
         if not unset:
             return wye

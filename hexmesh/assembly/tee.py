@@ -271,6 +271,7 @@ class Tee:
     strategies = frozenset({0, 1})
     pillows = True
     port_names = ("main", "branch")
+    toward_offset = 0.0     # the roll of toward's direction from the junction's up
 
     run_length:    float | None = param(
         "length", "T-point to each main port; None resolves when added", default=None,
@@ -344,7 +345,7 @@ class Tee:
                                     value=self.branch.nang, limit=spec.core_shape.nang,
                                     hint=f"give the branch nang={spec.core_shape.nang}")
             self = replace(self, branch_radius=self.branch.radius, branch=None)
-        tee = junction_toward(self, inlet, spec)      # counts keep their defaults
+        tee = junction_toward(self, inlet, spec, self.toward_offset)  # counts keep defaults
         if tee.run_length is None:
             _check_circle(spec)
             R, r, T = spec.core_shape.radius, tee.branch_radius, thicknesses(spec)[-1]

@@ -645,6 +645,21 @@ All v1912, gmsh 4.12.1, 2026-10-25.
     case, not a slow start.  Whether the tap's cell aspect is a fitting
     defect is task 0074's Q2.  Its measurement is in that task.
 
+- **Twisted hexes pass `checkMesh -allGeometry`** (v2406 in Docker,
+  2026-11-09, task 0062).  The case was a `Straight(twist=…)`, nang 8,
+  nrad 3, 4 layers, at 10–30° roll per layer and layer lengths 0.25 R
+  and R.
+  - Every case: "Mesh OK", no failed checks, and `would_invert` 0 (so
+    `-keepOrientation` changes nothing here).
+  - Face flatness min/avg: 0.996/0.998 at 10° and 0.25 R; 0.989/0.996 at
+    15°; 0.974/0.993 at 20°; 0.912/0.980 at 30° (0.978 at 30° and R).
+    checkMesh flags faces below 0.8.
+  - Its max non-orthogonality equals hexmesh's prediction
+    (`section_quality.twist_quality`) to 0.02°: 62.78° at 30° and
+    0.25 R.
+  - `-allGeometry` needs `system/fvSchemes` and `system/fvSolution`
+    (an empty `fvSolution` will do), which plain `checkMesh` doesn't.
+
 ## Gaps in hexmesh's OpenFOAM support
 
 - **`hexmesh/io/writers/openfoam.py` (`write_openfoam_case`)** — noted

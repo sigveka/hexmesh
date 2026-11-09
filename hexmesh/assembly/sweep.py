@@ -215,6 +215,10 @@ class Path:
         Every slab is a straight prism: its two faces are parallel
         projections of each other along straight axial lines, so radial
         side faces are planar and the chord-turn limit does not apply.
+    twisted
+        Stations roll about a straight axis (``Straight(twist=…)``): the
+        radial side faces are not planar, so they are filled.  Needs one
+        axial layer per slab, so every node is on a station face.
     axial_grading
         Progression ratio of the axial curves inside a slab, inlet to
         outlet.  Only slabs with several layers have such nodes; sweeps
@@ -232,6 +236,7 @@ class Path:
     axial_grading: float = 1.0
     fill:       list[int] | None = None
     blend:      bool = False
+    twisted:    bool = False
 
     def __post_init__(self) -> None:
         if len(self.layers) != len(self.frames) - 1:
@@ -242,8 +247,9 @@ class Path:
             raise InternalError("prism slabs need one axial layer each (no interior wall nodes)")
         if any(n < 1 for n in self.layers):
             raise InternalError("every slab needs at least one axial layer")
-        if self.blend and any(n != 1 for n in self.layers):
-            raise InternalError("blend slabs need one axial layer each (no interior wall nodes)")
+        if (self.blend or self.twisted) and any(n != 1 for n in self.layers):
+            raise InternalError("blend and twisted slabs need one axial layer each "
+                                "(no interior wall nodes)")
 
     def spec_at(self, k: int, default: PipeSpec) -> PipeSpec:
         return default if self.specs is None else self.specs[k]
@@ -397,8 +403,8 @@ def sweep_fill(path: Path, faces: list[LayeredCrossSection],
     for k, n in enumerate(path.layers):
         result.merge(_fill_slab(stations[k], stations[k + 1], n, offsets[k],
                                 axial_curve=axial_curve,
-                                # blend stations: radial faces may twist
-                                planar_radial=planar and not path.blend,
+                                # blend or twisted stations: radial faces twist
+                                planar_radial=planar and not (path.blend or path.twisted),
                                 grading=grading,
                                 # exact surfaces wherever slabs are straight
                                 # (DESIGN §6); elsewhere one-layer slabs whose

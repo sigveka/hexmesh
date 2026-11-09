@@ -157,6 +157,63 @@ def section_quality(spec: PipeSpec) -> list[LayerQuality]:
 
 
 # ---------------------------------------------------------------------------
+# A twisted straight (task 0062)
+# ---------------------------------------------------------------------------
+
+_HEX_FACES = np.array([[0, 1, 2, 3], [4, 5, 6, 7], [0, 1, 5, 4],
+                       [1, 2, 6, 5], [2, 3, 7, 6], [3, 0, 4, 7]])
+
+
+def face_warp(verts: np.ndarray) -> np.ndarray:
+    """Per hex of *verts* (n, 8, 3), its largest face warp in degrees: the
+    angle between the two triangles of a quad face, the larger of its two
+    diagonal splits (0 for a flat face)."""
+    p = verts[:, _HEX_FACES]                                   # (n, 6, 4, 3)
+
+    def unit_normal(a, b, c):
+        n = np.cross(b - a, c - a)
+        return n / np.linalg.norm(n, axis=-1, keepdims=True)
+    out = np.zeros(p.shape[:2])
+    for i in range(2):
+        a, b, c, d = (p[:, :, (i + k) % 4] for k in range(4))
+        cos = np.clip((unit_normal(a, b, c) * unit_normal(a, c, d)).sum(-1), -1.0, 1.0)
+        out = np.maximum(out, np.degrees(np.arccos(cos)))
+    return out.max(axis=1)
+
+
+def twist_quality(spec: PipeSpec, dtheta: float, dz: float) -> tuple[float, float, float]:
+    """Predicted (min corner SJ, max non-orthogonality, max face warp in
+    degrees) of a straight whose section rolls by *dtheta* degrees over a
+    layer of length *dz* (pure numpy).
+
+    Two layers of the section's quads (``section_quality``) at three
+    rolled stations: every node of a twisted ``Straight`` is on a station
+    face, so these are its cells.  The SJ and non-orthogonality follow the
+    wall shear, atan(R dθ / dz); the warp follows dθ (task 0062: equal to
+    the meshed values to 1e-9).
+    """
+    from ..quality_hex import min_scaled_jacobians, shared_face_angles
+    quads = np.concatenate([_quads(g) for _, g in layout_of(spec).node_grids(spec)])
+    scale = spec.outlines[-1].max_extent
+    _, first, inv = np.unique(np.round(quads.reshape(-1, 2) / scale, 9), axis=0,
+                              return_index=True, return_inverse=True)
+    pts, q = quads.reshape(-1, 2)[first], inv.reshape(-1, 4)
+    n = len(pts)
+    stations = []
+    for k in range(3):
+        a = math.radians(dtheta * k)
+        c, s = math.cos(a), math.sin(a)
+        stations.append(np.column_stack([pts @ np.array([[c, s], [-s, c]]),
+                                         np.full(n, k * dz)]))
+    X = np.concatenate(stations)
+    conn = np.concatenate([np.hstack([q + k * n, q + (k + 1) * n]) for k in range(2)])
+    verts = X[conn]
+    angles, _, _ = shared_face_angles(verts, conn)
+    return (float(min_scaled_jacobians(verts).min()), float(angles.max()),
+            float(face_warp(verts).max()))
+
+
+# ---------------------------------------------------------------------------
 # The limits (task 0047)
 # ---------------------------------------------------------------------------
 

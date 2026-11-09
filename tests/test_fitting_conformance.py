@@ -253,6 +253,10 @@ CASES = {
                                          Bend(0.3, 90, n_layers=4, roll=90),
                                          extra_straight=True),
     "straight-rolled-90":  lambda: _rolled_outlet(_two(), Straight(0.3, n_layers=3), 90),
+    "straight-twist-90":   lambda: _between(_one(), Straight(0.3, n_layers=8, twist=90)),
+    "straight-twist-2shell": lambda: _between(_three(), Straight(0.4, n_layers=8, twist=-60)),
+    "duct-twist-180":      lambda: _between(_duct(), Straight(0.6, n_layers=12, twist=180)),
+    "hduct-twist-90":      lambda: _between(_hduct(), Straight(0.4, n_layers=6, twist=90)),
     "bend-rolled-180":     lambda: _rolled_outlet(_one(), Bend(0.3, 90, n_layers=4), 180),
     "tee-0.5":             lambda: _tee(0.5),
     "tee-0.9-oblique":     lambda: _tee(0.9, direction=(1, 1, 0.2)),
@@ -725,6 +729,13 @@ def wall_deviations(asm) -> dict[str, float]:
                 w = (x - p0) - np.outer(t, ax)
                 if all(isinstance(o, CircleShape) for o in spec.outlines):
                     wu, wv = np.linalg.norm(w, axis=1), np.zeros(len(w))   # any frame
+                elif path.twisted:
+                    # every node of a twisted slab is on one of its two
+                    # stations (one layer each): that station's frame
+                    f0, f1 = path.frames[k], path.frames[k + 1]
+                    near = (u < 0.5)[:, None]
+                    right, up = np.where(near, f0.right, f1.right), np.where(near, f0.up, f1.up)
+                    wu, wv = (w * right).sum(axis=1), (w * up).sum(axis=1)
                 else:
                     # section frame of this leg: an untilted station on it
                     f = next(f for j, f in enumerate(path.frames)

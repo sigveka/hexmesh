@@ -235,6 +235,17 @@ MAX_MITER_CUT = _limit(
 MAX_CHORD_TURN = _limit(
     "MAX_CHORD_TURN", 30.0, "deg", "error",
     "largest turn of one axial layer with straight axial edges (splines, closures)")
+#: Twisted straights (task 0062, proposed to design): the largest roll of
+#: one axial layer.  A layer's side faces warp by about its roll (5° → 5°,
+#: 10° → 10.7° at Δz = R), and at half the section's period (45° for a
+#: circle) its corners are ambiguous.  More layers lower it; the wall
+#: shear (twist per length) goes through the predicted-quality tiers.
+STRAIGHT_TWIST_WARN = _limit(
+    "STRAIGHT_TWIST_WARN", 15.0, "deg", "warn",
+    "a twisted straight's roll per axial layer above this warns")
+STRAIGHT_TWIST_MAX = _limit(
+    "STRAIGHT_TWIST_MAX", 30.0, "deg", "error",
+    "largest roll of one axial layer of a twisted straight")
 MAX_SLAB_TURN = _limit(
     "MAX_SLAB_TURN", 180.0, "deg", "error",
     "a bend's axial layer turns less than this (exclusive)")

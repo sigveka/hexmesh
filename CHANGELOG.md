@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+**Twisted straights, and junctions at any roll** (decision 0031 stage 3;
+task 0062).
+- `Straight(twist=…)` rotates the section about the axis, linearly from
+  inlet to outlet, with a station per axial layer: every node is on an
+  exact station face. Shells, ducts, grading and `stack_changes` work.
+  `twist=0` meshes exactly as before.
+- Limits (proposed to design): the roll per axial layer warns above
+  `STRAIGHT_TWIST_WARN` (15°) and raises above `STRAIGHT_TWIST_MAX` (30°,
+  `twist_per_layer_above_maximum`), naming the `n_layers` that passes.
+  The wall shear (twist per length) is predicted before GMSH
+  (`section_quality.twist_quality`) and goes through the usual SJ and
+  non-orthogonality tiers, naming the length or twist that passes.
+- A `Tee` or `Wye` with `toward=` between the period's rolls now twists
+  the untwisted `Straight` before it by the rest, and the stored network
+  holds both numbers. Otherwise `add()` names the twist needed and where.
+- PCF: a set-on at an odd roll twists its host's upstream piece.
+
 **Offset taps** (decision 0031 stage 2; task 0061).
 - `Tee(offset=…)` moves the branch axis off the main axis, along the
   main's right after the roll, for tees and laterals. The saddle is the

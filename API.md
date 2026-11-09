@@ -464,9 +464,40 @@ fitting, the field and the class, for example:
 > density switch (decision 0003); Reducer bridges grading-only class-2
 > pairs (radial mprg) only
 
-### `Straight(length, n_layers=None, axial_grading=1.0)`
+### `Straight(length, n_layers=None, axial_grading=1.0, stack_changes=(), twist=0.0)`
 
 A straight run with `n_layers` axial cells.
+
+`twist` (degrees, either sign, any size) rotates the cross-section about
+the axis, linearly from inlet to outlet: the outlet's `up` is the inlet's
+rolled by `twist` (decision 0031, task 0062). A twisted run places a
+station at every axial layer, so every node lies on an exact station face
+and walls are exact without projection. It works with shells, ducts (both
+layouts), grading and `stack_changes`. `twist=0` meshes exactly as before.
+
+- **Roll per layer** (`twist / n_layers`, the longest layer's when
+  graded). A layer's side faces warp by about its roll. Above
+  `limits.STRAIGHT_TWIST_WARN` (15°) it warns; above
+  `STRAIGHT_TWIST_MAX` (30°) it raises `twist_per_layer_above_maximum`.
+  Both name the `n_layers` that passes. `n_layers=None` resolves to at
+  least the count that passes the warning tier.
+- **Wall shear** (the twist per length: more layers don't change it).
+  The wall cells shear by atan(R · twist / length), which lowers the
+  corner SJ and raises the non-orthogonality. `validate()` predicts both
+  before GMSH (`section_quality.twist_quality`, equal to the meshed values
+  to 1e-9) and applies the usual tiers (`PREDICTED_SJ_*`,
+  `OUTLINE_NONORTH_*`) where the section alone passes them. The
+  messages name the length, or the twist, that passes. For a circle that
+  is about 170° per outer radius of length to warn, and 350° per radius
+  to raise.
+- **Junctions at any roll.** A `Tee` or `Wye` whose `toward=` falls
+  between its allowed rolls (more than 1° from a multiple of the
+  section's period) twists the `Straight` that ends at its inlet by the
+  rest. The straight must be untwisted, so the stored network stays
+  explicit: the straight's `twist` and the junction's `roll`. Otherwise
+  `add()` raises `toward_off_allowed`, naming the twist and where to put
+  it (`Straight(…, twist=37) before the Tee`), and a straight with too
+  few layers names the `n_layers` it needs.
 
 ### `Bend(radius, angle, n_layers=None, roll=0.0, axial_grading=1.0, toward=None)`
 
@@ -657,10 +688,11 @@ a block layout.
 - **Orientation.** `roll` must be a multiple of the section's period (90°
   for a circle), so the junction's corners land on the inlet face's: 45° is
   rejected, naming 90°. `toward=(x, y, z)` gives the branch direction
-  instead; `add()` picks the nearest allowed roll and rejects a direction
-  more than 1° off it (`limits.JUNCTION_TOWARD_TOL`), naming the angle.
-  Its component across the run sets the roll, and `angle` the lean.
-  Other rolls need a twisting fitting (decision 0024).
+  instead; `add()` picks the nearest allowed roll, within 1°
+  (`limits.JUNCTION_TOWARD_TOL`). Its component across the run sets the
+  roll, and `angle` the lean. A direction between the allowed rolls
+  twists the untwisted `Straight` before the tee by the rest (task 0062;
+  see `Straight`), or is rejected naming the twist needed.
 - **Laterals** (decision 0031, task 0060). `angle` is the angle in degrees
   from the run's downstream direction to the branch axis, in (0, 90]: 90 is
   a tee, 45 a 45° lateral leaning downstream. The axis passes through the
@@ -1069,7 +1101,7 @@ declared connections.  Messages name parts as `component <n> (<TYPE>
 | concentric reducer | `Reducer` |
 | eccentric reducer | rejected |
 | `TEE` | `Tee`: run from the two `END-POINT`s, branch `CENTRE-POINT` → `BRANCH1-POINT`, its radius from the branch bore (`spec(bore)`, or the main radius × bore ratio).  A branch that leans is a lateral, `Tee(angle=…)` with the measured angle to the downstream run (task 0103); within 1° of square it is a plain 90° tee.  The range is DESIGN §7.1's: the `Tee`'s quality tiers reject an angle and ratio it can't mesh, at `validate()`, naming the smallest r/R that passes at that angle |
-| `TEE-SET-ON`, `TEE-STUB`, `OLET` | the host `PIPE` through `CENTRE-POINT` is split: straight + `Tee` + straight.  The tee's run on each side of `CENTRE-POINT` is the `Tee`'s own default (`run_length=None`: r + T + R/2, or longer to reach `PREDICTED_SJ_WARN`; task 0054), from the spec's radii and shells, and for an angled set-on its acute lean (task 0103); a host too short for it is rejected, naming the length needed.  An offset set-on (`TOSO`, `TORF`) is `Tee(offset=…)` (task 0061): the straight leaving `BRANCH1-POINT` gives the branch axis, and the offset is `BRANCH1-POINT`'s distance from the plane of that axis and the host's; without that straight, or with a branch axis that misses `CENTRE-POINT` along the host, it is rejected (`seton_offset_branch`).  A tangential set-on (`TTSO`, `TTRF`) maps the same way and is the `Tee`'s rejection: its h = R − r is outside the offset range (`tee_offset_out_of_range`) |
+| `TEE-SET-ON`, `TEE-STUB`, `OLET` | the host `PIPE` through `CENTRE-POINT` is split: straight + `Tee` + straight.  The tee's run on each side of `CENTRE-POINT` is the `Tee`'s own default (`run_length=None`: r + T + R/2, or longer to reach `PREDICTED_SJ_WARN`; task 0054), from the spec's radii and shells, and for an angled set-on its acute lean (task 0103); a host too short for it is rejected, naming the length needed.  An offset set-on (`TOSO`, `TORF`) is `Tee(offset=…)` (task 0061): the straight leaving `BRANCH1-POINT` gives the branch axis, and the offset is `BRANCH1-POINT`'s distance from the plane of that axis and the host's; without that straight, or with a branch axis that misses `CENTRE-POINT` along the host, it is rejected (`seton_offset_branch`).  A tangential set-on (`TTSO`, `TTRF`) maps the same way and is the `Tee`'s rejection: its h = R − r is outside the offset range (`tee_offset_out_of_range`).  A junction whose branch is between the period's rolls from the one before twists the straight piece before it (`Straight(twist=…)`, task 0062) |
 | `Y-PIECE-FABRICATED` | its stem `PIPE` (ending at `CENTRE-POINT`) is cut back by the `Wye`'s inlet run, r·(tan h + 0.6) with r the nominal radius, h half the angle; then `Wye`, `BRANCH1-POINT` as the right daughter |
 | rejected, naming the component and the limit | crosses, `Y-PIECE-FITTING`, tangential set-ons (`TTSO`, `TTRF`: by the `Tee`'s offset range), equal tees, a branch leaning upstream of the build (`tee_branch_angled`: build from the other end with `inlet=`), asymmetric or non-coplanar Y pieces, daughters of another size, and the junctions' own limits (a wye's shell thickness and angle, a tee's predicted quality) |
 | joint | absorbed: the preceding straight run is extended over it, or else the following one starts at it; dropped at an open end next to a non-straight fitting; rejected between two non-straight fittings |
@@ -1767,6 +1799,7 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `transition_needs_shape_change` | a Transition between circles only | `AssemblyError` |
 | `transition_same_rectangle` | a Transition with the same rectangle at both ends | `AssemblyError` |
 | `transition_shape_unsupported` | a Transition layer that is neither circle nor rectangle | `AssemblyError` |
+| `twist_per_layer_above_maximum` | a twisted straight whose axial layer rolls above STRAIGHT_TWIST_MAX | `AssemblyError` |
 | `value_not_positive` | a coefficient or ratio that must be positive is not | `AssemblyError`, `SpecError` |
 | `variants_duplicate` | two study variants with the same parameters | `StudyError` |
 | `wall_bump_invalid` | wall_bump that is not two positive coefficients | `SpecError` |
@@ -1862,6 +1895,8 @@ Kinds:
 | `MIN_MITER_CUT` | 1 | `deg` | error | smallest turn of each MiterBend cut |
 | `MAX_MITER_CUT` | 90 | `deg` | error | largest turn of each MiterBend cut |
 | `MAX_CHORD_TURN` | 30 | `deg` | error | largest turn of one axial layer with straight axial edges (splines, closures) |
+| `STRAIGHT_TWIST_WARN` | 15 | `deg` | warn | a twisted straight's roll per axial layer above this warns |
+| `STRAIGHT_TWIST_MAX` | 30 | `deg` | error | largest roll of one axial layer of a twisted straight |
 | `MAX_SLAB_TURN` | 180 | `deg` | error | a bend's axial layer turns less than this (exclusive) |
 | `MAX_RESOLVED_LAYERS` | 100000 | `layers` | error | largest axial layer count n_layers=None resolution tries |
 | `WYE_ANGLE_MIN` | 30 | `deg` | error | narrowest Wye |

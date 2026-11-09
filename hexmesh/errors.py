@@ -498,6 +498,7 @@ CODES: dict[str, str] = {
     "transition_needs_shape_change": "a Transition between circles only",
     "transition_same_rectangle": "a Transition with the same rectangle at both ends",
     "transition_shape_unsupported": "a Transition layer that is neither circle nor rectangle",
+    "twist_per_layer_above_maximum": "a twisted straight whose axial layer rolls above STRAIGHT_TWIST_MAX",
     "value_not_positive": "a coefficient or ratio that must be positive is not",
     "variants_duplicate": "two study variants with the same parameters",
     "wall_bump_invalid": "wall_bump that is not two positive coefficients",

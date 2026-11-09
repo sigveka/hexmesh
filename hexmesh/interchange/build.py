@@ -659,6 +659,10 @@ def _place(report, parts, nodes, at_node, names, root, spec, axial_cell, kinks, 
                 raise _Reroll(miss)
         state["junctions"] += 1
         try:
+            # a roll between the period's steps: a twist on the straight
+            # before it (task 0062), which rolls the junction's inlet
+            asm._twist_for_toward(fitting, iface)
+            frame = iface.frame
             fitting.resolve(frame, iface.spec).check(iface.spec)
         except ValueError as e:
             raise AssemblyError.wrap(e, f"{what}: {e}",

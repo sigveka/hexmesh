@@ -39,7 +39,7 @@ import math
 import re
 import warnings
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import PurePath
 from typing import Iterable
 
@@ -65,7 +65,7 @@ from .quality import QualityReport, RegionQuality
 from .section_quality import check_section_quality
 from .interface import (
     Frame, Interface, build_face, check_supported, hydraulic_diameter, outer_radius,
-    port_type,
+    port_type, rolled, toward_roll,
 )
 
 
@@ -298,6 +298,7 @@ class Assembly:
                                     code="source_not_interface", where={"field": "source"})
         self._check_degree(source, "inlet", fitting)
         origin = None if origin is None else dict(origin)
+        self._twist_for_toward(fitting, source)
         fitting = self._resolved(fitting, source, origin=origin)
 
         port_list = fitting.ports(source.frame, source.spec)
@@ -531,6 +532,40 @@ class Assembly:
         if any(e.name == label for e in self._edges):
             raise AssemblyError(f"fitting label {label!r} is already used",
                                 code="label_duplicate", where={"label": label})
+
+    def _twist_for_toward(self, fitting, source: Interface) -> None:
+        """A junction's ``toward`` between its allowed rolls (task 0062):
+        twist the ``Straight`` that ends at *source* by the remainder, so
+        the junction's roll is a multiple of the period.  Only an untwisted
+        straight added before it, whose outlet is *source*; otherwise
+        raises, naming the twist and where to put it."""
+        offset = getattr(fitting, "toward_offset", None)
+        if offset is None or getattr(fitting, "toward", None) is None or fitting.roll != 0:
+            return                  # not a junction's toward, or junction_toward rejects it
+        P = math.degrees(source.spec.period)
+        rest = math.remainder(toward_roll(source.frame, fitting.toward) - offset, P)
+        if abs(rest) <= limits.JUNCTION_TOWARD_TOL:
+            return                  # junction_toward snaps it
+        name = type(fitting).__name__
+        edge = source.edges[0] if len(source.edges) == 1 else None
+        if (edge is None or edge.kind != "add" or type(edge.fitting) is not Straight
+                or edge.ports[-1] is not source or edge.fitting.twist):
+            raise AssemblyError(
+                f"{name}: toward is {abs(rest):.3g}° from the nearest allowed roll (rolls are "
+                f"multiples of the section's period {P:g}°), and there is no untwisted "
+                f"Straight ending at {source} to take the rest",
+                code="toward_off_allowed", where={"field": "toward"}, value=abs(rest),
+                limit="JUNCTION_TOWARD_TOL",
+                hint=f"add Straight(…, twist={rest:.6g}) before the {name}")
+        straight = replace(edge.fitting, twist=rest)
+        try:
+            straight.check(edge.ports[0].spec)
+        except AssemblyError as e:
+            raise AssemblyError.wrap(
+                e, f"{name}: toward needs {edge} twisted by {rest:.4g}°: {e}",
+                code="toward_off_allowed", edge=edge.index) from None
+        edge.fitting = straight
+        source.frame = rolled(source.frame, rest)
 
     def _resolved(self, fitting, source: Interface, target: Interface | None = None,
                   origin: dict | None = None):
