@@ -600,10 +600,59 @@ def mms(data, out):
         a.set_title(title, fontsize=8)
         if a not in ax[1]:
             a.set_xlabel("")
-    return [_finish(fig, "mms", "Gate: the L2 error falls with refinement, every fitting.  "
-                    "Orders are reported, not gated (decision 0015 as amended); the duct taps' "
-                    "k = 4 levels didn't converge and aren't drawn.", out / "figure.png"),
-            "The L2 error of the manufactured solution on every fitting against cell size."]
+    first = [_finish(fig, "mms", "Gate: the L2 error falls with refinement, every fitting.  "
+                     "Orders are reported, not gated (decision 0015 as amended); the duct taps' "
+                     "k = 4 levels didn't converge and aren't drawn.", out / "figure.png"),
+             "The L2 error of the manufactured solution on every fitting against cell size."]
+    return first + mms_slope(data, out)
+
+
+#: task 0109's reducer series: case → s0 (as ``validation/mms/run.py``'s SLOPE_S0)
+MMS_SLOPE = {"reducer_s005": 0.05, "reducer_s010": 0.1, "reducer_s020": 0.2,
+             "reducer_s040": 0.4}
+
+
+def mms_slope(data, out):
+    """Task 0109: the L2 order in the reducer (k 2 → 4) against its median
+    wall non-orthogonality at k = 4, with the wall at the exact value and,
+    as the control, at the exact flux."""
+    by = {(l["case"], l["k"]): l for l in data["levels"] if l.get("converged")}
+    if not all((c, k) in by for c in MMS_SLOPE for k in (2, 4)):
+        return []
+    fig, ax = _figure()
+    ax = ax[0, 0]
+    for i, (label, suffix) in enumerate((("wall at the exact value (fixedValue)", ""),
+                                         ("control: wall at the exact flux (fixedGradient)",
+                                          "_flux"))):
+        st = style(None, i)
+        xs, ys = [], []
+        for c, s0 in MMS_SLOPE.items():
+            a, b = by[(c + suffix, 2)], by[(c + suffix, 4)]
+            xs.append(by[(c, 4)]["focus_wall_nonorth"]["median"])
+            ys.append(np.log(a["focus"]["l2"] / b["focus"]["l2"]) / np.log(2))
+            if not suffix:
+                ax.annotate(f"s0 = {s0:g}", (xs[-1], ys[-1]), textcoords="offset points",
+                            xytext=(6, -10), fontsize=6.5, color="0.3")
+        ax.plot(xs, ys, color=st["color"], marker=st["marker"], markersize=6, linewidth=1.5,
+                label=label, zorder=3)
+    for p in (1, 2):
+        ax.axhline(p, color="0.45", linewidth=1, linestyle=(0, (5, 3)) if p == 1 else (0, (1, 2)),
+                   label=f"order {p}", zorder=1)
+    if ("straight", 2) in by and ("straight", 4) in by:
+        p = np.log(by[("straight", 2)]["focus"]["l2"] / by[("straight", 4)]["focus"]["l2"]) \
+            / np.log(2)
+        ax.axhline(p, color=GATE, linewidth=1.5, label=f"the straight pipe: {p:.2f}", zorder=1)
+    ax.set_ylim(0, 2.4)
+    _axes(ax, "median wall-face non-orthogonality in the reducer, k = 4 (°)",
+          "observed L2 order in the reducer, k 2 → 4")
+    _legend(ax, loc="lower left")
+    return [_finish(fig, "mms", "Task 0109: the cosine reducer at four constrictions (s0; "
+                    "the wall's largest slope atan(π s0 / 2) is 4.5°, 8.9°, 17.4°, 32.1°), "
+                    "Gauss linear corrected, laplacianFoam v2406.  The control is the same mesh "
+                    "with n·∇T imposed at the wall, which OpenFOAM's uncorrected boundary "
+                    "snGrad then doesn't enter.", out / "img" / "slope.png"),
+            "The reducer's order against its wall non-orthogonality, with the exact-flux "
+            "control."]
 
 
 def turbulent_pipe(data, out):

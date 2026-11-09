@@ -16,6 +16,7 @@ Manufactured solutions for steady conduction on every fitting's mesh
 
     python3 validation/mms/run.py                  # every case, k = 1, 2, 4
     python3 validation/mms/run.py --cases tee bend --levels 1 2
+    python3 validation/mms/run.py --slope           # task 0109's series, then its table
 
 **The method.**  The exact field is
 
@@ -124,13 +125,13 @@ def spline():
     return a, [1]
 
 
-def reducer():
+def reducer(s0=0.4):
     a = _asm(_pipe())
     a.add(Straight(2 * R, n_layers=2))
-    # a cosine constriction to 60 % of the radius, back to the inlet's.  The
-    # exact field is defined everywhere, so the chords' distance from the
+    # a cosine constriction to (1 - 2 s0) of the radius, back to the inlet's.
+    # The exact field is defined everywhere, so the chords' distance from the
     # true profile doesn't enter the error: chord_tol is relaxed
-    a.add(Reducer(_pipe(), length=4 * R, n_layers=8, profile=("cosine", 0.4), chord_tol=0.05))
+    a.add(Reducer(_pipe(), length=4 * R, n_layers=8, profile=("cosine", s0), chord_tol=0.05))
     a.add(Straight(2 * R, n_layers=2))
     return a, [1]
 
@@ -248,6 +249,22 @@ for _case in FLAGGED:
 #: the baseline under the least-squares gradients, for the ``_lsq`` orders
 CASES["straight_lsq"] = CASES["straight"]
 SCHEME_EDITS["straight_lsq"] = VARIANTS["lsq"]
+#: task 0109: the cosine reducer at four constrictions.  Over L = 4 R the
+#: wall's largest slope is atan(π s0 / 2): 4.5°, 8.9°, 17.4° and 32.1° (s0 =
+#: 0.4 is 0074's ``reducer``, run again under its own name for the wall
+#: measurements).  Each ``_flux`` twin is the same mesh with the exact wall
+#: flux imposed (:data:`WALL_FLUX`)
+SLOPE_S0 = {"reducer_s005": 0.05, "reducer_s010": 0.1, "reducer_s020": 0.2,
+            "reducer_s040": 0.4}
+#: cases whose walls (patches ``*_wall``) take the exact normal gradient
+#: n·∇T_m instead of T_m: v2406 applies no non-orthogonal correction on a
+#: boundary patch, so this removes the wall's snGrad error (task 0109)
+WALL_FLUX = set()
+for _name, _s0 in SLOPE_S0.items():
+    CASES[_name] = CASES[f"{_name}_flux"] = (lambda s0=_s0: reducer(s0))
+    WALL_FLUX.add(f"{_name}_flux")
+#: the series and diagnostics, left out of the README's mesh gallery
+DIAGNOSTIC = set(SCHEME_EDITS) | set(SLOPE_S0) | WALL_FLUX
 
 
 def assembly(case: str, k: int = 1) -> tuple[Assembly, list[int]]:
@@ -258,7 +275,7 @@ def assembly(case: str, k: int = 1) -> tuple[Assembly, list[int]]:
 def meshes():
     """(label, caption, build) per mesh shown in README.md."""
     return [(name, f"{name}, k = 1", lambda n=name: assembly(n)[0]) for name in CASES
-            if name not in SCHEME_EDITS]
+            if name not in DIAGNOSTIC]
 
 
 # --- the manufactured solution ----------------------------------------------
@@ -277,6 +294,16 @@ def _expr(w: np.ndarray, scale: float = 1.0) -> str:
     """T_m (times *scale*) as an OpenFOAM expression of ``pos()``."""
     parts = [f"sin({w[i]!r}*pos().{c}()+{PHASES[i]!r})" for i, c in enumerate("xyz")]
     return "*".join([repr(scale)] + parts)
+
+
+def _grad_expr(w: np.ndarray) -> str:
+    """n·∇T_m on a patch, as an OpenFOAM expression of ``pos()`` and
+    ``normal()``."""
+    s = [f"sin({w[i]!r}*pos().{c}()+{PHASES[i]!r})" for i, c in enumerate("xyz")]
+    c = [f"cos({w[i]!r}*pos().{x}()+{PHASES[i]!r})" for i, x in enumerate("xyz")]
+    parts = [f"{w[0]!r}*{c[0]}*{s[1]}*{s[2]}", f"{w[1]!r}*{s[0]}*{c[1]}*{s[2]}",
+             f"{w[2]!r}*{s[0]}*{s[1]}*{c[2]}"]
+    return f"normal() & vector({', '.join(parts)})"
 
 
 # --- OpenFOAM dictionaries ---------------------------------------------------
@@ -319,6 +346,19 @@ SIMPLE
 """
 
 
+# the later pattern wins for a patch both match (OpenFOAM's wildcard order)
+_WALL_FLUX = """
+    ".*_wall"
+    {{
+        type        uniformFixedGradient;
+        uniformGradient
+        {{
+            type        expression;
+            expression  "{expr}";
+        }}
+    }}"""
+
+
 def schemes(edits=()) -> str:
     """``fvSchemes``' body with *edits* (old, new) applied."""
     text = SCHEMES
@@ -329,7 +369,7 @@ def schemes(edits=()) -> str:
     return text
 
 
-def write_case(case: Path, end_time: int, w: np.ndarray, edits=()) -> None:
+def write_case(case: Path, end_time: int, w: np.ndarray, edits=(), wall_flux=False) -> None:
     for d in ("0", "constant", "system"):
         (case / d).mkdir(parents=True, exist_ok=True)
     source = f"""mms
@@ -364,7 +404,7 @@ boundaryField
             type        expression;
             expression  "{_expr(w)}";
         }}
-    }}
+    }}{_WALL_FLUX.format(expr=_grad_expr(w)) if wall_flux else ""}
 }}
 """
     files = {
@@ -437,6 +477,23 @@ def results(case: Path, w: np.ndarray, cents: np.ndarray, owners: np.ndarray,
     boundary = np.zeros(len(T), bool)
     boundary[owner[len(neigh):]] = True
     worst = int(np.argmax(np.abs(err)))
+    # the fitting's wall faces (patches *_wall): non-orthogonality as
+    # OpenFOAM sees it at a boundary, the angle between the face normal and
+    # the vector from the cell centre to the face centre (task 0109)
+    walls = np.concatenate([of.read_patch_faces(mesh / "boundary", p)
+                            for p in _patches(mesh) if p.endswith("_wall")])
+    wf = walls[in_focus[owner[walls]]]
+    d = fc[wf] - cc[owner[wf]]
+    cos = np.einsum("ij,ij->i", sf[wf], d) / (np.linalg.norm(sf[wf], axis=1)
+                                              * np.linalg.norm(d, axis=1))
+    angle = np.degrees(np.arccos(np.clip(cos, -1, 1)))
+    at_wall = np.zeros(len(T), bool)
+    at_wall[owner[walls]] = True
+    wall = {"focus_wall_nonorth": {"median": float(np.median(angle)),
+                                   "p90": float(np.percentile(angle, 90)),
+                                   "max": float(angle.max()), "faces": int(len(wf))},
+            "focus_wall_cells": _errors(err, vol, in_focus & at_wall),
+            "focus_off_wall_cells": _errors(err, vol, in_focus & ~at_wall)} if len(wf) else {}
     per = {names[i]: _errors(err, vol, fit == i) for i in sorted(set(fit.tolist()))}
     split = {}
     if blocks is not None:
@@ -462,7 +519,21 @@ def results(case: Path, w: np.ndarray, cents: np.ndarray, owners: np.ndarray,
                    "position": cc[worst].tolist()},
         "match_distance_max": float(dist.max()),
         **split,
+        **wall,
     }
+
+
+def _patches(mesh: Path) -> list[str]:
+    """The patch names in ``polyMesh/boundary``."""
+    text = (mesh / "boundary").read_text(encoding="utf-8")
+    return [p for p in re.findall(r"^\s*(\w+)\s*\n\s*\{", text, re.M) if p != "FoamFile"]
+
+
+def _wall_types(case: Path) -> dict:
+    """The condition each ``*_wall`` patch of ``0/T`` was given, as OpenFOAM
+    read it (its regex keys expanded in the solved time's T)."""
+    text = (of.latest_time(case) / "T").read_text(encoding="utf-8")
+    return dict(re.findall(r"^\s*(\w+_wall)\s*\n\s*\{\s*type\s+(\w+);", text, re.M))
 
 
 def run_level(name: str, k: int, work: Path, end_time: int, n_proc: int = 1) -> dict:
@@ -489,7 +560,7 @@ def run_level(name: str, k: int, work: Path, end_time: int, n_proc: int = 1) -> 
             c1 = _centroids(a1)[0]
             lo, hi = c1.min(axis=0), c1.max(axis=0)
     w = wave_numbers(lo, hi, d)
-    write_case(case, end_time, w, SCHEME_EDITS.get(name, ()))
+    write_case(case, end_time, w, SCHEME_EDITS.get(name, ()), wall_flux=name in WALL_FLUX)
     # every hex right-handed (gmsh's corner Jacobians), so gmshToFoam's
     # orientation test, which flips warped junction hexes, is skipped
     retyped = of.convert(case, msh, keep_orientation=sj > 0)
@@ -500,6 +571,8 @@ def run_level(name: str, k: int, work: Path, end_time: int, n_proc: int = 1) -> 
            "laplacian": dict(SCHEME_EDITS.get(name, ())).get("Gauss linear corrected",
                                                               "Gauss linear corrected"),
            "scheme_edits": [list(e) for e in SCHEME_EDITS.get(name, ())],
+           "wall_bc": "exact normal gradient" if name in WALL_FLUX else "exact value",
+           "wall_bc_applied": _wall_types(case),
            "max_edge_ratio": edge_ratio,
            "wave_numbers": w.tolist(), "min_scaled_jacobian": sj, "retyped": retyped,
            "keep_orientation": sj > 0, "gmshToFoam_would_invert": flips,
@@ -575,12 +648,65 @@ def table(analysis: dict) -> str:
     return "\n".join(lines)
 
 
+def slope_series(levels: list[dict]) -> list[dict]:
+    """Task 0109, per constriction: the wall's design slope, the fitting's
+    wall non-orthogonality (median, max) by level, and the L2 orders in the
+    fitting, overall and split at the wall, for the exact-value wall and the
+    exact-flux control."""
+    by = {}
+    for lv in levels:
+        if lv["case"] in SLOPE_S0 or lv["case"] in WALL_FLUX:
+            by.setdefault(lv["case"], {})[lv["k"]] = lv
+    out = []
+    for name, s0 in SLOPE_S0.items():
+        row = {"case": name, "s0": s0, "slope": math.degrees(math.atan(math.pi * s0 / 2))}
+        for tag, case in (("", name), ("flux_", f"{name}_flux")):
+            got = by.get(case, {})
+            ks = sorted(k for k, lv in got.items() if lv["converged"])
+            if len(ks) < 2:
+                continue
+            rows = [got[k] for k in ks]
+            row[f"{tag}k"] = ks
+            row[f"{tag}l2"] = [r["focus"]["l2"] for r in rows]
+            row[f"{tag}order"] = orders(row[f"{tag}l2"], ks)
+            for part in ("wall", "off_wall"):
+                v = [r[f"focus_{part}_cells"]["l2"] for r in rows]
+                row[f"{tag}{part}_l2"] = v
+                row[f"{tag}{part}_order"] = orders(v, ks)
+            if not tag:
+                row["nonorth_median"] = [r["focus_wall_nonorth"]["median"] for r in rows]
+                row["nonorth_max"] = [r["focus_wall_nonorth"]["max"] for r in rows]
+        out.append(row)
+    return out
+
+
+def slope_table(series: list[dict]) -> str:
+    """The series as a Markdown table (RESULTS.md)."""
+    f = lambda v, p=2: ", ".join(f"{x:.{p}f}" for x in v) if v else "–"
+    g = lambda v: ", ".join(f"{x:.3g}" for x in v) if v else "–"
+    lines = ["| s0 | max slope | wall non-orth. median, k 1, 2, 4 | max | L2 in the fitting | "
+             "order (1→2, 2→4) | at the wall | off the wall | exact-flux control: order | "
+             "control: at the wall, off it |",
+             "|---|---|---|---|---|---|---|---|---|---|"]
+    for r in series:
+        lines.append(
+            f"| {r['s0']:g} | {r['slope']:.1f}° | {f(r.get('nonorth_median'), 1)} | "
+            f"{f(r.get('nonorth_max'), 1)} | {g(r.get('l2'))} | {f(r.get('order'))} | "
+            f"{f(r.get('wall_order'))} | {f(r.get('off_wall_order'))} | "
+            f"{f(r.get('flux_order'))} | {f(r.get('flux_wall_order'))}; "
+            f"{f(r.get('flux_off_wall_order'))} |")
+    return "\n".join(lines)
+
+
 def recheck(data: dict) -> list[dict]:
     """Per case, from ``results.json`` (task 0093): the gate, the L2 error
     falls with refinement over the converged levels; the orders (overall
-    and in the fittings under test) and the flag are reported."""
+    and in the fittings under test) and the flag are reported.  Task 0109's
+    slope series is a measurement, not gated: :func:`slope_series`."""
     out = []
     for name, a in analyse(data["levels"]).items():
+        if name in SLOPE_S0 or name in WALL_FLUX:
+            continue
         ks = ", ".join(map(str, a["k"]))
         note = (f"order L2 {', '.join(f'{v:.2f}' for v in a['order_l2'])}; in the fitting "
                 f"{', '.join(f'{v:.2f}' for v in a['order_focus_l2'])}"
@@ -594,7 +720,9 @@ def recheck(data: dict) -> list[dict]:
 
 def main(argv=None) -> dict:
     ap = argparse.ArgumentParser(description=__doc__.strip().split("\n\n")[0])
-    ap.add_argument("--cases", nargs="+", choices=list(CASES), default=list(CASES))
+    ap.add_argument("--cases", nargs="+", choices=list(CASES), default=None)
+    ap.add_argument("--slope", action="store_true",
+                    help="task 0109's series (the default cases become its eight), then its table")
     ap.add_argument("--levels", nargs="+", type=int, default=list(LEVELS))
     ap.add_argument("--work", type=Path, default=HERE / "work")
     ap.add_argument("--end-time", type=int, default=200)
@@ -604,6 +732,9 @@ def main(argv=None) -> dict:
     ap.add_argument("--openfoam", default=of.V2406,
                     help="runner: native, or docker:IMAGE (default: v2406 in Docker)")
     args = ap.parse_args(argv)
+    if args.cases is None:
+        args.cases = ([*SLOPE_S0, *sorted(WALL_FLUX)] if args.slope
+                      else [c for c in CASES if c not in set(SLOPE_S0) | WALL_FLUX])
     of.set_runner(args.openfoam)
     store = stored.Store(args.json, "mms")
     store.put_extra("method", {"field": "sin(a x + 0.3) sin(b y + 0.7) sin(c z + 1.1)",
@@ -628,6 +759,8 @@ def main(argv=None) -> dict:
         print("failed: " + json.dumps(failed, indent=1))
     analysis = analyse(store.levels())
     print(table(analysis))
+    if args.slope:
+        print(slope_table(slope_series(store.levels())))
     return analysis
 
 

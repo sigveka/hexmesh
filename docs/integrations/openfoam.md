@@ -587,6 +587,29 @@ All v1912, gmsh 4.12.1, 2026-10-25.
     face flux field phi", reading the written `phi`, and the time
     continues (`Time = 21` after 20).
 
+- **No non-orthogonal correction at a boundary patch, under any
+  condition** (v2406 in Docker, source read in the image; task 0109,
+  2026-11-09).
+  - `basicFvGeometryScheme::nonOrthCorrectionVectors` sets the correction
+    vectors of every non-coupled patch to zero.  Only coupled patches get
+    them.
+  - `fvPatch::delta()` is the normal part of C_f − C_n, so a
+    `fixedValue` wall's snGrad is (T_b − T_c)/(n·d).  The cell centre's
+    tangential offset is ignored, and the gradient error, about
+    tan θ · ∂T/∂t, doesn't shrink with refinement.
+  - No boundary condition can switch the correction on.  Measured
+    effect: the MMS reducer's order falls from 1.27 to 0.95 as its median
+    wall non-orthogonality rises from 3° to 15°
+    (`validation/mms/RESULTS.md`).
+- **`uniformFixedGradient` takes a patch expression with `normal()`**
+  (v2406, task 0109, 2026-11-09).
+  - Example: `uniformGradient { type expression; expression "normal() &
+    vector(…)"; }`, which imposes an exact normal gradient.
+  - With `".*"` and `".*_wall"` both in `boundaryField`, the later
+    pattern wins for the wall: the solved time's `T` shows `body_wall` as
+    `uniformFixedGradient`.
+  - It restores the MMS reducer's order to 1.7–1.85 at every slope.
+
 - **`interpolationSchemes` doesn't reach the `corrected` laplacian's
   non-orthogonal correction; `gradSchemes` does** (v2406 in Docker,
   `laplacianFoam`; task 0074, 2026-11-07).

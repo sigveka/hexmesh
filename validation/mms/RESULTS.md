@@ -19,6 +19,10 @@ _Drawn from `results.json` by `python3 -m validation.tools.plots`; don't edit be
 
 The L2 error of the manufactured solution on every fitting against cell size.
 
+<img src="img/slope.png" width="100%" alt="The reducer's order against its wall non-orthogonality, with the exact-flux control.">
+
+The reducer's order against its wall non-orthogonality, with the exact-flux control.
+
 <!-- graphs:end -->
 
 ## Gate: the error falls with refinement
@@ -179,6 +183,61 @@ The reducer's stations are evenly spaced at every k (neighbour ratio
 - Refinement doesn't stretch the tap's cells, so by design's rule the
   stall at k ≥ 3 isn't a refinement defect of the fitting.  A stopgap
   for users is in `docs/integrations/openfoam.md`.
+
+## Does the order track the wall slope? (task 0109)
+
+The cosine reducer at four constrictions, with 0074's manufactured T,
+schemes and levels (k 1, 2, 4).  Over L = 4 R the wall's largest slope is
+atan(π s0 / 2).  Run with `python3 validation/mms/run.py --slope`; s0 =
+0.4 is 0074's `reducer` again, as `reducer_s040`, and gives its L2 to 13
+digits.
+
+- **Wall non-orthogonality** is OpenFOAM's at a boundary face: the angle
+  between the face normal and the vector from the cell centre to the face
+  centre, over the reducer's wall faces.
+- **The orders** are of the L2 error in the reducer's cells: overall, in
+  the cells with a wall face, and in the rest.
+- **The control** is the same mesh with the exact flux n·∇T_m imposed on
+  the wall (`uniformFixedGradient`, an expression of `normal()`), the
+  ends kept at T_m.  The wall's condition as OpenFOAM read it is stored
+  per level (`wall_bc_applied`).
+
+| s0 | max slope | wall non-orth. median, k 1, 2, 4 | max | L2 in the fitting | order (1→2, 2→4) | at the wall | off the wall | exact-flux control: order | control: at the wall, off it |
+|---|---|---|---|---|---|---|---|---|---|
+| 0.05 | 4.5° | 2.0, 2.7, 3.1 | 2.9, 3.9, 4.4 | 0.00946, 0.00269, 0.00112 | 1.81, 1.27 | 1.92, 1.73 | 1.66, 1.20 | 1.93, 1.80 | 1.97, 1.98; 1.87, 1.77 |
+| 0.1 | 8.9° | 3.6, 5.1, 5.8 | 5.5, 7.4, 8.3 | 0.00854, 0.00261, 0.00116 | 1.71, 1.17 | 1.82, 1.49 | 1.55, 1.11 | 1.90, 1.85 | 1.93, 1.96; 1.88, 1.84 |
+| 0.2 | 17.4° | 5.4, 9.1, 10.9 | 9.9, 13.7, 15.6 | 0.00748, 0.00292, 0.00147 | 1.36, 0.99 | 1.50, 1.06 | 1.19, 0.96 | 1.84, 1.68 | 1.90, 1.83; 1.82, 1.67 |
+| 0.4 | 32.1° | 13.7, 15.6, 15.3 | 39.5, 23.0, 26.5 | 0.00976, 0.00511, 0.00265 | 0.93, 0.95 | 0.94, 0.67 | 0.96, 0.98 | 1.86, 1.84 | 1.87, 1.84; 1.86, 1.84 |
+
+The straight pipe's order, k 2 → 4, is 1.60.
+
+- **The order tracks the wall non-orthogonality.** k 2 → 4, it falls
+  monotonically with the median wall angle: 1.27, 1.17, 0.99, 0.95 at
+  3.1°, 5.8°, 10.9° and 15.3°.  The two largest constrictions sit at
+  first order.
+- **The control recovers it at every constriction:** 1.80, 1.85, 1.68,
+  1.84, the same mesh, no trend with the slope, and above the straight's
+  1.60.  Without the wall's value condition, the error has no first-order
+  part left.
+- **The wall's error spreads inward.** Off the wall the order falls with
+  the angle too (1.20 → 0.98).  The error is not confined to the wall
+  cells.  In the control both halves converge alike.
+- **Why, in v2406's source:** a non-coupled patch's non-orthogonal
+  correction vectors are set to zero (`basicFvGeometryScheme::
+  nonOrthCorrectionVectors`).  The patch delta is the normal part of
+  C_f − C_n (`fvPatch::delta`).  A `fixedValue` wall's snGrad is
+  therefore (T_b − T_c) / (n·d), whatever the tangential offset of the
+  cell centre.  Its error is about tan θ · ∂T/∂t, which doesn't shrink
+  with refinement.
+- **The wall angle isn't the wall slope.** Away from the throat, the
+  near-wall cells' centres sit nearer the wall's normal than the axis, so
+  the angle is below the slope.  At the throat the cells are thin and
+  sheared, so it exceeds it: at s0 = 0.4, k = 1, faces with a 14° slope
+  are 35° non-orthogonal.  The median at s0 = 0.4 doesn't grow with k
+  (13.7°, 15.6°, 15.3°).
+- **The control's errors are larger** (L2 1.7–5.6× the value wall's at each
+  level).  A Neumann wall fixes the flux, not the level.  It is a check
+  on the order, not a better boundary condition for users.
 
 ## gmshToFoam
 

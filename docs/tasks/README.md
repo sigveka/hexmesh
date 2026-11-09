@@ -136,7 +136,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0079](0079-validation-taylor-bubble.md) | Validation: a Taylor bubble rising in stagnant liquid (VOF) | V3 | ready (v2406 runner) | 0012, 0015 |
 | [0099](0099-validation-graphs.md) | Validation results as graphs: convergence, layouts, the stenosis against DNS | docs | done | 0012, 0015, 0036 |
 | [0108](0108-gmshtofoam-inversion-audit.md) | Audit the validation cases for gmshToFoam's silent inversions | V1 | done | 0012 |
-| [0109](0109-mms-wall-slope.md) | MMS: does the order track the wall slope? | V1 | ready (after 0108) | 0012 |
+| [0109](0109-mms-wall-slope.md) | MMS: does the order track the wall slope? | V1 | done | 0012 |
 
 
 ### Order
