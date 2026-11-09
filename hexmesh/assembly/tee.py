@@ -89,7 +89,7 @@ from .blocks import (
     face_patches, face_vertices,
 )
 from .duct_tap import TapTemplate
-from .interface import Frame, junction_roll, junction_toward, outer_radius, rolled
+from .interface import Frame, junction_roll, junction_toward, lean, outer_radius, rolled
 from .junction_quality import TAP_HINT, TEE_BLOCKS, TEE_HINT, nonorth_tiers, predicted_angle
 from .limits import PREDICTED_SJ_MIN, PREDICTED_SJ_WARN, TEE_MAX_OFFSET_RATIO, TEE_MAX_RATIO
 from .projection import Tube, TubeUnion
@@ -135,15 +135,6 @@ def tee_wall(o, ex, ez, R: float, r: float, ob=None) -> TubeUnion:
     projector (decision 0029)."""
     return TubeUnion([Tube(tuple(o), tuple(ex), R, ray=False),
                       Tube(tuple(o if ob is None else ob), tuple(ez), r)])
-
-
-def lean(angle: float) -> tuple[float, float]:
-    """``(cos α, sin α)`` of a branch angle in degrees, exact at 90°, so a
-    perpendicular tee's coordinates are bit-identical to before task 0060."""
-    if angle == 90:
-        return 0.0, 1.0
-    a = math.radians(angle)
-    return math.cos(a), math.sin(a)
 
 
 def saddle_point(R: float, r: float, ca: float, sa: float, phi: float, hy: float = 0.0):

@@ -91,8 +91,15 @@ class Line:
 
 @dataclass(frozen=True)
 class ArcAbout:
-    """Circular arc about *centre* (must be equidistant from both ends)."""
+    """Circular arc about *centre* (must be equidistant from both ends).
+
+    *stretch* ``(b, s)`` makes it that arc's image under a stretch by ``s``
+    along the unit vector ``b`` about *centre*: an exact ellipse arc
+    (``_occ.conic_arc``), e.g. a cylinder's oblique
+    cut (a shoe tap's hole, task 0063).  The ends must then be equidistant
+    from *centre* once unstretched."""
     centre: tuple
+    stretch: tuple | None = None
 
 
 @dataclass(frozen=True)
@@ -529,7 +536,7 @@ class BlockLayout:
             pa, pb = self._point(e.a), self._point(e.b)
             if isinstance(e.geom, ArcAbout):
                 c = geo.addPoint(*e.geom.centre)
-                e.tag = _occ.circle_arc(pa, c, pb)
+                e.tag = _occ.conic_arc(pa, c, pb, e.geom.centre, e.geom.stretch)
                 _occ.discard(c)
             elif isinstance(e.geom, Spline):
                 mids = [geo.addPoint(*p) for p in e.geom.points]
@@ -550,6 +557,11 @@ class BlockLayout:
             curves = [self._curve(cyc[i], cyc[(i + 1) % 4]) for i in range(4)]
             loop = geo.addCurveLoop(curves)
             types = [_occ.kind(c) for c in curves]
+            # a stretched arc is a conic B-spline; ruled to an arc whose
+            # parameter matches (a cylinder's oblique cut) it is still the
+            # exact cylinder, to 2e-15 R (task 0063)
+            types = ["Circle" if self._arc(cyc[i], cyc[(i + 1) % 4]) else kind
+                     for i, kind in enumerate(types)]
             straight = all(t == "Line" for t in types)
             if straight and self._coplanar(cyc):
                 self.faces[k] = geo.addPlaneSurface([loop])
@@ -587,10 +599,13 @@ class BlockLayout:
         t = np.linspace(0.0, 1.0, n)
         if isinstance(e.geom, ArcAbout):
             c = np.asarray(e.geom.centre, dtype=float)
-            va, vb = pa - c, pb - c
+            b, s = e.geom.stretch or ((1.0, 0.0, 0.0), 1.0)
+            b = np.asarray(b, dtype=float)
+            va, vb = (v - (1.0 - 1.0 / s) * b * float(v @ b) for v in (pa - c, pb - c))
             th = math.acos(np.clip(va @ vb / (np.linalg.norm(va) * np.linalg.norm(vb)), -1, 1))
-            pts = c + (np.outer(np.sin((1 - t) * th), va)
-                       + np.outer(np.sin(t * th), vb)) / math.sin(th)
+            pts = (np.outer(np.sin((1 - t) * th), va)
+                   + np.outer(np.sin(t * th), vb)) / math.sin(th)
+            pts = c + pts + (s - 1.0) * np.outer(pts @ b, b)
         elif isinstance(e.geom, (Spline, Polyline)):
             ctl = np.vstack([pa, np.asarray(e.geom.points, dtype=float), pb])
             s = np.concatenate([[0.0], np.cumsum(np.linalg.norm(np.diff(ctl, axis=0), axis=1))])
@@ -627,6 +642,11 @@ class BlockLayout:
         for t_ in tags:
             _occ.discard(t_)
         return tag
+
+    def _arc(self, a, b) -> bool:
+        """Edge a–b is declared a stretched arc."""
+        e = self.edges.get(_key(a, b))
+        return e is not None and isinstance(e.geom, ArcAbout) and e.geom.stretch is not None
 
     @staticmethod
     def _ruled_cylinder(types) -> bool:

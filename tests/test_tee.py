@@ -352,15 +352,6 @@ def test_branch_ratio_cut_off(ratio, code, hint):
     _tee_asm(0.95)[0].validate()                 # at the cut-off: accepted
 
 
-def test_duct_tap_rejects_a_lean():
-    spec = PipeSpec(nang=4).core("air", RectShape(half_w=0.1, half_h=0.05, nang_w=4, nang_h=2))
-    asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1], lc=0.05)
-    with pytest.raises(AssemblyError) as e:
-        asm.add(Tee(branch_length=0.2, branch=RectShape(half_w=0.02, half_h=0.02, nang_w=4,
-                                                        nang_h=2), angle=45))
-    assert e.value.code == "angle_on_duct_tap"
-
-
 def test_duct_tap_rejects_an_offset():
     spec = PipeSpec(nang=4).core("air", RectShape(half_w=0.1, half_h=0.05, nang_w=4, nang_h=2))
     asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1], lc=0.05)

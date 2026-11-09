@@ -708,8 +708,8 @@ a block layout.
   r/R 0.9). The meshed SJ equals the prediction at these edges (to 1e-3).
   A lateral's rejection or warning names the smallest r/R that reaches
   the tier at its angle (`Tee.smallest_ratio`). A branch leaning upstream is the same lateral
-  with the run reversed. Duct taps reject `angle` (`angle_on_duct_tap`;
-  shoe taps are task 0063) and `offset` (`offset_on_duct_tap`).
+  with the run reversed. On a duct tap `angle` makes a shoe tap (below);
+  duct taps reject `offset` (`offset_on_duct_tap`).
 - **Offset taps** (decision 0031, task 0061). `offset` (a length, default
   0) moves the branch axis off the main axis by h, along the main's
   `right` after the roll: an offset set-on. The saddle is the exact
@@ -822,6 +822,27 @@ a block layout.
     cells, naming the fitting: one warning, not two. A narrow-face tap on a duct of
     aspect ≥ `limits.DUCT_TAP_NARROW_ASPECT_WARN` (3) warns and suggests
     the wide face (min SJ about 0.13, non-orthogonality up to 82°).
+  - **Shoe taps** (decision 0031 stage 4, task 0063). `angle` α in (0, 90]
+    leans the branch downstream, its axis through the main's axis point
+    as a lateral's. Every tap kind takes it: rectangular, round,
+    full-width, either face, an H main. The hole is the branch section cut
+    by the face: stretched by 1/sin α along the main and centred b·cot α
+    downstream, where b is the face's distance from the axis (an exact
+    ellipse for a round branch). Inside the main the layout is the
+    perpendicular one on that hole; the branch run leans, so every wall
+    stays exact (planes, and the cylinder, to 1e-15). The room checks
+    measure the hole's acute end:
+    - `branch_length` must exceed (b + p·cos α)/sin α, p being the branch's
+      reach along the main; for a full-width tap, half its smaller
+      half-extent more (the turning station);
+    - `run_length` must exceed the hole's far end along the main plus the
+      station margin. `run_length=None` resolves it.
+    Measured on a 2:1 duct, wide face, reach 0.3 and 0.6 of the face
+    (`validation/tools/duct_shoe.py`): pillowed rectangular and round shoes
+    keep min SJ ≥ 0.34 down to 45° (0.37–0.43 at 90°); at 30° the branch
+    run's acute edge sets 0.22, so they warn. Full-width shoes fall faster:
+    0.22–0.29 at 45° and 0.13–0.16 at 30° (warn). Their tier messages name
+    a larger angle.
   - **On an H main** (task 0086). The junction's blocks stay O-H: the
     main's rectangle pillowed into an O-H face with a ring of `nrad`
     cells, and a `Switch` leg at each H port, the main's two and a
@@ -1515,7 +1536,6 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `advice_wall_function_unsupported` | wall functions asked of advise (they wait for task 0049) | `AdviceError` |
 | `agent_input_type` | an agent function given something other than an Assembly or its description | `AssemblyTypeError` |
 | `angle_looks_like_radians` | a fitting angle so small it was probably given in radians (warning) | `HexmeshWarning` |
-| `angle_on_duct_tap` | a Tee angle other than 90 on a duct tap | `AssemblyError` |
 | `angle_out_of_range` | a bend or wye angle outside its open range | `AssemblyError` |
 | `argument_missing` | a required fitting argument is missing | `AssemblyTypeError` |
 | `assembly_already_built` | fittings added or changed after the assembly was built | `AssemblyError` |

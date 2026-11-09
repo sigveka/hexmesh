@@ -1,0 +1,307 @@
+{
+ "rect-r0.3-a30": {
+  "run_length": 0.2266,
+  "predicted_min_sj": 0.2236,
+  "predicted_min_sj_where": "the branch run",
+  "predicted_nonorth": 69.99,
+  "predicted_nonorth_where": "the dome under the hole",
+  "warnings": [
+   "fitting_quality_warning"
+  ],
+  "cells": 1664,
+  "meshed_min_sj": 0.2236,
+  "meshed_nonorth": 69.99,
+  "seconds": 0.7
+ },
+ "rect-r0.3-a45": {
+  "run_length": 0.17243,
+  "predicted_min_sj": 0.4006,
+  "predicted_min_sj_where": "the dome under the hole",
+  "predicted_nonorth": 59.76,
+  "predicted_nonorth_where": "the dome under the hole",
+  "warnings": [],
+  "cells": 1792,
+  "meshed_min_sj": 0.4006,
+  "meshed_nonorth": 59.76,
+  "seconds": 0.7
+ },
+ "rect-r0.3-a60": {
+  "run_length": 0.14351,
+  "predicted_min_sj": 0.4039,
+  "predicted_min_sj_where": "the dome under the hole",
+  "predicted_nonorth": 59.52,
+  "predicted_nonorth_where": "the dome under the hole",
+  "warnings": [],
+  "cells": 1920,
+  "meshed_min_sj": 0.4039,
+  "meshed_nonorth": 59.52,
+  "seconds": 0.7
+ },
+ "rect-r0.3-a90": {
+  "run_length": 0.11,
+  "predicted_min_sj": 0.4174,
+  "predicted_min_sj_where": "the dome under the hole",
+  "predicted_nonorth": 58.51,
+  "predicted_nonorth_where": "the dome under the hole",
+  "warnings": [],
+  "cells": 1920,
+  "meshed_min_sj": 0.4174,
+  "meshed_nonorth": 58.51,
+  "seconds": 0.7
+ },
+ "rect-r0.6-a30": {
+  "run_length": 0.2866,
+  "predicted_min_sj": 0.2236,
+  "predicted_min_sj_where": "the branch run",
+  "predicted_nonorth": 72.33,
+  "predicted_nonorth_where": "the dome under the hole",
+  "warnings": [
+   "fitting_quality_warning"
+  ],
+  "cells": 1664,
+  "meshed_min_sj": 0.2236,
+  "meshed_nonorth": 72.33,
+  "seconds": 0.7
+ },
+ "rect-r0.6-a45": {
+  "run_length": 0.21485,
+  "predicted_min_sj": 0.3431,
+  "predicted_min_sj_where": "the dome under the hole",
+  "predicted_nonorth": 64.03,
+  "predicted_nonorth_where": "the dome under the hole",
+  "warnings": [],
+  "cells": 1664,
+  "meshed_min_sj": 0.3431,
+  "meshed_nonorth": 64.03,
+  "seconds": 0.6
+ },
+ "rect-r0.6-a60": {
+  "run_length": 0.17815,
+  "predicted_min_sj": 0.3519,
+  "predicted_min_sj_where": "the dome under the hole",
+  "predicted_nonorth": 63.38,
+  "predicted_nonorth_where": "the dome under the hole",
+  "warnings": [],
+  "cells": 1664,
+  "meshed_min_sj": 0.3519,
+  "meshed_nonorth": 63.38,
+  "seconds": 0.7
+ },
+ "rect-r0.6-a90": {
+  "run_length": 0.14,
+  "predicted_min_sj": 0.3729,
+  "predicted_min_sj_where": "the dome under the hole",
+  "predicted_nonorth": 61.81,
+  "predicted_nonorth_where": "the dome under the hole",
+  "warnings": [],
+  "cells": 1664,
+  "meshed_min_sj": 0.3729,
+  "meshed_nonorth": 61.81,
+  "seconds": 0.6
+ },
+ "round-r0.3-a30": {
+  "run_length": 0.2266,
+  "predicted_min_sj": 0.2236,
+  "predicted_min_sj_where": "the branch run",
+  "predicted_nonorth": 66.54,
+  "predicted_nonorth_where": "the dome under the hole",
+  "warnings": [
+   "meshed_sj_low"
+  ],
+  "cells": 1664,
+  "meshed_min_sj": 0.2236,
+  "meshed_nonorth": 66.54,
+  "seconds": 1.2
+ },
+ "round-r0.3-a45": {
+  "run_length": 0.17243,
+  "predicted_min_sj": 0.4082,
+  "predicted_min_sj_where": "the branch run",
+  "predicted_nonorth": 58.64,
+  "predicted_nonorth_where": "the dome under the hole",
+  "warnings": [],
+  "cells": 2048,
+  "meshed_min_sj": 0.4082,
+  "meshed_nonorth": 58.64,
+  "seconds": 0.9
+ },
+ "round-r0.3-a60": {
+  "run_length": 0.14351,
+  "predicted_min_sj": 0.4262,
+  "predicted_min_sj_where": "the dome under the hole",
+  "predicted_nonorth": 57.87,
+  "predicted_nonorth_where": "the dome under the hole",
+  "warnings": [],
+  "cells": 2176,
+  "meshed_min_sj": 0.4262,
+  "meshed_nonorth": 57.87,
+  "seconds": 1.0
+ },
+ "round-r0.3-a90": {
+  "run_length": 0.11,
+  "predicted_min_sj": 0.4325,
+  "predicted_min_sj_where": "the dome under the hole",
+  "predicted_nonorth": 57.4,
+  "predicted_nonorth_where": "the dome under the hole",
+  "warnings": [],
+  "cells": 2304,
+  "meshed_min_sj": 0.4325,
+  "meshed_nonorth": 57.4,
+  "seconds": 0.9
+ },
+ "round-r0.6-a30": {
+  "run_length": 0.2866,
+  "predicted_min_sj": 0.2236,
+  "predicted_min_sj_where": "the branch run",
+  "predicted_nonorth": 72.78,
+  "predicted_nonorth_where": "the dome under the hole",
+  "warnings": [
+   "fitting_quality_warning",
+   "meshed_sj_low"
+  ],
+  "cells": 1664,
+  "meshed_min_sj": 0.1305,
+  "meshed_nonorth": 76.4,
+  "seconds": 0.9
+ },
+ "round-r0.6-a45": {
+  "run_length": 0.21485,
+  "predicted_min_sj": 0.4082,
+  "predicted_min_sj_where": "the branch run",
+  "predicted_nonorth": 57.61,
+  "predicted_nonorth_where": "the dome under the hole",
+  "warnings": [],
+  "cells": 1664,
+  "meshed_min_sj": 0.4082,
+  "meshed_nonorth": 57.61,
+  "seconds": 0.9
+ },
+ "round-r0.6-a60": {
+  "run_length": 0.17815,
+  "predicted_min_sj": 0.4054,
+  "predicted_min_sj_where": "the ring around the hole",
+  "predicted_nonorth": 55.56,
+  "predicted_nonorth_where": "the dome under the hole",
+  "warnings": [],
+  "cells": 1664,
+  "meshed_min_sj": 0.4054,
+  "meshed_nonorth": 55.56,
+  "seconds": 0.9
+ },
+ "round-r0.6-a90": {
+  "run_length": 0.14,
+  "predicted_min_sj": 0.4044,
+  "predicted_min_sj_where": "the ring around the hole",
+  "predicted_nonorth": 59.31,
+  "predicted_nonorth_where": "the dome under the hole",
+  "warnings": [],
+  "cells": 1792,
+  "meshed_min_sj": 0.4044,
+  "meshed_nonorth": 59.31,
+  "seconds": 0.9
+ },
+ "full-r0.3-a30": {
+  "run_length": 0.1716,
+  "predicted_min_sj": 0.1335,
+  "predicted_min_sj_where": "the main's core under the hole",
+  "predicted_nonorth": 75.78,
+  "predicted_nonorth_where": "the block between stations Sd, Z",
+  "warnings": [
+   "fitting_quality_warning"
+  ],
+  "cells": 1104,
+  "meshed_min_sj": 0.1335,
+  "meshed_nonorth": 75.39,
+  "seconds": 0.5
+ },
+ "full-r0.3-a45": {
+  "run_length": 0.11743,
+  "predicted_min_sj": 0.2188,
+  "predicted_min_sj_where": "the main's core under the hole",
+  "predicted_nonorth": 70.18,
+  "predicted_nonorth_where": "the block between stations Sd, Z",
+  "warnings": [
+   "fitting_quality_warning"
+  ],
+  "cells": 1104,
+  "meshed_min_sj": 0.2188,
+  "meshed_nonorth": 70.13,
+  "seconds": 0.5
+ },
+ "full-r0.3-a60": {
+  "run_length": 0.08851,
+  "predicted_min_sj": 0.3155,
+  "predicted_min_sj_where": "the block between stations Sd, Z",
+  "predicted_nonorth": 65.18,
+  "predicted_nonorth_where": "the block between stations Sd, Z",
+  "warnings": [],
+  "cells": 1104,
+  "meshed_min_sj": 0.3155,
+  "meshed_nonorth": 65.15,
+  "seconds": 0.5
+ },
+ "full-r0.3-a90": {
+  "run_length": 0.055,
+  "predicted_min_sj": 0.4031,
+  "predicted_min_sj_where": "the block between stations Sd, Z",
+  "predicted_nonorth": 57.73,
+  "predicted_nonorth_where": "the block between stations Sd, Z",
+  "warnings": [],
+  "cells": 1104,
+  "meshed_min_sj": 0.4031,
+  "meshed_nonorth": 57.71,
+  "seconds": 0.4
+ },
+ "full-r0.6-a30": {
+  "run_length": 0.2316,
+  "predicted_min_sj": 0.1625,
+  "predicted_min_sj_where": "the main's core under the hole",
+  "predicted_nonorth": 70.52,
+  "predicted_nonorth_where": "the departure run",
+  "warnings": [
+   "fitting_quality_warning"
+  ],
+  "cells": 1104,
+  "meshed_min_sj": 0.1625,
+  "meshed_nonorth": 73.43,
+  "seconds": 0.5
+ },
+ "full-r0.6-a45": {
+  "run_length": 0.15985,
+  "predicted_min_sj": 0.2887,
+  "predicted_min_sj_where": "the block between stations Sd, Z",
+  "predicted_nonorth": 63.89,
+  "predicted_nonorth_where": "the departure run",
+  "warnings": [
+   "fitting_quality_warning"
+  ],
+  "cells": 1104,
+  "meshed_min_sj": 0.2887,
+  "meshed_nonorth": 62.39,
+  "seconds": 0.5
+ },
+ "full-r0.6-a60": {
+  "run_length": 0.12315,
+  "predicted_min_sj": 0.4088,
+  "predicted_min_sj_where": "the main's core under the hole",
+  "predicted_nonorth": 57.79,
+  "predicted_nonorth_where": "the departure run",
+  "warnings": [],
+  "cells": 1104,
+  "meshed_min_sj": 0.4088,
+  "meshed_nonorth": 57.52,
+  "seconds": 0.5
+ },
+ "full-r0.6-a90": {
+  "run_length": 0.085,
+  "predicted_min_sj": 0.5774,
+  "predicted_min_sj_where": "the departure run",
+  "predicted_nonorth": 49.05,
+  "predicted_nonorth_where": "the departure run",
+  "warnings": [],
+  "cells": 1104,
+  "meshed_min_sj": 0.5774,
+  "meshed_nonorth": 49.05,
+  "seconds": 0.4
+ }
+}

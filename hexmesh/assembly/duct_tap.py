@@ -50,6 +50,17 @@ Counts: opposite block edges share counts, so the branch has the main's
 counts per side (a class-0 port): its frame is turned so that its count
 across the main is the main's across count; along the main it carries the
 junction's axial count.
+
+Shoe taps (decision 0031 stage 4, task 0063)
+--------------------------------------------
+``angle`` α leans the branch axis d = cos α x + sin α z, through the
+axis point o, as a pipe lateral's.  The hole is the branch section cut by
+the face: stretched by 1/sin α along x about its centre x = b cot α (a
+rectangle, or an exact ellipse, ``ArcAbout(stretch=…)``).  Everything
+inside the main is the perpendicular layout on that stretched hole; only
+the branch run W → E leans, its edges along d, so its walls are exact
+(planes, or the cylinder ruled between the ellipse and the port's arcs).
+At 90° every coordinate is computed as before, bit for bit.
 """
 
 from __future__ import annotations
@@ -65,7 +76,7 @@ from ..core.spec import PipeSpec
 from ..sections import h, oh
 from . import limits
 from .blocks import ArcAbout, BlockLayout, LayoutError, bind_face, face_patches, face_vertices
-from .interface import Frame
+from .interface import Frame, lean
 from .limits import PREDICTED_SJ_MIN, PREDICTED_SJ_WARN
 
 _LABS = ((1, 1), (-1, 1), (-1, -1), (1, -1))       # CCW in the (first, second) plane
@@ -103,6 +114,7 @@ class DuctTap:
     radius: float | None = None
     face:   str = "wide"
     side:   int = 1
+    angle:  float = 90.0    # the branch's lean from the main's downstream direction
     n_run:    int = 3
     n_branch: int = 3
     n_turn:   int = 2       # FullWidthTap's turn blocks
@@ -150,6 +162,13 @@ class DuctTap:
         o = inlet.position + self.run_length * ex
         return o, ex, ey, ez, a, b, on_U
 
+    def _lean(self, ex, ez, b: float):
+        """(d, u, k, xc): the branch axis, the branch section's direction
+        along the main, the hole's stretch 1/sin α along x and its centre
+        on the face, x = b cot α (task 0063)."""
+        ca, sa = lean(self.angle)
+        return ca * ex + sa * ez, sa * ex - ca * ez, 1.0 / sa, b * ca / sa
+
     def _hole(self):
         if self.radius is not None:
             r = self.radius / math.sqrt(2)
@@ -159,10 +178,11 @@ class DuctTap:
     def branch(self, inlet: Frame, spec: PipeSpec):
         """(frame, spec) of the branch port: the main's counts per side."""
         o, ex, ey, ez, a, b, on_U = self._basis(inlet, spec)
+        d, u, *_ = self._lean(ex, ez, b)
         sh = spec.core_shape
         # across ∥ R (main nang_w) when the tap is on a U face
-        up = ex if on_U else ey
-        frame = Frame(o + self.branch_length * ez, ez, up)
+        up = u if on_U else ey
+        frame = Frame(o + self.branch_length * d, d, up)
         if self.radius is not None:
             shape = CircleShape(radius=self.radius, nang=sh.nang_w)
             out = PipeSpec(nang=sh.nang_w)
@@ -186,7 +206,9 @@ class DuctTap:
         sh = spec.core_shape
         t = oh.ring_thickness(a, b)
         iw, ih = a - t, b - t
-        extent = self.radius if self.radius is not None else p   # the hole's reach along x
+        _, u, kx, xc = self._lean(ex, ez, b)
+        # the hole's reach along x from its centre xc
+        extent = (self.radius if self.radius is not None else p) * kx
         s = extent + self.margin * t
         name = spec.layer_names[0]
         bframe, bspec = self.branch(frames[0], spec)
@@ -195,7 +217,7 @@ class DuctTap:
             return o + x * ex + y * ey + z * ez
 
         reach = self.radius if self.radius is not None else q     # across
-        if not (0 < reach < a and s < self.run_length):
+        if not (0 < reach < a and abs(xc) + s < self.run_length):
             raise LayoutError(f"tap does not fit: q {q:.4g} vs a {a:.4g}, s {s:.4g}",
                               code="tap_does_not_fit", value=float(q), limit={"max": float(a)})
 
@@ -205,7 +227,7 @@ class DuctTap:
         face_vertices(lay, "E", frames[2], bspec)
         mapA = _label_map(lay, "A", frames[0].position, ey, ez)
         mapB = _label_map(lay, "B", frames[1].position, ey, ez)
-        mapE = _label_map(lay, "E", frames[2].position, ex, ey)
+        mapE = _label_map(lay, "E", frames[2].position, u, ey)
         # counts by canonical direction: across (y) and deep (z)
         n_y = sh.nang_w if on_U else sh.nang_h
         n_z = sh.nang_h if on_U else sh.nang_w
@@ -213,7 +235,7 @@ class DuctTap:
         nrad = spec._core_nrad
 
         # Stations: ids by canonical (sy, sz).
-        for X, x in (("Sa", -s), ("Sd", s)):
+        for X, x in (("Sa", xc - s), ("Sd", xc + s)):
             for (sy, sz) in _LABS:
                 lay.vertex((X, 0, (sy, sz)), P(x, sy * iw, sz * ih))
                 lay.vertex((X, 1, (sy, sz)), P(x, sy * a, sz * b))
@@ -261,13 +283,15 @@ class DuctTap:
         lev = {"W": (b, 1.0, 1.0), "C": (ih, fc, f), "D": (zd, 0.85 * fc, 0.85 * f)}
         for Y, (z, fx, fy) in lev.items():
             for (sx, sy) in _LABS:
-                lay.vertex((Y, 1, (sx, sy)), P(sx * p * fx, sy * q * fy, z))
+                lay.vertex((Y, 1, (sx, sy)), P(xc + sx * p * fx * kx, sy * q * fy, z))
                 zz = zdc if Y == "D" else z
-                lay.vertex((Y, 0, (sx, sy)), P(sx * pc * fx, sy * qc * fy, zz))
+                lay.vertex((Y, 0, (sx, sy)), P(xc + sx * pc * fx * kx, sy * qc * fy, zz))
         if self.radius is not None:       # hole outline arcs on the wall and at the core top
+            stretch = None if kx == 1 else (tuple(ex), kx)   # a shoe's: ellipse arcs
             for Y, z in (("W", b), ("C", ih)):
                 for i, l0 in enumerate(_LABS):
-                    lay.edge((Y, 1, l0), (Y, 1, _LABS[(i + 1) % 4]), ArcAbout(tuple(P(0, 0, z))))
+                    lay.edge((Y, 1, l0), (Y, 1, _LABS[(i + 1) % 4]),
+                             ArcAbout(tuple(P(xc, 0, z)), stretch))
                     lay.edge((Y, 0, l0), (Y, 0, _LABS[(i + 1) % 4]))
 
         W = lambda r, sx, sy: ("W", r, (sx, sy))
@@ -333,10 +357,11 @@ class DuctTap:
         a, b = (sh.half_w, sh.half_h) if on_U else (sh.half_h, sh.half_w)
         t = oh.ring_thickness(a, b)
         p, _ = self._hole()
-        extent = self.radius if self.radius is not None else p
+        k = 1.0 / lean(self.angle)[1]                  # a shoe's hole is stretched along x
+        extent = (self.radius if self.radius is not None else p) * k
         n_y, n_z = (sh.nang_w, sh.nang_h) if on_U else (sh.nang_h, sh.nang_w)
         n_j = n_z if self.radius is None else n_y
-        return max(2, math.ceil(n_j * (extent + self.margin * t - p) / (2 * p) - 1e-9))
+        return max(2, math.ceil(n_j * (extent + self.margin * t - p * k) / (2 * p * k) - 1e-9))
 
     def predicted_sj(self, frames: list[Frame], spec: PipeSpec) -> float:
         return float(self.layout(frames, spec).corner_jacobians().min())
@@ -356,10 +381,12 @@ class FullWidthTap(DuctTap):
         return self
 
     def turning_height(self, b: float) -> float:
-        """Above the axis: the face plus half the branch's smaller
-        half-extent (the pipe tee's R + r/2)."""
+        """Along the branch axis from o: the hole's farthest point, (b + p
+        cos α) / sin α (the face b when perpendicular), plus half the
+        branch's smaller half-extent (the pipe tee's R + r/2)."""
         p, q = self._hole()
-        return b + 0.5 * min(p, q)
+        ca, sa = lean(self.angle)
+        return (b + p * ca) / sa + 0.5 * min(p, q)
 
     def layout(self, frames: list[Frame], spec: PipeSpec) -> BlockLayout:
         o, ex, ey, ez, a, b, on_U = self._basis(frames[0], spec)
@@ -367,15 +394,17 @@ class FullWidthTap(DuctTap):
         sh = spec.core_shape
         t = oh.ring_thickness(a, b)
         iw, ih = a - t, b - t
+        d, u, kx, xc = self._lean(ex, ez, b)
+        pk = p * kx                                  # the hole's half-length along x
         # The stations' level-0 corners: the main's inner rectangle across,
         # inset min(t, p/2) from the hole along; the branch core tapers from
         # there to the branch's own inner rectangle at Z.  The branch's inset
         # instead (as the pipe tee) gives min SJ 0.06 for short taps, task 0057.
-        cx = p - min(t, p / 2)
+        cx = pk - min(t, pk / 2)
         z1 = self.turning_height(b)
         name = spec.layer_names[0]
         bframe, bspec = self.branch(frames[0], spec)
-        if not (p < self.run_length and z1 < self.branch_length):
+        if not (abs(xc) + pk < self.run_length and z1 < self.branch_length):
             raise LayoutError(f"tap does not fit: p {p:.4g} vs run {self.run_length:.4g}, "
                               f"turning height {z1:.4g} vs branch {self.branch_length:.4g}",
                               code="tap_does_not_fit", value=float(p),
@@ -388,21 +417,25 @@ class FullWidthTap(DuctTap):
         face_vertices(lay, "A", frames[0], spec)
         face_vertices(lay, "B", frames[1], spec)
         face_vertices(lay, "E", frames[2], bspec)
-        Z = Frame(o + z1 * ez, ez, bframe.up)
+        Z = Frame(o + z1 * d, d, bframe.up)
         face_vertices(lay, "Z", Z, bspec, port=False)
         mapA = _label_map(lay, "A", frames[0].position, ey, ez)
         mapB = _label_map(lay, "B", frames[1].position, ey, ez)
-        mapE = _label_map(lay, "E", frames[2].position, ex, ey)
-        mapZ = _label_map(lay, "Z", Z.position, ex, ey)
+        mapE = _label_map(lay, "E", frames[2].position, u, ey)
+        mapZ = _label_map(lay, "Z", Z.position, u, ey)
         n_y = sh.nang_w if on_U else sh.nang_h
         n_z = sh.nang_h if on_U else sh.nang_w       # also the branch's count along x
         nrad = spec._core_nrad
 
-        # Stations at x = ∓p: ids by canonical (sy, sz).
+        # Stations at the hole's ends x = xc ∓ p k: ids by canonical (sy, sz).
+        # A shoe's core-top corners centre on the branch axis at z = ih, so
+        # the turn blocks lean with it (centred on the hole they fold at 45°).
+        x_top = ih * (xc / b)
         for X, sx in (("Sa", -1), ("Sd", 1)):
             for (sy, sz) in _LABS:
-                lay.vertex((X, 0, (sy, sz)), P(sx * cx, sy * iw, sz * ih))
-                lay.vertex((X, 1, (sy, sz)), P(sx * p, sy * a, sz * b))
+                lay.vertex((X, 0, (sy, sz)), P((x_top if sz > 0 else xc) + sx * cx, sy * iw,
+                                               sz * ih))
+                lay.vertex((X, 1, (sy, sz)), P(xc + sx * pk, sy * a, sz * b))
             for i, l0 in enumerate(_LABS):
                 l1 = _LABS[(i + 1) % 4]
                 n = n_y if l0[1] == l1[1] else n_z
@@ -515,15 +548,32 @@ class TapTemplate:
         if self.full_width(spec):
             return FullWidthTap(run_length=tee.run_length, branch_length=tee.branch_length,
                                 along=along, across=across, face=tee.face or "wide",
-                                side=side, n_run=tee.n_run, n_branch=tee.n_branch,
-                                n_turn=tee.n_turn)
+                                side=side, angle=tee.angle, n_run=tee.n_run,
+                                n_branch=tee.n_branch, n_turn=tee.n_turn)
         kw = {k: getattr(tee, k) for k in _TUNABLES}
         kw.update(tuning)
         return DuctTap(run_length=tee.run_length, branch_length=tee.branch_length,
                        along=along, across=across,
                        radius=tee.branch.max_extent if tee.branch.is_round else None,
-                       face=tee.face or "wide", side=side, n_run=tee.n_run,
+                       face=tee.face or "wide", side=side, angle=tee.angle, n_run=tee.n_run,
                        n_branch=tee.n_branch, **kw)
+
+    def shoe(self, b: float) -> tuple[float, float, float, float]:
+        """(cos α, sin α, k, xc) of the tee's angle on a face at *b*: the
+        hole's stretch k = 1/sin α along the main and its centre xc = b cot α
+        (task 0063; ``DuctTap._lean``)."""
+        ca, sa = lean(self.tee.angle)
+        return ca, sa, 1.0 / sa, b * ca / sa
+
+    def _check_angle(self) -> None:
+        angle = self.tee.angle
+        if not 0 < angle <= 90:
+            raise AssemblyError(f"Tee: angle {angle:g}° must be in (0, 90]: the angle from "
+                                f"the main's downstream direction to the branch",
+                                code="tee_angle_out_of_range", where={"field": "angle"},
+                                value=angle, limit={"min_exclusive": 0, "max": 90},
+                                hint="a branch leaning upstream is the same shoe with the "
+                                     "main reversed")
 
     def meshed_sj_check(self) -> bool:
         """Round taps: their prediction (from straight block edges)
@@ -547,6 +597,7 @@ class TapTemplate:
                                 hint="branch=RectShape(…) or CircleShape(…)")
         tee = replace(tee, face=tee.face or "wide")
         me = TapTemplate(tee)
+        me._check_angle()
         if spec.layout == "h":
             return me._resolve_h(inlet, spec)
         if tee.nrad is not None or tee.mprg is not None:
@@ -561,13 +612,15 @@ class TapTemplate:
                                     code="full_width_tap_tunables", where={"field": tuning[0]})
             if tee.run_length is None:
                 _, a, b, along, *_ = me.geometry(spec)
-                tee = replace(tee, run_length=along + FULL_WIDTH_RUN * min(a, b))
+                _, _, k, xc = me.shoe(b)
+                tee = replace(tee, run_length=along * k + abs(xc) + FULL_WIDTH_RUN * min(a, b))
             TapTemplate(tee).check(spec)
             return tee
         if tee.run_length is None:
             on_U, a, b, *_, reach_x, _ = me.geometry(spec)
             t = oh.ring_thickness(a, b)
-            run = reach_x + (max(DuctTap.TUNING["margin"]) + 1) * t
+            _, _, k, xc = me.shoe(b)
+            run = reach_x * k + abs(xc) + (max(DuctTap.TUNING["margin"]) + 1) * t
             tee = replace(tee, run_length=run)
         me = TapTemplate(tee)
         me.check(spec, tuned=False)
@@ -577,11 +630,7 @@ class TapTemplate:
 
     def check(self, spec: PipeSpec, tuned: bool = True) -> None:
         tee = self.tee
-        if tee.angle != 90:
-            raise AssemblyError("Tee: angle= is for pipe tees; a duct tap's branch is "
-                                "perpendicular (shoe taps are task 0063)",
-                                code="angle_on_duct_tap", where={"field": "angle"},
-                                value=tee.angle, limit=90)
+        self._check_angle()
         if tee.offset != 0:
             raise AssemblyError("Tee: offset= is for pipe tees; a duct tap's branch is "
                                 "centred on its face (ducts are task 0063)",
@@ -642,20 +691,31 @@ class TapTemplate:
         face = tee.face or "wide"
         ratio = reach_y / a
         t = oh.ring_thickness(a, b)
+        ca, sa, k, xc = self.shoe(b)
+        shoe = tee.angle != 90
         if full:
-            z1 = b + 0.5 * min(along, across)
-            if tee.run_length <= along:
+            z1 = (b + along * ca) / sa + 0.5 * min(along, across)
+            reach = abs(xc) + along * k
+            if tee.run_length <= reach:
+                what = ("half-length along the main" if not shoe else
+                        "hole's far end along the main (the shoe's hole is stretched by "
+                        "1/sin α, its centre b cot α downstream)")
                 raise AssemblyError(f"Tee: run_length must exceed the full-width tap's "
-                                    f"half-length along the main, {along:.4g}",
+                                    f"{what}, {reach:.4g}",
                                     code="run_length_too_short", where={"field": "run_length"},
-                                    value=tee.run_length, limit={"min_exclusive": float(along)})
+                                    value=tee.run_length, limit={"min_exclusive": float(reach)},
+                                    hint=f"run_length > {reach:.4g}, or run_length=None to "
+                                         f"resolve it")
             if tee.branch_length <= z1:
+                where = "height" if not shoe else "distance along the branch axis"
                 raise AssemblyError(f"Tee: branch_length must exceed the turning station's "
-                                    f"height {z1:.4g} (the {face} face at {b:.4g} plus half "
+                                    f"{where} {z1:.4g} (the {face} face at {b:.4g}"
+                                    f"{', at the hole’s acute end' if shoe else ''} plus half "
                                     f"the branch's smaller half-extent)",
                                     code="branch_length_too_short",
                                     where={"field": "branch_length"}, value=tee.branch_length,
-                                    limit={"min_exclusive": float(z1)})
+                                    limit={"min_exclusive": float(z1)},
+                                    hint=f"branch_length > {z1:.4g}")
             for n in (tee.n_run, tee.n_branch, tee.n_turn):
                 if n < 1:
                     raise AssemblyError("layer counts must be >= 1",
@@ -672,17 +732,24 @@ class TapTemplate:
                 f"{a:.4g})",
                 code="duct_tap_too_wide", where={"field": "branch"}, value=float(ratio),
                 limit="DUCT_TAP_MAX_RATIO", hint="a smaller tap, or a full-width tap")
-        need = reach_x + (tee.margin or min(DuctTap.TUNING["margin"])) * t
+        need = abs(xc) + (reach_x * k + (tee.margin or min(DuctTap.TUNING["margin"])) * t)
         if tee.run_length <= need:
-            raise AssemblyError(f"Tee: run_length must exceed {need:.4g}: the tap's reach "
-                                f"along the main {reach_x:.4g} plus the station margin",
+            what = (f"the tap's reach along the main {reach_x:.4g}" if not shoe else
+                    f"the hole's reach along the main {abs(xc) + reach_x * k:.4g} (stretched "
+                    f"by 1/sin α, its centre b cot α downstream)")
+            raise AssemblyError(f"Tee: run_length must exceed {need:.4g}: {what} plus the "
+                                f"station margin",
                                 code="run_length_too_short", where={"field": "run_length"},
-                                value=tee.run_length, limit={"min_exclusive": float(need)})
-        if tee.branch_length <= b:
-            raise AssemblyError(f"Tee: branch_length must exceed the {face} face's "
-                                f"distance from the axis, {b:.4g}",
+                                value=tee.run_length, limit={"min_exclusive": float(need)},
+                                hint=f"run_length > {need:.4g}, or run_length=None to resolve it")
+        lo = (b + reach_x * ca) / sa
+        if tee.branch_length <= lo:
+            what = (f"the {face} face's distance from the axis" if not shoe else
+                    f"the hole's farthest point along the branch axis (its acute end)")
+            raise AssemblyError(f"Tee: branch_length must exceed {what}, {lo:.4g}",
                                 code="branch_length_too_short", where={"field": "branch_length"},
-                                value=tee.branch_length, limit={"min_exclusive": float(b)})
+                                value=tee.branch_length, limit={"min_exclusive": float(lo)},
+                                hint=f"branch_length > {lo:.4g}")
         for n in (tee.n_run, tee.n_branch, tee.n_wall or 1):
             if n < 1:
                 raise AssemblyError("layer counts must be >= 1",
@@ -712,7 +779,7 @@ class TapTemplate:
             found = self.quality(frames, spec)
             _validate_layout(self.layout(frames, spec))
             return found + nonorth_tiers(self, frames, spec, lambda: self.layout(frames, spec),
-                                         TAP_BLOCKS, TAP_HINT)
+                                         TAP_BLOCKS, self.nonorth_hint())
         found = []
         for part, fr, s in self._parts(frames, spec):
             if isinstance(part, TapTemplate):
@@ -722,10 +789,18 @@ class TapTemplate:
                 _validate_layout(part.layout(fr, s))
                 found += [m + ring for m in nonorth_tiers(
                     part, fr, s, lambda part=part, fr=fr, s=s: part.layout(fr, s),
-                    TAP_BLOCKS, TAP_HINT)]
+                    TAP_BLOCKS, part.nonorth_hint())]
             else:
                 found += part.validate(fr, s)
         return found
+
+    def nonorth_hint(self) -> str:
+        """What lowers the predicted non-orthogonality: a larger angle for
+        a shoe (task 0063), else the wide face."""
+        if self.tee.angle != 90:
+            return (f"a larger angle lowers it (a {self.tee.angle:g}° shoe's branch leaves "
+                    f"the face at an acute edge)")
+        return TAP_HINT
 
     def predicted_nonorth(self, frames: list[Frame], spec: PipeSpec) -> float:
         """The worst predicted non-orthogonality of the tap's O-H blocks
@@ -755,6 +830,9 @@ class TapTemplate:
         else:
             hint = ("on the wide face it is better" if face == "narrow"
                     else "a smaller tap, or a longer tap along the main, may do better")
+        if tee.angle != 90:
+            hint = (f"a larger angle does better (a {tee.angle:g}° shoe's branch leaves the "
+                    f"face at an acute edge); " + hint)
         found = []
         for tier, name in ((PREDICTED_SJ_MIN, "PREDICTED_SJ_MIN"),
                            (PREDICTED_SJ_WARN, "PREDICTED_SJ_WARN")):

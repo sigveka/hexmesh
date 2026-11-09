@@ -300,3 +300,102 @@ def test_graded_h_main_lengthens_its_legs_by_the_shear_rule():
     assert lg == min_length(tpl.inner_spec(graded), graded)[0]
     assert _tee(_rect(0.6 * A)).meshed_sj_check(graded)
     assert not _tee(_rect(0.6 * A)).meshed_sj_check(uniform)
+
+
+# ---------------------------------------------------------------------------
+# Shoe taps (decision 0031 stage 4, task 0063): angle on a rectangular main
+# ---------------------------------------------------------------------------
+
+_LABS = ((1, 1), (-1, 1), (-1, -1), (1, -1))
+
+
+def _shoe(branch, angle, **kw):
+    """(the tee's edge, its layout, the axis point o, cos α, sin α)."""
+    e = _asm(_tee(branch, angle=angle, **kw)).edges[1]
+    frames = [p.frame for p in e.ports]
+    lay = e.fitting.layout(frames, e.ports[0].spec)
+    o = frames[0].position + e.fitting.run_length * np.array([1.0, 0, 0])
+    a = math.radians(angle)
+    return e, lay, o, math.cos(a), math.sin(a)
+
+
+@pytest.mark.parametrize("branch", [_rect(0.3 * A), CircleShape(radius=0.3 * A, nang=4)])
+def test_shoe_branch_leans_and_its_hole_is_the_cut_section(branch):
+    """The branch axis leans by α through the axis point; each hole corner
+    on the face is the branch's O-H corner carried along the axis."""
+    e, lay, o, ca, sa = _shoe(branch, 45)
+    d, u = np.array([ca, 0, sa]), np.array([sa, 0, -ca])
+    np.testing.assert_allclose(e.ports[2].frame.normal, d, atol=1e-12)
+    p, q = TapTemplate(e.fitting).tap(e.ports[0].frame, e.ports[0].spec)._hole()
+    for sx, sy in _LABS:
+        corner = sx * p * u + sy * q * np.array([0, 1.0, 0])     # in the branch section
+        lam = (B - corner[2]) / sa                                # along d to the face
+        np.testing.assert_allclose(lay.coords[("W", 1, (sx, sy))] - o, corner + lam * d,
+                                   atol=1e-15)
+
+
+def test_round_shoe_hole_is_an_exact_ellipse():
+    r = 0.3 * A
+    _, lay, o, ca, sa = _shoe(CircleShape(radius=r, nang=4), 30)
+    xc = B * ca / sa
+    for i, l0 in enumerate(_LABS):
+        x = lay._edge_points(("W", 1, l0), ("W", 1, _LABS[(i + 1) % 4]), 17) - o
+        assert np.abs(np.hypot((x[:, 0] - xc) * sa, x[:, 1]) - r).max() < 1e-15
+        assert np.abs(x[:, 2] - B).max() < 1e-15
+
+
+def test_shoe_default_run_length_reaches_the_stretched_hole():
+    from hexmesh.assembly.duct_tap import FULL_WIDTH_RUN
+    t = oh.ring_thickness(A, B)
+    k = math.sqrt(2)                       # 1/sin 45°; the hole's centre is B cot 45° = B
+    e, *_ = _shoe(_rect(0.3 * A), 45)
+    assert e.fitting.run_length == pytest.approx(0.3 * A * k + B + 4 * t, rel=1e-12)
+    e, *_ = _shoe(RectShape(A, 0.3 * A, 4, 4), 45)          # full-width
+    assert e.fitting.run_length == pytest.approx(0.3 * A * k + B + FULL_WIDTH_RUN * B,
+                                                 rel=1e-12)
+
+
+@pytest.mark.parametrize("branch, field, code", [
+    (_rect(0.3 * A), "branch_length", "branch_length_too_short"),
+    (CircleShape(radius=0.3 * A, nang=4), "branch_length", "branch_length_too_short"),
+    (RectShape(A, 0.3 * A, 4, 4), "branch_length", "branch_length_too_short"),
+    (_rect(0.3 * A), "run_length", "run_length_too_short"),
+    (RectShape(A, 0.3 * A, 4, 4), "run_length", "run_length_too_short"),
+])
+def test_shoe_room_checks_measure_the_acute_end(branch, field, code):
+    """The hole's acute end sets the room: along the branch axis (b + p
+    cos α)/sin α, along the main its far end; the hint's value passes."""
+    ca, sa = math.cos(math.radians(45)), math.sin(math.radians(45))
+    p = 0.3 * A
+    lo = {"branch_length": (B + p * ca) / sa, "run_length": B + p / sa}[field]
+    with pytest.raises(AssemblyError) as e:
+        _asm(_tee(branch, angle=45, **{field: 0.999 * lo}))
+    assert e.value.code == code and e.value.hint.startswith(f"{field} > ")
+    assert e.value.limit["min_exclusive"] >= lo * (1 - 1e-12)
+    ok = float(e.value.hint.split("> ")[1].split(",")[0]) * 1.001
+    _asm(_tee(branch, angle=45, **{field: ok}))
+
+
+@pytest.mark.parametrize("angle", [0, -30, 95])
+def test_shoe_angle_out_of_range(angle):
+    with pytest.raises(AssemblyError) as e:
+        _asm(_tee(_rect(0.3 * A), angle=angle))
+    assert e.value.code == "tee_angle_out_of_range"
+
+
+def test_shoe_quality_tiers_name_a_larger_angle():
+    asm = _asm(_tee(RectShape(A, 0.3 * A, 4, 4), angle=30))
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        asm.validate()
+    msgs = [str(x.message) for x in w]
+    assert any("PREDICTED_SJ_WARN" in m and "a larger angle does better" in m for m in msgs)
+    assert any("OUTLINE_NONORTH_WARN" in m and "a larger angle lowers it" in m for m in msgs)
+
+
+def test_shoe_json_round_trip_and_refinement():
+    asm = _asm(_tee(CircleShape(radius=0.6 * A, nang=4), angle=45))
+    d = intent.to_dict(asm)
+    back = Assembly.from_dict(d)
+    assert back.edges[1].fitting == asm.edges[1].fitting and back.edges[1].fitting.angle == 45
+    assert Assembly.from_dict(intent.refined_dict(d, 2)).cell_count() == 8 * asm.cell_count()

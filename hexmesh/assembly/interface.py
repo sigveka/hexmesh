@@ -130,6 +130,15 @@ def toward_roll(frame: Frame, toward) -> float:
     return math.degrees(math.atan2(np.dot(p, frame.right), np.dot(p, frame.up)))
 
 
+def lean(angle: float) -> tuple[float, float]:
+    """``(cos α, sin α)`` of a branch angle in degrees, exact at 90°, so a
+    perpendicular tee's coordinates are bit-identical to before task 0060."""
+    if angle == 90:
+        return 0.0, 1.0
+    a = math.radians(angle)
+    return math.cos(a), math.sin(a)
+
+
 def rolled(frame: Frame, roll: float) -> Frame:
     """*frame* rolled about its normal by *roll* degrees."""
     return Frame(frame.position, frame.normal,

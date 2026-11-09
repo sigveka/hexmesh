@@ -71,7 +71,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0060](0060-tee-angle-laterals.md) | General branches, stage 1: `Tee(angle=…)`, laterals | done | 0031 |
 | [0061](0061-tee-offset-taps.md) | General branches, stage 2: `Tee(offset=…)`, tangential and offset taps | done | 0031, 0023 |
 | [0062](0062-straight-twist.md) | General branches, stage 3: `Straight(twist=…)`, and `toward=` at any roll | done | 0031, 0029 |
-| [0063](0063-duct-shoe-taps.md) | General branches, stage 4: shoe taps on ducts | ready (after 0057, 0060; round or narrow shoes after 0033) | 0031, 0027 |
+| [0063](0063-duct-shoe-taps.md) | General branches, stage 4: shoe taps on ducts | done | 0031, 0027 |
 | [0064](0064-pcf-reader-robustness.md) | PCF reader robustness: annotations, unknown inline components, several networks | done | 0023 |
 | [0065](0065-network-model-and-builder.md) | Network interchange 1a: the network model, and the builder out of `pcf.py` | done | 0032 |
 | [0066](0066-network-model-operations.md) | Network interchange 1b: select, cut, join, merge, and the public API | done | 0032 |

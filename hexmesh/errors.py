@@ -202,7 +202,6 @@ CODES: dict[str, str] = {
         "an agent function given something other than an Assembly or its description",
     "angle_looks_like_radians":
         "a fitting angle so small it was probably given in radians (warning)",
-    "angle_on_duct_tap": "a Tee angle other than 90 on a duct tap",
     "angle_out_of_range": "a bend or wye angle outside its open range",
     "argument_missing": "a required fitting argument is missing",
     "assembly_already_built": "fittings added or changed after the assembly was built",

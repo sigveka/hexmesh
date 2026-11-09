@@ -200,12 +200,13 @@ def _tee(ratio, direction=(0, 1, 0), spec=None, angle=90, offset=0.0):
 
 
 def _duct_tap(branch, aspect=2, face="wide", roll=0, direction=(1, 0, 0), layout="oh",
-              first_cell=None):
+              first_cell=None, angle=90.0):
     """Straight → duct-tap Tee → Straight on both outlets (task 0070).
     *branch* is "rect" or "round", reaching 0.6 of the face's half-width,
     or "full": as wide as the face, 0.6 of it along the main (task 0057).
     *layout* "h": an H main (task 0086), graded by *first_cell*; switch
-    legs at its ports and at a rectangular branch's."""
+    legs at its ports and at a rectangular branch's.  *angle*: a shoe tap
+    (task 0063)."""
     B = 0.05
     n = 4
     if layout == "h":
@@ -224,7 +225,7 @@ def _duct_tap(branch, aspect=2, face="wide", roll=0, direction=(1, 0, 0), layout
     asm = Assembly(spec, direction=list(direction), up=[0, 0, 1], lc=0.1)
     asm.add(Straight(0.2, n_layers=n))
     main, br = asm.add(Tee(branch_length=2 * aspect * B, branch=shape, face=face, roll=roll,
-                           n_run=n, n_branch=n), names=["main", "branch"])
+                           n_run=n, n_branch=n, angle=angle), names=["main", "branch"])
     asm.add(main, Straight(0.2, n_layers=n))
     asm.add(br, Straight(0.1, n_layers=n))
     return asm
@@ -281,6 +282,11 @@ CASES = {
     "tee-duct-full-1-wide":   lambda: _duct_tap("full", aspect=1),
     "tee-duct-full-2-wide":   lambda: _duct_tap("full", roll=180, direction=(1, 1, 0.2)),
     "tee-duct-full-2-narrow": lambda: _duct_tap("full", face="narrow"),
+    # shoe taps (task 0063): the branch leaning downstream
+    "tee-duct-rect-2-wide-shoe45":  lambda: _duct_tap("rect", angle=45),
+    "tee-duct-round-2-wide-shoe45": lambda: _duct_tap("round", roll=180, angle=45),
+    "tee-duct-full-2-wide-shoe60":  lambda: _duct_tap("full", direction=(1, 1, 0.2), angle=60),
+    "tee-duct-h-rect-2-wide-shoe45": lambda: _duct_tap("rect", layout="h", angle=45),
     # on an H main (task 0086): the O-H junction inside, switch legs at the ports
     "tee-duct-h-rect-2-wide":   lambda: _duct_tap("rect", layout="h"),
     "tee-duct-h-rect-2-narrow-graded": lambda: _duct_tap("rect", face="narrow", roll=180,
@@ -627,14 +633,16 @@ def _tee_deviation(tee, inlet, spec, x) -> float:
 def _duct_tap_deviation(tee, inlet, spec, x) -> float:
     """Largest distance of the points *x* from a duct tap's walls: the
     duct's faces |y| = a, |z| = b, or (z ≥ b) the branch's planes or
-    cylinder, relative to the duct's half-diagonal (task 0070)."""
+    cylinder about its axis d (leaning, for a shoe), relative to the
+    duct's half-diagonal (task 0070)."""
     tap = TapTemplate(tee).tap(inlet, spec)
     o, ex, ey, ez, a, b, _ = tap._basis(inlet, spec)
+    d, u, *_ = tap._lean(ex, ez, b)
     v = x - o
-    X, Y, Z = v @ ex, v @ ey, v @ ez
+    X, Y, Z = v @ u, v @ ey, v @ ez               # X across the branch, along the main
     main = np.minimum(np.abs(np.abs(Y) - a), np.abs(np.abs(Z) - b))
     if tap.radius is not None:
-        br = np.abs(np.hypot(X, Y) - tap.radius)
+        br = np.abs(np.linalg.norm(v - np.outer(v @ d, d), axis=1) - tap.radius)
     else:
         p, q = tap._hole()
         br = np.abs(np.maximum(np.abs(X) - p, np.abs(Y) - q))

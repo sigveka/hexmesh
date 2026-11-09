@@ -277,6 +277,18 @@ arcs are built instead as exact rational quadratic B-splines: the
 circle-arc NURBS with stretched control points, middle weight
 √((1 + cos Δ)/2) (`add_conic_arc`).
 
+### Stretch filling between an ellipse arc and a circle arc is the exact cylinder (gmsh 4.12.1, task 0063, 2026-11-09) — *verified*
+4.12.1 / OCC 7.6.3.  Take a cylinder cut obliquely (a shoe tap's hole on
+a duct face, at 30–90°).  Join a quarter of the cut, built with
+`add_conic_arc` (a rational quadratic B-spline), to the matching quarter
+of a normal section (`addCircleArc`) by two lines along the axis.
+`occ.addBSplineFilling(loop, type="Stretch")` on that loop is the
+cylinder to 2e-15 R over a 21 × 21 parameter grid.  The conic's
+parameter matches the circle's, so the filling's rulings run along the
+axis.  `blocks.ArcAbout(stretch=…)` relies on it: `BlockLayout._surface`
+treats such an edge as an arc for the ruled-cylinder test, and the kit's
+round shoe has wall nodes on the cylinder to 3e-15 without projection.
+
 ### `occ.getBoundingBox` pads by the OCC tolerance — *verified*
 4.12.1 / OCC 7.6.3.  For a point, the box corners are about 1e-7 off its
 coordinates.  Reading a coordinate from either corner put points 3e-8 off

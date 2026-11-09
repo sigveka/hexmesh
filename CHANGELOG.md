@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+**Shoe taps on ducts** (decision 0031 stage 4; task 0063).
+- `Tee(angle=…)` on a rectangular main: the branch leans downstream, its
+  hole the branch section cut by the face (stretched by 1/sin α; an
+  exact ellipse for a round branch). Rectangular, round and full-width
+  taps, either face, O-H and H mains. Walls stay exact, with no node
+  projection. `angle=90` meshes exactly as before.
+- The room checks measure the hole's acute end, with hints;
+  `run_length=None` resolves it. Below about 45° the quality tiers warn,
+  naming a larger angle.
+- `angle_on_duct_tap` is retired; an angle outside (0, 90] raises
+  `tee_angle_out_of_range`, as on pipes.
+
 **Twisted straights, and junctions at any roll** (decision 0031 stage 3;
 task 0062).
 - `Straight(twist=…)` rotates the section about the axis, linearly from

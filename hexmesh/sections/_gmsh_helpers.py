@@ -18,12 +18,12 @@ reduce boilerplate and centralise entity creation.
 """
 
 from __future__ import annotations
-import math
 
 import numpy as np
 
 from .._gmsh import gmsh
 from .. import _occ
+from .._occ import conic_arc as add_conic_arc     # noqa: F401  (oh_gmsh's name)
 
 
 def add_physical_group(dim: int, tags: list[int], name: str) -> int:
@@ -43,43 +43,6 @@ def add_line(start: int, end: int) -> int:
 
 def add_arc(start: int, center: int, end: int) -> int:
     return _occ.circle_arc(start, center, end)
-
-
-def add_conic_arc(start: int, center: int, end: int, center_xyz,
-                  stretch=None) -> int:
-    """Circular arc about *center*, or its image under *stretch*.
-
-    *stretch* ``(b, s)`` scales the plane by ``s`` along the unit vector
-    ``b`` about the face centre; *center_xyz* is the (stretched) arc
-    centre.  The stretched arc is the circle arc's exact rational quadratic
-    B-spline with stretched control points (NURBS are affine invariant), so
-    it is the exact ellipse arc and reuses the end-point tags.  OCC's
-    ``addEllipseArc`` cannot be used: it rejects arcs whose end points are
-    symmetric about the major axis.
-    """
-    if stretch is None or stretch[1] == 1.0:
-        return _occ.circle_arc(start, center, end)
-    b, s = np.asarray(stretch[0], dtype=float), float(stretch[1])
-
-    def unstretch(p):
-        return p - (1.0 - 1.0 / s) * b * float((p - c) @ b)
-
-    c = np.asarray(center_xyz, dtype=float)
-    def coords(t):   # OCC pads boxes by its tolerance; the centre is exact
-        bb = np.asarray(gmsh.model.occ.getBoundingBox(0, t))
-        return 0.5 * (bb[:3] + bb[3:])
-
-    p0, p2 = coords(start), coords(end)
-    u0, u2 = unstretch(p0) - c, unstretch(p2) - c
-    cos_d = float(u0 @ u2) / float(np.linalg.norm(u0) * np.linalg.norm(u2))
-    m = c + (u0 + u2) / (1.0 + cos_d)                 # tangent intersection
-    m = m + (s - 1.0) * b * float((m - c) @ b)        # stretch it back
-    mid = gmsh.model.occ.addPoint(*m)
-    tag = _occ.bspline([start, mid, end], degree=2,
-                         weights=[1.0, math.sqrt((1.0 + cos_d) / 2.0), 1.0],
-                         knots=[0.0, 1.0], multiplicities=[3, 3])
-    _occ.discard(mid)
-    return tag
 
 
 def stretched(p, centre, stretch):

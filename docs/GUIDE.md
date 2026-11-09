@@ -246,7 +246,29 @@ still load as O-H.
 
 Ducts run through `Straight`, `Bend`, `MiterBend`, `SplinePipe`,
 `Closure` and `Reducer`, with or without shells.  Duct taps on an H duct
-keep O-H blocks inside and add a `Switch` leg at each H port.  Shells may have any
+keep O-H blocks inside and add a `Switch` leg at each H port.
+
+A **shoe tap** is a duct tap whose branch leans downstream:
+`Tee(branch=…, angle=45)`.  Its axis passes through the junction point
+on the duct's centreline, as a pipe lateral's does, so **the hole sits
+b·cot α downstream of that point**, b being the tapped face's distance
+from the centreline.  Take a 0.2 × 0.1 m duct tapped on its wide face,
+so b = 0.05 m:
+
+```python
+duct = PipeSpec(nang_w=8, nang_h=8).core("air", RectShape(0.1, 0.05, 8, 8),
+                                          nrad=3, layout="oh")
+asm = Assembly(duct, direction=[1, 0, 0], up=[0, 0, 1])
+asm.add(Straight(0.5, n_layers=10))
+main, branch = asm.add(Tee(branch=CircleShape(radius=0.03, nang=8), angle=45,
+                           branch_length=0.2))
+```
+
+At 45° the hole's centre is 0.05 m past the junction point; at 30°,
+0.087 m.  Its length along the duct stretches by 1/sin α (an ellipse for
+a round branch).  Place the junction point accordingly; there is no
+option yet to place the hole itself.  Below about 45° the quality tiers
+warn and name a larger angle (API.md, duct taps).  Shells may have any
 outline, so a duct can carry a wall and lagging, and a pipe can sit in a
 rectangular block (`.shell(name, outer=RectShape(...))`, API.md); a stack
 with a rectangle has the same count on every side.
