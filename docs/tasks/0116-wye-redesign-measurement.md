@@ -37,6 +37,8 @@ in *Outcome* and a committed JSON (`validation/tools/wye_redesign.json`).
    worst cells are, the crease chord errors (mitre and crotch, as task
    0056 measured them), the projector's largest move, and whether the
    ports are class-0 against a plain `Straight` (`check_port_pairs`).
+   Also each case's worst non-orthogonality, predicted (task 0104) and
+   meshed, and where: reported, not a gate (design, 2026-11-09).
    At `nang` 8, single layer and with one shell (thickness 0.1 R).  If a
    case can't be built at all, say what degenerates and where.
 2. **B: three feasibility experiments** (minimal gmsh scripts, no hexmesh

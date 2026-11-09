@@ -1,6 +1,6 @@
 # 0104 — Junctions predict non-orthogonality in `validate()`
 
-- **Status:** blocked (2 questions for design; the code is complete and committed)
+- **Status:** ready (design answered 2 questions: step 5 below)
 - **Decision:** [0031 — General branch junctions](../decisions/0031-general-branch-junctions.md), amendment 2026-11-07, item 5
 - **Depends on:** 0060.
 
@@ -37,6 +37,9 @@ shared; tests; `API.md`; `CHANGELOG.md`.
    optimistic anywhere, say where and by how much.
 4. **Docs:** API.md and the GUIDE's quality section; CHANGELOG (new
    warnings can appear on existing networks: list which examples warn).
+5. **After design's answers (2026-11-09):** `mesh()` checks junctions'
+   meshed non-orthogonality on the switches' tiers; the docs state the
+   prediction's error; a short look at the 25 mm node difference.
 
 **Accept.**
 - The examples: list every one whose `validate()` result changes.  An
@@ -94,6 +97,22 @@ follows from the measurements, by decision.
    - (a) check the meshed value in `mesh()` too, as for switches;
    - (b) a margin on the predicted tier.
    Which, if either?
+
+**Design answers (2026-11-09, the user: "yes"):**
+1. **The wye stays warning-only above `OUTLINE_NONORTH_MAX`** until
+   decision 0043's redesign.  Rejecting would turn networks that build
+   in 0.5.0 into errors (a breaking change), for a layout already
+   scheduled to be replaced.  Task 0116 reports each case's worst
+   crotch non-orthogonality (predicted and meshed) as a measurement,
+   not a gate: the control's result is already known, so it can't
+   become a gate now (decision 0043's gates are fixed).
+2. **(a): `mesh()` checks junctions' meshed non-orthogonality** on the
+   same tiers as switches.  No margin on the prediction: it errs both
+   ways (−3.4° to +14.9°), so a margin would guess.  API.md and the
+   GUIDE state the prediction's known error (up to 3.4° optimistic at
+   r/R ≥ 0.6).  The unexplained 25 mm node difference near the branch
+   port gets a short look, recorded in *Outcome*; if it is gmsh
+   behaviour, in `docs/integrations/gmsh.md`.
 
 ## Outcome
 
