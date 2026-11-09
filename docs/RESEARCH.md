@@ -345,7 +345,28 @@ $$
     planes x = ±z, which contain the cube's diagonal planes between the
     run and branch sides; on the ±y sides it crosses the middle of a
     side, so exact creases there would need more splitting.  Measured
-    in task 0118.
+    in task 0118:
+
+    | case (`nang` 8) | cube: min SJ meshed (pred.) | cube: crease chord % R | hub (0116) |
+    |---|---|---|---|
+    | equal tee 0°/90° | 0.577 (0.577), 0 inverted, non-orth. 45° | 3.7 (4.1 shelled) | SJ 0.058 |
+    | equal lateral 0°/45° | 0.134 (0.223), 0 inverted | 2.2 / 2.9 | folds (28) |
+    | unequal ±30°, R/√2 | folds (54–78) | 5.5 / 5.3 | 0.133 |
+    | control 60° | folds (56–104) | 5.1 / 7.7 | 0.156 |
+
+    - The equal tee orients as the identity (three pipes square to
+      sides); the lateral turns 22.5° (every pipe 67.5° to its side);
+      the 60° wyes leave the inlet and one daughter 30° off square and
+      fold in the centre hex and the inlet port's ring.
+    - The tee's crease error sits where the crease crosses the ±y sides
+      (as predicted) and falls at first order with `nang` (2.0 % at 16,
+      1.4 % at 24; about 33 for 1 %).
+    - The station's distance from the cube matters more than the centre
+      hex's size.  The paper's small-angle step (their Fig. 9) wasn't
+      measured: the folds aren't between the daughters.
+    - **Reading:** the cube is the layout for tees (and builds laterals),
+      the hub for symmetric wyes.  Neither meets the 1 % crease gate, so
+      by decision 0043's rule task 0117 (B3) runs next.
 - [`verma_and_fischer_etal_2005`]: a bifurcation split into three
   tubes by Laplace-equation coordinates, then swept.  Abstract only.
   Its nodes come from PDE solves, which doesn't fit "fail before

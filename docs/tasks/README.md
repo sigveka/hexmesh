@@ -114,7 +114,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0114](0114-pcf-sample-and-cli-insulation.md) | A committed PCF sample, and insulation from the `hexmesh` commands | done | 0032, 0040 |
 | [0115](0115-release-0-5-0.md) | Release 0.5.0: the launch version, its install line and a stability statement | done | — |
 | [0116](0116-wye-redesign-measurement.md) | The wye redesign, measured: the hub generalised, and the published topology's feasibility | done | 0043, 0042 |
-| [0117](0117-written-junction-nodes-experiment.md) | Written nodes (route B3): one hex block placed by hexmesh, between two transfinite straights | ready (after 0118, only if the cube misses) | 0043 |
+| [0117](0117-written-junction-nodes-experiment.md) | Written nodes (route B3): one hex block placed by hexmesh, between two transfinite straights | ready (next: the cube missed the crease gate) | 0043 |
 | [0118](0118-junction-cube-probe.md) | The oriented junction cube, measured: equal tees and laterals on 6-faced blocks | ready | 0043 |
 | [0119](0119-volunteer-tool-and-helical-card.md) | Volunteer runs: the tool, the runners, and the helical pipe's card | ready | 0044, 0012 |
 | [0121](0121-idealised-aorta-example.md) | Example: an idealised aorta (arch, branches, taper and the iliac bifurcation) | ready (after 0118 settles the wye route) | 0018, 0043 |
@@ -163,8 +163,9 @@ or a long run.
    (junction non-orthogonality) → **0116** (the wye redesign measured;
    decision 0043) → **0111** (equipment and study hints) → **0109** (MMS
    wall slope); all done, with 0061 and 0062.  Next (2026-11-09):
-   **0118** (the oriented junction cube, Bošnjak et al.), then **0117**
-   (route B3) only if the cube misses; decision 0043's amendments.
+   **0118** (the oriented junction cube, Bošnjak et al.) measured: it
+   misses the crease gate, so **0117** (route B3) runs next; decision
+   0043's amendments.
    Volunteer runs (decision 0044): **0119** (the tool; the helical
    pipe's card) → **0120** (Vattenfall stage (a)).
 1. **The H section** (decision 0036; 0082, 0083, 0084 and 0090 done):

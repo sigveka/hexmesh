@@ -1,6 +1,6 @@
 # 0117 — Written nodes (route B3): one hex block placed by hexmesh, between two transfinite straights
 
-- **Status:** ready (after 0118; runs only if the cube misses, decision 0043's amendment 2026-11-09)
+- **Status:** ready (next: 0118's cube missed the crease gate; design, 2026-11-09)
 - **Decision:** [0043 — The wye-layout redesign](../decisions/0043-wye-layout-redesign.md), amendment 2026-11-09 (B3 provisional, gates fixed there)
 - **Depends on:** 0116 (done).  An experiment: no library change.
 
