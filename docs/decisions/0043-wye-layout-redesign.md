@@ -244,3 +244,33 @@ internally (users never choose a layout, decision 0031).
 meshed transfinite surfaces and written with them (task 0117 checks);
 that B3's node placement can reach Marcinnó's quality (not measured
 here).
+
+## Amendment: the oriented junction cube before B3 (2026-11-09; the user: "yes wite the tasks")
+
+**New evidence** (design's web research, RESEARCH §4.3):
+- **Bošnjak et al. 2024** mesh vessel junctions with a "structured
+  cube" of seven hexahedra, oriented so each branch meets a side as
+  squarely as possible, with a port (the side's block subdivided to the
+  branch's 5-block section) on each side a branch enters.  Every block
+  is a 6-faced hex: the template fits gmsh's transfinite volumes.
+- It is the hub with a free orientation, which is the follow-up task
+  0116 proposed and the previous amendment set aside.  The equal tee is
+  its natural case (no turn block, A1's failure).
+- **gmsh documents that OpenCASCADE entities can't have discrete
+  entities on their boundary** (tutorial x2).  hexmesh builds with OCC,
+  so B3 carries a risk that 0116's scope didn't see.
+
+**Decided:**
+1. **The oriented cube is measured first** (task 0118), as a route-A
+   variant on today's realisation path, against **this decision's gates,
+   unchanged**, on A1, A2, A3 and the 60° control.
+2. **The choice after 0118:** if the cube passes the gates on the equal
+   tee and the equal lateral, it is taken, and B3 isn't pursued.  If it
+   misses, task 0117 (B3) runs, then C if B3 fails, as before.
+3. **Task 0117** stays ready but runs after 0118, and gains a first
+   step: whether a discrete volume can reference OCC surfaces' node
+   tags at all.
+
+**Consequences:** no change to the gates, the API direction or the
+future-expansion checks above.  0018 (vascular) is helped by either
+route; the cube is the published vascular template too.

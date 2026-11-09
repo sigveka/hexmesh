@@ -1,6 +1,6 @@
 # 0117 — Written nodes (route B3): one hex block placed by hexmesh, between two transfinite straights
 
-- **Status:** ready
+- **Status:** ready (after 0118; runs only if the cube misses, decision 0043's amendment 2026-11-09)
 - **Decision:** [0043 — The wye-layout redesign](../decisions/0043-wye-layout-redesign.md), amendment 2026-11-09 (B3 provisional, gates fixed there)
 - **Depends on:** 0116 (done).  An experiment: no library change.
 
@@ -19,6 +19,13 @@ through the OpenFOAM path unchanged.
 scratchpad, deleted after.
 
 **Do.**
+0. **First, the OCC question.**  gmsh's tutorial x2 says OpenCASCADE
+   entities can't have discrete entities on their boundary
+   (`docs/integrations/gmsh.md`, *Open questions*), and hexmesh builds
+   with OCC.  Check whether hexes in a discrete volume can reference the
+   node tags of OCC-meshed surfaces without a declared boundary, and
+   survive `write` and `gmshToFoam`.  If not, stop and report: that ends
+   B3 on OCC.
 1. **The case:** two straights (the 5-patch O-H section, `nang` 4,
    `nrad` 2, a few axial layers each), with a gap of one slab between
    them.  Mesh both, including their facing port surfaces, by gmsh's

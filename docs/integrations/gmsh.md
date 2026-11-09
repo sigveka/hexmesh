@@ -511,5 +511,14 @@ the count only.
 - Can the transfinite cut lines of an `n_outer = 8` sub-partition
   reproduce the 4-corner face's nodes exactly?  Decision 0005,
   pre-acceptance check.
+- **Discrete entities on OCC boundaries** (documented, not verified;
+  design, 2026-11-09).  gmsh's tutorial x2 says: "only built-in CAD
+  entities can be hybrid, i.e. have discrete entities on their
+  boundary: OpenCASCADE does not support this feature"
+  (`tutorials/julia/x2.jl`, gmsh 4.14 source).  hexmesh builds with OCC,
+  so a discrete junction block bounded by OCC port surfaces (route B3,
+  decision 0043) may not be expressible.  Whether hexes in a discrete
+  volume can reference OCC surfaces' node tags without a declared
+  boundary is task 0117's first step.
 - Behaviour of the assembly path on 4.15.x is untested.  Only the legacy
   wye and task 0116's two minimal experiments (B1, B2) were tried.

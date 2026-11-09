@@ -316,6 +316,40 @@ $$
 - [`pietroni_and_campen_etal_2023`]: survey.  For tubular domains it
   concludes that the hard part is splitting the domain into sweepable
   sub-volumes, not meshing them.
+- [`bosnjak_and_pepe_etal_2024`] (full text read 2026-11-09, CC BY):
+  skeleton-based block structures for vessel trees, nodes placed by the
+  authors' own transfinite maps.  **The junction template is a
+  "structured cube" of seven hexahedra** (a centre hex and one block on
+  each of its six faces) around the junction point, the distance to
+  each side the junction radius.
+  - Each side a branch enters gets a **port**: only that side's block is
+    subdivided to match the branch's 5-block cross-section (their
+    Fig. 6, 8b).  The other sides' blocks are untouched, so the order of
+    subdivisions doesn't matter.
+  - The cube is **oriented** to maximise the angle between each branch
+    segment and its side, so branches meet sides as squarely as
+    possible; weights may favour larger radii.
+  - Small angles between branches: the branch blocks are subdivided and
+    joined at the subdivision nearest the junction (Fig. 9).  Junction
+    cubes that overlap are merged (Fig. 10).
+  - Shown on bifurcations, non-planar bifurcations and a six-furcation.
+  - The wall is a convolution surface (smooth blends, no sharp crease);
+    surface nodes are moved onto it iteratively.  Quality is reported
+    only as SJ and skewness histograms, with no minimum.
+  - **For hexmesh:** every block is a 6-faced hex, so the template fits
+    gmsh's transfinite volumes, unlike the separation-plane topology
+    (§4.1, decision 0043 B).  It is today's hub with a free orientation:
+    the fix task 0116 proposed for the equal lateral's sheared hub.  The
+    equal tee is its natural case (ports on three faces, no turn).
+    Design's geometric check for an equal tee: the crease lies in the
+    planes x = ±z, which contain the cube's diagonal planes between the
+    run and branch sides; on the ±y sides it crosses the middle of a
+    side, so exact creases there would need more splitting.  Measured
+    in task 0118.
+- [`verma_and_fischer_etal_2005`]: a bifurcation split into three
+  tubes by Laplace-equation coordinates, then swept.  Abstract only.
+  Its nodes come from PDE solves, which doesn't fit "fail before
+  meshing".
 
 ### 4.3b Wall exactness at the wye's crease (task 0051, 2026-10-29)
 
