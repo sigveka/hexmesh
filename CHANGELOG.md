@@ -8,6 +8,10 @@
   `OUTLINE_NONORTH_WARN` (70°) and rejects above `OUTLINE_NONORTH_MAX`
   (80°) with the new code `predicted_nonorth_above_maximum`. The message
   names the block and what lowers it.
+- The prediction can be up to 3.4° optimistic at r/R ≥ 0.6, so
+  `mesh()` also checks each junction's meshed non-orthogonality on the
+  same tiers, as for switches. It adds a warning only where the
+  prediction didn't already give one.
 - The wye only warns, as for its scaled Jacobian, until its layout
   redesign.
 - **New warnings on existing networks.** Every wye warns (72–82°), so

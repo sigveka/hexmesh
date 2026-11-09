@@ -90,7 +90,7 @@ from .blocks import (
 )
 from .duct_tap import TapTemplate
 from .interface import Frame, junction_roll, junction_toward, outer_radius, rolled
-from .junction_quality import TEE_BLOCKS, nonorth_tiers
+from .junction_quality import TAP_HINT, TEE_BLOCKS, TEE_HINT, nonorth_tiers, predicted_angle
 from .limits import PREDICTED_SJ_MIN, PREDICTED_SJ_WARN, TEE_MAX_RATIO
 from .projection import Tube, TubeUnion
 from .signature import check_port_pairs
@@ -707,8 +707,7 @@ class Tee:
             raise AssemblyError.wrap(e, f"block layout invalid: {e}",
                                      code="block_layout_invalid") from None
         return found + nonorth_tiers(
-            self, frames, spec, lambda: self.layout(frames, spec), TEE_BLOCKS,
-            "a larger branch ratio r/R, or a larger angle, lowers it")
+            self, frames, spec, lambda: self.layout(frames, spec), TEE_BLOCKS, TEE_HINT)
 
     def cell_count(self, frames: list[Frame], spec: PipeSpec) -> int:
         """Exact hex count of the block layout (pure; DESIGN P4)."""
@@ -744,6 +743,22 @@ class Tee:
         return tpl is not None and (tpl.meshed_sj_check() or tpl.graded_legs(spec))
 
     def meshed_nonorth_check(self, spec: PipeSpec) -> bool:
-        """Taps on a graded H main: their switch legs (task 0086)."""
+        """Every tee: the prediction is up to 3.4° optimistic at r/R ≥ 0.6
+        (task 0104), and a graded H main's switch legs are an empirical
+        bound (task 0086)."""
+        return True
+
+    def meshed_nonorth_hint(self, spec: PipeSpec) -> str:
         tpl = self._template(spec)
-        return tpl is not None and tpl.graded_legs(spec)
+        if tpl is None:
+            return TEE_HINT
+        if tpl.graded_legs(spec):
+            return TAP_HINT + "; at a switch leg, a gentler wall grading of the H main"
+        return TAP_HINT
+
+    def predicted_nonorth(self, frames: list[Frame], spec: PipeSpec) -> float:
+        """``validate()``'s predicted worst non-orthogonality (cached)."""
+        tpl = self._template(spec)
+        if tpl is not None:
+            return tpl.predicted_nonorth(frames, spec)
+        return predicted_angle(self, frames, spec, lambda: self.layout(frames, spec))

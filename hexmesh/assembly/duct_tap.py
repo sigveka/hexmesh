@@ -59,7 +59,7 @@ from dataclasses import dataclass, replace
 import numpy as np
 
 from .errors import AssemblyError
-from .junction_quality import TAP_BLOCKS, nonorth_tiers
+from .junction_quality import TAP_BLOCKS, TAP_HINT, nonorth_tiers, predicted_angle
 from ..core.shape import CircleShape, RectShape
 from ..core.spec import PipeSpec
 from ..sections import h, oh
@@ -707,7 +707,7 @@ class TapTemplate:
             found = self.quality(frames, spec)
             _validate_layout(self.layout(frames, spec))
             return found + nonorth_tiers(self, frames, spec, lambda: self.layout(frames, spec),
-                                         TAP_BLOCKS, "a tap on the main's wide face lowers it (narrow-face taps predict about 72–75°)")
+                                         TAP_BLOCKS, TAP_HINT)
         found = []
         for part, fr, s in self._parts(frames, spec):
             if isinstance(part, TapTemplate):
@@ -717,10 +717,18 @@ class TapTemplate:
                 _validate_layout(part.layout(fr, s))
                 found += [m + ring for m in nonorth_tiers(
                     part, fr, s, lambda part=part, fr=fr, s=s: part.layout(fr, s),
-                    TAP_BLOCKS, "a tap on the main's wide face lowers it (narrow-face taps predict about 72–75°)")]
+                    TAP_BLOCKS, TAP_HINT)]
             else:
                 found += part.validate(fr, s)
         return found
+
+    def predicted_nonorth(self, frames: list[Frame], spec: PipeSpec) -> float:
+        """The worst predicted non-orthogonality of the tap's O-H blocks
+        (task 0104): ``validate()``'s, from its cache."""
+        if spec.layout != "h":
+            return predicted_angle(self, frames, spec, lambda: self.layout(frames, spec))
+        return max(predicted_angle(part, fr, s, lambda part=part, fr=fr, s=s: part.layout(fr, s))
+                   for part, fr, s in self._parts(frames, spec) if isinstance(part, TapTemplate))
 
     def cell_count(self, frames: list[Frame], spec: PipeSpec) -> int:
         if spec.layout != "h":

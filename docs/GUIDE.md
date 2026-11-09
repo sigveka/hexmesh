@@ -688,7 +688,8 @@ with `python3 docs/gallery/build.py` (needs `vtk`).
   mesh poorly (min SJ about 0.13, non-orthogonality to 82°) and warn.
   `validate()` predicts every junction's non-orthogonality on the 70°/80°
   tiers, before GMSH, naming the block; small-ratio tees (r/R about 0.3)
-  and narrow-face taps warn (task 0104).  A
+  and narrow-face taps warn (task 0104).  The prediction can be up to
+  3.4° optimistic at r/R ≥ 0.6, so `mesh()` checks the meshed value too.  A
   tap costs about 1.6–2.3× the cells of a plain run of the same length.
   A stack with a rectangle and a circle needs equal counts per side, and
   so does a circle ↔ rectangle `Transition`: a circle carries one count.

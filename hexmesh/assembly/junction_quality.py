@@ -83,6 +83,11 @@ def _predicted(fitting, frames, spec, layout) -> tuple[float, frozenset]:
     return angle, stations
 
 
+def predicted_angle(fitting, frames, spec, layout) -> float:
+    """The junction's predicted worst non-orthogonality (cached)."""
+    return _predicted(fitting, frames, spec, layout)[0]
+
+
 def _where(stations: frozenset, names: list[tuple[frozenset, str]]) -> str:
     """The first name whose stations are all in the block's, else the
     block by its stations."""
@@ -118,6 +123,12 @@ def nonorth_tiers(fitting, frames, spec, layout, names, hint: str,
                 f"OUTLINE_NONORTH_WARN {limits.OUTLINE_NONORTH_WARN:g}°; {hint}"]
     return []
 
+
+# What lowers it, per junction: in validate()'s and mesh()'s messages
+TEE_HINT = "a larger branch ratio r/R, or a larger angle, lowers it"
+TAP_HINT = "a tap on the main's wide face lowers it (narrow-face taps predict about 72–75°)"
+WYE_HINT = ("the wye's layout sets it, at any angle; the layout redesign "
+            "(decision 0043) measures alternatives")
 
 # Block names by the stations their vertices belong to (each fitting's
 # layout docstring): most specific first.

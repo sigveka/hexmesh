@@ -128,3 +128,51 @@ class TestTiers:
         assert not calls
         _tee(0.31).validate()
         assert calls
+
+
+class TestMeshed:
+    """mesh() checks junctions' meshed non-orthogonality on the same tiers
+    (task 0104, step 5)."""
+
+    @staticmethod
+    def _mesh(asm):
+        _session()
+        try:
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter("always")
+                asm.mesh()
+        finally:
+            gmsh.finalize()
+        return [str(x.message) for x in w if "non-orthogonality" in str(x.message)]
+
+    def test_meshed_warns_where_the_prediction_is_optimistic(self):
+        """A 35° lateral at r/R 0.9: predicted 69.7°, meshed 72.8°."""
+        from hexmesh.core.spec import PipeSpec
+        asm = _tee(0.9, angle=35,
+                   spec=PipeSpec(nang=4).core("fluid", radius=0.1, nrad=3))
+        found = self._mesh(asm)
+        assert len(found) == 1 and "meshed non-orthogonality 72." in found[0]
+        assert "OUTLINE_NONORTH_WARN" in found[0] and "larger branch ratio" in found[0]
+
+    def test_one_warning_per_tier(self):
+        """The prediction warned already: the meshed check adds nothing."""
+        found = self._mesh(CASES["wye-60"]())
+        assert len(found) == 1 and "predicted" in found[0]
+
+    def test_meshed_above_the_maximum_raises(self, monkeypatch):
+        monkeypatch.setattr(junction_quality, "_CACHE", type(junction_quality._CACHE)())
+        monkeypatch.setattr(BlockLayout, "predicted_nonorth", lambda self: (0.0, 0))
+        monkeypatch.setattr(limits, "OUTLINE_NONORTH_MAX", 50.0)
+        monkeypatch.setattr(limits, "OUTLINE_NONORTH_WARN", 40.0)
+        with pytest.raises(AssemblyError) as err:
+            self._mesh(CASES["tee-0.5"]())
+        assert err.value.code == "meshed_nonorth_above_maximum"
+        assert "larger branch ratio" in str(err.value)
+
+    def test_the_wye_only_warns_meshed_above_the_maximum(self, monkeypatch):
+        monkeypatch.setattr(junction_quality, "_CACHE", type(junction_quality._CACHE)())
+        monkeypatch.setattr(BlockLayout, "predicted_nonorth", lambda self: (0.0, 0))
+        monkeypatch.setattr(limits, "OUTLINE_NONORTH_MAX", 50.0)
+        monkeypatch.setattr(limits, "OUTLINE_NONORTH_WARN", 40.0)
+        found = self._mesh(CASES["wye-60"]())
+        assert len(found) == 1 and "meshed" in found[0] and "OUTLINE_NONORTH_MAX" in found[0]

@@ -1,6 +1,6 @@
 # 0104 — Junctions predict non-orthogonality in `validate()`
 
-- **Status:** ready (design answered 2 questions: step 5 below)
+- **Status:** done
 - **Decision:** [0031 — General branch junctions](../decisions/0031-general-branch-junctions.md), amendment 2026-11-07, item 5
 - **Depends on:** 0060.
 
@@ -168,3 +168,43 @@ follows from the measurements, by decision.
   The 8 pass after the fix, and the 11 new tests pass.
 - **Follow-ups:** the two questions above.  The wye's crotch ring
   (72–82° in every wye) is input for task 0116's measurements.
+
+### Step 5 (after design's answers)
+
+- **The meshed check.**  `mesh()` checks every tee, duct tap and wye on
+  the outline tiers, as it does switches (`_check_meshed_nonorth`):
+  - each junction has `meshed_nonorth_check` set and names its own hint
+    (`meshed_nonorth_hint`); the wye has `meshed_nonorth_reject =
+    False`, so it warns above 80° too;
+  - a junction is measured over its whole fill, including a graded H
+    main's switch legs (their SJ check still measures only the legs);
+  - **refinement:** no second warning where the prediction already
+    warned on that tier, using the cached `predicted_nonorth(frames,
+    spec)`.  Errors are always raised.  Without this, every wye would
+    warn twice.
+  - The switches' meshed message now ends with its hint instead of
+    "(a steep wall grading at the switch)".  No test or doc quoted the
+    old text.
+- **Docs:** API.md, the GUIDE and the CHANGELOG state the known error
+  (up to 3.4° optimistic at r/R ≥ 0.6) and the meshed check.  There is
+  no margin.
+- **Tests:** 4 more in `tests/test_junction_quality.py` (15 in all):
+  - the optimistic 35° lateral warns at `mesh()`;
+  - one warning per tier;
+  - meshed above the maximum raises;
+  - the wye only warns.
+- **The 25 mm node difference** (lateral-45-0.9, block 6, between the
+  departure port B and station Sd) isn't gmsh behaviour.
+  - The layout declares that block's outer port-face edge, `("B", 1, 0)`
+    → `("B", 1, 1)`, as a `Line`, but the fill meshes the port face from
+    the interface's arc.  The meshed top midline in the port plane is at
+    z = 0.1 (on the wall); the predicted chord is at 0.071.  The
+    prediction follows the layout's declared edges, so it is off in that
+    block.
+  - It isn't the worst block, so the maximum is unaffected.  The 3.4°
+    optimism is in block 15 and stays unexplained.
+  - **Proposed follow-up:** declare port-face edges with their
+    interface geometry (arcs) in the junction layouts, or read them from
+    the port face in `cells()`.  Then re-measure the optimism.
+- **Full suite after step 5:** 3774 passed, 15 skipped, no failures.
+  Every example's `validate()` result is unchanged from step 4.

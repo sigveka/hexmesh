@@ -1103,9 +1103,10 @@ class Assembly:
         ``PREDICTED_SJ_WARN``, an ``AssemblyError`` below
         ``PREDICTED_SJ_MIN``, each naming the fitting.  Fittings whose
         ``meshed_nonorth_check`` is true (switches to a graded H face, task
-        0086) get the outline tiers on the meshed non-orthogonality too:
-        a warning above ``OUTLINE_NONORTH_WARN``, an error above
-        ``OUTLINE_NONORTH_MAX``.  A fill may name the volumes measured
+        0086; every junction, task 0104) get the outline tiers on the meshed
+        non-orthogonality too: a warning above ``OUTLINE_NONORTH_WARN``, an
+        error above ``OUTLINE_NONORTH_MAX`` (a warning where the fitting's
+        ``meshed_nonorth_reject`` is false: the wye).  A fill may name the volumes measured
         (``FillResult.checked_volumes``)."""
         check = lambda e, name: (getattr(e.fitting, name, None)
                                  and e.fitting.__getattribute__(name)(e.ports[0].spec))
@@ -1117,13 +1118,18 @@ class Assembly:
         pos = np.full(int(ntag.max()) + 1, -1)
         pos[ntag.astype(int)] = np.arange(len(ntag))
         nx = nx.reshape(-1, 3)
-        for e in edges:
-            vols = self._checked_volumes.get(e.index, self._fitting_volumes[e.index])
+        def conn_of(vols):
             hexes = [n.reshape(-1, 8) for v in vols
                      for t, _, n in zip(*gmsh.model.mesh.getElements(3, v)) if t == 5]
-            conn = pos[np.vstack(hexes).astype(int)]
+            return pos[np.vstack(hexes).astype(int)]
+
+        for e in edges:
+            conn = conn_of(self._checked_volumes.get(e.index, self._fitting_volumes[e.index]))
             if check(e, "meshed_nonorth_check"):
-                self._check_meshed_nonorth(e, max_non_orthogonality(nx[conn], conn))
+                # a junction's whole fill, its switch legs included (task 0104)
+                c = (conn_of(self._fitting_volumes[e.index])
+                     if hasattr(e.fitting, "predicted_nonorth") else conn)
+                self._check_meshed_nonorth(e, max_non_orthogonality(nx[c], c))
             if not check(e, "meshed_sj_check"):
                 continue
             sj = float(min_scaled_jacobians(nx[conn]).min())
@@ -1145,24 +1151,33 @@ class Assembly:
                                              limit="PREDICTED_SJ_WARN"), stacklevel=3)
 
     def _check_meshed_nonorth(self, e, angle: float) -> None:
-        # it rises with a switch's length (task 0086), so not the SJ hint
-        if angle > limits.OUTLINE_NONORTH_MAX:
+        # it rises with a switch's length (task 0086), so not the SJ hint;
+        # a junction names its own (task 0104)
+        f, spec = e.fitting, e.ports[0].spec
+        hint = (f.meshed_nonorth_hint(spec) if hasattr(f, "meshed_nonorth_hint")
+                else "a gentler wall grading of the H face, or a smaller ring nrad")
+        reject = getattr(f, "meshed_nonorth_reject", True)
+        if angle > limits.OUTLINE_NONORTH_MAX and reject:
             raise AssemblyError(
                 f"{e.name}{e.at}: meshed non-orthogonality {angle:.1f}° is above "
-                f"OUTLINE_NONORTH_MAX {limits.OUTLINE_NONORTH_MAX:g}°; a gentler wall grading "
-                f"of the H face, or a smaller ring nrad, lowers it",
+                f"OUTLINE_NONORTH_MAX {limits.OUTLINE_NONORTH_MAX:g}°; {hint}",
                 code="meshed_nonorth_above_maximum", where=e.where,
-                value=angle, limit="OUTLINE_NONORTH_MAX",
-                hint="a gentler wall grading of the H face, or a smaller ring nrad")
+                value=angle, limit="OUTLINE_NONORTH_MAX", hint=hint)
+        # a junction whose prediction already warned on this tier says it once
+        if hasattr(f, "predicted_nonorth"):
+            tier = lambda a: (a > limits.OUTLINE_NONORTH_WARN) + (a > limits.OUTLINE_NONORTH_MAX)
+            if tier(f.predicted_nonorth([p.frame for p in e.ports], spec)) >= tier(angle):
+                return
         if angle > limits.OUTLINE_NONORTH_WARN:
+            limit = ("OUTLINE_NONORTH_MAX" if angle > limits.OUTLINE_NONORTH_MAX
+                     else "OUTLINE_NONORTH_WARN")
             msg = (f"{e.name}{e.at}: meshed non-orthogonality {angle:.1f}° is above "
-                   f"OUTLINE_NONORTH_WARN {limits.OUTLINE_NONORTH_WARN:g}° (a steep wall "
-                   f"grading at the switch)")
+                   f"{limit} {getattr(limits, limit):g}°; {hint}")
             self.warnings.append(msg)
             warnings.warn(HexmeshWarning(msg,
                                          code="meshed_nonorth_high",
                                          where=e.where, value=angle,
-                                         limit="OUTLINE_NONORTH_WARN"), stacklevel=4)
+                                         limit=limit), stacklevel=4)
 
     def _set_constraints(self) -> None:
         msh = gmsh.model.mesh

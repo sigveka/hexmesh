@@ -103,7 +103,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0101](0101-untie-rectangular-shell-counts.md) | Unequal side counts through a stack of rectangular outlines | done | 0041, 0026 |
 | [0102](0102-agent-manifest.md) | `hexmesh manifest`: one machine-readable account of the suite | done | 0040 |
 | [0103](0103-network-angled-tees.md) | The network builder takes angled tees | done | 0031 |
-| [0104](0104-junction-nonorthogonality-prediction.md) | Junctions predict non-orthogonality in `validate()` | ready (design answered: step 5) | 0031 |
+| [0104](0104-junction-nonorthogonality-prediction.md) | Junctions predict non-orthogonality in `validate()` | done | 0031 |
 | [0105](0105-windows-ci-green.md) | CI green again: the Windows gmshToFoam test | done | 0039 |
 | [0106](0106-error-coverage-and-hints.md) | Every user-facing error coded, and hints where they help | done | 0040 |
 | [0107](0107-light-commands-without-gmsh.md) | The light commands load neither gmsh nor scipy | done | 0040 |
@@ -113,7 +113,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0113](0113-python-floor-311.md) | Python 3.11 is the oldest supported; CI green again | done | 0039 |
 | [0114](0114-pcf-sample-and-cli-insulation.md) | A committed PCF sample, and insulation from the `hexmesh` commands | done | 0032, 0040 |
 | [0115](0115-release-0-5-0.md) | Release 0.5.0: the launch version, its install line and a stability statement | done | — |
-| [0116](0116-wye-redesign-measurement.md) | The wye redesign, measured: the hub generalised, and the published topology's feasibility | ready (after 0103, 0104) | 0043, 0042 |
+| [0116](0116-wye-redesign-measurement.md) | The wye redesign, measured: the hub generalised, and the published topology's feasibility | in progress | 0043, 0042 |
 
 ### Validation
 

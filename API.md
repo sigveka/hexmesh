@@ -725,11 +725,14 @@ a block layout.
   downstream side") and what lowers it. The same check runs on duct taps
   and wyes. Against the meshed value, over the conformance kit's
   junctions and a sweep of tees and laterals (78 cases), the median
-  error is 0.5° and 59 cases are within 2°. The prediction is up to 3.4°
-  optimistic on large-ratio laterals (r/R 0.9, 35°–60°): a 35° lateral
-  meshing at 72.8° is predicted at 69.7° and doesn't warn. It is up to
-  15° pessimistic on 90° tees at r/R 0.9 with shells
-  (benchmarks/junction_nonorth.py). **Tees with r/R about 0.3
+  error is 0.5° and 59 cases are within 2°. **Its known error: up to 3.4°
+  optimistic at r/R ≥ 0.6** (a 35° lateral at r/R 0.9 meshes at 72.8°,
+  predicted 69.7°), and up to 15° pessimistic on 90° tees at r/R 0.9
+  with shells (benchmarks/junction_nonorth.py). So `mesh()` also checks
+  every junction's meshed non-orthogonality on the same tiers
+  (`meshed_nonorth_high`, `meshed_nonorth_above_maximum`), as for
+  switches. It says nothing new where the prediction already warned on
+  that tier. **Tees with r/R about 0.3
   warn at every angle** (72–77°). An unchanged junction's prediction is
   cached by value, so repeated `validate()` calls are cheap.
 - **Duct taps** (decision 0033, task 0070). On a rectangular main the tee
@@ -839,7 +842,8 @@ decision 0017).
   and 35°.  It also warns when the predicted non-orthogonality (see the
   tee's) is above `OUTLINE_NONORTH_WARN`: every wye does, at 72–82°, in
   the ring at the crotch, highest at narrow angles.  There is no reject
-  tier for the wye, for either measure, until its layout redesign.
+  tier for the wye, for either measure, predicted or meshed, until its
+  layout redesign.
 - **Wall.** The union of the inlet and daughter tubes, with a sharp crotch
   crease. `mesh()` projects the junction's wall nodes onto it (decision
   0029), so they lie on it to rounding; the faces between them are

@@ -1,6 +1,6 @@
 # 0116 — The wye redesign, measured: can the hub take asymmetric and unequal daughters, and can the published topology be built?
 
-- **Status:** ready (after 0103 and 0104, in 0.6's junction work)
+- **Status:** in progress
 - **Decision:** [0043 — The wye-layout redesign](../decisions/0043-wye-layout-redesign.md) (measure first); [0042 — The road to 1.0](../decisions/0042-road-to-1-0.md), criterion 2
 - **Depends on:** 0112 (done).  A measurement: `Wye`'s public behaviour
   doesn't change in this task.

@@ -68,7 +68,7 @@ from .blocks import (
     corner_shift, face_patches, face_vertices,
 )
 from .interface import Frame, junction_roll, junction_toward, port_type, rolled
-from .junction_quality import WYE_BLOCKS, _layout_key, nonorth_tiers
+from .junction_quality import WYE_BLOCKS, WYE_HINT, _layout_key, nonorth_tiers, predicted_angle
 from .projection import Tube, TubeUnion
 from .signature import check_port_pairs
 from .tee import thicknesses
@@ -602,14 +602,26 @@ class Wye:
             raise AssemblyError.wrap(e, f"block layout invalid: {e}",
                                      code="block_layout_invalid") from None
         found = nonorth_tiers(self, frames, spec, lambda: self.layout(frames, spec), WYE_BLOCKS,
-                              "the wye's layout sets it, at any angle; the layout "
-                              "redesign (decision 0043) measures alternatives",
-                              reject=False)
+                              WYE_HINT, reject=False)
         if sj < limits.PREDICTED_SJ_MIN:
             return found + [f"Wye at {self.angle:g}°: predicted min corner scaled Jacobian "
                     f"{sj:.3g} is below PREDICTED_SJ_MIN {limits.PREDICTED_SJ_MIN:g} "
                     f"(narrow wyes; the layout redesign is planned)"]
         return found
+
+    def meshed_nonorth_check(self, spec: PipeSpec) -> bool:
+        """Every wye (task 0104), on the outline tiers, warning only above
+        the maximum until its layout redesign (``meshed_nonorth_reject``)."""
+        return True
+
+    meshed_nonorth_reject = False
+
+    def meshed_nonorth_hint(self, spec: PipeSpec) -> str:
+        return WYE_HINT
+
+    def predicted_nonorth(self, frames: list[Frame], spec: PipeSpec) -> float:
+        """``validate()``'s predicted worst non-orthogonality (cached)."""
+        return predicted_angle(self, frames, spec, lambda: self.layout(frames, spec))
 
     def cell_count(self, frames: list[Frame], spec: PipeSpec) -> int:
         """Exact hex count of the block layout (pure; DESIGN P4)."""
