@@ -1,0 +1,535 @@
+{
+ "A-control-60": {
+  "ports_class0": true,
+  "predicted_min_sj": 0.2113548235732653,
+  "predicted_nonorth": 77.15,
+  "predicted_nonorth_where": "the ring at the crotch",
+  "cells": 12768,
+  "inverted": 0,
+  "meshed_min_sj": 0.15644374255118862,
+  "meshed_min_sj_where": "the ring at the crotch",
+  "meshed_min_sicn": 0.14369195760629916,
+  "meshed_max_nes": 0.877416933365464,
+  "meshed_nonorth": 77.83,
+  "chord": {
+   "mitre": 0.02870556262257226,
+   "crotch": 0.008455641745500203,
+   "rest": 0.0178029880387226
+  },
+  "projector_move_R": 0.17953220708484485,
+  "seconds": 8.3,
+  "gates": {
+   "no_inverted": true,
+   "sj_no_warning": false,
+   "sj_builds": true,
+   "chord_1pct": false,
+   "ports_class0": true,
+   "min_sj": 0.15644374255118862,
+   "worst_chord_R": 0.02870556262257226
+  }
+ },
+ "A-control-60-shell": {
+  "ports_class0": true,
+  "predicted_min_sj": 0.2113548235732653,
+  "predicted_nonorth": 77.15,
+  "predicted_nonorth_where": "the ring at the crotch",
+  "cells": 17824,
+  "inverted": 0,
+  "meshed_min_sj": 0.1564437425511891,
+  "meshed_min_sj_where": "the ring at the crotch",
+  "meshed_min_sicn": 0.13028861788437057,
+  "meshed_max_nes": 0.8774169333654628,
+  "meshed_nonorth": 77.83,
+  "chord": {
+   "mitre": 0.030747036508050607,
+   "crotch": 0.008851667102282856,
+   "rest": 0.008994794362307823
+  },
+  "projector_move_R": 0.18117175363307417,
+  "seconds": 10.1,
+  "gates": {
+   "no_inverted": true,
+   "sj_no_warning": false,
+   "sj_builds": true,
+   "chord_1pct": false,
+   "ports_class0": true,
+   "min_sj": 0.1564437425511891,
+   "worst_chord_R": 0.030747036508050607
+  }
+ },
+ "A1-equal-tee": {
+  "failed": "AssemblyError: WyeProbe(angle=90, run_length=0.4, branch_length=0.7, n_run=None, n_branch=None, n_split=None, roll=0.0, toward=None, theta_left=0, theta_right=90, r_left=1.0, r_right=1.0, inlet_station=None) at Interface(#1, pos=[0.2 0.  0. ]): WyeProbe: run_length must exceed s_in 1.633e+15"
+ },
+ "A1-equal-tee-shell": {
+  "failed": "AssemblyError: WyeProbe(angle=90, run_length=0.4, branch_length=0.7, n_run=None, n_branch=None, n_split=None, roll=0.0, toward=None, theta_left=0, theta_right=90, r_left=1.0, r_right=1.0, inlet_station=None) at Interface(#1, pos=[0.2 0.  0. ]): WyeProbe: run_length must exceed s_in 1.633e+15"
+ },
+ "A1-equal-tee-station": {
+  "ports_class0": true,
+  "predicted_min_sj": 0.197167380810195,
+  "predicted_nonorth": 79.01,
+  "predicted_nonorth_where": "the ring at the crotch",
+  "cells": 13728,
+  "inverted": 0,
+  "meshed_min_sj": 0.05780049391193597,
+  "meshed_min_sj_where": "the ring at the crotch",
+  "inverted_where": [],
+  "meshed_min_sicn": 0.06806994007213832,
+  "meshed_max_nes": 0.947171659340162,
+  "meshed_nonorth": 79.42,
+  "chord": {
+   "mitre": 0.03875290943185353,
+   "crotch": 0.013338864985513316,
+   "rest": 0.030435377114621243
+  },
+  "projector_move_R": 0.19119786637217084,
+  "seconds": 7.3,
+  "gates": {
+   "no_inverted": true,
+   "sj_no_warning": false,
+   "sj_builds": false,
+   "chord_1pct": false,
+   "ports_class0": true,
+   "min_sj": 0.05780049391193597,
+   "worst_chord_R": 0.03875290943185353
+  }
+ },
+ "A1-equal-tee-station-shell": {
+  "failed": "AssemblyError: WyeProbe1: wall projection folded 2 cell(s), min corner scaled Jacobian 0 (decision 0029)",
+  "ports_class0": true,
+  "predicted_min_sj": 0.18024459679548477,
+  "predicted_nonorth": 79.01,
+  "predicted_nonorth_where": "the ring at the crotch",
+  "cells": 19168,
+  "inverted": 2,
+  "meshed_min_sj": 0.0,
+  "meshed_min_sj_where": "a daughter's turn",
+  "inverted_where": [
+   "block 37: a daughter's turn"
+  ],
+  "meshed_min_sicn": 0.0,
+  "meshed_max_nes": 1.0,
+  "meshed_nonorth": 79.42,
+  "chord": {
+   "mitre": 0.03976752573497028,
+   "crotch": 0.016402923370802125,
+   "rest": 0.00917775267535989
+  },
+  "projector_move_R": 0.23550661716632593,
+  "seconds": 10.5,
+  "fold_check_bypassed": true,
+  "gates": {
+   "no_inverted": false,
+   "sj_no_warning": false,
+   "sj_builds": false,
+   "chord_1pct": false,
+   "ports_class0": true,
+   "min_sj": 0.0,
+   "worst_chord_R": 0.03976752573497028
+  }
+ },
+ "A2-equal-lateral-45": {
+  "failed": "AssemblyError: WyeProbe1: wall projection folded 28 cell(s), min corner scaled Jacobian -0.207 (decision 0029)",
+  "ports_class0": true,
+  "predicted_min_sj": 0.08527418513438298,
+  "predicted_nonorth": 89.29,
+  "predicted_nonorth_where": "the ring at the crotch",
+  "cells": 11488,
+  "inverted": 28,
+  "meshed_min_sj": -0.2070225439938472,
+  "meshed_min_sj_where": "the ring at the crotch",
+  "inverted_where": [
+   "block 16: the hub",
+   "block 22: the ring at the crotch",
+   "block 24: the ring at the crotch"
+  ],
+  "meshed_min_sicn": -0.3498066761335998,
+  "meshed_max_nes": 0.9938520779159592,
+  "meshed_nonorth": 88.67,
+  "chord": {
+   "mitre": 0.06718320214934723,
+   "crotch": 0.013498441603227856,
+   "rest": 0.040029594877217384
+  },
+  "projector_move_R": 0.3761176226848034,
+  "seconds": 6.3,
+  "fold_check_bypassed": true,
+  "gates": {
+   "no_inverted": false,
+   "sj_no_warning": false,
+   "sj_builds": false,
+   "chord_1pct": false,
+   "ports_class0": true,
+   "min_sj": -0.2070225439938472,
+   "worst_chord_R": 0.06718320214934723
+  }
+ },
+ "A2-equal-lateral-45-shell": {
+  "failed": "AssemblyError: WyeProbe1: wall projection folded 32 cell(s), min corner scaled Jacobian -0.207 (decision 0029)",
+  "ports_class0": true,
+  "predicted_min_sj": 0.08527418513438298,
+  "predicted_nonorth": 89.61,
+  "predicted_nonorth_where": "the ring at the crotch",
+  "cells": 16032,
+  "inverted": 32,
+  "meshed_min_sj": -0.2070225439938472,
+  "meshed_min_sj_where": "the ring at the crotch",
+  "inverted_where": [
+   "block 28: the hub",
+   "block 38: the ring at the crotch",
+   "block 39: the ring at the crotch",
+   "block 42: the ring at the crotch",
+   "block 43: the ring at the crotch"
+  ],
+  "meshed_min_sicn": -0.3498066761335987,
+  "meshed_max_nes": 0.9938520779159592,
+  "meshed_nonorth": 88.67,
+  "chord": {
+   "mitre": 0.07230183396194564,
+   "crotch": 0.012941222282232545,
+   "rest": 0.035688332602819145
+  },
+  "projector_move_R": 0.3761176226848034,
+  "seconds": 9.3,
+  "fold_check_bypassed": true,
+  "gates": {
+   "no_inverted": false,
+   "sj_no_warning": false,
+   "sj_builds": false,
+   "chord_1pct": false,
+   "ports_class0": true,
+   "min_sj": -0.2070225439938472,
+   "worst_chord_R": 0.07230183396194564
+  }
+ },
+ "A3-unequal-60": {
+  "ports_class0": true,
+  "predicted_min_sj": 0.2563905746827026,
+  "predicted_nonorth": 79.09,
+  "predicted_nonorth_where": "the ring at the crotch",
+  "cells": 14048,
+  "inverted": 0,
+  "meshed_min_sj": 0.13341273077333424,
+  "meshed_min_sj_where": "the ring at the crotch",
+  "meshed_min_sicn": 0.13009784517781048,
+  "meshed_max_nes": 0.8912584411503028,
+  "meshed_nonorth": 79.43,
+  "chord": {
+   "mitre": 0.04819180759505701,
+   "crotch": 0.006773817135593829,
+   "rest": 0.017072208125427507
+  },
+  "projector_move_R": 0.12694844107108194,
+  "seconds": 7.9,
+  "gates": {
+   "no_inverted": true,
+   "sj_no_warning": false,
+   "sj_builds": true,
+   "chord_1pct": false,
+   "ports_class0": true,
+   "min_sj": 0.13341273077333424,
+   "worst_chord_R": 0.04819180759505701
+  }
+ },
+ "A3-unequal-60-shell": {
+  "ports_class0": true,
+  "predicted_min_sj": 0.2563905746827026,
+  "predicted_nonorth": 79.09,
+  "predicted_nonorth_where": "the ring at the crotch",
+  "cells": 19616,
+  "inverted": 0,
+  "meshed_min_sj": 0.11441449551383193,
+  "meshed_min_sj_where": "the ring at the crotch",
+  "meshed_min_sicn": 0.1151335688688519,
+  "meshed_max_nes": 0.8912584411503046,
+  "meshed_nonorth": 79.43,
+  "chord": {
+   "mitre": 0.04897763436377586,
+   "crotch": 0.00608650436783903,
+   "rest": 0.016314214687357526
+  },
+  "projector_move_R": 0.12694844107108194,
+  "seconds": 11.7,
+  "gates": {
+   "no_inverted": true,
+   "sj_no_warning": false,
+   "sj_builds": true,
+   "chord_1pct": false,
+   "ports_class0": true,
+   "min_sj": 0.11441449551383193,
+   "worst_chord_R": 0.04897763436377586
+  }
+ },
+ "control-60": {
+  "ports_class0": true,
+  "predicted_min_sj": 0.2113548235732653,
+  "predicted_nonorth": 77.15,
+  "predicted_nonorth_where": "the ring at the crotch",
+  "cells": 12768,
+  "inverted": 0,
+  "meshed_min_sj": 0.15644374255118862,
+  "meshed_min_sj_where": "the ring at the crotch",
+  "meshed_min_sicn": 0.14369195760629916,
+  "meshed_max_nes": 0.877416933365464,
+  "meshed_nonorth": 77.83,
+  "chord": {
+   "mitre": 0.02870556262257226,
+   "crotch": 0.008455641745500203,
+   "rest": 0.0178029880387226
+  },
+  "projector_move_R": 0.17953220708484485,
+  "seconds": 7.0,
+  "gates": {
+   "no_inverted": true,
+   "sj_no_warning": false,
+   "sj_builds": true,
+   "chord_1pct": false,
+   "ports_class0": true,
+   "min_sj": 0.15644374255118862,
+   "worst_chord_R": 0.02870556262257226
+  }
+ },
+ "control-60-shell": {
+  "ports_class0": true,
+  "predicted_min_sj": 0.2113548235732653,
+  "predicted_nonorth": 77.15,
+  "predicted_nonorth_where": "the ring at the crotch",
+  "cells": 17824,
+  "inverted": 0,
+  "meshed_min_sj": 0.1564437425511891,
+  "meshed_min_sj_where": "the ring at the crotch",
+  "meshed_min_sicn": 0.13028861788437057,
+  "meshed_max_nes": 0.8774169333654628,
+  "meshed_nonorth": 77.83,
+  "chord": {
+   "mitre": 0.030747036508050607,
+   "crotch": 0.008851667102282856,
+   "rest": 0.008994794362307823
+  },
+  "projector_move_R": 0.18117175363307417,
+  "seconds": 11.5,
+  "gates": {
+   "no_inverted": true,
+   "sj_no_warning": false,
+   "sj_builds": true,
+   "chord_1pct": false,
+   "ports_class0": true,
+   "min_sj": 0.1564437425511891,
+   "worst_chord_R": 0.030747036508050607
+  }
+ },
+ "ref-wye-45": {
+  "ports_class0": true,
+  "predicted_min_sj": 0.1334131325431258,
+  "predicted_nonorth": 79.0,
+  "predicted_nonorth_where": "the ring at the crotch",
+  "cells": 11968,
+  "inverted": 0,
+  "meshed_min_sj": 0.13341313254312587,
+  "meshed_min_sj_where": "the ring at the crotch",
+  "inverted_where": [],
+  "meshed_min_sicn": 0.12128547925066867,
+  "meshed_max_nes": 0.8934927572182261,
+  "meshed_nonorth": 79.53,
+  "chord": {
+   "mitre": 0.05237263570718936,
+   "crotch": 0.013498441603228967,
+   "rest": 0.008603047518039031
+  },
+  "projector_move_R": 0.37611762268480176,
+  "seconds": 6.5,
+  "gates": {
+   "no_inverted": true,
+   "sj_no_warning": false,
+   "sj_builds": true,
+   "chord_1pct": false,
+   "ports_class0": true,
+   "min_sj": 0.1334131325431258,
+   "worst_chord_R": 0.05237263570718936
+  }
+ },
+ "ref-wye-45-shell": {
+  "ports_class0": true,
+  "predicted_min_sj": 0.1334131325431258,
+  "predicted_nonorth": 79.0,
+  "predicted_nonorth_where": "the ring at the crotch",
+  "cells": 16704,
+  "inverted": 0,
+  "meshed_min_sj": 0.13341313254312587,
+  "meshed_min_sj_where": "the ring at the crotch",
+  "inverted_where": [],
+  "meshed_min_sicn": 0.12128547925066903,
+  "meshed_max_nes": 0.8934927572182261,
+  "meshed_nonorth": 79.53,
+  "chord": {
+   "mitre": 0.05481527481530732,
+   "crotch": 0.012941222282232823,
+   "rest": 0.008686944462811402
+  },
+  "projector_move_R": 0.37611762268480176,
+  "seconds": 9.5,
+  "gates": {
+   "no_inverted": true,
+   "sj_no_warning": false,
+   "sj_builds": true,
+   "chord_1pct": false,
+   "ports_class0": true,
+   "min_sj": 0.1334131325431258,
+   "worst_chord_R": 0.05481527481530732
+  }
+ },
+ "ref-wye-90": {
+  "ports_class0": true,
+  "predicted_min_sj": 0.36138813846607143,
+  "predicted_nonorth": 76.41,
+  "predicted_nonorth_where": "the ring at the crotch",
+  "cells": 13728,
+  "inverted": 0,
+  "meshed_min_sj": 0.1641217044076776,
+  "meshed_min_sj_where": "the ring at the crotch",
+  "inverted_where": [],
+  "meshed_min_sicn": 0.17049322417310991,
+  "meshed_max_nes": 0.8590739829452995,
+  "meshed_nonorth": 76.86,
+  "chord": {
+   "mitre": 0.038787287226249995,
+   "crotch": 0.007541802946931242,
+   "rest": 0.02632823701873871
+  },
+  "projector_move_R": 0.1285437057261981,
+  "seconds": 7.2,
+  "gates": {
+   "no_inverted": true,
+   "sj_no_warning": false,
+   "sj_builds": true,
+   "chord_1pct": false,
+   "ports_class0": true,
+   "min_sj": 0.1641217044076776,
+   "worst_chord_R": 0.038787287226249995
+  }
+ },
+ "ref-wye-90-shell": {
+  "ports_class0": true,
+  "predicted_min_sj": 0.36138813846607143,
+  "predicted_nonorth": 76.41,
+  "predicted_nonorth_where": "the ring at the crotch",
+  "cells": 19168,
+  "inverted": 0,
+  "meshed_min_sj": 0.1641217044076776,
+  "meshed_min_sj_where": "the ring at the crotch",
+  "inverted_where": [],
+  "meshed_min_sicn": 0.17049322417310994,
+  "meshed_max_nes": 0.8590739829452995,
+  "meshed_nonorth": 76.86,
+  "chord": {
+   "mitre": 0.04136657927246712,
+   "crotch": 0.007931518172074742,
+   "rest": 0.031130584002820177
+  },
+  "projector_move_R": 0.14469615067956776,
+  "seconds": 11.1,
+  "gates": {
+   "no_inverted": true,
+   "sj_no_warning": false,
+   "sj_builds": true,
+   "chord_1pct": false,
+   "ports_class0": true,
+   "min_sj": 0.1641217044076776,
+   "worst_chord_R": 0.04136657927246712
+  }
+ },
+ "A2-equal-lateral-45-station": {
+  "failed": "AssemblyError: WyeProbe1: wall projection folded 24 cell(s), min corner scaled Jacobian -0.0733 (decision 0029)",
+  "ports_class0": true,
+  "predicted_min_sj": 0.10616981115932579,
+  "predicted_nonorth": 87.67,
+  "predicted_nonorth_where": "the ring at the crotch",
+  "cells": 11968,
+  "inverted": 24,
+  "meshed_min_sj": -0.07329539898643486,
+  "meshed_min_sj_where": "the hub",
+  "inverted_where": [
+   "block 16: the hub",
+   "block 22: the ring at the crotch",
+   "block 24: the ring at the crotch"
+  ],
+  "meshed_min_sicn": -0.06590510280629365,
+  "meshed_max_nes": 0.9956241940242169,
+  "meshed_nonorth": 88.07,
+  "chord": {
+   "mitre": 0.05222522141823713,
+   "crotch": 0.015180598223594605,
+   "rest": 0.04802166911341291
+  },
+  "projector_move_R": 0.3761176226848034,
+  "seconds": 6.3,
+  "fold_check_bypassed": true,
+  "gates": {
+   "no_inverted": false,
+   "sj_no_warning": false,
+   "sj_builds": false,
+   "chord_1pct": false,
+   "ports_class0": true,
+   "min_sj": -0.07329539898643486,
+   "worst_chord_R": 0.05222522141823713
+  }
+ },
+ "A2-equal-lateral-45-station-shell": {
+  "failed": "AssemblyError: WyeProbe1: wall projection folded 26 cell(s), min corner scaled Jacobian -0.0733 (decision 0029)",
+  "ports_class0": true,
+  "predicted_min_sj": 0.10616981115932579,
+  "predicted_nonorth": 87.67,
+  "predicted_nonorth_where": "the ring at the crotch",
+  "cells": 16704,
+  "inverted": 26,
+  "meshed_min_sj": -0.07329539898643278,
+  "meshed_min_sj_where": "the hub",
+  "inverted_where": [
+   "block 28: the hub",
+   "block 38: the ring at the crotch",
+   "block 39: the ring at the crotch",
+   "block 42: the ring at the crotch",
+   "block 43: the ring at the crotch"
+  ],
+  "meshed_min_sicn": -0.06590510280629173,
+  "meshed_max_nes": 0.9956241940242169,
+  "meshed_nonorth": 88.07,
+  "chord": {
+   "mitre": 0.04696834778220499,
+   "crotch": 0.01323868561862035,
+   "rest": 0.037814513104052205
+  },
+  "projector_move_R": 0.3761176226848034,
+  "seconds": 9.2,
+  "fold_check_bypassed": true,
+  "gates": {
+   "no_inverted": false,
+   "sj_no_warning": false,
+   "sj_builds": false,
+   "chord_1pct": false,
+   "ports_class0": true,
+   "min_sj": -0.07329539898643278,
+   "worst_chord_R": 0.04696834778220499
+  }
+ },
+ "B2-compound-surfaces": {
+  "answer": "no",
+  "gmsh": [
+   "4.12.1",
+   "4.15.2"
+  ],
+  "reproducer": "docs/integrations/evidence/gmsh_compound_transfinite.py",
+  "six_face_control": "64 structured hexes on both",
+  "seven_face": "generate(3) fails on both, with or without setCompound(2,\u2026)/(1,\u2026) and with Mesh.CompoundClassify 0: 'Transfinite algorithm only available for volumes bounded by 5 or 6 surfaces'"
+ },
+ "B1-subpartitioned-port": {
+  "answer": "no shared entities; a conformal mesh only through a coherence step",
+  "gmsh": [
+   "4.12.1",
+   "4.15.2"
+  ],
+  "reproducer": "docs/integrations/evidence/gmsh_subpartitioned_port.py",
+  "occ_fragment": "A's face is cut: A has 7 faces and is meshed with tets and pyramids (170 boundary quads, 160 expected)",
+  "distinct_entities": "non-conformal (224 boundary quads, 160 expected)",
+  "distinct_then_removeDuplicateNodes": "conformal: 128 hexes, 225 nodes, 160 boundary quads; forbidden by DESIGN P2 today"
+ }
+}

@@ -152,6 +152,35 @@ Consequence: a mesh and its `refined(k)` agree at the coarse nodes only to
   whole face of exactly one neighbour, so a split between two blocks has
   to run through the whole layout.
 - Reproducer: `split_face.py` in the task 0030 notes.
+- **Compound meshing doesn't lift the limit** (gmsh 4.12.1 and 4.15.2,
+  2026-11-09, task 0116 B2).  The same 7-face box, with
+  `mesh.setCompound(2, [top0, top1])`, and with `setCompound(1, …)` on
+  the split top curves, fails at `generate(3)` with the same message, on
+  both versions.  So does `Mesh.CompoundClassify` 0.  `setCompound`
+  changes how the surfaces are meshed, not how many faces the volume
+  has.  The 6-face control in the same script (top one 6-curve surface)
+  meshes 64 structured hexes on both.
+  - Reproducer: `evidence/gmsh_compound_transfinite.py` (variants `six`,
+    `plain`, `compound`, `recombine`).
+
+### A sub-partitioned face can't share entities with an uncut one (gmsh 4.12.1 and 4.15.2, task 0116 B1, 2026-11-09) — *verified*
+
+Box A's face x = 1 is one surface.  Boxes B1 and B2 meet it with the
+same face cut at y = 0.5.  On both versions:
+- **`occ.fragment`** makes the entities shared by cutting A's face, so A
+  is bounded by 7 surfaces.  `setTransfiniteAutomatic` then leaves A
+  out, and gmsh meshes it with tetrahedra and pyramids: 170 boundary
+  quads against 160 expected.
+- **Distinct entities** (built-in kernel, every block transfinite with
+  matching counts): A's face and B's faces carry coincident but separate
+  nodes.  The mesh isn't conformal: 224 boundary quads against 160.
+- **Distinct entities, then `mesh.removeDuplicateNodes()`:** conformal.
+  128 hexes, 225 nodes (the 9 × 5 × 5 grid), 160 boundary quads.  The
+  interface surfaces' quads stay on the duplicate geometric entities,
+  so physical groups and the writer must leave them out.  DESIGN P2
+  forbids this route today (see *Features used*).
+- Reproducer: `evidence/gmsh_subpartitioned_port.py` (variants
+  `occ-fragment`, `geo-raw`, `geo-coherence`).
 
 ### Filling choices for long curved block faces — *verified*
 
@@ -468,4 +497,4 @@ the count only.
   reproduce the 4-corner face's nodes exactly?  Decision 0005,
   pre-acceptance check.
 - Behaviour of the assembly path on 4.15.x is untested.  Only the legacy
-  wye was tried.
+  wye and task 0116's two minimal experiments (B1, B2) were tried.
