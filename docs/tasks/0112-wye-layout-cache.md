@@ -1,6 +1,6 @@
 # 0112 — Cache the wye's layout, so the light commands stay light
 
-- **Status:** done (2026-11-08; one question for design)
+- **Status:** done (2026-11-08)
 - **Decision:** [0040 — Agents for users](../decisions/0040-user-agents-network-design-and-resolution.md) (the light commands, amendment 2026-11-07); follow-up of task 0110, Q2
 - **Depends on:** 0107, 0110 (done).  After the launch.
 
