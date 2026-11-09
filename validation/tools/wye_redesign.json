@@ -531,5 +531,433 @@
   "occ_fragment": "A's face is cut: A has 7 faces and is meshed with tets and pyramids (170 boundary quads, 160 expected)",
   "distinct_entities": "non-conformal (224 boundary quads, 160 expected)",
   "distinct_then_removeDuplicateNodes": "conformal: 128 hexes, 225 nodes, 160 boundary quads; forbidden by DESIGN P2 today"
+ },
+ "K1-equal-tee": {
+  "ports_class0": true,
+  "predicted_min_sj": 0.5773502691896247,
+  "predicted_nonorth": 43.49,
+  "predicted_nonorth_where": "the inlet port's ring",
+  "cells": 15328,
+  "inverted": 0,
+  "meshed_min_sj": 0.577350269189624,
+  "meshed_min_sj_where": "the right port's ring",
+  "inverted_where": [],
+  "meshed_min_sicn": 0.235781137620594,
+  "meshed_max_nes": 0.5001158377538417,
+  "meshed_nonorth": 45.02,
+  "chord": {
+   "mitre": 0.036951983968401686,
+   "crotch": 0.036951983968401686,
+   "rest": 0.006354835875942849
+  },
+  "projector_move_R": 0.16958112590044727,
+  "seconds": 9.0,
+  "cube": {
+   "hub": 0.6,
+   "station": 0.25,
+   "rotation_from_inlet_frame_deg": 0.0,
+   "sides": {
+    "inlet": "-e1",
+    "left": "+e1",
+    "right": "+e2"
+   },
+   "pipe_to_side_plane_deg": {
+    "inlet": 90.0,
+    "left": 90.0,
+    "right": 90.0
+   },
+   "stations_R": {
+    "inlet": 1.27,
+    "left": 1.27,
+    "right": 1.27
+   }
+  },
+  "gates": {
+   "no_inverted": true,
+   "sj_no_warning": true,
+   "sj_builds": true,
+   "chord_1pct": false,
+   "ports_class0": true,
+   "min_sj": 0.577350269189624,
+   "worst_chord_R": 0.036951983968401686
+  }
+ },
+ "K1-equal-tee-shell": {
+  "ports_class0": true,
+  "predicted_min_sj": 0.5773502691896234,
+  "predicted_nonorth": 44.93,
+  "predicted_nonorth_where": "the left port's shell",
+  "cells": 18944,
+  "inverted": 0,
+  "meshed_min_sj": 0.5773502691896243,
+  "meshed_min_sj_where": "the right port's ring",
+  "inverted_where": [],
+  "meshed_min_sicn": 0.28637711797224474,
+  "meshed_max_nes": 0.5001158377538417,
+  "meshed_nonorth": 47.41,
+  "chord": {
+   "mitre": 0.04064718236524156,
+   "crotch": 0.04064718236524156,
+   "rest": 0.006990319463537065
+  },
+  "projector_move_R": 0.18653923849049298,
+  "seconds": 12.0,
+  "cube": {
+   "hub": 0.6,
+   "station": 1.0,
+   "rotation_from_inlet_frame_deg": 0.0,
+   "sides": {
+    "inlet": "-e1",
+    "left": "+e1",
+    "right": "+e2"
+   },
+   "pipe_to_side_plane_deg": {
+    "inlet": 90.0,
+    "left": 90.0,
+    "right": 90.0
+   },
+   "stations_R": {
+    "inlet": 2.22,
+    "left": 2.22,
+    "right": 2.22
+   }
+  },
+  "gates": {
+   "no_inverted": true,
+   "sj_no_warning": true,
+   "sj_builds": true,
+   "chord_1pct": false,
+   "ports_class0": true,
+   "min_sj": 0.5773502691896234,
+   "worst_chord_R": 0.04064718236524156
+  }
+ },
+ "K2-equal-lateral-45": {
+  "ports_class0": true,
+  "predicted_min_sj": 0.2229735632689853,
+  "predicted_nonorth": 71.57,
+  "predicted_nonorth_where": "the inlet port's ring",
+  "cells": 8928,
+  "inverted": 0,
+  "meshed_min_sj": 0.13393680565070376,
+  "meshed_min_sj_where": "the inlet port's ring",
+  "inverted_where": [],
+  "meshed_min_sicn": 0.07748841596514408,
+  "meshed_max_nes": 0.8300031058160957,
+  "meshed_nonorth": 71.17,
+  "chord": {
+   "mitre": 0.02231456426417533,
+   "crotch": 0.029355260846112702,
+   "rest": 0.018502625190467276
+  },
+  "projector_move_R": 0.11883921971499377,
+  "seconds": 5.8,
+  "cube": {
+   "hub": 0.3,
+   "station": 2.0,
+   "rotation_from_inlet_frame_deg": 22.5,
+   "sides": {
+    "inlet": "-e1",
+    "left": "+e1",
+    "right": "+e2"
+   },
+   "pipe_to_side_plane_deg": {
+    "inlet": 67.5,
+    "left": 67.5,
+    "right": 67.5
+   },
+   "stations_R": {
+    "inlet": 3.1491,
+    "left": 4.45,
+    "right": 4.45
+   }
+  },
+  "gates": {
+   "no_inverted": true,
+   "sj_no_warning": false,
+   "sj_builds": true,
+   "chord_1pct": false,
+   "ports_class0": true,
+   "min_sj": 0.13393680565070376,
+   "worst_chord_R": 0.029355260846112702
+  }
+ },
+ "K2-equal-lateral-45-shell": {
+  "ports_class0": true,
+  "predicted_min_sj": 0.2229735632689851,
+  "predicted_nonorth": 71.25,
+  "predicted_nonorth_where": "the inlet port's shell",
+  "cells": 11104,
+  "inverted": 0,
+  "meshed_min_sj": 0.13637793540746027,
+  "meshed_min_sj_where": "the inlet port's shell",
+  "inverted_where": [],
+  "meshed_min_sicn": 0.0971470824552067,
+  "meshed_max_nes": 0.8300031058160998,
+  "meshed_nonorth": 71.1,
+  "chord": {
+   "mitre": 0.024546020690592862,
+   "crotch": 0.03229078693072415,
+   "rest": 0.020352887709513684
+  },
+  "projector_move_R": 0.13072314168649424,
+  "seconds": 8.7,
+  "cube": {
+   "hub": 0.3,
+   "station": 2.0,
+   "rotation_from_inlet_frame_deg": 22.5,
+   "sides": {
+    "inlet": "-e1",
+    "left": "+e1",
+    "right": "+e2"
+   },
+   "pipe_to_side_plane_deg": {
+    "inlet": 67.5,
+    "left": 67.5,
+    "right": 67.5
+   },
+   "stations_R": {
+    "inlet": 3.464,
+    "left": 4.89,
+    "right": 4.89
+   }
+  },
+  "gates": {
+   "no_inverted": true,
+   "sj_no_warning": false,
+   "sj_builds": true,
+   "chord_1pct": false,
+   "ports_class0": true,
+   "min_sj": 0.13637793540746027,
+   "worst_chord_R": 0.03229078693072415
+  }
+ },
+ "K3-unequal-60": {
+  "failed": "AssemblyError: CubeProbe1: wall projection folded 54 cell(s), min corner scaled Jacobian -0.995 (decision 0029)",
+  "ports_class0": true,
+  "predicted_min_sj": 0.06650174530648274,
+  "predicted_nonorth": 89.44,
+  "predicted_nonorth_where": "the inlet port's ring",
+  "cells": 11968,
+  "inverted": 54,
+  "meshed_min_sj": -0.9951847266721363,
+  "meshed_min_sj_where": "the inlet port's ring",
+  "inverted_where": [
+   "block 19: the right port's ring",
+   "block 24: the inlet port's ring",
+   "block 28: the left port's ring"
+  ],
+  "meshed_min_sicn": -0.9943207535522368,
+  "meshed_max_nes": 0.9939177431802125,
+  "meshed_nonorth": 89.42,
+  "chord": {
+   "mitre": 0.05469497003424889,
+   "crotch": 0.05332132455659083,
+   "rest": 0.20091523319284724
+  },
+  "projector_move_R": 0.8541262975290511,
+  "seconds": 7.0,
+  "fold_check_bypassed": true,
+  "cube": {
+   "hub": 0.6,
+   "station": 2.0,
+   "rotation_from_inlet_frame_deg": 60.0,
+   "sides": {
+    "inlet": "+e2",
+    "left": "-e2",
+    "right": "+e1"
+   },
+   "pipe_to_side_plane_deg": {
+    "inlet": 60.0,
+    "left": 90.0,
+    "right": 60.0
+   },
+   "stations_R": {
+    "inlet": 3.2828,
+    "left": 2.6642,
+    "right": 2.6642
+   }
+  },
+  "gates": {
+   "no_inverted": false,
+   "sj_no_warning": false,
+   "sj_builds": false,
+   "chord_1pct": false,
+   "ports_class0": true,
+   "min_sj": -0.9951847266721363,
+   "worst_chord_R": 0.20091523319284724
+  }
+ },
+ "K3-unequal-60-shell": {
+  "failed": "AssemblyError: CubeProbe1: wall projection folded 78 cell(s), min corner scaled Jacobian -0.995 (decision 0029)",
+  "ports_class0": true,
+  "predicted_min_sj": 0.06650174530648219,
+  "predicted_nonorth": 89.88,
+  "predicted_nonorth_where": "the inlet port's shell",
+  "cells": 15360,
+  "inverted": 78,
+  "meshed_min_sj": -0.9952565412799559,
+  "meshed_min_sj_where": "the right port's ring",
+  "inverted_where": [
+   "block 33: the right port's ring",
+   "block 34: the right port's shell",
+   "block 42: the inlet port's ring",
+   "block 43: the inlet port's shell",
+   "block 49: the left port's ring"
+  ],
+  "meshed_min_sicn": -0.9693202398133306,
+  "meshed_max_nes": 0.9947215979134512,
+  "meshed_nonorth": 89.98,
+  "chord": {
+   "mitre": 0.05577171083784804,
+   "crotch": 0.06142084233285314,
+   "rest": 0.23263038627997404
+  },
+  "projector_move_R": 0.986577953058753,
+  "seconds": 10.7,
+  "fold_check_bypassed": true,
+  "cube": {
+   "hub": 0.3,
+   "station": 2.0,
+   "rotation_from_inlet_frame_deg": 60.0,
+   "sides": {
+    "inlet": "+e2",
+    "left": "-e2",
+    "right": "+e1"
+   },
+   "pipe_to_side_plane_deg": {
+    "inlet": 60.0,
+    "left": 90.0,
+    "right": 60.0
+   },
+   "stations_R": {
+    "inlet": 3.6111,
+    "left": 3.0442,
+    "right": 3.0442
+   }
+  },
+  "gates": {
+   "no_inverted": false,
+   "sj_no_warning": false,
+   "sj_builds": false,
+   "chord_1pct": false,
+   "ports_class0": true,
+   "min_sj": -0.9952565412799559,
+   "worst_chord_R": 0.23263038627997404
+  }
+ },
+ "K-control-60": {
+  "failed": "AssemblyError: CubeProbe1: wall projection folded 56 cell(s), min corner scaled Jacobian -0.995 (decision 0029)",
+  "ports_class0": true,
+  "predicted_min_sj": 0.06650174530648274,
+  "predicted_nonorth": 89.44,
+  "predicted_nonorth_where": "the inlet port's ring",
+  "cells": 10048,
+  "inverted": 56,
+  "meshed_min_sj": -0.995184726672136,
+  "meshed_min_sj_where": "the inlet port's ring",
+  "inverted_where": [
+   "block 19: the right port's ring",
+   "block 24: the inlet port's ring",
+   "block 28: the left port's ring"
+  ],
+  "meshed_min_sicn": -0.9941269141604204,
+  "meshed_max_nes": 0.9970923028380055,
+  "meshed_nonorth": 89.87,
+  "chord": {
+   "mitre": 0.051083272310342154,
+   "crotch": 0.07662327775802918,
+   "rest": 0.33081149480081395
+  },
+  "projector_move_R": 0.9762877765897291,
+  "seconds": 5.9,
+  "fold_check_bypassed": true,
+  "cube": {
+   "hub": 0.6,
+   "station": 2.0,
+   "rotation_from_inlet_frame_deg": 60.0,
+   "sides": {
+    "inlet": "+e2",
+    "left": "-e2",
+    "right": "+e1"
+   },
+   "pipe_to_side_plane_deg": {
+    "inlet": 60.0,
+    "left": 90.0,
+    "right": 60.0
+   },
+   "stations_R": {
+    "inlet": 3.2828,
+    "left": 3.76,
+    "right": 3.76
+   }
+  },
+  "gates": {
+   "no_inverted": false,
+   "sj_no_warning": false,
+   "sj_builds": false,
+   "chord_1pct": false,
+   "ports_class0": true,
+   "min_sj": -0.995184726672136,
+   "worst_chord_R": 0.33081149480081395
+  }
+ },
+ "K-control-60-shell": {
+  "failed": "AssemblyError: CubeProbe1: wall projection folded 104 cell(s), min corner scaled Jacobian -0.995 (decision 0029)",
+  "ports_class0": true,
+  "predicted_min_sj": 0.06650174530648219,
+  "predicted_nonorth": 89.88,
+  "predicted_nonorth_where": "the inlet port's shell",
+  "cells": 12672,
+  "inverted": 104,
+  "meshed_min_sj": -0.9951847266720796,
+  "meshed_min_sj_where": "the inlet port's ring",
+  "inverted_where": [
+   "block 33: the right port's ring",
+   "block 34: the right port's shell",
+   "block 42: the inlet port's ring",
+   "block 43: the inlet port's shell",
+   "block 49: the left port's ring"
+  ],
+  "meshed_min_sicn": -0.9717583312129219,
+  "meshed_max_nes": 0.9861456072087924,
+  "meshed_nonorth": 89.92,
+  "chord": {
+   "mitre": 0.05619159954137615,
+   "crotch": 0.08429457233876975,
+   "rest": 0.36420852929967384
+  },
+  "projector_move_R": 1.071895934981066,
+  "seconds": 9.4,
+  "fold_check_bypassed": true,
+  "cube": {
+   "hub": 0.3,
+   "station": 2.0,
+   "rotation_from_inlet_frame_deg": 60.0,
+   "sides": {
+    "inlet": "+e2",
+    "left": "-e2",
+    "right": "+e1"
+   },
+   "pipe_to_side_plane_deg": {
+    "inlet": 60.0,
+    "left": 90.0,
+    "right": 60.0
+   },
+   "stations_R": {
+    "inlet": 3.6111,
+    "left": 4.13,
+    "right": 4.13
+   }
+  },
+  "gates": {
+   "no_inverted": false,
+   "sj_no_warning": false,
+   "sj_builds": false,
+   "chord_1pct": false,
+   "ports_class0": true,
+   "min_sj": -0.9951847266720796,
+   "worst_chord_R": 0.36420852929967384
+  }
  }
 }

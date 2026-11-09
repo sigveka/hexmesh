@@ -34,6 +34,11 @@ Everything else is the rest of the wall.
 
     python3 -m validation.tools.wye_redesign      # from the repository root
 
+Task 0118 adds the oriented junction cube (``K*`` cases,
+``hexmesh.assembly._cube_probe``; RESEARCH §4.3): the same cases and
+gates, with each case's cube orientation, its stations and the predicted
+SJ over the layout's two shape parameters (the best is meshed).
+
 Rows go to ``validation/tools/wye_redesign.json``; no mesh is kept.
 """
 
@@ -114,11 +119,13 @@ def chord_errors(wall, quads_xyz) -> dict:
     return {"mitre": worst(mitre), "crotch": worst(crotch), "rest": worst(~on_crease)}
 
 
-def measure(asm, kind=("Wye", "WyeProbe")) -> dict:
-    """Every gate's and report's number for the junction in *asm*."""
+def measure(asm, kind=("Wye", "WyeProbe", "CubeProbe"), names=None) -> dict:
+    """Every gate's and report's number for the junction in *asm*;
+    *names* the block names for "where" (the wye's by default)."""
     import gmsh
     from hexmesh import Session
     from hexmesh.assembly.junction_quality import WYE_BLOCKS, _where
+    WYE_BLOCKS = names or WYE_BLOCKS
     from hexmesh.assembly.signature import classify, signature
     from hexmesh.quality_hex import max_non_orthogonality, min_scaled_jacobians, nes
     e = next(x for x in asm._edges if type(x.fitting).__name__ in kind)
@@ -177,7 +184,7 @@ def measure(asm, kind=("Wye", "WyeProbe")) -> dict:
     return row
 
 
-def measure_folded(asm) -> dict:
+def measure_folded(asm, names=None) -> dict:
     """A case whose wall projection folds cells: measured with
     ``mesh()``'s fold check passed (only here), so the folds are counted
     and located in the projected mesh."""
@@ -186,7 +193,7 @@ def measure_folded(asm) -> dict:
     real = assembler.min_scaled_jacobians
     with mock.patch.object(assembler, "min_scaled_jacobians",
                            lambda v: np.abs(real(v)) + 1e-12):
-        row = measure(asm)
+        row = measure(asm, names=names)
     row["fold_check_bypassed"] = True
     return row
 
@@ -225,6 +232,73 @@ def probe(theta_left, theta_right, ratio=1.0, inlet_station=None):
     return build
 
 
+# The cube's blocks by their stations (task 0118), most specific first.
+CUBE_BLOCKS = [(frozenset({"F", "C", "S" + p}), f"the {w} port's ring")
+               for p, w in (("A", "inlet"), ("L", "left"), ("R", "right"))] + [
+    (frozenset({"C", "S" + p}), f"the {w} port's shell")
+    for p, w in (("A", "inlet"), ("L", "left"), ("R", "right"))] + [
+    (frozenset({"F", "S" + p}), f"the {w} port's column")
+    for p, w in (("A", "inlet"), ("L", "left"), ("R", "right"))] + [
+    (frozenset({p, "S" + p}), f"the {w} run")
+    for p, w in (("A", "inlet"), ("L", "left"), ("R", "right"))] + [
+    (frozenset({"F", "C"}), "a wall side"), (frozenset({"C"}), "a wall side's shell"),
+    (frozenset({"F"}), "the centre hex")]
+
+HUBS = (0.3, 0.4, 0.5, 0.6)          # the cube's two shape parameters, tuned by
+STATIONS = (0.25, 0.5, 1.0, 2.0, 3.0)   # predicted SJ (pure); the best is meshed
+
+
+def cube(theta_left, theta_right, ratio=1.0):
+    """The oriented cube (``hexmesh.assembly._cube_probe``), its shape
+    parameters tuned per case by the predicted min corner SJ."""
+    def build(shell: bool, hub=None, station=None):
+        from hexmesh.assembly._cube_probe import CubeProbe
+        kw = dict(run_length=RUN, branch_length=BRANCH, theta_left=theta_left,
+                  theta_right=theta_right, r_left=ratio, r_right=ratio)
+        if hub is None:
+            best = None
+            for h in HUBS:
+                for s in STATIONS:
+                    try:
+                        asm = junction_assembly(CubeProbe(hub=h, station=s, **kw),
+                                                spec(shell=shell), ["left", "right"])
+                        e = asm.edges[1]
+                        sj = e.fitting.layout([p.frame for p in e.ports],
+                                              e.ports[0].spec).validate()["min_corner_sj"]
+                    except Exception:
+                        continue
+                    if best is None or sj > best[0]:
+                        best = (sj, h, s)
+            _, hub, station = best
+        return junction_assembly(CubeProbe(hub=hub, station=station, **kw),
+                                 spec(shell=shell), ["left", "right"])
+    build.cube = True
+    return build
+
+
+def cube_report(asm) -> dict:
+    """The cube's orientation and stations, and its tuning grid."""
+    e = next(x for x in asm._edges if type(x.fitting).__name__ == "CubeProbe")
+    f, inlet = e.fitting, e.ports[0].frame
+    E, sides, align = f.cube(inlet)
+    o, rays = f.rays(inlet)
+    start = np.array([inlet.normal, inlet.right, inlet.up])
+    Rm = E.T @ start                    # cube axes = Rm · inlet frame
+    angle = math.degrees(math.acos(max(-1.0, min(1.0, (np.trace(Rm) - 1) / 2))))
+    lay = f.layout([p.frame for p in e.ports], e.ports[0].spec)
+    st = {p: float((np.mean([lay.coords[("S" + p, 1, k)] for k in range(4)], axis=0) - o)
+                   @ rays[p]) / R for p in "ALR"}
+    names = {"A": "inlet", "L": "left", "R": "right"}
+    axes = {(0, 1): "+e1", (0, -1): "-e1", (1, 1): "+e2", (1, -1): "-e2", (2, 1): "+e3",
+            (2, -1): "-e3"}
+    return {"hub": f.hub, "station": f.station,
+            "rotation_from_inlet_frame_deg": round(angle, 3),
+            "sides": {names[p]: axes[sides[p]] for p in "ALR"},
+            "pipe_to_side_plane_deg": {names[p]: round(math.degrees(math.asin(min(1.0, align[p]))), 3)
+                                       for p in "ALR"},
+            "stations_R": {names[p]: round(st[p], 4) for p in "ALR"}}
+
+
 CASES = {
     "control-60": control,                            # today's Wye
     # references, not gated: today's wye at the included angles of A1, A2
@@ -237,6 +311,11 @@ CASES = {
     # sensitivity: the symmetric 45° wye's station distance, R (tan 22.5° + 0.1)
     "A2-equal-lateral-45-station": probe(0, 45, inlet_station=math.tan(math.pi / 8) + 0.1),
     "A3-unequal-60": probe(30, 30, ratio=1 / math.sqrt(2)),
+    # task 0118: the oriented junction cube on the same cases
+    "K-control-60": cube(30, 30),
+    "K1-equal-tee": cube(0, 90),
+    "K2-equal-lateral-45": cube(0, 45),
+    "K3-unequal-60": cube(30, 30, ratio=1 / math.sqrt(2)),
 }
 
 
@@ -246,12 +325,19 @@ def main(argv=None) -> int:
     for name in names:
         for shell in (False, True):
             key = f"{name}{'-shell' if shell else ''}"
+            is_cube = getattr(CASES[name], "cube", False)
             try:
-                row = measure(CASES[name](shell))
+                asm = CASES[name](shell)
+                row = measure(asm, names=CUBE_BLOCKS if is_cube else None)
+                if is_cube:
+                    row["cube"] = cube_report(asm)
             except Exception as err:          # a case that can't be built is a result
                 row = {"failed": f"{type(err).__name__}: {err}"}
                 if getattr(err, "code", None) == "wall_projection_folded":
-                    row.update(measure_folded(CASES[name](shell)))
+                    asm = CASES[name](shell)
+                    row.update(measure_folded(asm, names=CUBE_BLOCKS if is_cube else None))
+                    if is_cube:
+                        row["cube"] = cube_report(asm)
             if "inverted" in row:
                 row["gates"] = gates(row)
             rows[key] = row
