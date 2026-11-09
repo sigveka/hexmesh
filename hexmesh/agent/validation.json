@@ -121,7 +121,7 @@
      "quantity": "volume-weighted L2 error of T, every case"
     }
    ],
-   "levels": 99,
+   "levels": 123,
    "status": "accepted",
    "task": "0074",
    "title": "Manufactured solutions for conduction on every fitting"
