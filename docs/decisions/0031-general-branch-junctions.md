@@ -253,3 +253,21 @@ at 30°.
 slab": "A twisted `Straight` places a station at every axial layer,
 rolled linearly with axial distance; every node lies on an exact
 station face, so its walls are exact without projection."
+
+## Amendment: shoe taps follow the laterals' rules (2026-11-09; the user: "yes")
+
+Task 0063 (stage 4, shoe taps on ducts) measured every case down to 30°;
+full-width shoes fall fastest (min SJ 0.13 at 30°).
+
+**Decided:**
+1. **No minimum angle** for shoe taps, as for laterals (this decision's
+   amendment of 2026-11-07, item 1): the SJ and non-orthogonality tiers
+   warn or reject, naming a larger angle.
+2. **One placement convention:** a shoe's axis passes through the
+   junction point, as for pipe laterals and PCF's branch point; the hole
+   sits b·cot α downstream of it.  No hole-based placement before the
+   0.8 API review; the GUIDE gives the offset with an example.  A
+   placement option may be added in 1.x (additive) if users ask.
+3. **The 30° branch-run edge** (min SJ 0.224 on every pillowed shoe at
+   30°, warned) is held: a run layer normal to the face may lift it, not
+   before 1.0.  Common HVAC shoes are 45°.
