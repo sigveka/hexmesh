@@ -17,6 +17,7 @@ from hexmesh.assembly import Assembly, Straight
 from hexmesh.assembly.blocks import (
     BlockLayout, LayoutError, bind_face, face_vertices,
 )
+from hexmesh.errors import InternalError
 from hexmesh.assembly.corners import frame_offset
 from hexmesh.assembly.interface import Frame
 from hexmesh.core.shape import CircleShape
@@ -88,7 +89,7 @@ class TestValidation:
     def test_division_conflict(self):
         lay = BlockStraight(0.3, 3).layout(A, B, _one())
         lay.edge(("A", 1, 0), ("B", 1, 0), divisions=5)   # parallel axials disagree
-        with pytest.raises(LayoutError, match="division conflict"):
+        with pytest.raises(InternalError, match="division conflict"):
             lay.validate()
 
     def test_missing_division(self):
@@ -97,13 +98,13 @@ class TestValidation:
                                (0, 0, 1), (1, 0, 1), (1, 1, 1), (0, 1, 1)]):
             lay.vertex(i, c)
         lay.block(range(8), "fluid")
-        with pytest.raises(LayoutError, match="no division count"):
+        with pytest.raises(InternalError, match="no division count"):
             lay.validate()
 
     def test_port_not_tiled(self):
         lay = BlockStraight(0.3, 3).layout(A, B, _one())
         lay.blocks.pop(0)                                   # drop the core block
-        with pytest.raises(LayoutError, match="port face .* not used"):
+        with pytest.raises(InternalError, match="port face .* not used"):
             lay.validate()
 
     def test_messages_do_not_depend_on_the_hash_seed(self):
@@ -114,17 +115,18 @@ class TestValidation:
         import subprocess
         import sys
         code = ("from tests.test_blocks import BlockStraight, A, B, _one\n"
-                "from hexmesh.assembly.blocks import LayoutError\n"
+                "from hexmesh.errors import InternalError\n"
                 "lay = BlockStraight(0.3, 3).layout(A, B, _one()); lay.blocks.pop(0)\n"
-                "try:\n    lay.validate()\nexcept LayoutError as e:\n    print(e)\n")
+                "try:\n    lay.validate()\nexcept InternalError as e:\n    print(e)\n")
         root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         out = {subprocess.run([sys.executable, "-c", code], capture_output=True, text=True,
                               cwd=root, check=True,
                               env={**os.environ, "PYTHONHASHSEED": seed}).stdout
                for seed in ("0", "1", "2", "3")}
         assert len(out) == 1, out
-        assert out.pop().strip() == ("port face {('A', 0, 0), ('A', 0, 1), ('A', 0, 2), "
-                                     "('A', 0, 3)} is not used by any block")
+        assert out.pop().strip().startswith(
+            "port face {('A', 0, 0), ('A', 0, 1), ('A', 0, 2), "
+            "('A', 0, 3)} is not used by any block (an internal check failed")
 
     def test_inverted_block(self):
         lay = BlockStraight(0.3, 3).layout(A, B, _one())

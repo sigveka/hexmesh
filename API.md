@@ -1477,19 +1477,8 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `bend_geometry_invalid` | a bend's ports and corner point give no valid bend | `AssemblyError` |
 | `bend_leg_not_along_pipe` | a bend's incoming leg does not continue the incoming pipe | `AssemblyError` |
 | `bend_radius_below_outer_radius` | a path bends tighter than the section's outer radius | `AssemblyError` |
-| `block_division_conflict` | parallel edges of a block layout need different cell counts | `LayoutError` |
-| `block_division_missing` | a block-layout edge reaches no fixed cell count | `LayoutError` |
-| `block_face_shared` | a block-layout face is shared by more than two blocks | `LayoutError` |
-| `block_grading_conflict` | parallel edges of a block layout are graded differently | `LayoutError` |
-| `block_h_core_in_ring` | an H core bound inside a ring of a block layout | `LayoutError` |
 | `block_inverted` | a block of a layout is inverted or degenerate at a corner | `LayoutError` |
-| `block_layout_empty` | a block layout with no blocks | `LayoutError` |
 | `block_layout_invalid` | a fitting's block layout fails its checks | `AssemblyError` |
-| `block_port_face_interior` | a block-layout port face is interior to the layout | `LayoutError` |
-| `block_port_face_unused` | a block-layout port face is used by no block | `LayoutError` |
-| `block_port_faces_unbound` | block-layout port faces not bound before realising | `LayoutError` |
-| `block_vertex_unplaced` | a block-layout vertex has no coordinates | `LayoutError` |
-| `block_vertices_not_distinct` | a block without 8 distinct vertices | `LayoutError` |
 | `branch_args_conflict` | a tee given both branch_radius and branch | `AssemblyTypeError` |
 | `branch_length_too_short` | a tee branch does not reach past the main's wall | `AssemblyError` |
 | `branch_radius_out_of_range` | a pipe-tee branch radius not in (0, main radius) | `AssemblyError` |
@@ -1653,7 +1642,6 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `port_name_unknown` | an unknown port name for a fitting | `AssemblyError` |
 | `port_names_count` | a number of port names that does not match the fitting's outlets | `AssemblyError` |
 | `port_placement_mismatch` | a placed port misses the network's port position | `AssemblyError` |
-| `port_roll_not_a_period` | port frames that differ by a roll that is not a period | `LayoutError` |
 | `port_type_mismatch` | an interface's port type differs from the one the fitting declares | `AssemblyError` |
 | `post_result_not_dict` | a study's post-processing returns something other than a dict | `StudyTypeError` |
 | `predicted_nonorth_above_maximum` | a junction's predicted non-orthogonality above OUTLINE_NONORTH_MAX | `AssemblyError` |

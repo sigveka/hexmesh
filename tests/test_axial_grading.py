@@ -16,7 +16,7 @@ import pytest
 from hexmesh.assembly import (
     Assembly, AssemblyError, Bend, Closure, Elbow, Reducer, SplinePipe, Straight,
 )
-from hexmesh.assembly.blocks import LayoutError
+from hexmesh.errors import InternalError
 from hexmesh.assembly.interface import Frame
 from hexmesh.assembly.sweep import station_fractions
 from hexmesh.core.shape import CircleShape
@@ -188,7 +188,7 @@ class TestBlockGrading:
         lay = self._layout()
         lay.edge(("A", 1, 0), ("B", 1, 0), divisions=3, grading=("Progression", 1.3))
         lay.edge(("B", 1, 1), ("A", 1, 1), divisions=3, grading=("Progression", 1.3))
-        with pytest.raises(LayoutError, match="grading conflict"):
+        with pytest.raises(InternalError, match="grading conflict"):
             lay.validate()
 
     def test_bump_needs_equal_coefficient(self):
@@ -197,5 +197,5 @@ class TestBlockGrading:
         lay.edge(("B", 1, 1), ("A", 1, 1), divisions=3, grading=("Bump", 0.5))
         lay.validate()                                      # direction-free
         lay.edge(("A", 1, 2), ("B", 1, 2), divisions=3, grading=("Bump", 0.4))
-        with pytest.raises(LayoutError, match="grading conflict"):
+        with pytest.raises(InternalError, match="grading conflict"):
             lay.validate()

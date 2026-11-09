@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+**Hints for equipment and study errors** (decision 0040; task 0111).
+- 14 of the drum's 23 errors and 8 of the study file's 18 now carry a
+  `hint` saying what to change. Examples: the axial range a shell nozzle
+  fits in, the largest head offset, a Klöpper head's radii for a
+  torispherical drum, and "rename 'paramters' to 'parameters'". Messages
+  are unchanged.
+- **12 codes retired.** A block layout that breaks its own rules
+  (topology, cell counts, binding) is a bug in a fitting, not the user's
+  input, so it is now an `InternalError` (`internal_invariant`) asking
+  for a report. No shipped fitting reaches these errors: they come only
+  from hand-built layouts. The retired codes: `block_vertices_not_distinct`,
+  `block_division_conflict`, `block_grading_conflict`,
+  `block_division_missing`, `block_layout_empty`, `block_vertex_unplaced`,
+  `block_face_shared`, `block_port_face_unused`,
+  `block_port_face_interior`, `block_port_faces_unbound`,
+  `block_h_core_in_ring` and `port_roll_not_a_period`. `block_inverted`
+  stays a `LayoutError`.
+
 **Junctions predict non-orthogonality** (decision 0031; task 0104).
 - `validate()` predicts a tee's, a duct tap's or a wye's worst
   non-orthogonality before GMSH, from its block layout. It warns above

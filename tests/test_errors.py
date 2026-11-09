@@ -31,8 +31,9 @@ import pytest
 from hexmesh import Assembly, HexmeshError, HexmeshWarning, PipeSpec, Straight
 from hexmesh.assembly import AssemblyError, AssemblyTypeError, Bend, Drum, EquipmentError
 from hexmesh.assembly.blocks import BlockLayout, LayoutError
+from hexmesh.assembly.equipment import OnHead, OnShell
 from hexmesh.core.shape import CircleShape
-from hexmesh.errors import CODES, ReaderError, SpecError, SpecTypeError, jsonable
+from hexmesh.errors import CODES, InternalError, ReaderError, SpecError, SpecTypeError, jsonable
 from hexmesh.io.readers.pcf import read_pcf
 from hexmesh.study import StudyError, load_study
 
@@ -143,9 +144,19 @@ def test_equipment_error():
 
 
 def test_layout_error():
+    """An inverted block is a LayoutError; a layout that breaks its own
+    rules is a bug (task 0111)."""
+    from tests.test_blocks import A, B, BlockStraight, _one
+    lay = BlockStraight(0.3, 3).layout(A, B, _one())
+    ids, m = lay.blocks[1]
+    lay.blocks[1] = ((ids[1], ids[0], *ids[2:]), m)
     with pytest.raises(LayoutError) as info:
+        lay.validate()
+    assert info.value.code == "block_inverted"
+    with pytest.raises(InternalError) as info:
         BlockLayout().validate()
-    assert info.value.code == "block_layout_empty"
+    assert info.value.code == "internal_invariant"
+    assert not isinstance(info.value, HexmeshError)
 
 
 def test_study_error(tmp_path):
@@ -155,6 +166,65 @@ def test_study_error(tmp_path):
         load_study(path)
     assert info.value.code == "study_not_json"
     assert info.value.where == {"source": {"file": str(path)}}
+
+
+def _nozzle(name, location, radius=0.05):
+    from hexmesh.assembly.equipment import Nozzle
+    return Nozzle(name, PipeSpec(nang=8).core("fluid", radius=radius, nrad=2), location)
+
+
+def _drum(**kw):
+    return Drum("V1", diameter=1.0, length=2.0, **kw)
+
+
+@pytest.mark.parametrize("make, code, hint", [
+    (lambda: Drum("V-1", diameter=1.0, length=2.0), "drum_name_invalid", "e.g. name='V_1'"),
+    (lambda: _drum(head="torispherical"), "drum_head_args_invalid",
+     "crown_radius=1, knuckle_radius=0.1"),
+    (lambda: _drum(head="torispherical", crown_radius=0.4, knuckle_radius=0.2),
+     "drum_head_args_invalid", "crown_radius above 0.5"),
+    (lambda: _drum(axis=(0, 0, 1), up=(0, 0, 2)), "drum_up_parallel", "up=(1, 0, 0)"),
+    (lambda: _drum(nozzles=[_nozzle("N1", OnShell(0.02, 0, 0.8))]).validate(),
+     "nozzle_footprint_outside", "axial between 0.05 and 1.95"),
+    (lambda: _drum(nozzles=[_nozzle("N1", OnHead("first", 0.48, 0, 0.5))]).validate(),
+     "nozzle_footprint_outside", "offset at most 0.45"),
+    (lambda: _drum(nozzles=[_nozzle("A", OnShell(1, 0, 0.8)),
+                            _nozzle("B", OnShell(1.05, 0, 0.8))]).validate(),
+     "nozzle_footprints_overlap", "axial positions at least 0.1 apart (now 0.05)"),
+])
+def test_equipment_hints(make, code, hint):
+    """Task 0111: the drum's hints name the change, with its number."""
+    with pytest.raises(EquipmentError) as info:
+        make()
+    assert info.value.code == code
+    assert hint in info.value.hint
+
+
+@pytest.mark.parametrize("study, hint", [
+    ({"template": {"python": "m:f"}, "paramters": {}}, "rename 'paramters' to 'parameters'"),
+    ({"template": {"python": "m:f"}, "budget": {"max_cell_variant": 1}},
+     "rename 'max_cell_variant' to 'max_cells_variant'"),
+    ({"template": {"python": "m:f"}, "zzz": 1}, None),           # nothing close: no hint
+])
+def test_study_key_hints(tmp_path, study, hint):
+    path = tmp_path / "study.json"
+    path.write_text(json.dumps(study), encoding="utf-8")
+    with pytest.raises(StudyError) as info:
+        load_study(path)
+    assert info.value.code == "study_key_unknown"
+    assert info.value.hint == hint
+
+
+def test_study_function_hints(tmp_path):
+    (tmp_path / "tpl_0111.py").write_text("x = 1\n", encoding="utf-8")
+    path = tmp_path / "study.json"
+    for target, hint in (("tpl_0111.build", "e.g. 'tpl_0111:build'"),
+                         ("nosuch_0111:build", "put nosuch_0111.py in"),
+                         ("tpl_0111:build", "define build(params) in tpl_0111")):
+        path.write_text(json.dumps({"template": {"python": target}}), encoding="utf-8")
+        with pytest.raises(StudyError) as info:
+            load_study(path).builder()
+        assert hint in info.value.hint, (target, info.value.hint)
 
 
 PCF = """\

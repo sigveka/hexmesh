@@ -124,17 +124,28 @@ class Study:
         """Import ``module:function``, the study file's directory first on
         ``sys.path``."""
         if not isinstance(target, str) or target.count(":") != 1:
+            fix = (target.rsplit(".", 1) if isinstance(target, str) and ":" not in target
+                   and "." in target else ["template", "build"])
             raise StudyError(f"{what} must be 'module:function', got {target!r}",
-                             code="study_function_invalid", where={"field": what}, value=target)
+                             code="study_function_invalid", where={"field": what}, value=target,
+                             hint=f"e.g. '{':'.join(fix)}'")
         mod, fn = target.split(":")
         root = str(self.root)
         if root not in sys.path:
             sys.path.insert(0, root)
+        def not_found(e, hint=None):
+            return StudyError(f"{what} {target!r}: {e}", code="study_function_not_found",
+                              where={"field": what}, hint=hint)
         try:
-            return getattr(importlib.import_module(mod), fn)
-        except (ImportError, AttributeError) as e:
-            raise StudyError.wrap(e, f"{what} {target!r}: {e}",
-                                  code="study_function_not_found", field=what) from None
+            module = importlib.import_module(mod)
+        except (ImportError, AttributeError) as e:     # no hint for an error inside it
+            missing = isinstance(e, ModuleNotFoundError) and e.name == mod
+            raise not_found(e, f"put {mod.replace('.', '/')}.py in {root}, the study "
+                               "file's folder" if missing else None) from None
+        try:
+            return getattr(module, fn)
+        except AttributeError as e:
+            raise not_found(e, f"define {fn}(params) in {mod}") from None
 
     def builder(self):
         """``params -> Assembly`` for this study's template."""
@@ -158,7 +169,18 @@ class Study:
                  if unknown else [])
                 + ([f"unused parameter(s): {', '.join(unused)}"] if unused else [])),
                              code="study_placeholders_mismatch",
-                             value={"unknown": sorted(unknown), "unused": sorted(unused)})
+                             value={"unknown": sorted(unknown), "unused": sorted(unused)},
+                             hint="; ".join(
+                                 ([f"add {', '.join(unknown)} to parameters"] if unknown else [])
+                                 + ([f"use {', '.join('$' + u for u in unused)} in the template, "
+                                     "or drop it from parameters"] if unused else [])))
+
+
+def _did_you_mean(unknown, known) -> str | None:
+    """'rename X to Y' for each unknown key with a close known one."""
+    import difflib
+    pairs = [(u, difflib.get_close_matches(u, sorted(known), n=1)) for u in sorted(unknown)]
+    return "; ".join(f"rename {u!r} to {m[0]!r}" for u, m in pairs if m) or None
 
 
 def load_study(path) -> Study:
@@ -170,12 +192,15 @@ def load_study(path) -> Study:
                          code="study_not_json", where={"source": {"file": str(path)}}) from None
     if not isinstance(raw, dict):
         raise StudyError(f"{path}: a study file is a JSON object",
-                         code="study_not_object", where={"source": {"file": str(path)}})
+                         code="study_not_object", where={"source": {"file": str(path)}},
+                         hint='e.g. {"template": {"python": "module:function"}, '
+                              '"parameters": {"angle": [30, 60]}}')
     unknown = set(raw) - KEYS
     if unknown:
         raise StudyError(f"unknown study key(s): {', '.join(sorted(unknown))}; "
                          f"known: {', '.join(sorted(KEYS))}",
-                         code="study_key_unknown", value=sorted(unknown), limit=sorted(KEYS))
+                         code="study_key_unknown", value=sorted(unknown), limit=sorted(KEYS),
+                         hint=_did_you_mean(unknown, KEYS))
     tpl = raw.get("template")
     if not isinstance(tpl, dict) or len(tpl) != 1 or next(iter(tpl)) not in ("python", "json"):
         raise StudyError('template must be {"python": "module:function"} or {"json": "path"}',
@@ -184,7 +209,8 @@ def load_study(path) -> Study:
     if set(budget) - BUDGET_KEYS:
         raise StudyError(f"unknown budget key(s): {', '.join(sorted(set(budget) - BUDGET_KEYS))}",
                          code="study_key_unknown", where={"field": "budget"},
-                         value=sorted(set(budget) - BUDGET_KEYS), limit=sorted(BUDGET_KEYS))
+                         value=sorted(set(budget) - BUDGET_KEYS), limit=sorted(BUDGET_KEYS),
+                         hint=_did_you_mean(set(budget) - BUDGET_KEYS, BUDGET_KEYS))
     fmt = raw.get("format", "msh")
     if fmt not in FORMATS:
         raise StudyError(f"format must be one of {FORMATS}, got {fmt!r}",
@@ -206,7 +232,8 @@ def load_study(path) -> Study:
         if set(block) - keys:
             raise StudyError(f"unknown {name} key(s): {', '.join(sorted(set(block) - keys))}",
                              code="study_key_unknown", where={"field": name},
-                             value=sorted(set(block) - keys), limit=sorted(keys))
+                             value=sorted(set(block) - keys), limit=sorted(keys),
+                             hint=_did_you_mean(set(block) - keys, keys))
     if case is not None and fmt != "openfoam":
         raise StudyError('a case stage needs "format": "openfoam" (the role manifest)',
                          code="study_case_needs_openfoam", where={"field": "format"}, value=fmt)
@@ -253,7 +280,8 @@ def substitute(obj, params: dict):
         if m:
             if m.group(1) not in params:
                 raise StudyError(f"unknown placeholder ${m.group(1)}",
-                                 code="study_placeholders_mismatch", value=m.group(1))
+                                 code="study_placeholders_mismatch", value=m.group(1),
+                                 hint=f"add {m.group(1)} to parameters")
             return params[m.group(1)]
     return obj
 

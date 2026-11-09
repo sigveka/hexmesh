@@ -66,6 +66,11 @@ class EquipmentError(HexmeshError):
     """Invalid equipment or nozzle; the message names the drum and nozzle."""
 
 
+def _safe_name(name, fallback: str) -> str:
+    """*name* with every character a patch name can't hold made ``_``."""
+    return re.sub(r"[^A-Za-z0-9_]", "_", name) if isinstance(name, str) and name else fallback
+
+
 @dataclass(frozen=True)
 class OnShell:
     """Radial nozzle on the cylindrical shell.
@@ -140,7 +145,7 @@ class Drum:
                 f"drum name {self.name!r} must be letters, digits and _ only "
                 "(it becomes part of a patch name)",
                 code="drum_name_invalid", where={"part": self.name, "field": "name"},
-                value=self.name)
+                value=self.name, hint=f"e.g. name={_safe_name(self.name, 'drum_1')!r}")
         if self.diameter <= 0 or self.length <= 0:
             raise EquipmentError(f"drum {self.name}: diameter and length must be positive",
                                  code="size_not_positive",
@@ -157,7 +162,9 @@ class Drum:
             raise EquipmentError(f"drum {self.name}: crown_radius and knuckle_radius "
                                  "apply to torispherical heads only",
                                  code="drum_head_args_invalid",
-                                 where={"part": self.name, "field": "crown_radius"})
+                                 where={"part": self.name, "field": "crown_radius"},
+                                 hint="drop crown_radius and knuckle_radius, or use "
+                                      "head='torispherical'")
         a = np.asarray(self.axis, dtype=float)
         u = np.asarray(self.up, dtype=float)
         if np.linalg.norm(a) == 0:
@@ -166,8 +173,11 @@ class Drum:
         a = a / np.linalg.norm(a)
         u = u - np.dot(u, a) * a
         if np.linalg.norm(u) < 1e-9:
+            e = np.zeros(3)
+            e[int(np.argmin(np.abs(a)))] = 1
             raise EquipmentError(f"drum {self.name}: up is parallel to the axis",
-                                 code="drum_up_parallel", where={"part": self.name, "field": "up"})
+                                 code="drum_up_parallel", where={"part": self.name, "field": "up"},
+                                 hint=f"e.g. up={tuple(int(x) for x in e)}")
         object.__setattr__(self, "_frame", Frame(
             np.asarray(self.position, dtype=float), a, u / np.linalg.norm(u)))
         object.__setattr__(self, "nozzles", tuple(self.nozzles))
@@ -177,12 +187,14 @@ class Drum:
                 raise EquipmentError(f"drum {self.name}: nozzle name {n!r} must be "
                                      "letters, digits and _ only",
                                      code="nozzle_name_invalid",
-                                     where={"part": self.name, "field": "nozzles"}, value=n)
+                                     where={"part": self.name, "field": "nozzles"}, value=n,
+                                     hint=f"e.g. {_safe_name(n, 'N1')!r}")
         dup = sorted({n for n in names if names.count(n) > 1})
         if dup:
             raise EquipmentError(f"drum {self.name}: duplicate nozzle names {dup}",
                                  code="nozzle_name_duplicate",
-                                 where={"part": self.name, "field": "nozzles"}, value=dup)
+                                 where={"part": self.name, "field": "nozzles"}, value=dup,
+                                 hint=f"rename one of each, e.g. {dup[0]}_2")
         for n in self.nozzles:                  # the schema's ranges (task 0095)
             loc = n.location
             checks = [("projection", loc.projection, {"min_exclusive": 0})]
@@ -211,13 +223,17 @@ class Drum:
             raise EquipmentError(
                 f"drum {self.name}: a torispherical head needs crown_radius and "
                 "knuckle_radius (no default: they depend on the design code)",
-                code="drum_head_args_invalid", where={"part": self.name, "field": "crown_radius"})
+                code="drum_head_args_invalid", where={"part": self.name, "field": "crown_radius"},
+                hint=f"e.g. a Klöpper head (DIN 28011): crown_radius={2 * R:g}, "
+                     f"knuckle_radius={0.2 * R:g}")
         if not (0 < r < R < L):
             raise EquipmentError(
                 f"drum {self.name}: torispherical head needs 0 < knuckle_radius "
                 f"< D/2 < crown_radius, got {r}, {R}, {L}",
                 code="drum_head_args_invalid",
-                where={"part": self.name, "field": "knuckle_radius"}, value=(r, R, L))
+                where={"part": self.name, "field": "knuckle_radius"}, value=(r, R, L),
+                hint="; ".join([f"knuckle_radius in (0, {R:g})"] * (not 0 < r < R)
+                               + [f"crown_radius above {R:g}"] * (not R < L)))
 
     @property
     def crown_limit(self) -> float:
@@ -293,19 +309,23 @@ class Drum:
         R = self.radius
         for n in self.nozzles:
             where = f"drum {self.name}, nozzle {n.name}"
-            for lname, o in zip(n.spec.layer_names, n.spec.outlines):
+            for i, (lname, o) in enumerate(zip(n.spec.layer_names, n.spec.outlines)):
                 if not o.is_round:
                     raise EquipmentError(f"{where}: drum nozzles are circular pipes, "
                                          f"layer `{lname}` is a {type(o).__name__}",
                                          code="nozzle_not_circular",
-                                         where={"part": self.name, "label": n.name})
+                                         where={"part": self.name, "label": n.name},
+                                         hint=f"give layer `{lname}` "
+                                              f"{'dR=' if i else 'radius='} (a circle)")
             r = outer_radius(n.spec)
             if r >= R:
                 raise EquipmentError(f"{where}: outer radius {r} is not below the "
                                      f"drum radius {R}",
                                      code="nozzle_too_large",
                                      where={"part": self.name, "label": n.name}, value=r,
-                                     limit={"max_exclusive": R})
+                                     limit={"max_exclusive": R},
+                                     hint=f"a nozzle outer radius below {R:g}, or a drum "
+                                          f"diameter above {2 * r:g}")
             loc = n.location
             if isinstance(loc, OnShell):
                 # The intersection with the shell reaches at most R along
@@ -324,7 +344,10 @@ class Drum:
                                          code="nozzle_footprint_outside",
                                          where={"part": self.name, "label": n.name,
                                                 "field": "axial"},
-                                         value=loc.axial)
+                                         value=loc.axial,
+                                         hint=(f"axial between {r:g} and {self.length - r:g}"
+                                               if self.length >= 2 * r else
+                                               f"a drum length of at least {2 * r:g}"))
             elif isinstance(loc, OnHead):
                 self.frame(n.name)                      # checks loc.head
                 if loc.offset < 0:
@@ -340,7 +363,11 @@ class Drum:
                                          code="nozzle_footprint_outside",
                                          where={"part": self.name, "label": n.name,
                                                 "field": "offset"},
-                                         value=loc.offset, limit={"max": self.crown_limit - r})
+                                         value=loc.offset, limit={"max": self.crown_limit - r},
+                                         hint=(f"offset at most {self.crown_limit - r:.6g}"
+                                               if self.crown_limit >= r else
+                                               f"a nozzle outer radius below "
+                                               f"{self.crown_limit:.6g}, or OnShell"))
                 # h(ρ) falls with ρ, so the highest point of the footprint
                 # is at its innermost radius.
                 top = self.head_height(max(0.0, loc.offset - r))
@@ -355,7 +382,9 @@ class Drum:
             else:
                 raise EquipmentError(f"{where}: unknown location {loc!r}",
                                      code="nozzle_location_unknown",
-                                     where={"part": self.name, "label": n.name})
+                                     where={"part": self.name, "label": n.name},
+                                     hint="OnShell(axial=, angle=, projection=) or "
+                                          "OnHead(head=, offset=, angle=, projection=)")
         self._check_overlaps()
 
     def _check_overlaps(self) -> None:
@@ -363,10 +392,14 @@ class Drum:
         for i, a in enumerate(shell):
             for b in shell[i + 1:]:
                 if self._shell_overlap(a, b):
+                    gap = outer_radius(a.spec) + outer_radius(b.spec)
                     raise EquipmentError(f"drum {self.name}: footprints of nozzles "
                                          f"{a.name} and {b.name} overlap",
                                          code="nozzle_footprints_overlap",
-                                         where={"part": self.name}, value=[a.name, b.name])
+                                         where={"part": self.name}, value=[a.name, b.name],
+                                         hint=f"axial positions at least {gap:g} apart (now "
+                                              f"{abs(a.location.axial - b.location.axial):g}), "
+                                              "or their angles further apart")
         for head in ("first", "second"):
             on = [n for n in self.nozzles
                   if isinstance(n.location, OnHead) and n.location.head == head]
@@ -376,11 +409,14 @@ class Drum:
                     # tangent-plane projection.
                     ca = a.location.offset * self.radial(a.location.angle)
                     cb = b.location.offset * self.radial(b.location.angle)
-                    if np.linalg.norm(ca - cb) < outer_radius(a.spec) + outer_radius(b.spec):
+                    gap = outer_radius(a.spec) + outer_radius(b.spec)
+                    if np.linalg.norm(ca - cb) < gap:
                         raise EquipmentError(f"drum {self.name}: footprints of nozzles "
                                              f"{a.name} and {b.name} overlap",
                                              code="nozzle_footprints_overlap",
-                                             where={"part": self.name}, value=[a.name, b.name])
+                                             where={"part": self.name}, value=[a.name, b.name],
+                                             hint=f"nozzle axes at least {gap:g} apart (now "
+                                                  f"{np.linalg.norm(ca - cb):.6g})")
 
     def _shell_overlap(self, a: Nozzle, b: Nozzle, n: int = 720) -> bool:
         """Do two radial shell footprints overlap?
