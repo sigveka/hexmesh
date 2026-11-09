@@ -294,6 +294,21 @@ invalid surface.  The volume then has a hole and meshing fails.
 segment.  Prism slabs use Stretch filling (`sweep._ruled`), with a
 regression test in `tests/test_miter.py`.  Found in task 0012.
 
+### A plane face can replace an edge with one that has no end points (gmsh 4.12.1, task 0061, 2026-11-09) — *verified*
+4.12.1 / OCC 7.6.3.  In an offset tee (r/R 0.3, h/R 0.6, nang 8),
+`occ.addPlaneSurface` on a loop of four lines produced a surface whose
+boundary listed a new curve (157), a `Line` along an existing edge (147)
+whose `getBoundary` is empty.  Our corner lookup then raises "curve 157
+has 0 end points".  The four points are exact (coplanar to 1e-18) and the
+same loop, built alone or after a `.brep` round trip of the model, gives
+a normal face.  `Geometry.OCCAutoFix 0` doesn't help.  It is erratic:
+h/R 0.59 and 0.61 mesh.  Nearby offset tees also fail with failed
+B-spline fills ("GeomFill_BSplineCurves: Courbes non jointives") and
+folded wall projections.  All the failures have h > 1.38 r (the branch
+clear of the main's top line); `Tee` rejects h > r
+(`TEE_MAX_OFFSET_RATIO`).  Evidence: `validation/tools/tee_offset.py
+--map`.
+
 ### `removePhysicalGroups([])` removes every group — *verified*
 `gmsh.model.removePhysicalGroups(dimTags)` with an **empty** list removes
 all physical groups; the docstring says so ("If `dimTags' is empty, remove

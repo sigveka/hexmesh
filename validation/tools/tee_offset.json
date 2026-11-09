@@ -1,0 +1,497 @@
+{
+ "a90-r0.3-h0": {
+  "run_length_R": 0.7999999999999999,
+  "predicted_min_sj": 0.14995701012861581,
+  "predicted_min_sj_where": "the turn block on the branch's downstream side",
+  "predicted_nonorth": 73.67,
+  "predicted_nonorth_where": "the turn block on the branch's upstream side",
+  "warnings": [
+   "fitting_quality_warning"
+  ],
+  "cells": 2848,
+  "meshed_min_sj": 0.1499570101286164,
+  "meshed_nonorth": 74.25,
+  "projector_move_R": 0.00017197354498762481,
+  "seconds": 1.8
+ },
+ "a90-r0.3-h0.2": {
+  "run_length_R": 0.7999999999999999,
+  "predicted_min_sj": 0.1412378385005361,
+  "predicted_min_sj_where": "the turn block on the branch's downstream side",
+  "predicted_nonorth": 74.13,
+  "predicted_nonorth_where": "a turn block beside the branch",
+  "warnings": [
+   "fitting_quality_warning"
+  ],
+  "cells": 2848,
+  "meshed_min_sj": 0.14429850750886733,
+  "meshed_nonorth": 74.85,
+  "projector_move_R": 0.0012289963478533685,
+  "seconds": 1.8
+ },
+ "a90-r0.3-h0.4": {
+  "run_length_R": 0.7999999999999999,
+  "predicted_min_sj": 0.13552666084987441,
+  "predicted_min_sj_where": "the turn block on the branch's downstream side",
+  "predicted_nonorth": 73.77,
+  "predicted_nonorth_where": "a turn block beside the branch",
+  "rejected": "tee_offset_out_of_range"
+ },
+ "a90-r0.3-h0.6": {
+  "run_length_R": 0.7999999999999999,
+  "predicted_min_sj": 0.1296569873696339,
+  "predicted_min_sj_where": "the turn block on the branch's downstream side",
+  "predicted_nonorth": 72.11,
+  "predicted_nonorth_where": "a turn block beside the branch",
+  "rejected": "tee_offset_out_of_range"
+ },
+ "a90-r0.5-h0": {
+  "run_length_R": 1.0,
+  "predicted_min_sj": 0.25765212801399856,
+  "predicted_min_sj_where": "a turn block beside the branch",
+  "predicted_nonorth": 62.8,
+  "predicted_nonorth_where": "the turn block on the branch's upstream side",
+  "warnings": [
+   "fitting_quality_warning"
+  ],
+  "cells": 2848,
+  "meshed_min_sj": 0.25765212801399856,
+  "meshed_nonorth": 63.09,
+  "projector_move_R": 0.00019735405107319722,
+  "seconds": 1.6
+ },
+ "a90-r0.5-h0.2": {
+  "run_length_R": 1.0,
+  "predicted_min_sj": 0.23086967396639943,
+  "predicted_min_sj_where": "the turn block on the branch's downstream side",
+  "predicted_nonorth": 64.48,
+  "predicted_nonorth_where": "the turn block on the branch's upstream side",
+  "warnings": [
+   "fitting_quality_warning"
+  ],
+  "cells": 2848,
+  "meshed_min_sj": 0.2363741028546126,
+  "meshed_nonorth": 65.13,
+  "projector_move_R": 0.00028461950089329083,
+  "seconds": 1.6
+ },
+ "a90-r0.5-h0.4": {
+  "run_length_R": 1.0,
+  "predicted_min_sj": 0.20928890927854568,
+  "predicted_min_sj_where": "the turn block on the branch's downstream side",
+  "predicted_nonorth": 64.82,
+  "predicted_nonorth_where": "a turn block beside the branch",
+  "warnings": [
+   "fitting_quality_warning"
+  ],
+  "cells": 2848,
+  "meshed_min_sj": 0.23242294591152554,
+  "meshed_nonorth": 65.57,
+  "projector_move_R": 0.002048861285260244,
+  "seconds": 1.7
+ },
+ "a45-r0.3-h0": {
+  "run_length_R": 1.9242640687119288,
+  "predicted_min_sj": -0.1726874162834067,
+  "predicted_min_sj_where": "the departure run",
+  "predicted_nonorth": 79.49,
+  "predicted_nonorth_where": "the turn block on the branch's downstream side",
+  "rejected": "predicted_sj_below_minimum"
+ },
+ "a45-r0.3-h0.2": {
+  "run_length_R": 1.9076603918292305,
+  "predicted_min_sj": -0.23896022648111429,
+  "predicted_min_sj_where": "the departure run",
+  "predicted_nonorth": 79.7,
+  "predicted_nonorth_where": "the turn block on the branch's downstream side",
+  "rejected": "predicted_sj_below_minimum"
+ },
+ "a45-r0.3-h0.4": {
+  "run_length_R": 1.85654223012784,
+  "predicted_min_sj": -0.2866182571491147,
+  "predicted_min_sj_where": "the departure run",
+  "predicted_nonorth": 79.12,
+  "predicted_nonorth_where": "the turn block on the branch's downstream side",
+  "rejected": "tee_offset_out_of_range"
+ },
+ "a45-r0.3-h0.6": {
+  "run_length_R": 1.7664388891760323,
+  "predicted_min_sj": -0.3256573655942698,
+  "predicted_min_sj_where": "the departure run",
+  "predicted_nonorth": 77.78,
+  "predicted_nonorth_where": "a turn block beside the branch",
+  "rejected": "tee_offset_out_of_range"
+ },
+ "a45-r0.5-h0": {
+  "run_length_R": 2.207106781186548,
+  "predicted_min_sj": -0.057046420182892806,
+  "predicted_min_sj_where": "the departure run",
+  "predicted_nonorth": 73.35,
+  "predicted_nonorth_where": "the turn block on the branch's downstream side",
+  "rejected": "predicted_sj_below_minimum"
+ },
+ "a45-r0.5-h0.2": {
+  "run_length_R": 2.1922600427971077,
+  "predicted_min_sj": -0.1611480742965192,
+  "predicted_min_sj_where": "the departure run",
+  "predicted_nonorth": 74.27,
+  "predicted_nonorth_where": "the turn block on the branch's downstream side",
+  "rejected": "predicted_sj_below_minimum"
+ },
+ "a45-r0.5-h0.4": {
+  "run_length_R": 2.1468392890911527,
+  "predicted_min_sj": -0.23867892801961949,
+  "predicted_min_sj_where": "the departure run",
+  "predicted_nonorth": 74.08,
+  "predicted_nonorth_where": "the turn block on the branch's downstream side",
+  "rejected": "predicted_sj_below_minimum"
+ },
+ "map": {
+  "a90-r0.2-h0": {
+   "predicted_min_sj": 0.099,
+   "outcome": "predicted_sj_below_minimum"
+  },
+  "a90-r0.2-h0.1": {
+   "predicted_min_sj": 0.097,
+   "outcome": "predicted_sj_below_minimum"
+  },
+  "a90-r0.2-h0.2": {
+   "predicted_min_sj": 0.096,
+   "outcome": "predicted_sj_below_minimum"
+  },
+  "a90-r0.2-h0.3": {
+   "predicted_min_sj": 0.095,
+   "outcome": "predicted_sj_below_minimum"
+  },
+  "a90-r0.2-h0.4": {
+   "predicted_min_sj": 0.094,
+   "outcome": "predicted_sj_below_minimum"
+  },
+  "a90-r0.2-h0.5": {
+   "predicted_min_sj": 0.095,
+   "outcome": "predicted_sj_below_minimum"
+  },
+  "a90-r0.2-h0.6": {
+   "predicted_min_sj": 0.093,
+   "outcome": "predicted_sj_below_minimum"
+  },
+  "a90-r0.2-h0.7": {
+   "predicted_min_sj": 0.096,
+   "outcome": "predicted_sj_below_minimum"
+  },
+  "a90-r0.3-h0": {
+   "predicted_min_sj": 0.15,
+   "outcome": "meshed"
+  },
+  "a90-r0.3-h0.1": {
+   "predicted_min_sj": 0.145,
+   "outcome": "meshed"
+  },
+  "a90-r0.3-h0.2": {
+   "predicted_min_sj": 0.141,
+   "outcome": "meshed"
+  },
+  "a90-r0.3-h0.3": {
+   "predicted_min_sj": 0.138,
+   "outcome": "meshed"
+  },
+  "a90-r0.3-h0.4": {
+   "predicted_min_sj": 0.136,
+   "outcome": "meshed"
+  },
+  "a90-r0.3-h0.5": {
+   "predicted_min_sj": 0.133,
+   "outcome": "wall_projection_folded"
+  },
+  "a90-r0.3-h0.6": {
+   "predicted_min_sj": 0.13,
+   "outcome": "internal_invariant"
+  },
+  "a90-r0.4-h0": {
+   "predicted_min_sj": 0.203,
+   "outcome": "meshed"
+  },
+  "a90-r0.4-h0.1": {
+   "predicted_min_sj": 0.194,
+   "outcome": "meshed"
+  },
+  "a90-r0.4-h0.2": {
+   "predicted_min_sj": 0.186,
+   "outcome": "meshed"
+  },
+  "a90-r0.4-h0.3": {
+   "predicted_min_sj": 0.18,
+   "outcome": "meshed"
+  },
+  "a90-r0.4-h0.4": {
+   "predicted_min_sj": 0.174,
+   "outcome": "meshed"
+  },
+  "a90-r0.4-h0.5": {
+   "predicted_min_sj": 0.167,
+   "outcome": "meshed"
+  },
+  "a90-r0.5-h0": {
+   "predicted_min_sj": 0.258,
+   "outcome": "meshed"
+  },
+  "a90-r0.5-h0.1": {
+   "predicted_min_sj": 0.243,
+   "outcome": "meshed"
+  },
+  "a90-r0.5-h0.2": {
+   "predicted_min_sj": 0.231,
+   "outcome": "meshed"
+  },
+  "a90-r0.5-h0.3": {
+   "predicted_min_sj": 0.22,
+   "outcome": "meshed"
+  },
+  "a90-r0.5-h0.4": {
+   "predicted_min_sj": 0.209,
+   "outcome": "meshed"
+  },
+  "a90-r0.6-h0": {
+   "predicted_min_sj": 0.313,
+   "outcome": "meshed"
+  },
+  "a90-r0.6-h0.1": {
+   "predicted_min_sj": 0.294,
+   "outcome": "meshed"
+  },
+  "a90-r0.6-h0.2": {
+   "predicted_min_sj": 0.276,
+   "outcome": "meshed"
+  },
+  "a90-r0.6-h0.3": {
+   "predicted_min_sj": 0.259,
+   "outcome": "meshed"
+  },
+  "a90-r0.7-h0": {
+   "predicted_min_sj": 0.361,
+   "outcome": "meshed"
+  },
+  "a90-r0.7-h0.1": {
+   "predicted_min_sj": 0.33,
+   "outcome": "meshed"
+  },
+  "a90-r0.7-h0.2": {
+   "predicted_min_sj": 0.309,
+   "outcome": "meshed"
+  },
+  "a90-r0.8-h0": {
+   "predicted_min_sj": 0.42,
+   "outcome": "meshed"
+  },
+  "a90-r0.8-h0.1": {
+   "predicted_min_sj": 0.375,
+   "outcome": "meshed"
+  },
+  "a90-r0.9-h0": {
+   "predicted_min_sj": 0.493,
+   "outcome": "meshed"
+  },
+  "a45-r0.2-h0": {
+   "predicted_min_sj": -0.217,
+   "outcome": "predicted_sj_below_minimum"
+  },
+  "a45-r0.2-h0.1": {
+   "predicted_min_sj": -0.243,
+   "outcome": "predicted_sj_below_minimum"
+  },
+  "a45-r0.2-h0.2": {
+   "predicted_min_sj": -0.264,
+   "outcome": "predicted_sj_below_minimum"
+  },
+  "a45-r0.2-h0.3": {
+   "predicted_min_sj": -0.283,
+   "outcome": "predicted_sj_below_minimum"
+  },
+  "a45-r0.2-h0.4": {
+   "predicted_min_sj": -0.299,
+   "outcome": "predicted_sj_below_minimum"
+  },
+  "a45-r0.2-h0.5": {
+   "predicted_min_sj": -0.314,
+   "outcome": "predicted_sj_below_minimum"
+  },
+  "a45-r0.2-h0.6": {
+   "predicted_min_sj": -0.328,
+   "outcome": "predicted_sj_below_minimum"
+  },
+  "a45-r0.2-h0.7": {
+   "predicted_min_sj": -0.344,
+   "outcome": "predicted_sj_below_minimum"
+  },
+  "a45-r0.3-h0": {
+   "predicted_min_sj": -0.173,
+   "outcome": "predicted_sj_below_minimum"
+  },
+  "a45-r0.3-h0.1": {
+   "predicted_min_sj": -0.209,
+   "outcome": "predicted_sj_below_minimum"
+  },
+  "a45-r0.3-h0.2": {
+   "predicted_min_sj": -0.239,
+   "outcome": "predicted_sj_below_minimum"
+  },
+  "a45-r0.3-h0.3": {
+   "predicted_min_sj": -0.264,
+   "outcome": "predicted_sj_below_minimum"
+  },
+  "a45-r0.3-h0.4": {
+   "predicted_min_sj": -0.287,
+   "outcome": "predicted_sj_below_minimum"
+  },
+  "a45-r0.3-h0.5": {
+   "predicted_min_sj": -0.307,
+   "outcome": "predicted_sj_below_minimum"
+  },
+  "a45-r0.3-h0.6": {
+   "predicted_min_sj": -0.326,
+   "outcome": "predicted_sj_below_minimum"
+  },
+  "a45-r0.4-h0": {
+   "predicted_min_sj": -0.119,
+   "outcome": "predicted_sj_below_minimum"
+  },
+  "a45-r0.4-h0.1": {
+   "predicted_min_sj": -0.165,
+   "outcome": "predicted_sj_below_minimum"
+  },
+  "a45-r0.4-h0.2": {
+   "predicted_min_sj": -0.204,
+   "outcome": "predicted_sj_below_minimum"
+  },
+  "a45-r0.4-h0.3": {
+   "predicted_min_sj": -0.238,
+   "outcome": "predicted_sj_below_minimum"
+  },
+  "a45-r0.4-h0.4": {
+   "predicted_min_sj": -0.267,
+   "outcome": "predicted_sj_below_minimum"
+  },
+  "a45-r0.4-h0.5": {
+   "predicted_min_sj": -0.292,
+   "outcome": "predicted_sj_below_minimum"
+  },
+  "a45-r0.5-h0": {
+   "predicted_min_sj": -0.057,
+   "outcome": "predicted_sj_below_minimum"
+  },
+  "a45-r0.5-h0.1": {
+   "predicted_min_sj": -0.113,
+   "outcome": "predicted_sj_below_minimum"
+  },
+  "a45-r0.5-h0.2": {
+   "predicted_min_sj": -0.161,
+   "outcome": "predicted_sj_below_minimum"
+  },
+  "a45-r0.5-h0.3": {
+   "predicted_min_sj": -0.203,
+   "outcome": "predicted_sj_below_minimum"
+  },
+  "a45-r0.5-h0.4": {
+   "predicted_min_sj": -0.239,
+   "outcome": "predicted_sj_below_minimum"
+  },
+  "a45-r0.6-h0": {
+   "predicted_min_sj": 0.1,
+   "outcome": "meshed"
+  },
+  "a45-r0.6-h0.1": {
+   "predicted_min_sj": 0.1,
+   "outcome": "meshed"
+  },
+  "a45-r0.6-h0.2": {
+   "predicted_min_sj": 0.1,
+   "outcome": "meshed"
+  },
+  "a45-r0.6-h0.3": {
+   "predicted_min_sj": 0.1,
+   "outcome": "meshed"
+  },
+  "a45-r0.7-h0": {
+   "predicted_min_sj": 0.1,
+   "outcome": "meshed"
+  },
+  "a45-r0.7-h0.1": {
+   "predicted_min_sj": 0.1,
+   "outcome": "meshed"
+  },
+  "a45-r0.7-h0.2": {
+   "predicted_min_sj": 0.1,
+   "outcome": "meshed"
+  },
+  "a45-r0.8-h0": {
+   "predicted_min_sj": 0.152,
+   "outcome": "meshed"
+  },
+  "a45-r0.8-h0.1": {
+   "predicted_min_sj": 0.1,
+   "outcome": "meshed"
+  },
+  "a45-r0.9-h0": {
+   "predicted_min_sj": 0.176,
+   "outcome": "meshed"
+  }
+ },
+ "a90-r0.6-h0": {
+  "run_length_R": 1.0999999999999999,
+  "predicted_min_sj": 0.3128041434464053,
+  "predicted_min_sj_where": "the departure run",
+  "predicted_nonorth": 57.38,
+  "predicted_nonorth_where": "the turn block on the branch's upstream side",
+  "warnings": [],
+  "cells": 2848,
+  "meshed_min_sj": 0.315557320961711,
+  "meshed_nonorth": 58.4,
+  "projector_move_R": 0.00020516612762376955,
+  "seconds": 1.6
+ },
+ "a90-r0.6-h0.2": {
+  "run_length_R": 1.0999999999999999,
+  "predicted_min_sj": 0.27562675142736853,
+  "predicted_min_sj_where": "the turn block on the branch's downstream side",
+  "predicted_nonorth": 59.89,
+  "predicted_nonorth_where": "the turn block on the branch's upstream side",
+  "warnings": [
+   "fitting_quality_warning"
+  ],
+  "cells": 2848,
+  "meshed_min_sj": 0.2826892976128699,
+  "meshed_nonorth": 60.4,
+  "projector_move_R": 0.0002769795924423044,
+  "seconds": 1.6
+ },
+ "a45-r0.6-h0": {
+  "run_length_R": 2.8529999999999998,
+  "predicted_min_sj": 0.1001057643120591,
+  "predicted_min_sj_where": "the departure run",
+  "predicted_nonorth": 70.42,
+  "predicted_nonorth_where": "the turn block on the branch's downstream side",
+  "warnings": [
+   "fitting_quality_warning"
+  ],
+  "cells": 2848,
+  "meshed_min_sj": 0.11784382063750012,
+  "meshed_nonorth": 70.47,
+  "projector_move_R": 0.00020818707044818776,
+  "seconds": 2.9
+ },
+ "a45-r0.6-h0.2": {
+  "run_length_R": 3.2969999999999997,
+  "predicted_min_sj": 0.10018109917376196,
+  "predicted_min_sj_where": "the departure run",
+  "predicted_nonorth": 71.81,
+  "predicted_nonorth_where": "the turn block on the branch's downstream side",
+  "warnings": [
+   "fitting_quality_warning"
+  ],
+  "cells": 2848,
+  "meshed_min_sj": 0.10751837637841243,
+  "meshed_nonorth": 72.18,
+  "projector_move_R": 0.0006440041193241365,
+  "seconds": 3.2
+ }
+}

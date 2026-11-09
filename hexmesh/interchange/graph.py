@@ -62,6 +62,7 @@ class _Comp:
     flow_in: int | None = None           # the port flow enters by (0 or 1), if stated
     eccentric: bool = False
     offset:  bool = False                # a tap whose branch is tangential or offset
+    branch_dir: np.ndarray | None = None  # an offset tap's branch axis (task 0061)
     insulation: str | None = None                # "ON" / "OFF" / None
     end_insulation: tuple = (None, None)
     branch_insulation: tuple = (None, None)

@@ -91,11 +91,16 @@ from .blocks import (
 from .duct_tap import TapTemplate
 from .interface import Frame, junction_roll, junction_toward, outer_radius, rolled
 from .junction_quality import TAP_HINT, TEE_BLOCKS, TEE_HINT, nonorth_tiers, predicted_angle
-from .limits import PREDICTED_SJ_MIN, PREDICTED_SJ_WARN, TEE_MAX_RATIO
+from .limits import PREDICTED_SJ_MIN, PREDICTED_SJ_WARN, TEE_MAX_OFFSET_RATIO, TEE_MAX_RATIO
 from .projection import Tube, TubeUnion
 from .signature import check_port_pairs
 
 _SAMPLES = 9   # interior points per spline edge
+# An offset tap's junction core (task 0061): its top follows the branch axis
+# (the branch core above it stays straight); its bottom follows by this
+# fraction, the best measured (0 folds the wide side's ring at r/R 0.3, h/R
+# 0.4–0.6; 0.5 and more fold the bottom ring).  0 at offset 0.
+_BOTTOM_SHIFT = 0.25
 
 
 def thicknesses(spec: PipeSpec) -> list[float]:
@@ -122,13 +127,14 @@ def branch_spec(spec: PipeSpec, radius: float) -> PipeSpec:
     return out
 
 
-def tee_wall(o, ex, ez, R: float, r: float) -> TubeUnion:
+def tee_wall(o, ex, ez, R: float, r: float, ob=None) -> TubeUnion:
     """The tee wall: the main cylinder (axis ``o + x ex``, radius *R*)
-    united with the branch cylinder (axis ``o + z ez``, z ≥ 0, radius *r*;
-    *ez* the branch axis, leaning for a lateral), as a wall projector
-    (decision 0029)."""
+    united with the branch cylinder (axis ``ob + z ez``, z ≥ 0, radius *r*;
+    *ez* the branch axis, leaning for a lateral; *ob* its foot on the main
+    axis's plane, offset for an offset tap, default *o*), as a wall
+    projector (decision 0029)."""
     return TubeUnion([Tube(tuple(o), tuple(ex), R, ray=False),
-                      Tube(tuple(o), tuple(ez), r)])
+                      Tube(tuple(o if ob is None else ob), tuple(ez), r)])
 
 
 def lean(angle: float) -> tuple[float, float]:
@@ -140,25 +146,31 @@ def lean(angle: float) -> tuple[float, float]:
     return math.cos(a), math.sin(a)
 
 
-def saddle_point(R: float, r: float, ca: float, sa: float, phi: float):
-    """The main–branch intersection (RESEARCH §3.1, h = 0) at branch angle
-    *phi*, as ``(x, y, z)`` along (main axis, across, the branch plane's
-    up).  The branch axis is ``(ca, 0, sa)`` through the origin, and *phi*
-    is measured from its in-plane normal ``(sa, 0, −ca)`` (downstream at
-    90°) toward ``+y``."""
+def saddle_point(R: float, r: float, ca: float, sa: float, phi: float, hy: float = 0.0):
+    """The main–branch intersection (RESEARCH §3.1) at branch angle *phi*,
+    as ``(x, y, z)`` along (main axis, across, the branch plane's up).  The
+    branch axis is ``(ca, 0, sa)`` through ``(0, hy, 0)`` (*hy* the offset,
+    task 0061), and *phi* is measured from its in-plane normal
+    ``(sa, 0, −ca)`` (downstream at 90°) toward ``+y``."""
     c, s = math.cos(phi), math.sin(phi)
-    z = math.sqrt(R * R - (r * s) ** 2)
+    y = hy + r * s
+    z = math.sqrt(R * R - y ** 2)
     if ca == 0.0:
-        return r * c, r * s, z
+        return r * c, y, z
     along = (z + r * c * ca) / sa              # s(φ) of RESEARCH §3.1
-    return along * ca + r * c * sa, r * s, z
+    return along * ca + r * c * sa, y, z
 
 
-def tip_reach(R: float, r: float, angle: float) -> tuple[float, float]:
-    """How far the branch's hole reaches up- and downstream of the T-point
-    (at the tips, φ = π and 0), for radii *R*, *r*: both r at 90°."""
+def tip_reach(R: float, r: float, angle: float, offset: float = 0.0) -> tuple[float, float]:
+    """How far the branch's hole reaches up- and downstream of the T-point,
+    for radii *R*, *r*: at the tips (φ = π and 0) when centred, both r at
+    90°.  Off the axis (*offset*, task 0061) a lateral's extremes move off
+    the tips: sampled every 0.1°."""
     ca, sa = lean(angle)
-    return -saddle_point(R, r, ca, sa, math.pi)[0], saddle_point(R, r, ca, sa, 0.0)[0]
+    if offset == 0 or ca == 0.0:
+        return -saddle_point(R, r, ca, sa, math.pi)[0], saddle_point(R, r, ca, sa, 0.0)[0]
+    x = [saddle_point(R, r, ca, sa, f, offset)[0] for f in np.linspace(0, 2 * math.pi, 3601)]
+    return -min(x), max(x)
 
 
 def _check_circle(spec: PipeSpec) -> None:
@@ -222,6 +234,12 @@ class Tee:
         tee, 45 a 45° lateral leaning downstream.  The branch axis passes
         through the T-point on the main axis; ``branch_length`` is
         measured along it.
+    offset : float
+        Pipe tees: the distance h of the branch axis from the main axis,
+        along the main's ``right`` after the roll (task 0061): 0 is a
+        centred tee, |h| + r → R a tangential tap.  The axis passes
+        through the point h off the T-point; ``branch_length`` is measured
+        along it from there.  |h| + r < R.
     branch : RectShape or CircleShape, optional
         The branch section on a rectangular main (a duct tap, decision
         0033); on a circular main a ``CircleShape`` is the same as
@@ -277,6 +295,9 @@ class Tee:
     angle:    float = param(
         "deg", "pipe tees: angle from the run's downstream direction to the branch axis "
         "(90: a tee; 45: a lateral)", default=90.0, exclusiveMinimum=0, maximum=90)
+    offset:   float = param(
+        "length", "pipe tees: branch axis from the main axis, along the main's right after "
+        "the roll (an offset or tangential tap)", default=0.0)
     # duct taps only (absent from a pipe tee's JSON)
     branch:   CircleShape | RectShape | None = param(
         "-", "duct taps: the branch section (a shape with the main's counts)", input=True,
@@ -327,7 +348,8 @@ class Tee:
         if tee.run_length is None:
             _check_circle(spec)
             R, r, T = spec.core_shape.radius, tee.branch_radius, thicknesses(spec)[-1]
-            run = (max(tip_reach(R + T, r + T, tee.angle)) if r < R else r + T) + 0.5 * R
+            run = (max(tip_reach(R + T, r + T, tee.angle, tee._hy())) if r < R
+                   else r + T) + 0.5 * R
             if r < R:              # else check() rejects it, naming the radius
                 need = tee.shortest_run(inlet, spec, PREDICTED_SJ_WARN)
                 if need is None:   # laterals below ~57°: at least pass the floor
@@ -351,7 +373,7 @@ class Tee:
         the branch ratio limits the junction core.  Bisection on the pure
         layout; the SJ rises with the run up to a plateau about 1.5 R long."""
         (R, T), r = main_radii(spec), self.branch_radius
-        lo = max(tip_reach(R + T, r + T, self.angle))
+        lo = max(tip_reach(R + T, r + T, self.angle, self._hy()))
         hi = lo + 2 * R
         if self.predicted_sj(inlet, spec, hi) < tier:
             return None
@@ -372,11 +394,14 @@ class Tee:
 
         def sj(q):
             r = q * R
+            if abs(self.offset) > TEE_MAX_OFFSET_RATIO * r:
+                return -1.0                     # out of the offset margin: below every tier
             tee = replace(self, branch_radius=r,
-                          run_length=max(tip_reach(R + T, r + T, self.angle)) + 2 * R,
+                          run_length=max(tip_reach(R + T, r + T, self.angle, self._hy())) + 2 * R,
                           branch_length=turning_height(R, r, T, self.angle) + R)
             return tee.predicted_sj(inlet, spec)
-        lo, hi = 0.0, TEE_MAX_RATIO
+        # an offset leaves no hole from r = R - |h| (check): stop below it
+        lo, hi = 0.0, min(TEE_MAX_RATIO, 1.0 - abs(self.offset) / R - 1e-3)
         if sj(hi) < tier:
             return None
         while hi - lo > 1e-3:
@@ -428,13 +453,19 @@ class Tee:
         o = inlet.position + self.run_length * ex
         return o, ex, ey, ez
 
+    def _hy(self) -> float:
+        """The offset as the layout's y (along ``ey`` = −right)."""
+        return -self.offset
+
     def _branch_axes(self, inlet: Frame):
-        """``(o, d, u)``: the T-point, the branch axis (leaning by
+        """``(ob, d, u)``: the branch axis's foot (the T-point, moved by
+        ``offset`` along the main's right), the branch axis (leaning by
         ``angle`` from the run toward the branch plane's up) and its frame's
         up, the axis's in-plane normal (the main axis at 90°)."""
-        o, ex, _, ez = self._origin_basis(inlet)
+        o, ex, ey, ez = self._origin_basis(inlet)
         ca, sa = lean(self.angle)
-        return o, ca * ex + sa * ez, sa * ex - ca * ez
+        ob = o if self.offset == 0 else o + self._hy() * ey
+        return ob, ca * ex + sa * ez, sa * ex - ca * ez
 
     def ports(self, inlet: Frame, spec: PipeSpec):
         tpl = self._template(spec)
@@ -442,9 +473,9 @@ class Tee:
             return tpl.ports(inlet, spec)
         _check_circle(spec)       # the branch spec needs a radius
         o, ex, ey, ez = self._origin_basis(inlet)
-        _, d, u = self._branch_axes(inlet)
+        ob, d, u = self._branch_axes(inlet)
         main = Frame(o + self.run_length * ex, ex, inlet.up)
-        branch = Frame(o + self.branch_length * d, d, u)
+        branch = Frame(ob + self.branch_length * d, d, u)
         return [(main, spec), (branch, branch_spec(spec, self.branch_radius))]
 
     # -- topology -----------------------------------------------------
@@ -504,7 +535,21 @@ class Tee:
                                 value=r / R, limit="TEE_MAX_RATIO",
                                 hint=f"an equal tee, or a branch radius <= {TEE_MAX_RATIO:g} R "
                                      f"({TEE_MAX_RATIO * R:.4g})")
-        reach = max(tip_reach(R + T, r + T, self.angle))
+        if not abs(self.offset) + r < R:
+            raise AssemblyError(f"Tee: offset {self.offset:g} with branch radius {r:g} reaches "
+                                f"past the main's radius {R:g}: |offset| + r must be below R",
+                                code="tee_offset_out_of_range", where={"field": "offset"},
+                                value=self.offset, limit={"max_exclusive": R - r},
+                                hint=f"|offset| < {R - r:.4g}, or a smaller branch")
+        if abs(self.offset) > TEE_MAX_OFFSET_RATIO * r:
+            raise AssemblyError(f"Tee: offset {self.offset:g} is past TEE_MAX_OFFSET_RATIO "
+                                f"{TEE_MAX_OFFSET_RATIO:g} × the branch radius {r:g}: the "
+                                f"branch no longer covers the main's top line",
+                                code="tee_offset_out_of_range", where={"field": "offset"},
+                                value=self.offset, limit="TEE_MAX_OFFSET_RATIO",
+                                hint=f"|offset| <= {TEE_MAX_OFFSET_RATIO * r:.4g}, or a "
+                                     f"branch radius >= {abs(self.offset) / TEE_MAX_OFFSET_RATIO:.4g}")
+        reach = max(tip_reach(R + T, r + T, self.angle, self._hy()))
         if self.run_length <= reach:
             what = ("the branch's outer radius" if self.angle == 90 else
                     "the branch hole's reach along the run (its acute-side tip)")
@@ -541,8 +586,9 @@ class Tee:
         R, r = spec.core_shape.radius, self.branch_radius
         bspec = branch_spec(spec, r)
         o, ex, ey, ez = self._origin_basis(frames[0])
-        _, d, u = self._branch_axes(frames[0])
+        ob, d, u = self._branch_axes(frames[0])
         ca, sa = lean(self.angle)
+        hy = self._hy()                              # the offset, along ey
         names = spec.layer_names
         levels = range(1, len(names) + 1)            # wall and shell boundaries
         Ts = thicknesses(spec)
@@ -561,55 +607,24 @@ class Tee:
         xc = 0.0 if ca == 0.0 else zq * ca / sa   # the branch axis at that height
         z1 = turning_height(R, r, Ts[-1], self.angle)   # turning station, along d
 
-        def station_x(sx, l):
-            """x of station level l's top corners: the saddle at its branch
-            diagonals (φ = ±π/4 downstream, ±3π/4 upstream)."""
+        def station_y(sy, l):
+            """y and height of station level l's top corner on side *sy*:
+            the saddle at a branch diagonal, about the offset axis."""
             tl, Rk = rl[l] / math.sqrt(2), Rl[l]
+            y = hy + sy * tl
+            return y, math.sqrt(Rk * Rk - y * y)
+
+        def station_x(sx, sy, l):
+            """x of station level l's top corner on side *sy*: the saddle at
+            its branch diagonal (φ = ±π/4 downstream, ±3π/4 upstream).  The
+            two sides differ for an offset lateral (task 0061)."""
+            tl = rl[l] / math.sqrt(2)
             if ca == 0.0:
                 return sx * tl
-            zs = math.sqrt(Rk * Rk - tl * tl)
+            zs = station_y(sy, l)[1]
             return (zs + sx * tl * ca) / sa * ca + sx * tl * sa
 
-        lay = BlockLayout()
-        face_vertices(lay, "A", A, spec)
-        face_vertices(lay, "B", B, spec)
-        face_vertices(lay, "E", E, bspec)
-
-        # Stations Sa (approach end) and Sd (departure end); level l at the x
-        # of its top corners, which sit on the offset saddle at the branch
-        # diagonals (±(r + T_l)/√2 for a tee; asymmetric for a lateral).
-        # Corner order follows the main frame: 0 (−y,+z) 1 (+y,+z) 2 (+y,−z) 3 (−y,−z).
-        for name, sx in (("Sa", -1.0), ("Sd", 1.0)):
-            x0 = xc + sx * ci
-            lay.vertex((name, 0, 0), P(x0, -ci, zq))
-            lay.vertex((name, 0, 1), P(x0, +ci, zq))
-            lay.vertex((name, 0, 2), P(x0, +si, -si))
-            lay.vertex((name, 0, 3), P(x0, -si, -si))
-            for l in levels:
-                tl, Rk = rl[l] / math.sqrt(2), Rl[l]
-                zs = math.sqrt(Rk * Rk - tl * tl)            # saddle corner height
-                xs = station_x(sx, l)
-                lay.vertex((name, l, 0), P(xs, -tl, zs))
-                lay.vertex((name, l, 1), P(xs, +tl, zs))
-                lay.vertex((name, l, 2), P(xs, +Rk / math.sqrt(2), -Rk / math.sqrt(2)))
-                lay.vertex((name, l, 3), P(xs, -Rk / math.sqrt(2), -Rk / math.sqrt(2)))
-                centre = tuple(P(xs, 0, 0))
-                for k0, k1 in ((1, 2), (2, 3), (3, 0)):
-                    lay.edge((name, l, k0), (name, l, k1), ArcAbout(centre))
-
-        # Saddle arcs: exact cylinder–cylinder intersection, branch angle φ.
-        def saddle(l, phi0, phi1):
-            Rk, rk = Rl[l], rl[l]
-            phis = np.linspace(phi0, phi1, _SAMPLES + 2)[1:-1]
-            return Spline(tuple(tuple(P(*saddle_point(Rk, rk, ca, sa, f))) for f in phis))
-        q = math.pi / 4
-        for l in levels:
-            lay.edge(("Sa", l, 0), ("Sa", l, 1), saddle(l, 5 * q, 3 * q))   # through −x tip
-            lay.edge(("Sd", l, 0), ("Sd", l, 1), saddle(l, -q, q))          # through +x tip
-            lay.edge(("Sa", l, 1), ("Sd", l, 1), saddle(l, 3 * q, q))       # through +y side
-            lay.edge(("Sa", l, 0), ("Sd", l, 0), saddle(l, 5 * q, 7 * q))   # through −y side
-
-        # Main wall edges from the ports to the stations: on the cylinder.
+        # Main wall edges between two points at one radius: on the cylinder.
         def on_cylinder(p0, p1, Rk):
             (x0, y0, z0), (x1, y1, z1_) = (np.linalg.solve(
                 np.column_stack([ex, ey, ez]), p - o) for p in (p0, p1))
@@ -618,6 +633,54 @@ class Tee:
             return Spline(tuple(tuple(P(x0 + (x1 - x0) * u,
                                         Rk * math.cos(a0 + (a1 - a0) * u),
                                         Rk * math.sin(a0 + (a1 - a0) * u))) for u in s))
+
+        lay = BlockLayout()
+        face_vertices(lay, "A", A, spec)
+        face_vertices(lay, "B", B, spec)
+        face_vertices(lay, "E", E, bspec)
+
+        # Stations Sa (approach end) and Sd (departure end); level l at the x
+        # of its top corners, which sit on the offset saddle at the branch
+        # diagonals (±(r + T_l)/√2 for a tee; asymmetric for a lateral).  An
+        # offset (task 0061) moves the top corners and the core's top with
+        # the branch axis, the core's bottom by _BOTTOM_SHIFT of it; the
+        # wall's bottom corners stay, so the main's side rings take the
+        # asymmetry (one wider, one narrower).  Each side keeps its
+        # own x: an offset lateral's two diagonals meet the main at different
+        # x, and the station's bottom arc then runs on the cylinder between.
+        # Corner order follows the main frame: 0 (−y,+z) 1 (+y,+z) 2 (+y,−z) 3 (−y,−z).
+        for name, sx in (("Sa", -1.0), ("Sd", 1.0)):
+            x0 = xc + sx * ci
+            lay.vertex((name, 0, 0), P(x0, hy - ci, zq))
+            lay.vertex((name, 0, 1), P(x0, hy + ci, zq))
+            lay.vertex((name, 0, 2), P(x0, _BOTTOM_SHIFT * hy + si, -si))
+            lay.vertex((name, 0, 3), P(x0, _BOTTOM_SHIFT * hy - si, -si))
+            for l in levels:
+                Rk = Rl[l]
+                (ym, zm), (yp, zp) = station_y(-1.0, l), station_y(1.0, l)
+                xm, xp = station_x(sx, -1.0, l), station_x(sx, 1.0, l)
+                lay.vertex((name, l, 0), P(xm, ym, zm))
+                lay.vertex((name, l, 1), P(xp, yp, zp))
+                lay.vertex((name, l, 2), P(xp, +Rk / math.sqrt(2), -Rk / math.sqrt(2)))
+                lay.vertex((name, l, 3), P(xm, -Rk / math.sqrt(2), -Rk / math.sqrt(2)))
+                lay.edge((name, l, 1), (name, l, 2), ArcAbout(tuple(P(xp, 0, 0))))
+                lay.edge((name, l, 2), (name, l, 3), ArcAbout(tuple(P(xp, 0, 0))) if xm == xp
+                         else on_cylinder(lay.coords[(name, l, 2)], lay.coords[(name, l, 3)], Rk))
+                lay.edge((name, l, 3), (name, l, 0), ArcAbout(tuple(P(xm, 0, 0))))
+
+        # Saddle arcs: exact cylinder–cylinder intersection, branch angle φ.
+        def saddle(l, phi0, phi1):
+            Rk, rk = Rl[l], rl[l]
+            phis = np.linspace(phi0, phi1, _SAMPLES + 2)[1:-1]
+            return Spline(tuple(tuple(P(*saddle_point(Rk, rk, ca, sa, f, hy))) for f in phis))
+        q = math.pi / 4
+        for l in levels:
+            lay.edge(("Sa", l, 0), ("Sa", l, 1), saddle(l, 5 * q, 3 * q))   # through −x tip
+            lay.edge(("Sd", l, 0), ("Sd", l, 1), saddle(l, -q, q))          # through +x tip
+            lay.edge(("Sa", l, 1), ("Sd", l, 1), saddle(l, 3 * q, q))       # through +y side
+            lay.edge(("Sa", l, 0), ("Sd", l, 0), saddle(l, 5 * q, 7 * q))   # through −y side
+
+        # Main wall edges from the ports to the stations: on the cylinder.
         for port, st in (("A", "Sa"), ("B", "Sd")):
             for k in range(4):
                 lay.edge((port, 0, k), (st, 0, k), divisions=self.n_run)
@@ -628,7 +691,7 @@ class Tee:
 
         # Branch turning station Z (internal) at z1 along the branch axis;
         # frame as port E.
-        Z = Frame(o + z1 * d, d, u)
+        Z = Frame(ob + z1 * d, d, u)
         face_vertices(lay, "Z", Z, bspec, port=False)
         for l in levels:
             for k in range(4):
@@ -680,7 +743,7 @@ class Tee:
         for material, cyc in face_patches("E", bspec):
             lay.block([("Z", l, k) for (_, l, k) in cyc] + list(cyc), material)
         # wall and shell boundaries on the offset cylinders (tasks 0051, 0052)
-        lay.walls = {l: tee_wall(o, ex, d, Rl[l], rl[l]) for l in levels}
+        lay.walls = {l: tee_wall(o, ex, d, Rl[l], rl[l], ob) for l in levels}
         return lay
 
     # -- contract -----------------------------------------------------

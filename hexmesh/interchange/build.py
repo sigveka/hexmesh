@@ -187,6 +187,51 @@ def _branch_radius(spec, R: float, branch: Section, main_bore: float) -> float:
     return _radius(spec(branch)) if callable(spec) else R * branch.nominal / main_bore
 
 
+def _offset_side(axis: np.ndarray, d: np.ndarray) -> np.ndarray:
+    """The unit normal of the plane through the main *axis* and the branch
+    direction *d*, oriented as the ``Tee``'s ``right`` (``axis × up``, the
+    branch's lean in ``up``): an offset tap's ``offset`` is ``v · n``, *v*
+    from the centre to the branch point."""
+    return _unit(np.cross(axis, d))
+
+
+def _offset_branch_dir(j_c, comps, axis, tol, what) -> np.ndarray:
+    """An offset or tangential set-on's branch direction (task 0061): along
+    the straight run that leaves its branch point.  Its branch point must
+    lie on an axis in that direction offset from the main axis, not past it
+    along the run."""
+    from ..assembly import AssemblyError
+    where = {"part": _part_id(j_c), "source": _source(j_c)}
+    for c in comps:
+        if c.kind not in ("pipe", "fitting", "reducer"):
+            continue
+        for near, far in ((c.start, c.end), (c.end, c.start)):
+            if np.linalg.norm(near - j_c.branch) > tol or np.linalg.norm(far - near) <= tol:
+                continue
+            d = _unit(far - near)
+            if np.linalg.norm(np.cross(axis, d)) < 1e-6:
+                raise AssemblyError(f"{what}: its branch runs along the host pipe",
+                                    code="seton_offset_branch", where=where)
+            v = j_c.branch - j_c.centre
+            n = _offset_side(axis, d)
+            rest = v - np.dot(v, n) * n
+            miss = float(np.linalg.norm(rest - np.dot(rest, d) * d))
+            if miss > tol:
+                raise AssemblyError(f"{what}: its branch axis passes {miss:.4g} m from "
+                                    f"CENTRE-POINT along the host; an offset set-on's "
+                                    f"branch axis crosses the host's axis at CENTRE-POINT, "
+                                    f"seen from the side",
+                                    code="seton_offset_branch", where=where, value=miss,
+                                    limit={"max": float(tol)},
+                                    hint="move CENTRE-POINT along the host pipe to where the branch axis crosses it")
+            return d
+    raise AssemblyError(f"{what}: an offset set-on needs a straight component leaving "
+                        f"its BRANCH1-POINT; that straight gives the branch direction, "
+                        f"and with it the offset",
+                        code="seton_offset_branch", where=where,
+                        hint="add the branch pipe that starts at BRANCH1-POINT")
+
+
 def _split_hosts(comps, labels, tol, seton_run):
     """Replace each tap (set-on) and wye (Y piece) by a ``tee`` / ``wye``
     with explicit ports, splitting its host pipe (pure).  A tap's run each
@@ -205,12 +250,6 @@ def _split_hosts(comps, labels, tol, seton_run):
         i = todo[0]
         j_c = comps[i]
         what = _describe(j_c, labels[i])
-        if j_c.kind == "seton" and j_c.offset:
-            raise AssemblyError(f"{what}: tangential and offset set-ons are not "
-                                f"supported; a Tee branch is perpendicular and centred",
-                                code="seton_offset_unsupported",
-                                where={"part": _part_id(j_c), "source": _source(j_c)},
-                                hint="centre the branch on the host pipe's axis (offset taps are task 0061)")
         if j_c.centre is None or j_c.branch is None:
             raise AssemblyError(f"{what}: needs a centre and a branch point",
                                 code="junction_points_missing",
@@ -241,7 +280,10 @@ def _split_hosts(comps, labels, tol, seton_run):
                                     code="junction_size_missing",
                                     where={"part": _part_id(j_c), "source": _source(j_c)})
             t_j = _junction_thickness([j_c.ins_junction, *host.ins], what)
-            run = seton_run(j_c, host, t_j)
+            src = j_c                    # an offset tap carries its branch axis
+            if j_c.offset:
+                src = replace(j_c, branch_dir=_offset_branch_dir(j_c, comps, axis, tol, what))
+            run = seton_run(src, host, t_j)
             if t - run <= tol or t + run >= L - tol:
                 raise AssemblyError(
                     f"{what}: host pipe {labels[h]} is too short around the branch; "
@@ -250,7 +292,7 @@ def _split_hosts(comps, labels, tol, seton_run):
                     value=float(min(t, L - t)), limit={"min_exclusive": float(run)},
                     hint=f"lengthen {labels[h]} or move the branch: {run:.4g} m of straight pipe on each side of its centre")
             a, b = c - run * axis, c + run * axis
-            tee = replace(j_c, kind="tee", start=a, end=b, sec=host.sec, ins_junction=t_j)
+            tee = replace(src, kind="tee", start=a, end=b, sec=host.sec, ins_junction=t_j)
             pieces = [replace(host, start=host.start.copy(), end=a, ins=(host.ins[0],) * 2),
                       tee,
                       replace(host, start=b, end=host.end.copy(), ins=(host.ins[1],) * 2)]
@@ -426,6 +468,7 @@ def _build(model, comps, terminals, spec, axial_cell, kinks, tol, lc, inlet, ins
         """The Tee's default run for a set-on on *host* (task 0054)."""
         from ..assembly import Tee
         from ..assembly.interface import Frame
+        from ..assembly.limits import TEE_MAX_OFFSET_RATIO
         base = spec(host.sec) if callable(spec) else spec
         main = _dressed(base, t_j, insulation_nrad) if insulation else base
         R = _radius(main)
@@ -433,9 +476,17 @@ def _build(model, comps, terminals, spec, axial_cell, kinks, tol, lc, inlet, ins
         if not rb < R:             # the junction rejects it, naming the radii
             return j_c.branch_bore
         # the host's flow direction isn't known yet: the acute lean, whose
-        # downstream reach is the longer (task 0103)
-        lean = _tee_angle(j_c.branch - j_c.centre, host.end - host.start)
-        tee = Tee(None, 10 * R, rb, angle=min(lean, 180.0 - lean)).resolve(
+        # downstream reach is the longer (task 0103); an offset tap's reach
+        # is the same for either sign of the offset
+        axis = host.end - host.start
+        b, h = j_c.branch - j_c.centre, 0.0
+        if j_c.branch_dir is not None:
+            h = abs(float(np.dot(b, _offset_side(_unit(axis), j_c.branch_dir))))
+            b = j_c.branch_dir
+            if not (h + rb < R and h <= TEE_MAX_OFFSET_RATIO * rb):
+                return j_c.branch_bore   # the junction rejects it, naming the margin
+        lean = _tee_angle(b, axis)
+        tee = Tee(None, 10 * R, rb, angle=min(lean, 180.0 - lean), offset=h).resolve(
             Frame(np.zeros(3), np.array([1.0, 0, 0]), np.array([0, 0, 1.0])), main)
         return tee.run_length
 
@@ -539,7 +590,11 @@ def _place(report, parts, nodes, at_node, names, root, spec, axial_cell, kinks, 
         run = float(np.linalg.norm(centre - c.start))
         main_bore = c.bore
         if p.kind == "tee":
-            b = c.branch - centre
+            b, h = c.branch - centre, 0.0
+            if c.branch_dir is not None:     # an offset tap (task 0061)
+                n = _offset_side(axis, c.branch_dir)
+                h = float(np.dot(b, n))
+                b = b - h * n
             blen = float(np.linalg.norm(b))
             angle = _tee_angle(b, axis)
             if angle > 90.0:
@@ -571,7 +626,7 @@ def _place(report, parts, nodes, at_node, names, root, spec, axial_cell, kinks, 
                                     where={"part": _part_id(p), "source": _source(p)}, value=rb,
                                     limit={"max_exclusive": R},
                                     hint="equal tees are planned through the wye-family layout")
-            fitting = Tee(run, blen, rb, toward=tuple(_unit(b)), angle=angle)
+            fitting = Tee(run, blen, rb, toward=tuple(_unit(b)), angle=angle, offset=h)
             outs_at = [c.end, c.branch]
         else:
             d1, d2 = _unit(c.branch - centre), _unit(c.branch2 - centre)

@@ -76,6 +76,15 @@ built by `hexmesh.interchange.build` (`NetworkSpec.to_assembly()` →
   the variant: set-on, stub-in, pulled, reinforced, **tangential
   (TTSO/TTRF) and offset (TOSO/TORF)**.  These map to RESEARCH §3.1's
   offset h and angle α.
+- **Offset and tangential set-on points** (guide p. 94, its figures A
+  and B; read 2026-11-09, task 0061).  Seen along the main,
+  `CENTRE-POINT` is on the main axis and `BRANCH1-POINT` on the branch
+  axis, which runs beside the main axis (B), or with the branch's wall
+  flush with the main's (A, tangential).  The two points don't fix the
+  offset: the branch direction does.  hexmesh takes it from the straight
+  that leaves `BRANCH1-POINT`, and h is `BRANCH1-POINT`'s distance from
+  the plane of that direction and the main axis.  A tangential set-on
+  then has h = R − r, past the `Tee`'s range |h| + r < R.
 - `Y-PIECE-FABRICATED` (SKEY TYSO): Y-tee, with `BRANCH1-POINT` and
   `BRANCH2-POINT`.  Its mandatory keypoints are `CENTRE-POINT` and the two
   branch points (with sizes): **no END-POINTs**, so the stem joins it at
@@ -150,7 +159,7 @@ guide's BEND example with a full header (`PIPE` → `BEND` → `PIPE`,
 | 4 | Every column-1 line is treated as a component | Header, `PIPELINE-REFERENCE`, `END-CONNECTION-*`, `MATERIALS` and `MATERIAL-IDENTIFIER` are column-1 non-components | 9 spurious "unsupported component" warnings on a minimal valid file **Fixed 2026-10-26 (task 0021).** |
 | 5 | `ANGLE`, `BEND-RADIUS` ignored | Present on bends | No cross-check of geometry **Fixed 2026-10-26 (task 0021).** |
 | 6 | One greedy chain (`_sort_by_connectivity`); disconnected parts appended | Several pipelines and branches per file | Branched files mis-ordered **Fixed 2026-10-27 (task 0037):** a graph of end points across pipelines and files; a disconnected part, a loop or three components at one point is an error naming a component. |
-| 7 | `TEE`, `OLET`, `TEE-SET-ON`, `CROSS`, `Y-PIECE-FABRICATED` skipped | Defined (above) | Junctions dropped, although the assembly now has `Tee` **Fixed 2026-10-27 (task 0037):** `TEE` → `Tee` (also with the branch as a third `END-POINT`); `TEE-SET-ON` / `TEE-STUB` / `OLET` → host pipe split into straight + `Tee` + straight; `Y-PIECE-FABRICATED` → `Wye`.  **Rejected by design**, naming the component: crosses, `Y-PIECE-FITTING`, tangential and offset SKEYs, equal or angled tees, asymmetric Y pieces, layered specs (prototype limits).  **2026-10-30 (task 0054):** layered specs and insulation now run through junctions; a set-on's run is the `Tee`'s default (`run_length=None`), no longer the branch bore. |
+| 7 | `TEE`, `OLET`, `TEE-SET-ON`, `CROSS`, `Y-PIECE-FABRICATED` skipped | Defined (above) | Junctions dropped, although the assembly now has `Tee` **Fixed 2026-10-27 (task 0037):** `TEE` → `Tee` (also with the branch as a third `END-POINT`); `TEE-SET-ON` / `TEE-STUB` / `OLET` → host pipe split into straight + `Tee` + straight; `Y-PIECE-FABRICATED` → `Wye`.  **Rejected by design**, naming the component: crosses, `Y-PIECE-FITTING`, tangential and offset SKEYs, equal or angled tees, asymmetric Y pieces, layered specs (prototype limits).  **2026-10-30 (task 0054):** layered specs and insulation now run through junctions; a set-on's run is the `Tee`'s default (`run_length=None`), no longer the branch bore.  **2026-11-09 (task 0061):** offset set-ons (TOSO/TORF) → `Tee(offset=…)`; tangential ones (TTSO/TTRF) are rejected by the `Tee`'s offset range. |
 | 8 | Insulation, equipment, nozzles ignored | Defined (above) | Lost information that decisions 0002 and 0006 can use **Fixed 2026-10-28 (task 0038):** `to_assembly(insulation=True)` adds an `insulation` shell from `INSULATION-THICKNESS` where `INSULATION ON` (or a keypoint override) says, with switches one cell inside a straight neighbour.  Equipment connections name and mark their ends.  **Rejected by design:** a switch with no straight neighbour.  Insulated junctions were rejected until task 0054 (2026-10-30): the junction now carries the insulation, and a bare leg ends it one cell into its first straight.  Not read: `INSULATION-SPEC`, tracing, component-attached connections. |
 
 **Rows 1–5, 9 and 10 fixed 2026-10-26 (task 0021).**  Rows 1–5 were bugs against the spec, and rows 9–10 (below) are robustness

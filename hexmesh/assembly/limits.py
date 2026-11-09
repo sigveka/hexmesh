@@ -113,6 +113,17 @@ TEE_MAX_RATIO = _limit(
     "TEE_MAX_RATIO", 0.95, "1", "error",
     "largest branch radius of a pipe tee, over the main radius")
 
+#: Offset tees (task 0061, proposed to design): the largest offset over the
+#: branch radius, |h|/r.  Past h = r the branch's footprint leaves the main's
+#: top line and OCC's face fills turn erratic: at nang 8, 90°, cases fail
+#: from h/r 1.38 (folded wall projection, failed fills, a plane face whose
+#: edge OCC rebuilds without end points), with meshed cases between them.
+#: Every one of 90 cases with h ≤ r (r/R 0.25–0.85 at 90°, 0.55–0.8 at
+#: 45°) meshes or is rejected by its predicted SJ.
+TEE_MAX_OFFSET_RATIO = _limit(
+    "TEE_MAX_OFFSET_RATIO", 1.0, "1", "error",
+    "largest offset of a pipe tee's branch axis, over the branch radius")
+
 #: Duct taps (decision 0033, task 0070): the largest across ratio q/a of a
 #: tap inside the face (q its reach across, a the face's half-width).  The
 #: ±y tube blocks thin as q → a: at 0.95 a 1:1 duct's rectangular tap

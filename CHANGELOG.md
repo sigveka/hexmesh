@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+**Offset taps** (decision 0031 stage 2; task 0061).
+- `Tee(offset=…)` moves the branch axis off the main axis, along the
+  main's right after the roll, for tees and laterals. The saddle is the
+  exact intersection of the offset cylinders. `offset=0` meshes exactly
+  as before (bit-identical nodes).
+- Range: `|offset| + branch_radius < R`, and `|offset| ≤
+  limits.TEE_MAX_OFFSET_RATIO × branch_radius` (1.0, proposed to
+  design). Past h = r OCC's face fills fail erratically. Both raise
+  `tee_offset_out_of_range`. Duct taps reject `offset`
+  (`offset_on_duct_tap`).
+- Quality falls slowly with the offset: at 90°, r/R 0.5, the predicted
+  min SJ is 0.258 at h/R 0 and 0.209 at 0.4.
+- PCF: offset set-ons (`TOSO`, `TORF`) now build, their offset measured
+  from the branch straight. Tangential ones (`TTSO`, `TTRF`) are
+  rejected by the offset range. `seton_offset_unsupported` is retired;
+  `seton_offset_branch` names a set-on without a branch straight, or
+  whose branch axis misses its centre.
+
 **Hints for equipment and study errors** (decision 0040; task 0111).
 - 14 of the drum's 23 errors and 8 of the study file's 18 now carry a
   `hint` saying what to change. Examples: the axial range a shell nozzle

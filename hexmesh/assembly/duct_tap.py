@@ -582,6 +582,11 @@ class TapTemplate:
                                 "perpendicular (shoe taps are task 0063)",
                                 code="angle_on_duct_tap", where={"field": "angle"},
                                 value=tee.angle, limit=90)
+        if tee.offset != 0:
+            raise AssemblyError("Tee: offset= is for pipe tees; a duct tap's branch is "
+                                "centred on its face (ducts are task 0063)",
+                                code="offset_on_duct_tap", where={"field": "offset"},
+                                value=tee.offset, limit=0)
         if spec.shells:             # on either layout, before an H main's switch legs
             raise AssemblyError("Tee: duct taps are single-layer; shelled duct taps are "
                                 "not supported yet (decisions 0026, 0028)",

@@ -353,6 +353,7 @@ CODES: dict[str, str] = {
     "nozzle_too_large": "a nozzle as large as the drum",
     "nozzle_unknown": "a drum has no nozzle of that name",
     "nrad_on_h_core": "nrad= on an H core, which has no ring",
+    "offset_on_duct_tap": "a Tee offset other than 0 on a duct tap",
     "openfoam_boundary_unparsable": "an OpenFOAM boundary file that can't be parsed",
     "openfoam_command_failed": "an OpenFOAM command that exited with an error",
     "openfoam_needs_order_1": "write_openfoam asked for a second-order mesh",
@@ -425,7 +426,8 @@ CODES: dict[str, str] = {
     "selection_invalid": "select() without exactly one of parts, network and from_port",
     "seton_host_missing": "a set-on with no straight pipe through its centre",
     "seton_host_too_short": "a set-on's host pipe too short around the branch",
-    "seton_offset_unsupported": "a tangential or offset set-on",
+    "seton_offset_branch":
+        "an offset set-on without a branch straight, or whose branch axis misses its centre",
     "shape_args_conflict": "both shape= and geometry keywords given",
     "shape_args_missing": "neither shape= nor geometry keywords given",
     "shape_counts_mismatch": "a shape's cell counts differ from the spec's",
@@ -476,6 +478,8 @@ CODES: dict[str, str] = {
     "tee_angle_out_of_range":
         "a Tee's angle outside (0, 90] degrees",
     "tee_branch_angled": "a network tee whose branch leans upstream of the build direction",
+    "tee_offset_out_of_range":
+        "a Tee's offset past the main's wall or TEE_MAX_OFFSET_RATIO",
     "tee_ratio_above_max": "a pipe Tee's branch ratio above TEE_MAX_RATIO",
     "tee_run_asymmetric": "a network tee whose run ports are not symmetric",
     "terminal_end_taken": "an open end attached to two terminals",

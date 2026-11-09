@@ -183,13 +183,16 @@ def _spline(spec, points, **kw):
     return asm
 
 
-def _tee(ratio, direction=(0, 1, 0), spec=None, angle=90):
+def _tee(ratio, direction=(0, 1, 0), spec=None, angle=90, offset=0.0):
     """Straight → Tee → Straight on both outlets; a lateral at *angle* < 90
-    resolves its run and reaches farther along its leaning axis."""
+    resolves its run and reaches farther along its leaning axis.  *offset*:
+    the branch axis's offset, over R (task 0061)."""
     asm = Assembly(spec or _one(), direction=list(direction), up=[0, 0, 1], lc=0.1)
     asm.add(Straight(0.2, n_layers=2))
     kw = (dict(run_length=0.2, branch_length=0.25) if angle == 90 else
           dict(branch_length=0.6, angle=angle))
+    if offset:
+        kw["offset"] = offset * 0.1
     main, branch = asm.add(Tee(branch_radius=ratio * 0.1, **kw), names=["main", "branch"])
     asm.add(main, Straight(0.2, n_layers=2))
     asm.add(branch, Straight(0.2, n_layers=2))
@@ -261,6 +264,10 @@ CASES = {
                                                   angle=45),
     "lateral-60-0.6":      lambda: _tee(0.6, angle=60),
     "lateral-60-0.9-3layer": lambda: _tee(0.9, spec=_three(), angle=60),
+    "tee-0.5-offset-0.3":  lambda: _tee(0.5, offset=0.3),
+    "tee-0.5-offset-0.3-3layer-oblique": lambda: _tee(0.5, direction=(1, 1, 0.2), spec=_three(),
+                                                      offset=-0.3),
+    "lateral-45-0.6-offset-0.3": lambda: _tee(0.6, angle=45, offset=0.3),
     "tee-duct-rect-2-wide":   lambda: _duct_tap("rect"),
     "tee-duct-rect-2-narrow": lambda: _duct_tap("rect", face="narrow", roll=180),
     "tee-duct-rect-3-wide":   lambda: _duct_tap("rect", aspect=3, direction=(1, 1, 0.2)),
@@ -603,11 +610,11 @@ def _tee_deviation(tee, inlet, spec, x) -> float:
     (z ≥ 0 along the branch axis) grown by the shells' cumulative
     thickness (decision 0028), relative to the outer radius."""
     o, ex, _, _ = tee._origin_basis(inlet)
-    _, ez, _ = tee._branch_axes(inlet)          # the branch axis: leaning for a lateral
+    ob, ez, _ = tee._branch_axes(inlet)         # leaning for a lateral, offset for a tap
     R, r = spec.core_shape.radius, tee.branch_radius
-    v = x - o
+    v, w = x - o, x - ob
     dm = np.linalg.norm(v - np.outer(v @ ex, ex), axis=1)
-    db = np.linalg.norm(v - np.outer(np.clip(v @ ez, 0, None), ez), axis=1)
+    db = np.linalg.norm(w - np.outer(np.clip(w @ ez, 0, None), ez), axis=1)
     Ts = [o_.radius - R for o_ in spec.outlines]
     dev = np.min([np.abs(np.minimum(dm - (R + T), db - (r + T))) for T in Ts], axis=0)
     return float(dev.max() / (R + Ts[-1]))

@@ -359,3 +359,71 @@ def test_duct_tap_rejects_a_lean():
         asm.add(Tee(branch_length=0.2, branch=RectShape(half_w=0.02, half_h=0.02, nang_w=4,
                                                         nang_h=2), angle=45))
     assert e.value.code == "angle_on_duct_tap"
+
+
+def test_duct_tap_rejects_an_offset():
+    spec = PipeSpec(nang=4).core("air", RectShape(half_w=0.1, half_h=0.05, nang_w=4, nang_h=2))
+    asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1], lc=0.05)
+    with pytest.raises(AssemblyError) as e:
+        asm.add(Tee(branch_length=0.2, branch=RectShape(half_w=0.02, half_h=0.02, nang_w=4,
+                                                        nang_h=2), offset=0.01))
+    assert e.value.code == "offset_on_duct_tap"
+
+
+# -- offset taps: Tee(offset=…) (task 0061) ---------------------------------------
+
+@pytest.mark.parametrize("angle", [45, 90])
+@pytest.mark.parametrize("h", [-0.3, 0.2, 0.45])
+def test_offset_saddle_points_on_both_cylinders(angle, h):
+    """RESEARCH §3.1 with h ≠ 0: every point on the main cylinder and on the
+    branch cylinder, whose axis is (cos α, 0, sin α) through (0, h, 0)."""
+    ca, sa = lean(angle)
+    d, ob = np.array([ca, 0.0, sa]), np.array([0.0, h * R, 0.0])
+    for phi in np.linspace(0, 2 * math.pi, 37):
+        p = np.array(saddle_point(R, 0.5 * R, ca, sa, phi, h * R))
+        assert math.hypot(p[1], p[2]) == pytest.approx(R, abs=1e-15)
+        w = p - ob
+        assert np.linalg.norm(w - (w @ d) * d) == pytest.approx(0.5 * R, abs=1e-15)
+        assert p[2] > 0                          # the branch side of the main axis
+
+
+def test_offset_lateral_reach_is_even_in_the_offset():
+    """An offset moves a lateral's tips (RESEARCH §3.2), the same for ±h; a
+    90° tee's hole still reaches r each side."""
+    up, down = tip_reach(R, 0.6 * R, 45, 0.3 * R)
+    assert (up, down) == pytest.approx(tip_reach(R, 0.6 * R, 45, -0.3 * R), abs=1e-12)
+    assert (up, down) != pytest.approx(tip_reach(R, 0.6 * R, 45), abs=1e-6)
+    assert tip_reach(R, 0.6 * R, 90, 0.3 * R) == (0.6 * R, 0.6 * R)
+
+
+@pytest.mark.parametrize("h", [0.3, -0.3])
+def test_offset_branch_port_on_the_offset_axis(h):
+    """The branch axis is off the main axis by h along the inlet's right
+    (normal × up = −y here)."""
+    asm, main, branch = _tee_asm(0.5, offset=h * R)
+    np.testing.assert_allclose(branch.frame.position, [0.2, -h * R, 0.25], atol=1e-12)
+    np.testing.assert_allclose(branch.frame.normal, [0, 0, 1], atol=1e-12)
+    np.testing.assert_allclose(main.frame.position, [0.4, 0, 0], atol=1e-12)
+    asm.validate()
+
+
+@pytest.mark.parametrize("ratio, h, limit, hint", [
+    (0.5, 0.5, {"max_exclusive": pytest.approx(0.5 * R)}, "|offset| < 0.05, or a smaller branch"),
+    (0.3, -0.4, "TEE_MAX_OFFSET_RATIO", "|offset| <= 0.03, or a branch radius >= 0.04"),
+])
+def test_offset_out_of_range_rejected_before_gmsh(ratio, h, limit, hint):
+    """Past the main's wall (|h| + r ≥ R), or past TEE_MAX_OFFSET_RATIO × r,
+    where OCC's fills fail erratically (task 0061)."""
+    with pytest.raises(AssemblyError) as e:
+        _tee_asm(ratio, offset=h * R)[0].validate()
+    assert e.value.code == "tee_offset_out_of_range" and e.value.where["field"] == "offset"
+    assert e.value.limit == limit and e.value.hint == hint
+    assert not gmsh.isInitialized()
+    _tee_asm(0.3, offset=-0.3 * R)[0].validate()        # h = r: accepted
+
+
+def test_offset_quality_names_the_smallest_ratio():
+    """A lateral's smallest-ratio hint stays inside the offset's range."""
+    with pytest.raises(AssemblyError, match=r"at angle 45°; r/R 0\.5\d\d or more reaches it") as e:
+        _tee_asm(0.45, angle=45, run=None, branch=0.8, offset=0.2 * R)[0].validate()
+    assert e.value.code == "predicted_sj_below_minimum"

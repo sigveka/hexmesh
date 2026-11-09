@@ -322,7 +322,7 @@ TEE-SET-ON
     CENTRE-POINT 1500 0 0
     BRANCH1-POINT 1500 300 0 50
     SKEY TOSO
-""", r"TEE-SET-ON TEE_SET_ON_1, SKEY TOSO.*tangential and offset"),
+""", r"TEE-SET-ON TEE_SET_ON_1, SKEY TOSO.*needs a straight component leaving its BRANCH1-POINT"),
     ("""PIPE
     END-POINT 1000 0 0 100
     END-POINT 1080 0 0 100
@@ -538,3 +538,68 @@ def test_an_angled_set_on_splits_its_host_for_its_lean(tmp_path, lean):
         asm = net.to_assembly(_bore_spec)
     assert _tee(asm).angle == pytest.approx(45, abs=1e-3)
     assert _tee(asm).run_length > _tee(square).run_length
+
+
+# --- offset and tangential set-ons (task 0061) --------------------------------------
+
+OFFSET_SETON = HEADER + """\
+PIPELINE-REFERENCE A-100
+PIPE
+    END-POINT 0 0 0 100
+    END-POINT 2000 0 0 100
+TEE-SET-ON
+    CENTRE-POINT 1000 0 0
+    BRANCH1-POINT {bx:.3f} {by:.3f} {h} {bore}
+    SKEY {skey}
+PIPE
+    END-POINT {bx:.3f} {by:.3f} {h} {bore}
+    END-POINT {ex:.3f} {ey:.3f} {h} {bore}
+"""
+
+
+def _offset_seton(h, bore=50, angle=90, skey="TOSO", miss=0.0):
+    """A set-on on the x axis, its branch at *angle* to +x in the x-y plane
+    lifted by *h* mm (along z: the Tee's right, x × y), BRANCH1-POINT 300 mm
+    out along it; *miss* moves it along the host."""
+    c, s = math.cos(math.radians(angle)), math.sin(math.radians(angle))
+    return OFFSET_SETON.format(bx=1000 + 300 * c + miss, by=300 * s, ex=1000 + 700 * c + miss,
+                               ey=700 * s, h=h, bore=bore, skey=skey)
+
+
+@pytest.mark.parametrize("h, bore, angle", [(15, 50, 90), (-15, 50, 90), (18, 60, 45)])
+def test_an_offset_set_on_builds_and_meshes(tmp_path, h, bore, angle):
+    """TOSO maps to ``Tee(offset=…)``: the offset is BRANCH1-POINT's distance
+    from the plane of the host axis and the branch straight, signed along
+    the Tee's right; every predicted cell meshes, all hex."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")             # r/R 0.5 and 45° laterals always warn
+        asm = _read(tmp_path, _offset_seton(h, bore, angle)).to_assembly(_bore_spec)
+        asm.validate()
+    tee = _tee(asm)
+    assert tee.offset == pytest.approx(h / 1000, abs=1e-9)
+    assert tee.angle == pytest.approx(angle, abs=1e-6)
+    assert tee.branch_length == pytest.approx(0.3, abs=1e-6)
+    with Session("offset-seton"), warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        asm.mesh()
+        types = {int(t) for t in gmsh.model.mesh.getElements(3)[0]}
+        assert types == {5}                         # all hexahedra
+        assert sum(len(t) for t in gmsh.model.mesh.getElements(3)[1]) == asm.cell_count()
+        assert asm.check_quality("scaled_jacobian").worst > 0.1
+
+
+def test_a_tangential_set_on_is_rejected_naming_the_margin(tmp_path):
+    """TTSO: the branch's wall is flush with the main's, h = R − r, which
+    the Tee's offset range (|h| + r < R) excludes."""
+    net = _read(tmp_path, _offset_seton(25, skey="TTSO"))
+    with pytest.raises(AssemblyError, match=r"SKEY TTSO.*\|offset\| \+ r must be below R") as e:
+        net.to_assembly(_bore_spec)
+    assert e.value.code == "tee_offset_out_of_range"
+    assert e.value.hint == "|offset| < 0.025, or a smaller branch"
+
+
+def test_an_offset_branch_axis_must_cross_the_centre(tmp_path):
+    net = _read(tmp_path, _offset_seton(15, miss=5))
+    with pytest.raises(AssemblyError, match=r"branch axis passes 0\.005 m from CENTRE-POINT") as e:
+        net.to_assembly(_bore_spec)
+    assert e.value.code == "seton_offset_branch" and "move CENTRE-POINT" in e.value.hint
