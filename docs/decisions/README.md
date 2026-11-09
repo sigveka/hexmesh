@@ -58,6 +58,7 @@ rejected.  Records are written in design sessions, and they are the only way
 | [0041](0041-per-side-counts-on-rectangles.md) | Per-side counts on rectangles next to circles and shells | accepted |
 | [0042](0042-road-to-1-0.md) | The road to 1.0: what 1.0 promises, and what must be true first | accepted |
 | [0043](0043-wye-layout-redesign.md) | The wye-layout redesign: equal tees, asymmetric and unequal daughters, creases | accepted (measure first) |
+| [0044](0044-volunteer-runs.md) | Volunteer runs: heavy validation cases that others can run and we can check | accepted |
 
 ## Future expansions
 

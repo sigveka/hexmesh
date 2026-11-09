@@ -116,6 +116,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0116](0116-wye-redesign-measurement.md) | The wye redesign, measured: the hub generalised, and the published topology's feasibility | done | 0043, 0042 |
 | [0117](0117-written-junction-nodes-experiment.md) | Written nodes (route B3): one hex block placed by hexmesh, between two transfinite straights | ready (after 0118, only if the cube misses) | 0043 |
 | [0118](0118-junction-cube-probe.md) | The oriented junction cube, measured: equal tees and laterals on 6-faced blocks | ready | 0043 |
+| [0119](0119-volunteer-tool-and-helical-card.md) | Volunteer runs: the tool, the runners, and the helical pipe's card | ready | 0044, 0012 |
 
 ### Validation
 
@@ -137,6 +138,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0077](0077-validation-fenicsx-second-order.md) | Verification: FEniCSx toolchain, and second-order export checked end to end | V1 | ready (step 1 any time; 2–4 after 0076) | 0034, 0012, 0015 |
 | [0079](0079-validation-taylor-bubble.md) | Validation: a Taylor bubble rising in stagnant liquid (VOF) | V3 | ready (v2406 runner) | 0012, 0015 |
 | [0099](0099-validation-graphs.md) | Validation results as graphs: convergence, layouts, the stenosis against DNS | docs | done | 0012, 0015, 0036 |
+| [0120](0120-validation-vattenfall-tjunction-stage-a.md) | Validation: the Vattenfall T-junction (thermal mixing), stage (a): case, mesh, data and volunteer card | V3 | ready (after 0119) | 0012, 0044 |
 | [0108](0108-gmshtofoam-inversion-audit.md) | Audit the validation cases for gmshToFoam's silent inversions | V1 | done | 0012 |
 | [0109](0109-mms-wall-slope.md) | MMS: does the order track the wall slope? | V1 | done | 0012 |
 
@@ -162,6 +164,8 @@ or a long run.
    wall slope); all done, with 0061 and 0062.  Next (2026-11-09):
    **0118** (the oriented junction cube, Bošnjak et al.), then **0117**
    (route B3) only if the cube misses; decision 0043's amendments.
+   Volunteer runs (decision 0044): **0119** (the tool; the helical
+   pipe's card) → **0120** (Vattenfall stage (a)).
 1. **The H section** (decision 0036; 0082, 0083, 0084 and 0090 done):
    - **0085 → 0086 → 0087**, strictly in sequence.  0085 (in progress)
      builds the capped switch (decision 0036 amendment, 2026-11-04).

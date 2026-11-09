@@ -137,3 +137,29 @@ factor).
 - Verified: OpenFOAM v1912 and its tutorials are installed; `gmshToFoam`
   runs once the OpenFOAM environment is sourced.
 - Assumed: run times of minutes per case on this machine.
+
+## Amendment (2026-11-09, the user): thermal mixing in a T-junction, and LES sizing
+
+**Added as a V3 case:** the OECD/NEA–Vattenfall T-junction benchmark
+([`oecdnea_2009`], [`smith_and_mahaffy_etal_2011`]).
+- Main 140 mm, horizontal, cold (19 °C, 9.0 l/s); branch 100 mm on top,
+  hot (36 °C, 6.0 l/s); r/R ≈ 0.71 at 90°, which today's `Tee` builds.
+- The specification gives the geometry, the inlet LDV profiles as
+  digital tables (−3 D upstream in each pipe; the inlet conditions) and
+  the thermocouple positions.  The downstream data (velocity at
+  1.6–4.6 D, wall temperatures) were released in 2010 and are compared in
+  the report's figures; whether tables exist is to be found (task 0120).
+- **It needs LES.**  Sizing: Kuczaj & Komen ([`kuczaj_and_komen_2008`],
+  [`kuczaj_and_komen_2010`]) found cells of about a third of the Taylor
+  microscale (λ ≈ 10 mm measured, so about 3–4 mm) mesh-independent on
+  the same rig: about 1M hex cells at 4 mm, 7.3M at 2 mm; about 30 s of
+  physical time with 25 s averaged.
+- **Staged:** (a) here: the case, the mesh, the reference data, a short
+  timing run, and its volunteer card (decision 0044); the gates fixed by
+  design before (b).  (b) The LES, as a volunteer run.
+
+**Candidate, after equal tees:** the NEA/OECD dead-leg benchmark
+([`angele_and_howard_etal_2024`]): an equal-diameter tee with a 9.5 mm
+steel wall, temperatures measured in the fluid and through the wall
+(conjugate heat transfer, hexmesh's shells).  Data on request.  No task
+until the wye route (decision 0043) delivers equal tees.
