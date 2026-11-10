@@ -2,7 +2,8 @@
 
 - **Status:** proposed
 - **Date:** 2026-10-24
-- **Tasks:** none (proposed decisions get no tasks)
+- **Tasks:** none for its options (proposed); 0132 and 0133 from the
+  note of 2026-11-10 (documentation, and a probe)
 - **Revised:** 2026-10-24, widened to cover density changes along a network
   (RESEARCH §9)
 
@@ -121,3 +122,27 @@ To settle first:
 - Assumed: typical shell-nozzle r/R = 0.02–0.1; AMI suitability for this
   coupling; structured drum bodies suit VOF; that the paper's
   restrictions are met in a structured pipe.  None is measured.
+
+## Note (2026-11-10): one density per network in 1.x; stated up front; a probe after 1.0
+
+The user (2026-11-10): "This limitation is OK for me and we need to be
+clear and up-front with users about it."  Settled, without deciding this
+record's options:
+
+- **1.0 ships with one density per network:** `nang` and `nrad` are the
+  same everywhere a network connects (DESIGN A5); radial *grading* may
+  differ (decisions 0016, 0028 amendment).  A density change is not a
+  1.0 item (decision 0042: future expansions are additive and not
+  needed).
+- **Stated up front** (task 0132): the README, GUIDE, API.md and the
+  error a count mismatch raises say so plainly, with what it costs
+  (circumferential cells scale with the pipe's radius) and what to do
+  instead (grading, a separate mesh coupled in the solver).  Today's
+  error points to "a density switch (decision 0003)", which doesn't
+  exist.
+- **The probe** (task 0133, after 1.0) measures a +1-ring radial step by
+  pillowing and a ×2 `nang` slab of one-cell blocks, both meshed by gmsh
+  (decision 0046), to choose between this record's options A and C.
+- **The 1.x constraint:** whatever comes of it must arrive additively
+  (decision 0042's promise): a new fitting or a declared joint, never a
+  change of meaning for an existing description.

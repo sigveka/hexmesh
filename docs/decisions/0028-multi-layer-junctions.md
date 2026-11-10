@@ -4,7 +4,8 @@
 - **Date:** 2026-10-28 (the user: "First I want junctions to support
   insulation, then promote 0019")
 - **Tasks:** 0051 (exact junction walls), 0052 (multi-layer tee), 0053
-  (multi-layer wye), 0054 (insulated junctions end to end)
+  (multi-layer wye), 0054 (insulated junctions end to end), 0131
+  (branch grading, amendment 2026-11-10)
 
 ## Context
 
@@ -123,3 +124,23 @@ Non-conformal: violates P1/P2.
     thicknesses (0052/0053 measure);
   - that exact junction faces can be built at an acceptable build cost
     (0051 measures).
+
+## Amendment (2026-11-10): a branch may carry its own radial grading
+
+The user (2026-11-10, on items 1 and 2 of design's proposal: "no-brainers").
+Rule 2's "branch shells copy the main's (`nrad`, `mprg`)" made the
+branch's wall cell scale with r/R: on the aorta's arch branches (r/R
+0.4–0.55) about half the main's, and smaller still for small taps, so a
+`first_cell` (y+) target on the main misses on every branch.
+
+- **Counts still copy** (`nang`, `nrad`): DESIGN A5; a count change is
+  decision 0003's question.
+- **Grading may differ at the branch port:** a `Tee` takes the branch's
+  own core grading (`first_cell` or `mprg`), reached by interpolating
+  per station along its branch run, as a `Reducer` does (decision 0016,
+  option C; task 0027).  The junction itself keeps the main's grading.
+  Shells copy the main's, as before.
+- **Until it lands, and afterwards for any other change:** a grading-only
+  `Reducer` right after the branch is the documented pattern.
+- **Wye:** the same, later, if a case asks; not in this amendment.
+- Task 0131.
