@@ -30,7 +30,7 @@ Send the `.contrib.json` file back: in a pull request, attached to the case's is
 Steady laminar flow through four turns of a helical coil (the SIET coil: 12.53 mm tube, 1 m helix diameter, 0.8 m pitch), meshed by hexmesh along a spline through the helix.  It checks that the friction factor converges as the mesh is refined and lands within 5 % of Ito's correlation.  Two of the three Reynolds numbers are done on the finest mesh; the last one, Re 3000, needs about 8 hours on 4 cores and several GB of memory, which our one desktop can't spare.
 
 - **OpenFOAM:** v2406 (image `opencfd/openfoam-default:2406`)
-- **hexmesh:** the first release with this tool (until it is tagged, the main branch; the mesh check needs the same version as ours)
+- **hexmesh:** volunteer-helical-1 (git checkout volunteer-helical-1 before prepare: the mesh check needs the same meshing code as ours)
 - **gmsh:** 4.12.1 (the version pip installs with hexmesh is fine: our test level's mesh check gives the same fingerprint with gmsh 4.12.1 and 4.15.2)
 
 ### Level `re3000_n24`: Re 3000 on the finest mesh (nang 24)

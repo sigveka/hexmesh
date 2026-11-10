@@ -9,8 +9,8 @@
     "image": "opencfd/openfoam-default:2406"
   },
   "hexmesh": {
-    "tag": null,
-    "note": "until it is tagged, the main branch; the mesh check needs the same version as ours"
+    "tag": "volunteer-helical-1",
+    "note": "git checkout volunteer-helical-1 before prepare: the mesh check needs the same meshing code as ours"
   },
   "gmsh": {
     "version": "4.12.1",

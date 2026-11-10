@@ -234,3 +234,22 @@ volunteer tests pass (94); the full suite wasn't rerun.
 - the `volunteer-run` issue for the card (the user's);
 - an Apptainer run on a machine that has it;
 - task 0120's Vattenfall card.
+
+## Design answers (2026-11-10, the user: "yes, send them and create the tag")
+
+1. **The tag:** `volunteer-helical-1`, an annotated tag on de1d477 (not
+   a release: 0.6 waits for equal tees).  The card names it, and the
+   "main branch" note is gone.  At the tag the card itself still says
+   null and shows the estimates.  That is harmless: `prepare` and
+   `check` never compare the card's tag with the checked-out code; the
+   tag is only shown in VOLUNTEERS.md.
+2. **CONTRIBUTING.md:** the first two sentences replaced with design's
+   wording; the rest kept.
+3. **Measure before the issue goes out:** run the card's first stage
+   here (Re 3000, nang 16, about 1 h), then one 50-step chunk at nang 24
+   from it (about 45 min) under `/usr/bin/time -v`.  Relabel peak
+   memory, peak disk and time per step as measured; wall time stays
+   estimated (measured s/step × scaled steps, basis stated).  Disk and
+   other runs checked first, cases deleted after.  The issue waits for
+   these numbers.  *Pending:* run around task 0122.
+4. The full suite is to be rerun after the encoding fix (in 0122).
