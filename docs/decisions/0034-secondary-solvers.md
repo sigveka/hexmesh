@@ -181,3 +181,15 @@ are labelled experimental in the user docs (README, API.md, GUIDE,
 CHANGELOG) until task 0077's FEniCSx check passes; that task's outcome
 lifts the label.  Docs only: no runtime warning, so scripts and
 `warnings`-as-errors test runs are unaffected.  Task 0130 adds the label.
+
+## Note (2026-11-11): verified by task 0077; the label isn't needed
+
+Task 0077 passed before task 0130 ran: Q2 on hexmesh's Hex27 converges
+at L2 order 2.78–2.98 on the straight, bend and tee, against 2.0–2.6 on
+straight-sided Hex8 where the data test the exact wall (RESEARCH §7.15).
+So the "experimental" label of the previous note was never added and
+isn't needed; task 0130's step 4 drops out.  User docs say instead what
+second order is verified for (`mesh(order=2)` Hex27, with FEniCSx, on
+straights, bends and tees) and what it isn't (wyes and equal tees, which
+reject it; second-order OpenFOAM output; flow).
+

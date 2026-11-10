@@ -343,6 +343,39 @@ asm.cell_count()                    # total, without GMSH
 asm.cell_counts()                   # per fitting
 ```
 
+### One density per network
+
+`nang` and each layer's `nrad` are fixed for a whole connected network.
+Every interface joins two faces with the same nodes, so a tee's branch, a
+reducer's outlet and every fitting downstream carry the inlet's counts.
+What can differ is **radial grading**: a `Reducer` may change `mprg` or
+`first_cell` along its length, which is how a smaller pipe gets its own
+wall cell.  (For rectangular ducts, `nang_w` and `nang_h` play the role
+of `nang`.)
+
+The cost is cell size around the pipe.  A ring of `nang` cells per 90°
+on a pipe of radius R has cells about π R / (2 · nang) wide at the wall.
+At `nang` 8:
+
+| Pipe | Radius | Cell width around the wall |
+|---|---|---|
+| 300 mm header | 0.15 m | 29.5 mm |
+| 50 mm branch | 0.025 m | 4.9 mm |
+
+The header's cells are 6× wider around than the branch's, and the ratio
+is always the ratio of the radii.  What to do:
+- **choose `nang` for the smallest pipe that matters**, and accept finer
+  cells than needed around the large ones (cells grow as `nang²` in the
+  core);
+- **grade the walls** (`first_cell=`, and a grading-only `Reducer` after a
+  branch) to set each pipe's wall cell;
+- **mesh a much larger vessel separately** and couple it to the network
+  in the solver (OpenFOAM's AMI, for example).
+
+hexmesh doesn't change `nang` or `nrad` inside a network: a `Reducer`
+whose outlet asks for other counts is rejected, with this section as its
+hint.  Decision 0003 keeps density changes as a later, additive feature.
+
 **Axial cell size.** Instead of `n_layers` on every fitting, give the
 assembly a target axial cell length and leave `n_layers` out: each sweep
 fitting gets `ceil(L / axial_cell)` layers, `L` its centreline length, or
@@ -739,6 +772,9 @@ with `python3 docs/gallery/build.py` (needs `vtk`).
 
 ## Current limitations
 
+- **One density per network:** `nang` and every layer's `nrad` are the
+  same in every pipe of a connected network; only radial grading may
+  change ([One density per network](#one-density-per-network)).
 - **Tee:** branch perpendicular or leaning downstream (a lateral,
   `angle=`, in the range of DESIGN §7.1), centred or offset (`offset=`,
   `|offset| + r < R` and `|offset| ≤ r`), branch radius at most

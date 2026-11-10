@@ -44,9 +44,9 @@ A fitting declares the classes it can bridge in ``strategies``: one
 frozenset for every port pair (inlet → each outlet), or a tuple with one
 frozenset per outlet.  ``check_port_pairs`` raises for any pair whose
 class is not declared, naming what differs.  Declaring class 2 bridges
-grading-only pairs only: a sweep interpolates grading per station, while
-count changes need a refinement template (decision 0003), which no
-fitting has yet.
+grading-only pairs only: a sweep interpolates grading per station.  A
+count change has no fitting: hexmesh meshes a network at one density
+(decision 0003, note 2026-11-10; GUIDE, "One density per network").
 """
 
 from __future__ import annotations
@@ -58,12 +58,23 @@ from ..core.spec import LayerSpec, PipeSpec
 from ..sections import h, oh
 from ..errors import InternalError
 
-# What a class needs, for error messages.
+# What a class needs, for error messages.  Classes 2 (beyond grading)
+# and 3 have no fitting: say so, rather than name one that doesn't exist.
 BRIDGES = {
     1: "layer termination (task 0018)",
-    2: "a density switch (decision 0003)",
-    3: "a topology switch (decision 0003)",
+    2: "a change of cell count, which no fitting makes: a network has one "
+       "nang and one nrad per layer",
+    3: "a change of section topology, which no fitting makes",
 }
+
+#: The hint for a count difference (task 0132).
+DENSITY_HINT = ("keep nang and each layer's nrad (and mbmp) as the inlet's: hexmesh "
+                "meshes a network at one density; radial grading (mprg, first_cell) may "
+                "change along a Reducer (GUIDE, 'One density per network')")
+#: The hint for a class-3 difference.
+TOPOLOGY_HINT = ("keep the inlet's layer stack, n_outer and layout across this fitting; "
+                 "end or start outer layers with stack_changes on a Straight, and change "
+                 "the layout with a Switch where one applies")
 
 
 @dataclass(frozen=True)
@@ -216,10 +227,10 @@ def check_port_pairs(fitting, specs: list[PipeSpec]) -> None:
         if c.cls == 2 and 2 in allowed and not c.grading_only:
             raise AssemblyError(
                 f"{name}: {port} spec differs from the inlet in {what}. That is "
-                f"switch class 2 beyond radial grading (counts or mbmp), which "
-                f"needs {BRIDGES[2]}; {name} bridges grading-only class-2 pairs "
-                f"(radial mprg) only",
-                code="switch_class_not_declared", where={"field": port}, value=int(c.cls))
+                f"switch class 2 beyond radial grading (counts or mbmp): "
+                f"{BRIDGES[2]}; {name} changes radial grading (mprg) only",
+                code="switch_class_not_declared", where={"field": port}, value=int(c.cls),
+                hint=DENSITY_HINT)
         if c.cls == 1 and c.ends == "pillow" and not getattr(fitting, "pillows", False):
             raise AssemblyError(
                 f"{name}: {port} spec differs from the inlet in {what}. That is switch "
@@ -234,4 +245,5 @@ def check_port_pairs(fitting, specs: list[PipeSpec]) -> None:
             f"{name}: {port} spec differs from the inlet in {what}. That is "
             f"switch class {c.cls}, which needs {BRIDGES[c.cls]}; {name} "
             f"declares strategies {sorted(allowed)}",
-            code="switch_class_not_declared", where={"field": port}, value=int(c.cls))
+            code="switch_class_not_declared", where={"field": port}, value=int(c.cls),
+            hint={2: DENSITY_HINT, 3: TOPOLOGY_HINT}.get(c.cls))

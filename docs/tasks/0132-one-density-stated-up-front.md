@@ -1,6 +1,6 @@
 # 0132 — One density per network: say so up front, in the docs and in the error
 
-- **Status:** ready
+- **Status:** done (the design session, at the user's request, 2026-11-11)
 - **Decision:** [0003](../decisions/0003-drum-body-and-shell-nozzles.md) (note 2026-11-10); DESIGN A5; [0042](../decisions/0042-road-to-1-0.md) (1.0 surface)
 - **Depends on:** none.  Pairs with 0131 (branch grading), whose GUIDE
   section this one can point to.
@@ -50,6 +50,41 @@ density switch (decision 0003)" that doesn't exist.
 
 ## Agent notes
 
+- **No new code.**  `switch_class_not_declared` stays: the message
+  changed and a hint was added, `where` and `value` unchanged.  A more
+  specific code would split one rule (a port pair's class isn't
+  declared) by which class it is; the hint carries the difference.
+- **Where the words live:** `signature.BRIDGES` (what each class needs:
+  for 2 and 3, "… which no fitting makes"), `DENSITY_HINT` and
+  `TOPOLOGY_HINT`.  `Transition`'s own class check (`fittings.py`, task
+  0135's file) reads `BRIDGES`, so its message follows without an edit.
+- **Left for task 0136:** `assembler.py`'s docstring near line 538 still
+  says a network "needs density switches (decision 0003)"; the split
+  moves that code, so it's fixed there rather than in a conflicting edit.
+- **Tests:** `test_signature.py`'s two Reducer cases (nang 4 → 8; nrad
+  3 → 5 with a grading change) now also check the plain message (no
+  "density switch"), the code and the hint; one regex followed the
+  wording ("grading-only" → "radial grading (mprg) only").
+
 ## Questions for design
 
 ## Outcome
+
+**Status:** done.
+
+- **Files:** `README.md` (a paragraph after the 8× note, linking the
+  GUIDE), `docs/GUIDE.md` ("One density per network" under *Resolution
+  and cell count*, with the 300 mm / 50 mm worked example; a line in
+  *Current limitations*), `API.md` (`nang`, `nang_w`/`nang_h` and the
+  core's `nrad` say one per network; the class table and the two quoted
+  messages), `hexmesh/assembly/signature.py` (`BRIDGES` for classes 2
+  and 3, `DENSITY_HINT`, `TOPOLOGY_HINT`), `tests/test_signature.py`,
+  `CHANGELOG.md`.
+- **Tests:** the affected files (signature, reducer, assembly, errors,
+  architecture, readme, transition, agent schema): 279 passed.  Full
+  suite (`-n 4`, 2026-11-11): 4069 passed, 15 skipped, 0 failed,
+  26.6 min.
+- **Meshes:** unchanged (messages and docs only).
+- **Surprises:** none.  Follow-up: `assembler.py`'s docstring (Agent
+  notes) goes with task 0136.
+

@@ -203,8 +203,8 @@ A builder for a concentric layer stack.
 
 | Parameter | Meaning |
 |---|---|
-| `nang` | cells per 90° arc, shared by all layers (circular cores) |
-| `nang_w`, `nang_h` | cells along the width and the height of a rectangular core |
+| `nang` | cells per 90° arc, shared by all layers (circular cores); **one per network**: every connected fitting has the same |
+| `nang_w`, `nang_h` | cells along the width and the height of a rectangular core; one per network, as `nang` |
 | `mbmp` | angular bump factor (1 = uniform) |
 | `rot` | rotation of the O-H corners, in degrees; for a rectangle, of the whole rectangle |
 | `n_outer` | structural corners; the assembly supports 4 |
@@ -214,7 +214,9 @@ A builder for a concentric layer stack.
 The circular core. A `CircleShape(radius, nang)` can be passed as the second
 argument instead of `radius=`. `nrad` is the cells from the inner square to
 the circle, and `mprg` the radial progression (above 1 refines toward the
-inner side).
+inner side).  `nrad` is **one per network**, per layer: a connected
+fitting can't change it, while `mprg` and `first_cell` may change along a
+`Reducer` (GUIDE, *One density per network*).
 
 `first_cell` replaces `mprg` with the largest radial height of a cell at
 the circle, the pipe wall. The core ring is thickest at mid-arc, 0.491 R
@@ -443,8 +445,8 @@ frozenset applies to every port pair; a tuple gives one per outlet.
   |---|---|---|
   | 0 | equal | any fitting |
   | 1 | whole outermost layers on one side only | layer termination (task 0018) |
-  | 2 | same layers, different counts or grading | grading only: a sweep that interpolates grading per station (`Reducer`); counts: a density switch (decision 0003) |
-  | 3 | anything else | a topology switch (decision 0003) |
+  | 2 | same layers, different counts or grading | grading only: a sweep that interpolates grading per station (`Reducer`); counts: nothing (one density per network; GUIDE) |
+  | 3 | anything else | nothing (no fitting changes the section topology) |
 
   A class-2 pair whose only differences are per-layer radial `mprg` is
   marked `grading_only` (decision 0016), as class 1 is marked
@@ -453,16 +455,22 @@ frozenset applies to every port pair; a tuple gives one per outlet.
 
   > Reducer: outlet spec differs from the inlet in core nrad (3 vs 5); core
   > mprg (1.0 vs 1.2). That is switch class 2 beyond radial grading (counts
-  > or mbmp), which needs a density switch (decision 0003); Reducer bridges
-  > grading-only class-2 pairs (radial mprg) only
+  > or mbmp): a change of cell count, which no fitting makes: a network has
+  > one nang and one nrad per layer; Reducer changes radial grading (mprg)
+  > only
+
+  Its hint: "keep nang and each layer's nrad (and mbmp) as the inlet's:
+  hexmesh meshes a network at one density; radial grading (mprg,
+  first_cell) may change along a Reducer (GUIDE, 'One density per
+  network')".
 
 `Assembly.validate` rejects an undeclared class before GMSH, naming the
 fitting, the field and the class, for example:
 
 > Reducer: outlet spec differs from the inlet in nang (4 vs 8). That is
-> switch class 2 beyond radial grading (counts or mbmp), which needs a
-> density switch (decision 0003); Reducer bridges grading-only class-2
-> pairs (radial mprg) only
+> switch class 2 beyond radial grading (counts or mbmp): a change of cell
+> count, which no fitting makes: a network has one nang and one nrad per
+> layer; Reducer changes radial grading (mprg) only
 
 ### `Straight(length, n_layers=None, axial_grading=1.0, stack_changes=(), twist=0.0)`
 

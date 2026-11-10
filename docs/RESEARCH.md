@@ -1529,6 +1529,40 @@ The fittings below the straight's order, and why (the design checks):
   (`docs/integrations/openfoam.md`, 2026-11-06); the drivers use
   `-keepOrientation` where every hex is right-handed (task 0108).
 
+### 7.15 Second-order export verified with FEniCSx (task 0077)
+
+Task 0077 (done 2026-11-11): Poisson with a manufactured solution,
+dolfinx (container), on hexmesh's `mesh(order=2)` Hex27 and on the same
+meshes' Hex8, straight, bend and tee, `nang` 6, 12, 24 (864 to 138 240
+cells).  L2 order of the error, k 1→2 and 2→4:
+
+| case | data | Q2 on Hex27 | Q2 on Hex8 | Q1 on Hex8 |
+|---|---|---|---|---|
+| straight | Dirichlet | 2.91, 2.98 | 2.90, 2.98 | 1.96, 1.99 |
+| straight | Neumann (exact normal) | 2.87, 2.98 | 2.50, 2.28 | 2.08, 2.02 |
+| bend | Dirichlet | 2.81, 2.96 | 2.81, 2.96 | 2.06, 2.01 |
+| bend | Neumann (exact normal) | 2.80, 2.96 | **2.00, 2.03** | 2.13, 2.04 |
+| tee | Dirichlet | 2.80, 2.95 | 2.79, 2.95 | 2.02, 2.01 |
+| tee | Neumann (exact normal) | 2.78, 2.95 | 2.64, 2.50 | 2.09, 2.03 |
+
+- **Hex27 reaches order 3** on every fitting, so the curved high-order
+  nodes (wall projection, the bend's arcs) are right.
+- **Only data on the exact wall shows the geometry error.**  With
+  Dirichlet data, or Neumann data using the mesh's own facet normal,
+  straight-sided Hex8 also converges at order 3: the error those data
+  see lives on the discrete boundary.  With the exact wall's normal, Hex8
+  falls to order 2 on the bend (error 10× Hex27's at k = 4), and is still
+  falling on the straight and tee (2.5× and 1.7×).  A verification of
+  curved elements needs exact-geometry boundary data.
+- **dolfinx reads Hex27, not Hex20** (gmsh type 17).
+- Cost: 22 min serial; 4.4 GB peak per solve (Q2, tee, k = 4, 1.13 M
+  dofs).  Details: `validation/fenicsx_second_order/RESULTS.md`,
+  `docs/integrations/fenicsx.md`.
+- **Still unverified:** second order on wyes and equal tees (rejected
+  today), flow (a Stokes MMS on the same meshes is the proposed next
+  step), and second-order OpenFOAM output (`gmshToFoam` reads first
+  order).
+
 ## 8. Proposed hexmesh actions
 
 | Area | Action | Source |

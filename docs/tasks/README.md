@@ -126,9 +126,9 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0127](0127-equal-tee-fine-nang-tier.md) | The equal tee at fine `nang`: a measured tier in `validate()`, before gmsh | done | 0043 |
 | [0128](0128-units-module.md) | `hexmesh.units`: length constants, and an audit of absolute tolerances | ready | 0047, 0018 |
 | [0129](0129-spline-and-roll-error-hints.md) | Two error messages that say where and what to do: a too-tight spline, a roll with no straight | ready | 0042 |
-| [0130](0130-record-bend-arc-placement.md) | Record a bend's second-order arc placement; label second order experimental | ready | 0046, 0034 |
+| [0130](0130-record-bend-arc-placement.md) | Record a bend's second-order arc placement; say what second order is verified for | ready | 0046, 0034 |
 | [0131](0131-branch-radial-grading.md) | A tee branch with its own radial grading (and the Reducer pattern documented) | ready | 0028, 0016 |
-| [0132](0132-one-density-stated-up-front.md) | One density per network: say so up front, in the docs and in the error | ready | 0003, 0042 |
+| [0132](0132-one-density-stated-up-front.md) | One density per network: say so up front, in the docs and in the error | done | 0003, 0042 |
 | [0133](0133-density-change-probe.md) | Probe: two density changes meshed by gmsh (+1 radial ring, ×2 nang slab) | ready (after 1.0) | 0003, 0046, 0018 |
 | [0134](0134-remove-cube-probe-and-gallery-render-helper.md) | Housekeeping: one render helper in the gallery builder (`_cube_probe.py` stays) | done | 0043 |
 | [0135](0135-library-deduplication.md) | De-duplicate four repeated blocks in the library | ready | 0042 |

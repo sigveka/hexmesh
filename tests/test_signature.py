@@ -112,9 +112,13 @@ class TestClassify:
 def test_reducer_changing_nang_rejected():
     asm = Assembly(_spec())
     asm.add(Reducer(_spec(r=0.06, nang=8), 0.2, n_layers=3))
-    with pytest.raises(AssemblyError, match=r"nang \(4 vs 8\)\. That is switch class 2"):
+    with pytest.raises(AssemblyError, match=r"nang \(4 vs 8\)\. That is switch class 2") as e:
         asm.validate()
     assert not gmsh.isInitialized()
+    # One density per network, said plainly, with what to do (task 0132)
+    assert "no fitting makes" in str(e.value) and "density switch" not in str(e.value)
+    assert e.value.code == "switch_class_not_declared"
+    assert "one density" in e.value.hint and "One density per network" in e.value.hint
 
 
 def test_reducer_changing_nrad_and_grading_rejected():
@@ -122,9 +126,10 @@ def test_reducer_changing_nrad_and_grading_rejected():
     asm = Assembly(_spec())
     asm.add(Reducer(_spec(r=0.06, nrad=5, mprg=1.2), 0.2, n_layers=3))
     with pytest.raises(AssemblyError, match=r"core nrad \(3 vs 5\).*switch class 2 beyond "
-                                            r"radial grading.*grading-only"):
+                                            r"radial grading.*radial grading \(mprg\) only") as e:
         asm.validate()
     assert not gmsh.isInitialized()
+    assert "nrad" in e.value.hint and "first_cell" in e.value.hint
 
 
 def test_straight_changing_grading_rejected():

@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+**One density per network, said up front** (decision 0003 note
+2026-11-10; task 0132).
+- README, GUIDE ("One density per network", with a worked example) and
+  API.md state that `nang` and each layer's `nrad` are the same in every
+  pipe of a connected network, what that costs, and what to do instead.
+- A count change across a fitting (`switch_class_not_declared`, class 2
+  beyond grading, or class 3) no longer names "a density switch" or "a
+  topology switch (decision 0003)", which don't exist: the message says
+  no fitting makes the change, and the error now carries a hint.  Code,
+  `where` and `value` unchanged.
+
 **Equal tees** (decision 0043 amendment 2026-11-10; task 0122).
 - `Tee(branch_radius=R)`, the branch as wide as the main, builds: the
   oriented junction cube (Bošnjak et al. 2024), every block a transfinite
