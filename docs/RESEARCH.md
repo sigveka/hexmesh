@@ -381,6 +381,16 @@ $$
       faces) is fixed by the geometry.  Equal laterals degrade faster
       (60°: 0.304 → 0.108 at 16; `checkMesh` skewness 4.6 at 8) and are
       deferred.  Hex27 inverts near the projected wall (72 of 4160).
+    - **The slide, probed (task 0126;
+      `validation/tools/projection_blend.json`):** projection moves only
+      the wall faces' interiors (0.17–0.18 R; the wye the same; reduced
+      tees and duct taps nothing measurable); the worst cell, at a wall
+      face's edge, is sheared, not crushed.  Carrying the move into the
+      internal faces (every weight tried, even negative) only lowers the
+      min SJ.  The layout's own limit at the wall (block corners 0.665,
+      along wall edges 0.707) is far above the meshed 0.305 at `nang`
+      48, so the geometric angle doesn't explain it either.  Open: the
+      projected wall grid's obliquity at the edges (unmeasured).
 - [`verma_and_fischer_etal_2005`]: a bifurcation split into three
   tubes by Laplace-equation coordinates, then swept.  Abstract only.
   Its nodes come from PDE solves, which doesn't fit "fail before

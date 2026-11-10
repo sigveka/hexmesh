@@ -350,3 +350,8 @@ quality or crease error under B3.
   0046.
 - **Second order** is rejected before meshing for the equal tee, as for
   the wye (72 of 4160 Hex27 inverted).
+- **The slide with refinement is unexplained** (task 0126, closed):
+  carrying the projection's move into the internal faces only made it
+  worse, and the layout's geometric limit (SJ 0.665–0.707) is far above
+  the meshed values.  No correction is planned; equal laterals and
+  second order stay deferred.
