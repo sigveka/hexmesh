@@ -61,6 +61,18 @@ before, bit for bit.
 Scope: circular layers, ``rot = 0``, ``n_outer = 4``, branch ratio
 ``r/R ≤ TEE_MAX_RATIO``, ``0 < angle ≤ 90``.
 
+Equal tees (decision 0043 amendment 2026-11-10, task 0122)
+---------------------------------------------------------
+A branch as wide as the main (r = R within ``EQUAL_TEE_RTOL``) is an
+equal tee or an equal lateral, with the oriented junction cube of
+``cube.CubeTee``: ``Tee`` delegates to it, as to the duct-tap template.
+The branch must be centred (``offset`` 0) and square
+(``EQUAL_LATERAL_ANGLE_MIN``, 90°: equal laterals fold as ``nang``
+rises).  Its crease, where the branch meets the main, lies on cube edges
+only on the main's two sides, so its chord error is first order in
+``nang`` (3.7 % R at nang 8, 1.1 % at 32).  First order only:
+``mesh(order=2)`` rejects it, as it does the wye.
+
 Duct taps (decision 0033, task 0070)
 ------------------------------------
 On a rectangular main the tee is a **duct tap**: the branch (``branch=``,
@@ -88,10 +100,13 @@ from .blocks import (
     ArcAbout, BlockLayout, LayoutError, Spline, bind_face, corner_shift,
     face_patches, face_vertices,
 )
+from .cube import CubeTee
 from .duct_tap import TapTemplate
 from .interface import Frame, junction_roll, junction_toward, lean, outer_radius, rolled
-from .junction_quality import TAP_HINT, TEE_BLOCKS, TEE_HINT, nonorth_tiers, predicted_angle
-from .limits import PREDICTED_SJ_MIN, PREDICTED_SJ_WARN, TEE_MAX_OFFSET_RATIO, TEE_MAX_RATIO
+from .junction_quality import (CUBE_HINT, TAP_HINT, TEE_BLOCKS, TEE_HINT, nonorth_tiers,
+                               predicted_angle)
+from .limits import (EQUAL_TEE_RTOL, PREDICTED_SJ_MIN, PREDICTED_SJ_WARN, TEE_MAX_OFFSET_RATIO,
+                     TEE_MAX_RATIO)
 from .projection import Tube, TubeUnion
 from .signature import check_port_pairs
 
@@ -204,7 +219,9 @@ class Tee:
     branch_length : float
         Distance from the main axis to the branch port.
     branch_radius : float
-        Branch radius; must be below the main radius.
+        Branch radius: at most ``TEE_MAX_RATIO`` × the main radius, or
+        equal to it (an equal tee or lateral: the oriented junction cube,
+        task 0122).
     n_run, n_branch : int
         Axial layers of the approach/departure runs and of the branch run.
     n_turn : int
@@ -270,8 +287,8 @@ class Tee:
     branch_length: float | None = param(
         "length", "main axis to the branch port (required)", default=None, exclusiveMinimum=0)
     branch_radius: float | None = param(
-        "length", "branch radius, below the main radius (or branch)", input=True,
-        exclusiveMinimum=0)
+        "length", "branch radius: at most TEE_MAX_RATIO times the main radius, or equal to it "
+        "(an equal tee); or branch", input=True, exclusiveMinimum=0)
     n_run:    int = param(
         "cells", "axial layers of the approach and departure runs", default=3, minimum=1)
     n_branch: int = param("cells", "axial layers of the branch run", default=3, minimum=1)
@@ -337,6 +354,11 @@ class Tee:
                                     hint=f"give the branch nang={spec.core_shape.nang}")
             self = replace(self, branch_radius=self.branch.radius, branch=None)
         tee = junction_toward(self, inlet, spec, self.toward_offset)  # counts keep defaults
+        if tee._is_equal(spec):
+            tee = replace(tee, branch_radius=spec.core_shape.max_extent)   # exactly the main's
+            if tee.run_length is None:
+                tee = replace(tee, run_length=CubeTee(tee).resolve(inlet, spec))
+            return tee
         if tee.run_length is None:
             _check_circle(spec)
             R, r, T = spec.core_shape.radius, tee.branch_radius, thicknesses(spec)[-1]
@@ -468,6 +490,8 @@ class Tee:
         ob, d, u = self._branch_axes(inlet)
         main = Frame(o + self.run_length * ex, ex, inlet.up)
         branch = Frame(ob + self.branch_length * d, d, u)
+        if self._is_equal(spec):            # the inlet's own spec, not rebuilt
+            return [(main, spec), (branch, spec)]
         return [(main, spec), (branch, branch_spec(spec, self.branch_radius))]
 
     # -- topology -----------------------------------------------------
@@ -509,11 +533,16 @@ class Tee:
                                 value=self.angle, limit={"min_exclusive": 0, "max": 90},
                                 hint="a branch leaning upstream is the same lateral with the "
                                      "run reversed")
-        if r == R:
-            raise AssemblyError(f"Tee: branch radius {r} equals the main's: an equal tee",
-                                code="equal_tee_unsupported",
-                                where={"field": "branch_radius"}, value=r,
-                                hint="equal tees are planned through the wye-family layout")
+        if self._is_equal(spec):
+            if self.offset != 0:
+                raise AssemblyError(f"Tee: an equal tee's branch can't be offset (offset "
+                                    f"{self.offset:g}): |offset| + r must be below R",
+                                    code="tee_offset_out_of_range", where={"field": "offset"},
+                                    value=self.offset, limit={"max_exclusive": 0.0},
+                                    hint=f"offset 0, or a branch radius <= TEE_MAX_RATIO R "
+                                         f"({TEE_MAX_RATIO * R:.4g})")
+            self._check_counts()
+            return CubeTee(self).check(spec)
         if not 0 < r < R:
             raise AssemblyError(f"branch radius {r} must be in (0, main radius {R})",
                                 code="branch_radius_out_of_range",
@@ -561,6 +590,9 @@ class Tee:
                 value=self.branch_length, limit={"min_exclusive": z1},
                 hint=f"branch_length > {z1:.4g}",
             )
+        self._check_counts()
+
+    def _check_counts(self) -> None:
         for n in (self.n_run, self.n_branch, self.n_turn):
             if n < 1:
                 raise AssemblyError("layer counts must be >= 1",
@@ -572,6 +604,8 @@ class Tee:
         tpl = self._template(spec)
         if tpl is not None:
             return tpl.layout(frames, spec)
+        if self._is_equal(spec):
+            return CubeTee(self).layout(frames, spec)
         # Declared in the rolled frame; fill() binds the main ports' faces
         # (built in the unrolled one) with the corner shift between them.
         A, B, E = rolled(frames[0], self.roll), rolled(frames[1], self.roll), frames[2]
@@ -755,6 +789,8 @@ class Tee:
         tpl = self._template(spec)
         if tpl is not None:
             return tpl.validate(frames, spec)
+        if self._is_equal(spec):
+            return CubeTee(self).validate(frames, spec)
         found = self._quality(frames[0], spec)      # before the layout's own
         try:                                        # inversion check: names a run
             self.layout(frames, spec).validate()
@@ -788,14 +824,39 @@ class Tee:
         """The duct-tap front end on a rectangular main, else None."""
         return None if spec.core_shape.is_round else TapTemplate(self)
 
+    def _is_equal(self, spec: PipeSpec) -> bool:
+        """An equal tee (``cube.CubeTee``): a round branch within
+        ``EQUAL_TEE_RTOL`` of the main's radius."""
+        if not spec.core_shape.is_round or self.branch_radius is None:
+            return False
+        R = spec.core_shape.max_extent
+        return abs(self.branch_radius - R) <= EQUAL_TEE_RTOL * R
+
     def meshed_sj_check(self, spec: PipeSpec) -> bool:
         """Whether ``Assembly.mesh()`` checks this tee's meshed corner SJ
         on the predicted-SJ tiers: round duct taps, whose prediction (from
-        straight block edges) overestimates by up to 0.11 (task 0069), and
+        straight block edges) overestimates by up to 0.11 (task 0069),
         taps on a graded H main, whose switch legs' is an empirical bound
-        (task 0086)."""
+        (task 0086), and equal tees, whose projected walls lower it by up
+        to 0.12 (task 0122)."""
+        if self._is_equal(spec):         # projected walls: the prediction is optimistic
+            return True
         tpl = self._template(spec)
         return tpl is not None and (tpl.meshed_sj_check() or tpl.graded_legs(spec))
+
+    def meshed_sj_hint(self, spec: PipeSpec) -> str:
+        """The hint of ``Assembly.mesh()``'s meshed-SJ error."""
+        if self._is_equal(spec):
+            return "a branch radius <= TEE_MAX_RATIO R may do better"
+        return "a smaller tap, or the wide face, may do better"
+
+    def second_order_limitation(self, spec: PipeSpec) -> str | None:
+        """Why ``mesh(order=2)`` rejects this tee before meshing, or None
+        (the wye's rule, for the other projected junction)."""
+        if self._is_equal(spec):
+            return ("its second-order hexes near the projected wall invert (72 of 4160 in "
+                    "the equal tee example at nang 8; task 0122)")
+        return None
 
     def meshed_nonorth_check(self, spec: PipeSpec) -> bool:
         """Every tee: the prediction is up to 3.4° optimistic at r/R ≥ 0.6
@@ -806,7 +867,7 @@ class Tee:
     def meshed_nonorth_hint(self, spec: PipeSpec) -> str:
         tpl = self._template(spec)
         if tpl is None:
-            return TEE_HINT
+            return CUBE_HINT if self._is_equal(spec) else TEE_HINT
         if tpl.graded_legs(spec):
             return TAP_HINT + "; at a switch leg, a gentler wall grading of the H main"
         return TAP_HINT

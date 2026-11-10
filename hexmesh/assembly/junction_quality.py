@@ -149,6 +149,20 @@ TAP_BLOCKS = [
     (frozenset({"A", "Sa"}), "the approach run"),
     (frozenset({"B", "Sd"}), "the departure run"),
 ]
+CUBE_HINT = "the junction cube sets it; a branch radius <= TEE_MAX_RATIO R avoids the cube"
+# The equal tee's junction cube (cube.py): a port's ring and column end at
+# its station S<pipe>; F is the centre hex, C the cube corners on the wall.
+CUBE_BLOCKS = [(frozenset({"F", "C", "S" + p}), f"the {w} port's ring")
+               for p, w in (("A", "inlet"), ("B", "run outlet"), ("E", "branch"))] + [
+    (frozenset({"C", "S" + p}), f"the {w} port's shell")
+    for p, w in (("A", "inlet"), ("B", "run outlet"), ("E", "branch"))] + [
+    (frozenset({"F", "S" + p}), f"the {w} port's column")
+    for p, w in (("A", "inlet"), ("B", "run outlet"), ("E", "branch"))] + [
+    (frozenset({p, "S" + p}), f"the {w} run")
+    for p, w in (("A", "inlet"), ("B", "run outlet"), ("E", "branch"))] + [
+    (frozenset({"F", "C"}), "a wall side of the junction cube"),
+    (frozenset({"C"}), "a wall side's shell"), (frozenset({"F"}), "the centre hex")]
+
 WYE_BLOCKS = [
     (frozenset({"W"}), "the ring at the crotch"),
     (frozenset({"F"}), "the hub"),

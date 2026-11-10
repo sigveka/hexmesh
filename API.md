@@ -745,8 +745,7 @@ a block layout.
   most `limits.TEE_MAX_RATIO` (0.95): above it the saddle's curved sides
   pull the meshed quality below the prediction (0.30 against 0.57 at
   0.99). It is rejected with the hint "an equal tee, or a branch radius
-  ≤ 0.95 R"; r = R is `equal_tee_unsupported` (planned through the
-  wye-family layout). With T the total shell thickness, `run_length` must
+  ≤ 0.95 R". r = R is an equal tee (below). With T the total shell thickness, `run_length` must
   exceed `branch_radius + T` (for a lateral, the outer hole's reach
   downstream), and `branch_length` the turning station's height,
   `R + T + (branch_radius + T)/2` (for a lateral, its distance along the
@@ -781,6 +780,20 @@ a block layout.
   that tier. **Tees with r/R about 0.3
   warn at every angle** (72–77°). An unchanged junction's prediction is
   cached by value, so repeated `validate()` calls are cheap.
+- **Equal tees** (decision 0043 amendment 2026-11-10, task 0122). A branch
+  radius equal to the main's (within `limits.EQUAL_TEE_RTOL`) builds the
+  oriented junction cube: a centre hex, a five-block column to each pipe,
+  one projected block on each other side; every element from gmsh's
+  transfinite meshing. Square and centred only: any other angle is
+  `equal_lateral_angle_below_min` (`limits.EQUAL_LATERAL_ANGLE_MIN`, 90°;
+  equal laterals fold as `nang` rises), an offset `tee_offset_out_of_range`.
+  `run_length=None` resolves the length the cube needs (1.27 R bare, 1.58 R
+  under insulation 0.25 R thick); a shorter one is `run_length_too_short`,
+  a shorter branch `branch_length_too_short`. The meshed min corner SJ is
+  checked at `mesh()` (0.511, 0.399, 0.305 at `nang` 8, 16, 48); the
+  crease misses the wall by 3.7 % R at `nang` 8, 1.1 % at 32.
+  `mesh(order=2)` rejects it (`second_order_unsupported`), as it does the
+  wye.
 - **Duct taps** (decision 0033, task 0070). On a rectangular main the tee
   is a duct tap: `branch=RectShape(half_w, half_h, nang_w, nang_h)` or
   `branch=CircleShape(radius, nang)` (`branch_radius` is the pipe
@@ -1124,7 +1137,7 @@ declared connections.  Messages name parts as `component <n> (<TYPE>
 | `TEE` | `Tee`: run from the two `END-POINT`s, branch `CENTRE-POINT` → `BRANCH1-POINT`, its radius from the branch bore (`spec(bore)`, or the main radius × bore ratio).  A branch that leans is a lateral, `Tee(angle=…)` with the measured angle to the downstream run (task 0103); within 1° of square it is a plain 90° tee.  The range is DESIGN §7.1's: the `Tee`'s quality tiers reject an angle and ratio it can't mesh, at `validate()`, naming the smallest r/R that passes at that angle |
 | `TEE-SET-ON`, `TEE-STUB`, `OLET` | the host `PIPE` through `CENTRE-POINT` is split: straight + `Tee` + straight.  The tee's run on each side of `CENTRE-POINT` is the `Tee`'s own default (`run_length=None`: r + T + R/2, or longer to reach `PREDICTED_SJ_WARN`; task 0054), from the spec's radii and shells, and for an angled set-on its acute lean (task 0103); a host too short for it is rejected, naming the length needed.  An offset set-on (`TOSO`, `TORF`) is `Tee(offset=…)` (task 0061): the straight leaving `BRANCH1-POINT` gives the branch axis, and the offset is `BRANCH1-POINT`'s distance from the plane of that axis and the host's; without that straight, or with a branch axis that misses `CENTRE-POINT` along the host, it is rejected (`seton_offset_branch`).  A tangential set-on (`TTSO`, `TTRF`) maps the same way and is the `Tee`'s rejection: its h = R − r is outside the offset range (`tee_offset_out_of_range`).  A junction whose branch is between the period's rolls from the one before twists the straight piece before it (`Straight(twist=…)`, task 0062) |
 | `Y-PIECE-FABRICATED` | its stem `PIPE` (ending at `CENTRE-POINT`) is cut back by the `Wye`'s inlet run, r·(tan h + 0.6) with r the nominal radius, h half the angle; then `Wye`, `BRANCH1-POINT` as the right daughter |
-| rejected, naming the component and the limit | crosses, `Y-PIECE-FITTING`, tangential set-ons (`TTSO`, `TTRF`: by the `Tee`'s offset range), equal tees, a branch leaning upstream of the build (`tee_branch_angled`: build from the other end with `inlet=`), asymmetric or non-coplanar Y pieces, daughters of another size, and the junctions' own limits (a wye's shell thickness and angle, a tee's predicted quality) |
+| rejected, naming the component and the limit | crosses, `Y-PIECE-FITTING`, tangential set-ons (`TTSO`, `TTRF`: by the `Tee`'s offset range), a branch leaning upstream of the build (`tee_branch_angled`: build from the other end with `inlet=`), asymmetric or non-coplanar Y pieces, daughters of another size, and the junctions' own limits (a wye's shell thickness and angle, a tee's predicted quality) |
 | joint | absorbed: the preceding straight run is extended over it, or else the following one starts at it; dropped at an open end next to a non-straight fitting; rejected between two non-straight fittings |
 
 **Parameters**
@@ -1587,7 +1600,6 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `duct_tap_roll_invalid` | a duct tap's roll other than 0 or 180 | `AssemblyError` |
 | `duct_tap_too_wide` | a duct tap too wide for the face it sits on | `AssemblyError` |
 | `elbow_needs_circle` | an ASME Elbow on a non-circular section | `AssemblyError` |
-| `equal_tee_unsupported` | an equal tee (branch as large as the main) | `AssemblyError` |
 | `extend_args_invalid` | negative extension lengths or cells_per_diameter | `AssemblyError` |
 | `faces_antiparallel` | two faces are antiparallel, so their corners can't be matched | `AssemblyError` |
 | `fill_failed` | a fitting failed while filling its volume | `AssemblyError` |
@@ -1808,6 +1820,7 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `tap_ring_override_on_oh_main` | duct-tap ring overrides on an O-H main | `AssemblyError` |
 | `tee_angle_out_of_range` | a Tee's angle outside (0, 90] degrees | `AssemblyError` |
 | `tee_branch_angled` | a network tee whose branch leans upstream of the build direction | `AssemblyError` |
+| `equal_lateral_angle_below_min` | an equal lateral's angle below EQUAL_LATERAL_ANGLE_MIN | `AssemblyError` |
 | `tee_offset_out_of_range` | a Tee's offset past the main's wall or TEE_MAX_OFFSET_RATIO | `AssemblyError` |
 | `tee_ratio_above_max` | a pipe Tee's branch ratio above TEE_MAX_RATIO | `AssemblyError` |
 | `tee_run_asymmetric` | a network tee whose run ports are not symmetric | `AssemblyError` |
@@ -1907,6 +1920,8 @@ Kinds:
 | `PREDICTED_SJ_MIN` | 0.1 | `1` | error | predicted or meshed min corner scaled Jacobian below this is rejected |
 | `TEE_MAX_RATIO` | 0.95 | `1` | error | largest branch radius of a pipe tee, over the main radius |
 | `TEE_MAX_OFFSET_RATIO` | 1 | `1` | error | largest offset of a pipe tee's branch axis, over the branch radius |
+| `EQUAL_TEE_RTOL` | 1e-09 | `1` | info | relative tolerance within which a branch radius equals the main's (an equal tee) |
+| `EQUAL_LATERAL_ANGLE_MIN` | 90 | `deg` | error | smallest angle of an equal tee (branch as wide as the main): square only |
 | `DUCT_TAP_MAX_RATIO` | 0.93 | `1` | error | largest reach across of a duct tap, over the face's half-width |
 | `DUCT_TAP_NARROW_ASPECT_WARN` | 3 | `1` | warn | a tap on the narrow face of a duct this deep (depth / width) or deeper warns |
 | `SWITCH_MIN_LENGTH` | 1.25 | `t` | error | shortest Switch, in ring thicknesses |

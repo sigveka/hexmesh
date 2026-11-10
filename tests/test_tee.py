@@ -47,7 +47,7 @@ class TestTopology:
         assert report["min_corner_sj"] > 0.2
 
     @pytest.mark.parametrize("kw, message", [
-        (dict(ratio=1.0), "branch radius"),
+        (dict(ratio=1.05), "branch radius"),
         (dict(ratio=0.5, run=0.04), "run_length"),
         (dict(ratio=0.5, branch=0.11), "branch_length"),
     ])
@@ -343,7 +343,6 @@ def test_lateral_hint_names_the_smallest_ratio():
 
 @pytest.mark.parametrize("ratio, code, hint", [
     (0.96, "tee_ratio_above_max", "an equal tee, or a branch radius <= 0.95 R"),
-    (1.0, "equal_tee_unsupported", "equal tees are planned through the wye-family layout"),
 ])
 def test_branch_ratio_cut_off(ratio, code, hint):
     with pytest.raises(AssemblyError) as e:

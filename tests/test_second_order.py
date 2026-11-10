@@ -27,7 +27,8 @@ from hexmesh.examples import ALL
 HEX27, HEX20 = 12, 17
 R, L, RHO = 0.1, 0.4, 0.3
 WYES = {"fittings.wye", "fittings.junction_walls", "sections.insulated_network",
-        "networks.bifurcation_tree", "applications.cooling_channels"}
+        "networks.bifurcation_tree", "applications.cooling_channels",
+        "fittings.equal_tee"}   # and the equal tee (task 0122)
 
 
 def _integrate(dim, entities):
@@ -87,7 +88,7 @@ def _orders(err):
 @pytest.mark.parametrize("name", ALL)
 def test_every_example_meshes_at_order_2(name):
     """Valid Hex27 everywhere (``mesh`` checks every hex at its nodes and
-    Gauss points), except the wye, rejected before meshing."""
+    Gauss points), except the wye and the equal tee, rejected before meshing."""
     asm = importlib.import_module(f"hexmesh.examples.{name}").build()
     with Session(name), warnings.catch_warnings():
         warnings.simplefilter("ignore")

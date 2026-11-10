@@ -118,7 +118,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0118](0118-junction-cube-probe.md) | The oriented junction cube, measured: equal tees and laterals on 6-faced blocks | done | 0043 |
 | [0119](0119-volunteer-tool-and-helical-card.md) | Volunteer runs: the tool, the runners, and the helical pipe's card | done | 0044, 0012 |
 | [0121](0121-idealised-aorta-example.md) | Example: an idealised aorta (arch, branches, taper and the iliac bifurcation) | ready | 0018, 0043 |
-| [0122](0122-equal-tee-oriented-cube.md) | Equal tees and equal laterals: the oriented junction cube behind `Tee` | ready | 0043, 0031, 0046 |
+| [0122](0122-equal-tee-oriented-cube.md) | Equal tees and equal laterals: the oriented junction cube behind `Tee` | done | 0043, 0031, 0046 |
 | [0123](0123-report-what-hexmesh-changed.md) | Report what hexmesh changed in gmsh's mesh: corrections recorded, written elements stated | ready | 0046 |
 | [0124](0124-wye-written-nodes-opt-in.md) | Written nodes for `Wye`, opt-in: measure a B3 layout, and offer it only where it beats the hub | held (after 0122, 0123) | 0046, 0043 |
 

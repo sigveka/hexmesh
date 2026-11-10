@@ -172,6 +172,29 @@ fitting:
 - closures that would kink;
 - an assembly over `validate(max_cells=...)`.
 
+**Equal tees.**  A `Tee` whose `branch_radius` equals the main's builds
+its junction around a cube square to all three pipes: a centre hex, a
+column of five blocks to each pipe, and one block on each of the other
+sides, its outer face projected onto the wall.  Leave `run_length` out
+and it resolves what the cube needs (1.27 R each side of the centre for
+a bare pipe).  It is square and centred only, and first order only.
+Where branch and main meet, the crease crosses the cube's faces beside
+the branch, so its chord error falls only as fast as the cells shrink.
+Measured on a 0.1 m pipe, single layer (shelled within 0.4 % R of crease
+and 2° of non-orthogonality):
+
+| `nang` | min scaled Jacobian | max non-orthogonality | crease miss |
+|---|---|---|---|
+| 8 | 0.511 | 46° | 3.7 % R |
+| 16 | 0.399 | 47° | 2.0 % R |
+| 32 | 0.330 | 52° | 1.1 % R |
+| 48 | 0.305 | 58° | 0.7 % R |
+
+The quality falls as `nang` rises (projection moves the side blocks'
+wall nodes up to 0.18 R whatever the cell size), but stays above the 0.3
+warning tier to `nang` 48.  Equal laterals aren't built yet; a branch
+radius up to `TEE_MAX_RATIO` (0.95) R leans at any angle the tee allows.
+
 ---
 
 ## Cross-section specification
@@ -592,9 +615,13 @@ upstream end) from which every junction is entered through its inlet.
 Fittings are labelled from the file (`TEE_1`, `OLET_2`, or the
 component's `COMPONENT-IDENTIFIER`) and open ends from the pipeline
 (`A_100_end3`), so wall and port patches can be traced back to the
-isometric.  Junctions the fittings can't build (crosses, equal, offset
-or tangential tees, asymmetric Y pieces) are rejected naming the
-component.
+isometric.  Junctions the fittings can't build (crosses, offset or
+tangential tees, asymmetric Y pieces) are rejected naming the
+component.  An equal tee is read as a `Tee` whose branch is as wide as
+the main.  It fits a forged tee's run bare (it needs 1.27 R each side of
+the centre; ASME B16.9 gives about 1.84 R) or under insulation 0.25 R
+thick (1.58 R), but not under thicker insulation (1.90 R at 0.5 R), where
+the file's tee is `run_length_too_short`.
 
 A tee whose branch leans is built as a lateral, `Tee(angle=…)`, with the
 angle measured from the file (task 0103); within 1° of square it is a
@@ -696,8 +723,9 @@ with `python3 docs/gallery/build.py` (needs `vtk`).
 ## Current limitations
 
 - **Tee:** centred branch, perpendicular or leaning downstream (a
-  lateral, `angle=`, in the range of DESIGN §7.1), branch radius below the
-  main radius; shells circular, and the branch's copy the main's (no separate
+  lateral, `angle=`, in the range of DESIGN §7.1), branch radius at most
+  `TEE_MAX_RATIO` (0.95) R, or equal to R (an equal tee: square, centred,
+  first order only); shells circular, and the branch's copy the main's (no separate
   branch wall thickness).
 - **Wye (prototype):** circular shells from 40°, total thickness up to
   0.65 R·tan(angle/2), at most 0.55 R (`API.md`), equal daughters with the inlet's

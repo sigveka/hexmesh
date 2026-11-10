@@ -247,7 +247,6 @@ CODES: dict[str, str] = {
     "duct_tap_roll_invalid": "a duct tap's roll other than 0 or 180",
     "duct_tap_too_wide": "a duct tap too wide for the face it sits on",
     "elbow_needs_circle": "an ASME Elbow on a non-circular section",
-    "equal_tee_unsupported": "an equal tee (branch as large as the main)",
     "extend_args_invalid": "negative extension lengths or cells_per_diameter",
     "faces_antiparallel": "two faces are antiparallel, so their corners can't be matched",
     "fill_failed": "a fitting failed while filling its volume",
@@ -478,6 +477,7 @@ CODES: dict[str, str] = {
     "tee_angle_out_of_range":
         "a Tee's angle outside (0, 90] degrees",
     "tee_branch_angled": "a network tee whose branch leans upstream of the build direction",
+    "equal_lateral_angle_below_min": "an equal lateral's angle below EQUAL_LATERAL_ANGLE_MIN",
     "tee_offset_out_of_range":
         "a Tee's offset past the main's wall or TEE_MAX_OFFSET_RATIO",
     "tee_ratio_above_max": "a pipe Tee's branch ratio above TEE_MAX_RATIO",

@@ -124,6 +124,22 @@ TEE_MAX_OFFSET_RATIO = _limit(
     "TEE_MAX_OFFSET_RATIO", 1.0, "1", "error",
     "largest offset of a pipe tee's branch axis, over the branch radius")
 
+#: Equal tees (decision 0043 amendment 2026-11-10, task 0122): a branch
+#: radius within this of the main's, relatively, is an equal tee (the
+#: oriented junction cube), and is taken as exactly the main's.
+EQUAL_TEE_RTOL = _limit(
+    "EQUAL_TEE_RTOL", 1e-9, "1", "info",
+    "relative tolerance within which a branch radius equals the main's (an equal tee)")
+
+#: Equal tees (task 0122; design's answer, 2026-11-10): square only.  The
+#: junction cube builds equal laterals at nang 8 down to 40°, but their
+#: meshed SJ falls as nang rises (60°: 0.304, 0.108, then 0.031 at nang
+#: 24) and from 60° down they fail checkMesh's skewness at nang 8 (60°:
+#: 4.6; 45°: 6.2).  The square tee holds: 0.511 at nang 8, 0.305 at 48.
+EQUAL_LATERAL_ANGLE_MIN = _limit(
+    "EQUAL_LATERAL_ANGLE_MIN", 90.0, "deg", "error",
+    "smallest angle of an equal tee (branch as wide as the main): square only")
+
 #: Duct taps (decision 0033, task 0070): the largest across ratio q/a of a
 #: tap inside the face (q its reach across, a the face's half-width).  The
 #: ±y tube blocks thin as q → a: at 0.95 a 1:1 duct's rectangular tap

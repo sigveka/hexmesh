@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+**Equal tees** (decision 0043 amendment 2026-11-10; task 0122).
+- `Tee(branch_radius=R)`, the branch as wide as the main, builds: the
+  oriented junction cube (Bošnjak et al. 2024), every block a transfinite
+  hex.  Square and centred only: an equal lateral is
+  `equal_lateral_angle_below_min` (`limits.EQUAL_LATERAL_ANGLE_MIN`, 90°),
+  an offset `tee_offset_out_of_range`.  `run_length=None` resolves the
+  length the cube needs (1.27 R bare); shorter is `run_length_too_short`.
+- Meshed min corner SJ 0.511 at nang 8, 0.305 at 48; checkMesh v2406
+  passes.  The crease where branch and main meet misses the wall by
+  3.7 % R at nang 8 (1.1 % at 32).  First order only:
+  `mesh(order=2)` rejects it, as it does the wye.
+- `equal_tee_unsupported` is gone: PCF equal tees are read as `Tee`, and
+  the README's example error is now an insulated equal tee too short for
+  the junction.
+- New example `fittings.equal_tee`.
+
 **Volunteer runs** (decision 0044; task 0119).
 - `python3 -m validation.volunteer`: `list`, `prepare`, `run`, `collect`
   and `check`, so someone with cluster time can run a held validation

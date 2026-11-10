@@ -618,14 +618,6 @@ def _place(report, parts, nodes, at_node, names, root, spec, axial_cell, kinks, 
                                     where={"part": _part_id(p), "source": _source(p)})
             R = _radius(iface.spec)
             rb = _branch_radius(spec, R, c.branch_sec, main_bore)
-            if not rb < R:
-                raise AssemblyError(f"{what}: equal tees (branch radius {rb:.4g}, main "
-                                    f"radius {R:.4g}) are planned through the wye-family "
-                                    f"layout; not available yet",
-                                    code="equal_tee_unsupported",
-                                    where={"part": _part_id(p), "source": _source(p)}, value=rb,
-                                    limit={"max_exclusive": R},
-                                    hint="equal tees are planned through the wye-family layout")
             fitting = Tee(run, blen, rb, toward=tuple(_unit(b)), angle=angle, offset=h)
             outs_at = [c.end, c.branch]
         else:

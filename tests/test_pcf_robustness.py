@@ -275,7 +275,9 @@ def test_one_piece_to_assemblies_is_to_assembly(tmp_path):
     assert asm.to_dict() == one.to_dict()
 
 
-def test_equal_tee_message_says_planned(tmp_path):
+def test_an_equal_tee_is_read_as_the_junction_cube(tmp_path):
+    """Branch bore = run bore: a ``Tee`` whose branch radius is the main's
+    (task 0122), at the file's run and branch lengths."""
     net = _read(tmp_path, """\
 PIPELINE-REFERENCE L-1
 PIPE
@@ -283,19 +285,20 @@ PIPE
     END-POINT 1000 0 0 100
 TEE
     END-POINT 1000 0 0 100
-    END-POINT 1200 0 0 100
-    CENTRE-POINT 1100 0 0
-    BRANCH1-POINT 1100 200 0 100
+    END-POINT 1600 0 0 100
+    CENTRE-POINT 1300 0 0
+    BRANCH1-POINT 1300 400 0 100
 PIPE
-    END-POINT 1200 0 0 100
+    END-POINT 1600 0 0 100
     END-POINT 2000 0 0 100
 PIPE
-    END-POINT 1100 200 0 100
-    END-POINT 1100 800 0 100
+    END-POINT 1300 400 0 100
+    END-POINT 1300 800 0 100
 """)
-    with pytest.raises(AssemblyError, match="equal tees .* planned through the wye-family "
-                                            "layout; not available yet"):
-        net.to_assembly(_spec())
+    asm = net.to_assembly(_spec())
+    tee = next(e for e in asm.edges if type(e.fitting).__name__ == "Tee")
+    assert tee.fitting.branch_radius == asm.inlet.spec.core_shape.radius
+    assert tee.fitting.run_length == pytest.approx(0.3)
 
 
 @pytest.mark.skipif(not os.environ.get("HEXMESH_PCF_SAMPLES"),

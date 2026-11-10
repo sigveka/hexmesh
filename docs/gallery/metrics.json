@@ -1,7 +1,7 @@
 {
  "meta": {
-  "date": "2026-11-08",
-  "commit": "ff306e4 + uncommitted changes",
+  "date": "2026-11-10",
+  "commit": "39db888 + uncommitted changes",
   "gmsh": "4.12.1",
   "python": "3.12.3",
   "cpus": 8,
@@ -1129,6 +1129,39 @@
    "predicted": 35712,
    "meshed": 35712,
    "build_s": 9.12
+  },
+  "fittings.equal_tee": {
+   "fittings": 4,
+   "fitting_types": {
+    "Straight": 3,
+    "Tee": 1
+   },
+   "volumes": 49,
+   "materials": [
+    "fluid"
+   ],
+   "min_sicn": 0.16721171125247508,
+   "mean_sicn": 0.5945416170031065,
+   "min_sj": 0.5106618058381973,
+   "min_sj_fitting": "#1 Tee",
+   "max_aspect": 9.100000000000055,
+   "groups": {
+    "open_end": [
+     "fluid_branch_end",
+     "fluid_inlet",
+     "fluid_main_end"
+    ],
+    "wall": [
+     "fluid_wall"
+    ],
+    "interface": [],
+    "volume": [
+     "fluid"
+    ]
+   },
+   "predicted": 8000,
+   "meshed": 8000,
+   "build_s": 2.75
   }
  },
  "validation": {

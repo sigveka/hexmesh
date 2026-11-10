@@ -296,12 +296,6 @@ PIPE
     END-POINT 1000 0 0 100
     END-POINT 1200 0 0 100
     CENTRE-POINT 1100 0 0
-    BRANCH1-POINT 1100 300 0 100
-""", r"component 1 \(TEE TEE_1.*equal tees"),
-    ("""TEE
-    END-POINT 1000 0 0 100
-    END-POINT 1200 0 0 100
-    CENTRE-POINT 1100 0 0
     BRANCH1-POINT 926.795 300 0 50
 """, r"TEE_1.*branch at 120° to the downstream run, leaning upstream"),
     ("""TEE

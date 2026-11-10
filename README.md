@@ -68,7 +68,7 @@ What it gives (the gallery's `hexmesh.examples.sections.insulated_tee`):
 |---|---|---|---|---|
 | 13 164 = 13 164 | fluid · steel · insulation | 0.32 (the tee) | 0.11 | 8.0 s |
 
-<sub>gmsh 4.12.1, one core, 2026-11-08.  Every example's numbers: [GALLERY.md](docs/GALLERY.md).</sub>
+<sub>gmsh 4.12.1, one core, 2026-11-10.  Every example's numbers: [GALLERY.md](docs/GALLERY.md).</sub>
 <!-- readme:metrics:end -->
 
 Doubling every density parameter doubles the nodes in each direction:
@@ -111,11 +111,12 @@ asm.write_openfoam("pcf_line.msh")
   the file:
 
   ```json
-  {"code": "equal_tee_unsupported",
-   "message": "component 1 (TEE TEE_1 at [1.1 0.  0. ], line.pcf:19): equal tees (branch radius 0.05, main radius 0.05) are planned through the wye-family layout; not available yet",
-   "where": {"part": "1", "source": {"file": "line.pcf", "line": 19, "record": "TEE"}}}
+  {"code": "run_length_too_short",
+   "message": "component 1 (TEE TEE_1 at [1.1 0.  0. ], line.pcf:19): run_length must exceed the equal tee's stations 0.1315",
+   "where": {"field": "run_length", "part": "1", "source": {"file": "line.pcf", "line": 19, "record": "TEE"}}}
   ```
-- **Not read yet:** equal tees, crosses, and offset or tangential tees. Each is rejected by name, as above.
+  This is the sample with an equal tee: with its insulation, the forged tee's run is too short for the junction.
+- **Not read yet:** crosses, and offset or tangential tees. Each is rejected by name.
 
 The `hexmesh` commands take a PCF file directly, with a JSON file mapping
 each nominal size to its section: `hexmesh validate line.pcf --spec

@@ -22,6 +22,7 @@ What each example shows, what its mesh looks like, and how good the cells are.  
 | [reducer_network](#reducer_network) | Reducer, bend and expander: a line that narrows, turns and widens again. | 11 832 | 0.221 | 0.788 | 6.0 s |
 | [stenosis](#stenosis) | Stenosis: a smooth cosine constriction in a straight pipe, the benchmark geometry of Varghese et al. (RESEARCH §7.3). | 23 220 | 0.101 | 0.772 | 5.5 s |
 | [tee](#tee) | Side-branch tee: straight run, tee, then a bend on the main line. | 7 464 | 0.189 | 0.316 | 2.4 s |
+| [equal_tee](#equal_tee) | Equal tee: a branch as wide as the main. | 8 000 | 0.167 | 0.511 | 2.8 s |
 | [wye](#wye) | Symmetric wye: straight inlet, a 60° Y-junction, a straight on each daughter. | 5 724 | 0.170 | 0.156 | 1.4 s |
 | [junction_walls](#junction_walls) | Exact junction walls: a tee and a narrow 30° wye, their wall nodes moved onto the analytic walls after surface meshing. | 10 176 | 0.041 | 0.065 | 3.2 s |
 | [loop](#loop) | Closed loop: three bends, a straight, and a `Closure` that joins the end back to the start. | 14 688 | 0.140 | 0.790 | 8.1 s |
@@ -208,6 +209,34 @@ python3 -m hexmesh.examples.fittings.tee
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
 | 5: Straight ×3, Tee, Bend | 99 | 7 464 | 0.189 | 0.478 | 0.316 (#1 Tee) | 10.4 | 2.4 s |
+
+- **Open ends:** `fluid_branch_end`, `fluid_inlet`, `fluid_main_end`
+- **Walls:** `fluid_wall`
+- **Colours:** fluid blue; walls grey.
+
+### equal_tee
+
+**Equal tee: a branch as wide as the main.**
+
+<p><img src="gallery/img/equal_tee.png" width="68%" alt="equal_tee"> <img src="gallery/img/equal_tee_section.png" width="29%" alt="equal_tee, inlet section"></p>
+
+A `Tee` whose `branch_radius` is the main's builds its junction
+around an oriented cube, square to all three pipes: a centre hex, a
+five-block column to each pipe, and one block on each of the other
+three sides, whose outer face is projected onto the wall.
+`run_length` is left out, so the tee resolves the length the cube
+needs.  (Limits: circular layers, square and centred, first order only.
+The crease where branch and main meet crosses the cube's faces beside
+the branch, so its chord error falls as `nang` rises: 3.7 % of the
+radius at `nang` 8.)
+
+```bash
+python3 -m hexmesh.examples.fittings.equal_tee
+```
+
+| Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
+|---|---|---|---|---|---|---|---|
+| 4: Straight ×3, Tee | 49 | 8 000 | 0.167 | 0.595 | 0.511 (#1 Tee) | 9.1 | 2.8 s |
 
 - **Open ends:** `fluid_branch_end`, `fluid_inlet`, `fluid_main_end`
 - **Walls:** `fluid_wall`
@@ -1104,4 +1133,4 @@ Which hexmesh features each case exercises (decision 0012's fixed list). Marks: 
 
 ---
 
-Generated 2026-11-08 from hexmesh ff306e4 + uncommitted changes, gmsh 4.12.1, Python 3.12.3, 8 CPUs, 1 job(s).
+Generated 2026-11-10 from hexmesh 39db888 + uncommitted changes, gmsh 4.12.1, Python 3.12.3, 8 CPUs, 1 job(s).

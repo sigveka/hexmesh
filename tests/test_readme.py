@@ -185,8 +185,8 @@ def _subset(small, big) -> bool:
 
 
 def test_the_pcf_section_s_error_is_what_an_equal_tee_gives(tmp_path, monkeypatch):
-    """The quoted ``equal_tee_unsupported``: the sample with its branch at
-    the run's 100 mm, saved as ``line.pcf``.  Code and message exact; the
+    """The quoted ``run_length_too_short``: the sample with its branch at
+    the run's 100 mm, saved as ``line.pcf`` (an equal tee, task 0122).  Code and message exact; the
     ``where`` shown is part of the real one."""
     quoted = json.loads(re.search(r"^  ```json\n(.*?)^  ```", pcf_section(
         README.read_text(encoding="utf-8")), re.M | re.S).group(1))

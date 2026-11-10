@@ -918,8 +918,8 @@ class Assembly:
         optimisers are never run, and an element whose Jacobian
         determinant is ≤ 0 at a Hex27 node or a Gauss point is an
         ``AssemblyError`` naming the fitting (:meth:`_second_order`).  A
-        fitting with a ``second_order_limitation`` (the wye) is rejected
-        before meshing.
+        fitting with a ``second_order_limitation`` (the wye, an equal tee)
+        is rejected before meshing.
 
         *walls_by_fitting*: see :meth:`write_physical_groups`.
         """
@@ -934,6 +934,8 @@ class Assembly:
                                     value=dim, limit=3)
             for e in self._edges:
                 why = getattr(e.fitting, "second_order_limitation", None)
+                if callable(why):                   # depends on the spec (Tee)
+                    why = why(e.ports[0].spec)
                 if why:
                     raise AssemblyError(f"{e.name}{e.at}: order=2 is not supported: {why}",
                                         code="second_order_unsupported", where=e.where,
@@ -1171,6 +1173,8 @@ class Assembly:
             if sj < limits.PREDICTED_SJ_MIN:
                 hint = getattr(e.fitting, "meshed_sj_hint",
                                "a smaller tap, or the wide face, may do better")
+                if callable(hint):                  # depends on the spec (Tee)
+                    hint = hint(e.ports[0].spec)
                 raise AssemblyError(
                     f"{e.name}{e.at}: meshed corner scaled Jacobian {sj:.3f} is below "
                     f"PREDICTED_SJ_MIN {limits.PREDICTED_SJ_MIN:g}; {hint}",

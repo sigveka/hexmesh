@@ -1,0 +1,2750 @@
+{
+ "task": "0122",
+ "date": "2026-11-10",
+ "gmsh": "4.12.1",
+ "method": "validation/tools/wye_redesign.py's measure() on Straight -> Tee(branch_radius=R) -> Straight, R = 0.1, nrad max(3, nang/2 - 1); 'shell' is a shell 0.1 R thick (true) or its thickness over R; hub and station override cube.SHAPE where given; chord in units of R; equal laterals measured with EQUAL_LATERAL_ANGLE_MIN lowered",
+ "station_sweep_nang8": [
+  {
+   "angle": 90.0,
+   "shell": false,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 1.0,
+   "predicted_min_sj": 0.5773502691896247,
+   "meshed_min_sj": 0.5106414085405853,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 44.68,
+   "meshed_nonorth": 45.82,
+   "meshed_max_nes": 0.5069273287827025,
+   "meshed_min_sicn": 0.10545313183869112,
+   "chord": {
+    "mitre": 0.03710956674057769,
+    "crotch": null,
+    "rest": 0.006425885560623901
+   },
+   "projector_move_R": 0.16654451196323375,
+   "cells": 3488,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": false,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 2.0,
+   "predicted_min_sj": 0.5773502691896247,
+   "meshed_min_sj": 0.5106414085405914,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 44.87,
+   "meshed_nonorth": 45.56,
+   "meshed_max_nes": 0.5069273287827001,
+   "meshed_min_sicn": 0.13151515815342082,
+   "chord": {
+    "mitre": 0.03710956674057797,
+    "crotch": null,
+    "rest": 0.006425885560623762
+   },
+   "projector_move_R": 0.16654451196323347,
+   "cells": 3488,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": false,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 3.0,
+   "predicted_min_sj": 0.5773502691896247,
+   "meshed_min_sj": 0.5106414085405792,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 44.93,
+   "meshed_nonorth": 45.42,
+   "meshed_max_nes": 0.5069273287827056,
+   "meshed_min_sicn": 0.09726616271714845,
+   "chord": {
+    "mitre": 0.03710956674057825,
+    "crotch": null,
+    "rest": 0.006425885560623901
+   },
+   "projector_move_R": 0.16654451196323322,
+   "cells": 3488,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": false,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 4.0,
+   "predicted_min_sj": 0.5773502691896247,
+   "meshed_min_sj": 0.5106414085405679,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 44.95,
+   "meshed_nonorth": 45.34,
+   "meshed_max_nes": 0.506927328782708,
+   "meshed_min_sicn": 0.07630489183094516,
+   "chord": {
+    "mitre": 0.03710956674057797,
+    "crotch": null,
+    "rest": 0.006425885560623901
+   },
+   "projector_move_R": 0.16654451196323347,
+   "cells": 3488,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": false,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 6.0,
+   "error": "AssemblyError: branch_length must exceed the equal tee's branch station 0.702",
+   "code": "branch_length_too_short"
+  },
+  {
+   "angle": 75.0,
+   "shell": false,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 1.0,
+   "predicted_min_sj": 0.46036110209762043,
+   "meshed_min_sj": 0.36320062628780087,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 52.96,
+   "meshed_nonorth": 52.75,
+   "meshed_max_nes": 0.598912079573505,
+   "meshed_min_sicn": 0.11236329919621868,
+   "chord": {
+    "mitre": 0.03796627073302708,
+    "crotch": null,
+    "rest": 0.007510482513717609
+   },
+   "projector_move_R": 0.17502287120220741,
+   "cells": 3488,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 75.0,
+   "shell": false,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 2.0,
+   "predicted_min_sj": 0.4790127114402562,
+   "meshed_min_sj": 0.3632006262877774,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 52.89,
+   "meshed_nonorth": 52.77,
+   "meshed_max_nes": 0.5922560063642126,
+   "meshed_min_sicn": 0.1161293856390047,
+   "chord": {
+    "mitre": 0.037966270733027496,
+    "crotch": null,
+    "rest": 0.0075104825137173314
+   },
+   "projector_move_R": 0.17502287120220783,
+   "cells": 3488,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 75.0,
+   "shell": false,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 3.0,
+   "predicted_min_sj": 0.48509775875339484,
+   "meshed_min_sj": 0.3632006262877681,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 52.8,
+   "meshed_nonorth": 52.72,
+   "meshed_max_nes": 0.589584843982158,
+   "meshed_min_sicn": 0.08700629471129567,
+   "chord": {
+    "mitre": 0.03796627073302791,
+    "crotch": null,
+    "rest": 0.007510482513717609
+   },
+   "projector_move_R": 0.17502287120220797,
+   "cells": 3488,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 75.0,
+   "shell": false,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 4.0,
+   "predicted_min_sj": 0.48811379636946484,
+   "meshed_min_sj": 0.36320062628777816,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 52.74,
+   "meshed_nonorth": 52.68,
+   "meshed_max_nes": 0.5881445033903573,
+   "meshed_min_sicn": 0.06930589027168049,
+   "chord": {
+    "mitre": 0.03796627073302694,
+    "crotch": null,
+    "rest": 0.007510482513717609
+   },
+   "projector_move_R": 0.1750228712022081,
+   "cells": 3488,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 75.0,
+   "shell": false,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 6.0,
+   "error": "AssemblyError: branch_length must exceed the equal tee's branch station 0.733",
+   "code": "branch_length_too_short"
+  },
+  {
+   "angle": 60.0,
+   "shell": false,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 1.0,
+   "predicted_min_sj": 0.3120347023169892,
+   "meshed_min_sj": 0.2586769070724203,
+   "meshed_min_sj_where": "the inlet port's ring",
+   "inverted": 0,
+   "predicted_nonorth": 62.14,
+   "meshed_nonorth": 61.9,
+   "meshed_max_nes": 0.7313911291290437,
+   "meshed_min_sicn": 0.12358413204333281,
+   "chord": {
+    "mitre": 0.035696943757510674,
+    "crotch": null,
+    "rest": 0.011176631072891408
+   },
+   "projector_move_R": 0.15449279879756692,
+   "cells": 3488,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 60.0,
+   "shell": false,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 2.0,
+   "predicted_min_sj": 0.3610747503955442,
+   "meshed_min_sj": 0.3036155055391192,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 61.4,
+   "meshed_nonorth": 61.27,
+   "meshed_max_nes": 0.687310817418671,
+   "meshed_min_sicn": 0.09326108093195673,
+   "chord": {
+    "mitre": 0.03569694375751095,
+    "crotch": null,
+    "rest": 0.011176631072891546
+   },
+   "projector_move_R": 0.15449279879756692,
+   "cells": 3488,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 60.0,
+   "shell": false,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 3.0,
+   "predicted_min_sj": 0.3770614962501066,
+   "meshed_min_sj": 0.3036155055391321,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 61.01,
+   "meshed_nonorth": 60.92,
+   "meshed_max_nes": 0.6812415714931965,
+   "meshed_min_sicn": 0.07203173746690784,
+   "chord": {
+    "mitre": 0.035696943757510396,
+    "crotch": null,
+    "rest": 0.011176631072891408
+   },
+   "projector_move_R": 0.1544927987975665,
+   "cells": 3488,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 60.0,
+   "shell": false,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 4.0,
+   "predicted_min_sj": 0.3849640041929356,
+   "meshed_min_sj": 0.303615505539124,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 60.79,
+   "meshed_nonorth": 60.72,
+   "meshed_max_nes": 0.6779298859445475,
+   "meshed_min_sicn": 0.05862023864322616,
+   "chord": {
+    "mitre": 0.03569694375751095,
+    "crotch": null,
+    "rest": 0.011176631072891546
+   },
+   "projector_move_R": 0.15449279879756664,
+   "cells": 3488,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 60.0,
+   "shell": false,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 6.0,
+   "error": "AssemblyError: branch_length must exceed the equal tee's branch station 0.776",
+   "code": "branch_length_too_short"
+  },
+  {
+   "angle": 45.0,
+   "shell": false,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 1.0,
+   "error": "AssemblyError: predicted non-orthogonality 88.2\u00b0 in the inlet port's ring is above OUTLINE_NONORTH_MAX 80\u00b0; the junction cube's orientation sets it: a larger angle lowers it for an equal lateral",
+   "code": "predicted_nonorth_above_maximum"
+  },
+  {
+   "angle": 45.0,
+   "shell": false,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 2.0,
+   "predicted_min_sj": 0.22297320330139936,
+   "meshed_min_sj": 0.15383116839229757,
+   "meshed_min_sj_where": "the inlet port's ring",
+   "inverted": 0,
+   "predicted_nonorth": 70.42,
+   "meshed_nonorth": 70.33,
+   "meshed_max_nes": 0.8167393945322071,
+   "meshed_min_sicn": 0.0638090870471344,
+   "chord": {
+    "mitre": 0.02943600160984175,
+    "crotch": null,
+    "rest": 0.0184064371372121
+   },
+   "projector_move_R": 0.11582158489352824,
+   "cells": 3488,
+   "ports_class0": true,
+   "validate": [
+    "equal tee at 45\u00b0: predicted corner scaled Jacobian 0.223 is below PREDICTED_SJ_WARN 0.3; a larger angle, or a branch radius <= TEE_MAX_RATIO R",
+    "predicted non-orthogonality 70.4\u00b0 in the inlet port's ring is above OUTLINE_NONORTH_WARN 70\u00b0; the junction cube's orientation sets it: a larger angle lowers it for an equal lateral"
+   ]
+  },
+  {
+   "angle": 45.0,
+   "shell": false,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 3.0,
+   "predicted_min_sj": 0.25317215301555757,
+   "meshed_min_sj": 0.18304485760258757,
+   "meshed_min_sj_where": "the inlet port's ring",
+   "inverted": 0,
+   "predicted_nonorth": 69.58,
+   "meshed_nonorth": 69.51,
+   "meshed_max_nes": 0.7755065035663389,
+   "meshed_min_sicn": 0.05172697188679173,
+   "chord": {
+    "mitre": 0.02943600160984161,
+    "crotch": null,
+    "rest": 0.0184064371372121
+   },
+   "projector_move_R": 0.1158215848935278,
+   "cells": 3488,
+   "ports_class0": true,
+   "validate": [
+    "equal tee at 45\u00b0: predicted corner scaled Jacobian 0.253 is below PREDICTED_SJ_WARN 0.3; a larger angle, or a branch radius <= TEE_MAX_RATIO R"
+   ]
+  },
+  {
+   "angle": 45.0,
+   "shell": false,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 4.0,
+   "predicted_min_sj": 0.26817315165171035,
+   "meshed_min_sj": 0.19594602960549817,
+   "meshed_min_sj_where": "the inlet port's ring",
+   "inverted": 0,
+   "predicted_nonorth": 69.11,
+   "meshed_nonorth": 69.06,
+   "meshed_max_nes": 0.7697913008186708,
+   "meshed_min_sicn": 0.04344070757838672,
+   "chord": {
+    "mitre": 0.02943600160984161,
+    "crotch": null,
+    "rest": 0.0184064371372121
+   },
+   "projector_move_R": 0.11582158489352701,
+   "cells": 3488,
+   "ports_class0": true,
+   "validate": [
+    "equal tee at 45\u00b0: predicted corner scaled Jacobian 0.268 is below PREDICTED_SJ_WARN 0.3; a larger angle, or a branch radius <= TEE_MAX_RATIO R"
+   ]
+  },
+  {
+   "angle": 45.0,
+   "shell": false,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 6.0,
+   "error": "AssemblyError: branch_length must exceed the equal tee's branch station 0.845",
+   "code": "branch_length_too_short"
+  },
+  {
+   "angle": 40.0,
+   "shell": false,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 1.0,
+   "error": "AssemblyError: equal tee at 40\u00b0: predicted corner scaled Jacobian 0.067 is below PREDICTED_SJ_MIN 0.1; a larger angle, or a branch radius <= TEE_MAX_RATIO R",
+   "code": "predicted_sj_below_minimum"
+  },
+  {
+   "angle": 40.0,
+   "shell": false,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 2.0,
+   "error": "AssemblyError: Tee1: meshed corner scaled Jacobian 0.092 is below PREDICTED_SJ_MIN 0.1; a smaller tap, or the wide face, may do better",
+   "code": "meshed_sj_below_minimum",
+   "validate": [
+    "equal tee at 40\u00b0: predicted corner scaled Jacobian 0.173 is below PREDICTED_SJ_WARN 0.3; a larger angle, or a branch radius <= TEE_MAX_RATIO R",
+    "predicted non-orthogonality 73.6\u00b0 in the inlet port's ring is above OUTLINE_NONORTH_WARN 70\u00b0; the junction cube's orientation sets it: a larger angle lowers it for an equal lateral"
+   ]
+  },
+  {
+   "angle": 40.0,
+   "shell": false,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 3.0,
+   "predicted_min_sj": 0.20849308632215988,
+   "meshed_min_sj": 0.13339540955081586,
+   "meshed_min_sj_where": "the inlet port's ring",
+   "inverted": 0,
+   "predicted_nonorth": 72.53,
+   "meshed_nonorth": 72.4,
+   "meshed_max_nes": 0.8249287821523422,
+   "meshed_min_sicn": 0.044112894837573226,
+   "chord": {
+    "mitre": 0.02637862842523153,
+    "crotch": null,
+    "rest": 0.02197577351922969
+   },
+   "projector_move_R": 0.10005580231191111,
+   "cells": 3488,
+   "ports_class0": true,
+   "validate": [
+    "equal tee at 40\u00b0: predicted corner scaled Jacobian 0.208 is below PREDICTED_SJ_WARN 0.3; a larger angle, or a branch radius <= TEE_MAX_RATIO R",
+    "predicted non-orthogonality 72.5\u00b0 in the inlet port's ring is above OUTLINE_NONORTH_WARN 70\u00b0; the junction cube's orientation sets it: a larger angle lowers it for an equal lateral"
+   ]
+  },
+  {
+   "angle": 40.0,
+   "shell": false,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 4.0,
+   "predicted_min_sj": 0.22636203235116634,
+   "meshed_min_sj": 0.14817119657294434,
+   "meshed_min_sj_where": "the inlet port's ring",
+   "inverted": 0,
+   "predicted_nonorth": 71.95,
+   "meshed_nonorth": 71.85,
+   "meshed_max_nes": 0.8022156685901358,
+   "meshed_min_sicn": 0.03753851577562321,
+   "chord": {
+    "mitre": 0.026378628425231254,
+    "crotch": null,
+    "rest": 0.021975773519228997
+   },
+   "projector_move_R": 0.10005580231191194,
+   "cells": 3488,
+   "ports_class0": true,
+   "validate": [
+    "equal tee at 40\u00b0: predicted corner scaled Jacobian 0.226 is below PREDICTED_SJ_WARN 0.3; a larger angle, or a branch radius <= TEE_MAX_RATIO R",
+    "predicted non-orthogonality 72.0\u00b0 in the inlet port's ring is above OUTLINE_NONORTH_WARN 70\u00b0; the junction cube's orientation sets it: a larger angle lowers it for an equal lateral"
+   ]
+  },
+  {
+   "angle": 40.0,
+   "shell": false,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 6.0,
+   "error": "AssemblyError: branch_length must exceed the equal tee's branch station 0.878",
+   "code": "branch_length_too_short"
+  },
+  {
+   "angle": 35.0,
+   "shell": false,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 1.0,
+   "error": "AssemblyError: equal tee at 35\u00b0: predicted corner scaled Jacobian -0.000 is below PREDICTED_SJ_MIN 0.1; a larger angle, or a branch radius <= TEE_MAX_RATIO R",
+   "code": "predicted_sj_below_minimum"
+  },
+  {
+   "angle": 35.0,
+   "shell": false,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 2.0,
+   "error": "AssemblyError: Tee1: meshed corner scaled Jacobian 0.028 is below PREDICTED_SJ_MIN 0.1; a smaller tap, or the wide face, may do better",
+   "code": "meshed_sj_below_minimum",
+   "validate": [
+    "equal tee at 35\u00b0: predicted corner scaled Jacobian 0.120 is below PREDICTED_SJ_WARN 0.3; a larger angle, or a branch radius <= TEE_MAX_RATIO R",
+    "predicted non-orthogonality 76.8\u00b0 in the inlet port's ring is above OUTLINE_NONORTH_WARN 70\u00b0; the junction cube's orientation sets it: a larger angle lowers it for an equal lateral"
+   ]
+  },
+  {
+   "angle": 35.0,
+   "shell": false,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 3.0,
+   "error": "AssemblyError: Tee1: meshed corner scaled Jacobian 0.084 is below PREDICTED_SJ_MIN 0.1; a smaller tap, or the wide face, may do better",
+   "code": "meshed_sj_below_minimum",
+   "validate": [
+    "equal tee at 35\u00b0: predicted corner scaled Jacobian 0.162 is below PREDICTED_SJ_WARN 0.3; a larger angle, or a branch radius <= TEE_MAX_RATIO R",
+    "predicted non-orthogonality 75.5\u00b0 in the inlet port's ring is above OUTLINE_NONORTH_WARN 70\u00b0; the junction cube's orientation sets it: a larger angle lowers it for an equal lateral"
+   ]
+  },
+  {
+   "angle": 35.0,
+   "shell": false,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 4.0,
+   "error": "AssemblyError: branch_length must exceed the equal tee's branch station 0.721",
+   "code": "branch_length_too_short"
+  },
+  {
+   "angle": 35.0,
+   "shell": false,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 6.0,
+   "error": "AssemblyError: branch_length must exceed the equal tee's branch station 0.921",
+   "code": "branch_length_too_short"
+  },
+  {
+   "angle": 30.0,
+   "shell": false,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 1.0,
+   "error": "AssemblyError: equal tee at 30\u00b0: predicted corner scaled Jacobian -0.069 is below PREDICTED_SJ_MIN 0.1; a larger angle, or a branch radius <= TEE_MAX_RATIO R",
+   "code": "predicted_sj_below_minimum"
+  },
+  {
+   "angle": 30.0,
+   "shell": false,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 2.0,
+   "error": "AssemblyError: equal tee at 30\u00b0: predicted corner scaled Jacobian 0.067 is below PREDICTED_SJ_MIN 0.1; a larger angle, or a branch radius <= TEE_MAX_RATIO R",
+   "code": "predicted_sj_below_minimum"
+  },
+  {
+   "angle": 30.0,
+   "shell": false,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 3.0,
+   "error": "AssemblyError: Tee1: meshed corner scaled Jacobian 0.039 is below PREDICTED_SJ_MIN 0.1; a smaller tap, or the wide face, may do better",
+   "code": "meshed_sj_below_minimum",
+   "validate": [
+    "equal tee at 30\u00b0: predicted corner scaled Jacobian 0.115 is below PREDICTED_SJ_WARN 0.3; a larger angle, or a branch radius <= TEE_MAX_RATIO R",
+    "predicted non-orthogonality 78.6\u00b0 in a wall side of the junction cube is above OUTLINE_NONORTH_WARN 70\u00b0; the junction cube's orientation sets it: a larger angle lowers it for an equal lateral"
+   ]
+  },
+  {
+   "angle": 30.0,
+   "shell": false,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 4.0,
+   "error": "AssemblyError: branch_length must exceed the equal tee's branch station 0.778",
+   "code": "branch_length_too_short"
+  },
+  {
+   "angle": 30.0,
+   "shell": false,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 6.0,
+   "error": "AssemblyError: branch_length must exceed the equal tee's branch station 0.978",
+   "code": "branch_length_too_short"
+  },
+  {
+   "angle": 90.0,
+   "shell": true,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 1.0,
+   "predicted_min_sj": 0.5773502691896241,
+   "meshed_min_sj": 0.510641408540588,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 45.21,
+   "meshed_nonorth": 46.75,
+   "meshed_max_nes": 0.5069273287827023,
+   "meshed_min_sicn": 0.0900182795642375,
+   "chord": {
+    "mitre": 0.040820523414635546,
+    "crotch": null,
+    "rest": 0.007068474116686124
+   },
+   "projector_move_R": 0.18319896315955655,
+   "cells": 4832,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": true,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 2.0,
+   "predicted_min_sj": 0.5773502691896227,
+   "meshed_min_sj": 0.5106414085405744,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 45.14,
+   "meshed_nonorth": 46.09,
+   "meshed_max_nes": 0.5069273287827065,
+   "meshed_min_sicn": 0.10844791250401344,
+   "chord": {
+    "mitre": 0.040820523414635684,
+    "crotch": null,
+    "rest": 0.007068474116686124
+   },
+   "projector_move_R": 0.18319896315955753,
+   "cells": 4832,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": true,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 3.0,
+   "predicted_min_sj": 0.5773502691896225,
+   "meshed_min_sj": 0.5106414085405779,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 45.11,
+   "meshed_nonorth": 45.79,
+   "meshed_max_nes": 0.5069273287827065,
+   "meshed_min_sicn": 0.07691403067452098,
+   "chord": {
+    "mitre": 0.0408205234146361,
+    "crotch": null,
+    "rest": 0.007068474116686124
+   },
+   "projector_move_R": 0.18319896315955714,
+   "cells": 4832,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": true,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 4.0,
+   "predicted_min_sj": 0.577350269189623,
+   "meshed_min_sj": 0.5106414085405986,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 45.09,
+   "meshed_nonorth": 45.62,
+   "meshed_max_nes": 0.5069273287827051,
+   "meshed_min_sicn": 0.05952026987272731,
+   "chord": {
+    "mitre": 0.040820523414635546,
+    "crotch": null,
+    "rest": 0.007068474116686124
+   },
+   "projector_move_R": 0.18319896315955753,
+   "cells": 4832,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": true,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 6.0,
+   "error": "AssemblyError: branch_length must exceed the equal tee's branch station 0.772",
+   "code": "branch_length_too_short"
+  },
+  {
+   "angle": 75.0,
+   "shell": true,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 1.0,
+   "predicted_min_sj": 0.4603611020976202,
+   "meshed_min_sj": 0.36320062628775834,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 53.46,
+   "meshed_nonorth": 53.24,
+   "meshed_max_nes": 0.5970227108969662,
+   "meshed_min_sicn": 0.09678250744330799,
+   "chord": {
+    "mitre": 0.04176289780632947,
+    "crotch": null,
+    "rest": 0.008261530765089203
+   },
+   "projector_move_R": 0.19252515832242934,
+   "cells": 4832,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 75.0,
+   "shell": true,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 2.0,
+   "predicted_min_sj": 0.4790127114402547,
+   "meshed_min_sj": 0.36320062628778443,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 53.12,
+   "meshed_nonorth": 53.01,
+   "meshed_max_nes": 0.5912873231480157,
+   "meshed_min_sicn": 0.09153360801548384,
+   "chord": {
+    "mitre": 0.041762897806330024,
+    "crotch": null,
+    "rest": 0.008261530765089203
+   },
+   "projector_move_R": 0.19252515832242859,
+   "cells": 4832,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 75.0,
+   "shell": true,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 3.0,
+   "predicted_min_sj": 0.48509775875339345,
+   "meshed_min_sj": 0.36320062628776717,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 52.94,
+   "meshed_nonorth": 52.87,
+   "meshed_max_nes": 0.5889387276681278,
+   "meshed_min_sicn": 0.06787142840123118,
+   "chord": {
+    "mitre": 0.041762897806329746,
+    "crotch": null,
+    "rest": 0.008261530765089203
+   },
+   "projector_move_R": 0.19252515832242878,
+   "cells": 4832,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 75.0,
+   "shell": true,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 4.0,
+   "predicted_min_sj": 0.48811379636946306,
+   "meshed_min_sj": 0.36320062628776534,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 52.84,
+   "meshed_nonorth": 52.79,
+   "meshed_max_nes": 0.5876608956145105,
+   "meshed_min_sicn": 0.053891157060091066,
+   "chord": {
+    "mitre": 0.041762897806330024,
+    "crotch": null,
+    "rest": 0.008261530765089203
+   },
+   "projector_move_R": 0.19252515832243042,
+   "cells": 4832,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 75.0,
+   "shell": true,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 6.0,
+   "error": "AssemblyError: branch_length must exceed the equal tee's branch station 0.806",
+   "code": "branch_length_too_short"
+  },
+  {
+   "angle": 60.0,
+   "shell": true,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 1.0,
+   "predicted_min_sj": 0.31203470231699004,
+   "meshed_min_sj": 0.2677056273701434,
+   "meshed_min_sj_where": "the inlet port's shell",
+   "inverted": 0,
+   "predicted_nonorth": 62.63,
+   "meshed_nonorth": 62.41,
+   "meshed_max_nes": 0.7313911291290434,
+   "meshed_min_sicn": 0.1079060069839759,
+   "chord": {
+    "mitre": 0.03926663813326181,
+    "crotch": null,
+    "rest": 0.012294294180180548
+   },
+   "projector_move_R": 0.16994207867732364,
+   "cells": 4832,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 60.0,
+   "shell": true,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 2.0,
+   "predicted_min_sj": 0.3610747503955438,
+   "meshed_min_sj": 0.30361550553912187,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 61.63,
+   "meshed_nonorth": 61.52,
+   "meshed_max_nes": 0.6850183727515899,
+   "meshed_min_sicn": 0.07642674493764375,
+   "chord": {
+    "mitre": 0.03926663813326167,
+    "crotch": null,
+    "rest": 0.01229429418018041
+   },
+   "projector_move_R": 0.16994207867732383,
+   "cells": 4832,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 60.0,
+   "shell": true,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 3.0,
+   "predicted_min_sj": 0.3770614962501065,
+   "meshed_min_sj": 0.3036155055391177,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 61.17,
+   "meshed_nonorth": 61.09,
+   "meshed_max_nes": 0.6797078253869375,
+   "meshed_min_sicn": 0.05909165292820771,
+   "chord": {
+    "mitre": 0.03926663813326112,
+    "crotch": null,
+    "rest": 0.012294294180180687
+   },
+   "projector_move_R": 0.16994207867732328,
+   "cells": 4832,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 60.0,
+   "shell": true,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 4.0,
+   "predicted_min_sj": 0.3849640041929352,
+   "meshed_min_sj": 0.3036155055391072,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 60.9,
+   "meshed_nonorth": 60.85,
+   "meshed_max_nes": 0.6767807822235888,
+   "meshed_min_sicn": 0.048144792848255,
+   "chord": {
+    "mitre": 0.03926663813326153,
+    "crotch": null,
+    "rest": 0.012294294180180548
+   },
+   "projector_move_R": 0.16994207867732397,
+   "cells": 4832,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 60.0,
+   "shell": true,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 6.0,
+   "error": "AssemblyError: branch_length must exceed the equal tee's branch station 0.853",
+   "code": "branch_length_too_short"
+  },
+  {
+   "angle": 45.0,
+   "shell": true,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 1.0,
+   "error": "AssemblyError: predicted non-orthogonality 89.8\u00b0 in the inlet port's shell is above OUTLINE_NONORTH_MAX 80\u00b0; the junction cube's orientation sets it: a larger angle lowers it for an equal lateral",
+   "code": "predicted_nonorth_above_maximum"
+  },
+  {
+   "angle": 45.0,
+   "shell": true,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 2.0,
+   "predicted_min_sj": 0.22297320330140089,
+   "meshed_min_sj": 0.15739003534606777,
+   "meshed_min_sj_where": "the inlet port's shell",
+   "inverted": 0,
+   "predicted_nonorth": 70.76,
+   "meshed_nonorth": 70.68,
+   "meshed_max_nes": 0.816739394532208,
+   "meshed_min_sicn": 0.057878080858642544,
+   "chord": {
+    "mitre": 0.032379601770826105,
+    "crotch": null,
+    "rest": 0.020247080850933352
+   },
+   "projector_move_R": 0.1274037433828805,
+   "cells": 4832,
+   "ports_class0": true,
+   "validate": [
+    "equal tee at 45\u00b0: predicted corner scaled Jacobian 0.223 is below PREDICTED_SJ_WARN 0.3; a larger angle, or a branch radius <= TEE_MAX_RATIO R",
+    "predicted non-orthogonality 70.8\u00b0 in the inlet port's shell is above OUTLINE_NONORTH_WARN 70\u00b0; the junction cube's orientation sets it: a larger angle lowers it for an equal lateral"
+   ]
+  },
+  {
+   "angle": 45.0,
+   "shell": true,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 3.0,
+   "predicted_min_sj": 0.2531721530155586,
+   "meshed_min_sj": 0.1894403101957098,
+   "meshed_min_sj_where": "the inlet port's ring",
+   "inverted": 0,
+   "predicted_nonorth": 69.8,
+   "meshed_nonorth": 69.74,
+   "meshed_max_nes": 0.7749059947315443,
+   "meshed_min_sicn": 0.04690154008319299,
+   "chord": {
+    "mitre": 0.03237960177082583,
+    "crotch": null,
+    "rest": 0.020247080850933075
+   },
+   "projector_move_R": 0.12740374338288035,
+   "cells": 4832,
+   "ports_class0": true,
+   "validate": [
+    "equal tee at 45\u00b0: predicted corner scaled Jacobian 0.253 is below PREDICTED_SJ_WARN 0.3; a larger angle, or a branch radius <= TEE_MAX_RATIO R"
+   ]
+  },
+  {
+   "angle": 45.0,
+   "shell": true,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 4.0,
+   "error": "AssemblyError: branch_length must exceed the equal tee's branch station 0.709",
+   "code": "branch_length_too_short"
+  },
+  {
+   "angle": 45.0,
+   "shell": true,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 6.0,
+   "error": "AssemblyError: branch_length must exceed the equal tee's branch station 0.929",
+   "code": "branch_length_too_short"
+  },
+  {
+   "angle": 40.0,
+   "shell": true,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 1.0,
+   "error": "AssemblyError: equal tee at 40\u00b0: predicted corner scaled Jacobian 0.067 is below PREDICTED_SJ_MIN 0.1; a larger angle, or a branch radius <= TEE_MAX_RATIO R",
+   "code": "predicted_sj_below_minimum"
+  },
+  {
+   "angle": 40.0,
+   "shell": true,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 2.0,
+   "error": "AssemblyError: Tee1: meshed corner scaled Jacobian 0.094 is below PREDICTED_SJ_MIN 0.1; a smaller tap, or the wide face, may do better",
+   "code": "meshed_sj_below_minimum",
+   "validate": [
+    "equal tee at 40\u00b0: predicted corner scaled Jacobian 0.173 is below PREDICTED_SJ_WARN 0.3; a larger angle, or a branch radius <= TEE_MAX_RATIO R",
+    "predicted non-orthogonality 74.0\u00b0 in the inlet port's shell is above OUTLINE_NONORTH_WARN 70\u00b0; the junction cube's orientation sets it: a larger angle lowers it for an equal lateral"
+   ]
+  },
+  {
+   "angle": 40.0,
+   "shell": true,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 3.0,
+   "predicted_min_sj": 0.20849308632216043,
+   "meshed_min_sj": 0.13536451440719668,
+   "meshed_min_sj_where": "the inlet port's shell",
+   "inverted": 0,
+   "predicted_nonorth": 72.77,
+   "meshed_nonorth": 72.65,
+   "meshed_max_nes": 0.8249287821523417,
+   "meshed_min_sicn": 0.04004995937558125,
+   "chord": {
+    "mitre": 0.029016491267754435,
+    "crotch": null,
+    "rest": 0.024173350871151966
+   },
+   "projector_move_R": 0.11006138254310302,
+   "cells": 4832,
+   "ports_class0": true,
+   "validate": [
+    "equal tee at 40\u00b0: predicted corner scaled Jacobian 0.208 is below PREDICTED_SJ_WARN 0.3; a larger angle, or a branch radius <= TEE_MAX_RATIO R",
+    "predicted non-orthogonality 72.8\u00b0 in the inlet port's shell is above OUTLINE_NONORTH_WARN 70\u00b0; the junction cube's orientation sets it: a larger angle lowers it for an equal lateral"
+   ]
+  },
+  {
+   "angle": 40.0,
+   "shell": true,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 4.0,
+   "error": "AssemblyError: branch_length must exceed the equal tee's branch station 0.746",
+   "code": "branch_length_too_short"
+  },
+  {
+   "angle": 40.0,
+   "shell": true,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 6.0,
+   "error": "AssemblyError: branch_length must exceed the equal tee's branch station 0.966",
+   "code": "branch_length_too_short"
+  },
+  {
+   "angle": 35.0,
+   "shell": true,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 1.0,
+   "error": "AssemblyError: equal tee at 35\u00b0: predicted corner scaled Jacobian -0.000 is below PREDICTED_SJ_MIN 0.1; a larger angle, or a branch radius <= TEE_MAX_RATIO R",
+   "code": "predicted_sj_below_minimum"
+  },
+  {
+   "angle": 35.0,
+   "shell": true,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 2.0,
+   "error": "AssemblyError: Tee1: meshed non-orthogonality 80.3\u00b0 is above OUTLINE_NONORTH_MAX 80\u00b0; the junction cube's orientation sets it: a larger angle lowers it for an equal lateral",
+   "code": "meshed_nonorth_above_maximum",
+   "validate": [
+    "equal tee at 35\u00b0: predicted corner scaled Jacobian 0.120 is below PREDICTED_SJ_WARN 0.3; a larger angle, or a branch radius <= TEE_MAX_RATIO R",
+    "predicted non-orthogonality 79.7\u00b0 in the inlet port's shell is above OUTLINE_NONORTH_WARN 70\u00b0; the junction cube's orientation sets it: a larger angle lowers it for an equal lateral"
+   ]
+  },
+  {
+   "angle": 35.0,
+   "shell": true,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 3.0,
+   "error": "AssemblyError: Tee1: meshed corner scaled Jacobian 0.085 is below PREDICTED_SJ_MIN 0.1; a smaller tap, or the wide face, may do better",
+   "code": "meshed_sj_below_minimum",
+   "validate": [
+    "equal tee at 35\u00b0: predicted corner scaled Jacobian 0.162 is below PREDICTED_SJ_WARN 0.3; a larger angle, or a branch radius <= TEE_MAX_RATIO R",
+    "predicted non-orthogonality 75.8\u00b0 in the inlet port's shell is above OUTLINE_NONORTH_WARN 70\u00b0; the junction cube's orientation sets it: a larger angle lowers it for an equal lateral"
+   ]
+  },
+  {
+   "angle": 35.0,
+   "shell": true,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 4.0,
+   "error": "AssemblyError: branch_length must exceed the equal tee's branch station 0.793",
+   "code": "branch_length_too_short"
+  },
+  {
+   "angle": 35.0,
+   "shell": true,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 6.0,
+   "error": "AssemblyError: branch_length must exceed the equal tee's branch station 1.013",
+   "code": "branch_length_too_short"
+  },
+  {
+   "angle": 30.0,
+   "shell": true,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 1.0,
+   "error": "AssemblyError: equal tee at 30\u00b0: predicted corner scaled Jacobian -0.667 is below PREDICTED_SJ_MIN 0.1; a larger angle, or a branch radius <= TEE_MAX_RATIO R",
+   "code": "predicted_sj_below_minimum"
+  },
+  {
+   "angle": 30.0,
+   "shell": true,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 2.0,
+   "error": "AssemblyError: equal tee at 30\u00b0: predicted corner scaled Jacobian 0.067 is below PREDICTED_SJ_MIN 0.1; a larger angle, or a branch radius <= TEE_MAX_RATIO R",
+   "code": "predicted_sj_below_minimum"
+  },
+  {
+   "angle": 30.0,
+   "shell": true,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 3.0,
+   "error": "AssemblyError: branch_length must exceed the equal tee's branch station 0.745",
+   "code": "branch_length_too_short"
+  },
+  {
+   "angle": 30.0,
+   "shell": true,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 4.0,
+   "error": "AssemblyError: branch_length must exceed the equal tee's branch station 0.855",
+   "code": "branch_length_too_short"
+  },
+  {
+   "angle": 30.0,
+   "shell": true,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 6.0,
+   "error": "AssemblyError: branch_length must exceed the equal tee's branch station 1.075",
+   "code": "branch_length_too_short"
+  }
+ ],
+ "shape_defaults": {
+  "note": "cube.SHAPE then had stations 1.0 at 90 and 75, 2 at 60, 3 at 45 and 40",
+  "rows": [
+   {
+    "angle": 90.0,
+    "shell": false,
+    "nang": 8,
+    "predicted_min_sj": 0.5773502691896247,
+    "meshed_min_sj": 0.5106414085405853,
+    "meshed_min_sj_where": "a wall side of the junction cube",
+    "inverted": 0,
+    "predicted_nonorth": 44.68,
+    "meshed_nonorth": 45.82,
+    "meshed_max_nes": 0.5069273287827025,
+    "meshed_min_sicn": 0.10545313183869112,
+    "chord": {
+     "mitre": 0.03710956674057769,
+     "crotch": null,
+     "rest": 0.006425885560623901
+    },
+    "projector_move_R": 0.16654451196323375,
+    "cells": 3488,
+    "ports_class0": true,
+    "validate": []
+   },
+   {
+    "angle": 82.0,
+    "shell": false,
+    "nang": 8,
+    "predicted_min_sj": 0.5203752720404093,
+    "meshed_min_sj": 0.41788855290375176,
+    "meshed_min_sj_where": "a wall side of the junction cube",
+    "inverted": 0,
+    "predicted_nonorth": 49.0,
+    "meshed_nonorth": 48.82,
+    "meshed_max_nes": 0.5516924697219444,
+    "meshed_min_sicn": 0.1089107545315371,
+    "chord": {
+     "mitre": 0.0379176094827309,
+     "crotch": null,
+     "rest": 0.006776926397689537
+    },
+    "projector_move_R": 0.17793349648456475,
+    "cells": 3488,
+    "ports_class0": true,
+    "validate": []
+   },
+   {
+    "angle": 75.0,
+    "shell": false,
+    "nang": 8,
+    "predicted_min_sj": 0.46036110209762043,
+    "meshed_min_sj": 0.36320062628780087,
+    "meshed_min_sj_where": "a wall side of the junction cube",
+    "inverted": 0,
+    "predicted_nonorth": 52.96,
+    "meshed_nonorth": 52.75,
+    "meshed_max_nes": 0.598912079573505,
+    "meshed_min_sicn": 0.11236329919621868,
+    "chord": {
+     "mitre": 0.03796627073302708,
+     "crotch": null,
+     "rest": 0.007510482513717609
+    },
+    "projector_move_R": 0.17502287120220741,
+    "cells": 3488,
+    "ports_class0": true,
+    "validate": []
+   },
+   {
+    "angle": 70.0,
+    "shell": false,
+    "nang": 8,
+    "predicted_min_sj": 0.428329948819986,
+    "meshed_min_sj": 0.33291512427733627,
+    "meshed_min_sj_where": "a wall side of the junction cube",
+    "inverted": 0,
+    "predicted_nonorth": 55.85,
+    "meshed_nonorth": 55.68,
+    "meshed_max_nes": 0.6285091704748169,
+    "meshed_min_sicn": 0.12425693390501295,
+    "chord": {
+     "mitre": 0.03759690332478416,
+     "crotch": null,
+     "rest": 0.0084705658207751
+    },
+    "projector_move_R": 0.17038029630401721,
+    "cells": 3488,
+    "ports_class0": true,
+    "validate": []
+   },
+   {
+    "angle": 60.0,
+    "shell": false,
+    "nang": 8,
+    "predicted_min_sj": 0.3610747503955442,
+    "meshed_min_sj": 0.3036155055391192,
+    "meshed_min_sj_where": "a wall side of the junction cube",
+    "inverted": 0,
+    "predicted_nonorth": 61.4,
+    "meshed_nonorth": 61.27,
+    "meshed_max_nes": 0.687310817418671,
+    "meshed_min_sicn": 0.09326108093195673,
+    "chord": {
+     "mitre": 0.03569694375751095,
+     "crotch": null,
+     "rest": 0.011176631072891546
+    },
+    "projector_move_R": 0.15449279879756692,
+    "cells": 3488,
+    "ports_class0": true,
+    "validate": []
+   },
+   {
+    "angle": 50.0,
+    "shell": false,
+    "nang": 8,
+    "predicted_min_sj": 0.28997718861328675,
+    "meshed_min_sj": 0.22674871825899956,
+    "meshed_min_sj_where": "the inlet port's ring",
+    "inverted": 0,
+    "predicted_nonorth": 66.85,
+    "meshed_nonorth": 66.74,
+    "meshed_max_nes": 0.7460731652158094,
+    "meshed_min_sicn": 0.06328989636120298,
+    "chord": {
+     "mitre": 0.03201066568457908,
+     "crotch": null,
+     "rest": 0.01545596027046181
+    },
+    "projector_move_R": 0.1303833699565774,
+    "cells": 3488,
+    "ports_class0": true,
+    "validate": [
+     "equal tee at 50\u00b0: predicted corner scaled Jacobian 0.290 is below PREDICTED_SJ_WARN 0.3; a larger angle, or a branch radius <= TEE_MAX_RATIO R"
+    ]
+   },
+   {
+    "angle": 45.0,
+    "shell": false,
+    "nang": 8,
+    "predicted_min_sj": 0.25317215301555757,
+    "meshed_min_sj": 0.18304485760258757,
+    "meshed_min_sj_where": "the inlet port's ring",
+    "inverted": 0,
+    "predicted_nonorth": 69.58,
+    "meshed_nonorth": 69.51,
+    "meshed_max_nes": 0.7755065035663389,
+    "meshed_min_sicn": 0.05172697188679173,
+    "chord": {
+     "mitre": 0.02943600160984161,
+     "crotch": null,
+     "rest": 0.0184064371372121
+    },
+    "projector_move_R": 0.1158215848935278,
+    "cells": 3488,
+    "ports_class0": true,
+    "validate": [
+     "equal tee at 45\u00b0: predicted corner scaled Jacobian 0.253 is below PREDICTED_SJ_WARN 0.3; a larger angle, or a branch radius <= TEE_MAX_RATIO R"
+    ]
+   },
+   {
+    "angle": 42.0,
+    "shell": false,
+    "nang": 8,
+    "predicted_min_sj": 0.22655771547662418,
+    "meshed_min_sj": 0.15396574535106786,
+    "meshed_min_sj_where": "the inlet port's ring",
+    "inverted": 0,
+    "predicted_nonorth": 71.34,
+    "meshed_nonorth": 71.22,
+    "meshed_max_nes": 0.8049017638063463,
+    "meshed_min_sicn": 0.047187197676559614,
+    "chord": {
+     "mitre": 0.027657104002043326,
+     "crotch": null,
+     "rest": 0.02047324553680077
+    },
+    "projector_move_R": 0.10648115215525931,
+    "cells": 3488,
+    "ports_class0": true,
+    "validate": [
+     "equal tee at 42\u00b0: predicted corner scaled Jacobian 0.227 is below PREDICTED_SJ_WARN 0.3; a larger angle, or a branch radius <= TEE_MAX_RATIO R",
+     "predicted non-orthogonality 71.3\u00b0 in the inlet port's ring is above OUTLINE_NONORTH_WARN 70\u00b0; the junction cube's orientation sets it: a larger angle lowers it for an equal lateral"
+    ]
+   },
+   {
+    "angle": 40.0,
+    "shell": false,
+    "nang": 8,
+    "predicted_min_sj": 0.20849308632215988,
+    "meshed_min_sj": 0.13339540955081586,
+    "meshed_min_sj_where": "the inlet port's ring",
+    "inverted": 0,
+    "predicted_nonorth": 72.53,
+    "meshed_nonorth": 72.4,
+    "meshed_max_nes": 0.8249287821523422,
+    "meshed_min_sicn": 0.044112894837573226,
+    "chord": {
+     "mitre": 0.02637862842523153,
+     "crotch": null,
+     "rest": 0.02197577351922969
+    },
+    "projector_move_R": 0.10005580231191111,
+    "cells": 3488,
+    "ports_class0": true,
+    "validate": [
+     "equal tee at 40\u00b0: predicted corner scaled Jacobian 0.208 is below PREDICTED_SJ_WARN 0.3; a larger angle, or a branch radius <= TEE_MAX_RATIO R",
+     "predicted non-orthogonality 72.5\u00b0 in the inlet port's ring is above OUTLINE_NONORTH_WARN 70\u00b0; the junction cube's orientation sets it: a larger angle lowers it for an equal lateral"
+    ]
+   },
+   {
+    "angle": 90.0,
+    "shell": true,
+    "nang": 8,
+    "predicted_min_sj": 0.5773502691896241,
+    "meshed_min_sj": 0.510641408540588,
+    "meshed_min_sj_where": "a wall side of the junction cube",
+    "inverted": 0,
+    "predicted_nonorth": 45.21,
+    "meshed_nonorth": 46.75,
+    "meshed_max_nes": 0.5069273287827023,
+    "meshed_min_sicn": 0.0900182795642375,
+    "chord": {
+     "mitre": 0.040820523414635546,
+     "crotch": null,
+     "rest": 0.007068474116686124
+    },
+    "projector_move_R": 0.18319896315955655,
+    "cells": 4832,
+    "ports_class0": true,
+    "validate": []
+   },
+   {
+    "angle": 82.0,
+    "shell": true,
+    "nang": 8,
+    "predicted_min_sj": 0.5203880514979219,
+    "meshed_min_sj": 0.417888552903723,
+    "meshed_min_sj_where": "a wall side of the junction cube",
+    "inverted": 0,
+    "predicted_nonorth": 49.51,
+    "meshed_nonorth": 49.33,
+    "meshed_max_nes": 0.5508374639636902,
+    "meshed_min_sicn": 0.0932790521552786,
+    "chord": {
+     "mitre": 0.04170937043100398,
+     "crotch": null,
+     "rest": 0.0074546190374585874
+    },
+    "projector_move_R": 0.1957268461330213,
+    "cells": 4832,
+    "ports_class0": true,
+    "validate": []
+   },
+   {
+    "angle": 75.0,
+    "shell": true,
+    "nang": 8,
+    "predicted_min_sj": 0.4603611020976202,
+    "meshed_min_sj": 0.36320062628775834,
+    "meshed_min_sj_where": "a wall side of the junction cube",
+    "inverted": 0,
+    "predicted_nonorth": 53.46,
+    "meshed_nonorth": 53.24,
+    "meshed_max_nes": 0.5970227108969662,
+    "meshed_min_sicn": 0.09678250744330799,
+    "chord": {
+     "mitre": 0.04176289780632947,
+     "crotch": null,
+     "rest": 0.008261530765089203
+    },
+    "projector_move_R": 0.19252515832242934,
+    "cells": 4832,
+    "ports_class0": true,
+    "validate": []
+   },
+   {
+    "angle": 70.0,
+    "shell": true,
+    "nang": 8,
+    "predicted_min_sj": 0.4283299488199857,
+    "meshed_min_sj": 0.332915124277347,
+    "meshed_min_sj_where": "a wall side of the junction cube",
+    "inverted": 0,
+    "predicted_nonorth": 56.15,
+    "meshed_nonorth": 56.01,
+    "meshed_max_nes": 0.6264828778982584,
+    "meshed_min_sicn": 0.10895983675137241,
+    "chord": {
+     "mitre": 0.041356593657262825,
+     "crotch": null,
+     "rest": 0.009317622402852666
+    },
+    "projector_move_R": 0.18741832593441965,
+    "cells": 4832,
+    "ports_class0": true,
+    "validate": []
+   },
+   {
+    "angle": 60.0,
+    "shell": true,
+    "nang": 8,
+    "predicted_min_sj": 0.3610747503955438,
+    "meshed_min_sj": 0.30361550553912187,
+    "meshed_min_sj_where": "a wall side of the junction cube",
+    "inverted": 0,
+    "predicted_nonorth": 61.63,
+    "meshed_nonorth": 61.52,
+    "meshed_max_nes": 0.6850183727515899,
+    "meshed_min_sicn": 0.07642674493764375,
+    "chord": {
+     "mitre": 0.03926663813326167,
+     "crotch": null,
+     "rest": 0.01229429418018041
+    },
+    "projector_move_R": 0.16994207867732383,
+    "cells": 4832,
+    "ports_class0": true,
+    "validate": []
+   },
+   {
+    "angle": 50.0,
+    "shell": true,
+    "nang": 8,
+    "predicted_min_sj": 0.2899771886132865,
+    "meshed_min_sj": 0.23319561399133576,
+    "meshed_min_sj_where": "the inlet port's ring",
+    "inverted": 0,
+    "predicted_nonorth": 67.07,
+    "meshed_nonorth": 66.96,
+    "meshed_max_nes": 0.7434960448502292,
+    "meshed_min_sicn": 0.0567423928153029,
+    "chord": {
+     "mitre": 0.035211732253037364,
+     "crotch": null,
+     "rest": 0.017001556297508158
+    },
+    "projector_move_R": 0.14342170695223477,
+    "cells": 4832,
+    "ports_class0": true,
+    "validate": [
+     "equal tee at 50\u00b0: predicted corner scaled Jacobian 0.290 is below PREDICTED_SJ_WARN 0.3; a larger angle, or a branch radius <= TEE_MAX_RATIO R"
+    ]
+   },
+   {
+    "angle": 45.0,
+    "shell": true,
+    "nang": 8,
+    "predicted_min_sj": 0.2531721530155586,
+    "meshed_min_sj": 0.1894403101957098,
+    "meshed_min_sj_where": "the inlet port's ring",
+    "inverted": 0,
+    "predicted_nonorth": 69.8,
+    "meshed_nonorth": 69.74,
+    "meshed_max_nes": 0.7749059947315443,
+    "meshed_min_sicn": 0.04690154008319299,
+    "chord": {
+     "mitre": 0.03237960177082583,
+     "crotch": null,
+     "rest": 0.020247080850933075
+    },
+    "projector_move_R": 0.12740374338288035,
+    "cells": 4832,
+    "ports_class0": true,
+    "validate": [
+     "equal tee at 45\u00b0: predicted corner scaled Jacobian 0.253 is below PREDICTED_SJ_WARN 0.3; a larger angle, or a branch radius <= TEE_MAX_RATIO R"
+    ]
+   },
+   {
+    "angle": 42.0,
+    "shell": true,
+    "nang": 8,
+    "predicted_min_sj": 0.22655771547662457,
+    "meshed_min_sj": 0.15674991666307994,
+    "meshed_min_sj_where": "the inlet port's shell",
+    "inverted": 0,
+    "predicted_nonorth": 71.58,
+    "meshed_nonorth": 71.45,
+    "meshed_max_nes": 0.8049017638063459,
+    "meshed_min_sicn": 0.042837208641785036,
+    "chord": {
+     "mitre": 0.03042281440224795,
+     "crotch": null,
+     "rest": 0.022520570090480974
+    },
+    "projector_move_R": 0.11712926737078523,
+    "cells": 4832,
+    "ports_class0": true,
+    "validate": [
+     "equal tee at 42\u00b0: predicted corner scaled Jacobian 0.227 is below PREDICTED_SJ_WARN 0.3; a larger angle, or a branch radius <= TEE_MAX_RATIO R",
+     "predicted non-orthogonality 71.6\u00b0 in the inlet port's shell is above OUTLINE_NONORTH_WARN 70\u00b0; the junction cube's orientation sets it: a larger angle lowers it for an equal lateral"
+    ]
+   },
+   {
+    "angle": 40.0,
+    "shell": true,
+    "nang": 8,
+    "predicted_min_sj": 0.20849308632216043,
+    "meshed_min_sj": 0.13536451440719668,
+    "meshed_min_sj_where": "the inlet port's shell",
+    "inverted": 0,
+    "predicted_nonorth": 72.77,
+    "meshed_nonorth": 72.65,
+    "meshed_max_nes": 0.8249287821523417,
+    "meshed_min_sicn": 0.04004995937558125,
+    "chord": {
+     "mitre": 0.029016491267754435,
+     "crotch": null,
+     "rest": 0.024173350871151966
+    },
+    "projector_move_R": 0.11006138254310302,
+    "cells": 4832,
+    "ports_class0": true,
+    "validate": [
+     "equal tee at 40\u00b0: predicted corner scaled Jacobian 0.208 is below PREDICTED_SJ_WARN 0.3; a larger angle, or a branch radius <= TEE_MAX_RATIO R",
+     "predicted non-orthogonality 72.8\u00b0 in the inlet port's shell is above OUTLINE_NONORTH_WARN 70\u00b0; the junction cube's orientation sets it: a larger angle lowers it for an equal lateral"
+    ]
+   },
+   {
+    "angle": 90.0,
+    "shell": false,
+    "nang": 16,
+    "predicted_min_sj": 0.5773502691896247,
+    "meshed_min_sj": 0.3988156992147918,
+    "meshed_min_sj_where": "a wall side of the junction cube",
+    "inverted": 0,
+    "predicted_nonorth": 46.57,
+    "meshed_nonorth": 47.42,
+    "meshed_max_nes": 0.5337805199278295,
+    "meshed_min_sicn": 0.04961294646567059,
+    "chord": {
+     "mitre": 0.020270989287188984,
+     "crotch": null,
+     "rest": 0.0016532599200214104
+    },
+    "projector_move_R": 0.18019994935745895,
+    "cells": 20032,
+    "ports_class0": true,
+    "validate": []
+   },
+   {
+    "angle": 75.0,
+    "shell": false,
+    "nang": 16,
+    "predicted_min_sj": 0.46036110209762043,
+    "meshed_min_sj": 0.21293939988262092,
+    "meshed_min_sj_where": "a wall side of the junction cube",
+    "inverted": 0,
+    "predicted_nonorth": 54.56,
+    "meshed_nonorth": 54.35,
+    "meshed_max_nes": 0.5989120795735043,
+    "meshed_min_sicn": 0.0528973330501797,
+    "chord": {
+     "mitre": 0.02095943920096141,
+     "crotch": null,
+     "rest": 0.001924538908634893
+    },
+    "projector_move_R": 0.17984832326655295,
+    "cells": 20032,
+    "ports_class0": true,
+    "validate": []
+   },
+   {
+    "angle": 60.0,
+    "shell": false,
+    "nang": 16,
+    "predicted_min_sj": 0.3610747503955442,
+    "meshed_min_sj": 0.10751396236391596,
+    "meshed_min_sj_where": "a wall side of the junction cube",
+    "inverted": 0,
+    "predicted_nonorth": 62.66,
+    "meshed_nonorth": 62.58,
+    "meshed_max_nes": 0.6873108174186713,
+    "meshed_min_sicn": 0.04362836080884259,
+    "chord": {
+     "mitre": 0.020238558027104447,
+     "crotch": null,
+     "rest": 0.002962926559364615
+    },
+    "projector_move_R": 0.15607192199558156,
+    "cells": 20032,
+    "ports_class0": true,
+    "validate": []
+   },
+   {
+    "angle": 45.0,
+    "shell": false,
+    "nang": 16,
+    "predicted_min_sj": 0.25317215301555757,
+    "meshed_min_sj": 0.1383901609402998,
+    "meshed_min_sj_where": "a wall side of the junction cube",
+    "inverted": 0,
+    "predicted_nonorth": 70.88,
+    "meshed_nonorth": 70.85,
+    "meshed_max_nes": 0.7790470010960099,
+    "meshed_min_sicn": 0.023956162042552746,
+    "chord": {
+     "mitre": 0.017559848968582148,
+     "crotch": null,
+     "rest": 0.005334917831341518
+    },
+    "projector_move_R": 0.1173394151572023,
+    "cells": 20032,
+    "ports_class0": true,
+    "validate": [
+     "equal tee at 45\u00b0: predicted corner scaled Jacobian 0.253 is below PREDICTED_SJ_WARN 0.3; a larger angle, or a branch radius <= TEE_MAX_RATIO R",
+     "predicted non-orthogonality 70.9\u00b0 in the inlet port's ring is above OUTLINE_NONORTH_WARN 70\u00b0; the junction cube's orientation sets it: a larger angle lowers it for an equal lateral"
+    ]
+   },
+   {
+    "angle": 40.0,
+    "shell": false,
+    "nang": 16,
+    "predicted_min_sj": 0.20849308632215988,
+    "meshed_min_sj": 0.13608284357700967,
+    "meshed_min_sj_where": "the inlet port's ring",
+    "inverted": 0,
+    "predicted_nonorth": 74.03,
+    "meshed_nonorth": 73.98,
+    "meshed_max_nes": 0.826558836130563,
+    "meshed_min_sicn": 0.020389563208158136,
+    "chord": {
+     "mitre": 0.01611635035689757,
+     "crotch": null,
+     "rest": 0.0066987122284889455
+    },
+    "projector_move_R": 0.10319367782413535,
+    "cells": 20032,
+    "ports_class0": true,
+    "validate": [
+     "equal tee at 40\u00b0: predicted corner scaled Jacobian 0.208 is below PREDICTED_SJ_WARN 0.3; a larger angle, or a branch radius <= TEE_MAX_RATIO R",
+     "predicted non-orthogonality 74.0\u00b0 in the inlet port's ring is above OUTLINE_NONORTH_WARN 70\u00b0; the junction cube's orientation sets it: a larger angle lowers it for an equal lateral"
+    ]
+   },
+   {
+    "angle": 90.0,
+    "shell": true,
+    "nang": 16,
+    "predicted_min_sj": 0.5773502691896241,
+    "meshed_min_sj": 0.3988156992147873,
+    "meshed_min_sj_where": "a wall side of the junction cube",
+    "inverted": 0,
+    "predicted_nonorth": 46.57,
+    "meshed_nonorth": 47.42,
+    "meshed_max_nes": 0.5337805199278303,
+    "meshed_min_sicn": 0.051683338329654646,
+    "chord": {
+     "mitre": 0.022298088215907397,
+     "crotch": null,
+     "rest": 0.0019648411714053016
+    },
+    "projector_move_R": 0.19821994429320522,
+    "cells": 23488,
+    "ports_class0": true,
+    "validate": []
+   },
+   {
+    "angle": 75.0,
+    "shell": true,
+    "nang": 16,
+    "predicted_min_sj": 0.4603611020976202,
+    "meshed_min_sj": 0.21293939988265317,
+    "meshed_min_sj_where": "a wall side of the junction cube",
+    "inverted": 0,
+    "predicted_nonorth": 54.65,
+    "meshed_nonorth": 54.51,
+    "meshed_max_nes": 0.5970227108969661,
+    "meshed_min_sicn": 0.05562919274629813,
+    "chord": {
+     "mitre": 0.023055383121058648,
+     "crotch": null,
+     "rest": 0.0021169927994983684
+    },
+    "projector_move_R": 0.19783315559320913,
+    "cells": 23488,
+    "ports_class0": true,
+    "validate": []
+   },
+   {
+    "angle": 60.0,
+    "shell": true,
+    "nang": 16,
+    "predicted_min_sj": 0.3610747503955438,
+    "meshed_min_sj": 0.10751396236392863,
+    "meshed_min_sj_where": "a wall side of the junction cube",
+    "inverted": 0,
+    "predicted_nonorth": 62.7,
+    "meshed_nonorth": 62.62,
+    "meshed_max_nes": 0.6850183727515917,
+    "meshed_min_sicn": 0.039271733767656115,
+    "chord": {
+     "mitre": 0.02226241382981442,
+     "crotch": null,
+     "rest": 0.0032592192153009514
+    },
+    "projector_move_R": 0.17167911419513976,
+    "cells": 23488,
+    "ports_class0": true,
+    "validate": []
+   },
+   {
+    "angle": 45.0,
+    "shell": true,
+    "nang": 16,
+    "predicted_min_sj": 0.2531721530155586,
+    "meshed_min_sj": 0.1383901609403482,
+    "meshed_min_sj_where": "a wall side of the junction cube",
+    "inverted": 0,
+    "predicted_nonorth": 70.92,
+    "meshed_nonorth": 70.89,
+    "meshed_max_nes": 0.7790470010960124,
+    "meshed_min_sicn": 0.021699032883581586,
+    "chord": {
+     "mitre": 0.019315833865440196,
+     "crotch": null,
+     "rest": 0.005868409614475656
+    },
+    "projector_move_R": 0.12907335667292275,
+    "cells": 23488,
+    "ports_class0": true,
+    "validate": [
+     "equal tee at 45\u00b0: predicted corner scaled Jacobian 0.253 is below PREDICTED_SJ_WARN 0.3; a larger angle, or a branch radius <= TEE_MAX_RATIO R",
+     "predicted non-orthogonality 70.9\u00b0 in the inlet port's shell is above OUTLINE_NONORTH_WARN 70\u00b0; the junction cube's orientation sets it: a larger angle lowers it for an equal lateral"
+    ]
+   },
+   {
+    "angle": 40.0,
+    "shell": true,
+    "nang": 16,
+    "predicted_min_sj": 0.20849308632216043,
+    "meshed_min_sj": 0.13945953974991748,
+    "meshed_min_sj_where": "the inlet port's shell",
+    "inverted": 0,
+    "predicted_nonorth": 74.07,
+    "meshed_nonorth": 74.03,
+    "meshed_max_nes": 0.826558836130562,
+    "meshed_min_sicn": 0.018493342171618233,
+    "chord": {
+     "mitre": 0.017727985392587547,
+     "crotch": null,
+     "rest": 0.007368583451337757
+    },
+    "projector_move_R": 0.11351304560654898,
+    "cells": 23488,
+    "ports_class0": true,
+    "validate": [
+     "equal tee at 40\u00b0: predicted corner scaled Jacobian 0.208 is below PREDICTED_SJ_WARN 0.3; a larger angle, or a branch radius <= TEE_MAX_RATIO R",
+     "predicted non-orthogonality 74.1\u00b0 in the inlet port's shell is above OUTLINE_NONORTH_WARN 70\u00b0; the junction cube's orientation sets it: a larger angle lowers it for an equal lateral"
+    ]
+   }
+  ]
+ },
+ "refinement": [
+  {
+   "angle": 90.0,
+   "shell": false,
+   "nang": 32,
+   "predicted_min_sj": 0.5773502691896247,
+   "meshed_min_sj": 0.3296204816209201,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 59.11,
+   "meshed_nonorth": 51.58,
+   "meshed_max_nes": 0.5499291625675998,
+   "meshed_min_sicn": 0.02402131973115915,
+   "chord": {
+    "mitre": 0.010517931097290684,
+    "crotch": null,
+    "rest": 0.0004643878989776806
+   },
+   "projector_move_R": 0.18210800849485273,
+   "cells": 123008,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 75.0,
+   "shell": false,
+   "nang": 24,
+   "predicted_min_sj": 0.46036110209762043,
+   "meshed_min_sj": 0.1545966685084015,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 55.1,
+   "meshed_nonorth": 55.97,
+   "meshed_max_nes": 0.6026724478274139,
+   "meshed_min_sicn": 0.03452325798257884,
+   "chord": {
+    "mitre": 0.01436504954853507,
+    "crotch": null,
+    "rest": 0.0009529638328314993
+   },
+   "projector_move_R": 0.18908588174205218,
+   "cells": 57312,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 45.0,
+   "shell": false,
+   "nang": 24,
+   "error": "AssemblyError: Tee1: meshed corner scaled Jacobian 0.053 is below PREDICTED_SJ_MIN 0.1; a larger angle, or a branch radius <= TEE_MAX_RATIO R, may do better",
+   "code": "meshed_sj_below_minimum",
+   "validate": [
+    "equal tee at 45\u00b0: predicted corner scaled Jacobian 0.253 is below PREDICTED_SJ_WARN 0.3; a larger angle, or a branch radius <= TEE_MAX_RATIO R",
+    "predicted non-orthogonality 71.3\u00b0 in the inlet port's ring is above OUTLINE_NONORTH_WARN 70\u00b0; the junction cube's orientation sets it: a larger angle lowers it for an equal lateral"
+   ]
+  },
+  {
+   "angle": 40.0,
+   "shell": false,
+   "nang": 24,
+   "error": "AssemblyError: Tee1: meshed corner scaled Jacobian 0.099 is below PREDICTED_SJ_MIN 0.1; a larger angle, or a branch radius <= TEE_MAX_RATIO R, may do better",
+   "code": "meshed_sj_below_minimum",
+   "validate": [
+    "equal tee at 40\u00b0: predicted corner scaled Jacobian 0.208 is below PREDICTED_SJ_WARN 0.3; a larger angle, or a branch radius <= TEE_MAX_RATIO R",
+    "predicted non-orthogonality 74.5\u00b0 in the inlet port's ring is above OUTLINE_NONORTH_WARN 70\u00b0; the junction cube's orientation sets it: a larger angle lowers it for an equal lateral"
+   ]
+  }
+ ],
+ "short_stations_and_nang48": [
+  {
+   "angle": 90.0,
+   "shell": 0.0,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 0.25,
+   "predicted_min_sj": 0.5773502691896247,
+   "meshed_min_sj": 0.5106414085405907,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 44.24,
+   "meshed_nonorth": 45.86,
+   "meshed_max_nes": 0.5069273287827026,
+   "meshed_min_sicn": 0.09178147634491195,
+   "chord": {
+    "mitre": 0.037109566740577554,
+    "crotch": null,
+    "rest": 0.006425885560623901
+   },
+   "projector_move_R": 0.16654451196323405,
+   "cells": 3488,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": 0.0,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 0.3,
+   "predicted_min_sj": 0.5773502691896246,
+   "meshed_min_sj": 0.510641408540591,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 44.3,
+   "meshed_nonorth": 45.92,
+   "meshed_max_nes": 0.5069273287827023,
+   "meshed_min_sicn": 0.09258217786868524,
+   "chord": {
+    "mitre": 0.03710956674057783,
+    "crotch": null,
+    "rest": 0.006425885560623901
+   },
+   "projector_move_R": 0.1665445119632336,
+   "cells": 3488,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": 0.0,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 0.35,
+   "predicted_min_sj": 0.5773502691896247,
+   "meshed_min_sj": 0.5106414085405924,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 44.34,
+   "meshed_nonorth": 45.95,
+   "meshed_max_nes": 0.5069273287827036,
+   "meshed_min_sicn": 0.09339690768837375,
+   "chord": {
+    "mitre": 0.03710956674057783,
+    "crotch": null,
+    "rest": 0.0064258855606240395
+   },
+   "projector_move_R": 0.16654451196323333,
+   "cells": 3488,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": 0.0,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 0.4,
+   "predicted_min_sj": 0.5773502691896247,
+   "meshed_min_sj": 0.5106414085405854,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 44.39,
+   "meshed_nonorth": 45.96,
+   "meshed_max_nes": 0.5069273287827042,
+   "meshed_min_sicn": 0.09422603594141885,
+   "chord": {
+    "mitre": 0.03710956674057797,
+    "crotch": null,
+    "rest": 0.0064258855606240395
+   },
+   "projector_move_R": 0.16654451196323364,
+   "cells": 3488,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": 0.0,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 0.45,
+   "predicted_min_sj": 0.5773502691896247,
+   "meshed_min_sj": 0.5106414085405871,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 44.42,
+   "meshed_nonorth": 45.97,
+   "meshed_max_nes": 0.5069273287827036,
+   "meshed_min_sicn": 0.09506994583644432,
+   "chord": {
+    "mitre": 0.03710956674057797,
+    "crotch": null,
+    "rest": 0.006425885560623901
+   },
+   "projector_move_R": 0.1665445119632335,
+   "cells": 3488,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": 0.25,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 0.25,
+   "predicted_min_sj": 0.5773502691896246,
+   "meshed_min_sj": 0.5106414085405895,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 44.7,
+   "meshed_nonorth": 47.55,
+   "meshed_max_nes": 0.5069273287827021,
+   "meshed_min_sicn": 0.0970248672176827,
+   "chord": {
+    "mitre": 0.046386958425722324,
+    "crotch": null,
+    "rest": 0.008032356950779806
+   },
+   "projector_move_R": 0.2081806399540415,
+   "cells": 4832,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": 0.25,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 0.3,
+   "predicted_min_sj": 0.5773502691896243,
+   "meshed_min_sj": 0.5106414085405885,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 44.76,
+   "meshed_nonorth": 47.47,
+   "meshed_max_nes": 0.5069273287827036,
+   "meshed_min_sicn": 0.09814589597351095,
+   "chord": {
+    "mitre": 0.046386958425722324,
+    "crotch": null,
+    "rest": 0.008032356950779806
+   },
+   "projector_move_R": 0.20818063995404165,
+   "cells": 4832,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": 0.25,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 0.35,
+   "predicted_min_sj": 0.5773502691896246,
+   "meshed_min_sj": 0.5106414085405877,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 44.81,
+   "meshed_nonorth": 47.39,
+   "meshed_max_nes": 0.5069273287827037,
+   "meshed_min_sicn": 0.09929299487255727,
+   "chord": {
+    "mitre": 0.0463869584257226,
+    "crotch": null,
+    "rest": 0.008032356950779806
+   },
+   "projector_move_R": 0.20818063995404204,
+   "cells": 4832,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": 0.25,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 0.4,
+   "predicted_min_sj": 0.5773502691896247,
+   "meshed_min_sj": 0.5106414085405907,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 44.85,
+   "meshed_nonorth": 47.31,
+   "meshed_max_nes": 0.5069273287827032,
+   "meshed_min_sicn": 0.10046707898866092,
+   "chord": {
+    "mitre": 0.046386958425722324,
+    "crotch": null,
+    "rest": 0.008032356950779668
+   },
+   "projector_move_R": 0.20818063995404165,
+   "cells": 4832,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": 0.25,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 0.45,
+   "predicted_min_sj": 0.577350269189625,
+   "meshed_min_sj": 0.5106414085405927,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 44.88,
+   "meshed_nonorth": 47.23,
+   "meshed_max_nes": 0.5069273287827029,
+   "meshed_min_sicn": 0.10166910647852984,
+   "chord": {
+    "mitre": 0.0463869584257226,
+    "crotch": null,
+    "rest": 0.008032356950779668
+   },
+   "projector_move_R": 0.20818063995404165,
+   "cells": 4832,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": 0.5,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 0.25,
+   "predicted_min_sj": 0.5773502691896247,
+   "meshed_min_sj": 0.5106414085405935,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 44.64,
+   "meshed_nonorth": 46.58,
+   "meshed_max_nes": 0.5069273287827017,
+   "meshed_min_sicn": 0.1029000811316531,
+   "chord": {
+    "mitre": 0.0556643501108664,
+    "crotch": null,
+    "rest": 0.00980592359942467
+   },
+   "projector_move_R": 0.2498167679448498,
+   "cells": 4832,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": 0.5,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 0.3,
+   "predicted_min_sj": 0.5773502691896242,
+   "meshed_min_sj": 0.5106414085405867,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 44.66,
+   "meshed_nonorth": 46.6,
+   "meshed_max_nes": 0.5069273287827052,
+   "meshed_min_sicn": 0.10441694598053261,
+   "chord": {
+    "mitre": 0.05566435011086668,
+    "crotch": null,
+    "rest": 0.00980592359942467
+   },
+   "projector_move_R": 0.2498167679448498,
+   "cells": 4832,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": 0.5,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 0.35,
+   "predicted_min_sj": 0.5773502691896247,
+   "meshed_min_sj": 0.5106414085405743,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 44.68,
+   "meshed_nonorth": 46.59,
+   "meshed_max_nes": 0.5069273287827067,
+   "meshed_min_sicn": 0.10597892876931653,
+   "chord": {
+    "mitre": 0.05566435011086668,
+    "crotch": null,
+    "rest": 0.00980592359942467
+   },
+   "projector_move_R": 0.2498167679448509,
+   "cells": 4832,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": 0.5,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 0.4,
+   "predicted_min_sj": 0.5773502691896253,
+   "meshed_min_sj": 0.5106414085405916,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 44.71,
+   "meshed_nonorth": 46.57,
+   "meshed_max_nes": 0.5069273287827029,
+   "meshed_min_sicn": 0.10758805999053146,
+   "chord": {
+    "mitre": 0.055664350110866956,
+    "crotch": null,
+    "rest": 0.009805923599424948
+   },
+   "projector_move_R": 0.24981676794484992,
+   "cells": 4832,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": 0.5,
+   "nang": 8,
+   "hub": 0.6,
+   "station": 0.45,
+   "predicted_min_sj": 0.5773502691896247,
+   "meshed_min_sj": 0.5106414085405829,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 44.74,
+   "meshed_nonorth": 46.55,
+   "meshed_max_nes": 0.5069273287827029,
+   "meshed_min_sicn": 0.10924649300112112,
+   "chord": {
+    "mitre": 0.05566435011086668,
+    "crotch": null,
+    "rest": 0.00980592359942467
+   },
+   "projector_move_R": 0.24981676794484992,
+   "cells": 4832,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": 0.0,
+   "nang": 16,
+   "hub": 0.6,
+   "station": 0.25,
+   "predicted_min_sj": 0.5773502691896247,
+   "meshed_min_sj": 0.39881569921479737,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 46.57,
+   "meshed_nonorth": 47.6,
+   "meshed_max_nes": 0.5337805199278262,
+   "meshed_min_sicn": 0.04313216411921465,
+   "chord": {
+    "mitre": 0.020270989287188984,
+    "crotch": null,
+    "rest": 0.0016532599200214104
+   },
+   "projector_move_R": 0.1801999493574594,
+   "cells": 20032,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": 0.0,
+   "nang": 16,
+   "hub": 0.6,
+   "station": 0.3,
+   "predicted_min_sj": 0.5773502691896246,
+   "meshed_min_sj": 0.3988156992148073,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 46.57,
+   "meshed_nonorth": 47.45,
+   "meshed_max_nes": 0.5337805199278276,
+   "meshed_min_sicn": 0.043511129148996845,
+   "chord": {
+    "mitre": 0.020270989287188845,
+    "crotch": null,
+    "rest": 0.0016532599200214104
+   },
+   "projector_move_R": 0.18019994935745964,
+   "cells": 20032,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": 0.0,
+   "nang": 16,
+   "hub": 0.6,
+   "station": 0.35,
+   "predicted_min_sj": 0.5773502691896247,
+   "meshed_min_sj": 0.3988156992148049,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 46.57,
+   "meshed_nonorth": 47.42,
+   "meshed_max_nes": 0.5337805199278249,
+   "meshed_min_sicn": 0.043896805958158154,
+   "chord": {
+    "mitre": 0.020270989287188845,
+    "crotch": null,
+    "rest": 0.0016532599200215492
+   },
+   "projector_move_R": 0.1801999493574595,
+   "cells": 20032,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": 0.0,
+   "nang": 16,
+   "hub": 0.6,
+   "station": 0.4,
+   "predicted_min_sj": 0.5773502691896247,
+   "meshed_min_sj": 0.3988156992147901,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 46.57,
+   "meshed_nonorth": 47.42,
+   "meshed_max_nes": 0.5337805199278292,
+   "meshed_min_sicn": 0.04428937426790437,
+   "chord": {
+    "mitre": 0.020270989287188984,
+    "crotch": null,
+    "rest": 0.0016532599200215492
+   },
+   "projector_move_R": 0.18019994935745937,
+   "cells": 20032,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": 0.0,
+   "nang": 16,
+   "hub": 0.6,
+   "station": 0.45,
+   "predicted_min_sj": 0.5773502691896247,
+   "meshed_min_sj": 0.39881569921479093,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 46.57,
+   "meshed_nonorth": 47.42,
+   "meshed_max_nes": 0.5337805199278296,
+   "meshed_min_sicn": 0.04468902026717491,
+   "chord": {
+    "mitre": 0.020270989287188984,
+    "crotch": null,
+    "rest": 0.0016532599200215492
+   },
+   "projector_move_R": 0.18019994935745953,
+   "cells": 20032,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": 0.25,
+   "nang": 16,
+   "hub": 0.6,
+   "station": 0.25,
+   "predicted_min_sj": 0.5773502691896246,
+   "meshed_min_sj": 0.3988156992147974,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 46.57,
+   "meshed_nonorth": 47.6,
+   "meshed_max_nes": 0.533780519927831,
+   "meshed_min_sicn": 0.045615112459082764,
+   "chord": {
+    "mitre": 0.02533873660898578,
+    "crotch": null,
+    "rest": 0.0023943365332236566
+   },
+   "projector_move_R": 0.22524993669682405,
+   "cells": 23488,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": 0.25,
+   "nang": 16,
+   "hub": 0.6,
+   "station": 0.3,
+   "predicted_min_sj": 0.5773502691896243,
+   "meshed_min_sj": 0.3988156992147879,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 46.57,
+   "meshed_nonorth": 47.46,
+   "meshed_max_nes": 0.5337805199278292,
+   "meshed_min_sicn": 0.04614636847177901,
+   "chord": {
+    "mitre": 0.02533873660898578,
+    "crotch": null,
+    "rest": 0.002394336533223518
+   },
+   "projector_move_R": 0.22524993669682375,
+   "cells": 23488,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": 0.25,
+   "nang": 16,
+   "hub": 0.6,
+   "station": 0.35,
+   "predicted_min_sj": 0.5773502691896246,
+   "meshed_min_sj": 0.3988156992148044,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 46.57,
+   "meshed_nonorth": 47.42,
+   "meshed_max_nes": 0.5337805199278292,
+   "meshed_min_sicn": 0.046690131078593995,
+   "chord": {
+    "mitre": 0.02533873660898661,
+    "crotch": null,
+    "rest": 0.002394336533223518
+   },
+   "projector_move_R": 0.22524993669682392,
+   "cells": 23488,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": 0.25,
+   "nang": 16,
+   "hub": 0.6,
+   "station": 0.4,
+   "predicted_min_sj": 0.5773502691896247,
+   "meshed_min_sj": 0.3988156992148029,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 46.57,
+   "meshed_nonorth": 47.42,
+   "meshed_max_nes": 0.5337805199278284,
+   "meshed_min_sicn": 0.047246846671879617,
+   "chord": {
+    "mitre": 0.025338736608986334,
+    "crotch": null,
+    "rest": 0.002394336533223379
+   },
+   "projector_move_R": 0.22524993669682392,
+   "cells": 23488,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": 0.25,
+   "nang": 16,
+   "hub": 0.6,
+   "station": 0.45,
+   "predicted_min_sj": 0.577350269189625,
+   "meshed_min_sj": 0.39881569921480325,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 46.57,
+   "meshed_nonorth": 47.42,
+   "meshed_max_nes": 0.533780519927833,
+   "meshed_min_sicn": 0.04781698311859089,
+   "chord": {
+    "mitre": 0.025338736608986334,
+    "crotch": null,
+    "rest": 0.002394336533223518
+   },
+   "projector_move_R": 0.22524993669682405,
+   "cells": 23488,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": 0.5,
+   "nang": 16,
+   "hub": 0.6,
+   "station": 0.25,
+   "predicted_min_sj": 0.5773502691896247,
+   "meshed_min_sj": 0.39881569921479293,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 46.57,
+   "meshed_nonorth": 47.42,
+   "meshed_max_nes": 0.5337805199278296,
+   "meshed_min_sicn": 0.048401031065779906,
+   "chord": {
+    "mitre": 0.03040648393078299,
+    "crotch": null,
+    "rest": 0.0028732038398682214
+   },
+   "projector_move_R": 0.27029992403618847,
+   "cells": 23488,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": 0.5,
+   "nang": 16,
+   "hub": 0.6,
+   "station": 0.3,
+   "predicted_min_sj": 0.5773502691896242,
+   "meshed_min_sj": 0.3988156992147908,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 46.57,
+   "meshed_nonorth": 47.42,
+   "meshed_max_nes": 0.5337805199278307,
+   "meshed_min_sicn": 0.04912097845279068,
+   "chord": {
+    "mitre": 0.03040648393078299,
+    "crotch": null,
+    "rest": 0.0028732038398682214
+   },
+   "projector_move_R": 0.2702999240361882,
+   "cells": 23488,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": 0.5,
+   "nang": 16,
+   "hub": 0.6,
+   "station": 0.35,
+   "predicted_min_sj": 0.5773502691896247,
+   "meshed_min_sj": 0.3988156992147993,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 46.57,
+   "meshed_nonorth": 47.42,
+   "meshed_max_nes": 0.5337805199278292,
+   "meshed_min_sicn": 0.049862639868440646,
+   "chord": {
+    "mitre": 0.03040648393078299,
+    "crotch": null,
+    "rest": 0.0028732038398682214
+   },
+   "projector_move_R": 0.27029992403618847,
+   "cells": 23488,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": 0.5,
+   "nang": 16,
+   "hub": 0.6,
+   "station": 0.4,
+   "predicted_min_sj": 0.5773502691896253,
+   "meshed_min_sj": 0.39881569921479576,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 46.57,
+   "meshed_nonorth": 47.42,
+   "meshed_max_nes": 0.5337805199278292,
+   "meshed_min_sicn": 0.050627011419779086,
+   "chord": {
+    "mitre": 0.030406483930783268,
+    "crotch": null,
+    "rest": 0.0028732038398682214
+   },
+   "projector_move_R": 0.2702999240361882,
+   "cells": 23488,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": 0.5,
+   "nang": 16,
+   "hub": 0.6,
+   "station": 0.45,
+   "predicted_min_sj": 0.5773502691896247,
+   "meshed_min_sj": 0.3988156992147886,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 46.57,
+   "meshed_nonorth": 47.42,
+   "meshed_max_nes": 0.5337805199278298,
+   "meshed_min_sicn": 0.051415151003592736,
+   "chord": {
+    "mitre": 0.030406483930783545,
+    "crotch": null,
+    "rest": 0.0028732038398682214
+   },
+   "projector_move_R": 0.27029992403618874,
+   "cells": 23488,
+   "ports_class0": true,
+   "validate": []
+  },
+  {
+   "angle": 90.0,
+   "shell": 0.0,
+   "nang": 48,
+   "predicted_min_sj": 0.5773502691896247,
+   "meshed_min_sj": 0.3051766183211079,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted": 0,
+   "predicted_nonorth": 70.26,
+   "meshed_nonorth": 57.72,
+   "meshed_max_nes": 0.5557156316540494,
+   "meshed_min_sicn": 0.014395825109152511,
+   "chord": {
+    "mitre": 0.007091961505144712,
+    "crotch": null,
+    "rest": 0.0002158367156641916
+   },
+   "projector_move_R": 0.18601382916914616,
+   "cells": 370368,
+   "ports_class0": true,
+   "validate": [
+    "predicted non-orthogonality 70.3\u00b0 in the branch run is above OUTLINE_NONORTH_WARN 70\u00b0; the junction cube's orientation sets it: a larger angle lowers it for an equal lateral"
+   ]
+  }
+ ],
+ "checkmesh_v2406_station_0.25": [
+  {
+   "case": "tee",
+   "cells": 5408,
+   "meshed_sj": 0.5106414085405907,
+   "would_invert": 0,
+   "check": {
+    "mesh_ok": true,
+    "cells_foam": 5408,
+    "max_non_orthogonality": 45.8634,
+    "max_skewness": 1.33808,
+    "max_aspect_ratio": 24.3936
+   }
+  },
+  {
+   "case": "ins25",
+   "cells": 7520,
+   "meshed_sj": 0.5106414085405895,
+   "would_invert": 0,
+   "check": {
+    "fluid": {
+     "mesh_ok": true,
+     "cells_foam": 5408,
+     "max_non_orthogonality": 45.9568,
+     "max_skewness": 1.88297,
+     "max_aspect_ratio": 23.0633
+    },
+    "steel": {
+     "mesh_ok": true,
+     "cells_foam": 2112,
+     "max_non_orthogonality": 47.5512,
+     "max_skewness": 0.856429,
+     "max_aspect_ratio": 16.8901
+    }
+   }
+  },
+  {
+   "case": "ins50",
+   "cells": 7520,
+   "meshed_sj": 0.5106414085405935,
+   "would_invert": 0,
+   "check": {
+    "fluid": {
+     "mesh_ok": true,
+     "cells_foam": 5408,
+     "max_non_orthogonality": 45.8605,
+     "max_skewness": 2.42574,
+     "max_aspect_ratio": 21.733
+    },
+    "steel": {
+     "mesh_ok": true,
+     "cells_foam": 2112,
+     "max_non_orthogonality": 46.5833,
+     "max_skewness": 0.996442,
+     "max_aspect_ratio": 10.3036
+    }
+   }
+  },
+  {
+   "case": "example",
+   "cells": 8000,
+   "meshed_sj": 0.5106618058381973,
+   "would_invert": 0,
+   "check": {
+    "mesh_ok": true,
+    "cells_foam": 8000,
+    "max_non_orthogonality": 46.6915,
+    "max_skewness": 1.81166,
+    "max_aspect_ratio": 14.0411
+   }
+  }
+ ],
+ "checkmesh_v2406_laterals": [
+  {
+   "case": "lateral 75 nang 8",
+   "meshed_sj": 0.363,
+   "mesh_ok": true,
+   "max_non_orthogonality": 52.64,
+   "max_skewness": 2.62
+  },
+  {
+   "case": "lateral 60 nang 8",
+   "meshed_sj": 0.304,
+   "mesh_ok": false,
+   "max_non_orthogonality": 61.27,
+   "max_skewness": 4.61
+  },
+  {
+   "case": "lateral 45 nang 8",
+   "meshed_sj": 0.183,
+   "mesh_ok": false,
+   "max_non_orthogonality": 69.51,
+   "max_skewness": 6.18
+  },
+  {
+   "case": "tee 90 nang 16",
+   "meshed_sj": 0.399,
+   "mesh_ok": true,
+   "max_non_orthogonality": 47.42,
+   "max_skewness": 2.5
+  },
+  {
+   "case": "lateral 75 nang 16",
+   "meshed_sj": 0.213,
+   "mesh_ok": true,
+   "max_non_orthogonality": 55.56,
+   "max_skewness": 3.52
+  },
+  {
+   "case": "lateral 60 nang 16",
+   "meshed_sj": 0.108,
+   "mesh_ok": false,
+   "max_non_orthogonality": 62.58,
+   "max_skewness": 4.84
+  }
+ ]
+}
