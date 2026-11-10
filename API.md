@@ -790,8 +790,11 @@ a block layout.
   `run_length=None` resolves the length the cube needs (1.27 R bare, 1.58 R
   under insulation 0.25 R thick); a shorter one is `run_length_too_short`,
   a shorter branch `branch_length_too_short`. The meshed min corner SJ is
-  checked at `mesh()` (0.511, 0.399, 0.305 at `nang` 8, 16, 48); the
-  crease misses the wall by 3.7 % R at `nang` 8, 1.1 % at 32.
+  checked at `mesh()` (0.511, 0.399, 0.305, 0.293 at `nang` 8, 16, 48,
+  64); above `limits.EQUAL_TEE_NANG_CLEAN` (48) `validate()` warns
+  (`fitting_quality_warning`) before gmsh, naming the measured value, or
+  that it is unmeasured above `nang` 64.  The crease misses the wall by
+  3.7 % R at `nang` 8, 1.1 % at 32.
   `mesh(order=2)` rejects it (`second_order_unsupported`), as it does the
   wye.
 - **Duct taps** (decision 0033, task 0070). On a rectangular main the tee
@@ -1922,6 +1925,7 @@ Kinds:
 | `TEE_MAX_OFFSET_RATIO` | 1 | `1` | error | largest offset of a pipe tee's branch axis, over the branch radius |
 | `EQUAL_TEE_RTOL` | 1e-09 | `1` | info | relative tolerance within which a branch radius equals the main's (an equal tee) |
 | `EQUAL_LATERAL_ANGLE_MIN` | 90 | `deg` | error | smallest angle of an equal tee (branch as wide as the main): square only |
+| `EQUAL_TEE_NANG_CLEAN` | 48 | `1` | warn | largest nang at which an equal tee measured meshed SJ >= 0.3 |
 | `DUCT_TAP_MAX_RATIO` | 0.93 | `1` | error | largest reach across of a duct tap, over the face's half-width |
 | `DUCT_TAP_NARROW_ASPECT_WARN` | 3 | `1` | warn | a tap on the narrow face of a duct this deep (depth / width) or deeper warns |
 | `SWITCH_MIN_LENGTH` | 1.25 | `t` | error | shortest Switch, in ring thicknesses |

@@ -75,7 +75,13 @@ from .blocks import ArcAbout, BlockLayout, LayoutError, Spline, face_patches, fa
 from .errors import AssemblyError
 from .interface import Frame, outer_radius, rolled
 from .junction_quality import CUBE_BLOCKS, CUBE_HINT, _layout_key, nonorth_tiers, predicted_angle
-from .limits import (EQUAL_LATERAL_ANGLE_MIN, PREDICTED_SJ_MIN, PREDICTED_SJ_WARN)
+from .limits import (EQUAL_LATERAL_ANGLE_MIN, EQUAL_TEE_NANG_CLEAN, PREDICTED_SJ_MIN,
+                     PREDICTED_SJ_WARN)
+
+#: The square tee's measured meshed min SJ by nang, single and shelled
+#: (task 0127; validation/tools/equal_tee.json).  The predicted SJ doesn't
+#: see this fall, so validate() reads it here: measured values only.
+_MEASURED_SJ = {8: 0.511, 16: 0.399, 24: 0.353, 32: 0.330, 48: 0.305, 64: 0.293}
 from .projection import Tube, TubeUnion
 
 _SIDES = [(i, s) for i in range(3) for s in (1, -1)]          # (axis, sign)
@@ -466,6 +472,7 @@ class CubeTee:
                                     limit="PREDICTED_SJ_MIN", hint=hint)
             found.append(msg)
             break
+        found += self._nang_tier(spec)
         try:
             self.layout(frames, spec).validate()
         except LayoutError as e:
@@ -473,6 +480,25 @@ class CubeTee:
                                      code="block_layout_invalid") from None
         return found + nonorth_tiers(self.tee, frames, spec, lambda: self.layout(frames, spec),
                                      CUBE_BLOCKS, CUBE_HINT)
+
+    @staticmethod
+    def _nang_tier(spec: PipeSpec) -> list[str]:
+        """Above ``EQUAL_TEE_NANG_CLEAN``, the measured SJ at the next
+        measured nang, or, past the last, that it is unmeasured."""
+        nang = spec.nang
+        if nang is None or nang <= EQUAL_TEE_NANG_CLEAN:
+            return []
+        hint = f"nang <= EQUAL_TEE_NANG_CLEAN ({EQUAL_TEE_NANG_CLEAN}) builds without a warning"
+        above = [n for n in sorted(_MEASURED_SJ) if n >= nang]
+        last = max(_MEASURED_SJ)
+        if above:
+            n = above[0]
+            told = (f"meshed corner scaled Jacobian measured {_MEASURED_SJ[n]:.3f} "
+                    f"at nang {n}, below PREDICTED_SJ_WARN {PREDICTED_SJ_WARN:g}")
+        else:
+            told = (f"meshed quality is unmeasured above nang {last} "
+                    f"({_MEASURED_SJ[last]:.3f} there, falling as nang rises)")
+        return [f"equal tee at nang {nang}: {told}; {hint}"]
 
     def predicted_nonorth(self, frames: list[Frame], spec: PipeSpec) -> float:
         return predicted_angle(self.tee, frames, spec, lambda: self.layout(frames, spec))

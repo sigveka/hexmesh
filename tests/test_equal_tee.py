@@ -23,7 +23,9 @@ import pytest
 from hexmesh import Session
 from hexmesh.assembly import Assembly, AssemblyError, Straight, Tee
 from hexmesh.assembly import cube
-from hexmesh.assembly.limits import EQUAL_LATERAL_ANGLE_MIN, EQUAL_TEE_RTOL, PREDICTED_SJ_WARN
+from hexmesh.assembly.limits import (EQUAL_LATERAL_ANGLE_MIN, EQUAL_TEE_NANG_CLEAN, EQUAL_TEE_RTOL,
+                                    PREDICTED_SJ_WARN)
+from hexmesh.errors import HexmeshWarning
 from hexmesh.assembly.signature import classify, signature
 from hexmesh.core.spec import PipeSpec
 from hexmesh.quality_hex import min_scaled_jacobians
@@ -31,13 +33,13 @@ from hexmesh.quality_hex import min_scaled_jacobians
 R = 0.1
 
 
-def _spec(shell=False):
-    s = PipeSpec(nang=8).core("fluid", radius=R, nrad=3)
+def _spec(shell=False, nang=8):
+    s = PipeSpec(nang=nang).core("fluid", radius=R, nrad=3)
     return s.shell("steel", dR=0.1 * R, nrad=2) if shell else s
 
 
-def _asm(shell=False, **kw):
-    asm = Assembly(_spec(shell), direction=[1, 0, 0], up=[0, 0, 1], lc=0.05)
+def _asm(shell=False, nang=8, **kw):
+    asm = Assembly(_spec(shell, nang), direction=[1, 0, 0], up=[0, 0, 1], lc=0.05)
     asm.add(Straight(0.2, n_layers=2))
     kw.setdefault("branch_length", 0.7)
     main, branch = asm.add(Tee(branch_radius=R, **kw), names=["main", "branch"])
@@ -112,6 +114,30 @@ def test_second_order_is_rejected_before_meshing():
             asm.mesh(order=2)
         assert e.value.code == "second_order_unsupported"
         assert not gmsh.model.mesh.getNodes()[0].size
+
+
+@pytest.mark.parametrize("nang, told", [
+    (64, "measured 0.293 at nang 64"),
+    (56, "measured 0.293 at nang 64"),
+    (96, "unmeasured above nang 64"),
+])
+def test_above_the_clean_nang_validate_warns_before_gmsh(nang, told):
+    """Task 0127: the measured fall with nang, which the predicted SJ
+    doesn't see, warns in ``validate()``, coded."""
+    asm, _, _ = _asm(nang=nang)
+    with pytest.warns(HexmeshWarning) as rec:
+        asm.validate()
+    msgs = [str(w.message) for w in rec if w.message.code == "fitting_quality_warning"
+            and "nang" in str(w.message)]
+    assert len(msgs) == 1 and told in msgs[0]
+    assert f"nang <= EQUAL_TEE_NANG_CLEAN ({EQUAL_TEE_NANG_CLEAN})" in msgs[0]
+    assert not gmsh.isInitialized()
+
+
+def test_at_the_clean_nang_validate_is_silent():
+    asm, _, _ = _asm(nang=EQUAL_TEE_NANG_CLEAN, shell=True)
+    asm.validate()
+    assert not asm.warnings
 
 
 def test_the_layout_cache_hands_out_copies():

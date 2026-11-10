@@ -302,6 +302,6 @@ test change, so the suite wasn't rerun; the gallery is untouched.
 **Proposed follow-ups.**
 - Measure the projected wall face's grid-line angle at its edges (the
   one assumption above) if the slide matters again.
-- A redesign of the cube's layout (internal faces meeting the wall more
-  squarely) would be the route to equal laterals and second order; it
-  isn't planned (the user's simplicity priority).
+- A redesign of the cube's layout would be the route to equal laterals
+  and second order; the slide's cause is unknown (the grid's obliquity
+  is the open lead); not planned (the user's simplicity priority).

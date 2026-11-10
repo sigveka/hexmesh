@@ -180,8 +180,8 @@ and it resolves what the cube needs (1.27 R each side of the centre for
 a bare pipe).  It is square and centred only, and first order only.
 Where branch and main meet, the crease crosses the cube's faces beside
 the branch, so its chord error falls only as fast as the cells shrink.
-Measured on a 0.1 m pipe, single layer (shelled within 0.4 % R of crease
-and 2° of non-orthogonality):
+Measured on a 0.1 m pipe, single layer (shelled: the same scaled
+Jacobian, within 0.4 % R of crease and 2° of non-orthogonality):
 
 | `nang` | min scaled Jacobian | max non-orthogonality | crease miss |
 |---|---|---|---|
@@ -189,10 +189,13 @@ and 2° of non-orthogonality):
 | 16 | 0.399 | 47° | 2.0 % R |
 | 32 | 0.330 | 52° | 1.1 % R |
 | 48 | 0.305 | 58° | 0.7 % R |
+| 64 | 0.293 | 66° | 0.5 % R |
 
 The quality falls as `nang` rises (projection moves the side blocks'
-wall nodes up to 0.18 R whatever the cell size), but stays above the 0.3
-warning tier to `nang` 48.  Equal laterals aren't built yet; a branch
+wall nodes up to 0.18 R whatever the cell size): it stays above the 0.3
+warning tier to `nang` 48 (`limits.EQUAL_TEE_NANG_CLEAN`), and above
+that `validate()` warns before meshing.  Nothing finer than `nang` 64
+has been measured (it needs about 5 GB of memory there).  Equal laterals aren't built yet; a branch
 radius up to `TEE_MAX_RATIO` (0.95) R leans at any angle the tee allows.
 
 ---

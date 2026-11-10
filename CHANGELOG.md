@@ -21,6 +21,10 @@
   `branch_length_too_short`) now hints in the file's terms: what the
   component measures, what the junction needs, and to lengthen it in the
   file (or thin its insulation), not `run_length=None`.
+- Above `limits.EQUAL_TEE_NANG_CLEAN` (48) an equal tee warns in
+  `validate()`, before gmsh (task 0127): its meshed SJ falls with nang
+  (0.293 at 64, measured; unmeasured above 64), which the predicted SJ
+  doesn't see.
 
 **Volunteer runs** (decision 0044; task 0119).
 - `python3 -m validation.volunteer`: `list`, `prepare`, `run`, `collect`

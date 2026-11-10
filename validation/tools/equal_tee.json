@@ -2746,5 +2746,96 @@
    "max_non_orthogonality": 62.58,
    "max_skewness": 4.84
   }
- ]
+ ],
+ "fine_nang": {
+  "task": "0127",
+  "date": "2026-11-10",
+  "method": "90 deg, R 0.1, nrad max(3, nang/2-1); shelled: one steel shell 0.1 R, nrad 2; meshed min SJ over the tee's hexes after mesh(); peak memory from /usr/bin/time -v",
+  "nang96": "not measured: (96/64)^3 = 3.4x nang 64's cells, about 16 GB, more than this machine's 15 GB",
+  "full_row_nang64": {
+   "angle": 90.0,
+   "shell": false,
+   "nang": 64,
+   "ports_class0": true,
+   "predicted_min_sj": 0.5773502691896247,
+   "predicted_nonorth": 75.63,
+   "predicted_nonorth_where": "the branch run",
+   "cells": 823552,
+   "inverted": 0,
+   "meshed_min_sj": 0.2928107675997992,
+   "meshed_min_sj_where": "a wall side of the junction cube",
+   "inverted_where": [],
+   "meshed_min_sicn": 0.010269452266597165,
+   "meshed_max_nes": 0.5586613998948761,
+   "meshed_nonorth": 66.33,
+   "chord": {
+    "mitre": 0.005348274551377763,
+    "crotch": null,
+    "rest": 0.0001213970377607343
+   },
+   "projector_move_R": 0.18633570996279783,
+   "seconds": 481.8,
+   "peak_memory_gb": 4.95
+  },
+  "sj_rows": [
+   {
+    "nang": 16,
+    "shell": true,
+    "meshed_min_sj": 0.39882,
+    "inverted": 0,
+    "peak_memory_gb": 0.25
+   },
+   {
+    "nang": 24,
+    "shell": true,
+    "meshed_min_sj": 0.35349,
+    "inverted": 0,
+    "peak_memory_gb": 0.48
+   },
+   {
+    "nang": 32,
+    "shell": true,
+    "meshed_min_sj": 0.32962,
+    "inverted": 0,
+    "peak_memory_gb": 0.86
+   },
+   {
+    "nang": 48,
+    "shell": false,
+    "meshed_min_sj": 0.30518,
+    "inverted": 0,
+    "peak_memory_gb": 2.22,
+    "wall_s": 46.5
+   },
+   {
+    "nang": 48,
+    "shell": true,
+    "meshed_min_sj": 0.30518,
+    "inverted": 0,
+    "peak_memory_gb": 2.33,
+    "wall_s": 53.4
+   },
+   {
+    "nang": 64,
+    "shell": false,
+    "meshed_min_sj": 0.29281,
+    "inverted": 0,
+    "peak_memory_gb": 4.71,
+    "wall_s": 167.4
+   },
+   {
+    "nang": 64,
+    "shell": true,
+    "meshed_min_sj": 0.29281,
+    "inverted": 0,
+    "peak_memory_gb": 4.9,
+    "wall_s": 156.8
+   }
+  ],
+  "limits": {
+   "EQUAL_TEE_NANG_CLEAN": 48,
+   "EQUAL_TEE_NANG_MAX": null,
+   "why": "largest measured nang with SJ >= 0.3 single and shelled is 48; none measured below 0.1"
+  }
+ }
 }

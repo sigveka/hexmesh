@@ -140,6 +140,17 @@ EQUAL_LATERAL_ANGLE_MIN = _limit(
     "EQUAL_LATERAL_ANGLE_MIN", 90.0, "deg", "error",
     "smallest angle of an equal tee (branch as wide as the main): square only")
 
+#: Equal tees, measured (task 0127; validation/tools/equal_tee.json,
+#: rows "refinement", "short_stations_and_nang48" and "fine_nang"): the
+#: square tee's meshed min SJ falls with nang, single and shelled alike
+#: (0.511, 0.399, 0.353, 0.330, 0.305, 0.293 at nang 8, 16, 24, 32, 48,
+#: 64).  The largest measured nang with SJ >= 0.3; above it validate()
+#: warns.  None measured falls below 0.1, so there is no maximum; nang 96
+#: needs ~16 GB to mesh and wasn't measured.
+EQUAL_TEE_NANG_CLEAN = _limit(
+    "EQUAL_TEE_NANG_CLEAN", 48, "1", "warn",
+    "largest nang at which an equal tee measured meshed SJ >= 0.3")
+
 #: Duct taps (decision 0033, task 0070): the largest across ratio q/a of a
 #: tap inside the face (q its reach across, a the face's half-width).  The
 #: ±y tube blocks thin as q → a: at 0.95 a 1:1 duct's rectangular tap
