@@ -1418,6 +1418,13 @@ validation scripts):
   `read_internal`, `read_patch_faces`, `read_patch_values`;
 - `latest_time`, `face_geometry` / `cell_geometry` (OpenFOAM's own
   constructions) and `substitute_case`.
+- runners (`set_runner`, or `HEXMESH_OPENFOAM`): `native` (sources
+  `HEXMESH_OPENFOAM_RC`, default `/usr/share/openfoam/etc/bashrc`),
+  `path` (OpenFOAM already in the environment, e.g. after a cluster's
+  `module load`), `docker:<image>` and `apptainer:<image>` (Apptainer or
+  Singularity; unverified until a first run).  `openfoam_version()`
+  reports the runner's version; `require_version(required,
+  allow_other=False)` raises `openfoam_version_mismatch` on another one.
 
 Post-processing works from ASCII case files.  Function objects abort on
 v1912 here (`docs/integrations/openfoam.md`).
@@ -1688,6 +1695,7 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `openfoam_needs_order_1` | write_openfoam asked for a second-order mesh | `AssemblyError` |
 | `openfoam_patches_unmapped` | OpenFOAM patches not in the role manifest (warning) | `HexmeshWarning` |
 | `openfoam_value_uniform` | an OpenFOAM field read as a list holds a uniform value | `StudyError` |
+| `openfoam_version_mismatch` | the runner's OpenFOAM version differs from the one required | `StudyError` |
 | `option_invalid` | an option outside its allowed values | `AssemblyError`, `EquipmentError`, `HexmeshError`, `ReaderError`, `StudyError` |
 | `other_runs_active` | other pytest or OpenFOAM runs are active on the machine | `StudyError` |
 | `other_runs_unchecked` | other runs on the machine can't be checked (warning) | `HexmeshWarning` |

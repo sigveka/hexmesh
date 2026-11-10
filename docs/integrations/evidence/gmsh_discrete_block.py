@@ -262,12 +262,12 @@ def foam(outdir, variant):
     (case / "system/controlDict").write_text(hdr % "controlDict" + (
         "application icoFoam; startFrom startTime; startTime 0; stopAt endTime; endTime 1; "
         "deltaT 1; writeControl timeStep; writeInterval 1; writeFormat ascii; "
-        "writeCompression off;\n"))
+        "writeCompression off;\n"), encoding="utf-8", newline="\n")
     (case / "system/fvSchemes").write_text(hdr % "fvSchemes" + (
         "ddtSchemes {default Euler;} gradSchemes {default Gauss linear;} "
         "divSchemes {default none;} laplacianSchemes {default Gauss linear corrected;} "
-        "interpolationSchemes {default linear;} snGradSchemes {default corrected;}\n"))
-    (case / "system/fvSolution").write_text(hdr % "fvSolution" + "solvers {}\n")
+        "interpolationSchemes {default linear;} snGradSchemes {default corrected;}\n"), encoding="utf-8", newline="\n")
+    (case / "system/fvSolution").write_text(hdr % "fvSolution" + "solvers {}\n", encoding="utf-8", newline="\n")
     row = {"variant": variant, "would_invert": F.would_invert(msh)}
     F.foam(f"gmshToFoam -keepOrientation {msh}", case, "log.gmshToFoam", mounts=[msh.parent])
     out = F.foam("checkMesh", case, "log.checkMesh")

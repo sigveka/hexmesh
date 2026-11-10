@@ -358,6 +358,7 @@ CODES: dict[str, str] = {
     "openfoam_needs_order_1": "write_openfoam asked for a second-order mesh",
     "openfoam_patches_unmapped": "OpenFOAM patches not in the role manifest (warning)",
     "openfoam_value_uniform": "an OpenFOAM field read as a list holds a uniform value",
+    "openfoam_version_mismatch": "the runner's OpenFOAM version differs from the one required",
     "option_invalid": "an option outside its allowed values",
     "other_runs_active": "other pytest or OpenFOAM runs are active on the machine",
     "other_runs_unchecked": "other runs on the machine can't be checked (warning)",

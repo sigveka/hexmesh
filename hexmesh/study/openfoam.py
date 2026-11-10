@@ -23,16 +23,25 @@ v1912 here, and coded boundary conditions fail to compile
 (``docs/integrations/openfoam.md``).  Cases must be written with
 ``writeFormat ascii`` and ``writeCompression off`` for the readers.
 
-**Runner** (decision 0012's toolchain amendment): ``native`` sources
-``OPENFOAM_RC``; ``docker:<image>`` (e.g. ``docker:opencfd/openfoam-
-default:2406``) runs each command in a fresh container (as the calling
-user where the host has user ids), with the case and any extra
-directories mounted at ``/work/0``, ``/work/1``, … and host paths in the
-command rewritten to match, so it runs from Windows too (decision 0039,
-task 0092).  Pick it with
-``set_runner`` or the ``HEXMESH_OPENFOAM`` environment variable; record
-``runner()`` and ``openfoam_version()`` with every result.  One
-toolchain per case: conversion and solvers in the same runner.
+**Runner** (decision 0012's toolchain amendment; decision 0044):
+- ``native`` sources ``OPENFOAM_RC`` (``HEXMESH_OPENFOAM_RC``, by
+  default ``/usr/share/openfoam/etc/bashrc``);
+- ``path`` runs commands as they are: OpenFOAM is already in the
+  environment (a cluster's ``module load``);
+- ``docker:<image>`` (e.g. ``docker:opencfd/openfoam-default:2406``)
+  runs each command in a fresh container (as the calling user where the
+  host has user ids), with the case and any extra directories mounted at
+  ``/work/0``, ``/work/1``, … and host paths in the command rewritten to
+  match, so it runs from Windows too (decision 0039, task 0092);
+- ``apptainer:<image>`` (e.g. ``apptainer:docker://opencfd/openfoam-
+  default:2406``, or a ``.sif`` file) does the same with Apptainer or
+  Singularity, which clusters offer instead of Docker (task 0119;
+  unverified until a first run on a machine that has it).
+
+Pick it with ``set_runner`` or the ``HEXMESH_OPENFOAM`` environment
+variable; record ``runner()`` and ``openfoam_version()`` with every
+result, and check the version with ``require_version``.  One toolchain
+per case: conversion and solvers in the same runner.
 ``foam()`` writes each command's output to its log as it runs, and stops
 the command (its container) if the caller is interrupted.
 
@@ -63,7 +72,8 @@ class FoamCommandFailed(StudyError, RuntimeError):
     """An OpenFOAM command that exited with an error: still a
     ``RuntimeError``, as it was before task 0106."""
 
-OPENFOAM_RC = Path("/usr/share/openfoam/etc/bashrc")
+#: The ``native`` runner's environment script (``HEXMESH_OPENFOAM_RC``).
+OPENFOAM_RC = Path(os.environ.get("HEXMESH_OPENFOAM_RC", "/usr/share/openfoam/etc/bashrc"))
 #: The image's environment, whatever its version directory.
 _DOCKER_RC = "for f in /usr/lib/openfoam/openfoam*/etc/bashrc; do source $f; done"
 #: The default for new validation cases (decision 0012, toolchain).
@@ -72,13 +82,18 @@ V2406 = "docker:opencfd/openfoam-default:2406"
 _runner = os.environ.get("HEXMESH_OPENFOAM", "native")
 
 
+RUNNERS = ["native", "path", "docker:<image>", "apptainer:<image>"]
+
+
 def set_runner(spec: str) -> None:
-    """``"native"`` or ``"docker:<image>"``."""
+    """``"native"``, ``"path"``, ``"docker:<image>"`` or
+    ``"apptainer:<image>"``."""
     global _runner
-    if spec != "native" and not (spec.startswith("docker:") and len(spec) > 7):
-        raise StudyError(f"OpenFOAM runner {spec!r}: give 'native' or 'docker:<image>'",
+    kind, sep, image = spec.partition(":")
+    if not (spec in ("native", "path") or (kind in ("docker", "apptainer") and sep and image)):
+        raise StudyError(f"OpenFOAM runner {spec!r}: give {', '.join(RUNNERS)}",
                          code="option_invalid", where={"field": "runner"}, value=spec,
-                         limit=["native", "docker:<image>"])
+                         limit=RUNNERS)
     _runner = spec
 
 
@@ -95,6 +110,11 @@ def _argv(cmd: str, cwd: Path, mounts=(), name: str | None = None) -> list[str]:
     container."""
     if _runner == "native":
         return ["bash", "-c", f"source {OPENFOAM_RC} >/dev/null 2>&1; {cmd}"]
+    if _runner == "path":
+        return ["bash", "-c", cmd]
+    if _runner.startswith("apptainer:"):
+        return apptainer_argv(cmd, Path(cwd).resolve(), [Path(m).resolve() for m in mounts],
+                              image=_runner[len("apptainer:"):])
     user = (os.getuid(), os.getgid()) if hasattr(os, "getuid") else None
     return docker_argv(cmd, Path(cwd).resolve(), [Path(m).resolve() for m in mounts],
                        image=_runner[len("docker:"):], name=name, user=user)
@@ -153,6 +173,19 @@ def docker_argv(cmd: str, cwd: PurePath, mounts=(), *, image: str, name: str | N
             "-e", "HOME=/tmp", *vols, "-w", mapping[0][1], "--entrypoint", "bash",
             image, "-c", f"{_DOCKER_RC} >/dev/null 2>&1; {container_command(cmd, mapping)}"]
 
+
+def apptainer_argv(cmd: str, cwd: PurePath, mounts=(), *, image: str) -> list[str]:
+    """``apptainer exec`` for *cmd* in *cwd*, mounted as :func:`docker_argv`
+    mounts (``--bind``, ``--pwd``, host paths rewritten).  ``--cleanenv``
+    keeps a host's OpenFOAM environment out of the container's.
+    Apptainer runs as the calling user already.  Unverified here: no
+    Apptainer on the development machine (task 0119)."""
+    mapping = container_paths([cwd, *mounts])
+    mounted = sorted((m for m in mapping if m[2]), key=lambda m: int(m[1].split("/")[2]))
+    binds = [a for host, cont, _ in mounted for a in ("--bind", f"{host}:{cont}")]
+    return ["apptainer", "exec", "--cleanenv", *binds, "--pwd", mapping[0][1], image,
+            "bash", "-c", f"{_DOCKER_RC} >/dev/null 2>&1; {container_command(cmd, mapping)}"]
+
 _NUM = r"[-+0-9.eE]+"
 
 
@@ -183,8 +216,9 @@ def foam(cmd: str, case: Path, log: str, mounts=()) -> str:
 
     If the caller is interrupted (``KeyboardInterrupt``, ``SystemExit``,
     or SIGTERM, e.g. from ``timeout``), the command is stopped too: a
-    Docker container would otherwise outlive its client (task 0035)."""
-    name = None if _runner == "native" else f"hexmesh-{os.getpid()}-{next(_names)}"
+    Docker container would otherwise outlive its client (task 0035).
+    Other runners' commands are children, stopped with the process."""
+    name = f"hexmesh-{os.getpid()}-{next(_names)}" if _runner.startswith("docker:") else None
     path = Path(case) / log
     main = threading.current_thread() is threading.main_thread()
     if main:
@@ -220,8 +254,28 @@ def foam(cmd: str, case: Path, log: str, mounts=()) -> str:
 
 
 def openfoam_version() -> str:
-    return subprocess.run(_argv("echo $WM_PROJECT_VERSION", Path.cwd()),
-                          capture_output=True, text=True).stdout.strip()
+    try:
+        return subprocess.run(_argv("echo $WM_PROJECT_VERSION", Path.cwd()),
+                              capture_output=True, text=True).stdout.strip()
+    except FileNotFoundError:          # no docker / apptainer
+        return ""
+
+
+def require_version(required: str, *, allow_other: bool = False) -> str:
+    """The runner's OpenFOAM version, checked against *required* (e.g.
+    ``"v2406"``; a leading ``v`` is optional on either side).  A
+    different or missing one raises, unless *allow_other*; either way
+    the caller records the returned version (decision 0044)."""
+    got = openfoam_version()
+    if got.lstrip("vV") == required.lstrip("vV") or allow_other:
+        return got
+    found = f"OpenFOAM {got}" if got else "no OpenFOAM"
+    raise StudyError(f"runner {_runner!r} has {found}; this needs OpenFOAM {required}",
+                     code="openfoam_version_mismatch", where={"field": "runner"},
+                     value=got or None, limit=required,
+                     hint=f"pick a runner with OpenFOAM {required} (native with "
+                          "HEXMESH_OPENFOAM_RC, path after a module load, docker:… or "
+                          "apptainer:…), or allow another version explicitly")
 
 
 # --- mesh conversion ----------------------------------------------------------

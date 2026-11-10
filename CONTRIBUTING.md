@@ -94,6 +94,16 @@ Before a pull request:
 
 Questions about the code are welcome as issues too.
 
+## Run a validation case
+
+Some validation cases need more computer than ours: one level of a case,
+run on a cluster, takes hours on several cores.  If you have cluster
+time, [validation/VOLUNTEERS.md](validation/VOLUNTEERS.md) lists what is
+offered and what each level costs (cores, memory, disk, wall time).  It
+takes five commands, and you send back one small file, which we check
+mechanically and merge with your credit.  Contributed results are under
+the project's BSD-3 licence.
+
 ## Licence
 
 hexmesh is under the [BSD 3-Clause licence](LICENSE).  By contributing,

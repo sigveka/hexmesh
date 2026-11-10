@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+**Volunteer runs** (decision 0044; task 0119).
+- `python3 -m validation.volunteer`: `list`, `prepare`, `run`, `collect`
+  and `check`, so someone with cluster time can run a held validation
+  level and send back one `.contrib.json`, checked mechanically (schema,
+  mesh hash, the level's own numbers, the stored level) and merged with
+  the contributor's credit. `validation/VOLUNTEERS.md` is generated from
+  the cards; the helical pipe's Re 3000, nang 24 level is the first.
+- OpenFOAM runners: `path` (OpenFOAM already loaded) and
+  `apptainer:<image>` (unverified until a first run), and the `native`
+  runner's bashrc from `HEXMESH_OPENFOAM_RC`. `require_version` refuses
+  another OpenFOAM version (`openfoam_version_mismatch`).
+
 **Shoe taps on ducts** (decision 0031 stage 4; task 0063).
 - `Tee(angle=…)` on a rectangular main: the branch leans downstream, its
   hole the branch section cut by the face (stretched by 1/sin α; an

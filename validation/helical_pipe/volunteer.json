@@ -1,0 +1,74 @@
+{
+  "format": "hexmesh.validation.volunteer-card",
+  "version": 1,
+  "case": "helical_pipe",
+  "title": "Laminar flow in a helical pipe",
+  "summary": "Steady laminar flow through four turns of a helical coil (the SIET coil: 12.53 mm tube, 1 m helix diameter, 0.8 m pitch), meshed by hexmesh along a spline through the helix.  It checks that the friction factor converges as the mesh is refined and lands within 5 % of Ito's correlation.  Two of the three Reynolds numbers are done on the finest mesh; the last one, Re 3000, needs about 8 hours on 4 cores and several GB of memory, which our one desktop can't spare.",
+  "openfoam": {
+    "version": "v2406",
+    "image": "opencfd/openfoam-default:2406"
+  },
+  "hexmesh": {
+    "tag": null,
+    "note": "until it is tagged, the main branch; the mesh check needs the same version as ours"
+  },
+  "gmsh": {
+    "version": "4.12.1",
+    "note": "the version pip installs with hexmesh is fine: our test level's mesh check gives the same fingerprint with gmsh 4.12.1 and 4.15.2"
+  },
+  "returns": "one file, helical_pipe-<level>.contrib.json, about 100 kB",
+  "reproduce": {
+    "quantity": "f",
+    "rel_tol": 0.0001
+  },
+  "levels": {
+    "re3000_n24": {
+      "title": "Re 3000 on the finest mesh (nang 24)",
+      "what": "The run first solves the next-coarser mesh (nang 16, 0.8 million cells) and starts the fine one (2.7 million cells) from its mapped result, which shortens the fine solve.  Both stop when the solver converges (at most 5000 steps); the results are saved every 50 steps.",
+      "requirements": {
+        "cores": {
+          "label": "cores (MPI processes)",
+          "value": 4,
+          "unit": "",
+          "basis": "measured",
+          "how": "our runs of this level at Re 1800 and 2400 used 4 processes on one 8-core desktop; any count from 1 works, more is faster"
+        },
+        "wall_time": {
+          "label": "wall time at 4 cores",
+          "value": 8.3,
+          "unit": "h",
+          "basis": "estimated",
+          "how": "from the measured Re 2400 run at 4 processes (desktop, 2026-11-08: 563 coarse steps in 52 min, then 398 fine steps in 5.6 h, partly shared with another run), scaled by steps: at nang 16, Re 3000 needed 720/561 of Re 2400's steps"
+        },
+        "prepare_time": {
+          "label": "time to prepare (one core, no MPI)",
+          "value": 0.5,
+          "unit": "h",
+          "basis": "estimated",
+          "how": "making the fine mesh measured 7 min (desktop, 2026-11-10); converting and checking it scaled by cells from the coarse mesh's measured 4.5 min; preparing the coarse start measured 8 min"
+        },
+        "peak_memory": {
+          "label": "peak memory",
+          "value": 3.4,
+          "unit": "GB",
+          "basis": "estimated",
+          "how": "the solve at 4 processes peaked at 1.0 GB on the coarse mesh (0.8 million cells; desktop, 2026-11-10), scaled by cells to 2.7 million; making the fine mesh measured 3.2 GB (2026-11-10), and converting it is estimated at 2.5 GB the same way"
+        },
+        "peak_disk": {
+          "label": "peak disk",
+          "value": 4,
+          "unit": "GB",
+          "basis": "estimated",
+          "how": "the fine case took about 1.6 GB in our runs (measured); while a 50-step chunk runs, its decomposed copy about doubles that; the coarse start's case is 0.25 GB (measured), deleted once mapped"
+        },
+        "cells": {
+          "label": "cells",
+          "value": 2711232,
+          "unit": "",
+          "basis": "measured",
+          "how": "the fine mesh's exact count (the coarse start has 803328)"
+        }
+      }
+    }
+  }
+}

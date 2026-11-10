@@ -163,6 +163,21 @@ Consequence: a mesh and its `refined(k)` agree at the coarse nodes only to
   - Reproducer: `evidence/gmsh_compound_transfinite.py` (variants `six`,
     `plain`, `compound`, `recombine`).
 
+### 4.15.2 writes a few coordinates one ulp from 4.12.1's (task 0119, 2026-11-10) — *verified*
+
+The helical pipe's nang 8 mesh (`validation/helical_pipe/run.py`, a
+`SplinePipe`), written as MSH 2.2 by gmsh 4.12.1 and 4.15.2: the same
+node tags, elements and physical groups, and 20 of 109 516 node lines
+whose last digit differs (at most 1.4e-17 m).  The `$Comments` block
+differs too (it names the gmsh version).  So the file bytes are not a
+fingerprint across gmsh versions.  The volunteer tool's mesh hash
+(`validation/volunteer.py`) uses physical names, elements, and node
+coordinates rounded to 1e-12; with it, the nang 12 mesh hashes the same
+on both versions (`b3e271a7…`); on one version, two writes were
+byte-identical.  A 0117-sized OCC case
+was byte-identical across the two versions (above): this shows up only
+in larger or curved meshes.
+
 ### Hand-written hexes between OCC volumes (gmsh 4.12.1 and 4.15.2, task 0117, 2026-11-10) — *verified*
 
 A discrete volume (`addDiscreteEntity(3, …)`) filled with hand-written

@@ -110,6 +110,8 @@ MAP_FROM = {24: 16}
 #: steps per solver chunk: fields are written, f recorded and the case can
 #: resume after every chunk (design answer to Q5)
 CHUNK = 50
+#: the step limit of every solve
+END_TIME = 5000
 LAYERS_PER_TURN = {8: 130, 12: 195, 16: 260, 24: 390}   # about 2, 1.33, 1, 0.67 d per layer
 LAYERS_IN = {8: 3, 12: 4, 16: 6, 24: 9}
 
@@ -377,36 +379,59 @@ def run_level(re_: float, nang: int, work: Path, end_time: int, n_proc: int,
     chunk."""
     t0 = time.monotonic()
     case = case or work / f"re{re_}_n{nang}"
-    setup = case / "setup.json"
-    if setup.exists():
-        meta = json.loads(setup.read_text(encoding="utf-8"))
+    if (case / "setup.json").exists():
         print(f"[re={re_} nang={nang}] resuming at step {_latest_step(case)}", flush=True)
     else:
-        if case.exists():
-            shutil.rmtree(case)
-        case.mkdir(parents=True)
-        asm = assembly(nang)
-        with Session(f"helix-{re_}-{nang}"):
-            cells = asm.cell_count()
-            print(f"[re={re_} nang={nang}] predicted cells: {cells}", flush=True)
-            msh = case / "mesh.msh"
-            asm.write_openfoam(str(msh))
-            sj = asm.check_quality("scaled_jacobian").worst
-        write_case(case, re_, end_time)
-        of.convert(case, msh, keep_orientation=sj > 0)
+        setup_level(case, re_, nang, end_time, init_from)
+    return solve_level(case, re_, nang, end_time, n_proc, t0)
+
+
+def setup_level(case: Path, re_: float, nang: int, end_time: int,
+                init_from: Path | None = None, keep_msh: bool = False) -> dict:
+    """Mesh level (re_, nang) into a new *case*, convert and check it, map
+    *init_from*'s latest field if given, and write ``setup.json``, which
+    marks the case as set up.  *keep_msh* keeps ``case/mesh.msh``."""
+    if case.exists():
+        shutil.rmtree(case)
+    case.mkdir(parents=True)
+    asm = assembly(nang)
+    with Session(f"helix-{re_}-{nang}"):
+        cells = asm.cell_count()
+        print(f"[re={re_} nang={nang}] predicted cells: {cells}", flush=True)
+        msh = case / "mesh.msh"
+        asm.write_openfoam(str(msh))
+        sj = asm.check_quality("scaled_jacobian").worst
+    write_case(case, re_, end_time)
+    of.convert(case, msh, keep_orientation=sj > 0)
+    if not keep_msh:
         msh.unlink()
-        check = of.check_mesh(case)
-        if init_from is not None:
-            of.foam(f"mapFields {Path(init_from).resolve()} -consistent -sourceTime latestTime",
-                    case, "log.mapFields", mounts=[Path(init_from).resolve()])
-        meta = {"cells": cells, "sj": sj, "counts": stored.counts(asm), "check": check,
-                "init_from": None if init_from is None else f"nang {MAP_FROM[nang]}, mapped",
-                "wall_s": 0.0}
-        setup.write_text(json.dumps(meta), encoding="utf-8")
+    check = of.check_mesh(case)
+    if init_from is not None:
+        _map_fields(case, init_from)
+    meta = {"cells": cells, "sj": sj, "counts": stored.counts(asm), "check": check,
+            "init_from": None if init_from is None else f"nang {MAP_FROM[nang]}, mapped",
+            "wall_s": 0.0}
+    (case / "setup.json").write_text(json.dumps(meta), encoding="utf-8")
+    return meta
+
+
+def _map_fields(case: Path, init_from: Path) -> None:
+    of.foam(f"mapFields {Path(init_from).resolve()} -consistent -sourceTime latestTime",
+            case, "log.mapFields", mounts=[Path(init_from).resolve()])
+
+
+def solve_level(case: Path, re_: float, nang: int, end_time: int, n_proc: int,
+                t0: float | None = None, solve: bool = True) -> dict:
+    """Solve the set-up *case* in chunks until converged or *end_time*
+    (with *solve*; without, only read it), and return the level's
+    values.  *t0*: when the level's wall time started."""
+    t0 = time.monotonic() if t0 is None else t0
+    setup = case / "setup.json"
+    meta = json.loads(setup.read_text(encoding="utf-8"))
     hist_path = case / "f_history.json"
     hist = json.loads(hist_path.read_text(encoding="utf-8")) if hist_path.exists() else []
     converged = bool(hist) and hist[-1]["converged"]
-    while not converged and _latest_step(case) < end_time:
+    while solve and not converged and _latest_step(case) < end_time:
         stop = min(_latest_step(case) + CHUNK, end_time)
         _set_end_time(case, stop)
         log = of.run_solver(case, "simpleFoam", n_proc=n_proc)
@@ -424,17 +449,23 @@ def run_level(re_: float, nang: int, work: Path, end_time: int, n_proc: int,
         print(f"[re={re_} nang={nang}] step {hist[-1]['step']}: f {hist[-1]['f']:.6f}"
               + (", converged" if converged else ""), flush=True)
     fr = friction(*_fields(case))
-    f = fr["f_per_pair"][GATED_PAIR]
-    re_b = re_ * fr["u_bulk_per_pair"][GATED_PAIR] / U_B         # ν = U_B d / re_
     meta["wall_s"] += time.monotonic() - t0
     return {"re": re_, "nang": nang, "cells": meta["cells"],
             "layers_per_turn": LAYERS_PER_TURN[nang], "area_ratio": area_ratio(nang),
             "min_scaled_jacobian": meta["sj"], **meta["counts"],
             **{f"check_{k}": v for k, v in meta["check"].items()},
             "steps": _latest_step(case), "converged": converged,
-            **fr, "re_bulk": re_b, "f": f, "f_ito": ito(re_b), "f_err_ito": f / ito(re_b) - 1,
-            "fc_over_fs": f / (64 / re_b), "init_from": meta["init_from"],
-            "wall_s": meta["wall_s"], "f_history": hist,
+            **fr, **derived(re_, fr), "init_from": meta["init_from"],
+            "wall_s": meta["wall_s"], "f_history": hist}
+
+
+def derived(re_: float, fr: dict) -> dict:
+    """f and the numbers derived from it, from :func:`friction`'s turn
+    means: what a volunteer's level is rechecked against."""
+    f = fr["f_per_pair"][GATED_PAIR]
+    re_b = re_ * fr["u_bulk_per_pair"][GATED_PAIR] / U_B         # ν = U_B d / re_
+    return {"re_bulk": re_b, "f": f, "f_ito": ito(re_b), "f_err_ito": f / ito(re_b) - 1,
+            "fc_over_fs": f / (64 / re_b),
             "turn_agreement": fr["f_per_pair"][-1] / fr["f_per_pair"][GATED_PAIR] - 1}
 
 
@@ -517,7 +548,7 @@ def main(argv=None) -> dict:
     ap.add_argument("--res", nargs="+", type=int, default=list(RES))
     ap.add_argument("--levels", nargs="+", type=int, default=list(LEVELS))
     ap.add_argument("--work", type=Path, default=HERE / "work")
-    ap.add_argument("--end-time", type=int, default=5000)
+    ap.add_argument("--end-time", type=int, default=END_TIME)
     ap.add_argument("--np", type=int, default=1, dest="n_proc",
                     help="MPI processes per solve (check other runs first, CLAUDE.md)")
     stored.add_arguments(ap, HERE)
@@ -566,6 +597,87 @@ def _mapped_level(store, re_: int, nang: int, args) -> dict:
         # the source is needed only until the target is mapped (setup.json)
         if not args.keep_work and (target / "setup.json").exists():
             shutil.rmtree(src, ignore_errors=True)
+
+
+# --- volunteer runs (validation/volunteer.py; decision 0044) -----------------
+# The tool calls these with a run directory *d*: the level's case in
+# d/case, a mapped level's source in d/source until it is mapped.
+
+def _parse(level: str) -> tuple[int, int]:
+    """(Re, nang) of a level name such as ``re3000_n24``."""
+    m = re.fullmatch(r"re(\d+)_n(\d+)", level)
+    if not m or int(m[1]) not in RES or int(m[2]) not in LAYERS_PER_TURN:
+        raise ValueError(f"helical_pipe has no level {level!r}: re<{'|'.join(map(str, RES))}>"
+                         f"_n<{'|'.join(map(str, LAYERS_PER_TURN))}>")
+    return int(m[1]), int(m[2])
+
+
+def prepare(level: str, d: Path, mesh_only: bool = False) -> dict:
+    """Mesh *level*, and unless *mesh_only*, set up its case (and its
+    mapped start's source case).  Returns ``{"msh": path}``, the mesh as
+    written, which the tool hashes and deletes, and ``check``."""
+    re_, nang = _parse(level)
+    d.mkdir(parents=True, exist_ok=True)
+    if mesh_only:
+        msh = d / f"{level}.msh"
+        with Session(f"helix-{re_}-{nang}"):
+            assembly(nang).write_openfoam(str(msh))
+        return {"msh": msh, "check": None}
+    meta = setup_level(d / "case", re_, nang, END_TIME, keep_msh=True)
+    if nang in MAP_FROM:
+        setup_level(d / "source", re_, MAP_FROM[nang], END_TIME)
+    return {"msh": d / "case" / "mesh.msh", "check": meta["check"]}
+
+
+def run(level: str, d: Path, n_proc: int) -> None:
+    """Solve *level* in *d*, resumably: a mapped level's source first,
+    then the mapping (the source is deleted), then the level."""
+    re_, nang = _parse(level)
+    case, src = d / "case", d / "source"
+    meta = json.loads((case / "setup.json").read_text(encoding="utf-8"))
+    if nang in MAP_FROM and meta["init_from"] is None:
+        s = solve_level(src, re_, MAP_FROM[nang], END_TIME, n_proc)
+        ref = stored.Store(HERE / "results.json", "helical_pipe").level(
+            f"re{re_}_n{MAP_FROM[nang]}")
+        (d / "source.json").write_text(json.dumps({
+            "nang": MAP_FROM[nang], "steps": s["steps"], "converged": s["converged"],
+            "f": s["f"], "wall_s": s["wall_s"],
+            "f_vs_stored": None if ref is None else s["f"] / ref["f"] - 1}), encoding="utf-8")
+        _map_fields(case, src)
+        meta["init_from"] = f"nang {MAP_FROM[nang]}, mapped"
+        (case / "setup.json").write_text(json.dumps(meta), encoding="utf-8")
+        shutil.rmtree(src)
+    solve_level(case, re_, nang, END_TIME, n_proc)
+
+
+def collect(level: str, d: Path) -> dict:
+    """The finished level's values as :func:`run_level` returns them, and
+    the extras to merge (the mapped start's source).  Refuses a level
+    that is still running."""
+    re_, nang = _parse(level)
+    values = solve_level(d / "case", re_, nang, END_TIME, 1, solve=False)
+    if not values["converged"] and values["steps"] < END_TIME:
+        raise ValueError(f"{level} isn't finished (step {values['steps']}, not converged): "
+                         "run the job again; it resumes")
+    src = d / "source.json"
+    extra = ({"map_sources": {level: json.loads(src.read_text(encoding="utf-8"))}}
+             if src.exists() else {})
+    return {"values": values, "extra": extra}
+
+
+def recompute(values: dict) -> dict:
+    """What a level's stored numbers must equal, recomputed from its turn
+    means and counts (``check`` compares them)."""
+    fr = {k: values[k] for k in ("turn_mean_p", "u_bulk_per_turn")}
+    ub = [0.5 * (a + b) for a, b in zip(fr["u_bulk_per_turn"], fr["u_bulk_per_turn"][1:])]
+    f = [(a - b) * D / (L_TURN * 0.5 * u ** 2)
+         for a, b, u in zip(fr["turn_mean_p"], fr["turn_mean_p"][1:], ub)]
+    fr.update(u_bulk_per_pair=ub, f_per_pair=f)
+    nang = values["nang"]
+    return {"cells": assembly(nang).cell_count(), "layers_per_turn": LAYERS_PER_TURN[nang],
+            "area_ratio": area_ratio(nang), "u_bulk_per_pair": ub, "f_per_pair": f,
+            **derived(values["re"], fr)}
+
 
 if __name__ == "__main__":
     main()

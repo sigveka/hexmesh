@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/sigveka/hexmesh/validation/contrib.schema.json",
+  "title": "A volunteer run's contribution (validation/volunteer.py, decision 0044)",
+  "type": "object",
+  "required": ["format", "version", "case", "level", "results", "extra", "environment", "mesh",
+               "run", "log_tail"],
+  "additionalProperties": false,
+  "properties": {
+    "format": {"const": "hexmesh.validation.contribution"},
+    "version": {"const": 1},
+    "case": {"type": "string", "pattern": "^[a-z0-9_]{1,64}$"},
+    "level": {"type": "string", "pattern": "^[a-z0-9_]{1,64}$"},
+    "results": {
+      "description": "the level's values exactly as the case's driver stores them",
+      "type": "object",
+      "required": ["converged", "steps", "cells"],
+      "properties": {
+        "converged": {"type": "boolean"},
+        "steps": {"type": "integer", "minimum": 0},
+        "cells": {"type": "integer", "minimum": 1}
+      }
+    },
+    "extra": {"description": "case-wide values to merge (the driver's)", "type": "object"},
+    "environment": {
+      "type": "object",
+      "required": ["hexmesh", "gmsh", "python", "openfoam", "runner", "date"],
+      "additionalProperties": false,
+      "properties": {
+        "hexmesh": {"type": ["string", "null"], "maxLength": 64},
+        "gmsh": {"type": "string", "maxLength": 32},
+        "python": {"type": "string", "maxLength": 32},
+        "openfoam": {"type": "string", "maxLength": 32},
+        "runner": {"type": "string", "maxLength": 256},
+        "date": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$"}
+      }
+    },
+    "mesh": {
+      "type": "object",
+      "required": ["sha256", "method", "check"],
+      "additionalProperties": false,
+      "properties": {
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "method": {"type": "string", "maxLength": 200},
+        "check": {
+          "description": "checkMesh's summary (hexmesh.study.openfoam.check_mesh)",
+          "type": "object",
+          "required": ["mesh_ok", "cells_foam"],
+          "properties": {
+            "mesh_ok": {"type": "boolean"},
+            "cells_foam": {"type": "integer", "minimum": 1}
+          }
+        }
+      }
+    },
+    "run": {
+      "type": "object",
+      "required": ["cores", "runs", "wall_s", "peak_memory_gb", "peak_memory_how",
+                   "allow_version"],
+      "additionalProperties": false,
+      "properties": {
+        "cores": {"type": "integer", "minimum": 1},
+        "runs": {"type": "integer", "minimum": 1},
+        "wall_s": {"type": "number", "minimum": 0},
+        "peak_memory_gb": {"type": ["number", "null"], "minimum": 0},
+        "peak_memory_how": {"type": "string", "maxLength": 300},
+        "allow_version": {"type": "boolean"}
+      }
+    },
+    "log_tail": {
+      "description": "the last 200 lines of the solver log",
+      "type": "array",
+      "maxItems": 200,
+      "items": {"type": "string", "maxLength": 2000}
+    },
+    "contributor": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {"type": "string", "maxLength": 200},
+        "machine": {"type": "string", "maxLength": 200}
+      }
+    }
+  }
+}
