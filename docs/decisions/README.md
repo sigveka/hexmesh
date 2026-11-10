@@ -63,6 +63,7 @@ rejected.  Records are written in design sessions, and they are the only way
 | [0046](0046-gmsh-meshes-hexmesh-corrects.md) | gmsh meshes; hexmesh corrects node positions and says so | accepted |
 | [0047](0047-length-units.md) | Length units: plain constants in `hexmesh.units`, metres underneath | accepted |
 | [0048](0048-branches-on-curved-vessels.md) | Branches on curved vessels: placing junctions along a centreline | proposed |
+| [0049](0049-docs-site-from-markdown.md) | A docs site rendered from the Markdown by Essens | accepted |
 
 ## Future expansions
 

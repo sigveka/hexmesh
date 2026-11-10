@@ -46,3 +46,29 @@ after `init`, `lint`, `log`, `commit`).
   `render.html.pictures: linked` writes them to `assets/`.
 - No Markdown output: formats are html, html-fragment, jsonld, latex,
   pdf, revealjs, beamer.
+
+**Rendering hexmesh's own Markdown as a site** (the user's idea,
+2026-11-10: Markdown stays the source, Essens renders pages, as MkDocs or
+Jekyll would).  A scratch copy of all 233 tracked `.md` files outside
+`hexmesh/` and `tests/`, with their images and `references.bib`:
+`essens render --scratch --to html --pictures linked --output-dir site/ <files>`.
+- 233 pages in 15 s (156 MB peak), 21 MB with `assets/`.  Every `.md`
+  link became a page link; all 883 relative links and image paths and
+  every anchor resolve (GitHub-style slugs match), except links to
+  files that aren't docs (LICENSE, CITATION.cff, `case.json`,
+  `references.bib`).  RESEARCH: 189 inline and 14 display equations.
+- **Same-named files** (`validation/*/RESULTS.md`) clash as one document
+  id.  `folder-pages: [RESULTS]` in `essens.yaml` names each by its
+  folder (checked); `[RESULTS.md]`, the form the 0.1.4 hint suggests,
+  didn't match in the first 0.1.4 build.  The build installed
+  2026-11-10 23:43 (still `0.1.4`) matches both forms (checked), and
+  has the history wording in `--help` and `essens explain CODE`.
+- **A `.md` file is read with Essens's syntax** (decided by Essens):
+  `[[...]]` in prose is a reference; quote it in a code span.
+- `HtmlNotRead` flags `<placeholder>` text that GitHub silently strips:
+  it found three in hexmesh's docs.
+- **No site navigation or theme:** Essens renders and checks pages;
+  ordering, indexes and the site template are the project's own script
+  after render (`--fragment` into a generator, or full pages), by its
+  design ("The site is the project's", docs/CODE-PROJECTS.ess).  Whether
+  Essens ships a site template is an open question there.
