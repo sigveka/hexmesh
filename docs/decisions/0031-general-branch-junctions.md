@@ -271,3 +271,14 @@ full-width shoes fall fastest (min SJ 0.13 at 30°).
 3. **The 30° branch-run edge** (min SJ 0.224 on every pillowed shoe at
    30°, warned) is held: a run layer normal to the face may lift it, not
    before 1.0.  Common HVAC shoes are 45°.
+
+## Amendment: the equal-tee layout is the oriented cube; one opt-in (2026-11-10; the user: "opt-in, with a hint to the user when it may be necessary to do so")
+
+- **The equal-tee layout** (r = R, this decision's "wye family") is the
+  oriented junction cube of decision 0043's amendment of this date, for
+  equal tees and equal laterals.  Its angle range and tiers are set by
+  measurement (task 0122).
+- **"Users and agents never choose a layout"** gains one exception:
+  decision 0046's opt-in for hexmesh-written nodes (`Wye(…,
+  written_nodes=True)`; held).  It is a stored field, so the layout
+  still follows deterministically from the description.

@@ -1,9 +1,10 @@
 # 0121 — Example: an idealised aorta (arch, branches, taper and the iliac bifurcation)
 
-- **Status:** ready (after 0118 settles the wye route)
+- **Status:** ready (the wye route is settled: decision 0043, amendment 2026-11-10)
 - **Decision:** [0018 — Idealised vascular networks](../decisions/0018-future-vascular-networks.md) (a showcase within today's fittings, not 0018's input formats); [0043](../decisions/0043-wye-layout-redesign.md) (the bifurcation)
-- **Depends on:** 0118 (and 0117 if it runs): the wye layout that will
-  carry the iliac fork.  0062 (roll at any angle) for the arch branches.
+- **Depends on:** 0118 and 0117 (done): the iliac fork is today's
+  `Wye` (the hub), with equal daughters and `Reducer`s (decision 0043,
+  amendment 2026-11-10).  0062 (roll at any angle) for the arch branches.
 
 Ground rules for all tasks: [README](README.md#ground-rules).
 
@@ -38,9 +39,9 @@ earns one.
      each with a short branch run;
    - the descending and abdominal aorta: a `SplinePipe` and `Reducer`s
      for the taper;
-   - the iliac bifurcation: the wye layout 0118 (or 0117) settles, with
-     the daughters' own radius if that layout supports it; otherwise
-     equal daughters followed by `Reducer`s, noted as a stand-in.
+   - the iliac bifurcation: today's `Wye` with equal daughters followed
+     by `Reducer`s to the iliac radius, noted as a stand-in (unequal
+     daughters wait for task 0124).
    - **Lumen only** (one fluid layer); a vessel wall shell is optional
      if it builds without new limits.
 3. **Mesh and report** as the other examples: cell count before

@@ -4,7 +4,7 @@
   decision 0042's critical path).  The layout (A, B or C) is chosen by an
   amendment after task 0116.
 - **Date:** 2026-11-08
-- **Tasks:** 0116 (the measurement); 0117 (the B3 experiment, amendment 2026-11-09)
+- **Tasks:** 0116 (the measurement); 0117 (the B3 experiment, amendment 2026-11-09); 0118 (the cube, measured); 0122 (the cube behind `Tee`, amendment 2026-11-10); 0124 (B3 opt-in for `Wye`, held)
 
 ## Context
 
@@ -274,3 +274,62 @@ here).
 **Consequences:** no change to the gates, the API direction or the
 future-expansion checks above.  0018 (vascular) is helped by either
 route; the cube is the published vascular template too.
+
+## Amendment: the route after task 0117 (2026-11-10; the user: "go with option 1, my thouhts are that gmsh should be responsible for meshing", "opt-in, … go ahead and write it")
+
+**Measured** (task 0117): route B3 is feasible.  A discrete volume of
+hexmesh-written hexes between OCC transfinite straights passes every
+gate fixed in this decision's 2026-11-09 amendment: conformal by
+construction (port tags reused, no node duplicated), `checkMesh` v2406
+with one region and the groups as patches, no inverted cells, byte-
+identical on reruns, on gmsh 4.12.1 and 4.15.2.  Tutorial x2's OCC
+limit did not apply.  What 0117 didn't measure: a junction layout's
+quality or crease error under B3.
+
+**Decided:**
+1. **B3 is not the default route,** on the user's principle (decision
+   0046): gmsh creates every element of a default build.  This changes
+   this decision's rule after a result, so the reason is recorded: it is
+   a principle about which tool meshes, not the result, and it sets
+   aside the route that *passed*.
+2. **The rule falls to C:** a layout for equal tees and equal laterals,
+   on gmsh's transfinite path.  **C is the oriented junction cube**
+   (task 0118), behind `Tee(branch_radius = R)` at any supported angle
+   (decision 0031: users never choose the layout).  **Symmetric wyes keep
+   today's hub** (`Wye`, unchanged), which builds the 60° cases the cube
+   folds.
+3. **The crease gate is not moved; the cube misses it, stated.**  The
+   equal tee's crease chord is 3.7 % R at `nang` 8 (4.1 % shelled),
+   first order in `nang` (about `nang` 33 for 1 %).  It is stated in the
+   GUIDE and in the fitting's docstring, per angle as measured.  Wall
+   projection can't remove it: the error is cells straddling the crease,
+   not nodes off the wall.  The route to the crease on tees is decision
+   0045 (a rounded crotch: no crease), proposed.
+4. **The lateral angles** the cube supports, and their tiers (warn,
+   error), are set by measurement in the implementation task (0122),
+   from 90° down: 0118 measured 90° (SJ 0.577) and 45° (0.134, warns).
+5. **B3 survives as an opt-in for `Wye`** (decision 0046, rule 3):
+   `Wye(…, written_nodes=True)`, task 0124, held until after 0122.  It is
+   built only if its layout meets this decision's gates (unchanged) on a
+   case where the hub misses them; the hint then names it for those
+   cases.
+
+**Consequences:**
+- **Task 0122:** the cube behind `Tee`.  The error
+  `equal_tee_unsupported` goes; the τ < r/R < 1 hint keeps "an equal
+  tee".  `_cube_probe.py` is folded into the layout; `_wye_probe.py`
+  stays private until 0124 settles.
+- **DESIGN §7** gains §7.2 "Equal tee: the oriented cube" from 0122's
+  proposed wording.  §7.2 "Wye" (promised by decision 0017) follows when
+  the wye changes; it doesn't change now.
+- **This decision's API direction** (per-daughter angles and radii on
+  `Wye`) is deferred: the hub doesn't take them (task 0116), and the
+  opt-in is the place to measure them (0124).  Unequal daughters are
+  built as equal daughters followed by `Reducer`s meanwhile.
+- **Milestone 0.6** shrinks: no native realisation path before 1.0.
+  Decision 0007 is amended to match.
+- **Task 0104's held follow-up** (port-face edges as lines) stays held.
+- **Future expansions:** 0018 (vascular) gets tees at any ratio and
+  equal laterals; odd-angle bifurcations wait for 0124.  0040 (agents):
+  the `Tee` schema is unchanged except that r = R now builds.  0021,
+  0030, 0035: none.

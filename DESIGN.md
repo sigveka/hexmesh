@@ -65,6 +65,12 @@ claim on all three.
 5. **Topology and density are separate.** Topology (`n_outer`, `rot`,
    layer stack) fixes where interfaces land.  Density (`nang`, `nrad`,
    `n_layers`, grading) only sets resolution and can be scaled freely.
+6. **gmsh meshes; hexmesh corrects, and says so.** gmsh creates every
+   element of a default build.  hexmesh may move nodes onto the exact
+   geometry afterwards (wall projection, second-order wall nodes), and
+   records every such move in the quality report and the manifest.
+   Elements written by hexmesh are an explicit opt-in per fitting,
+   always stated ([decision 0046](docs/decisions/0046-gmsh-meshes-hexmesh-corrects.md)).
 
 ---
 

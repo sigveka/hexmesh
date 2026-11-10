@@ -163,3 +163,15 @@ To settle first:
 - **Assumed:** that every future
   fitting's geometry can be expressed analytically; native TFI node
   positions matching gmsh's.
+
+## Amendment: gmsh meshes (2026-11-10; decision 0046, the user: "gmsh should be responsible for meshing since it is the trusted tool")
+
+- **Option C (native realisation) is closed as a backend.**  It
+  survives only as decision 0046's opt-in: elements written by hexmesh,
+  per fitting, explicit and reported (`Wye(written_nodes=True)`, task
+  0124, held).
+- **Option D (gmsh-only) holds for element generation.**  hexmesh may
+  correct node positions afterwards (projection, second-order wall
+  nodes), recorded in the report.
+- **Option B** (a neutral block description) stays proposed: a refactor
+  that doesn't change who meshes.

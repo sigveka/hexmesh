@@ -367,6 +367,12 @@ $$
     - **Reading:** the cube is the layout for tees (and builds laterals),
       the hub for symmetric wyes.  Neither meets the 1 % crease gate, so
       by decision 0043's rule task 0117 (B3) runs next.
+    - **Then (task 0117):** B3 is feasible: hexmesh-written hexes
+      between OCC transfinite straights pass every gate
+      (`docs/integrations/gmsh.md`).  The user set it aside as a default
+      (decision 0046: gmsh meshes), so the cube goes behind `Tee` with
+      its crease error stated (decision 0043, amendment 2026-11-10), and
+      B3 is an opt-in candidate for `Wye` (task 0124).
 - [`verma_and_fischer_etal_2005`]: a bifurcation split into three
   tubes by Laplace-equation coordinates, then swept.  Abstract only.
   Its nodes come from PDE solves, which doesn't fit "fail before

@@ -88,3 +88,12 @@ the layout that will stay.  Settle first:
 - **Assumed:** that forged tees' crotches are radiused enough to matter
   (common knowledge of B16.9 fittings; no dimension source yet); that a
   blended wall's chord error is second order on hexmesh's layouts.
+
+## Note (2026-11-10)
+
+Decision 0043's amendment of this date sets B3 aside as the default and
+takes the oriented cube for equal tees, with its crease error (3.7 % R
+at `nang` 8) stated.  The wye route is now chosen, so this decision's
+precondition holds.  It is the route to the crease gate on tees that
+stays within gmsh's meshing (decision 0046).  Still proposed: items
+1–4 above settle first.

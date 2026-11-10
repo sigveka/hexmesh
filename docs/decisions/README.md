@@ -60,6 +60,7 @@ rejected.  Records are written in design sessions, and they are the only way
 | [0043](0043-wye-layout-redesign.md) | The wye-layout redesign: equal tees, asymmetric and unequal daughters, creases | accepted (measure first) |
 | [0044](0044-volunteer-runs.md) | Volunteer runs: heavy validation cases that others can run and we can check | accepted |
 | [0045](0045-rounded-branch-intersections.md) | Rounded branch intersections: forged tees with a radiused crotch | proposed |
+| [0046](0046-gmsh-meshes-hexmesh-corrects.md) | gmsh meshes; hexmesh corrects node positions and says so | accepted |
 
 ## Future expansions
 
