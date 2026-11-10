@@ -48,6 +48,15 @@ Writes ``docs/gallery/img/<name>.png`` (overview), ``<name>_section.png``
 A full run also renders ``img/hero.png``, the README's cut-away of
 ``insulated_network``.
 
+**Cut-aways.**  An example that defines ``gallery_cutaway()`` also gets
+``img/<name>_cutaway.png``: its mesh with whole cells removed, to show
+the blocks inside.  The function returns a dict: ``keep`` (cell centres,
+an (n, 3) array → a boolean mask of the cells drawn), ``direction`` (from
+the focus towards the camera), ``up``, and optionally ``focus`` and
+``colours`` (``wall``, ``cut``, ``ends``: each a (face, edge) pair of hex
+strings; :data:`CUTAWAY` otherwise).  Faces are drawn by what they are:
+the wall, the open ends, and every other exposed face as cut.
+
 **README.md** (task 0078): every run, ``--markdown-only`` included,
 rewrites two marked blocks, ``readme:metrics`` (``insulated_tee``'s
 numbers from ``metrics.json``) and ``readme:validation`` (one row per
@@ -85,6 +94,11 @@ PALETTE = ["#3b7dd8", "#d9822b", "#5aa469", "#a361c7", "#c9b037"]
 COLOUR_NAMES = ["blue", "orange", "green", "purple", "yellow"]
 WALL = "#d5d9df"
 EDGE = "#55606e"
+# Cut-away images: (face, edge) per kind of face.
+CUTAWAY = {"wall": ("#b3202a", "#5a0d12"), "cut": ("#f2b8a2", "#8c3b2e"),
+           "ends": ("#2a6f97", "#123a52")}
+# VTK's hexahedron faces, outward for gmsh's (= VTK's) node order.
+HEX_FACES = [(0, 3, 2, 1), (4, 5, 6, 7), (0, 1, 5, 4), (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7)]
 
 
 # --------------------------------------------------------------------------
@@ -252,6 +266,110 @@ def render(scene: dict, path: Path, size, view: str, fit: bool = False) -> None:
         im.save(path)
 
 
+def cutaway_scene(asm, spec: dict) -> dict:
+    """Faces of the cells *spec*'s ``keep`` draws, sorted into wall, open
+    ends and cut (every other face exposed by the cut)."""
+    import gmsh
+    import numpy as np
+
+    tags, xyz, _ = gmsh.model.mesh.getNodes()
+    xyz = xyz.reshape(-1, 3)
+    index = {int(t): i for i, t in enumerate(tags)}
+    roles = asm.group_roles()
+    hexes, kind = [], {}
+    for dim, tag in gmsh.model.getPhysicalGroups():
+        role = roles.get(gmsh.model.getPhysicalName(dim, tag))
+        if dim not in (2, 3) or (dim == 2 and role not in ("wall", "open_end")):
+            continue
+        for e in gmsh.model.getEntitiesForPhysicalGroup(dim, tag):
+            for typ, conn in zip(*gmsh.model.mesh.getElements(dim, e)[::2]):
+                if dim == 3 and typ == 5:                   # 8-node hexahedron
+                    hexes.append(np.asarray(conn, np.int64).reshape(-1, 8))
+                elif dim == 2 and typ == 3:                 # 4-node quadrangle
+                    for q in np.asarray(conn, np.int64).reshape(-1, 4):
+                        kind[frozenset(index[int(v)] for v in q)] = \
+                            "wall" if role == "wall" else "ends"
+    hexes = np.vectorize(index.get)(np.vstack(hexes))
+    keep = hexes[np.asarray(spec["keep"](xyz[hexes].mean(axis=1)), bool)]
+    seen: dict = {}
+    for h in keep:
+        for f in HEX_FACES:
+            q = tuple(int(h[i]) for i in f)
+            k = frozenset(q)
+            seen[k] = None if k in seen else q
+    polys: dict[str, list] = {"wall": [], "ends": [], "cut": []}
+    for k, q in seen.items():
+        if q is not None:
+            polys[kind.get(k, "cut")].append(q)
+    pts = xyz[np.unique(keep)]
+    return {"xyz": xyz, "polys": polys, "colours": {**CUTAWAY, **spec.get("colours", {})},
+            "direction": np.asarray(spec["direction"], float), "up": spec["up"],
+            "focus": np.asarray(spec.get("focus", pts.mean(axis=0)), float)}
+
+
+def render_cutaway(scene: dict, path: Path, width: int = 1000) -> None:
+    """Render :func:`cutaway_scene`'s faces, lit, cropped to the mesh."""
+    import numpy as np
+    import vtk
+    from PIL import Image, ImageChops
+
+    def rgb(h):
+        return tuple(int(h[i:i + 2], 16) / 255 for i in (1, 3, 5))
+
+    points = vtk.vtkPoints()
+    for p in scene["xyz"]:
+        points.InsertNextPoint(*p)
+    ren = vtk.vtkRenderer()
+    ren.SetBackground(1, 1, 1)
+    for key, polys in scene["polys"].items():
+        if not polys:
+            continue
+        cells = vtk.vtkCellArray()
+        for q in polys:
+            cells.InsertNextCell(len(q), q)
+        data = vtk.vtkPolyData()
+        data.SetPoints(points)
+        data.SetPolys(cells)
+        mapper = vtk.vtkPolyDataMapper()
+        mapper.SetInputData(data)
+        actor = vtk.vtkActor()
+        actor.SetMapper(mapper)
+        prop = actor.GetProperty()
+        face, edge = scene["colours"][key]
+        prop.SetColor(*rgb(face))
+        prop.EdgeVisibilityOn()
+        prop.SetEdgeColor(*rgb(edge))
+        prop.SetLineWidth(0.7)
+        prop.SetSpecular(0.25)
+        prop.SetSpecularPower(20)
+        ren.AddActor(actor)
+    cam = ren.GetActiveCamera()
+    d = scene["direction"] / np.linalg.norm(scene["direction"])
+    cam.SetPosition(*(scene["focus"] + d))
+    cam.SetFocalPoint(*scene["focus"])
+    cam.SetViewUp(*scene["up"])
+    ren.ResetCamera()
+    win = vtk.vtkRenderWindow()
+    win.SetOffScreenRendering(1)
+    win.SetMultiSamples(8)
+    win.AddRenderer(ren)
+    win.SetSize(2 * width, 2 * width)
+    win.Render()
+    grab = vtk.vtkWindowToImageFilter()
+    grab.SetInput(win)
+    grab.Update()
+    writer = vtk.vtkPNGWriter()
+    writer.SetFileName(str(path))
+    writer.SetInputConnection(grab.GetOutputPort())
+    writer.Write()
+    im = Image.open(path).convert("RGB")
+    box = ImageChops.difference(im, Image.new("RGB", im.size, "white")).getbbox()
+    pad = int(0.03 * max(box[2] - box[0], box[3] - box[1]))
+    im = im.crop((max(box[0] - pad, 0), max(box[1] - pad, 0),
+                  min(box[2] + pad, im.width), min(box[3] + pad, im.height)))
+    im.resize((width, round(im.height * width / im.width)), Image.LANCZOS).save(path)
+
+
 def worker(qualname: str, out: Path) -> None:
     module = importlib.import_module(f"hexmesh.examples.{qualname}")
     name = qualname.split(".")[-1]
@@ -262,6 +380,8 @@ def worker(qualname: str, out: Path) -> None:
         t = time.perf_counter()
         captured["metrics"] = measure(asm)
         captured["overview"], captured["section"] = faces(asm)
+        if hasattr(module, "gallery_cutaway"):
+            captured["cutaway"] = cutaway_scene(asm, module.gallery_cutaway())
         spent[0] = time.perf_counter() - t
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -273,6 +393,9 @@ def worker(qualname: str, out: Path) -> None:
     render(captured["overview"], IMG / f"{name}.png", (1000, 560), "overview")
     render(captured["section"], IMG / f"{name}_section.png", (420, 420), "section")
     m = captured["metrics"]
+    if "cutaway" in captured:
+        render_cutaway(captured["cutaway"], IMG / f"{name}_cutaway.png")
+        m["cutaway"] = True
     m.update(predicted=result.predicted, meshed=result.meshed,
              build_s=round(build, 2))
     out.write_text(json.dumps(m, indent=1), encoding="utf-8")
@@ -572,6 +695,9 @@ def example_md(qualname: str, m: dict | None) -> str:
         out += [f'<p><img src="gallery/img/{name}.png" width="68%" alt="{name}"> '
                 f'<img src="gallery/img/{name}_section.png" width="29%" '
                 f'alt="{name}, inlet section"></p>', ""]
+        if m.get("cutaway"):
+            out += [f'<p><img src="gallery/img/{name}_cutaway.png" width="60%" '
+                    f'alt="{name}, cut away"></p>', ""]
     out += [body, "", "```bash", f"python3 -m hexmesh.examples.{qualname}", "```", ""]
     if not m:
         out += ["_Not measured yet._", ""]

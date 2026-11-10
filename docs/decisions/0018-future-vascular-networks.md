@@ -93,6 +93,11 @@ if one is affected (decisions README, template).
 8. **Units and scale.**  Vessels are millimetres; nothing should assume
    pipe-sized defaults (e.g. tolerances in absolute metres).
 
+**Note (2026-11-10):** the idealised aorta (task 0121) found three gaps
+for branches on curved vessels, recorded as decision 0048 (proposed): a
+centreline route builder, upstream leans, a branch on a curved main.
+Length units: decision 0047 (`hexmesh.units`), for constraint 8.
+
 **Note (2026-10-28):** idealised aneurysms come with decision 0008's
 bulge amendment: `("cosine", s0 < 0)`, task 0055.  Validation reference
 for later: [`salsac_and_sparks_etal_2006`] (RESEARCH §7.5).

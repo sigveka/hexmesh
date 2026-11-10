@@ -28,7 +28,8 @@ HEX27, HEX20 = 12, 17
 R, L, RHO = 0.1, 0.4, 0.3
 WYES = {"fittings.wye", "fittings.junction_walls", "sections.insulated_network",
         "networks.bifurcation_tree", "applications.cooling_channels",
-        "fittings.equal_tee"}   # and the equal tee (task 0122)
+        "fittings.equal_tee",   # and the equal tee (task 0122)
+        "applications.idealised_aorta"}   # its iliac wye (task 0121)
 
 
 def _integrate(dim, entities):

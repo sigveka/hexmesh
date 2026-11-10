@@ -7,7 +7,8 @@
   so, go ahead and write it")
 - **Date:** 2026-11-10
 - **Tasks:** 0123 (the report of what hexmesh changed); 0124 (written
-  nodes for `Wye`, opt-in; held)
+  nodes for `Wye`, opt-in; held); 0130 (the bend's arc placement,
+  amendment 2026-11-10)
 
 ## Context
 
@@ -102,3 +103,18 @@ generation in the junctions, the hardest part of the mesh.
   record and warning (`hexmesh/assembly/assembler.py`, decision 0029).
 - **Assumed:** that a B3 wye layout does better than the hub on some
   case (task 0124 measures; until then the opt-in isn't offered).
+
+## Amendment (2026-11-10): rule 5 covers every node hexmesh moves
+
+Task 0123 found a third correction its words didn't name: at `order=2`,
+a bend's high-order nodes between stations are placed exactly on its
+arcs (`_revolve_high_order`), wall and interior, so it reported "none"
+for a bend.  The list in *Context* and rule 2 ("projection, second-order
+wall nodes") gave examples, not a closed set.  Agreed with the user
+(2026-11-10: "I agree"):
+
+- **Rule 5 covers every node hexmesh moves** after gmsh places it,
+  whatever the reason, wall or interior.  Each kind of correction is
+  its own entry in the record, with the same fields.
+- **A new correction** comes with its record entry in the same change.
+- Task 0130 records the bend's arc placement.

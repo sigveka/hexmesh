@@ -61,6 +61,8 @@ rejected.  Records are written in design sessions, and they are the only way
 | [0044](0044-volunteer-runs.md) | Volunteer runs: heavy validation cases that others can run and we can check | accepted |
 | [0045](0045-rounded-branch-intersections.md) | Rounded branch intersections: forged tees with a radiused crotch | proposed |
 | [0046](0046-gmsh-meshes-hexmesh-corrects.md) | gmsh meshes; hexmesh corrects node positions and says so | accepted |
+| [0047](0047-length-units.md) | Length units: plain constants in `hexmesh.units`, metres underneath | accepted |
+| [0048](0048-branches-on-curved-vessels.md) | Branches on curved vessels: placing junctions along a centreline | proposed |
 
 ## Future expansions
 

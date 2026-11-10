@@ -49,6 +49,7 @@ What each example shows, what its mesh looks like, and how good the cells are.  
 | [hvac_branched](#hvac_branched) | Branched ventilation supply: a fan's round outlet, a flat main duct with three taps, and a bend at the end of the run. | 24 704 | 0.157 | 0.421 | 6.0 s |
 | [cooling_channels](#cooling_channels) | Cooling channels: a supply pipe split by a wye into two flat rectangular channels, each returning to a round outlet. | 8 280 | 0.152 | 0.204 | 5.0 s |
 | [pcf_line](#pcf_line) | A plant line from a PCF isometric: the network comes from the file, not from Python. | 35 712 | 0.062 | 0.258 | 9.1 s |
+| [idealised_aorta](#idealised_aorta) | Idealised aorta: the arch with its three branches, the tapering descending and abdominal aorta, and the iliac bifurcation. | 40 448 | 0.089 | 0.133 | 17.3 s |
 
 ## Fittings: one building block each
 
@@ -759,8 +760,8 @@ python3 -m hexmesh.examples.networks.skewed_network
 
 ## Applications: equipment and engineering cases
 
-Networks starting at equipment nozzles, ventilation ducting, and cooling
-channels: the examples closest to a real model.
+Networks starting at equipment nozzles, ventilation ducting, cooling
+channels, and an idealised aorta: the examples closest to a real model.
 
 ### drum_nozzle
 
@@ -910,6 +911,97 @@ python3 -m hexmesh.examples.applications.pcf_line
 - **Walls:** `insulation_end`, `insulation_wall`, `steel_wall`
 - **Interfaces:** `interface_fluid_steel`, `interface_steel_insulation`
 - **Colours:** fluid blue, steel orange, insulation green; walls grey.
+
+### idealised_aorta
+
+**Idealised aorta: the arch with its three branches, the tapering descending and abdominal aorta, and the iliac bifurcation.**
+
+<p><img src="gallery/img/idealised_aorta.png" width="68%" alt="idealised_aorta"> <img src="gallery/img/idealised_aorta_section.png" width="29%" alt="idealised_aorta, inlet section"></p>
+
+<p><img src="gallery/img/idealised_aorta_cutaway.png" width="60%" alt="idealised_aorta, cut away"></p>
+
+A lumen-only model built from hexmesh's ordinary fittings: a `Reducer`
+for the ascending aorta, `SplinePipe` pieces along a slightly
+non-planar arch, three `Tee`s for the arch branches, `Reducer`s for
+the taper, and a `Wye` for the iliac fork.  No patient data.
+
+**Where each number comes from** (metres in the code; the sources'
+centimetres here):
+
+- **Thoracic aorta**, Mansouri et al. 2024 (`mansouri_and_kemerli_etal_2024`),
+  Table 10, the Normal (Type I) idealised model, weighted averages of
+  published cohorts:
+  ascending diameter D1 3.17, arch D2 2.65, mid-descending D3 2.5;
+  arch width W 7.95 and height H 4.06; transverse curvature R 12.2;
+  sinotubular junction (STJ) to the arch's start L 2.6; STJ to the
+  brachiocephalic artery a 7.62; brachiocephalic to left common carotid
+  d1 1.68; left common carotid to left subclavian d2 3.44; branch
+  diameters 1.47 (brachiocephalic), 0.97 (left common carotid), 1.14
+  (left subclavian).
+- **Abdominal aorta and iliacs**, Minichil et al. 2022
+  (`minichil_and_tesfaye_etal_2022`), Table 1, all 136 adults (outer
+  diameters on CT, so the lumen is slightly smaller): aortic hiatus 2.13,
+  suprarenal 1.91, infrarenal 1.63, common iliac 1.11 (right) and 1.10
+  (left), taken here as 1.10 for both.
+- **Bifurcation angle**, Góes Junior et al. 2020
+  (`goes_and_albuquerque_etal_2020`): about 44° in women at every age and
+  45.5° in men aged 20–30; taken as 45°.
+
+**Not from a source** (modelling choices, stated as such):
+- the arch's centreline shape: a half-ellipse above the arch's start,
+  bowed out of plane by the sagitta of R over the arch's width;
+- **the arch is 1.2 × the cited W and H** (9.54 × 4.87).  At the cited
+  size it can't carry three branches from straight tees: each needs
+  about two branch diameters of straight run, and the spline joining
+  two tees then turns tighter than the aorta's own radius, which
+  `SplinePipe` rejects.  1.2 is the smallest scale tried (in steps of
+  0.1) that builds;
+- **the left common carotid and left subclavian move downstream** to
+  10.96 and 14.14 from the STJ (cited 9.30 and 12.74): a branch's tee
+  starts at least half an arch diameter of curved arch after the
+  previous one (`GAP`), so the spline between them can turn.  The
+  brachiocephalic stays at its cited 7.62.  `PLACED` holds the
+  positions;
+- the descending thoracic (20 cm) and abdominal (13 cm) lengths and the
+  common iliac length (5 cm): no normative centreline lengths were found
+  with the sources above;
+- the branches' outlet extensions (four branch diameters), which let a
+  flow case's outlets sit away from the junctions.
+
+**Idealised in hexmesh's terms:**
+- the branches leave square to the arch, along its outward normal
+  (Mansouri's angles to the arch are 84.8°, 73.3° and 69.8°; a `Tee`
+  leans only downstream, and the arch branches lean toward the head);
+- each tee's run is straight, along the arch's tangent at the branch,
+  and the pieces between are splines on a smooth (Hermite) curve
+  between the tees, not on the ellipse itself;
+- the visceral and renal branches are left out;
+- the iliacs leave the wye at the infrarenal diameter (a `Wye`'s
+  daughters keep the inlet's section) and narrow to the common iliac
+  diameter in a `Reducer` each: a stand-in for a fork with unequal
+  daughters.
+
+**Quality** (`nang` 8): the three arch tees warn (predicted min SJ
+0.20, 0.14 and 0.15: small branch ratios, r/R 0.37–0.56), the left
+common carotid's turn block also on non-orthogonality (70.6°), and the
+wye on its crotch's non-orthogonality (79°), as every wye does.  No cell
+is inverted.
+
+Inlet `aortic_root`; outlets `brachiocephalic`,
+`left_common_carotid`, `left_subclavian`, `right_common_iliac` and
+`left_common_iliac`, so a flow case can be set up from the patch names.
+
+```bash
+python3 -m hexmesh.examples.applications.idealised_aorta
+```
+
+| Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
+|---|---|---|---|---|---|---|---|
+| 24: Reducer ×7, SplinePipe ×4, Straight ×9, Tee ×3, Wye | 651 | 40 448 | 0.089 | 0.577 | 0.133 (#19 Wye) | 20.3 | 17.3 s |
+
+- **Open ends:** `fluid_aortic_root`, `fluid_brachiocephalic`, `fluid_left_common_carotid`, `fluid_left_common_iliac`, `fluid_left_subclavian`, `fluid_right_common_iliac`
+- **Walls:** `fluid_wall`
+- **Colours:** fluid blue; walls grey.
 
 ## Validation
 
@@ -1133,4 +1225,4 @@ Which hexmesh features each case exercises (decision 0012's fixed list). Marks: 
 
 ---
 
-Generated 2026-11-10 from hexmesh 39db888 + uncommitted changes, gmsh 4.12.1, Python 3.12.3, 8 CPUs, 1 job(s).
+Generated 2026-11-10 from hexmesh 3bdc2d0 + uncommitted changes, gmsh 4.12.1, Python 3.12.3, 8 CPUs, 1 job(s).

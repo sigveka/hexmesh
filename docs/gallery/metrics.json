@@ -1,7 +1,7 @@
 {
  "meta": {
   "date": "2026-11-10",
-  "commit": "39db888 + uncommitted changes",
+  "commit": "3bdc2d0 + uncommitted changes",
   "gmsh": "4.12.1",
   "python": "3.12.3",
   "cpus": 8,
@@ -1162,6 +1162,46 @@
    "predicted": 8000,
    "meshed": 8000,
    "build_s": 2.75
+  },
+  "applications.idealised_aorta": {
+   "fittings": 24,
+   "fitting_types": {
+    "Reducer": 7,
+    "SplinePipe": 4,
+    "Straight": 9,
+    "Tee": 3,
+    "Wye": 1
+   },
+   "volumes": 651,
+   "materials": [
+    "fluid"
+   ],
+   "min_sicn": 0.08880579338981244,
+   "mean_sicn": 0.5769879074899135,
+   "min_sj": 0.1334131325431257,
+   "min_sj_fitting": "#19 Wye",
+   "max_aspect": 20.32742386928543,
+   "groups": {
+    "open_end": [
+     "fluid_aortic_root",
+     "fluid_brachiocephalic",
+     "fluid_left_common_carotid",
+     "fluid_left_common_iliac",
+     "fluid_left_subclavian",
+     "fluid_right_common_iliac"
+    ],
+    "wall": [
+     "fluid_wall"
+    ],
+    "interface": [],
+    "volume": [
+     "fluid"
+    ]
+   },
+   "cutaway": true,
+   "predicted": 40448,
+   "meshed": 40448,
+   "build_s": 17.27
   }
  },
  "validation": {

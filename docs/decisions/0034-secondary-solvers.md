@@ -5,8 +5,8 @@
   by FEniCSx.  Nek5000/NekRS stays proposed.
 - **Date:** 2026-10-31
 - **Tasks:** 0076 (second-order export), 0077 (FEniCSx toolchain and
-  second-order verification).  Task 0074 carries a FEniCSx option as a
-  note.
+  second-order verification), 0130 (the "experimental" label, note
+  2026-11-10).  Task 0074 carries a FEniCSx option as a note.
 
 ## Context
 
@@ -172,3 +172,12 @@ If accepted:
 - **0030 (suite):** this is the first instance of the suite's solver
   adapters; keep the adapter interface solver-neutral (mesh path, case
   directory, results), not OpenFOAM-shaped.
+
+## Note (2026-11-10): second-order export is experimental until task 0077
+
+The user (2026-11-10): "the second order export is also experimental
+until we have run validation".  `mesh(order=2)` and `write(…, order=2)`
+are labelled experimental in the user docs (README, API.md, GUIDE,
+CHANGELOG) until task 0077's FEniCSx check passes; that task's outcome
+lifts the label.  Docs only: no runtime warning, so scripts and
+`warnings`-as-errors test runs are unaffected.  Task 0130 adds the label.
