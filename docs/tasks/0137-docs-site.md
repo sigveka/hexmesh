@@ -51,6 +51,12 @@ licences, and `site.css`, ours), `.github/workflows/docs.yml`
   time (no CDN); light, dark, phone width and print checked.
 - No `.md` file needs Essens-only syntax; the doc tests pass unchanged.
 
+**For Essens** (its session asked, 2026-11-10: Essens ships no site
+template for now and will revisit from what a project needs): *Outcome*
+lists what `docs/site.py` ends up doing beyond Essens's render (nav,
+template, link rewriting, KaTeX swap, checks), each with its line count;
+the design session passes it on.
+
 **Out of scope.**  `.ess` sources; Essens history features; search (a
 follow-up if wanted).
 
