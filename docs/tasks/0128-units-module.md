@@ -31,7 +31,13 @@ in every script.  One module of plain constants, metres underneath.
    is, its value, and whether a 1 mm vessel (radius 0.5 mm) would trip it.
    Fix it only if the fix is a one-line change to a relative tolerance
    with no mesh change; list the rest under *Questions for design*.
-5. **Test:** a scaled build: the README's first example and one junction
+5. **The docs disagree today:** `hexmesh/core/params.py` says the
+   `length` unit is "the user's length unit: hexmesh never converts",
+   while API.md says lengths are metres (the architecture review,
+   2026-11-10).  After step 4's audit, make both say the same thing,
+   matching what the audit finds (metres, or any one unit if hexmesh is
+   scale-free); the agent schema's `x-unit` text follows.
+6. **Test:** a scaled build: the README's first example and one junction
    example with every length × 1e-3 (millimetre scale) validate and mesh
    with the same cell count and the same min SJ (to 1e-9) as at full
    size.  If one doesn't, that's an audit finding.

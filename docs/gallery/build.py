@@ -102,6 +102,79 @@ HEX_FACES = [(0, 3, 2, 1), (4, 5, 6, 7), (0, 1, 5, 4), (1, 2, 6, 5), (2, 3, 7, 6
 
 
 # --------------------------------------------------------------------------
+# Rendering helpers, shared by every image
+# --------------------------------------------------------------------------
+
+def rgb(h: str) -> tuple[float, float, float]:
+    """``"#rrggbb"`` as VTK's 0–1 floats."""
+    return tuple(int(h[i:i + 2], 16) / 255 for i in (1, 3, 5))
+
+
+def vtk_points(xyz):
+    """A ``vtkPoints`` of the mesh's nodes, in their order."""
+    import vtk
+    points = vtk.vtkPoints()
+    for p in xyz:
+        points.InsertNextPoint(*p)
+    return points
+
+
+def poly_actor(points, polys, face: str, edge: str, width: float):
+    """An actor drawing *polys* (node-index lists into *points*) with face
+    colour *face*, edges *edge* of line *width*; returns it (its property
+    is the caller's to adjust further)."""
+    import vtk
+    cells = vtk.vtkCellArray()
+    for poly in polys:
+        cells.InsertNextCell(len(poly), poly)
+    data = vtk.vtkPolyData()
+    data.SetPoints(points)
+    data.SetPolys(cells)
+    mapper = vtk.vtkPolyDataMapper()
+    mapper.SetInputData(data)
+    actor = vtk.vtkActor()
+    actor.SetMapper(mapper)
+    prop = actor.GetProperty()
+    prop.SetColor(*rgb(face))
+    prop.EdgeVisibilityOn()
+    prop.SetEdgeColor(*rgb(edge))
+    prop.SetLineWidth(width)
+    return actor
+
+
+def snapshot(ren, path: Path, size) -> None:
+    """Render *ren* off screen at *size* (8× multisampling) to a PNG."""
+    import vtk
+    win = vtk.vtkRenderWindow()
+    win.SetOffScreenRendering(1)
+    win.SetMultiSamples(8)
+    win.AddRenderer(ren)
+    win.SetSize(*size)
+    win.Render()
+    grab = vtk.vtkWindowToImageFilter()
+    grab.SetInput(win)
+    grab.Update()
+    writer = vtk.vtkPNGWriter()
+    writer.SetFileName(str(path))
+    writer.SetInputConnection(grab.GetOutputPort())
+    writer.Write()
+
+
+def crop_to_content(path: Path, width: int, pad: float) -> None:
+    """Crop the PNG at *path* to its non-white content plus a margin of
+    *pad* × its larger side, then scale it to *width*, in place."""
+    from PIL import Image, ImageChops
+    im = Image.open(path).convert("RGB")
+    box = ImageChops.difference(im, Image.new("RGB", im.size, "white")).getbbox()
+    if box:
+        m = int(pad * max(box[2] - box[0], box[3] - box[1]))
+        im = im.crop((max(box[0] - m, 0), max(box[1] - m, 0),
+                      min(box[2] + m, im.width), min(box[3] + m, im.height)))
+        im = im.resize((width, max(1, round(im.height * width / im.width))), Image.LANCZOS)
+    im.save(path)
+
+
+# --------------------------------------------------------------------------
 # Worker: one example, in its own process
 # --------------------------------------------------------------------------
 
@@ -183,39 +256,21 @@ def render(scene: dict, path: Path, size, view: str, fit: bool = False) -> None:
     import numpy as np
     import vtk
 
-    def rgb(h):
-        return tuple(int(h[i:i + 2], 16) / 255 for i in (1, 3, 5))
-
     ren = vtk.vtkRenderer()
     ren.SetBackground(1, 1, 1)
-    points = vtk.vtkPoints()
     xyz = scene["xyz"]
-    for p in xyz:
-        points.InsertNextPoint(*p)
+    points = vtk_points(xyz)
     used = []
     for key, polys in scene["polys"].items():
         if not polys:
             continue
-        cells = vtk.vtkCellArray()
         for poly in polys:
-            cells.InsertNextCell(len(poly), poly)
             used.extend(poly)
-        data = vtk.vtkPolyData()
-        data.SetPoints(points)
-        data.SetPolys(cells)
-        mapper = vtk.vtkPolyDataMapper()
-        mapper.SetInputData(data)
-        actor = vtk.vtkActor()
-        actor.SetMapper(mapper)
-        prop = actor.GetProperty()
         colour = WALL if key == "wall" or key is None else \
             PALETTE[scene["materials"].index(key) % len(PALETTE)]
-        prop.SetColor(*rgb(colour))
-        prop.EdgeVisibilityOn()
-        prop.SetEdgeColor(*rgb(EDGE))
-        prop.SetLineWidth(0.6 if view == "overview" else 1.0)
+        actor = poly_actor(points, polys, colour, EDGE, 0.6 if view == "overview" else 1.0)
         if view == "section":
-            prop.LightingOff()
+            actor.GetProperty().LightingOff()
         ren.AddActor(actor)
 
     pts = xyz[sorted(set(used))]
@@ -240,30 +295,9 @@ def render(scene: dict, path: Path, size, view: str, fit: bool = False) -> None:
     cam.SetViewUp(*up)
     ren.ResetCamera()
     cam.Zoom(1.15 if view == "overview" else 1.05)
-    win = vtk.vtkRenderWindow()
-    win.SetOffScreenRendering(1)
-    win.SetMultiSamples(8)
-    win.AddRenderer(ren)
-    win.SetSize(*((2 * size[0], 2 * size[1]) if fit else size))
-    win.Render()
-    grab = vtk.vtkWindowToImageFilter()
-    grab.SetInput(win)
-    grab.Update()
-    writer = vtk.vtkPNGWriter()
-    writer.SetFileName(str(path))
-    writer.SetInputConnection(grab.GetOutputPort())
-    writer.Write()
+    snapshot(ren, path, (2 * size[0], 2 * size[1]) if fit else size)
     if fit:
-        from PIL import Image, ImageChops
-        im = Image.open(path).convert("RGB")
-        box = ImageChops.difference(im, Image.new("RGB", im.size, "white")).getbbox()
-        if box:
-            pad = int(0.04 * max(box[2] - box[0], box[3] - box[1]))
-            im = im.crop((max(box[0] - pad, 0), max(box[1] - pad, 0),
-                          min(box[2] + pad, im.width), min(box[3] + pad, im.height)))
-            im = im.resize((size[0], max(1, round(im.height * size[0] / im.width))),
-                           Image.LANCZOS)
-        im.save(path)
+        crop_to_content(path, size[0], 0.04)
 
 
 def cutaway_scene(asm, spec: dict) -> dict:
@@ -311,37 +345,16 @@ def render_cutaway(scene: dict, path: Path, width: int = 1000) -> None:
     """Render :func:`cutaway_scene`'s faces, lit, cropped to the mesh."""
     import numpy as np
     import vtk
-    from PIL import Image, ImageChops
 
-    def rgb(h):
-        return tuple(int(h[i:i + 2], 16) / 255 for i in (1, 3, 5))
-
-    points = vtk.vtkPoints()
-    for p in scene["xyz"]:
-        points.InsertNextPoint(*p)
+    points = vtk_points(scene["xyz"])
     ren = vtk.vtkRenderer()
     ren.SetBackground(1, 1, 1)
     for key, polys in scene["polys"].items():
         if not polys:
             continue
-        cells = vtk.vtkCellArray()
-        for q in polys:
-            cells.InsertNextCell(len(q), q)
-        data = vtk.vtkPolyData()
-        data.SetPoints(points)
-        data.SetPolys(cells)
-        mapper = vtk.vtkPolyDataMapper()
-        mapper.SetInputData(data)
-        actor = vtk.vtkActor()
-        actor.SetMapper(mapper)
-        prop = actor.GetProperty()
-        face, edge = scene["colours"][key]
-        prop.SetColor(*rgb(face))
-        prop.EdgeVisibilityOn()
-        prop.SetEdgeColor(*rgb(edge))
-        prop.SetLineWidth(0.7)
-        prop.SetSpecular(0.25)
-        prop.SetSpecularPower(20)
+        actor = poly_actor(points, polys, *scene["colours"][key], 0.7)
+        actor.GetProperty().SetSpecular(0.25)
+        actor.GetProperty().SetSpecularPower(20)
         ren.AddActor(actor)
     cam = ren.GetActiveCamera()
     d = scene["direction"] / np.linalg.norm(scene["direction"])
@@ -349,25 +362,8 @@ def render_cutaway(scene: dict, path: Path, width: int = 1000) -> None:
     cam.SetFocalPoint(*scene["focus"])
     cam.SetViewUp(*scene["up"])
     ren.ResetCamera()
-    win = vtk.vtkRenderWindow()
-    win.SetOffScreenRendering(1)
-    win.SetMultiSamples(8)
-    win.AddRenderer(ren)
-    win.SetSize(2 * width, 2 * width)
-    win.Render()
-    grab = vtk.vtkWindowToImageFilter()
-    grab.SetInput(win)
-    grab.Update()
-    writer = vtk.vtkPNGWriter()
-    writer.SetFileName(str(path))
-    writer.SetInputConnection(grab.GetOutputPort())
-    writer.Write()
-    im = Image.open(path).convert("RGB")
-    box = ImageChops.difference(im, Image.new("RGB", im.size, "white")).getbbox()
-    pad = int(0.03 * max(box[2] - box[0], box[3] - box[1]))
-    im = im.crop((max(box[0] - pad, 0), max(box[1] - pad, 0),
-                  min(box[2] + pad, im.width), min(box[3] + pad, im.height)))
-    im.resize((width, round(im.height * width / im.width)), Image.LANCZOS).save(path)
+    snapshot(ren, path, (2 * width, 2 * width))
+    crop_to_content(path, width, 0.03)
 
 
 def worker(qualname: str, out: Path) -> None:
@@ -436,12 +432,7 @@ def hero_worker(out: Path) -> None:
                         hexes.append(np.asarray(conn, dtype=np.int64).reshape(-1, 8))
             cells[name] = np.vectorize(index.get)(np.vstack(hexes))
 
-    def rgb(h):
-        return tuple(int(h[i:i + 2], 16) / 255 for i in (1, 3, 5))
-
-    points = vtk.vtkPoints()
-    for q in xyz:
-        points.InsertNextPoint(*q)
+    points = vtk_points(xyz)
     ren = vtk.vtkRenderer()
     ren.SetBackground(1, 1, 1)
     kept = []
@@ -476,26 +467,8 @@ def hero_worker(out: Path) -> None:
     ren.ResetCamera()
     cam.Zoom(1.2)
     size = (1000, 560)
-    win = vtk.vtkRenderWindow()
-    win.SetOffScreenRendering(1)
-    win.SetMultiSamples(8)
-    win.AddRenderer(ren)
-    win.SetSize(2 * size[0], 2 * size[1])
-    win.Render()
-    grab = vtk.vtkWindowToImageFilter()
-    grab.SetInput(win)
-    grab.Update()
-    writer = vtk.vtkPNGWriter()
-    writer.SetFileName(str(out))
-    writer.SetInputConnection(grab.GetOutputPort())
-    writer.Write()
-    from PIL import Image, ImageChops
-    im = Image.open(out).convert("RGB")
-    box = ImageChops.difference(im, Image.new("RGB", im.size, "white")).getbbox()
-    pad = int(0.03 * max(box[2] - box[0], box[3] - box[1]))
-    im = im.crop((max(box[0] - pad, 0), max(box[1] - pad, 0),
-                  min(box[2] + pad, im.width), min(box[3] + pad, im.height)))
-    im.resize((size[0], round(im.height * size[0] / im.width)), Image.LANCZOS).save(out)
+    snapshot(ren, out, (2 * size[0], 2 * size[1]))
+    crop_to_content(out, size[0], 0.03)
 
 
 def run_hero() -> None:

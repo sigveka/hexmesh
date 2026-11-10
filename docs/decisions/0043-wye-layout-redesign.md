@@ -355,3 +355,12 @@ quality or crease error under B3.
   worse, and the layout's geometric limit (SJ 0.665–0.707) is far above
   the meshed values.  No correction is planned; equal laterals and
   second order stay deferred.
+
+## Note (2026-11-10): `_cube_probe.py` stays until task 0124
+
+The consequence "`_cube_probe.py` is folded into the layout" was only
+half done by task 0122, and rightly so: `cube.py` took the equal-tee
+case, while `validation/tools/wye_redesign.py` still uses `CubeProbe`
+for the asymmetric-wye cube (task 0124's harness).  So `_cube_probe.py`
+stays private alongside `_wye_probe.py` until 0124 settles, then both
+are removed or folded in.  Found by the architecture review (task 0134).
