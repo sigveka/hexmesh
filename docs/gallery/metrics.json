@@ -3134,6 +3134,101 @@
     "predicted": 803328,
     "meshed": 803328
    }
+  },
+  "fenicsx_second_order": {
+   "tee": {
+    "fittings": 3,
+    "fitting_types": {
+     "Straight": 2,
+     "Tee": 1
+    },
+    "volumes": 34,
+    "materials": [
+     "body"
+    ],
+    "min_sicn": 0.11154997804392722,
+    "mean_sicn": 0.5534959775426593,
+    "min_sj": 0.2576521280139983,
+    "min_sj_fitting": "#1 Tee",
+    "max_aspect": 13.750000000000087,
+    "groups": {
+     "open_end": [
+      "body_inlet",
+      "body_port3",
+      "body_port4"
+     ],
+     "wall": [
+      "body_wall"
+     ],
+     "interface": [],
+     "volume": [
+      "body"
+     ]
+    },
+    "predicted": 2160,
+    "meshed": 2160
+   },
+   "bend": {
+    "fittings": 3,
+    "fitting_types": {
+     "Straight": 2,
+     "Bend": 1
+    },
+    "volumes": 50,
+    "materials": [
+     "body"
+    ],
+    "min_sicn": 0.23829723811987794,
+    "mean_sicn": 0.44483838795440545,
+    "min_sj": 0.789533127112204,
+    "min_sj_fitting": "#1 Bend",
+    "max_aspect": 7.500000000000023,
+    "groups": {
+     "open_end": [
+      "body_inlet",
+      "body_outlet"
+     ],
+     "wall": [
+      "body_wall"
+     ],
+     "interface": [],
+     "volume": [
+      "body"
+     ]
+    },
+    "predicted": 1296,
+    "meshed": 1296
+   },
+   "straight": {
+    "fittings": 1,
+    "fitting_types": {
+     "Straight": 1
+    },
+    "volumes": 5,
+    "materials": [
+     "body"
+    ],
+    "min_sicn": 0.23829723811987882,
+    "mean_sicn": 0.3156150569273799,
+    "min_sj": 0.7933533402912339,
+    "min_sj_fitting": "#0 Straight",
+    "max_aspect": 7.500000000000023,
+    "groups": {
+     "open_end": [
+      "body_inlet",
+      "body_outlet"
+     ],
+     "wall": [
+      "body_wall"
+     ],
+     "interface": [],
+     "volume": [
+      "body"
+     ]
+    },
+    "predicted": 864,
+    "meshed": 864
+   }
   }
  }
 }

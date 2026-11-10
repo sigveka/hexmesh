@@ -1,0 +1,1043 @@
+{
+ "case": "fenicsx_second_order",
+ "extra": {
+  "method": {
+   "dirichlet": "u = u_m on every boundary",
+   "equation": "-lap u = f, f = -lap u_m",
+   "field": "sin(a x + 0.3) sin(b y + 0.7) sin(c z + 1.1)",
+   "image": "dolfinx/dolfinx:v0.11.0@sha256:2ae4bfbc0d9077268880faf04c72750528bee986c94ab223a2c159969bd56fa8",
+   "neumann": "grad u_m . n on the wall, n the exact wall's normal; u = u_m on the ends",
+   "quadrature_degree": 8
+  }
+ },
+ "format": "hexmesh.validation.results",
+ "levels": [
+  {
+   "case": "straight",
+   "cells": 864,
+   "environment": {
+    "date": "2026-11-10",
+    "fenicsx": "dolfinx/dolfinx:v0.11.0@sha256:2ae4bfbc0d9077268880faf04c72750528bee986c94ab223a2c159969bd56fa8",
+    "gmsh": "4.12.1",
+    "hexmesh": "f91e22b",
+    "python": "3.12.3",
+    "runner": "docker"
+   },
+   "geometry": "Hex8",
+   "k": 1,
+   "name": "straight_k1_Hex8",
+   "nang": 6,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 3,
+   "precision": "full",
+   "solves": [
+    {
+     "degree": 1,
+     "dofs": 1089,
+     "h1": 0.40496618326102135,
+     "l2": 0.0023841201020959276,
+     "l2_norm": 0.01934982797791836,
+     "peak_rss_gb": 0.22,
+     "seconds": 2.7,
+     "variant": "dirichlet"
+    },
+    {
+     "degree": 2,
+     "dofs": 7769,
+     "h1": 0.04212490752773626,
+     "l2": 0.0001742850398544203,
+     "l2_norm": 0.01934982797791836,
+     "peak_rss_gb": 0.24,
+     "seconds": 3.3,
+     "variant": "dirichlet"
+    },
+    {
+     "degree": 1,
+     "dofs": 1089,
+     "h1": 0.37955913655119095,
+     "l2": 0.001581165208572055,
+     "l2_norm": 0.01934982797791836,
+     "peak_rss_gb": 0.22,
+     "seconds": 2.7,
+     "variant": "neumann"
+    },
+    {
+     "degree": 2,
+     "dofs": 7769,
+     "h1": 0.04316748456847261,
+     "l2": 0.0002038767090512099,
+     "l2_norm": 0.01934982797791836,
+     "peak_rss_gb": 0.24,
+     "seconds": 3.7,
+     "variant": "neumann"
+    }
+   ],
+   "w": [
+    23.561944901923443,
+    62.83185307179586,
+    62.83185307179586
+   ]
+  },
+  {
+   "case": "straight",
+   "cells": 864,
+   "environment": {
+    "date": "2026-11-10",
+    "fenicsx": "dolfinx/dolfinx:v0.11.0@sha256:2ae4bfbc0d9077268880faf04c72750528bee986c94ab223a2c159969bd56fa8",
+    "gmsh": "4.12.1",
+    "hexmesh": "f91e22b",
+    "python": "3.12.3",
+    "runner": "docker"
+   },
+   "geometry": "Hex27",
+   "k": 1,
+   "name": "straight_k1_Hex27",
+   "nang": 6,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 3,
+   "precision": "full",
+   "solves": [
+    {
+     "degree": 2,
+     "dofs": 7769,
+     "h1": 0.043591154876699505,
+     "l2": 0.00017621367670307963,
+     "l2_norm": 0.019475873011801953,
+     "peak_rss_gb": 0.24,
+     "seconds": 3.5,
+     "variant": "dirichlet"
+    },
+    {
+     "degree": 2,
+     "dofs": 7769,
+     "h1": 0.043347476595140814,
+     "l2": 0.0001713967103743589,
+     "l2_norm": 0.019475873011801953,
+     "peak_rss_gb": 0.24,
+     "seconds": 3.5,
+     "variant": "neumann"
+    }
+   ],
+   "w": [
+    23.561944901923443,
+    62.83185307179586,
+    62.83185307179586
+   ]
+  },
+  {
+   "case": "straight",
+   "cells": 6912,
+   "environment": {
+    "date": "2026-11-10",
+    "fenicsx": "dolfinx/dolfinx:v0.11.0@sha256:2ae4bfbc0d9077268880faf04c72750528bee986c94ab223a2c159969bd56fa8",
+    "gmsh": "4.12.1",
+    "hexmesh": "f91e22b",
+    "python": "3.12.3",
+    "runner": "docker"
+   },
+   "geometry": "Hex8",
+   "k": 2,
+   "name": "straight_k2_Hex8",
+   "nang": 12,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 6,
+   "precision": "full",
+   "solves": [
+    {
+     "degree": 1,
+     "dofs": 7769,
+     "h1": 0.18917548052134084,
+     "l2": 0.0006144348974427126,
+     "l2_norm": 0.019444379338266534,
+     "peak_rss_gb": 0.23,
+     "seconds": 2.5,
+     "variant": "dirichlet"
+    },
+    {
+     "degree": 2,
+     "dofs": 58641,
+     "h1": 0.010131314397087827,
+     "l2": 2.3412302820457585e-05,
+     "l2_norm": 0.019444379338266534,
+     "peak_rss_gb": 0.41,
+     "seconds": 6.9,
+     "variant": "dirichlet"
+    },
+    {
+     "degree": 1,
+     "dofs": 7769,
+     "h1": 0.1851457901659769,
+     "l2": 0.00037374808511128144,
+     "l2_norm": 0.019444379338266534,
+     "peak_rss_gb": 0.23,
+     "seconds": 2.7,
+     "variant": "neumann"
+    },
+    {
+     "degree": 2,
+     "dofs": 58641,
+     "h1": 0.010331021774276498,
+     "l2": 3.5977590244216883e-05,
+     "l2_norm": 0.019444379338266534,
+     "peak_rss_gb": 0.42,
+     "seconds": 8.2,
+     "variant": "neumann"
+    }
+   ],
+   "w": [
+    23.561944901923443,
+    62.83185307179586,
+    62.83185307179586
+   ]
+  },
+  {
+   "case": "straight",
+   "cells": 6912,
+   "environment": {
+    "date": "2026-11-10",
+    "fenicsx": "dolfinx/dolfinx:v0.11.0@sha256:2ae4bfbc0d9077268880faf04c72750528bee986c94ab223a2c159969bd56fa8",
+    "gmsh": "4.12.1",
+    "hexmesh": "f91e22b",
+    "python": "3.12.3",
+    "runner": "docker"
+   },
+   "geometry": "Hex27",
+   "k": 2,
+   "name": "straight_k2_Hex27",
+   "nang": 12,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 6,
+   "precision": "full",
+   "solves": [
+    {
+     "degree": 2,
+     "dofs": 58641,
+     "h1": 0.010295039594968254,
+     "l2": 2.350255822591833e-05,
+     "l2_norm": 0.019475974390754502,
+     "peak_rss_gb": 0.42,
+     "seconds": 7.9,
+     "variant": "dirichlet"
+    },
+    {
+     "degree": 2,
+     "dofs": 58641,
+     "h1": 0.010291022774073042,
+     "l2": 2.339182804511892e-05,
+     "l2_norm": 0.019475974390754502,
+     "peak_rss_gb": 0.42,
+     "seconds": 8.2,
+     "variant": "neumann"
+    }
+   ],
+   "w": [
+    23.561944901923443,
+    62.83185307179586,
+    62.83185307179586
+   ]
+  },
+  {
+   "case": "straight",
+   "cells": 55296,
+   "environment": {
+    "date": "2026-11-10",
+    "fenicsx": "dolfinx/dolfinx:v0.11.0@sha256:2ae4bfbc0d9077268880faf04c72750528bee986c94ab223a2c159969bd56fa8",
+    "gmsh": "4.12.1",
+    "hexmesh": "f91e22b",
+    "python": "3.12.3",
+    "runner": "docker"
+   },
+   "geometry": "Hex8",
+   "k": 4,
+   "name": "straight_k4_Hex8",
+   "nang": 24,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 12,
+   "precision": "full",
+   "solves": [
+    {
+     "degree": 1,
+     "dofs": 58641,
+     "h1": 0.09271315170926912,
+     "l2": 0.00015488195904268896,
+     "l2_norm": 0.019468076781970538,
+     "peak_rss_gb": 0.34,
+     "seconds": 6.3,
+     "variant": "dirichlet"
+    },
+    {
+     "degree": 2,
+     "dofs": 455585,
+     "h1": 0.0025018385715798873,
+     "l2": 2.965478825515044e-06,
+     "l2_norm": 0.019468076781970538,
+     "peak_rss_gb": 1.88,
+     "seconds": 41.9,
+     "variant": "dirichlet"
+    },
+    {
+     "degree": 1,
+     "dofs": 58641,
+     "h1": 0.09217966050524541,
+     "l2": 9.207551508851871e-05,
+     "l2_norm": 0.019468076781970538,
+     "peak_rss_gb": 0.34,
+     "seconds": 6.6,
+     "variant": "neumann"
+    },
+    {
+     "degree": 2,
+     "dofs": 455585,
+     "h1": 0.0025338242383886552,
+     "l2": 7.399417265630516e-06,
+     "l2_norm": 0.019468076781970538,
+     "peak_rss_gb": 1.88,
+     "seconds": 45.5,
+     "variant": "neumann"
+    }
+   ],
+   "w": [
+    23.561944901923443,
+    62.83185307179586,
+    62.83185307179586
+   ]
+  },
+  {
+   "case": "straight",
+   "cells": 55296,
+   "environment": {
+    "date": "2026-11-10",
+    "fenicsx": "dolfinx/dolfinx:v0.11.0@sha256:2ae4bfbc0d9077268880faf04c72750528bee986c94ab223a2c159969bd56fa8",
+    "gmsh": "4.12.1",
+    "hexmesh": "f91e22b",
+    "python": "3.12.3",
+    "runner": "docker"
+   },
+   "geometry": "Hex27",
+   "k": 4,
+   "name": "straight_k4_Hex27",
+   "nang": 24,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 12,
+   "precision": "full",
+   "solves": [
+    {
+     "degree": 2,
+     "dofs": 455585,
+     "h1": 0.002520324955478489,
+     "l2": 2.9698356854332888e-06,
+     "l2_norm": 0.01947598073712209,
+     "peak_rss_gb": 1.91,
+     "seconds": 54.3,
+     "variant": "dirichlet"
+    },
+    {
+     "degree": 2,
+     "dofs": 455585,
+     "h1": 0.0025202476447832717,
+     "l2": 2.96685270849322e-06,
+     "l2_norm": 0.01947598073712209,
+     "peak_rss_gb": 1.91,
+     "seconds": 50.1,
+     "variant": "neumann"
+    }
+   ],
+   "w": [
+    23.561944901923443,
+    62.83185307179586,
+    62.83185307179586
+   ]
+  },
+  {
+   "case": "bend",
+   "cells": 1296,
+   "environment": {
+    "date": "2026-11-10",
+    "fenicsx": "dolfinx/dolfinx:v0.11.0@sha256:2ae4bfbc0d9077268880faf04c72750528bee986c94ab223a2c159969bd56fa8",
+    "gmsh": "4.12.1",
+    "hexmesh": "f91e22b",
+    "python": "3.12.3",
+    "runner": "docker"
+   },
+   "geometry": "Hex8",
+   "k": 1,
+   "name": "bend_k1_Hex8",
+   "nang": 6,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 3,
+   "precision": "full",
+   "solves": [
+    {
+     "degree": 1,
+     "dofs": 1573,
+     "h1": 0.39948338984575055,
+     "l2": 0.0030320316228098954,
+     "l2_norm": 0.022294204505029492,
+     "peak_rss_gb": 0.22,
+     "seconds": 2.8,
+     "variant": "dirichlet"
+    },
+    {
+     "degree": 2,
+     "dofs": 11425,
+     "h1": 0.05622101267548059,
+     "l2": 0.0003042182250583709,
+     "l2_norm": 0.022294204505029492,
+     "peak_rss_gb": 0.25,
+     "seconds": 3.9,
+     "variant": "dirichlet"
+    },
+    {
+     "degree": 1,
+     "dofs": 1573,
+     "h1": 0.3878761511541248,
+     "l2": 0.0027833080388931387,
+     "l2_norm": 0.022294204505029492,
+     "peak_rss_gb": 0.22,
+     "seconds": 3.0,
+     "variant": "neumann"
+    },
+    {
+     "degree": 2,
+     "dofs": 11425,
+     "h1": 0.056992755784302726,
+     "l2": 0.0009540124233740179,
+     "l2_norm": 0.022294204505029492,
+     "peak_rss_gb": 0.25,
+     "seconds": 3.7,
+     "variant": "neumann"
+    }
+   ],
+   "w": [
+    31.415926535897935,
+    62.83185307179586,
+    31.415926535897935
+   ]
+  },
+  {
+   "case": "bend",
+   "cells": 1296,
+   "environment": {
+    "date": "2026-11-10",
+    "fenicsx": "dolfinx/dolfinx:v0.11.0@sha256:2ae4bfbc0d9077268880faf04c72750528bee986c94ab223a2c159969bd56fa8",
+    "gmsh": "4.12.1",
+    "hexmesh": "f91e22b",
+    "python": "3.12.3",
+    "runner": "docker"
+   },
+   "geometry": "Hex27",
+   "k": 1,
+   "name": "bend_k1_Hex27",
+   "nang": 6,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 3,
+   "precision": "full",
+   "solves": [
+    {
+     "degree": 2,
+     "dofs": 11425,
+     "h1": 0.05648128314910513,
+     "l2": 0.00030387504115228487,
+     "l2_norm": 0.022407673032441306,
+     "peak_rss_gb": 0.25,
+     "seconds": 3.8,
+     "variant": "dirichlet"
+    },
+    {
+     "degree": 2,
+     "dofs": 11425,
+     "h1": 0.056070070612821404,
+     "l2": 0.0003010576758573114,
+     "l2_norm": 0.022407673032441306,
+     "peak_rss_gb": 0.25,
+     "seconds": 3.6,
+     "variant": "neumann"
+    }
+   ],
+   "w": [
+    31.415926535897935,
+    62.83185307179586,
+    31.415926535897935
+   ]
+  },
+  {
+   "case": "bend",
+   "cells": 10368,
+   "environment": {
+    "date": "2026-11-10",
+    "fenicsx": "dolfinx/dolfinx:v0.11.0@sha256:2ae4bfbc0d9077268880faf04c72750528bee986c94ab223a2c159969bd56fa8",
+    "gmsh": "4.12.1",
+    "hexmesh": "f91e22b",
+    "python": "3.12.3",
+    "runner": "docker"
+   },
+   "geometry": "Hex8",
+   "k": 2,
+   "name": "bend_k2_Hex8",
+   "nang": 12,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 6,
+   "precision": "full",
+   "solves": [
+    {
+     "degree": 1,
+     "dofs": 11425,
+     "h1": 0.18491976169582786,
+     "l2": 0.0007290063786305632,
+     "l2_norm": 0.022379361912492582,
+     "peak_rss_gb": 0.23,
+     "seconds": 3.2,
+     "variant": "dirichlet"
+    },
+    {
+     "degree": 2,
+     "dofs": 87073,
+     "h1": 0.013674109138647042,
+     "l2": 4.336686718800468e-05,
+     "l2_norm": 0.022379361912492582,
+     "peak_rss_gb": 0.52,
+     "seconds": 10.0,
+     "variant": "dirichlet"
+    },
+    {
+     "degree": 1,
+     "dofs": 11425,
+     "h1": 0.18274438667734702,
+     "l2": 0.0006339830495992283,
+     "l2_norm": 0.022379361912492582,
+     "peak_rss_gb": 0.24,
+     "seconds": 3.4,
+     "variant": "neumann"
+    },
+    {
+     "degree": 2,
+     "dofs": 87073,
+     "h1": 0.013970064508204323,
+     "l2": 0.00023803049081522686,
+     "l2_norm": 0.022379361912492582,
+     "peak_rss_gb": 0.52,
+     "seconds": 10.9,
+     "variant": "neumann"
+    }
+   ],
+   "w": [
+    31.415926535897924,
+    62.83185307179586,
+    31.415926535897935
+   ]
+  },
+  {
+   "case": "bend",
+   "cells": 10368,
+   "environment": {
+    "date": "2026-11-10",
+    "fenicsx": "dolfinx/dolfinx:v0.11.0@sha256:2ae4bfbc0d9077268880faf04c72750528bee986c94ab223a2c159969bd56fa8",
+    "gmsh": "4.12.1",
+    "hexmesh": "f91e22b",
+    "python": "3.12.3",
+    "runner": "docker"
+   },
+   "geometry": "Hex27",
+   "k": 2,
+   "name": "bend_k2_Hex27",
+   "nang": 12,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 6,
+   "precision": "full",
+   "solves": [
+    {
+     "degree": 2,
+     "dofs": 87073,
+     "h1": 0.013688137584169037,
+     "l2": 4.32889359124792e-05,
+     "l2_norm": 0.022407754415771274,
+     "peak_rss_gb": 0.53,
+     "seconds": 10.3,
+     "variant": "dirichlet"
+    },
+    {
+     "degree": 2,
+     "dofs": 87073,
+     "h1": 0.01367957678343244,
+     "l2": 4.324129352309092e-05,
+     "l2_norm": 0.022407754415771274,
+     "peak_rss_gb": 0.53,
+     "seconds": 10.6,
+     "variant": "neumann"
+    }
+   ],
+   "w": [
+    31.415926535897924,
+    62.83185307179586,
+    31.415926535897935
+   ]
+  },
+  {
+   "case": "bend",
+   "cells": 82944,
+   "environment": {
+    "date": "2026-11-10",
+    "fenicsx": "dolfinx/dolfinx:v0.11.0@sha256:2ae4bfbc0d9077268880faf04c72750528bee986c94ab223a2c159969bd56fa8",
+    "gmsh": "4.12.1",
+    "hexmesh": "f91e22b",
+    "python": "3.12.3",
+    "runner": "docker"
+   },
+   "geometry": "Hex8",
+   "k": 4,
+   "name": "bend_k4_Hex8",
+   "nang": 24,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 12,
+   "precision": "full",
+   "solves": [
+    {
+     "degree": 1,
+     "dofs": 87073,
+     "h1": 0.0906886768156631,
+     "l2": 0.0001807185639545939,
+     "l2_norm": 0.02240065956304493,
+     "peak_rss_gb": 0.41,
+     "seconds": 8.7,
+     "variant": "dirichlet"
+    },
+    {
+     "degree": 2,
+     "dofs": 679873,
+     "h1": 0.0033811328891690967,
+     "l2": 5.586715381952274e-06,
+     "l2_norm": 0.02240065956304493,
+     "peak_rss_gb": 2.72,
+     "seconds": 61.9,
+     "variant": "dirichlet"
+    },
+    {
+     "degree": 1,
+     "dofs": 87073,
+     "h1": 0.09039219402711551,
+     "l2": 0.0001541021689968043,
+     "l2_norm": 0.02240065956304493,
+     "peak_rss_gb": 0.41,
+     "seconds": 8.8,
+     "variant": "neumann"
+    },
+    {
+     "degree": 2,
+     "dofs": 679873,
+     "h1": 0.0034563420412106922,
+     "l2": 5.8218637186530424e-05,
+     "l2_norm": 0.02240065956304493,
+     "peak_rss_gb": 2.72,
+     "seconds": 63.1,
+     "variant": "neumann"
+    }
+   ],
+   "w": [
+    31.415926535897924,
+    62.83185307179586,
+    31.415926535897935
+   ]
+  },
+  {
+   "case": "bend",
+   "cells": 82944,
+   "environment": {
+    "date": "2026-11-10",
+    "fenicsx": "dolfinx/dolfinx:v0.11.0@sha256:2ae4bfbc0d9077268880faf04c72750528bee986c94ab223a2c159969bd56fa8",
+    "gmsh": "4.12.1",
+    "hexmesh": "f91e22b",
+    "python": "3.12.3",
+    "runner": "docker"
+   },
+   "geometry": "Hex27",
+   "k": 4,
+   "name": "bend_k4_Hex27",
+   "nang": 24,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 12,
+   "precision": "full",
+   "solves": [
+    {
+     "degree": 2,
+     "dofs": 679873,
+     "h1": 0.0033806488850669373,
+     "l2": 5.57503822673693e-06,
+     "l2_norm": 0.022407759510162644,
+     "peak_rss_gb": 2.74,
+     "seconds": 66.3,
+     "variant": "dirichlet"
+    },
+    {
+     "degree": 2,
+     "dofs": 679873,
+     "h1": 0.003380509385221113,
+     "l2": 5.573838662476245e-06,
+     "l2_norm": 0.022407759510162644,
+     "peak_rss_gb": 2.74,
+     "seconds": 67.4,
+     "variant": "neumann"
+    }
+   ],
+   "w": [
+    31.415926535897924,
+    62.83185307179586,
+    31.415926535897935
+   ]
+  },
+  {
+   "case": "tee",
+   "cells": 2160,
+   "environment": {
+    "date": "2026-11-10",
+    "fenicsx": "dolfinx/dolfinx:v0.11.0@sha256:2ae4bfbc0d9077268880faf04c72750528bee986c94ab223a2c159969bd56fa8",
+    "gmsh": "4.12.1",
+    "hexmesh": "f91e22b",
+    "python": "3.12.3",
+    "runner": "docker"
+   },
+   "geometry": "Hex8",
+   "k": 1,
+   "name": "tee_k1_Hex8",
+   "nang": 6,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 3,
+   "precision": "full",
+   "solves": [
+    {
+     "degree": 1,
+     "dofs": 2587,
+     "h1": 0.381001974419022,
+     "l2": 0.003065603974712064,
+     "l2_norm": 0.01889481667127202,
+     "peak_rss_gb": 0.22,
+     "seconds": 2.4,
+     "variant": "dirichlet"
+    },
+    {
+     "degree": 2,
+     "dofs": 18925,
+     "h1": 0.05481173353603596,
+     "l2": 0.00030939693946865557,
+     "l2_norm": 0.01889481667127202,
+     "peak_rss_gb": 0.28,
+     "seconds": 3.8,
+     "variant": "dirichlet"
+    },
+    {
+     "degree": 1,
+     "dofs": 2587,
+     "h1": 0.3618488648006364,
+     "l2": 0.002695089874663543,
+     "l2_norm": 0.01889481667127202,
+     "peak_rss_gb": 0.22,
+     "seconds": 2.9,
+     "variant": "neumann"
+    },
+    {
+     "degree": 2,
+     "dofs": 18925,
+     "h1": 0.05494198264298502,
+     "l2": 0.0003432794214078743,
+     "l2_norm": 0.01889481667127202,
+     "peak_rss_gb": 0.28,
+     "seconds": 4.3,
+     "variant": "neumann"
+    }
+   ],
+   "w": [
+    31.41592653589792,
+    62.83185307179586,
+    37.69911184307751
+   ]
+  },
+  {
+   "case": "tee",
+   "cells": 2160,
+   "environment": {
+    "date": "2026-11-10",
+    "fenicsx": "dolfinx/dolfinx:v0.11.0@sha256:2ae4bfbc0d9077268880faf04c72750528bee986c94ab223a2c159969bd56fa8",
+    "gmsh": "4.12.1",
+    "hexmesh": "5952340",
+    "python": "3.12.3",
+    "runner": "docker"
+   },
+   "geometry": "Hex27",
+   "k": 1,
+   "name": "tee_k1_Hex27",
+   "nang": 6,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 3,
+   "precision": "full",
+   "solves": [
+    {
+     "degree": 2,
+     "dofs": 18925,
+     "h1": 0.05540939905162613,
+     "l2": 0.0003108315786836073,
+     "l2_norm": 0.0189811034122748,
+     "peak_rss_gb": 0.28,
+     "seconds": 4.4,
+     "variant": "dirichlet"
+    },
+    {
+     "degree": 2,
+     "dofs": 18925,
+     "h1": 0.054802265865787916,
+     "l2": 0.00030694005315149,
+     "l2_norm": 0.0189811034122748,
+     "peak_rss_gb": 0.28,
+     "seconds": 4.5,
+     "variant": "neumann"
+    }
+   ],
+   "w": [
+    31.41592653589792,
+    62.83185307179586,
+    37.69911184307751
+   ]
+  },
+  {
+   "case": "tee",
+   "cells": 17280,
+   "environment": {
+    "date": "2026-11-10",
+    "fenicsx": "dolfinx/dolfinx:v0.11.0@sha256:2ae4bfbc0d9077268880faf04c72750528bee986c94ab223a2c159969bd56fa8",
+    "gmsh": "4.12.1",
+    "hexmesh": "5952340",
+    "python": "3.12.3",
+    "runner": "docker"
+   },
+   "geometry": "Hex8",
+   "k": 2,
+   "name": "tee_k2_Hex8",
+   "nang": 12,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 6,
+   "precision": "full",
+   "solves": [
+    {
+     "degree": 1,
+     "dofs": 18925,
+     "h1": 0.17125655354765834,
+     "l2": 0.0007542629156434058,
+     "l2_norm": 0.018959603518257002,
+     "peak_rss_gb": 0.25,
+     "seconds": 3.8,
+     "variant": "dirichlet"
+    },
+    {
+     "degree": 2,
+     "dofs": 144697,
+     "h1": 0.013389656231989223,
+     "l2": 4.4631169933784024e-05,
+     "l2_norm": 0.018959603518257002,
+     "peak_rss_gb": 0.74,
+     "seconds": 17.5,
+     "variant": "dirichlet"
+    },
+    {
+     "degree": 1,
+     "dofs": 18925,
+     "h1": 0.16770030529144617,
+     "l2": 0.0006325898668081488,
+     "l2_norm": 0.018959603518257002,
+     "peak_rss_gb": 0.25,
+     "seconds": 3.6,
+     "variant": "neumann"
+    },
+    {
+     "degree": 2,
+     "dofs": 144697,
+     "h1": 0.013544979504831207,
+     "l2": 5.5152204626444535e-05,
+     "l2_norm": 0.018959603518257002,
+     "peak_rss_gb": 0.74,
+     "seconds": 19.5,
+     "variant": "neumann"
+    }
+   ],
+   "w": [
+    31.41592653589792,
+    62.83185307179586,
+    37.69911184307751
+   ]
+  },
+  {
+   "case": "tee",
+   "cells": 17280,
+   "environment": {
+    "date": "2026-11-11",
+    "fenicsx": "dolfinx/dolfinx:v0.11.0@sha256:2ae4bfbc0d9077268880faf04c72750528bee986c94ab223a2c159969bd56fa8",
+    "gmsh": "4.12.1",
+    "hexmesh": "5952340",
+    "python": "3.12.3",
+    "runner": "docker"
+   },
+   "geometry": "Hex27",
+   "k": 2,
+   "name": "tee_k2_Hex27",
+   "nang": 12,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 6,
+   "precision": "full",
+   "solves": [
+    {
+     "degree": 2,
+     "dofs": 144697,
+     "h1": 0.013450322508257636,
+     "l2": 4.469205451357052e-05,
+     "l2_norm": 0.01898117933759626,
+     "peak_rss_gb": 0.74,
+     "seconds": 17.8,
+     "variant": "dirichlet"
+    },
+    {
+     "degree": 2,
+     "dofs": 144697,
+     "h1": 0.013436427752132713,
+     "l2": 4.462958446687758e-05,
+     "l2_norm": 0.01898117933759626,
+     "peak_rss_gb": 0.74,
+     "seconds": 19.0,
+     "variant": "neumann"
+    }
+   ],
+   "w": [
+    31.41592653589792,
+    62.83185307179586,
+    37.69911184307751
+   ]
+  },
+  {
+   "case": "tee",
+   "cells": 138240,
+   "environment": {
+    "date": "2026-11-11",
+    "fenicsx": "dolfinx/dolfinx:v0.11.0@sha256:2ae4bfbc0d9077268880faf04c72750528bee986c94ab223a2c159969bd56fa8",
+    "gmsh": "4.12.1",
+    "hexmesh": "5952340",
+    "python": "3.12.3",
+    "runner": "docker"
+   },
+   "geometry": "Hex8",
+   "k": 4,
+   "name": "tee_k4_Hex8",
+   "nang": 24,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 12,
+   "precision": "full",
+   "solves": [
+    {
+     "degree": 1,
+     "dofs": 144697,
+     "h1": 0.08313010416162879,
+     "l2": 0.00018786211129261362,
+     "l2_norm": 0.01897578973830433,
+     "peak_rss_gb": 0.55,
+     "seconds": 13.4,
+     "variant": "dirichlet"
+    },
+    {
+     "degree": 2,
+     "dofs": 1131505,
+     "h1": 0.0033083632019405953,
+     "l2": 5.771067498358826e-06,
+     "l2_norm": 0.01897578973830433,
+     "peak_rss_gb": 4.4,
+     "seconds": 133.8,
+     "variant": "dirichlet"
+    },
+    {
+     "degree": 1,
+     "dofs": 144697,
+     "h1": 0.0826427089560045,
+     "l2": 0.00015538920994537922,
+     "l2_norm": 0.01897578973830433,
+     "peak_rss_gb": 0.54,
+     "seconds": 15.9,
+     "variant": "neumann"
+    },
+    {
+     "degree": 2,
+     "dofs": 1131505,
+     "h1": 0.003348458726351354,
+     "l2": 9.763912749877766e-06,
+     "l2_norm": 0.01897578973830433,
+     "peak_rss_gb": 4.4,
+     "seconds": 161.5,
+     "variant": "neumann"
+    }
+   ],
+   "w": [
+    31.41592653589792,
+    62.83185307179586,
+    37.69911184307751
+   ]
+  },
+  {
+   "case": "tee",
+   "cells": 138240,
+   "environment": {
+    "date": "2026-11-11",
+    "fenicsx": "dolfinx/dolfinx:v0.11.0@sha256:2ae4bfbc0d9077268880faf04c72750528bee986c94ab223a2c159969bd56fa8",
+    "gmsh": "4.12.1",
+    "hexmesh": "5952340",
+    "python": "3.12.3",
+    "runner": "docker"
+   },
+   "geometry": "Hex27",
+   "k": 4,
+   "name": "tee_k4_Hex27",
+   "nang": 24,
+   "nang_h": null,
+   "nang_w": null,
+   "nrad": 12,
+   "precision": "full",
+   "solves": [
+    {
+     "degree": 2,
+     "dofs": 1131505,
+     "h1": 0.003316327182810184,
+     "l2": 5.773557017902036e-06,
+     "l2_norm": 0.018981184106042708,
+     "peak_rss_gb": 4.44,
+     "seconds": 143.9,
+     "variant": "dirichlet"
+    },
+    {
+     "degree": 2,
+     "dofs": 1131505,
+     "h1": 0.003316022162510575,
+     "l2": 5.772592033571574e-06,
+     "l2_norm": 0.018981184106042708,
+     "peak_rss_gb": 4.44,
+     "seconds": 157.4,
+     "variant": "neumann"
+    }
+   ],
+   "w": [
+    31.41592653589792,
+    62.83185307179586,
+    37.69911184307751
+   ]
+  }
+ ],
+ "version": 1
+}

@@ -51,7 +51,8 @@ from matplotlib.ticker import FixedLocator, FuncFormatter, LogLocator, NullForma
 ROOT = Path(__file__).resolve().parents[2]
 CASES = ("poiseuille", "heated_rod", "layered_conduction", "heated_pipe", "womersley",
          "stenosis", "stenosis_pulsatile", "rect_duct", "mms", "turbulent_pipe", "square_bend",
-         "helical_pipe")
+         "helical_pipe",
+         "fenicsx_second_order")
 
 SIZE, DPI = (8.0, 5.0), 200          # 1600 × 1000 px
 GRAPHS_START, GRAPHS_END = "<!-- graphs:start -->", "<!-- graphs:end -->"
@@ -715,6 +716,35 @@ def helical_pipe(data, out):
                     "5 % of Ito's correlation at nang 16.  No reference slopes: a correlation "
                     "is not an exact solution.", out / "figure.png"),
             "The friction factor's difference from Ito's correlation per level."]
+
+
+def fenicsx_second_order(data, out):
+    rows = (("Hex8", 1, "Q1 on Hex8"), ("Hex8", 2, "Q2 on Hex8"), ("Hex27", 2, "Q2 on Hex27"))
+    fig, ax = _figure(1, 3, sharey=True)
+    for a, case in zip(ax.flat, ("straight", "bend", "tee")):
+        series = []
+        for i, (geometry, degree, label) in enumerate(rows):
+            lv = sorted(_levels(data, case=case, geometry=geometry), key=lambda l: l["k"])
+            err = [next(s["l2"] / s["l2_norm"] for s in l["solves"]
+                        if s["degree"] == degree and s["variant"] == "neumann") for l in lv]
+            series.append({"label": label, "index": i, "h": _h(lv), "err": err, "rich": None})
+        convergence(a, series, ylabel="relative L2 error of u (%)", slopes=False)
+        h = np.array(sorted({x for s in series for x in s["h"]}))
+        y0 = 100 * series[-1]["err"][-1]
+        for p_, ls in ((2, (0, (1, 2))), (3, (0, (5, 3)))):
+            a.plot(h, y0 * (h / h.min()) ** p_, color="0.45", linewidth=1, linestyle=ls,
+                     label=f"order {p_}", zorder=1)
+        _legend(a)
+        a.set_title(case, fontsize=8)
+        if a is not ax.flat[0]:
+            a.set_ylabel("")
+    return [_finish(fig, "fenicsx_second_order",
+                    "Neumann data from the exact wall (its normal, not the mesh's).  Gate: Q2 on "
+                    "the Hex27 mesh converges at order >= 2.7 (pairwise orders in RESULTS.md); Q2 "
+                    "on the linear mesh is lower, pulled towards 2 by the straight-sided wall.",
+                    out / "figure.png"),
+            "The relative L2 error of the manufactured solution against cell size, per mesh "
+            "and element."]
 
 
 # --- the driver --------------------------------------------------------------

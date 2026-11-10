@@ -817,7 +817,9 @@ def validation_md() -> str:
             case = ROOT / "validation" / name
             tags = m["tags"]
             tag_list = [*tags["regime"], *tags["physics"], *tags["features"],
-                        f"OpenFOAM {tags['toolchain']['openfoam']} ({tags['toolchain']['runner']})"]
+                        (f"OpenFOAM {tags['toolchain']['openfoam']}" if "openfoam" in tags["toolchain"]
+                         else f"FEniCSx {tags['toolchain']['fenicsx']}")
+                        + f" ({tags['toolchain']['runner']})"]
             refs = "; ".join((f"{r['source']} [`{r['key']}`]" if "key" in r else r["source"])
                              + ("" if r["role"] == "primary" else " (secondary)")
                              for r in m["references"])

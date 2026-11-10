@@ -54,11 +54,14 @@
           "uniqueItems": true
         },
         "toolchain": {
+          "description": "The solver: OpenFOAM, or FEniCSx for a secondary-solver case (decision 0034, task 0077).",
           "type": "object",
-          "required": ["openfoam", "runner", "conversion"],
+          "required": ["runner", "conversion"],
+          "oneOf": [{"required": ["openfoam"]}, {"required": ["fenicsx"]}],
           "additionalProperties": false,
           "properties": {
             "openfoam": {"type": "string", "pattern": "^v[0-9]{4}$"},
+            "fenicsx": {"type": "string", "pattern": "^dolfinx:v[0-9]+\\.[0-9]+\\.[0-9]+$"},
             "runner": {"enum": ["native", "docker"]},
             "conversion": {"description": "How the mesh reaches OpenFOAM: gmshToFoam's flags, and any mesh made otherwise (task 0108).", "type": "string", "minLength": 1}
           }

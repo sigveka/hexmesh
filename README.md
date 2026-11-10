@@ -74,6 +74,17 @@ What it gives (the gallery's `hexmesh.examples.sections.insulated_tee`):
 Doubling every density parameter doubles the nodes in each direction:
 **8× the cells**, as for any structured 3-D mesh.
 
+**One density per network.**  `nang` (cells around) and each layer's
+`nrad` (cells across) are the same in every pipe of a connected network:
+a tee's branch, a reducer's outlet and every fitting downstream share
+them.  Radial *grading* can differ (`first_cell`, `mprg`).  So cells
+around a pipe are as wide as its radius makes them: in a network whose
+radii span 10×, the large pipes' cells are 10× wider around than the
+small ones'.  Choose `nang` for the smallest pipe that matters, grade the
+walls with `first_cell`, or mesh a much larger vessel separately and
+couple it in the solver.  hexmesh has no density change inside a network
+([GUIDE](docs/GUIDE.md#one-density-per-network)).
+
 ---
 
 ## From plant data (PCF)
@@ -237,12 +248,13 @@ convergence against gates set in advance.
 | Womersley flow (pulsatile laminar pipe flow) | exact (V1) | profile error at most 0.31 % of u_c at every phase | ✅ accepted |
 | Laminar flow in rectangular ducts (aspect ratios 1, 2, 4) | exact (V1) | f·Re extrapolated within 0.011 % at aspect ratios 1, 2 and 4 (H section) | ✅ accepted |
 | Manufactured solutions for conduction on every fitting | manufactured (V1) | L2 error falls on all 16 fittings; 5 converge at the straight's order, the rest reported | ✅ accepted |
+| FEniCSx: second-order export checked end to end | manufactured (V1) | Q2 on Hex27 converges at L2 order 2.78–2.98 on the straight, bend and tee; on Hex8, with the exact wall's flux, 2.0–2.6 | ✅ accepted |
 | Smooth cosine constriction, Re = 500 | DNS (V2), Varghese et al. 2007 | reattachment 10.97 D vs the database's 11.03 D (−0.5 %) | ✅ accepted |
 | Fully developed turbulent pipe flow, k-ω SST | simulation (V2), El Khoury et al. 2013 | f within 2.5 % of McKeon et al. at three Re; within 3.3 % with wall functions | ✅ accepted |
 | Pulsatile flow through the cosine constriction (Varghese et al., Part 2) | DNS (V2), Varghese et al. 2007 | throat peak at peak flow −1.3 % from the DNS; the five flow features of its §3.1 as in the DNS | ✅ accepted |
 | Laminar flow in a 90° square-duct bend, Re 790 | experiment (V3), Taylor et al. 1981 | peak velocity at the measured position at six stations; peak U/V_c converging (GCI ≤ 0.05 %) | ✅ accepted |
 | Laminar flow in a helical pipe (the SIET coil) | experiment (V3), De Amicis et al. 2014 | f within 0.3 % of Ito at nang 24 (Re 1800, 2400), converging; Re 3000's nang 24 to run | 🔄 in progress |
-| Turbulent flow in a 90° bend (Sudo et al. 1998); FEniCSx toolchain, and second-order export checked end to end; a Taylor bubble rising in stagnant liquid (VOF) | exact (V1), experiment (V3) | | 📋 planned |
+| Turbulent flow in a 90° bend (Sudo et al. 1998); a Taylor bubble rising in stagnant liquid (VOF) | experiment (V3) | | 📋 planned |
 <!-- readme:validation:end -->
 
 Categories, the coverage matrix (which features are validated and which

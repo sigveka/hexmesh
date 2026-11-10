@@ -332,5 +332,6 @@ def test_planted_unguarded_conversions():
 
 def test_every_case_says_how_it_converts():
     for c in sorted((ROOT / "validation").glob("*/case.json")):
-        conv = json.loads(c.read_text(encoding="utf-8"))["tags"]["toolchain"]["conversion"]
-        assert "-keepOrientation" in conv, c.parent.name
+        toolchain = json.loads(c.read_text(encoding="utf-8"))["tags"]["toolchain"]
+        if "openfoam" in toolchain:                     # FEniCSx reads the .msh (task 0077)
+            assert "-keepOrientation" in toolchain["conversion"], c.parent.name

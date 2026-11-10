@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "title": "FEniCSx: second-order export checked end to end",
+  "headline": "Q2 on Hex27 converges at L2 order 2.78–2.98 on the straight, bend and tee; on Hex8, with the exact wall's flux, 2.0–2.6",
+  "category": "V1",
+  "references": [
+    {
+      "source": "manufactured: $u_m = \\sin(a x + 0.3)\\,\\sin(b y + 0.7)\\,\\sin(c z + 1.1)$, $-\\nabla^2 u = -\\nabla^2 u_m$, wall flux with the exact wall's normal",
+      "role": "primary"
+    }
+  ],
+  "tags": {
+    "regime": [],
+    "physics": [
+      "conduction"
+    ],
+    "features": [
+      "section:circle",
+      "straight",
+      "bend",
+      "tee",
+      "projection"
+    ],
+    "toolchain": {
+      "fenicsx": "dolfinx:v0.11.0",
+      "runner": "docker",
+      "conversion": "dolfinx.io.gmsh.read_from_msh on write() (Hex8) and write(order=2) (Hex27)"
+    }
+  },
+  "status": "accepted",
+  "task": "0077",
+  "gates": [
+    {
+      "quantity": "L2 order of Q2 on the Hex27 mesh, Dirichlet and Neumann, every pair of levels",
+      "limit": ">= 2.7 on straight, bend and tee"
+    }
+  ]
+}

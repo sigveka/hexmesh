@@ -1,5 +1,23 @@
 {
  "cases": {
+  "fenicsx_second_order": {
+   "case": "fenicsx_second_order",
+   "category": "V1",
+   "cells": [
+    864,
+    138240
+   ],
+   "gates": [
+    {
+     "limit": ">= 2.7 on straight, bend and tee",
+     "quantity": "L2 order of Q2 on the Hex27 mesh, Dirichlet and Neumann, every pair of levels"
+    }
+   ],
+   "levels": 18,
+   "status": "accepted",
+   "task": "0077",
+   "title": "FEniCSx: second-order export checked end to end"
+  },
   "heated_pipe": {
    "case": "heated_pipe",
    "category": "V1",
@@ -331,6 +349,7 @@
  },
  "features": {
   "bend": [
+   "fenicsx_second_order",
    "mms",
    "square_bend"
   ],
@@ -351,9 +370,11 @@
    "stenosis_pulsatile"
   ],
   "projection": [
+   "fenicsx_second_order",
    "mms"
   ],
   "section:circle": [
+   "fenicsx_second_order",
    "heated_pipe",
    "heated_rod",
    "helical_pipe",
@@ -378,6 +399,7 @@
    "mms"
   ],
   "straight": [
+   "fenicsx_second_order",
    "heated_pipe",
    "heated_rod",
    "helical_pipe",
@@ -392,6 +414,7 @@
    "womersley"
   ],
   "tee": [
+   "fenicsx_second_order",
    "mms"
   ],
   "transition": [
