@@ -543,7 +543,7 @@ def test_spool_set_on_on_layered_spec(tmp_path):
     from hexmesh.assembly import Tee
     net = _read_spool(tmp_path, SPOOL)
     asm = net.to_assembly(_spec(0.05))
-    with pytest.warns(UserWarning, match=r"below PREDICTED_SJ_WARN 0\.3; no run_length "
+    with pytest.warns(UserWarning, match=r"below PREDICTED_SJ_WARN 0\.3; no run length "
                       r"reaches it: the branch ratio r/R 0\.25"):
         asm.validate()
     tee, = [e for e in asm.edges if isinstance(e.fitting, Tee)]

@@ -251,5 +251,36 @@ volunteer tests pass (94); the full suite wasn't rerun.
    memory, peak disk and time per step as measured; wall time stays
    estimated (measured s/step × scaled steps, basis stated).  Disk and
    other runs checked first, cases deleted after.  The issue waits for
-   these numbers.  *Pending:* run around task 0122.
+   these numbers.  Done 2026-11-10: below.
 4. The full suite is to be rerun after the encoding fix (in 0122).
+
+## The Re 3000 measurement (2026-11-10, answer 3)
+
+Run alone at 4 processes, Docker v2406, under `/usr/bin/time -v`; peak
+memory sums the run's processes and containers every 2 s (the volunteer
+tool's PeakMemory), peak disk is `du` of the run directory every 20 s.
+A first attempt was stopped by Claude Code's memory guard during the
+map stage (with task 0127's nang 64 meshes running); its numbers agree.
+
+| stage | wall time | peak memory | peak disk |
+|---|---|---|---|
+| prepare (both meshes, coarse start) | 27 min | 2.6 GB | 1.1 GB |
+| coarse solve, nang 16 (converged, 788 steps, f 0.04918) | 71 min, 5.4 s/step | 1.1 GB | 1.7 GB |
+| map to nang 24 (coarse case deleted) | 1 min | 1.8 GB | 1.7 GB |
+| first fine chunk, nang 24 (50 steps) | 58 min, 70 s/step | 3.6 GB | 2.4 GB |
+
+**Caveat on 70 s/step:** this session's own test runs (`pytest -n 4`,
+tasks 0125 and 0123) overlapped part of the fine chunk, against the
+shared-machine rule; and a 50-step chunk carries its decompose and
+reconstruct.  So it is an upper bound.  Re 2400's fine rate was 51
+s/step, also partly shared.
+
+**The card** (`validation/helical_pipe/volunteer.json`, VOLUNTEERS.md
+regenerated): prepare time 0.45 h, peak memory 3.6 GB and peak disk
+2.4 GB are now *measured* (only the latest result is kept, so the disk
+stays there); wall time stays *estimated*, now 12 h as an upper bound
+(1.2 h coarse + about 560 fine steps, scaled from Re 2400's 398/563, at
+70 s/step), about 9 h at Re 2400's rate; the summary says "9 to 12
+hours".  The coarse solve needed 788 steps, not the 720 the earlier
+estimate assumed.  `tests/test_volunteer.py`: 25 passed.  Deleted: the
+run directory.

@@ -118,6 +118,18 @@ exception: the interior wall nodes of a multi-layer `Straight` lie on a filled
 surface, up to 0.7 % of the radius off. This is an open follow-up
 ([task 0012](tasks/0012-miter-bend-and-elbow.md#outcome)).
 
+**What hexmesh changes in gmsh's mesh.**  gmsh meshes: it creates every
+element and places every node first.  hexmesh then moves wall nodes at
+junctions onto the exact pipe walls (and, at `order=2`, places the
+high-order wall nodes there), and reports each move.  After `mesh()`,
+`asm.corrections`, the quality report (`print(asm.check_quality())`) and
+the `hexmesh build` result list, for every fitting, how many nodes were
+moved and the largest move, in metres, in wall radii and in cell edge
+lengths, or "none".  A straight or a bend says "none"; a tee typically
+moves its wall nodes by a small fraction of a cell; a wye's crotch by a
+few cells' worth.  A move of more than one wall radius also warns
+([decision 0046](decisions/0046-gmsh-meshes-hexmesh-corrects.md)).
+
 ---
 
 ## Fittings
@@ -624,7 +636,9 @@ component.  An equal tee is read as a `Tee` whose branch is as wide as
 the main.  It fits a forged tee's run bare (it needs 1.27 R each side of
 the centre; ASME B16.9 gives about 1.84 R) or under insulation 0.25 R
 thick (1.58 R), but not under thicker insulation (1.90 R at 0.5 R), where
-the file's tee is `run_length_too_short`.
+the file's tee is `run_length_too_short`.  The error's hint says it in the
+file's terms: how far the tee's END-POINTs are from its CENTRE-POINT, how
+far the junction needs them, or to thin the insulation.
 
 A tee whose branch leans is built as a lateral, `Tee(angle=…)`, with the
 angle measured from the file (task 0103); within 1° of square it is a

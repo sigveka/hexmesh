@@ -119,9 +119,9 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0119](0119-volunteer-tool-and-helical-card.md) | Volunteer runs: the tool, the runners, and the helical pipe's card | done | 0044, 0012 |
 | [0121](0121-idealised-aorta-example.md) | Example: an idealised aorta (arch, branches, taper and the iliac bifurcation) | ready | 0018, 0043 |
 | [0122](0122-equal-tee-oriented-cube.md) | Equal tees and equal laterals: the oriented junction cube behind `Tee` | done | 0043, 0031, 0046 |
-| [0123](0123-report-what-hexmesh-changed.md) | Report what hexmesh changed in gmsh's mesh: corrections recorded, written elements stated | ready | 0046 |
+| [0123](0123-report-what-hexmesh-changed.md) | Report what hexmesh changed in gmsh's mesh: corrections recorded, written elements stated | done | 0046 |
 | [0124](0124-wye-written-nodes-opt-in.md) | Written nodes for `Wye`, opt-in: measure a B3 layout, and offer it only where it beats the hub | held (after 0122, 0123) | 0046, 0043 |
-| [0125](0125-pcf-tee-run-length-hint.md) | PCF tees too short for their run: a hint a PCF user can act on | ready | 0042 |
+| [0125](0125-pcf-tee-run-length-hint.md) | PCF tees too short for their run: a hint a PCF user can act on | done | 0042 |
 | [0126](0126-projection-blend-into-internal-faces.md) | Carry the wall projection's move into the internal faces: the equal tee's slide, equal laterals, second order | done | 0046, 0029, 0043 |
 | [0127](0127-equal-tee-fine-nang-tier.md) | The equal tee at fine `nang`: a measured tier in `validate()`, before gmsh | done | 0043 |
 

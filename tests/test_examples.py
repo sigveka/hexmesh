@@ -19,6 +19,12 @@ def test_example(name, tmp_path, monkeypatch):
     assert (tmp_path / f"{name.split('.')[-1]}.msh").stat().st_size > 0
     assert result.meshed == result.predicted
     assert result.quality.ok, str(result.quality)
+    # what hexmesh changed in gmsh's mesh, every fitting, "none" included
+    # (decision 0046 rule 5, task 0123)
+    assert result.quality.corrections
+    assert all(c["wall_projection"] == "none" or c["wall_projection"]["nodes"] > 0
+               for c in result.quality.corrections.values())
+    assert not any(c["elements_written"] for c in result.quality.corrections.values())
 
 
 def test_every_example_is_listed():

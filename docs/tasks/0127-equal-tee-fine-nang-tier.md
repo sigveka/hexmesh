@@ -71,6 +71,10 @@ the projected grid's obliquity stays a follow-up); laterals.
    at 64; above `EQUAL_TEE_NANG_CLEAN` = 48 `validate()` warns before
    meshing, and nothing finer than 64 is measured)."
 
+## Design answer (2026-11-10, the user: "yes"): applied in 95bfe59
+
+Q1: DESIGN §7.2 carries the proposed wording, verbatim, plus "task 0127".
+
 ## Outcome
 
 **Status:** done.

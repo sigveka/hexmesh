@@ -129,7 +129,8 @@ def _validate(asm: Assembly) -> dict:
             errors = [e.to_dict()]
     found = [w.message.to_dict() if isinstance(w.message, HexmeshWarning)
              else {"code": None, "message": str(w.message)} for w in caught]
-    return {"ok": not errors, "errors": errors, "warnings": found, "complete": not errors}
+    return {"ok": not errors, "errors": errors, "warnings": found,
+            "notices": [n.to_dict() for n in asm.notices], "complete": not errors}
 
 
 def _run(args) -> tuple[bool, object]:
@@ -143,7 +144,7 @@ def _run(args) -> tuple[bool, object]:
             asm = _network(args)
         except HexmeshError as e:          # the description itself: one error, then stop
             return False, {"ok": False, "errors": [e.to_dict()], "warnings": [],
-                           "complete": False}
+                           "notices": [], "complete": False}
         out = _validate(asm)
         return out["ok"], out
     asm = _network(args)
@@ -183,7 +184,8 @@ def _run(args) -> tuple[bool, object]:
         from hexmesh import Session
         with Session("hexmesh-cli"):
             asm.write(str(args.out), order=args.order)
-        return True, {"path": str(args.out), "cells": asm.cell_count(), "order": args.order}
+        return True, {"path": str(args.out), "cells": asm.cell_count(), "order": args.order,
+                      "corrections": asm.corrections}
     raise AssertionError(args.command)                       # pragma: no cover
 
 

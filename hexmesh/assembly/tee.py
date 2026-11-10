@@ -437,7 +437,7 @@ class Tee:
                 continue
             need = self.shortest_run(inlet, spec, tier)
             if need is None:
-                hint = (f"no run_length reaches it: the branch ratio r/R "
+                hint = (f"no run length reaches it: the branch ratio r/R "
                         f"{self.branch_radius / spec.core_shape.radius:.3g} limits the "
                         f"junction core")
                 if self.angle != 90:
@@ -448,7 +448,8 @@ class Tee:
                         f"no ratio up to TEE_MAX_RATIO {TEE_MAX_RATIO:g} reaches it "
                         f"there: a larger angle"))
             else:
-                hint = f"run_length {need:.4g} or more reaches it (now {self.run_length:.4g})"
+                hint = (f"a run of {need:.4g} m or more each side of the centre reaches it "
+                        f"(now {self.run_length:.4g})")
             msg = (f"predicted corner scaled Jacobian {sj:.3f} is below {name} "
                    f"{tier:g}; {hint}")
             if tier == PREDICTED_SJ_MIN:

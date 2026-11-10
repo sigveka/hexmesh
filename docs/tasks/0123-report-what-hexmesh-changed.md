@@ -1,6 +1,6 @@
 # 0123 — Report what hexmesh changed in gmsh's mesh: corrections recorded, written elements stated
 
-- **Status:** ready
+- **Status:** done
 - **Decision:** [0046 — gmsh meshes; hexmesh corrects node positions and says so](../decisions/0046-gmsh-meshes-hexmesh-corrects.md), rule 5
 - **Depends on:** none.  Can run before or after 0122.
 
@@ -47,6 +47,81 @@ the user-facing record; say which in *Agent notes*), `validate()`,
 
 ## Agent notes
 
+- **The user-facing record** (the task left it open): the quality report
+  (`QualityReport.corrections`, and its printed table) for Python, and
+  the CLI's `build` result (`corrections`) for the CLI and the agent
+  layer: that is the "build manifest".  Not `<stem>.roles.json`: it is
+  OpenFOAM's boundary-retyping input, written only by `write_openfoam`.
+  Not the `.msh` recipe block: meshes must stay byte-identical.  The
+  source of both is `Assembly.corrections`, set by `mesh()`.
+- **Record format** (per fitting name, every fitting): `fitting`, `type`,
+  `wall_projection` and `second_order_wall_nodes`, each `"none"` or
+  `{nodes, largest_move, largest_move_radii, largest_move_edges}`, and
+  `elements_written`.  The local edge length of a node is the shortest
+  edge of its wall quads before the move (for a high-order node, of its
+  element).  A node counts when it moves more than
+  `limits.CORRECTION_MIN_MOVE` = 1e-9 wall radii: a node gmsh already put
+  on the wall moves by rounding (~1e-17) and would otherwise count.
+  `largest_move` and `largest_move_radii` equal `projection_report`'s
+  `move` and `ratio` exactly (same arrays); `projection_report` stays.
+- **Notices.**  None existed.  `HexmeshNotice` (`hexmesh.errors`,
+  exported from `hexmesh`) has the error fields but is a plain
+  `Exception` subclass, never raised and never issued through
+  `warnings`, so a `warnings.simplefilter("error")` doesn't turn a
+  notice into a failure.  Python: `Assembly.notices` after `validate()`;
+  CLI and agent: the `validate` result's `notices` (the manifest's
+  `commands` text says so).  Code `elements_written_by_hexmesh`.  The
+  flag is a true `written_elements` attribute on the fitting (task 0124
+  sets it); N is the fitting's exact cell count.  Tested with a stub
+  (`monkeypatch` on `Straight`); no fitting sets it.  The architecture
+  test's `CODED_ROOTS` gains `HexmeshNotice`, so its constructions must
+  carry a registered code like the others.
+- **A correction outside this task's words:** at `order=2`,
+  `_revolve_high_order` rotates a bend's high-order nodes between stations
+  onto its arcs (wall and interior).  That moves gmsh's nodes too, but
+  the task (and decision 0046 rule 5) names wall projection and
+  second-order wall nodes, so it isn't recorded: a bend at order 2 says
+  "none".  Proposed follow-up below.
+
 ## Questions for design
 
 ## Outcome
+
+**Status:** done.
+
+- **Corrections recorded** (`Assembly.corrections`, set by `mesh()`):
+  every fitting, "none" included; wall projection and second-order wall
+  nodes, each with its node count and largest move (absolute, in local
+  wall radii, in local edge lengths); elements written (0).  Copied into
+  `QualityReport.corrections` and printed with the report; returned by
+  the CLI's `build` (`corrections`).  Measured on the examples: the
+  `junction_walls` tee moves 242 wall nodes, at most 1.8e-5 m (0.0002
+  wall radii, 0.0013 edge lengths); its wye 477, at most 0.077 m (0.77
+  radii, 3.6 edge lengths); the `tee` example at order 2 places 606
+  second-order wall nodes, at most 0.0055 edge lengths.
+- **Notices:** `HexmeshNotice`, `Assembly.notices` from `validate()`,
+  the CLI's `validate` result `notices`; code
+  `elements_written_by_hexmesh`; flag `written_elements` on a fitting,
+  tested with a stub, set by none.
+- **GUIDE:** "What hexmesh changes in gmsh's mesh", after the
+  wall-exactness paragraph.  **API.md:** `QualityReport.corrections`,
+  `Assembly.corrections`, notices, the code and `CORRECTION_MIN_MOVE`
+  rows.  **CHANGELOG.**
+- **Files:** `hexmesh/assembly/assembler.py`, `quality.py`, `limits.py`,
+  `hexmesh/errors.py`, `hexmesh/__init__.py`, `hexmesh/agent/cli.py`,
+  `_commands.py`; `tests/test_corrections.py` (new, 5 tests),
+  `tests/test_examples.py` (every example's record), `tests/test_architecture.py`
+  (`CODED_ROOTS` gains `HexmeshNotice`).
+- **Checks:** full suite 4063 passed, 15 skipped, 1 failed: the failure
+  was the design session's uncommitted aorta example (missing from
+  `test_second_order.py`'s `WYES`), fixed there since.  All 30 existing
+  examples' meshes byte-identical to HEAD (sha256 of each `.msh`).
+- **Manifest schema:** the agent manifest's `commands` texts for
+  `validate` and `build` name the new keys; the results only gain keys,
+  so its version stays 1.
+
+**Proposed follow-ups.**
+- Record the bend's second-order arc placement (`_revolve_high_order`)
+  too, if decision 0046 rule 5 is read to cover it: it moves gmsh's
+  high-order nodes, wall and interior (see *Agent notes*).
+- Task 0124: the opt-in that sets `written_elements`.

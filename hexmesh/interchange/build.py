@@ -181,22 +181,27 @@ class _Reroll(Exception):
         self.miss = miss
 
 
-#: a fitting's length checks, as the file's dimensions (task 0122)
-_FILE_LENGTHS = {"run_length_too_short": "from its centre to each run end",
-                 "branch_length_too_short": "from its centre to the branch end"}
+#: a fitting's length checks, in the file's terms (tasks 0122, 0125): the
+#: points that measure the length, by junction kind
+_FILE_POINTS = {("run_length_too_short", "tee"): ("its END-POINTs are", "END-POINTs"),
+                ("branch_length_too_short", "tee"): ("its BRANCH1-POINT is", "a BRANCH1-POINT"),
+                ("branch_length_too_short", "wye"): ("its BRANCH1- and BRANCH2-POINTs are",
+                                                     "BRANCH1- and BRANCH2-POINTs")}
 
 
-def _file_length_hint(err: AssemblyError) -> None:
+def _file_length_hint(err: AssemblyError, p) -> None:
     """A junction too short for its layout: the fitting's hint names its
-    own fields (``run_length=None``), which a file can't set; say what the
-    file's component must measure instead."""
-    span = _FILE_LENGTHS.get(err.code)
+    own fields (``run_length=None``), which a file can't set; say which of
+    the component's points to move, and how far."""
+    points = _FILE_POINTS.get((err.code, p.kind))
     need = err.limit.get("min_exclusive") if isinstance(err.limit, dict) else None
-    if span is None or need is None or err.value is None:
+    if points is None or need is None or err.value is None:
         return
-    err.hint = (f"the file's component measures {err.value:.4g} m {span}; the junction "
-                f"needs more than {need:.4g} m: a longer component in the file, or "
-                f"thinner insulation if it is insulated")
+    has, move = points
+    kind = getattr(p.comp, "type", "") or "component"
+    err.hint = (f"{has} {err.value:.4g} m from its CENTRE-POINT and the junction needs "
+                f"more than {need:.4g} m: {move} further from the CENTRE-POINT in the "
+                f"file (a longer {kind}), or thinner insulation if it is insulated")
 
 
 def _branch_radius(spec, R: float, branch: Section, main_bore: float) -> float:
@@ -677,7 +682,7 @@ def _place(report, parts, nodes, at_node, names, root, spec, axial_cell, kinks, 
         except ValueError as e:
             err = AssemblyError.wrap(e, f"{what}: {e}", code="fitting_invalid",
                                      part=_part_id(p), source=_source(p))
-            _file_length_hint(err)
+            _file_length_hint(err, p)
             raise err from None
         outs = asm.add(iface, fitting, label=p.label, origin=_source(p) or None)
         for o, x in zip(outs, outs_at):

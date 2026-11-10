@@ -18,13 +18,31 @@
   the junction.
 - New example `fittings.equal_tee`.
 - A PCF junction too short for its layout (`run_length_too_short`,
-  `branch_length_too_short`) now hints in the file's terms: what the
-  component measures, what the junction needs, and to lengthen it in the
-  file (or thin its insulation), not `run_length=None`.
+  `branch_length_too_short`) now hints in the file's terms (tasks 0122,
+  0125): which of the component's points to move (its END-POINTs, its
+  BRANCH1-POINT, a Y piece's BRANCH1- and BRANCH2-POINTs), how far they
+  are from its CENTRE-POINT and how far the junction needs them, or to
+  thin its insulation; not `run_length=None`.
+- A reduced tee's predicted-quality hint is in plain words (task 0125):
+  "a run of X m or more each side of the centre reaches it (now Y)" and
+  "no run length reaches it", so a PCF user can act on it too.  Codes
+  unchanged.
 - Above `limits.EQUAL_TEE_NANG_CLEAN` (48) an equal tee warns in
   `validate()`, before gmsh (task 0127): its meshed SJ falls with nang
   (0.293 at 64, measured; unmeasured above 64), which the predicted SJ
   doesn't see.
+
+**What hexmesh changes in gmsh's mesh** (decision 0046 rule 5; task 0123).
+- `Assembly.corrections`, after `mesh()`: for every fitting, the wall
+  nodes projection moved and the second-order wall nodes placed (count,
+  largest move absolute, in wall radii and in edge lengths), or "none",
+  and the elements hexmesh wrote (0 today).  In `QualityReport.corrections`
+  and its printed table, and in the CLI's `build` result.
+- Notices: `Assembly.notices` (`HexmeshNotice`, not a warning) from
+  `validate()`, and `notices` in the CLI's `validate` result.  The one
+  notice, `elements_written_by_hexmesh`, waits for task 0124's opt-in.
+- `limits.CORRECTION_MIN_MOVE` (1e-9 wall radii): the smallest move the
+  record counts.
 
 **Volunteer runs** (decision 0044; task 0119).
 - `python3 -m validation.volunteer`: `list`, `prepare`, `run`, `collect`

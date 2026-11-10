@@ -207,13 +207,13 @@ def _shelled_tee(ratio, T, run):
 
 def _hint(message):
     import re
-    return float(re.search(r"run_length ([0-9.e-]+) or more reaches it", message).group(1))
+    return float(re.search(r"a run of ([0-9.e-]+) m or more each side of the centre reaches it", message).group(1))
 
 
 def test_short_run_rejected_with_the_length_that_works():
     asm = _shelled_tee(0.5, 0.02, 0.08)            # steel slab at SJ 0.06
     with pytest.raises(AssemblyError, match=r"Tee.*predicted corner scaled Jacobian "
-                       r"0\.060 is below PREDICTED_SJ_MIN 0\.1; run_length .* or more") as e:
+                       r"0\.060 is below PREDICTED_SJ_MIN 0\.1; a run of .* m or more") as e:
         asm.validate()
     need = _hint(str(e.value))
     assert 0.08 < need < 0.09
@@ -224,7 +224,7 @@ def test_short_run_rejected_with_the_length_that_works():
 
 def test_warning_names_the_run_that_reaches_it():
     asm = _shelled_tee(0.7, 0.02, 0.095)           # SJ 0.215
-    with pytest.warns(UserWarning, match=r"below PREDICTED_SJ_WARN 0\.3; run_length "):
+    with pytest.warns(UserWarning, match=r"below PREDICTED_SJ_WARN 0\.3; a run of "):
         asm.validate()
     assert len(asm.warnings) == 1 and asm.warnings[0].startswith("fitting #0 Tee(")
     need = _hint(asm.warnings[0])
@@ -236,7 +236,7 @@ def test_warning_names_the_run_that_reaches_it():
 def test_small_branch_warns_at_any_length():
     """r/R below about 0.57 can't reach 0.3: the message blames the ratio."""
     asm = _shelled_tee(0.5, 0.0, 0.5)
-    with pytest.warns(UserWarning, match=r"no run_length reaches it: the branch ratio r/R 0\.5"):
+    with pytest.warns(UserWarning, match=r"no run length reaches it: the branch ratio r/R 0\.5"):
         asm.validate()
 
 
@@ -325,7 +325,7 @@ def test_lateral_rejected_before_gmsh(kw, code, message):
 
 def test_steep_lateral_rejected_naming_the_angle():
     """30° is below PREDICTED_SJ_MIN at every branch ratio (task 0060)."""
-    with pytest.raises(AssemblyError, match=r"no run_length reaches it: .* at angle 30°; no "
+    with pytest.raises(AssemblyError, match=r"no run length reaches it: .* at angle 30°; no "
                        r"ratio up to TEE_MAX_RATIO 0\.95 reaches it there") as e:
         _tee_asm(0.9, angle=30, run=None, branch=0.8)[0].validate()
     assert e.value.code == "predicted_sj_below_minimum"

@@ -48,7 +48,7 @@ from __future__ import annotations
 
 import math
 
-__all__ = ["HexmeshError", "HexmeshWarning", "SpecError", "SpecTypeError", "SpecUsageError",
+__all__ = ["HexmeshError", "HexmeshWarning", "HexmeshNotice", "SpecError", "SpecTypeError", "SpecUsageError",
            "ReaderError", "ReaderFileNotFound", "GmshUnavailable", "InternalError", "CODES",
            "jsonable"]
 
@@ -175,6 +175,18 @@ class HexmeshWarning(_Fields, UserWarning):
         self._set(code, where, value, limit, hint)
 
 
+class HexmeshNotice(_Fields, Exception):
+    """A notice: a fact the user must be told that isn't a fault, so not a
+    warning (decision 0046 rule 5: elements hexmesh writes).  Never
+    raised; collected in ``Assembly.notices``, with the fields of
+    :class:`HexmeshError`."""
+
+    def __init__(self, message: str, *, code: str, where: dict | None = None,
+                 value=None, limit=None, hint: str | None = None):
+        super().__init__(message)
+        self._set(code, where, value, limit, hint)
+
+
 #: Every code, with a one-line description of the rule.  Codes describe the
 #: rule, not the fitting, and never change once released.
 CODES: dict[str, str] = {
@@ -247,6 +259,8 @@ CODES: dict[str, str] = {
     "duct_tap_roll_invalid": "a duct tap's roll other than 0 or 180",
     "duct_tap_too_wide": "a duct tap too wide for the face it sits on",
     "elbow_needs_circle": "an ASME Elbow on a non-circular section",
+    "elements_written_by_hexmesh":
+        "a fitting whose elements hexmesh writes, not gmsh (notice; decision 0046)",
     "extend_args_invalid": "negative extension lengths or cells_per_diameter",
     "faces_antiparallel": "two faces are antiparallel, so their corners can't be matched",
     "fill_failed": "a fitting failed while filling its volume",

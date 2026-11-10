@@ -113,7 +113,7 @@ RULE_ENCODING = "decision 0039, text I/O names its encoding"
 RULE_CODES = "decision 0040, every error carries a registered code"
 RULE_BARE = "decision 0040, no bare built-in raise"
 #: the roots of the coded error and warning classes (``hexmesh/errors.py``)
-CODED_ROOTS = {"HexmeshError", "HexmeshWarning", "InternalError"}
+CODED_ROOTS = {"HexmeshError", "HexmeshWarning", "HexmeshNotice", "InternalError"}
 #: built-in exceptions hexmesh code must not raise bare (task 0106)
 BARE = {"ValueError", "TypeError", "RuntimeError", "KeyError", "NotImplementedError",
         "AttributeError"}

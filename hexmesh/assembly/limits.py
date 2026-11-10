@@ -246,6 +246,14 @@ WALL_PROJECTION_WARN_MOVE = _limit(
     "WALL_PROJECTION_WARN_MOVE", 1.0, "R", "warn",
     "a wall projection moving a node further than this many local wall radii warns")
 
+#: Decision 0046 rule 5 (task 0123): a wall node counts as moved by a
+#: correction when it moves more than this many local wall radii; below
+#: it, the move is the projector's rounding of a node gmsh already placed
+#: on the wall.
+CORRECTION_MIN_MOVE = _limit(
+    "CORRECTION_MIN_MOVE", 1e-9, "R", "info",
+    "smallest move, in local wall radii, a correction record counts")
+
 #: Miter cuts (task 0094 named them; moved here from ``fittings``, task
 #: 0095): each cut of a ``MiterBend`` turns at least ``MIN_MITER_CUT`` (a
 #: smaller cut is a Straight) and at most ``MAX_MITER_CUT``.

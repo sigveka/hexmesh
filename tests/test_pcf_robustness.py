@@ -324,9 +324,52 @@ PIPE
     with pytest.raises(AssemblyError) as e:
         net.to_assembly(_spec())
     assert e.value.code == "run_length_too_short"
-    assert e.value.hint.startswith("the file's component measures 0.03 m from its centre "
-                                   "to each run end; the junction needs more than ")
-    assert "run_length=None" not in e.value.hint
+    assert e.value.hint.startswith("its END-POINTs are 0.03 m from its CENTRE-POINT and the "
+                                   "junction needs more than ")
+    assert "(a longer TEE)" in e.value.hint
+    assert "run_length" not in e.value.hint
+
+
+INSULATED_EQUAL_TEE = """\
+PIPELINE-REFERENCE L-1
+    INSULATION-THICKNESS 25
+PIPE
+    END-POINT 0 0 0 100
+    END-POINT 1000 0 0 100
+    INSULATION ON
+TEE
+    END-POINT 1000 0 0 100
+    END-POINT {e} 0 0 100
+    CENTRE-POINT {c} 0 0
+    BRANCH1-POINT {c} {b} 0 100
+    INSULATION ON
+PIPE
+    END-POINT {e} 0 0 100
+    END-POINT 2000 0 0 100
+    INSULATION ON
+PIPE
+    END-POINT {c} {b} 0 100
+    END-POINT {c} 800 0 100
+    INSULATION ON
+"""
+
+
+@pytest.mark.parametrize("run, branch, code, has", [
+    (80, 400, "run_length_too_short", "its END-POINTs are 0.08 m from its CENTRE-POINT"),
+    (150, 60, "branch_length_too_short", "its BRANCH1-POINT is 0.06 m from its CENTRE-POINT"),
+])
+def test_an_insulated_equal_tee_s_hint_is_in_the_file_s_terms(tmp_path, run, branch, code, has):
+    """Task 0125's acceptance: an equal tee under insulation 0.5 R thick
+    (0.08 m each side builds bare, not insulated) names its points and
+    lengths as the file gives them, and no Python field."""
+    net = _read(tmp_path, INSULATED_EQUAL_TEE.format(b=branch, c=1000 + run, e=1000 + 2 * run))
+    with pytest.raises(AssemblyError) as e:
+        net.to_assembly(_spec(), insulation=True)
+    assert e.value.code == code and e.value.where["part"]
+    assert e.value.hint.startswith(has)
+    assert "TEE" in str(e.value) and "net.pcf:" in str(e.value)
+    for field in ("run_length", "branch_length", "=None"):
+        assert field not in e.value.hint
 
 
 @pytest.mark.skipif(not os.environ.get("HEXMESH_PCF_SAMPLES"),
@@ -348,3 +391,71 @@ def test_local_sample_files():
         print(f"{path.name}: {len(net.components)} components, ignored "
               f"{net.report['ignored']}; {result}; warnings: "
               f"{sorted({str(x.message)[:70] for x in w})}")
+
+
+SHORT_JUNCTIONS = {
+    "reduced tee, run": """\
+PIPE
+    END-POINT 0 0 0 100
+    END-POINT 1000 0 0 100
+TEE
+    END-POINT 1000 0 0 100
+    END-POINT 1020 0 0 100
+    CENTRE-POINT 1010 0 0
+    BRANCH1-POINT 1010 400 0 50
+PIPE
+    END-POINT 1020 0 0 100
+    END-POINT 2000 0 0 100
+PIPE
+    END-POINT 1010 400 0 50
+    END-POINT 1010 800 0 50
+""",
+    "reduced tee, branch": """\
+PIPE
+    END-POINT 0 0 0 100
+    END-POINT 1000 0 0 100
+TEE
+    END-POINT 1000 0 0 100
+    END-POINT 1300 0 0 100
+    CENTRE-POINT 1150 0 0
+    BRANCH1-POINT 1150 30 0 50
+PIPE
+    END-POINT 1300 0 0 100
+    END-POINT 2000 0 0 100
+PIPE
+    END-POINT 1150 30 0 50
+    END-POINT 1150 800 0 50
+""",
+    "Y piece, branches": """\
+PIPE
+    END-POINT 0 0 0 100
+    END-POINT 1000 0 0 100
+Y-PIECE-FABRICATED
+    CENTRE-POINT 1000 0 0
+    BRANCH1-POINT 1030 30 0 100
+    BRANCH2-POINT 1030 -30 0 100
+PIPE
+    END-POINT 1030 30 0 100
+    END-POINT 1800 800 0 100
+PIPE
+    END-POINT 1030 -30 0 100
+    END-POINT 1800 -800 0 100
+""",
+}
+
+
+@pytest.mark.parametrize("case, code, has", [
+    ("reduced tee, run", "run_length_too_short", "its END-POINTs are 0.01 m"),
+    ("reduced tee, branch", "branch_length_too_short", "its BRANCH1-POINT is 0.03 m"),
+    ("Y piece, branches", "branch_length_too_short", "its BRANCH1- and BRANCH2-POINTs are"),
+])
+def test_no_junction_length_hint_names_a_python_field(tmp_path, case, code, has):
+    """Task 0125 step 2: the codes a PCF junction reaches with a hint that
+    named a fitting field (``run_length``, ``branch_length``), on each
+    form that reaches them (a set-on's and a Y piece's run are resolved by
+    the importer)."""
+    with pytest.raises(AssemblyError) as e:
+        _read(tmp_path, SHORT_JUNCTIONS[case]).to_assembly(_spec())
+    assert e.value.code == code and e.value.hint.startswith(has)
+    for field in ("run_length", "branch_length", "=None", "=", "_"):
+        assert field not in e.value.hint.replace("CENTRE-POINT", "").replace("Y-PIECE", "")

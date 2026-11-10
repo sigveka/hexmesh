@@ -27,7 +27,7 @@ Send the `.contrib.json` file back: in a pull request, attached to the case's is
 
 ## Laminar flow in a helical pipe (`helical_pipe`)
 
-Steady laminar flow through four turns of a helical coil (the SIET coil: 12.53 mm tube, 1 m helix diameter, 0.8 m pitch), meshed by hexmesh along a spline through the helix.  It checks that the friction factor converges as the mesh is refined and lands within 5 % of Ito's correlation.  Two of the three Reynolds numbers are done on the finest mesh; the last one, Re 3000, needs about 8 hours on 4 cores and several GB of memory, which our one desktop can't spare.
+Steady laminar flow through four turns of a helical coil (the SIET coil: 12.53 mm tube, 1 m helix diameter, 0.8 m pitch), meshed by hexmesh along a spline through the helix.  It checks that the friction factor converges as the mesh is refined and lands within 5 % of Ito's correlation.  Two of the three Reynolds numbers are done on the finest mesh; the last one, Re 3000, needs 9 to 12 hours on 4 cores and several GB of memory, which our one desktop can't spare.
 
 - **OpenFOAM:** v2406 (image `opencfd/openfoam-default:2406`)
 - **hexmesh:** volunteer-helical-1 (git checkout volunteer-helical-1 before prepare: the mesh check needs the same meshing code as ours)
@@ -44,10 +44,10 @@ python3 -m validation.volunteer prepare helical_pipe re3000_n24 --dir run/
 | requirement | value | basis | where it comes from |
 |---|---|---|---|
 | cores (MPI processes) | 4 | measured | our runs of this level at Re 1800 and 2400 used 4 processes on one 8-core desktop; any count from 1 works, more is faster |
-| wall time at 4 cores | 8.3 h | estimated | from the measured Re 2400 run at 4 processes (desktop, 2026-11-08: 563 coarse steps in 52 min, then 398 fine steps in 5.6 h, partly shared with another run), scaled by steps: at nang 16, Re 3000 needed 720/561 of Re 2400's steps |
-| time to prepare (one core, no MPI) | 0.5 h | estimated | making the fine mesh measured 7 min (desktop, 2026-11-10); converting and checking it scaled by cells from the coarse mesh's measured 4.5 min; preparing the coarse start measured 8 min |
-| peak memory | 3.4 GB | estimated | the solve at 4 processes peaked at 1.0 GB on the coarse mesh (0.8 million cells; desktop, 2026-11-10), scaled by cells to 2.7 million; making the fine mesh measured 3.2 GB (2026-11-10), and converting it is estimated at 2.5 GB the same way |
-| peak disk | 4 GB | estimated | the fine case took about 1.6 GB in our runs (measured); while a 50-step chunk runs, its decomposed copy about doubles that; the coarse start's case is 0.25 GB (measured), deleted once mapped |
+| wall time at 4 cores | 12 h | estimated | an upper bound from a measured start of this level at 4 processes (desktop, 2026-11-10): the coarse solve converged in 788 steps at 5.4 s/step (1.2 h); the first 50 fine steps took 70 s/step, while other jobs shared the machine; the fine solve's steps are scaled from Re 2400 (398 fine steps after 563 coarse ones) to about 560, so 10.8 h.  At Re 2400's fine rate (51 s/step) it would be about 9 h |
+| time to prepare (one core, no MPI) | 0.45 h | measured | making, converting and checking both meshes and preparing the coarse start: 27 min (desktop, 2026-11-10) |
+| peak memory | 3.6 GB | measured | the run's processes and Docker containers summed, sampled every 2 s (desktop, 2026-11-10): 2.6 GB preparing, 1.1 GB in the coarse solve, 1.8 GB mapping, 3.6 GB in the fine solve at 4 processes |
+| peak disk | 2.4 GB | measured | the run's directory, sampled every 20 s through preparing, the coarse solve, mapping and the first fine chunk (desktop, 2026-11-10): 2.4 GB at most; later chunks keep only the latest result, so it stays there |
 | cells | 2,711,232 | measured | the fine mesh's exact count (the coarse start has 803328) |
 
 **Pass/fail limits** (fixed before any run; a result is reported whether it passes or not):

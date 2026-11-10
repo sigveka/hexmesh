@@ -27,14 +27,16 @@ RESULTS = {
     "manifest": "the manifest: commands, workflow, support, limits, errors, advise, "
                 "validation, conventions",
     "schema": "the JSON Schema (draft 2020-12) of an Assembly description",
-    "validate": "{ok, errors, warnings, complete}; complete is false when validation stopped "
-                "at its first error",
+    "validate": "{ok, errors, warnings, notices, complete}; complete is false when validation "
+                "stopped at its first error; notices are facts, not faults (elements hexmesh "
+                "writes, decision 0046)",
     "estimate": "{cells, exact, per_fitting}: the exact cell count, per fitting index",
     "describe": "describe(): fittings, ports, materials, bounds, cells",
     "preview": "{path}: the PNG written (--out)",
     "advise": "the advisor's report: {ok, table, error, notes, …}; the table goes to apply",
     "apply": "the description with the resolution table written in",
-    "build": "{path, cells, order}: the .msh written, with its recipe block",
+    "build": "{path, cells, order, corrections}: the .msh written, with its recipe block; "
+             "corrections, per fitting, what hexmesh changed in gmsh's mesh (decision 0046)",
 }
 NEEDS_GMSH = ("build",)
 
