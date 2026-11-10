@@ -725,8 +725,9 @@ with `python3 docs/gallery/build.py` (needs `vtk`).
 
 ## Current limitations
 
-- **Tee:** centred branch, perpendicular or leaning downstream (a
-  lateral, `angle=`, in the range of DESIGN §7.1), branch radius at most
+- **Tee:** branch perpendicular or leaning downstream (a lateral,
+  `angle=`, in the range of DESIGN §7.1), centred or offset (`offset=`,
+  `|offset| + r < R` and `|offset| ≤ r`), branch radius at most
   `TEE_MAX_RATIO` (0.95) R, or equal to R (an equal tee: square, centred,
   first order only); shells circular, and the branch's copy the main's (no separate
   branch wall thickness).

@@ -116,7 +116,9 @@ asm.write_openfoam("pcf_line.msh")
    "where": {"field": "run_length", "part": "1", "source": {"file": "line.pcf", "line": 19, "record": "TEE"}}}
   ```
   This is the sample with an equal tee: with its insulation, the forged tee's run is too short for the junction.
-- **Not read yet:** crosses, and offset or tangential tees. Each is rejected by name.
+- **Not read yet:** crosses, `Y-PIECE-FITTING`s and asymmetric Y pieces,
+  and tangential set-ons (`TTSO`, `TTRF`). Each is rejected by name; offset set-ons (`TOSO`,
+  `TORF`) build.
 
 The `hexmesh` commands take a PCF file directly, with a JSON file mapping
 each nominal size to its section: `hexmesh validate line.pcf --spec
@@ -190,11 +192,18 @@ hexmesh build header.json --out header.msh       # the only step that runs gmsh
 <td align="center"><img src="docs/gallery/img/duct_transition.png" width="180"><br><code>Transition</code> (circle ↔ rectangle)</td>
 <td align="center"><img src="docs/gallery/img/loop.png" width="180"><br><code>Closure</code> (loops)</td>
 </tr>
+<tr>
+<td align="center"><img src="docs/gallery/img/equal_tee.png" width="180"><br><code>Tee</code> (equal)</td>
+<td align="center"><img src="docs/gallery/img/rect_duct.png" width="180"><br>rectangular ducts</td>
+<td align="center"><img src="docs/gallery/img/hvac_branched.png" width="180"><br>duct taps</td>
+<td align="center"><img src="docs/gallery/img/layer_outlines.png" width="180"><br>layer outlines</td>
+</tr>
 </table>
 
-Plus `Straight`, rectangular ducts, duct taps, layer outlines (round in
-square and square in round) and insulation that stops and starts along a
-run.
+Plus `Straight` and insulation that stops and starts along a run.  Tees
+take a reduced branch at any roll, leaning downstream (laterals) or off
+the main's axis (offset taps), or a branch as wide as the main (equal
+tees).
 
 **Rectangular ducts** are one Cartesian patch with graded walls by
 default since 0.4.0, because the O-H face converges badly on a rectangle
@@ -202,9 +211,11 @@ default since 0.4.0, because the O-H face converges badly on a rectangle
 the O-H face ([CHANGELOG](CHANGELOG.md)).
 
 **Not yet:**
-- tees with a non-perpendicular or offset branch (planned);
+- equal laterals (an equal tee is square only);
 - unequal wye daughters;
-- second-order export (in progress);
+- second order on wyes and equal tees, and second-order OpenFOAM output
+  (`gmshToFoam` reads first order; `mesh(order=2)` writes Hex27 for
+  the other fittings);
 - insulation starting inside a fitting.
 
 Full list in the [guide](docs/GUIDE.md#current-limitations).

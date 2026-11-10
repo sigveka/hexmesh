@@ -639,7 +639,9 @@ _COMPONENT_MAP = {
     "Y-PIECE-FITTING":       "junction?",
 }
 
-#: Set-on SKEYs whose branch is tangential or offset (RESEARCH §3.1): rejected.
+#: Set-on SKEYs whose branch is tangential or offset (RESEARCH §3.1).  Offset ones
+#: (TOSO, TORF) build as offset taps; tangential ones (TTSO, TTRF) fail the
+#: offset range (decision 0031, task 0061).
 OFFSET_SKEYS = {"TTSO", "TTRF", "TOSO", "TORF"}
 
 
