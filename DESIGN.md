@@ -504,7 +504,9 @@ so its chord error is first order in `nang` (3.7 % R at 8, 1.1 % at
 32), stated rather than gated (decision 0043).  The wall sides' flat
 faces sit up to 0.18 R inside the curved wall, and projection moves
 their nodes that far at any `nang`, so the meshed quality falls with
-refinement (min scaled Jacobian 0.511 at `nang` 8, 0.305 at 48).
+refinement (min scaled Jacobian 0.511 at `nang` 8, 0.305 at 48, 0.293
+at 64; above `EQUAL_TEE_NANG_CLEAN` = 48 `validate()` warns before
+meshing, and nothing finer than 64 is measured; task 0127).
 
 **Range.**  Square and centred only (`EQUAL_LATERAL_ANGLE_MIN` = 90°):
 equal laterals build at `nang` 8 but degrade as `nang` rises and fail
