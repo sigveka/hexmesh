@@ -121,6 +121,8 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0122](0122-equal-tee-oriented-cube.md) | Equal tees and equal laterals: the oriented junction cube behind `Tee` | done | 0043, 0031, 0046 |
 | [0123](0123-report-what-hexmesh-changed.md) | Report what hexmesh changed in gmsh's mesh: corrections recorded, written elements stated | ready | 0046 |
 | [0124](0124-wye-written-nodes-opt-in.md) | Written nodes for `Wye`, opt-in: measure a B3 layout, and offer it only where it beats the hub | held (after 0122, 0123) | 0046, 0043 |
+| [0125](0125-pcf-tee-run-length-hint.md) | PCF tees too short for their run: a hint a PCF user can act on | ready | 0042 |
+| [0126](0126-projection-blend-into-internal-faces.md) | Carry the wall projection's move into the internal faces: the equal tee's slide, equal laterals, second order | ready | 0046, 0029, 0043 |
 
 ### Validation
 

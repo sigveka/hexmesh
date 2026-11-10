@@ -282,3 +282,20 @@ full-width shoes fall fastest (min SJ 0.13 at 30°).
   decision 0046's opt-in for hexmesh-written nodes (`Wye(…,
   written_nodes=True)`; held).  It is a stored field, so the layout
   still follows deterministically from the description.
+
+## Note: task 0122's result (2026-11-10)
+
+- **Equal tees ship** through the cube (90°, centred): min meshed SJ
+  0.511 at `nang` 8, 0.305 at 48; `checkMesh` v2406 passes, bare,
+  shelled and insulated; crease 3.7 % R at 8, 0.7 % at 48.  DESIGN
+  §7.2 written from 0122's wording.
+- **Equal laterals are deferred** (`EQUAL_LATERAL_ANGLE_MIN` 90, the
+  user's "yes" to design's answer): they build at `nang` 8 but degrade
+  with refinement, and fail `checkMesh` skewness from 60° down.  Cause:
+  the wall sides' flat faces sit up to 0.18 R inside the wall, and
+  projection's fixed move crushes more of the thinner cells as `nang`
+  rises.  Candidate fix (not a task): carry the projection's move into
+  the blocks' interior nodes, a node-position correction under decision
+  0046.
+- **Second order** is rejected before meshing for the equal tee, as for
+  the wye (72 of 4160 Hex27 inverted).

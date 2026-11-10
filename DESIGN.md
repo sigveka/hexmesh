@@ -484,6 +484,34 @@ their duct legs, a class-1 strategy they declare (A4,
 `Transition` does the same at its rectangular end.  Users don't place
 switches around junctions.
 
+
+### 7.2 Equal tee: the oriented cube
+
+A branch as wide as the main can't keep §7.1's continuous ring: the
+saddle corners would sit on the main's sides, where the ring blocks
+collapse.  The equal tee is built instead around an oriented cube
+(Bošnjak et al. 2024; [decision 0043](docs/decisions/0043-wye-layout-redesign.md)):
+a centre hex at the T-point; on each side of the cube that a pipe
+leaves, a column of five blocks (an O-H face) running to that pipe's
+station; and on each of the other three sides one block, whose outer
+face lies on the wall and is projected onto it (decision 0029).  Every
+block is a transfinite hex; the ports keep the standard O-H pattern and
+the inlet's spec.
+
+The crease where branch and main meet lies on cube edges only on the
+main's two sides; beside the branch it crosses the wall sides' faces,
+so its chord error is first order in `nang` (3.7 % R at 8, 1.1 % at
+32), stated rather than gated (decision 0043).  The wall sides' flat
+faces sit up to 0.18 R inside the curved wall, and projection moves
+their nodes that far at any `nang`, so the meshed quality falls with
+refinement (min scaled Jacobian 0.511 at `nang` 8, 0.305 at 48).
+
+**Range.**  Square and centred only (`EQUAL_LATERAL_ANGLE_MIN` = 90°):
+equal laterals build at `nang` 8 but degrade as `nang` rises and fail
+checkMesh's skewness from 60° down.  First order only: second-order
+hexes invert near the projected wall, as the wye's do, and `mesh(order=2)`
+rejects them before meshing.  Measurements: task 0122.
+
 ---
 
 ## 8. Loops

@@ -373,6 +373,14 @@ $$
       (decision 0046: gmsh meshes), so the cube goes behind `Tee` with
       its crease error stated (decision 0043, amendment 2026-11-10), and
       B3 is an opt-in candidate for `Wye` (task 0124).
+    - **Built (task 0122), the equal tee at 90°:** meshed min SJ 0.511 /
+      0.399 / 0.330 / 0.305 and crease chord 3.7 / 2.0 / 1.1 / 0.7 % R at
+      `nang` 8 / 16 / 32 / 48; the station's distance doesn't matter from
+      0.25 to 4 outer radii.  The meshed quality falls with refinement
+      because projection's move (up to 0.18 R, from the flat wall-side
+      faces) is fixed by the geometry.  Equal laterals degrade faster
+      (60°: 0.304 → 0.108 at 16; `checkMesh` skewness 4.6 at 8) and are
+      deferred.  Hex27 inverts near the projected wall (72 of 4160).
 - [`verma_and_fischer_etal_2005`]: a bifurcation split into three
   tubes by Laplace-equation coordinates, then swept.  Abstract only.
   Its nodes come from PDE solves, which doesn't fit "fail before
