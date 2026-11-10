@@ -555,6 +555,21 @@ scaled Jacobian is 0.547–0.577 with a graded H end.  hexmesh's
 An edge marked `own_grading` now keeps its own and joins its class for
 the count only.
 
+### Node tags change during volume meshing: `Mesh.Renumber` (gmsh 4.12.1, task 0126, 2026-11-10) — *verified*
+`Mesh.Renumber` is 1 by default, and with it `generate(3)` can renumber
+nodes that already exist: tags taken after `generate(2)` (or inside
+`Assembly._project_walls`) may name other nodes afterwards.  Evidence:
+an equal tee's wall face (surface 50); its interior node tags read inside
+`_project_walls` were, after `Assembly.mesh()`, the tags of nodes on
+curves 184–186, and the face had new tags.  The coordinates stored per
+tag stayed consistent within each snapshot.  With `Mesh.Renumber` 0 the
+tags stayed on the face.  A single transfinite box kept its tags with
+the default, presumably because its numbering had no gaps to close.
+**Consequence:** compare node positions across `generate(3)` only
+inside one snapshot, or by entity, never by tag; any correction keyed
+on node tags must run between `generate(2)` and `generate(3)`, as the
+projection does.
+
 ## Open questions
 
 - ~~Does `gmsh.write` keep physical names and element orientation the way

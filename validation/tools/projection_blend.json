@@ -1,0 +1,114 @@
+{
+ "task": "0126",
+ "date": "2026-11-10",
+ "gmsh": "4.12.1",
+ "method": "equal tee 90 deg (R 0.1, nrad max(3, nang/2-1), single layer) via validation/tools/wye_redesign.py measure(); option (a) prototyped in a spy on Assembly._project_walls; census taken inside _project_walls",
+ "census_nang8_max_move_over_R": {
+  "equal_tee_90": {
+   "wall_face_interiors": 0.167,
+   "wall_curves": 0.0,
+   "internal_face_boundaries": 0.0
+  },
+  "equal_tee_90_nang24": {
+   "wall_face_interiors": 0.184,
+   "wall_curves": 0.0001,
+   "internal_face_boundaries": 0.0001
+  },
+  "reduced_tee_0.5": {
+   "wall_face_interiors": 0.0002,
+   "wall_curves": 0.0,
+   "internal_face_boundaries": 0.0
+  },
+  "reduced_tee_0.9": {
+   "wall_face_interiors": 0.0001,
+   "wall_curves": 0.0,
+   "internal_face_boundaries": 0.0
+  },
+  "wye_60": {
+   "wall_face_interiors": 0.1795,
+   "wall_curves": 0.0137,
+   "internal_face_boundaries": 0.0137
+  },
+  "duct_tap_round": {
+   "wall_face_interiors": 0.0,
+   "wall_curves": 0.0,
+   "internal_face_boundaries": 0.0
+  },
+  "duct_tap_rect": {
+   "wall_face_interiors": 0.0,
+   "wall_curves": 0.0,
+   "internal_face_boundaries": 0.0
+  }
+ },
+ "worst_cell": {
+  "nang8": {
+   "sj_projected": 0.511,
+   "sj_unprojected": 0.781,
+   "shortest_edge_R_before_after": [
+    0.1617,
+    0.1633
+   ]
+  },
+  "nang24": {
+   "sj_projected": 0.353,
+   "sj_unprojected": 0.784,
+   "shortest_edge_R_before_after": [
+    0.0445,
+    0.0445
+   ]
+  }
+ },
+ "option_a_meshed_min_sj": [
+  {
+   "carry": "none",
+   "nang8": 0.511,
+   "nang24": 0.353
+  },
+  {
+   "carry": "0.25 (1-j/J), mean",
+   "nang8": 0.486,
+   "nang24": 0.284
+  },
+  {
+   "carry": "0.5 (1-j/J), mean",
+   "nang8": 0.416,
+   "nang24": 0.205
+  },
+  {
+   "carry": "(1-j/J), mean",
+   "nang8": 0.271,
+   "nang24": 0.071
+  },
+  {
+   "carry": "(1-j/J)^2, mean",
+   "nang8": 0.335,
+   "nang24": 0.053
+  },
+  {
+   "carry": "(1-j/J), summed",
+   "nang8": -0.04,
+   "nang24": -0.431,
+   "inverted": [
+    4,
+    20
+   ]
+  },
+  {
+   "carry": "-0.25 (1-j/J), mean",
+   "nang8": 0.476,
+   "nang24": 0.244
+  }
+ ],
+ "limit_check": {
+  "block_corner_min_det_of_edge_tangents": 0.665,
+  "along_edge_min_abs_n_dot_d": 0.707,
+  "meshed_min_sj_by_nang": {
+   "8": 0.511,
+   "16": 0.399,
+   "24": 0.353,
+   "32": 0.33,
+   "48": 0.305
+  },
+  "note": "along-edge value assumes the wall face's grid lines cross the edge at right angles"
+ }
+}
