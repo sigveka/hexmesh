@@ -301,6 +301,34 @@ PIPE
     assert tee.fitting.run_length == pytest.approx(0.3)
 
 
+def test_a_short_tee_s_hint_names_the_file_s_dimensions(tmp_path):
+    """Too short for its junction: the hint speaks of the file's component,
+    not of ``run_length=None``, which a file can't set (task 0122)."""
+    net = _read(tmp_path, """\
+PIPELINE-REFERENCE L-1
+PIPE
+    END-POINT 0 0 0 100
+    END-POINT 1000 0 0 100
+TEE
+    END-POINT 1000 0 0 100
+    END-POINT 1060 0 0 100
+    CENTRE-POINT 1030 0 0
+    BRANCH1-POINT 1030 400 0 100
+PIPE
+    END-POINT 1060 0 0 100
+    END-POINT 2000 0 0 100
+PIPE
+    END-POINT 1030 400 0 100
+    END-POINT 1030 800 0 100
+""")
+    with pytest.raises(AssemblyError) as e:
+        net.to_assembly(_spec())
+    assert e.value.code == "run_length_too_short"
+    assert e.value.hint.startswith("the file's component measures 0.03 m from its centre "
+                                   "to each run end; the junction needs more than ")
+    assert "run_length=None" not in e.value.hint
+
+
 @pytest.mark.skipif(not os.environ.get("HEXMESH_PCF_SAMPLES"),
                     reason="HEXMESH_PCF_SAMPLES (a local directory of sample PCFs) not set")
 def test_local_sample_files():

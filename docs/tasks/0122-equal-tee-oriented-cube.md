@@ -305,3 +305,11 @@ SJ 0.511 / 0.399 / 0.330 / 0.305, non-orth. 46 / 47 / 52 / 58°, crease
 - PCF equal tees under thick insulation are `run_length_too_short`; the
   Tee's hint says "run_length=None to resolve it", which a PCF user can't
   do.  The interchange could say "a longer tee (run X) in the file".
+
+**Follow-up done (2026-11-10, the user: "PCF hint now, blend to design").**
+The PCF hint: `interchange/build.py` rewrites the hint of a junction's
+`run_length_too_short` / `branch_length_too_short` in the file's terms
+(what the component measures from its centre, what the junction needs,
+"a longer component in the file, or thinner insulation"), from the
+error's `value` and `limit`.  Test in `test_pcf_robustness.py`.  The
+interior blend went to design for a task.

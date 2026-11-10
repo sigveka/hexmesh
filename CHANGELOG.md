@@ -17,6 +17,10 @@
   the README's example error is now an insulated equal tee too short for
   the junction.
 - New example `fittings.equal_tee`.
+- A PCF junction too short for its layout (`run_length_too_short`,
+  `branch_length_too_short`) now hints in the file's terms: what the
+  component measures, what the junction needs, and to lengthen it in the
+  file (or thin its insulation), not `run_length=None`.
 
 **Volunteer runs** (decision 0044; task 0119).
 - `python3 -m validation.volunteer`: `list`, `prepare`, `run`, `collect`

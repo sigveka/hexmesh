@@ -181,6 +181,24 @@ class _Reroll(Exception):
         self.miss = miss
 
 
+#: a fitting's length checks, as the file's dimensions (task 0122)
+_FILE_LENGTHS = {"run_length_too_short": "from its centre to each run end",
+                 "branch_length_too_short": "from its centre to the branch end"}
+
+
+def _file_length_hint(err: AssemblyError) -> None:
+    """A junction too short for its layout: the fitting's hint names its
+    own fields (``run_length=None``), which a file can't set; say what the
+    file's component must measure instead."""
+    span = _FILE_LENGTHS.get(err.code)
+    need = err.limit.get("min_exclusive") if isinstance(err.limit, dict) else None
+    if span is None or need is None or err.value is None:
+        return
+    err.hint = (f"the file's component measures {err.value:.4g} m {span}; the junction "
+                f"needs more than {need:.4g} m: a longer component in the file, or "
+                f"thinner insulation if it is insulated")
+
+
 def _branch_radius(spec, R: float, branch: Section, main_bore: float) -> float:
     """A tee branch's radius: the spec's for its section, or *R* scaled
     like a Reducer by the nominal sizes when the spec is fixed."""
@@ -657,9 +675,10 @@ def _place(report, parts, nodes, at_node, names, root, spec, axial_cell, kinks, 
             frame = iface.frame
             fitting.resolve(frame, iface.spec).check(iface.spec)
         except ValueError as e:
-            raise AssemblyError.wrap(e, f"{what}: {e}",
-                                     code="fitting_invalid", part=_part_id(p),
-                                     source=_source(p)) from None
+            err = AssemblyError.wrap(e, f"{what}: {e}", code="fitting_invalid",
+                                     part=_part_id(p), source=_source(p))
+            _file_length_hint(err)
+            raise err from None
         outs = asm.add(iface, fitting, label=p.label, origin=_source(p) or None)
         for o, x in zip(outs, outs_at):
             check(what, o.frame, x, p)
