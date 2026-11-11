@@ -72,13 +72,14 @@ class _Toward:
             fitting = replace(self, roll=toward_roll(inlet, self.toward), toward=None)
         fitting = super(_Toward, fitting).resolve(inlet, spec, axial_cell, outlet)
         if 0 < abs(fitting.angle) < RADIANS_WARNING_BELOW:
-            # stacklevel: here, Assembly._resolved, Assembly.add/close, the caller
+            # stacklevel: here, _graph._resolved, _graph.add/close, Assembly.add/close,
+            # the caller (task 0136)
             warnings.warn(
                 HexmeshWarning(f"{type(fitting).__name__} angle {fitting.angle:g}° is below "
                                f"{RADIANS_WARNING_BELOW:.3g}°: angles are in degrees "
                                f"(looks like radians?)",
                                code="angle_looks_like_radians", where={"field": "angle"},
-                               value=fitting.angle, limit="RADIANS_WARNING_BELOW"), stacklevel=4)
+                               value=fitting.angle, limit="RADIANS_WARNING_BELOW"), stacklevel=5)
         return fitting
 
     def check_resolved(self) -> None:

@@ -189,9 +189,9 @@ def measure_folded(asm, names=None) -> dict:
     ``mesh()``'s fold check passed (only here), so the folds are counted
     and located in the projected mesh."""
     from unittest import mock
-    from hexmesh.assembly import assembler
-    real = assembler.min_scaled_jacobians
-    with mock.patch.object(assembler, "min_scaled_jacobians",
+    from hexmesh.assembly import _checks        # mesh()'s cell checks (task 0136)
+    real = _checks.min_scaled_jacobians
+    with mock.patch.object(_checks, "min_scaled_jacobians",
                            lambda v: np.abs(real(v)) + 1e-12):
         row = measure(asm, names=names)
     row["fold_check_bypassed"] = True

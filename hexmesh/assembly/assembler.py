@@ -33,188 +33,23 @@ Usage::
 """
 
 from __future__ import annotations
-import copy
 import json
-import math
-import re
-import warnings
-from contextlib import contextmanager
-from dataclasses import dataclass, replace
-from pathlib import PurePath
 from typing import Iterable
 
 import numpy as np
 
-from .._gmsh import gmsh
-from ..errors import HexmeshError, HexmeshNotice, HexmeshWarning
+from ..errors import HexmeshNotice
 from .errors import AssemblyError, AssemblyTypeError
-from .. import _occ
 from ..core.spec import PipeSpec
-from ..sections import add_physical_group
-from ..quality_hex import METRICS, hex_vertices, max_non_orthogonality, min_scaled_jacobians
 from . import intent
 from ..io.writers import msh_comments
-from ..io.writers.openfoam_boundary import roles_path, write_roles
-from ..version import __version__
-from .signature import check_port_pairs, classify, signature
 from .sweep import Arc
-from .corners import transfinite_surface_corners, transfinite_volume_corners
 from .fittings import FillResult, Straight
-from . import limits
-from .quality import QualityReport, RegionQuality
-from .section_quality import check_section_quality
-from .interface import (
-    Frame, Interface, build_face, check_supported, hydraulic_diameter, outer_radius,
-    port_type, rolled, toward_roll,
-)
-
-
-def _require_session() -> None:
-    """Raise before any GMSH call when no GMSH session is open (task 0039)."""
-    if not gmsh.isInitialized():
-        raise AssemblyError("needs a GMSH session: use `with Session(...):`",
-                            code="no_gmsh_session", hint="open one with `with Session(...):`")
-
-
-def curve_constraints(records) -> dict:
-    """One transfinite constraint per curve tag; disagreeing records raise.
-
-    A curve shared by two fittings (an interface face curve) is reported by
-    both; their records must agree.
-    """
-    out: dict = {}
-    for c in records:
-        prev = out.setdefault(c.tag, c)
-        if (prev.nodes != c.nodes or prev.kind != c.kind
-                or not math.isclose(prev.coef, c.coef, rel_tol=1e-12)):
-            raise AssemblyError(
-                f"curve {c.tag}: conflicting transfinite constraints {prev} and {c}",
-                code="curve_constraint_conflict", where={"part": f"curve {c.tag}"}
-            )
-    return out
-
-
-def _at(origin: dict | None) -> str:
-    """``", <file name>:<line>"`` for an *origin* with both, else ""."""
-    if not origin or not origin.get("file") or not origin.get("line"):
-        return ""
-    return f", {PurePath(origin['file']).name}:{origin['line']}"
-
-
-class _Parents(dict):
-    """Hex node index → its parent corners (the corners sharing its
-    nonzero local coordinates), for the nodes past the 8 corners."""
-
-    def index(self, corners: set) -> int:
-        return next(k for k, ps in self.items() if ps == corners)
-
-
-def _element_parents(element_type: int) -> _Parents:
-    local = np.asarray(gmsh.model.mesh.getElementProperties(element_type)[4]).reshape(-1, 3)
-    out = _Parents()
-    for k in range(8, len(local)):
-        fixed = local[k] != 0
-        out[k] = frozenset(i for i in range(8) if np.all(local[i][fixed] == local[k][fixed]))
-    return out
-
-
-def _rotation(axis: np.ndarray, angle: float) -> np.ndarray:
-    """Rotation matrix by *angle* (radians) about the unit *axis*."""
-    k = np.array([[0, -axis[2], axis[1]], [axis[2], 0, -axis[0]], [-axis[1], axis[0], 0]])
-    return np.eye(3) + math.sin(angle) * k + (1 - math.cos(angle)) * (k @ k)
-
-
-#: a hex's 12 edges, as gmsh numbers its corners
-_HEX_EDGES = np.array([(0, 1), (1, 2), (2, 3), (3, 0), (4, 5), (5, 6), (6, 7), (7, 4),
-                       (0, 4), (1, 5), (2, 6), (3, 7)])
-
-
-def _quad_edges(quads: np.ndarray, surfs) -> np.ndarray:
-    """The shortest edge of each quad of *surfs* (node tags, (n, 4)), at
-    the nodes' current positions."""
-    msh = gmsh.model.mesh
-    ids, xyz = [], []
-    for s in surfs:
-        nt, nx, _ = msh.getNodes(2, s, includeBoundary=True)
-        ids.append(nt.astype(int))
-        xyz.append(nx.reshape(-1, 3))
-    ids, first = np.unique(np.concatenate(ids), return_index=True)
-    q = np.vstack(xyz)[first][np.searchsorted(ids, quads)]
-    return np.linalg.norm(q - np.roll(q, -1, axis=1), axis=2).min(axis=1)
-
-
-def _surface_quads(surfs) -> np.ndarray:
-    """The corner node tags (n, 4) of every element of *surfs*."""
-    msh = gmsh.model.mesh
-    return np.vstack([n.reshape(-1, msh.getElementProperties(int(t))[3])[:, :4]
-                      for s in surfs for t, _, n in zip(*msh.getElements(2, s))]).astype(int)
-
-
-def _wall_edges(surfs, tags: np.ndarray) -> np.ndarray:
-    """Per node tag in *tags* (sorted): the shortest edge of the quads of
-    *surfs* that hold it (its local edge length)."""
-    quads = _surface_quads(surfs)
-    h = np.repeat(_quad_edges(quads, surfs), 4)
-    flat = quads.ravel()
-    pos = np.searchsorted(tags, flat).clip(max=len(tags) - 1)
-    hit = tags[pos] == flat
-    best = np.full(len(tags), np.inf)
-    np.minimum.at(best, pos[hit], h[hit])
-    return best
-
-
-@contextmanager
-def _located(edge: "Edge", errors=AssemblyError):
-    """Re-raise a fitting's own *errors* raised inside the block with
-    *edge*'s ``origin``: the message as ``"<edge>: <message>"`` (the form
-    of ``validate()``'s errors) and ``where["source"]``; class, code,
-    value, limit and hint unchanged (task 0096).  Without an origin the
-    error passes through as it is."""
-    try:
-        yield
-    except errors as e:
-        if not edge.origin:
-            raise
-        located = copy.copy(e)
-        located.args = (f"{edge}: {e}",)
-        located.where = {**edge.where, **e.where, "source": dict(edge.origin)}
-        raise located from e
-
-
-@dataclass(eq=False)
-class Edge:
-    """A fitting placed between its port interfaces (ports[0] = inlet).
-
-    ``origin``: where an importer read the fitting from (``file``,
-    ``line``, ``record``, ``record_id``; task 0096).  Diagnostic only: its
-    errors carry it in ``where["source"]`` and name ``<file>:<line>``; it
-    is never saved (``to_dict``, the ``.msh`` recipe) or compared."""
-
-    index:   int
-    fitting: object
-    ports:   list[Interface]
-    kind:    str = "add"     # "add", "close" or "prepend": how it entered the graph
-    label:   str | None = None
-    origin:  dict | None = None
-
-    @property
-    def name(self) -> str:
-        """``label``, or ``<Type><index>`` (``Bend3``): used in wall patch names."""
-        return self.label or f"{type(self.fitting).__name__}{self.index}"
-
-    @property
-    def at(self) -> str:
-        """``", <file>:<line>"`` from ``origin``, or ""."""
-        return _at(self.origin)
-
-    @property
-    def where(self) -> dict:
-        """The fitting's location for an error's ``where``."""
-        return {"fitting": self.index, "label": self.name,
-                **({"source": dict(self.origin)} if self.origin else {})}
-
-    def __repr__(self) -> str:
-        return f"fitting #{self.index} {self.fitting!r}{self.at}"
+from .quality import QualityReport
+from .interface import Frame, Interface, outer_radius
+from . import _graph, _validate, _realise, _checks, _output
+from ._graph import Edge
+from ._realise import curve_constraints  # noqa: F401  (tests import it from here)
 
 
 class Assembly:
@@ -328,39 +163,7 @@ class Assembly:
         ``n_layers=None`` a count from ``axial_cell``.  The stored fitting
         holds only the resolved values (decision 0024).
         """
-        if self._faces_built:
-            raise AssemblyError("cannot add fittings after the assembly is built",
-                                code="assembly_already_built")
-        if fitting is None:
-            source, fitting, update_tail = self._tail, source, True
-        else:
-            update_tail = False
-        if source is None:
-            raise AssemblyError("the tail was closed; pass the interface to add from",
-                                code="tail_closed", hint="pass the interface to add from")
-        if not isinstance(source, Interface):
-            raise AssemblyTypeError(f"source must be an Interface, got {type(source).__name__}",
-                                    code="source_not_interface", where={"field": "source"})
-        self._check_degree(source, "inlet", fitting)
-        origin = None if origin is None else dict(origin)
-        self._twist_for_toward(fitting, source)
-        fitting = self._resolved(fitting, source, origin=origin)
-
-        port_list = fitting.ports(source.frame, source.spec)
-        names = self._port_names(fitting, names, len(port_list))
-        outlets = [
-            self._new_interface(frame, spec, name)
-            for (frame, spec), name in zip(port_list, names)
-        ]
-        self._check_label(label)
-        edge = Edge(len(self._edges), fitting, [source, *outlets], label=label, origin=origin)
-        self._edges.append(edge)
-        for iface in edge.ports:
-            iface.edges.append(edge)
-
-        if update_tail:
-            self._tail = outlets[0]
-        return outlets[0] if len(outlets) == 1 else outlets
+        return _graph.add(self, source, fitting, names, label, origin)
 
     def close(self, source: Interface, target: Interface, fitting,
               label: str | None = None, origin: dict | None = None) -> None:
@@ -373,39 +176,7 @@ class Assembly:
         or a ``Straight`` / ``Bend`` that fits exactly.  *origin*: as for
         :meth:`add`.
         """
-        if self._faces_built:
-            raise AssemblyError("cannot add fittings after the assembly is built",
-                                code="assembly_already_built")
-        for iface in (source, target):
-            if not any(iface is i for i in self._interfaces):
-                raise AssemblyError(f"{iface} does not belong to this assembly",
-                                    code="interface_not_in_assembly",
-                                    where={"interface": iface.index})
-            if not iface.is_open:
-                raise AssemblyError(f"{iface} is not an open interface",
-                                    code="interface_not_open", where={"interface": iface.index})
-        if source is target:
-            raise AssemblyError("cannot close an interface onto itself",
-                                code="close_onto_itself", where={"interface": source.index})
-        if source.edges[0].ports[0] is source:
-            raise AssemblyError(f"source {source} is an upstream end, not an outlet",
-                                code="close_source_not_outlet", where={"interface": source.index})
-        if target.edges[0].ports[0] is not target:
-            raise AssemblyError(f"target {target} is a downstream end, not an inlet",
-                                code="close_target_not_inlet", where={"interface": target.index})
-        self._check_degree(source, "inlet", fitting)
-        self._check_degree(target, "outlet", fitting)
-        origin = None if origin is None else dict(origin)
-        fitting = self._resolved(fitting, source, target, origin=origin)
-
-        self._check_label(label)
-        edge = Edge(len(self._edges), fitting, [source, target], kind="close", label=label,
-                    origin=origin)
-        self._edges.append(edge)
-        source.edges.append(edge)
-        target.edges.append(edge)
-        if self._tail is source:
-            self._tail = None
+        return _graph.close(self, source, target, fitting, label, origin)
 
     def prepend(self, fitting: Straight, label: str | None = None,
                 origin: dict | None = None) -> Interface:
@@ -417,37 +188,7 @@ class Assembly:
         name moves to the new inlet, so the inlet patch keeps its name.
         *origin*: as for :meth:`add`.
         """
-        if self._faces_built:
-            raise AssemblyError("cannot add fittings after the assembly is built",
-                                code="assembly_already_built")
-        if type(fitting) is not Straight:
-            raise AssemblyTypeError(
-                f"prepend places a Straight only, got {type(fitting).__name__}",
-                code="prepend_needs_straight")
-        old = self.inlet
-        if not old.is_open:
-            raise AssemblyError(f"the inlet {old} is not an open end",
-                                code="interface_not_open", where={"interface": old.index})
-        if old.equipment:
-            raise AssemblyError(f"the inlet {old} is an equipment end (a drum nozzle or "
-                                "a PCF equipment connection); "
-                                "nothing can be placed upstream of it",
-                                code="prepend_at_equipment_end", where={"interface": old.index})
-        self._check_degree(old, "outlet", fitting)
-        origin = None if origin is None else dict(origin)
-        fitting = self._resolved(fitting, old, origin=origin)   # the length: not the frame
-        f = old.frame
-        frame = Frame(f.position - fitting.length * f.normal, f.normal, f.up)
-        new = self._new_interface(frame, old.spec, old.name)
-        old.name = None
-        self._check_label(label)
-        edge = Edge(len(self._edges), fitting, [new, old], kind="prepend", label=label,
-                    origin=origin)
-        self._edges.append(edge)
-        new.edges.append(edge)
-        old.edges.append(edge)
-        self.inlet = new
-        return new
+        return _graph.prepend(self, fitting, label, origin)
 
     def extend_open_ends(self, upstream: float = 5.0, downstream: float = 10.0,
                          cells_per_diameter: float = 4.0) -> None:
@@ -461,32 +202,7 @@ class Assembly:
         cells_per_diameter)`` axial cells (at least 1).  Extended ends keep
         their patch names.  Must be called before ``build()``.
         """
-        if self._faces_built:
-            raise AssemblyError("cannot add fittings after the assembly is built",
-                                code="assembly_already_built")
-        if upstream < 0 or downstream < 0 or cells_per_diameter <= 0:
-            raise AssemblyError("upstream and downstream must be >= 0, "
-                                "and cells_per_diameter > 0",
-                                code="extend_args_invalid",
-                                value={"upstream": upstream, "downstream": downstream,
-                                       "cells_per_diameter": cells_per_diameter})
-
-        def run(iface, diameters):
-            d = hydraulic_diameter(iface.spec)
-            n = max(1, round(diameters * cells_per_diameter))
-            return Straight(diameters * d, n_layers=n)
-
-        outlets = [i for i in self.open_interfaces()
-                   if i is not self.inlet and not i.equipment]
-        names = {i.index: self.patch_name(i) for i in outlets}
-        if downstream > 0:
-            for iface in outlets:
-                out = self.add(iface, run(iface, downstream))
-                out.name, iface.name = names[iface.index], None
-                if self._tail is iface:
-                    self._tail = out
-        if upstream > 0 and self.inlet.is_open and not self.inlet.equipment:
-            self.prepend(run(self.inlet, upstream))
+        return _graph.extend_open_ends(self, upstream, downstream, cells_per_diameter)
 
     # ------------------------------------------------------------------
     # Intent serialisation (docs/tasks/0006)
@@ -569,115 +285,13 @@ class Assembly:
     def edges(self) -> list[Edge]:
         return list(self._edges)
 
-    def _check_label(self, label: str | None) -> None:
-        if label is None:
-            return
-        if not isinstance(label, str) or not re.fullmatch(r"[A-Za-z0-9_]+", label):
-            raise AssemblyError(
-                f"fitting label {label!r} must be letters, digits and _ only "
-                "(it becomes part of a patch name)", code="label_invalid", where={"label": label})
-        if any(e.name == label for e in self._edges):
-            raise AssemblyError(f"fitting label {label!r} is already used",
-                                code="label_duplicate", where={"label": label})
-
     def _twist_for_toward(self, fitting, source: Interface) -> None:
-        """A junction's ``toward`` between its allowed rolls (task 0062):
-        twist the ``Straight`` that ends at *source* by the remainder, so
-        the junction's roll is a multiple of the period.  Only an untwisted
-        straight added before it, whose outlet is *source*; otherwise
-        raises, naming the twist and where to put it."""
-        offset = getattr(fitting, "toward_offset", None)
-        if offset is None or getattr(fitting, "toward", None) is None or fitting.roll != 0:
-            return                  # not a junction's toward, or junction_toward rejects it
-        P = math.degrees(source.spec.period)
-        rest = math.remainder(toward_roll(source.frame, fitting.toward) - offset, P)
-        if abs(rest) <= limits.JUNCTION_TOWARD_TOL:
-            return                  # junction_toward snaps it
-        name = type(fitting).__name__
-        edge = source.edges[0] if len(source.edges) == 1 else None
-        if (edge is None or edge.kind != "add" or type(edge.fitting) is not Straight
-                or edge.ports[-1] is not source or edge.fitting.twist):
-            raise AssemblyError(
-                f"{name}: toward is {abs(rest):.3g}° from the nearest allowed roll (rolls are "
-                f"multiples of the section's period {P:g}°), and there is no untwisted "
-                f"Straight ending at {source} to take the rest",
-                code="toward_off_allowed", where={"field": "toward"}, value=abs(rest),
-                limit="JUNCTION_TOWARD_TOL",
-                hint=f"add Straight(…, twist={rest:.6g}) before the {name}")
-        straight = replace(edge.fitting, twist=rest)
-        try:
-            straight.check(edge.ports[0].spec)
-        except AssemblyError as e:
-            raise AssemblyError.wrap(
-                e, f"{name}: toward needs {edge} twisted by {rest:.4g}°: {e}",
-                code="toward_off_allowed", edge=edge.index) from None
-        edge.fitting = straight
-        source.frame = rolled(source.frame, rest)
-
-    def _resolved(self, fitting, source: Interface, target: Interface | None = None,
-                  origin: dict | None = None):
-        """*fitting* with input-only fields resolved at *source* (and
-        *target*, for ``close``).  Angled fittings warn from their
-        ``resolve`` on an angle that looks like radians (decision 0024)."""
-        resolve = getattr(fitting, "resolve", None)
-        if resolve is not None:
-            try:
-                # before resolve(), which may build the fitting's block layout
-                # (a Tee's shortest run): an unsupported section is named
-                # first (task 0106)
-                check_supported(source.spec)
-                fitting = resolve(source.frame, source.spec, self.axial_cell,
-                                  None if target is None else target.frame)
-            except ValueError as e:
-                raise AssemblyError.wrap(e, f"{fitting!r} at {source}{_at(origin)}: {e}",
-                                         code="fitting_invalid", interface=source.index,
-                                         **({"source": origin} if origin else {})) from None
-        return fitting
-
-    @staticmethod
-    def _port_names(fitting, names, n: int) -> list:
-        """Outlet names as a list in port order, from a list or a dict keyed
-        by ``fitting.port_names``."""
-        if names is None:
-            return [None] * n
-        ports = tuple(getattr(fitting, "port_names", ()))
-        if isinstance(names, dict):
-            unknown = sorted(set(names) - set(ports))
-            if unknown or len(ports) != n:
-                raise AssemblyError(
-                    f"{type(fitting).__name__} has ports {', '.join(ports)}; "
-                    f"unknown port name(s) {', '.join(map(repr, unknown))}",
-                    code="port_name_unknown", value=unknown, limit=list(ports))
-            return [names.get(k) for k in ports]
-        names = list(names)
-        if len(names) != n:
-            raise AssemblyError(
-                f"{type(fitting).__name__} has {n} outlet(s) "
-                f"({', '.join(ports)}); got {len(names)} names",
-                code="port_names_count", value=len(names), limit=n)
-        return names
-
-    @staticmethod
-    def _attached(iface: Interface, role: str) -> list[Edge]:
-        """Fittings having *iface* as their inlet, or as one of their outlets."""
-        if role == "inlet":
-            return [e for e in iface.edges if e.ports[0] is iface]
-        return [e for e in iface.edges if any(p is iface for p in e.ports[1:])]
-
-    def _check_degree(self, iface: Interface, role: str, fitting) -> None:
-        """An interface is the inlet of at most one fitting and the outlet of
-        at most one (DESIGN §5: a face shared by two fittings at most)."""
-        attached = self._attached(iface, role)
-        if attached:
-            raise AssemblyError(
-                f"{iface} (interface #{iface.index}) is already the {role} of "
-                f"{attached[0]}; it cannot also be the {role} of {fitting!r}",
-                code="interface_degree", where={"interface": iface.index})
+        # kept on the class: called or patched from outside (task 0136)
+        return _graph._twist_for_toward(self, fitting, source)
 
     def _new_interface(self, frame: Frame, spec: PipeSpec, name: str | None) -> Interface:
-        iface = Interface(len(self._interfaces), frame, spec, name)
-        self._interfaces.append(iface)
-        return iface
+        # kept on the class: called or patched from outside (task 0136)
+        return _graph._new_interface(self, frame, spec, name)
 
     # ------------------------------------------------------------------
     # 3. Validation (pure Python)
@@ -689,102 +303,7 @@ class Assembly:
         With *max_cells*, also reject an assembly whose exact cell count
         (``cell_count()``, computed without GMSH) exceeds the budget.
         """
-        if not self._edges:
-            raise AssemblyError("assembly has no fittings", code="assembly_empty")
-        self.warnings = []
-        self.notices = []
-        checked: set[str] = set()
-        for iface in self._interfaces:
-            for role in ("inlet", "outlet"):
-                attached = self._attached(iface, role)
-                if len(attached) > 1:
-                    raise AssemblyError(
-                        f"{iface} (interface #{iface.index}) is the {role} of "
-                        f"{len(attached)} fittings: "
-                        + ", ".join(map(repr, attached)),
-                        code="interface_degree", where={"interface": iface.index},
-                        value=len(attached), limit=1)
-            try:
-                check_supported(iface.spec)
-            except AssemblyError as e:
-                raise AssemblyError.wrap(e, f"{iface}: {e}",
-                                         code="section_not_supported",
-                                         interface=iface.index) from None
-            # outline quality limits (decision 0026 item 4, task 0047), once per spec
-            key = json.dumps(iface.spec.to_dict(), sort_keys=True)
-            if key not in checked:
-                checked.add(key)
-                try:
-                    found = check_section_quality(iface.spec)
-                except ValueError as e:
-                    raise AssemblyError.wrap(e, f"{iface}: {e}",
-                                             code="section_quality_reject",
-                                             interface=iface.index) from None
-                for msg in found:
-                    self.warnings.append(f"{iface}: {msg}")
-                    warnings.warn(HexmeshWarning(f"{iface}: {msg}",
-                                                 code="section_quality_warning",
-                                                 where={"interface": iface.index}), stacklevel=2)
-        for edge in self._edges:
-            # The fitting's own checks first: they give the most specific
-            # reason (e.g. "Wye prototype supports single-layer specs only").
-            try:
-                found = edge.fitting.validate(
-                    [p.frame for p in edge.ports], edge.ports[0].spec
-                )
-            except ValueError as e:
-                raise AssemblyError.wrap(e, f"{edge}: {e}",
-                                         code="fitting_invalid", **edge.where) from None
-            for msg in found or ():          # a fitting's predicted-quality warnings
-                self.warnings.append(f"{edge}: {msg}")
-                warnings.warn(HexmeshWarning(f"{edge}: {msg}",
-                                             code="fitting_quality_warning",
-                                             where=edge.where), stacklevel=2)
-            n = self._written_elements(edge)
-            if n:
-                self.notices.append(HexmeshNotice(
-                    f"{edge}: {n} elements written by hexmesh, not generated by gmsh "
-                    f"(decision 0046)", code="elements_written_by_hexmesh",
-                    where=edge.where, value=n))
-            # A4: each port pair, as connected, must be in a switch class the
-            # fitting declares (decision 0011).  Before the exact type check
-            # below, so the error names what differs.
-            try:
-                check_port_pairs(edge.fitting, [p.spec for p in edge.ports])
-            except ValueError as e:
-                raise AssemblyError.wrap(e, f"{edge}: {e}",
-                                         code="switch_class_not_declared",
-                                         **edge.where) from None
-            # A4 — every port type must match the type the fitting declares
-            # for it; a fitting that only joins existing interfaces keeps
-            # its inlet type throughout.
-            inlet = edge.ports[0]
-            if getattr(edge.fitting, "places_outlet", True):
-                declared = [s for _, s in edge.fitting.ports(inlet.frame, inlet.spec)]
-            else:
-                declared = [inlet.spec] * (len(edge.ports) - 1)
-            for iface, want in zip(edge.ports[1:], declared):
-                if port_type(iface.spec) != port_type(want):
-                    diff = classify(signature(want), signature(iface.spec)).differences
-                    raise AssemblyError(
-                        f"{edge}: port type at {iface} differs from the type "
-                        f"the fitting declares"
-                        + (f" ({'; '.join(map(str, diff))})" if diff else " (radii)"),
-                        code="port_type_mismatch",
-                        where={**edge.where, "interface": iface.index}
-                    )
-        if max_cells is not None:
-            counts = self.cell_counts()
-            total = sum(counts.values())
-            if total > max_cells:
-                worst = max(self._edges, key=lambda e: counts[e.index])
-                raise AssemblyError(
-                    f"assembly has {total} cells, over the budget of {max_cells}; "
-                    f"largest is {worst} with {counts[worst.index]}",
-                    code="cell_budget_exceeded",
-                    where=worst.where, value=total,
-                    limit=max_cells
-                )
+        return _validate.validate(self, max_cells)
 
     def cell_counts(self) -> dict[int, int]:
         """Exact hex count per fitting (edge index), without GMSH (DESIGN P4)."""
@@ -810,81 +329,15 @@ class Assembly:
             Fitting fill order (edge indices).  Any permutation must give
             the same mesh (rule A6).  Default: insertion order.
         """
-        _require_session()
-        if self._fill is not None:
-            return
-        self.build_faces()
-        self.fill(order)
+        return _realise.build(self, order)
 
     def build_faces(self) -> None:
         """Pipeline steps 3–4: validate, then build every interface face once."""
-        _require_session()
-        if self._faces_built:
-            return
-        self.validate()
-        # Fittings read back nothing from the model: hexmesh records what it
-        # needs as it creates curves (hexmesh._occ), and mesh() sets every
-        # face constraint.  So there is one synchronize here, so the faces
-        # can be inspected, and none per fitting (decision 0020, task 0036).
-        _occ.reset()
-        with _occ.building():
-            for iface in self._interfaces:
-                iface.face = build_face(iface.spec, iface.frame, self.lc)
-        gmsh.model.occ.synchronize()
-        self._faces_built = True
+        return _realise.build_faces(self)
 
     def fill(self, order: Iterable[int] | None = None) -> None:
         """Pipeline step 5: fill every fitting between its existing faces."""
-        _require_session()
-        if self._fill is not None:
-            return
-        self.build_faces()
-        edges = (self._edges if order is None
-                 else [self._edges[i] for i in order])
-        if sorted(e.index for e in edges) != list(range(len(self._edges))):
-            raise AssemblyError("order must be a permutation of all fittings",
-                                code="fill_order_invalid", where={"field": "order"})
-
-        fill = FillResult()
-        for edge in edges:
-            # No raw OCC or GMSH exception escapes a fill (task 0053): it
-            # becomes an AssemblyError naming the fitting.
-            try:
-                with _occ.building(), _located(edge):
-                    part = edge.fitting.fill(
-                        [p.face for p in edge.ports],
-                        [p.frame for p in edge.ports],
-                        edge.ports[0].spec, self.lc,
-                    )
-            except AssemblyError:
-                raise
-            except Exception as e:
-                raise AssemblyError(
-                    f"{edge}: fill failed ({type(e).__name__}: {e})",
-                    code="fill_failed", where=edge.where) from e
-            self._fitting_volumes[edge.index] = [v for vs in part.volumes.values() for v in vs]
-            if part.checked_volumes is not None:
-                self._checked_volumes[edge.index] = list(part.checked_volumes)
-            # Wall group per surface; a fill that names none has its
-            # inlet's stack throughout (DESIGN A7, decision 0006).
-            default = f"{edge.ports[0].spec.layer_names[-1]}_wall"
-            walls: dict[str, list[int]] = {}
-            for w in part.walls:
-                walls.setdefault(part.wall_groups.get(w, default), []).append(w)
-            self._fitting_walls[edge.index] = walls
-            self._fitting_projections[edge.index] = part.projections
-            fill.merge(part)
-        _occ.remove_discarded()
-        gmsh.model.occ.synchronize()
-
-        # Face builders leave construction points (arc centres, helpers)
-        # that bound nothing; drop them so they do not become stray nodes.
-        debris = [(0, p) for _, p in gmsh.model.getEntities(0)
-                  if not gmsh.model.getAdjacencies(0, p)[0].size]
-        if debris:
-            gmsh.model.occ.remove(debris)
-            gmsh.model.occ.synchronize()
-        self._fill = fill
+        return _realise.fill(self, order)
 
     @property
     def lc(self) -> float:
@@ -901,12 +354,7 @@ class Assembly:
 
     def patch_name(self, iface: Interface) -> str:
         """Boundary patch name of an open interface (rule A7)."""
-        if iface.name:
-            return iface.name
-        ends = [i for i in self.open_interfaces() if i is not self.inlet]
-        if len(ends) == 1 and iface is ends[0]:
-            return "outlet"
-        return f"port{iface.index}"
+        return _output.patch_name(self, iface)
 
     def write_physical_groups(self, walls_by_fitting: bool = False) -> None:
         """Physical groups derived from the graph (rule A7).
@@ -922,37 +370,7 @@ class Assembly:
         ``interface``) is recorded as it is added, from the graph and never
         from the name; :meth:`group_roles` returns them (decision 0013).
         """
-        self.build()
-        fill = self._fill
-        self._group_roles = {}
-
-        def group(dim, tags, name, role):
-            add_physical_group(dim, tags, name)
-            self._group_roles[name] = role
-
-        for name, vols in fill.volumes.items():
-            group(3, vols, name, "volume")
-        for iface in self.open_interfaces():
-            patch = self.patch_name(iface)
-            for name, cs in iface.face.layers:
-                group(2, list(cs.surfaces), f"{name}_{patch}", "open_end")
-        if walls_by_fitting:
-            names = [e.name for e in self._edges]
-            if len(set(names)) != len(names):
-                raise AssemblyError(f"fitting names are not unique: {names}",
-                                    code="fitting_names_not_unique", value=names)
-            for e in self._edges:
-                for base, tags in self._fitting_walls[e.index].items():
-                    group(2, tags, f"{base}_{e.name}", "wall")
-        else:
-            merged: dict[str, list[int]] = {}
-            for e in self._edges:
-                for base, tags in self._fitting_walls[e.index].items():
-                    merged.setdefault(base, []).extend(tags)
-            for base, tags in merged.items():
-                group(2, tags, base, "wall")
-        for label, tags in fill.interfaces.items():
-            group(2, tags, label, "interface")
+        return _output.write_physical_groups(self, walls_by_fitting)
 
     def group_roles(self) -> dict[str, str]:
         """Physical-group name → role, as last written by
@@ -977,401 +395,25 @@ class Assembly:
 
         *walls_by_fitting*: see :meth:`write_physical_groups`.
         """
-        if order not in (1, 2):
-            raise AssemblyError(f"mesh order must be 1 or 2, got {order!r}",
-                                code="mesh_order_invalid", where={"field": "order"},
-                                value=order, limit=[1, 2])
-        if order == 2:
-            if dim != 3:
-                raise AssemblyError(f"order=2 needs a volume mesh (dim=3), got dim={dim!r}",
-                                    code="mesh_order_needs_volume", where={"field": "dim"},
-                                    value=dim, limit=3)
-            for e in self._edges:
-                why = getattr(e.fitting, "second_order_limitation", None)
-                if callable(why):                   # depends on the spec (Tee)
-                    why = why(e.ports[0].spec)
-                if why:
-                    raise AssemblyError(f"{e.name}{e.at}: order=2 is not supported: {why}",
-                                        code="second_order_unsupported", where=e.where,
-                                        hint="mesh it at order=1")
-        self.build()
-        gmsh.model.occ.synchronize()
-        self.write_physical_groups(walls_by_fitting)
-        with _occ.building():       # the build's records are still valid
-            self._set_constraints()
-        gmsh.model.mesh.generate(min(dim, 2))
-        moved = self._project_walls() if dim >= 2 else {}
-        if dim == 3:
-            gmsh.model.mesh.generate(3)
-        self._check_projection(moved)
-        if dim == 3:
-            self._check_meshed_sj()
-        placed, arcs = self._second_order(incomplete) if order == 2 else ({}, {})
-        self._record_corrections(moved, placed, arcs)
-        self.mesh_order = order
-        self._meshed = True
-
-    def _second_order(self, incomplete: bool) -> tuple[dict, dict]:
-        """``setOrder(2)`` on the checked linear mesh, a bend's high-order
-        nodes onto its arcs, then every high-order node on a projected
-        fitting's walls onto that fitting's projector, and the validity
-        check (task 0076).  Returns the wall placement's and the arc
-        placement's moves per fitting index, as :meth:`_project_walls`."""
-        opt = "Mesh.SecondOrderIncomplete"
-        was = gmsh.option.getNumber(opt)
-        try:
-            gmsh.option.setNumber(opt, 1 if incomplete else 0)
-            gmsh.model.mesh.setOrder(2)
-        finally:
-            gmsh.option.setNumber(opt, was)
-        msh = gmsh.model.mesh
-        placed: dict[int, list] = {}
-        arcs: dict[int, tuple] = {}
-        for e in self._edges:
-            if hasattr(e.fitting, "path") and len(e.ports) == 2:
-                axial = e.fitting.path(e.ports[0].frame, e.ports[1].frame, e.ports[0].spec).axial
-                if isinstance(axial, Arc):
-                    arcs[e.index] = self._revolve_high_order(e, axial)
-            for project, surfs in self._fitting_projections.get(e.index, []):
-                ho: dict[int, float] = {}         # high-order node → local edge length
-                for s in surfs:
-                    for t, _, n in zip(*msh.getElements(2, s)):
-                        k = msh.getElementProperties(int(t))[3]       # nodes per element
-                        conn = n.reshape(-1, k).astype(int)
-                        for node, h in zip(conn[:, 4:].ravel().tolist(),
-                                           np.repeat(_quad_edges(conn[:, :4], [s]), k - 4)):
-                            ho[node] = min(ho.get(node, np.inf), float(h))
-                if not ho:
-                    continue
-                tags = np.array(sorted(ho))
-                x = np.array([msh.getNode(int(t))[0] for t in tags])
-                y = project(x)
-                for t, p in zip(tags, y):
-                    msh.setNode(int(t), p.tolist(), [])
-                placed.setdefault(e.index, []).append(
-                    (np.linalg.norm(y - x, axis=1), project.local_radius(y),
-                     np.array([ho[int(t)] for t in tags])))
-        self._check_second_order()
-        return ({i: tuple(np.concatenate(c) for c in zip(*v)) for i, v in placed.items()},
-                arcs)
+        return _realise.mesh(
+            self, dim, order=order, incomplete=incomplete, walls_by_fitting=walls_by_fitting)
 
     def _revolve_high_order(self, e, arc: Arc) -> None:
-        """Place every high-order node of a bend's hexes that lies between
-        two stations exactly: its counterpart on the hex's first station
-        (the corner, edge node or face node with the same in-station
-        parents), rotated about the bend axis by half the slab's turn.
-        ``setOrder`` keeps interior axial edges straight; in a tight bend
-        their sag folds thin shells (task 0076).  Returns each moved node's
-        move from gmsh's position, the section's outer radius and the
-        shortest edge of the hexes that hold it (task 0130)."""
-        msh = gmsh.model.mesh
-        radius = max(s.max_extent for s in e.ports[0].spec.outlines)
-        start: dict[int, np.ndarray] = {}     # node → gmsh's position
-        end: dict[int, np.ndarray] = {}       # node → placed position
-        edge: dict[int, float] = {}           # node → shortest edge of its hexes
-        axis = np.asarray(arc.axis, float) / np.linalg.norm(arc.axis)
-        centre = np.asarray(arc.centre, float)
-
-        def radial(x):
-            r = x - centre
-            return r - np.outer(r @ axis, axis)
-
-        for v in self._fitting_volumes.get(e.index, []):
-            for t, tags, nodes in zip(*msh.getElements(3, v)):
-                parents = _element_parents(int(t))
-                conn = nodes.reshape(len(tags), -1).astype(int)
-                ids, x, _ = msh.getNodes(3, v, includeBoundary=True)
-                at = dict(zip(ids.astype(int).tolist(), x.reshape(-1, 3)))
-                for h in conn:
-                    c = np.array([at[n] for n in h[:8]])
-                    shortest = float(np.linalg.norm(c[_HEX_EDGES[:, 0]] - c[_HEX_EDGES[:, 1]],
-                                                    axis=1).min())
-                    r = radial(c)
-                    turn = np.arctan2(np.cross(r[0], r) @ axis, (r * r[0]).sum(axis=1))
-                    first = {i for i in range(8) if abs(turn[i]) < 1e-9}
-                    half = 0.5 * turn[[i for i in range(8) if i not in first][0]]
-                    rot = _rotation(axis, half)
-                    for k, ps in parents.items():
-                        on_first = ps & first
-                        if on_first and on_first != ps:
-                            twin = next(iter(on_first)) if len(on_first) == 1 else \
-                                parents.index(on_first)
-                            p = at[h[twin]]
-                            y = centre + rot @ (p - centre)
-                            node = int(h[k])
-                            start.setdefault(node, at[node])
-                            end[node] = y
-                            edge[node] = min(edge.get(node, np.inf), shortest)
-                            at[node] = y
-                            msh.setNode(node, y.tolist(), [])
-        nodes = sorted(end)
-        move = np.array([np.linalg.norm(end[n] - start[n]) for n in nodes]).reshape(-1)
-        return move, np.full(len(nodes), radius), np.array([edge[n] for n in nodes])
-
-    def _check_second_order(self) -> None:
-        """An ``AssemblyError`` naming the fitting for any high-order hex
-        whose Jacobian determinant is ≤ 0 at one of its nodes or at a
-        ``Gauss4`` integration point."""
-        msh = gmsh.model.mesh
-        for e in self._edges:
-            bad = total = 0
-            for v in self._fitting_volumes.get(e.index, []):
-                for t, tags, _ in zip(*msh.getElements(3, v)):
-                    t = int(t)
-                    props = msh.getElementProperties(t)
-                    gauss, _ = msh.getIntegrationPoints(t, "Gauss4")
-                    worst = None
-                    for local in (np.asarray(props[4]), gauss):
-                        _, det, _ = msh.getJacobians(t, local, tag=v)
-                        det = det.reshape(len(tags), -1).min(axis=1)
-                        worst = det if worst is None else np.minimum(worst, det)
-                    bad += int((worst <= 0).sum())
-                    total += len(tags)
-            if bad:
-                raise AssemblyError(
-                    f"{e.name}{e.at}: {bad} of {total} second-order hexes have a Jacobian "
-                    "determinant <= 0 at a node or Gauss point",
-                    code="second_order_inverted", where=e.where, value=bad,
-                    limit={"max": 0}, hint="mesh it at order=1, or refine it")
+        # kept on the class: called or patched from outside (task 0136)
+        return _realise._revolve_high_order(self, e, arc)
 
     def _project_walls(self) -> dict[int, tuple[np.ndarray, np.ndarray]]:
-        """Move the nodes of every projected surface, its curves and its
-        points onto the fitting's analytic surface, between surface and
-        volume meshing (decision 0029).  Returns, per fitting index, the
-        move lengths, the local wall radii and the local edge lengths (the
-        shortest edge of the node's wall quads, before the move)."""
-        msh = gmsh.model.mesh
-        moved: dict[int, list] = {}
-        for e in self._edges:
-            for project, surfs in self._fitting_projections.get(e.index, []):
-                ents = [(2, s) for s in surfs]
-                ents += [(abs(d), abs(t)) for d, t in gmsh.model.getBoundary(
-                    ents, combined=False, oriented=False, recursive=False)]
-                ents += [(0, abs(t)) for _, t in gmsh.model.getBoundary(
-                    [(2, s) for s in surfs], combined=False, oriented=False, recursive=True)]
-                tags, x = [], []
-                for d, t in dict.fromkeys(ents):
-                    nt, nx, _ = msh.getNodes(d, t, includeBoundary=False)
-                    tags.append(nt)
-                    x.append(nx.reshape(-1, 3))
-                tags, first = np.unique(np.concatenate(tags), return_index=True)
-                x = np.vstack(x)[first]
-                edge = _wall_edges(surfs, tags)
-                with _located(e, HexmeshError):
-                    y = project(x)
-                moved.setdefault(e.index, []).append(
-                    (np.linalg.norm(y - x, axis=1), project.local_radius(y), edge))
-                for t, p in zip(tags, y):
-                    msh.setNode(int(t), p.tolist(), [])
-        return {i: tuple(np.concatenate(c) for c in zip(*v)) for i, v in moved.items()}
-
-    def _check_projection(self, moved: dict[int, tuple[np.ndarray, np.ndarray]]) -> None:
-        """Record each projected fitting's largest move (absolute, and in
-        local wall radii) and, after volume meshing, its cells' min corner
-        scaled Jacobian (its cells and its neighbours'), in
-        ``projection_report``.  A move beyond
-        ``limits.WALL_PROJECTION_WARN_MOVE`` radii warns; a cell with a
-        corner SJ ≤ 0 is an ``AssemblyError`` naming the fitting
-        (decision 0029, task 0056)."""
-        self.projection_report = {}
-        meshed = bool(moved) and len(gmsh.model.mesh.getElements(3)[0]) > 0
-        if meshed:
-            ntag, nx, _ = gmsh.model.mesh.getNodes()
-            pos = np.full(int(ntag.max()) + 1, -1)
-            pos[ntag.astype(int)] = np.arange(len(ntag))
-            nx = nx.reshape(-1, 3)
-        for e in self._edges:
-            if e.index not in moved:
-                continue
-            move, radius, _ = moved[e.index]
-            ratio = move / radius
-            rep = self.projection_report[e.name] = {
-                "move": float(move.max()), "ratio": float(ratio.max())}
-            if ratio.max() > limits.WALL_PROJECTION_WARN_MOVE:
-                msg = (f"{e.name}{e.at}: wall projection moves a node by "
-                       f"{move[ratio.argmax()]:.3g}, "
-                       f"{ratio.max():.2f} local wall radii (WALL_PROJECTION_WARN_MOVE "
-                       f"{limits.WALL_PROJECTION_WARN_MOVE:g})")
-                self.warnings.append(msg)
-                warnings.warn(HexmeshWarning(msg,
-                                             code="wall_projection_moves_node",
-                                             where=e.where,
-                                             value=float(ratio.max()),
-                                             limit="WALL_PROJECTION_WARN_MOVE"), stacklevel=3)
-            if not meshed:
-                continue
-            # the fitting and its neighbours: a projector that moves port
-            # nodes (it must not) folds the swept cells next to them
-            ports = {i.index for i in e.ports}
-            near = [f.index for f in self._edges if ports & {i.index for i in f.ports}]
-            hexes = [n.reshape(-1, 8) for i in near for v in self._fitting_volumes[i]
-                     for t, _, n in zip(*gmsh.model.mesh.getElements(3, v)) if t == 5]
-            sj = min_scaled_jacobians(nx[pos[np.vstack(hexes).astype(int)]])
-            rep["min_sj"] = float(sj.min())
-            if sj.min() <= 0:
-                raise AssemblyError(
-                    f"{e.name}{e.at}: wall projection folded {int((sj <= 0).sum())} cell(s), "
-                    f"min corner scaled Jacobian {sj.min():.3g} (decision 0029)",
-                    code="wall_projection_folded", where=e.where,
-                    value=float(sj.min()), limit={"min_exclusive": 0})
-
-    def _written_elements(self, e) -> int:
-        """The elements hexmesh writes for fitting *e* (decision 0046 rule 3),
-        0 for gmsh's: a fitting opts in with a true ``written_elements``
-        (task 0124; none does yet)."""
-        if not getattr(e.fitting, "written_elements", False):
-            return 0
-        return self.cell_counts()[e.index]
-
-    def _record_corrections(self, moved: dict, placed: dict, arcs: dict) -> None:
-        """``corrections``, for every fitting (decision 0046 rule 5, tasks
-        0123 and 0130): the wall nodes projection moved, a bend's
-        second-order nodes placed on its arcs, the second-order wall nodes
-        placed, each with its largest move (absolute, in local wall radii,
-        in local edge lengths), or ``"none"``; and the elements hexmesh
-        wrote.  A node counts as moved beyond ``CORRECTION_MIN_MOVE`` local
-        wall radii (rounding below it).  A wall node of a bend is placed
-        on its arc, then on the wall: each entry measures its own step."""
-        def record(m):
-            if m is None:
-                return "none"
-            move, radius, edge = m
-            hit = move / radius > limits.CORRECTION_MIN_MOVE
-            if not hit.any():
-                return "none"
-            return {"nodes": int(hit.sum()), "largest_move": float(move.max()),
-                    "largest_move_radii": float((move / radius).max()),
-                    "largest_move_edges": float((move / edge).max())}
-        self.corrections = {
-            e.name: {"fitting": e.index, "type": type(e.fitting).__name__,
-                     "wall_projection": record(moved.get(e.index)),
-                     "second_order_arc_nodes": record(arcs.get(e.index)),
-                     "second_order_wall_nodes": record(placed.get(e.index)),
-                     "elements_written": self._written_elements(e)}
-            for e in self._edges}
-
-    def _check_meshed_sj(self) -> None:
-        """For fittings whose predicted corner SJ is not a bound
-        (``meshed_sj_check``: round duct taps, task 0070; switches to a
-        graded H face and the fittings that embed them, task 0086), apply the
-        predicted-SJ tiers to the meshed cells: a warning below
-        ``PREDICTED_SJ_WARN``, an ``AssemblyError`` below
-        ``PREDICTED_SJ_MIN``, each naming the fitting.  Fittings whose
-        ``meshed_nonorth_check`` is true (switches to a graded H face, task
-        0086; every junction, task 0104) get the outline tiers on the meshed
-        non-orthogonality too: a warning above ``OUTLINE_NONORTH_WARN``, an
-        error above ``OUTLINE_NONORTH_MAX`` (a warning where the fitting's
-        ``meshed_nonorth_reject`` is false: the wye).  A fill may name the volumes measured
-        (``FillResult.checked_volumes``)."""
-        check = lambda e, name: (getattr(e.fitting, name, None)
-                                 and e.fitting.__getattribute__(name)(e.ports[0].spec))
-        edges = [e for e in self._edges
-                 if check(e, "meshed_sj_check") or check(e, "meshed_nonorth_check")]
-        if not edges:
-            return
-        ntag, nx, _ = gmsh.model.mesh.getNodes()
-        pos = np.full(int(ntag.max()) + 1, -1)
-        pos[ntag.astype(int)] = np.arange(len(ntag))
-        nx = nx.reshape(-1, 3)
-        def conn_of(vols):
-            hexes = [n.reshape(-1, 8) for v in vols
-                     for t, _, n in zip(*gmsh.model.mesh.getElements(3, v)) if t == 5]
-            return pos[np.vstack(hexes).astype(int)]
-
-        for e in edges:
-            conn = conn_of(self._checked_volumes.get(e.index, self._fitting_volumes[e.index]))
-            if check(e, "meshed_nonorth_check"):
-                # a junction's whole fill, its switch legs included (task 0104)
-                c = (conn_of(self._fitting_volumes[e.index])
-                     if hasattr(e.fitting, "predicted_nonorth") else conn)
-                self._check_meshed_nonorth(e, max_non_orthogonality(nx[c], c))
-            if not check(e, "meshed_sj_check"):
-                continue
-            sj = float(min_scaled_jacobians(nx[conn]).min())
-            if sj < limits.PREDICTED_SJ_MIN:
-                hint = getattr(e.fitting, "meshed_sj_hint",
-                               "a smaller tap, or the wide face, may do better")
-                if callable(hint):                  # depends on the spec (Tee)
-                    hint = hint(e.ports[0].spec)
-                raise AssemblyError(
-                    f"{e.name}{e.at}: meshed corner scaled Jacobian {sj:.3f} is below "
-                    f"PREDICTED_SJ_MIN {limits.PREDICTED_SJ_MIN:g}; {hint}",
-                    code="meshed_sj_below_minimum", where=e.where,
-                    value=sj, limit="PREDICTED_SJ_MIN", hint=hint)
-            if sj < limits.PREDICTED_SJ_WARN:
-                msg = (f"{e.name}{e.at}: meshed corner scaled Jacobian {sj:.3f} is below "
-                       f"PREDICTED_SJ_WARN {limits.PREDICTED_SJ_WARN:g}")
-                self.warnings.append(msg)
-                warnings.warn(HexmeshWarning(msg,
-                                             code="meshed_sj_low",
-                                             where=e.where, value=sj,
-                                             limit="PREDICTED_SJ_WARN"), stacklevel=3)
-
-    def _check_meshed_nonorth(self, e, angle: float) -> None:
-        # it rises with a switch's length (task 0086), so not the SJ hint;
-        # a junction names its own (task 0104)
-        f, spec = e.fitting, e.ports[0].spec
-        hint = (f.meshed_nonorth_hint(spec) if hasattr(f, "meshed_nonorth_hint")
-                else "a gentler wall grading of the H face, or a smaller ring nrad")
-        reject = getattr(f, "meshed_nonorth_reject", True)
-        if angle > limits.OUTLINE_NONORTH_MAX and reject:
-            raise AssemblyError(
-                f"{e.name}{e.at}: meshed non-orthogonality {angle:.1f}° is above "
-                f"OUTLINE_NONORTH_MAX {limits.OUTLINE_NONORTH_MAX:g}°; {hint}",
-                code="meshed_nonorth_above_maximum", where=e.where,
-                value=angle, limit="OUTLINE_NONORTH_MAX", hint=hint)
-        # a junction whose prediction already warned on this tier says it once
-        if hasattr(f, "predicted_nonorth"):
-            tier = lambda a: (a > limits.OUTLINE_NONORTH_WARN) + (a > limits.OUTLINE_NONORTH_MAX)
-            if tier(f.predicted_nonorth([p.frame for p in e.ports], spec)) >= tier(angle):
-                return
-        if angle > limits.OUTLINE_NONORTH_WARN:
-            limit = ("OUTLINE_NONORTH_MAX" if angle > limits.OUTLINE_NONORTH_MAX
-                     else "OUTLINE_NONORTH_WARN")
-            msg = (f"{e.name}{e.at}: meshed non-orthogonality {angle:.1f}° is above "
-                   f"{limit} {getattr(limits, limit):g}°; {hint}")
-            self.warnings.append(msg)
-            warnings.warn(HexmeshWarning(msg,
-                                         code="meshed_nonorth_high",
-                                         where=e.where, value=angle,
-                                         limit=limit), stacklevel=4)
-
-    def _set_constraints(self) -> None:
-        msh = gmsh.model.mesh
-        for c in curve_constraints(self._fill.curves).values():
-            msh.setTransfiniteCurve(c.tag, c.nodes, c.kind, c.coef)
-        # Corners from tags, not GMSH's geometric choice, so geometry
-        # variants of one assembly get identical node numbering (task 0007).
-        for tag in dict.fromkeys(self._fill.surfaces):
-            msh.setTransfiniteSurface(tag, cornerTags=transfinite_surface_corners(tag))
-            msh.setRecombine(2, tag)
-        for tag in self._fill.mesh_vols:
-            msh.setTransfiniteVolume(tag, cornerTags=transfinite_volume_corners(tag))
-            msh.setRecombine(3, tag)
+        # kept on the class: called or patched from outside (task 0136)
+        return _realise._project_walls(self)
 
     def write(self, path: str, dim: int = 3, *, order: int = 1, incomplete: bool = False,
               walls_by_fitting: bool = False, provenance: bool = True) -> None:
         """Mesh and write *path* in the format its extension names.  A
         ``.msh`` carries the recipe block unless *provenance* is false
         (:meth:`_stamp`).  *order*, *incomplete*: see :meth:`mesh`."""
-        self.mesh(dim, order=order, incomplete=incomplete, walls_by_fitting=walls_by_fitting)
-        gmsh.write(path)
-        if str(path).endswith(".msh"):
-            msh_comments.to_lf(path)
-            if provenance:
-                hi = "" if order == 1 else f" order={order} incomplete={incomplete}"
-                self._stamp(path, f"write dim={dim}{hi} walls_by_fitting={walls_by_fitting}")
-
-    def _stamp(self, path, write: str) -> None:
-        """Insert the ``$Comments`` block (decision 0038): logo, versions,
-        *write* options and :meth:`to_dict`, or why there is none."""
-        try:
-            recipe, error = self.to_dict(), None
-        except TypeError as e:
-            recipe, error = None, str(e)
-        msh_comments.insert(path, msh_comments.block(
-            f"hexmesh {__version__}", write, recipe, tool=f"gmsh {gmsh.__version__}",
-            msh=msh_comments.msh_format(path), error=error))
+        return _output.write(
+            self, path, dim, order=order, incomplete=incomplete, walls_by_fitting=walls_by_fitting,
+            provenance=provenance)
 
     def write_openfoam(self, path: str, *, interfaces: bool = False,
                        walls_by_fitting: bool = False, provenance: bool = True,
@@ -1405,45 +447,9 @@ class Assembly:
         *order* must be 1: ``gmshToFoam`` reads first-order elements only
         (task 0076), so ``order=2`` is an ``AssemblyError``.
         """
-        if order != 1:
-            raise AssemblyError(f"write_openfoam writes first-order meshes only, got "
-                                f"order={order!r}: gmshToFoam reads no second-order elements",
-                                code="openfoam_needs_order_1", where={"field": "order"},
-                                value=order, limit=1, hint="use write(..., order=2) for "
-                                "other solvers")
-        if not str(path).endswith(".msh"):
-            raise AssemblyError(f"write_openfoam writes a .msh file, got {path!r}",
-                                code="write_openfoam_needs_msh", where={"field": "path"},
-                                value=str(path))
-        _require_session()
-        self.mesh(walls_by_fitting=walls_by_fitting)
-        dropped = []
-        if not interfaces:
-            labels = set(self._fill.interfaces)
-            for d, t in gmsh.model.getPhysicalGroups(2):
-                name = gmsh.model.getPhysicalName(d, t)
-                if name in labels:
-                    dropped.append((d, t, name,
-                                    list(gmsh.model.getEntitiesForPhysicalGroup(d, t))))
-            if dropped:   # an empty list would remove every group
-                gmsh.model.removePhysicalGroups([(d, t) for d, t, _, _ in dropped])
-        write_roles(roles_path(path), self.group_roles(),
-                    not_written=[name for _, _, name, _ in dropped])
-        options = {k: gmsh.option.getNumber(k) for k in ("Mesh.MshFileVersion", "Mesh.Binary")}
-        try:
-            gmsh.option.setNumber("Mesh.MshFileVersion", 2.2)
-            gmsh.option.setNumber("Mesh.Binary", 0)
-            gmsh.write(str(path))
-            msh_comments.to_lf(path)
-            if provenance:
-                self._stamp(path, f"write_openfoam dim=3 interfaces={interfaces} "
-                                  f"walls_by_fitting={walls_by_fitting}")
-        finally:
-            for k, v in options.items():
-                gmsh.option.setNumber(k, v)
-            for d, t, name, ents in dropped:
-                gmsh.model.addPhysicalGroup(d, ents, t)
-                gmsh.model.setPhysicalName(d, t, name)
+        return _output.write_openfoam(
+            self, path, interfaces=interfaces, walls_by_fitting=walls_by_fitting,
+            provenance=provenance, order=order)
 
     # ------------------------------------------------------------------
     # Quality
@@ -1473,51 +479,4 @@ class Assembly:
         and to the metric's own limit otherwise; an element is bad when it
         is at or beyond it, on the metric's worse side.
         """
-        _require_session()
-        if not self._meshed:
-            raise AssemblyError("no mesh yet; call mesh() or write() first",
-                                code="no_mesh_yet", hint="call mesh() or write() first")
-        if by == "material":
-            groups = [(name, None, vols) for name, vols in self.volumes.items()]
-        elif by == "fitting":
-            self.build()
-            groups = [(f"#{e.index} {type(e.fitting).__name__}", e.index,
-                       self._fitting_volumes[e.index]) for e in self._edges]
-        else:
-            raise AssemblyError(f'by must be "material" or "fitting", got {by!r}',
-                                code="option_invalid", where={"field": "by"}, value=by,
-                                limit=["material", "fitting"])
-
-        metric = METRICS.get(quality_name)
-        higher = metric.higher_is_better if metric else True
-        if threshold is None:
-            threshold = metric.default_threshold if metric else 0.0
-        report = QualityReport(quality_name=quality_name, threshold=threshold,
-                               higher_is_better=higher, corrections=copy.deepcopy(self.corrections))
-        for name, index, vols in groups:
-            q = self._element_qualities(vols, quality_name, metric)
-            if not q.size:
-                continue
-            bad = (q <= threshold) if higher else (q >= threshold)
-            report.regions.append(RegionQuality(
-                name=name, n_elements=len(q), n_bad=int(bad.sum()),
-                min_quality=float(q.min()), max_quality=float(q.max()),
-                mean_quality=float(q.mean()),
-                quality_name=quality_name, threshold=threshold,
-                higher_is_better=higher, fitting=index,
-            ))
-        return report
-
-    @staticmethod
-    def _element_qualities(vols: list[int], quality_name: str, metric) -> np.ndarray:
-        if metric is not None:
-            _, verts = hex_vertices(vols)
-            return np.array([metric.fn(v) for v in verts])
-        tags: list[int] = []
-        for v in vols:
-            _, etags, _ = gmsh.model.mesh.getElements(3, v)
-            for arr in etags:
-                tags.extend(arr.tolist())
-        if not tags:
-            return np.empty(0)
-        return np.array(gmsh.model.mesh.getElementQualities(tags, quality_name))
+        return _checks.check_quality(self, quality_name, threshold, by)
