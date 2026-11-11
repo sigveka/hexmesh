@@ -150,6 +150,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0151](0151-pipe-tee-circle-reads.md) | The pipe tee's circle reads through one helper: the shape-site cap to 0 | ready | 0051 |
 | [0152](0152-example-micromixer.md) | Example: a lipid-nanoparticle T-mixer with a twisted mixing channel | ready | — |
 | [0153](0153-example-subsea-pipeline.md) | Example: a subsea pipeline over a sandwave field (the bathymetry reader) | ready | 0032 |
+| [0155](0155-branch-spec-keeps-dr.md) | A tee's branch keeps its shells' given thicknesses exactly | ready (after 0145) | — |
 
 ### Validation
 
