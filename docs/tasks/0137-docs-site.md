@@ -100,4 +100,16 @@ follow-up if wanted).
 
 ## Questions for design
 
+## Design answer (2026-11-11, the user: "Wait for a release")
+
+The v0.1.4 release predates `folder-pages`, and Essens has no newer
+release for now (its CI billing comes first; no date).  Options were:
+wait; `id:` front matter in the 34 same-named files (shown by GitHub,
+against decision 0049's plain Markdown); or publishing a locally built
+site to a `gh-pages` branch.  **Wait:** the workflow, Pages ("GitHub
+Actions" source) and `ESSENS_TOKEN` are in place, and the site goes live
+with `ESSENS_VERSION` bumped to the first release that has
+`folder-pages`, then the push and pull-request triggers and the README
+link.  The Essens session says when a release exists.
+
 ## Outcome
