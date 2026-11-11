@@ -1,0 +1,19 @@
+# Essens renders hexmesh's Markdown docs as the website (decision 0049).
+# Build: python3 docs/site.py  (CONTRIBUTING.md, "The docs site").
+# The Markdown stays the source; nothing here is needed to read the docs
+# on GitHub.
+
+# validation/*/RESULTS.md share a file name: name each page by its folder
+folder-pages:
+  - RESULTS
+
+bibliography:
+  sources:
+    - docs/references.bib
+
+render:
+  html:
+    pictures: linked                      # images to assets/, not inlined
+# The page template, docs/site/page.html.tmpl, is passed by docs/site.py
+# as --template: Essens 0.1.4 reads render.html.template here as a
+# template name only, not a path (docs/integrations/essens.md).

@@ -1,0 +1,63 @@
+# The docs site: Essens renders the Markdown, docs/site.py adds the
+# navigation and checks links, GitHub Pages serves it (decision 0049;
+# task 0137).
+#
+# Manual runs only for now: the Essens repository (Essens-lang/essens)
+# is private, so a runner can't download the release without a token.
+# When it is public, or an ESSENS_TOKEN secret with read access is set,
+# add `push: branches: [main]` (deploys) and `pull_request:` (builds and
+# checks only) here.
+name: docs
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  ESSENS_VERSION: "0.1.4"           # docs/integrations/essens.md
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4     # one commit is enough: no Essens history features
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Install Essens
+        env:
+          # github.token reads a public repository; a private one needs the secret
+          GH_TOKEN: ${{ secrets.ESSENS_TOKEN || github.token }}
+        run: |
+          gh release download "v${ESSENS_VERSION}" --repo Essens-lang/essens \
+            --pattern "essens-v${ESSENS_VERSION}-linux-x64.tar.gz" --dir "$RUNNER_TEMP"
+          mkdir -p "$HOME/.local/bin"
+          tar xzf "$RUNNER_TEMP/essens-v${ESSENS_VERSION}-linux-x64.tar.gz" -C "$HOME/.local/bin" essens
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/essens" --version
+      - name: Build and check
+        run: python docs/site.py --out build/site
+      - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request'
+        with:
+          path: build/site
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

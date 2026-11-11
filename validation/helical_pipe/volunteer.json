@@ -16,7 +16,7 @@
     "version": "4.12.1",
     "note": "the version pip installs with hexmesh is fine: our test level's mesh check gives the same fingerprint with gmsh 4.12.1 and 4.15.2"
   },
-  "returns": "one file, helical_pipe-<level>.contrib.json, about 100 kB",
+  "returns": "one file, `helical_pipe-<level>.contrib.json`, about 100 kB",
   "reproduce": {
     "quantity": "f",
     "rel_tol": 0.0001

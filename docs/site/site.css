@@ -1,0 +1,130 @@
+/* hexmesh docs site: layout on top of simple.css (decision 0049).
+   Colours come from simple.css's variables, so its light and dark
+   schemes apply unchanged. */
+
+/* simple.css centres one column with a 3-column body grid; we lay out
+   header, sidebar, page and contents ourselves. */
+body {
+  display: block;
+  max-width: none;
+  padding: 0;
+  margin: 0;
+}
+body > header.site-header {
+  grid-column: auto;
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.6rem 1.25rem;
+  margin: 0;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  background: var(--accent-bg);
+}
+.site-title {
+  font-weight: bold;
+  font-size: 1.3rem;
+  text-decoration: none;
+  color: var(--text);
+}
+.site-tag { color: var(--text-light); font-size: 0.9rem; }
+
+.site-body {
+  display: grid;
+  grid-template-columns: 16rem minmax(0, 1fr) 14rem;
+  gap: 2rem;
+  max-width: 90rem;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+.site-main { min-width: 0; padding-bottom: 3rem; }
+/* simple.css draws <article> as a card and floats <aside>: undo both */
+.site-main > article {
+  max-width: 52rem;
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: none;
+}
+body .site-toc {
+  float: none;
+  width: auto;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+}
+
+/* sidebar and on-this-page contents: sticky, scrolling on their own */
+.site-nav, .site-toc {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  max-height: 100vh;
+  overflow-y: auto;
+  padding: 1rem 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+.site-nav ul, .site-toc ol { list-style: none; padding-left: 0; margin: 0; }
+.site-nav ul ul, .site-toc ol ol { padding-left: 0.9rem; }
+.site-nav li, .site-toc li { margin: 0.15rem 0; }
+.site-toc { overflow-wrap: anywhere; }
+.site-nav a, .site-toc a { text-decoration: none; }
+.site-nav a:hover, .site-toc a:hover { text-decoration: underline; }
+.site-nav a[aria-current="page"] { font-weight: bold; color: var(--text); }
+.site-nav details { margin: 0.4rem 0; }
+.site-nav summary { cursor: pointer; color: var(--text-light); }
+.site-nav details[open] > summary { color: var(--text); }
+/* simple.css boxes every <details>; the sidebar's are plain */
+.site-nav details, .site-nav details[open] {
+  border: none; padding: 0; background: none;
+}
+.site-nav details[open] > summary { margin-bottom: 0.2rem; border: none; }
+.site-toc::before {
+  content: "On this page";
+  display: block;
+  font-weight: bold;
+  margin-bottom: 0.4rem;
+}
+
+/* wide content scrolls inside the page, never the page itself */
+.site-main table { display: block; overflow-x: auto; max-width: 100%; }
+.site-main pre { overflow-x: auto; }
+.site-main img { max-width: 100%; height: auto; }
+.math-display { display: block; overflow-x: auto; overflow-y: hidden; }
+
+.site-footer {
+  margin-top: 3rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  color: var(--text-light);
+  font-size: 0.85rem;
+}
+
+/* narrower: drop the contents column, then fold the sidebar on top */
+@media (max-width: 75rem) {
+  .site-body { grid-template-columns: 14rem minmax(0, 1fr); }
+  .site-toc { display: none; }
+}
+@media (max-width: 50rem) {
+  .site-body { display: block; padding: 0 1rem; }
+  .site-nav {
+    position: static;
+    max-height: none;
+    border-bottom: 1px solid var(--border);
+  }
+  /* the top pages in a wrapped row, so the page starts on the first screen */
+  .site-nav > ul { display: flex; flex-wrap: wrap; gap: 0.1rem 1rem; }
+  .site-nav > details { display: inline-block; margin: 0.2rem 1rem 0.2rem 0; }
+  .site-nav > details[open] { display: block; }
+}
+
+@media print {
+  body > header.site-header, .site-nav, body .site-toc, .site-footer { display: none; }
+  .site-body { display: block; padding: 0; }
+  .site-main table { display: table; overflow: visible; }
+  .math-display { overflow: visible; }
+  a { color: inherit; }
+}

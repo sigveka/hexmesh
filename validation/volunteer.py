@@ -600,7 +600,20 @@ def render() -> str:
                 "whether it passes or not):", ""]
         out += [f"- {g['quantity']}: {g['limit']}" for g in gates(case)]
         out += ["", f"**Sent back:** {c['returns']}", ""]
-    return "\n".join(out)
+    text = "\n".join(out)
+    raw = _raw_placeholders(text)
+    if raw:
+        raise ValueError(f"VOLUNTEERS.md would show raw {raw}: GitHub strips them as HTML; "
+                         f"quote them in a code span in the card (task 0137)")
+    return text
+
+
+def _raw_placeholders(md: str) -> list[str]:
+    """``<word>`` outside code spans and fences: GitHub hides it as an HTML tag."""
+    import re
+    md = re.sub(r"```.*?```|<!--.*?-->", "", md, flags=re.S)
+    md = re.sub(r"`[^`\n]*`", "", md)
+    return sorted(set(re.findall(r"<[a-z][\w -]*>", md)))
 
 
 def cmd_docs(args) -> int:

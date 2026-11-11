@@ -133,7 +133,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0134](0134-remove-cube-probe-and-gallery-render-helper.md) | Housekeeping: one render helper in the gallery builder (`_cube_probe.py` stays) | done | 0043 |
 | [0135](0135-library-deduplication.md) | De-duplicate four repeated blocks in the library | done | 0042 |
 | [0136](0136-split-assembly-internally.md) | Split `Assembly` into internal modules behind the same class | ready | 0042 |
-| [0137](0137-docs-site.md) | The docs site: Essens pages, our navigation and template, GitHub Pages | ready | 0049 |
+| [0137](0137-docs-site.md) | The docs site: Essens pages, our navigation and template, GitHub Pages | in progress (design session: CI access to Essens pending) | 0049 |
 
 ### Validation
 

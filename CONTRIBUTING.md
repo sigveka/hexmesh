@@ -94,6 +94,29 @@ Before a pull request:
 
 Questions about the code are welcome as issues too.
 
+## The docs site
+
+The Markdown files are the docs: GitHub shows them as they are, and a
+website is built from them (decision 0049).  Write plain Markdown; the
+site needs nothing else.  To build and preview it you need
+[Essens](docs/integrations/essens.md) on your `PATH`:
+
+```bash
+python3 docs/site.py                        # builds build/site/ (about 20 s)
+python3 -m http.server -d build/site 8000   # then open http://localhost:8000
+```
+
+The build fails on an Essens error and on a broken relative link or
+anchor, so run it after moving or renaming a heading or a file.  Two
+things that show in the site but not on GitHub:
+- a `<word>` in prose is read as HTML (GitHub hides it): put
+  placeholders in a code span, `` `<fitting>` ``, or write *fitting*;
+- `[[name]]` is an Essens cross-reference: quote it in a code span.
+
+Layout and styles are in `docs/site/` (`page.html.tmpl`, `site.css`, and
+the vendored simple.css and KaTeX); `docs/site.py` holds the sidebar's
+order.
+
 ## Run a validation case
 
 Some validation cases need more computing power than we have: a single

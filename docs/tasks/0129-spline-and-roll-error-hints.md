@@ -41,7 +41,7 @@ added), `API.md` if a field is documented, `tests/`.
    isn't).
 2. **The roll's straight.**  When no untwisted `Straight` ends at the
    junction's inlet, the hint gives a working one: "add
-   `Straight(L, n_layers=n)` before the <fitting>; hexmesh twists it by
+   `Straight(L, n_layers=n)` before the *fitting*; hexmesh twists it by
    X° to reach `toward`", with the shortest L and n that keep that twist
    within the twist limits (decision 0031's 15° warn and 30° max, and any
    per-layer limit), computed from the inlet's spec.  If the rest can't

@@ -1,8 +1,9 @@
 # Essens
 
 Version-specific behaviour of Essens (the `.ess` document tool) as it
-concerns hexmesh's docs.  Context: a proposed render-only proof of
-concept (the design session, 2026-11-10).
+concerns hexmesh's docs.  **Role:** it renders the docs site from the
+Markdown (decision 0049, task 0137): `docs/site.py`, `essens.yaml`,
+`docs/site/`.
 
 ## Essens 0.1.4 (2026-11-10)
 
@@ -39,7 +40,7 @@ after `init`, `lint`, `log`, `commit`).
   default), with a reference list and DOI links.  One spacing glitch:
   "11 : 1358601" (volume : article number).
 - A cross-reference renders with its type: write `[[eq-width]]`, not
-  "Equation [[eq-width]]" (that gives "Equation Equation 1").
+  `Equation [[eq-width]]` (that gives "Equation Equation 1").
 - HTML loads KaTeX from jsDelivr at `katex@0.16` (a floating minor);
   pages need the network for math.  The default page has no stylesheet.
 - Pictures are inlined by default (a one-image page was 666 KB);
@@ -72,3 +73,49 @@ Jekyll would).  A scratch copy of all 233 tracked `.md` files outside
   after render (`--fragment` into a generator, or full pages), by its
   design ("The site is the project's", docs/CODE-PROJECTS.ess).  Whether
   Essens ships a site template is an open question there.
+
+## The docs site's build (task 0137, 2026-11-11)
+
+**Pinned and vendored:**
+- Essens **0.1.4** (the build installed 2026-11-10 23:43); the CI pin
+  is in `.github/workflows/docs.yml`: the release archive
+  `essens-v0.1.4-linux-x64.tar.gz` from
+  `github.com/Essens-lang/essens/releases` (the `essens` and
+  `essens-lsp` binaries at its root; a `.deb` too), per the Essens
+  session 2026-11-11.  **The repository is private:** a runner needs an
+  `ESSENS_TOKEN` secret or the repository made public (the Essens
+  user's decision, asked), so the workflow runs by hand only until then.
+- **simple.css 2.3.1** (MIT, Kev Quirk), `docs/site/vendor/simple.css/`:
+  classless, no external requests (no `url()` or `@import`), light and
+  dark from `prefers-color-scheme`.  Chosen over Pico's classless build
+  for size (8.7 kB) and because its variables (`--bg`, `--accent`,
+  `--border`, …) were enough for the layout in `site.css`.
+- **KaTeX 0.16.11** (MIT, Khan Academy), `docs/site/vendor/katex/`:
+  `katex.min.css`, `katex.min.js`, `contrib/auto-render.min.js` and the
+  20 `.woff2` fonts only (browsers take woff2 first, so the woff/ttf
+  fallbacks the CSS lists are never fetched).  Downloaded from jsDelivr,
+  2026-11-11.
+
+**Verified behaviour (0.1.4):**
+- **`--template FILE` replaces the whole page**, `<head>` included:
+  `&[textus]` is the article, `&[toc]` a `<nav class="essens-toc">`.  So
+  the CDN KaTeX links Essens's default page carries are gone without
+  post-processing; our template loads the local copy with the same
+  auto-render delimiters (`\( \)`, `\[ \]`; Essens wraps them in
+  `span.math-inline` / `.math-display`).  Text that isn't a slot
+  (`@@TITLE@@`, …) passes through, which `docs/site.py` fills per page.
+- **`render.html.template` in `essens.yaml` is read as a name only:**
+  `docs/site/page.html.tmpl` and `./docs/site/page.html.tmpl` both give
+  `named template … not found [NotFound]`, while the same path works as
+  `--template`.  `--help` says a value with a separator or extension is
+  a path.  Reported to the Essens session 2026-11-11: a confirmed bug,
+  fixed after 0.1.4 (a path is read from `essens.yaml`'s folder and must
+  stay inside the project).  `docs/site.py` passes `--template` until the
+  pinned release has the fix.
+- **`essens lint --format json` writes one JSON array**, pretty-printed
+  over many lines (not one object per line).
+- **Diagnostics on hexmesh's docs** after task 0137's fixes: one
+  warning, `HtmlNotRead` for README's `<sub>` (its text is kept).  Not an
+  error, so the build passes.
+- 237 pages in about 17 s; 29.8 MB with `assets/` and `_static/`.
+

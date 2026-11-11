@@ -57,4 +57,4 @@ python3 -m validation.volunteer prepare helical_pipe re3000_n24 --dir run/
 - mesh convergence of $f$ at each Re (nang 12, 16, 24): Richardson status converging; GCI reported
 - reported, not gated: the digitised measured points (Fig. 12); f per pair of consecutive turns: reported
 
-**Sent back:** one file, helical_pipe-<level>.contrib.json, about 100 kB
+**Sent back:** one file, `helical_pipe-<level>.contrib.json`, about 100 kB

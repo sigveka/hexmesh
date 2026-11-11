@@ -257,3 +257,12 @@ def test_an_oversized_file_is_rejected(tmp_path, stored_copy):
     contrib["log_tail"] = ["x" * 1999] * 200 + ["x" * 1999] * 400
     ok, lines = _check(tmp_path, contrib, stored_copy)
     assert not ok and "limit" in lines[0]
+
+
+def test_raw_placeholders_are_caught():
+    """GitHub hides ``<level>`` as an HTML tag; the generator refuses it
+    outside code (task 0137)."""
+    from validation.volunteer import _raw_placeholders
+    assert _raw_placeholders("one file, helical_pipe-<level>.contrib.json") == ["<level>"]
+    assert _raw_placeholders("one file, `x-<level>.json`; <!-- see <case> -->\n"
+                             "```bash\nprepare <case>\n```") == []

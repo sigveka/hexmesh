@@ -1,6 +1,6 @@
 # 0137 — The docs site: Essens pages, our navigation and template, GitHub Pages
 
-- **Status:** ready (the CSS strategy settled 2026-11-10)
+- **Status:** in progress (the design session, at the user's request, 2026-11-11): done but for CI access to Essens (its repository is private; the Essens user decides) and the README link once the site is live
 - **Decision:** [0049 — A docs site rendered from the Markdown by Essens](../decisions/0049-docs-site-from-markdown.md)
 - **Depends on:** none.
 
@@ -61,6 +61,42 @@ the design session passes it on.
 follow-up if wanted).
 
 ## Agent notes
+
+- **Template instead of wrapping.**  Essens 0.1.4's `--template FILE`
+  replaces the whole page, `<head>` included (`&[textus]`, `&[toc]`), so
+  `docs/site/page.html.tmpl` loads our CSS and KaTeX directly: there is no
+  KaTeX swap step.  The template's `@@TITLE@@`, `@@ROOT@@`, `@@NAV@@`,
+  `@@SOURCE@@`, `@@SOURCE_PATH@@` and `@@COMMIT@@` pass through Essens and
+  `docs/site.py` fills them per page.
+- **`--template` on the command line**, not in `essens.yaml`: 0.1.4
+  reads the yaml key as a template name only (`essens.md`; reported to
+  the Essens session).
+- **simple.css, not Pico:** 8.7 kB, no external requests, and its
+  variables were enough (`essens.md`).  `site.css` undoes two of its
+  element styles: `<article>` as a card, `<aside>` floated at 30 %.
+- **The placeholders (step 1):** task 0125 had two `<PCF type>`, one
+  across a line break that a line `grep` misses (Essens's lint found it);
+  task 0129 one `<fitting>`; VOLUNTEERS.md's `<level>` came from
+  `validation/helical_pipe/volunteer.json`.  The generator
+  (`validation/volunteer.py` `render`) now refuses a raw `<word>` outside
+  code and HTML comments (`_raw_placeholders`, tested); it caught nothing
+  else.  Also fixed: `docs/integrations/essens.md`'s unquoted
+  `[[eq-width]]` (a `DanglingReference` warning).
+- **Lint is read as one JSON array.**  The first version parsed it line
+  by line and silently missed two of three warnings; it now fails if the
+  output isn't JSON.
+- **The sidebar:** a hand-kept top level with short labels (`TOP` in
+  `site.py`), then one folded group per folder (Decisions, Tasks,
+  Integrations, Validation cases, More), titled by each page's `<h1>`.
+  `CLAUDE.md` is left out (agent instructions, not docs).
+- **Checks (step 4):** Chromium headless, served from
+  `python3 -m http.server`: RESEARCH (KaTeX inline and display maths) at
+  1400 px light and dark, GUIDE at 390 px (phone) dark, RESEARCH printed
+  to PDF, GALLERY at 1400 px.  Fixed after the first look: the contents
+  column squeezed by simple.css's `aside`; the nav filling a phone's
+  first screen (now a wrapped row); the header printed; long citation
+  keys overflowing the contents column.  No page references a CDN
+  (`grep` for `cdn.`, `jsdelivr`, `googleapis` in the build: none).
 
 ## Questions for design
 

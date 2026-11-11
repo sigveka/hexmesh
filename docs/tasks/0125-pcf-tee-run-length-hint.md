@@ -50,7 +50,7 @@ geometry is the user's call).
   itself).  Now the hint names the component's own points, by junction
   kind: a TEE's END-POINTs or BRANCH1-POINT, a Y piece's BRANCH1- and
   BRANCH2-POINTs; how far they are from its CENTRE-POINT; how far the
-  junction needs them; and "a longer <PCF type>, or thinner insulation".
+  junction needs them; and "a longer *PCF type*, or thinner insulation".
   The component and its line were already in the message ("component 1
   (TEE TEE_1 at …, net.pcf:7)").  The Python hint is unchanged.
 - **Which forms reach the length codes** (probed): a TEE (run and
@@ -121,8 +121,8 @@ reaches it" and "a run of X m or more each side of the centre reaches it
 - **Step 1:** a PCF junction too short for its layout hints with the
   component's own points: a TEE's END-POINTs or BRANCH1-POINT, a Y
   piece's BRANCH1- and BRANCH2-POINTs; how far they are from its
-  CENTRE-POINT, how far the junction needs them, and "a longer <PCF
-  type>, or thinner insulation if it is insulated"
+  CENTRE-POINT, how far the junction needs them, and "a longer *PCF
+  type*, or thinner insulation if it is insulated"
   (`hexmesh/interchange/build.py` `_file_length_hint`).  The message
   already named the component and its line.
 - **Step 2:** the survey is in *Agent notes*.  Fixed at build: the two
