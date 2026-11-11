@@ -124,6 +124,11 @@ def _rotation(axis: np.ndarray, angle: float) -> np.ndarray:
     return np.eye(3) + math.sin(angle) * k + (1 - math.cos(angle)) * (k @ k)
 
 
+#: a hex's 12 edges, as gmsh numbers its corners
+_HEX_EDGES = np.array([(0, 1), (1, 2), (2, 3), (3, 0), (4, 5), (5, 6), (6, 7), (7, 4),
+                       (0, 4), (1, 5), (2, 6), (3, 7)])
+
+
 def _quad_edges(quads: np.ndarray, surfs) -> np.ndarray:
     """The shortest edge of each quad of *surfs* (node tags, (n, 4)), at
     the nodes' current positions."""
@@ -999,15 +1004,17 @@ class Assembly:
         self._check_projection(moved)
         if dim == 3:
             self._check_meshed_sj()
-        placed = self._second_order(incomplete) if order == 2 else {}
-        self._record_corrections(moved, placed)
+        placed, arcs = self._second_order(incomplete) if order == 2 else ({}, {})
+        self._record_corrections(moved, placed, arcs)
         self.mesh_order = order
         self._meshed = True
 
-    def _second_order(self, incomplete: bool) -> None:
-        """``setOrder(2)`` on the checked linear mesh, then every high-order
-        node on a projected fitting's walls onto that fitting's projector,
-        and the validity check (task 0076)."""
+    def _second_order(self, incomplete: bool) -> tuple[dict, dict]:
+        """``setOrder(2)`` on the checked linear mesh, a bend's high-order
+        nodes onto its arcs, then every high-order node on a projected
+        fitting's walls onto that fitting's projector, and the validity
+        check (task 0076).  Returns the wall placement's and the arc
+        placement's moves per fitting index, as :meth:`_project_walls`."""
         opt = "Mesh.SecondOrderIncomplete"
         was = gmsh.option.getNumber(opt)
         try:
@@ -1017,11 +1024,12 @@ class Assembly:
             gmsh.option.setNumber(opt, was)
         msh = gmsh.model.mesh
         placed: dict[int, list] = {}
+        arcs: dict[int, tuple] = {}
         for e in self._edges:
             if hasattr(e.fitting, "path") and len(e.ports) == 2:
                 axial = e.fitting.path(e.ports[0].frame, e.ports[1].frame, e.ports[0].spec).axial
                 if isinstance(axial, Arc):
-                    self._revolve_high_order(e, axial)
+                    arcs[e.index] = self._revolve_high_order(e, axial)
             for project, surfs in self._fitting_projections.get(e.index, []):
                 ho: dict[int, float] = {}         # high-order node → local edge length
                 for s in surfs:
@@ -1042,7 +1050,8 @@ class Assembly:
                     (np.linalg.norm(y - x, axis=1), project.local_radius(y),
                      np.array([ho[int(t)] for t in tags])))
         self._check_second_order()
-        return {i: tuple(np.concatenate(c) for c in zip(*v)) for i, v in placed.items()}
+        return ({i: tuple(np.concatenate(c) for c in zip(*v)) for i, v in placed.items()},
+                arcs)
 
     def _revolve_high_order(self, e, arc: Arc) -> None:
         """Place every high-order node of a bend's hexes that lies between
@@ -1050,8 +1059,14 @@ class Assembly:
         (the corner, edge node or face node with the same in-station
         parents), rotated about the bend axis by half the slab's turn.
         ``setOrder`` keeps interior axial edges straight; in a tight bend
-        their sag folds thin shells (task 0076)."""
+        their sag folds thin shells (task 0076).  Returns each moved node's
+        move from gmsh's position, the section's outer radius and the
+        shortest edge of the hexes that hold it (task 0130)."""
         msh = gmsh.model.mesh
+        radius = max(s.max_extent for s in e.ports[0].spec.outlines)
+        start: dict[int, np.ndarray] = {}     # node → gmsh's position
+        end: dict[int, np.ndarray] = {}       # node → placed position
+        edge: dict[int, float] = {}           # node → shortest edge of its hexes
         axis = np.asarray(arc.axis, float) / np.linalg.norm(arc.axis)
         centre = np.asarray(arc.centre, float)
 
@@ -1067,6 +1082,8 @@ class Assembly:
                 at = dict(zip(ids.astype(int).tolist(), x.reshape(-1, 3)))
                 for h in conn:
                     c = np.array([at[n] for n in h[:8]])
+                    shortest = float(np.linalg.norm(c[_HEX_EDGES[:, 0]] - c[_HEX_EDGES[:, 1]],
+                                                    axis=1).min())
                     r = radial(c)
                     turn = np.arctan2(np.cross(r[0], r) @ axis, (r * r[0]).sum(axis=1))
                     first = {i for i in range(8) if abs(turn[i]) < 1e-9}
@@ -1079,8 +1096,15 @@ class Assembly:
                                 parents.index(on_first)
                             p = at[h[twin]]
                             y = centre + rot @ (p - centre)
-                            at[h[k]] = y
-                            msh.setNode(int(h[k]), y.tolist(), [])
+                            node = int(h[k])
+                            start.setdefault(node, at[node])
+                            end[node] = y
+                            edge[node] = min(edge.get(node, np.inf), shortest)
+                            at[node] = y
+                            msh.setNode(node, y.tolist(), [])
+        nodes = sorted(end)
+        move = np.array([np.linalg.norm(end[n] - start[n]) for n in nodes]).reshape(-1)
+        return move, np.full(len(nodes), radius), np.array([edge[n] for n in nodes])
 
     def _check_second_order(self) -> None:
         """An ``AssemblyError`` naming the fitting for any high-order hex
@@ -1197,13 +1221,15 @@ class Assembly:
             return 0
         return self.cell_counts()[e.index]
 
-    def _record_corrections(self, moved: dict, placed: dict) -> None:
-        """``corrections``, for every fitting (decision 0046 rule 5, task
-        0123): the wall nodes projection moved, the second-order wall nodes
+    def _record_corrections(self, moved: dict, placed: dict, arcs: dict) -> None:
+        """``corrections``, for every fitting (decision 0046 rule 5, tasks
+        0123 and 0130): the wall nodes projection moved, a bend's
+        second-order nodes placed on its arcs, the second-order wall nodes
         placed, each with its largest move (absolute, in local wall radii,
         in local edge lengths), or ``"none"``; and the elements hexmesh
         wrote.  A node counts as moved beyond ``CORRECTION_MIN_MOVE`` local
-        wall radii (rounding below it)."""
+        wall radii (rounding below it).  A wall node of a bend is placed
+        on its arc, then on the wall: each entry measures its own step."""
         def record(m):
             if m is None:
                 return "none"
@@ -1217,6 +1243,7 @@ class Assembly:
         self.corrections = {
             e.name: {"fitting": e.index, "type": type(e.fitting).__name__,
                      "wall_projection": record(moved.get(e.index)),
+                     "second_order_arc_nodes": record(arcs.get(e.index)),
                      "second_order_wall_nodes": record(placed.get(e.index)),
                      "elements_written": self._written_elements(e)}
             for e in self._edges}

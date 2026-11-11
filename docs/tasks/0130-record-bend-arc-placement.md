@@ -1,6 +1,6 @@
 # 0130 — Record a bend's second-order arc placement; say what second order is verified for
 
-- **Status:** ready
+- **Status:** done
 - **Decision:** [0046 — gmsh meshes; hexmesh corrects](../decisions/0046-gmsh-meshes-hexmesh-corrects.md) (amendment 2026-11-10: rule 5 covers every node hexmesh moves); [0034](../decisions/0034-secondary-solvers.md) (notes 2026-11-10 and 2026-11-11: verified by 0077, no label)
 - **Depends on:** 0123 (done: the correction record).
 
@@ -62,6 +62,53 @@ passed).
 
 ## Agent notes
 
+- **Arc and wall placement of one node:** a bend's high-order wall node
+  between stations is placed on its arc first, then (if the fitting has
+  a projector) on the wall.  It is counted once in each entry, each
+  measuring its own step: the arc entry from gmsh's position, the wall
+  entry from the arc position.  The two steps are different corrections,
+  so one combined move would hide which one moved the node.  No fitting
+  has both today: a bend has no projector, so its
+  `second_order_wall_nodes` is "none".
+- **Radius and edge of the arc entry:** the wall radius is the section's
+  outermost outline's `max_extent` (the radius for a circle); the local
+  edge length is the shortest of the 12 corner edges of the hexes
+  holding the node, as the step asks.
+- **Sweep (step 2):** hexmesh writes gmsh's node coordinates in three
+  places, all in `assembler.py` and all `msh.setNode`:
+  1. `_project_walls`: wall nodes onto the analytic wall between surface
+     and volume meshing → `wall_projection`;
+  2. `_revolve_high_order`: a bend's high-order nodes onto its arcs →
+     `second_order_arc_nodes` (new);
+  3. `_second_order`: high-order wall nodes onto the wall →
+     `second_order_wall_nodes`.
+  No `setNodes`, `relocateNodes`, mesh optimiser, smoother or
+  `affineTransform` call anywhere in `hexmesh/` (grep, 2026-11-11).
+- **Schema (step 3):** no manifest or CLI schema lists the correction
+  keys (the CLI's `build` result passes `asm.corrections` through,
+  unversioned), so no version changes.
+- **Step 4** uses the task's wording as design rewrote it on 2026-11-11.
+  README's "Not yet" list already says second order isn't available for
+  wyes and equal tees, or for OpenFOAM output, so it is unchanged.
+
 ## Questions for design
 
 ## Outcome
+
+**Done 2026-11-11.**
+
+- **Record:** `second_order_arc_nodes`, beside the other two entries, for
+  every fitting.  A 90° bend (R 0.05, bend radius 3 R, 6 cells along,
+  `nang` 8) at order 2: 3 990 nodes, largest move 1.64 mm = 0.033 wall
+  radii = 0.29 edge lengths; its straights "none"; at order 1 "none"
+  everywhere.  The largest move equals the largest node displacement
+  against the same mesh without the placement (test).
+- **Files:** `hexmesh/assembly/assembler.py` (`_revolve_high_order`
+  returns its moves; `_second_order` and `_record_corrections` carry
+  them; `_HEX_EDGES`), `hexmesh/assembly/quality.py`
+  (`correction_summary`), `tests/test_corrections.py` (2 new tests, the
+  key set), API.md, GUIDE, CHANGELOG.
+- **Meshes byte-identical:** a bend and a tee at orders 1 and 2, written
+  with HEAD's code and with this change, `provenance=False`.
+- **Tests:** full suite 4071 passed, 15 skipped (design's 4069 + 2).
+- **Follow-ups:** none proposed.

@@ -19,15 +19,18 @@ elements hexmesh writes.
 import json
 import warnings
 
+import gmsh
+import numpy as np
 import pytest
 
 from hexmesh import HexmeshNotice, Session
 from hexmesh.agent import cli
-from hexmesh.assembly import Assembly, Straight
+from hexmesh.assembly import Assembly, Bend, Straight
 from hexmesh.core.spec import PipeSpec
 from hexmesh.examples.fittings import junction_walls, tee
 
-KEYS = {"fitting", "type", "wall_projection", "second_order_wall_nodes", "elements_written"}
+KEYS = {"fitting", "type", "wall_projection", "second_order_arc_nodes", "second_order_wall_nodes",
+        "elements_written"}
 
 
 @pytest.mark.parametrize("order", [1, 2])
@@ -102,3 +105,48 @@ def test_the_cli_reports_notices_and_corrections(tmp_path, capsys):
     out = json.loads(capsys.readouterr().out)["result"]
     assert set(out["corrections"]) == {e.name for e in asm.edges}
     assert all(c["wall_projection"] == "none" for c in out["corrections"].values())
+
+
+def _bend():
+    asm = Assembly(PipeSpec(nang=8).core("fluid", radius=0.05, nrad=3),
+                   direction=[1, 0, 0], up=[0, 0, 1])
+    asm.add(Straight(0.1, n_layers=2))
+    asm.add(Bend(0.15, 90, n_layers=6))
+    asm.add(Straight(0.1, n_layers=2))
+    return asm
+
+
+def _nodes(order, monkeypatch=None):
+    """Every node's position after ``mesh(order=order)``, and the record."""
+    with Session("corrections-bend"), warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        asm = _bend()
+        asm.mesh(order=order)
+        tags, x, _ = gmsh.model.mesh.getNodes()
+        return dict(zip(tags.astype(int).tolist(), x.reshape(-1, 3))), asm
+
+
+def test_a_bend_at_order_2_records_its_arc_placement(monkeypatch):
+    """Task 0130: the high-order nodes a bend places on its arcs are
+    recorded; the largest move equals the largest displacement against
+    the same mesh without the placement (gmsh's straight-edge nodes)."""
+    placed, asm = _nodes(2)
+    bend, *straights = [asm.edges[1].name, asm.edges[0].name, asm.edges[2].name]
+    r = asm.corrections[bend]["second_order_arc_nodes"]
+    assert r != "none" and r["nodes"] > 0
+    assert 0 < r["largest_move_radii"] < r["largest_move_edges"] < 1
+    for s in straights:
+        assert asm.corrections[s]["second_order_arc_nodes"] == "none"
+    assert asm.corrections[bend]["second_order_wall_nodes"] == "none"   # no projector here
+    monkeypatch.setattr(Assembly, "_revolve_high_order",
+                        lambda self, e, arc: (np.zeros(0), np.zeros(0), np.zeros(0)))
+    gmshs, _ = _nodes(2)
+    assert placed.keys() == gmshs.keys()
+    moves = np.array([np.linalg.norm(placed[n] - gmshs[n]) for n in placed])
+    assert r["largest_move"] == pytest.approx(moves.max(), rel=1e-12)
+    assert r["nodes"] == int((moves / 0.05 > 1e-9).sum())
+
+
+def test_a_bend_at_order_1_records_no_arc_placement():
+    _, asm = _nodes(1)
+    assert all(c["second_order_arc_nodes"] == "none" for c in asm.corrections.values())

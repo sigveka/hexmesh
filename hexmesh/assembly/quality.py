@@ -159,6 +159,7 @@ def correction_summary(c: dict) -> str:
     correction with its node count and largest move."""
     out = []
     for key, what in (("wall_projection", "wall nodes moved"),
+                      ("second_order_arc_nodes", "second-order nodes placed on a bend's arcs"),
                       ("second_order_wall_nodes", "second-order wall nodes placed")):
         r = c.get(key, "none")
         if r != "none":

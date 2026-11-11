@@ -121,14 +121,22 @@ surface, up to 0.7 % of the radius off. This is an open follow-up
 **What hexmesh changes in gmsh's mesh.**  gmsh meshes: it creates every
 element and places every node first.  hexmesh then moves wall nodes at
 junctions onto the exact pipe walls (and, at `order=2`, places the
-high-order wall nodes there), and reports each move.  After `mesh()`,
-`asm.corrections`, the quality report (`print(asm.check_quality())`) and
-the `hexmesh build` result list, for every fitting, how many nodes were
-moved and the largest move, in metres, in wall radii and in cell edge
-lengths, or "none".  A straight or a bend says "none"; a tee typically
-moves its wall nodes by a small fraction of a cell; a wye's crotch by a
-few cells' worth.  A move of more than one wall radius also warns
-([decision 0046](decisions/0046-gmsh-meshes-hexmesh-corrects.md)).
+high-order wall nodes there and a bend's high-order nodes on its arcs),
+and reports each move.  After `mesh()`, `asm.corrections`, the quality
+report (`print(asm.check_quality())`) and the `hexmesh build` result
+list, for every fitting, how many nodes were moved and the largest move,
+in metres, in wall radii and in cell edge lengths, or "none".  A
+straight says "none", and so does a bend at first order; a bend at
+`order=2` places its high-order nodes on the arcs (up to 3 % of the
+radius in a 90° bend of radius 3 R with 6 cells along it); a tee
+typically moves its wall nodes by a small fraction of a cell; a wye's
+crotch by a few cells' worth.  A move of more than one wall radius also
+warns ([decision 0046](decisions/0046-gmsh-meshes-hexmesh-corrects.md)).
+
+**Second order** (`mesh(order=2)`, `write(…, order=2)`) is verified with
+FEniCSx (task 0077, [RESEARCH §7.15](RESEARCH.md)) on straights, bends
+and tees, Hex27; not for wyes and equal tees (rejected), second-order
+OpenFOAM output, or flow.
 
 ---
 

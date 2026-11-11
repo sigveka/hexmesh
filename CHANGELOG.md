@@ -54,6 +54,12 @@
   notice, `elements_written_by_hexmesh`, waits for task 0124's opt-in.
 - `limits.CORRECTION_MIN_MOVE` (1e-9 wall radii): the smallest move the
   record counts.
+- `second_order_arc_nodes` (task 0130; decision 0046 amendment
+  2026-11-10): a bend's high-order nodes placed on its arcs at
+  `order=2`, in the same form.  A bend at order 2 no longer says "none".
+- Second order is verified with FEniCSx (task 0077) on straights, bends
+  and tees (Hex27); API.md and GUIDE say so, and what it isn't verified
+  for.
 
 **Volunteer runs** (decision 0044; task 0119).
 - `python3 -m validation.volunteer`: `list`, `prepare`, `run`, `collect`
