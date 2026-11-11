@@ -17,7 +17,9 @@ through :func:`param`; a method's arguments in a table of
 :func:`describe` entries next to its signature (``PipeSpec.core``).
 ``hexmesh.agent.schema`` reads both.  Nothing here changes behaviour.
 
-Units: ``length`` (the user's length unit: hexmesh never converts);
+Units: ``length`` (metres: hexmesh converts nothing, and its geometry
+kernel's tolerances are tuned for pipes of millimetres and up, so another
+unit isn't safe: task 0128; ``hexmesh.units`` has the constants);
 ``deg``; ``1`` (a ratio or a factor); ``cells`` (a cell or layer count);
 ``direction`` (a 3-vector hexmesh normalises: only its direction counts);
 ``-`` (not a quantity: a name, a choice, a spec, a shape or a vector of

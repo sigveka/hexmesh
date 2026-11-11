@@ -72,10 +72,12 @@ ORDER = ("core", "sections", "assembly", "interchange", "study",
 LEAVES = {"hexmesh._occ", "hexmesh.session", "hexmesh.quality_hex",
           "hexmesh.version",            # task 0091: assembly stamps the version
           "hexmesh.errors",             # task 0094: every layer's error classes
-          "hexmesh._gmsh"}              # task 0107: gmsh, loaded on first use
+          "hexmesh._gmsh",              # task 0107: gmsh, loaded on first use
+          "hexmesh.units"}              # task 0128: length constants (decision 0047)
 #: the public API ``hexmesh.agent`` may import (task 0097): the package
 #: roots, and the documented registries the schema reads
 AGENT_IMPORTS = {"hexmesh", "hexmesh.assembly", "hexmesh.interchange", "hexmesh.errors",
+                 "hexmesh.units",
                  "hexmesh.assembly.intent", "hexmesh.assembly.limits",   # FITTING_TYPES, LIMITS
                  "hexmesh.core.params", "hexmesh.core.shape",            # UNITS, SHAPES
                  "hexmesh.core.grading"}          # advise: the first-cell solvers

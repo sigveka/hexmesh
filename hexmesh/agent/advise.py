@@ -67,7 +67,7 @@ import math
 from functools import lru_cache
 from pathlib import Path
 
-from hexmesh import Assembly, HexmeshError, HexmeshWarning, __version__
+from hexmesh import Assembly, HexmeshError, HexmeshWarning, __version__, units
 from hexmesh.assembly import AssemblyTypeError, limits
 from hexmesh.core.grading import (bump, bump_for_first_cell, first_cell_height,
                                   progression_for_first_cell)
@@ -87,7 +87,7 @@ FLUIDS = {
             "source": "air at 20 °C, 1 atm [white_2011, table A.2]"},
 }
 ACCURACY = ("coarse", "medium", "fine")
-LENGTH_UNITS = {"m": 1.0, "mm": 1e-3}
+LENGTH_UNITS = {"m": units.m, "mm": units.mm}
 RE_LAMINAR, RE_TURBULENT = 2300.0, 4000.0
 RE_BLASIUS_MAX = 1e5
 EIGHT_X = ("doubling every count (nang, nrad, n_layers) doubles the cells in each "

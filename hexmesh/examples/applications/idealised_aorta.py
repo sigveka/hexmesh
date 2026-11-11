@@ -91,8 +91,7 @@ Inlet ``aortic_root``; outlets ``brachiocephalic``,
 import numpy as np
 
 from hexmesh import Assembly, PipeSpec, Reducer, SplinePipe, Straight, Tee, Wye
-
-CM = 0.01
+from hexmesh.units import cm as CM
 
 # Mansouri et al. 2024, Table 10, Type I.
 D_ASC, D_ARCH, D_DESC = 3.17 * CM, 2.65 * CM, 2.5 * CM

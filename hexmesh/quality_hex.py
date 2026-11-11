@@ -93,7 +93,7 @@ def _frob_cond(A: np.ndarray) -> float:
     of spatial dimension d = n.
     """
     J = det(A)
-    if abs(J) < 1e-14:
+    if abs(J) < 1e-14 * norm(A) ** A.shape[0]:   # relative: cells of any size (task 0128)
         return np.inf
     try:
         Ainv = inv(A)

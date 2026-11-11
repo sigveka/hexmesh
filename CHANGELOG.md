@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+**Length units** (decision 0047; task 0128).
+- `hexmesh.units`: `m`, `cm`, `mm`, `um`, `inch`, `ft`, plain floats in
+  metres (`radius=13.25 * mm`).  Not re-exported from `hexmesh`.  The
+  PCF reader, the interchange tolerance floor and the agent's advice take
+  their constants from it; meshes unchanged.
+- Docs and the agent's `describe` now say lengths are metres: `units`
+  is `{"length": "m", …}` (was `"as given"`), as hexmesh isn't
+  scale-free (GUIDE, *Current limitations*).
+
 **One density per network, said up front** (decision 0003 note
 2026-11-10; task 0132).
 - README, GUIDE ("One density per network", with a worked example) and

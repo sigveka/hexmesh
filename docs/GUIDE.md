@@ -222,6 +222,18 @@ radius up to `TEE_MAX_RATIO` (0.95) R leans at any angle the tee allows.
 
 ## Cross-section specification
 
+**Lengths are in metres.**  For a source in other units, multiply by a
+constant from `hexmesh.units` (`m`, `cm`, `mm`, `um`, `inch`, `ft`):
+
+```python
+from hexmesh.units import cm, inch
+PipeSpec(nang=8).core("blood", radius=1.325 * cm, nrad=6)
+PipeSpec(nang=6).core("fluid", radius=2 * inch, nrad=4)
+```
+
+Don't work in a unit of your own (millimetres written as metres):
+hexmesh isn't scale-free (see *Current limitations*).
+
 ```python
 from hexmesh import PipeSpec
 
@@ -783,6 +795,13 @@ with `python3 docs/gallery/build.py` (needs `vtk`).
 - **One density per network:** `nang` and every layer's `nrad` are the
   same in every pipe of a connected network; only radial grading may
   change ([One density per network](#one-density-per-network)).
+- **Metres, and not scale-free:** some geometry-kernel tolerances are
+  absolute lengths.  The same network at another scale gives a slightly
+  different mesh (nodes off by up to 3e-4 of the network's size in task
+  0128's measurements; minimum quality unchanged), and small junctions
+  fail to build: a tee on a 0.1 m main builds down to about 1:33 (3 mm
+  radius), not at 1:50.  Vessels of a few millimetres are affected (task
+  0128).
 - **Tee:** branch perpendicular or leaning downstream (a lateral,
   `angle=`, in the range of DESIGN §7.1), centred or offset (`offset=`,
   `|offset| + r < R` and `|offset| ≤ r`), branch radius at most

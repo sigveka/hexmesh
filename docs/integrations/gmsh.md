@@ -570,6 +570,32 @@ inside one snapshot, or by entity, never by tag; any correction keyed
 on node tags must run between `generate(2)` and `generate(3)`, as the
 projection does.
 
+### OCC fillings have absolute length tolerances: hexmesh isn't scale-free (gmsh 4.12.1 / OCC 7.6.3, task 0128, 2026-11-11) — *verified*
+`gmsh.model.occ.addSurfaceFilling`'s defaults include `tol3d=1e-4`, a
+length in model units (signature from `inspect.signature`; `tol2d=1e-5`
+is parametric).  hexmesh passes `tol3d` scaled to the face only for the
+wall plates (`blocks.py`, `_WALL_TOL * scale`); the interior plates
+(`blocks.py` `addSurfaceFilling(loop)`, `corners.py`) take the default.
+Evidence, the README tee (`tests/test_units.py::_readme`, main radius
+0.1 m) with every length × s, nodes compared with the full-size mesh
+× s:
+- default `tol3d`: drift 7.4e-5 of the size at s = 0.5, 2.5e-4 at 0.05;
+  the fill fails ("Could not build surface filling") at s ≤ 0.03.  Cell
+  count and min scaled Jacobian unchanged where it builds.
+- `tol3d = 1e-4 × s` (patched in a probe): drift 1e-15 at s = 0.5, but
+  2.3e-5 at 0.1 and 3.3e-4 at 0.03; it builds at 0.03, and at 0.01 fails
+  elsewhere: `GeomFill_BSplineCurves: Courbes non jointives` ("curves not
+  joined", `addBSplineFilling`), presumably OCC's fixed
+  `Precision::Confusion` (1e-7) on curve ends (*assumed*).
+- A wye (`_wye`, no tee plates) is exact (≤ 1e-13) to s = 0.01 and
+  drifts 3.9e-6 at 0.001, with or without the patch.
+`Geometry.Tolerance` (set to 1e-8 × s) changed nothing.
+**Consequence:** lengths are metres and hexmesh is tuned for pipes of
+millimetres and up; a scaled-down network is a different mesh, and
+junctions below a few millimetres fail.  Making the interior plates'
+`tol3d` relative would change full-size meshes (task 0128, question for
+design).
+
 ## Open questions
 
 - ~~Does `gmsh.write` keep physical names and element orientation the way

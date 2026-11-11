@@ -82,7 +82,7 @@ WORKFLOW = [
 ]
 
 CONVENTIONS = [
-    "Lengths are as given: hexmesh converts no units; a PCF's own units are read from it.",
+    "Lengths are in metres (hexmesh.units has mm, cm, inch, …); a PCF's own units are read from it.",
     "Angles are in degrees (PipeSpec.rot, bend and wye angles, roll).",
     "Doubling every density parameter gives 8x the cells in 3-D, not 2x.",
     "Topology (n_outer, rot, layout, the layer stack) fixes where interfaces land and can't "

@@ -94,13 +94,12 @@ from ...errors import HexmeshWarning, ReaderError, ReaderFileNotFound
 from .. import model as _m
 from ..build import INSULATION, TOL_FLOOR, TOL_RELATIVE  # noqa: F401  (re-exported)
 from ..operations import import_entry
-
-INCH = 0.0254
+from ...units import inch as INCH, mm
 
 #: ``UNITS-CO-ORDS`` → metres per unit
-COORD_UNITS = {"MM": 1e-3, "MM-HUNDREDTHS": 1e-5, "INCH": INCH}
+COORD_UNITS = {"MM": mm, "MM-HUNDREDTHS": mm / 100, "INCH": INCH}
 #: ``UNITS-BORE`` → metres per unit (nominal size)
-BORE_UNITS = {"MM": 1e-3, "INCH": INCH, "INCH-SIXTEENTH": INCH / 16}
+BORE_UNITS = {"MM": mm, "INCH": INCH, "INCH-SIXTEENTH": INCH / 16}
 
 #: Joints (couplings, gaskets, welds) up to this length are absorbed: just
 #: above the 1/16" weld root gap that exporters model (pcf2iso's choice;

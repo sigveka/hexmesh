@@ -29,10 +29,11 @@ from .model import (
     Bend, InlineEquipment, Joint, Junction, NetworkModel, Part, Polyline, Reducer, Section,
     Straight, Terminal, describe,
 )
+from ..units import inch
 
 
 #: Connectivity tolerance floor, just above the 1/16" weld gap (pcf2iso: 0.11").
-TOL_FLOOR = 0.11 * 0.0254
+TOL_FLOOR = 0.11 * inch
 
 
 #: Connectivity tolerance relative to the model's bounding-box diagonal.

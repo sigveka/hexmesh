@@ -2,7 +2,28 @@
 
 Everything below is importable from the package root (`from hexmesh import …`)
 unless a module is named. Lengths are in metres and angles in degrees, unless
-stated otherwise.
+stated otherwise.  For other length units, multiply by a constant from
+`hexmesh.units` (below).
+
+---
+
+## Length units (`hexmesh.units`)
+
+Plain floats, metres per unit (decision 0047): `m`, `cm`, `mm`, `um`,
+`inch`, `ft`.  Not re-exported from `hexmesh`.
+
+```python
+from hexmesh.units import mm
+pipe = PipeSpec(nang=8).core("blood", radius=13.25 * mm, nrad=6)
+```
+
+Nothing checks or converts: a length is a number in metres, and outputs
+(meshes, saved files, `describe`) are in metres.  Give lengths in metres,
+not in a unit of your own: hexmesh is **not scale-free**.  Some geometry
+kernel tolerances are absolute lengths, so the same network at another
+scale gives a slightly different mesh, and small junctions fail: a tee
+with a 0.1 m main builds down to about 1:33 (3 mm radius), not at 1:50
+(task 0128, measured 2026-11-11).
 
 ---
 
@@ -1937,7 +1958,8 @@ bend's radius exceeding the pipe's outer radius, are in the descriptions.
 `Assembly.validate()` is still the check that the assembly builds.
 
 Units (`hexmesh.core.params.UNITS`):
-- `length`: the user's unit; hexmesh never converts;
+- `length`: metres; hexmesh converts nothing (multiply by a
+  `hexmesh.units` constant to give another unit);
 - `deg`;
 - `1`: a ratio or factor;
 - `cells`: a cell or layer count;
@@ -2035,8 +2057,7 @@ are rounded to 12 significant digits.
     `Assembly.cell_count()`.
   - `warnings` (code and message) and `error` (`HexmeshError.to_dict()`)
     from `validate()`.  A failing assembly is described, not raised.
-  - `units`: `{"length": "as given", "angle": "deg"}`.  An assembly's
-    lengths are in its own unit, since hexmesh never converts.
+  - `units`: `{"length": "m", "angle": "deg"}`.
 - **Network models** (`"kind": "network_model"`): `parts`, `ports`,
   `connections` (`inferred` or declared), `networks`, and `rejected`.
   `rejected` lists the parts the builder refuses: `Part.reject`, with the

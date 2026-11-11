@@ -124,7 +124,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0125](0125-pcf-tee-run-length-hint.md) | PCF tees too short for their run: a hint a PCF user can act on | done | 0042 |
 | [0126](0126-projection-blend-into-internal-faces.md) | Carry the wall projection's move into the internal faces: the equal tee's slide, equal laterals, second order | done | 0046, 0029, 0043 |
 | [0127](0127-equal-tee-fine-nang-tier.md) | The equal tee at fine `nang`: a measured tier in `validate()`, before gmsh | done | 0043 |
-| [0128](0128-units-module.md) | `hexmesh.units`: length constants, and an audit of absolute tolerances | ready | 0047, 0018 |
+| [0128](0128-units-module.md) | `hexmesh.units`: length constants, and an audit of absolute tolerances | done (2 questions for design) | 0047, 0018 |
 | [0129](0129-spline-and-roll-error-hints.md) | Two error messages that say where and what to do: a too-tight spline, a roll with no straight | ready | 0042 |
 | [0130](0130-record-bend-arc-placement.md) | Record a bend's second-order arc placement; say what second order is verified for | done | 0046, 0034 |
 | [0131](0131-branch-radial-grading.md) | A tee branch with its own radial grading (and the Reducer pattern documented) | ready | 0028, 0016 |

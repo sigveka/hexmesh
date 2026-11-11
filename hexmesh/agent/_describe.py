@@ -43,9 +43,9 @@ from hexmesh import Assembly, HexmeshError, HexmeshWarning
 from hexmesh.assembly import AssemblyTypeError
 from hexmesh.interchange import NetworkModel
 
-#: units of the output.  An assembly's lengths are in its own unit
-#: (hexmesh never converts; the examples use metres); a model's are metres.
-UNITS_ASSEMBLY = {"length": "as given", "angle": "deg"}
+#: units of the output: metres, for an assembly as for a model (task 0128:
+#: hexmesh converts nothing, and its tolerances assume metres).
+UNITS_ASSEMBLY = {"length": "m", "angle": "deg"}
 UNITS_MODEL = {"length": "m", "angle": "deg"}
 
 
