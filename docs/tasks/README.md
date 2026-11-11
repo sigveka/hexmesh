@@ -135,6 +135,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0136](0136-split-assembly-internally.md) | Split `Assembly` into internal modules behind the same class | done | 0042 |
 | [0137](0137-docs-site.md) | The docs site: Essens pages, our navigation and template, GitHub Pages | in progress (design session: CI access to Essens pending) | 0049 |
 | [0138](0138-snap-tolerance-per-reader.md) | The snap tolerance: one per reader, carried by the model, and documented | ready | 0128 (Q2), 0018 |
+| [0139](0139-relative-plate-tolerance.md) | Interior plates' tolerance relative to the face (scale) | ready | 0128 (Q1), 0018, 0046 |
 
 ### Validation
 

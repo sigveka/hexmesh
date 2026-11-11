@@ -116,9 +116,11 @@ floor is a fact about PCF files (the 1/16" weld gap), so the reader
 that makes a model sets it and the model carries it; 0.11" stays the
 default, so nothing changes today.  Task 0138.
 
-Q1 (relative `tol3d` on the interior plates): the user's reasoning
-points the same way; open until they confirm, since it moves
-full-size junction meshes (gallery and pinned numbers regenerated).
+Q1 (2026-11-11, the user: "Question 1: yes."): option (a).  The
+interior plates' `tol3d` becomes relative to the face, as the wall
+plates' already is; full-size junction meshes move slightly, and the
+gallery and pinned numbers are regenerated.  Task 0139.  OCC's fixed
+B-spline fill tolerance (failure near 1 mm radius) stays out of scope.
 
 ## Outcome
 
