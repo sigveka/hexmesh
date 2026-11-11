@@ -6,6 +6,14 @@ Some validation cases need more computer than we have.  If you have cluster time
 
 **This is a trial.**  The volunteer framework is new: a test of whether people with more computing power can take the validation cases beyond what the maintainer can run on one desktop.  Expect rough edges, and tell us what went wrong (an issue) as well as what worked.
 
+## Before you start
+
+- **Python 3.11 or later and git.**  `pip install -e .` brings hexmesh and gmsh.
+- **OpenFOAM, in the version the card names**, by any one of: a cluster module (`module load …`), an installed OpenFOAM, [Apptainer or Singularity](https://apptainer.org/docs/user/latest/quick_start.html), or [Docker](https://docs.docker.com/get-started/get-docker/).  With Apptainer or Docker there is nothing else to install: the card's image downloads itself on the first run (OpenFOAM v2406's takes about 1.5 GB of disk).
+- **Resources:** check the card's cores, memory, disk and wall time below against what you have before you start.
+
+The general guide to running validation cases is [validation/README.md](README.md).
+
 ## The five commands
 
 ```bash
@@ -17,7 +25,7 @@ sbatch run/job.sh        # or: bash run/job.sh  (resumable: run it again after a
 python3 -m validation.volunteer collect run/              # writes one .contrib.json
 ```
 
-Send the `.contrib.json` file back: in a pull request, attached to the case's issue (label `volunteer-run`), or by e-mail.  Nothing else is needed.  `collect --name "Your Name" --machine "cluster, node type"` puts your credit in the file.
+Send the `.contrib.json` file back: in a pull request, attached to the case's issue (label `volunteer-run`), or by e-mail.  Nothing else is needed.  `collect --name "Your Name" --machine "cluster, node type"` puts your credit in the file.  To see the verdict before you send it, run the same check we do: `python3 -m validation.volunteer check <file>.contrib.json` (it meshes the level again to compare, which takes about as long as `prepare` did).
 
 - **`<tag>`** is the release named in the card below: the mesh check needs the same hexmesh and gmsh versions.
 - **OpenFOAM:** `prepare` uses the first of these it finds: `HEXMESH_OPENFOAM` if set; OpenFOAM already loaded (`module load …`, the `path` runner); the bashrc in `HEXMESH_OPENFOAM_RC`; Apptainer or Singularity with the card's image; Docker.  Choose one with `--runner path`, `--runner apptainer:docker://<image>` and so on.  It refuses another OpenFOAM version than the card's, unless you pass `--allow-version` (the version is recorded either way).

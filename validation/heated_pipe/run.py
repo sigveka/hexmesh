@@ -556,14 +556,16 @@ def extrapolate(rows: list[dict]) -> dict:
 
 def main(argv=None) -> dict:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("--levels", nargs="+", type=int, default=[1, 2, 3])
-    ap.add_argument("--work", type=Path, default=HERE / "work")
-    ap.add_argument("--end-time", type=int, default=20000)
+    ap.add_argument("--levels", nargs="+", type=int, default=[1, 2, 3],
+                    help="refinement levels k to run: k multiplies the coarsest mesh's cells along each refined direction (default: %(default)s; all three take about 17 h at 4 processes)")
+    ap.add_argument("--work", type=Path, default=HERE / "work",
+                    help="folder for each level's OpenFOAM case (default: validation/heated_pipe/work/, not committed); a level's case is deleted once its results are stored, unless --keep-work")
+    ap.add_argument("--end-time", type=int, default=20000,
+                    help="the solver's last iteration (default %(default)s); the solve stops earlier once its residuals converge")
     ap.add_argument("--np", type=int, default=1, dest="n_proc",
                     help="MPI processes (levels above 1)")
     stored.add_arguments(ap, HERE)
-    ap.add_argument("--openfoam", default=of.V2406,
-                    help="runner: native, or docker:IMAGE (default: v2406 in Docker)")
+    stored.add_openfoam_argument(ap, of.V2406)
     args = ap.parse_args(argv)
     of.set_runner(args.openfoam)
     # levels already in results.json are reused, so the levels can run separately

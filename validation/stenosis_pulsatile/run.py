@@ -557,16 +557,20 @@ def level_name(level: str, co: float = MAX_CO) -> str:
 
 def main(argv=None) -> dict:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("--levels", nargs="+", default=DEFAULT_LEVELS, choices=list(LEVELS))
-    ap.add_argument("--np", type=int, default=1)
+    ap.add_argument("--levels", nargs="+", default=DEFAULT_LEVELS, choices=list(LEVELS),
+                    help='meshes to run: coarse, k2, k3, k4, where k multiplies the cells along each direction (default: %(default)s)')
+    ap.add_argument("--np", type=int, default=1,
+                    help='MPI processes per solve (default: %(default)s)')
     ap.add_argument("--dt-halved", nargs="?", const="last", metavar="LEVEL",
                     help="also run LEVEL (default: the finest given) at Co 0.25, "
                          "warm-started from its periodic state")
-    ap.add_argument("--periods-max", type=int, default=MAX_PERIODS)
-    ap.add_argument("--work", type=Path, default=HERE / "work")
+    ap.add_argument("--periods-max", type=int, default=MAX_PERIODS,
+                    help='most pulse periods to run while waiting for a periodic state (default: %(default)s)')
+    ap.add_argument("--work", type=Path, default=HERE / "work",
+                    help="folder for each level's OpenFOAM case (default: validation/stenosis_pulsatile/work/, not committed); a level's case is deleted once its results are stored, unless --keep-work")
     stored.add_arguments(ap, HERE)
     ap.add_argument("--reference", type=Path, help="folder with vel_p1…6.dat")
-    ap.add_argument("--openfoam", default=of.V2406)
+    stored.add_openfoam_argument(ap, of.V2406)
     args = ap.parse_args(argv)
     of.set_runner(args.openfoam)
     args.work.mkdir(parents=True, exist_ok=True)

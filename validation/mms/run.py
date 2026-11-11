@@ -720,17 +720,20 @@ def recheck(data: dict) -> list[dict]:
 
 def main(argv=None) -> dict:
     ap = argparse.ArgumentParser(description=__doc__.strip().split("\n\n")[0])
-    ap.add_argument("--cases", nargs="+", choices=list(CASES), default=None)
+    ap.add_argument("--cases", nargs="+", choices=list(CASES), default=None,
+                    help='fittings to check, one case each (default: the 16 fittings; see CASES in this file for the diagnostic variants)')
     ap.add_argument("--slope", action="store_true",
                     help="task 0109's series (the default cases become its eight), then its table")
-    ap.add_argument("--levels", nargs="+", type=int, default=list(LEVELS))
-    ap.add_argument("--work", type=Path, default=HERE / "work")
-    ap.add_argument("--end-time", type=int, default=200)
+    ap.add_argument("--levels", nargs="+", type=int, default=list(LEVELS),
+                    help="refinement levels k to run: k multiplies the coarsest mesh's cells along each refined direction (default: %(default)s)")
+    ap.add_argument("--work", type=Path, default=HERE / "work",
+                    help="folder for each level's OpenFOAM case (default: validation/mms/work/, not committed); a level's case is deleted once its results are stored, unless --keep-work")
+    ap.add_argument("--end-time", type=int, default=200,
+                    help="the solver's last iteration (default %(default)s); the solve stops earlier once its residuals converge")
     ap.add_argument("--np", type=int, default=1, dest="n_proc",
                     help="MPI processes per solve (check other runs first, CLAUDE.md)")
     stored.add_arguments(ap, HERE)
-    ap.add_argument("--openfoam", default=of.V2406,
-                    help="runner: native, or docker:IMAGE (default: v2406 in Docker)")
+    stored.add_openfoam_argument(ap, of.V2406)
     args = ap.parse_args(argv)
     if args.cases is None:
         args.cases = ([*SLOPE_S0, *sorted(WALL_FLUX)] if args.slope

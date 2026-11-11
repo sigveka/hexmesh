@@ -367,15 +367,21 @@ def run_level(variant: str, k: int, work: Path, end_time: int) -> dict:
 
 def main(argv=None) -> dict:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("--levels", nargs="+", type=int, default=[1, 2, 4])
+    ap.add_argument("--levels", nargs="+", type=int, default=[1, 2, 4],
+                    help="refinement levels k to run: k multiplies the coarsest mesh's cells along each refined direction (default: %(default)s)")
     ap.add_argument("--variants", nargs="+", default=["fixed", "convection"],
-                    choices=["fixed", "convection"])
-    ap.add_argument("--work", type=Path, default=HERE / "work")
+                    choices=["fixed", "convection"],
+                    help="outer boundary: a 'fixed' temperature, or 'convection' to the ambient (default: both)")
+    ap.add_argument("--work", type=Path, default=HERE / "work",
+                    help="folder for each level's OpenFOAM case (default: validation/layered_conduction/work/, not committed); a level's case is deleted once its results are stored, unless --keep-work")
     ap.add_argument("--end-time", type=int, default=75000,
                     help="iterations at level 1; level k runs k times as many (the "
                          "coupling's iteration count doubles per level)")
     stored.add_arguments(ap, HERE)
+    stored.add_openfoam_argument(ap, "native")
     args = ap.parse_args(argv)
+    from hexmesh.study.openfoam import set_runner
+    set_runner(args.openfoam)
     store = stored.Store(args.json, "layered_conduction")
     store.put_extra("exact", {v: {k: x for k, x in exact(v).items() if k != "profile"}
                               for v in ("fixed", "convection")})

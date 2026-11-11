@@ -487,21 +487,24 @@ def level_name(mesh: str, ratio: int, k: int) -> str:
 
 def main(argv=None) -> dict:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("--ratios", nargs="+", type=int, default=list(RATIOS))
-    ap.add_argument("--levels", nargs="+", type=int, default=list(LEVELS))
+    ap.add_argument("--ratios", nargs="+", type=int, default=list(RATIOS),
+                    help='duct aspect ratios width/height to run (default: %(default)s)')
+    ap.add_argument("--levels", nargs="+", type=int, default=list(LEVELS),
+                    help="refinement levels k to run: k multiplies the coarsest mesh's cells along each refined direction (default: %(default)s)")
     ap.add_argument("--meshes", nargs="+", choices=MESHES, default=list(DEFAULT_MESHES),
                     help="hexmesh's O-H section, the Cartesian control, hexmesh's H "
                          "section uniform (task 0084) or graded (hg, a/b 2 only); "
                          "default h hg (the H default, task 0087); "
                          "--meshes oh cartesian for the comparison")
-    ap.add_argument("--work", type=Path, default=HERE / "work")
-    ap.add_argument("--end-time", type=int, default=20000)
+    ap.add_argument("--work", type=Path, default=HERE / "work",
+                    help="folder for each level's OpenFOAM case (default: validation/rect_duct/work/, not committed); a level's case is deleted once its results are stored, unless --keep-work")
+    ap.add_argument("--end-time", type=int, default=20000,
+                    help="the solver's last iteration (default %(default)s); the solve stops earlier once its residuals converge")
     ap.add_argument("--np", type=int, default=1, dest="n_proc",
                     help="MPI processes per solve (default 1; check other runs first, "
                          "CLAUDE.md)")
     stored.add_arguments(ap, HERE)
-    ap.add_argument("--openfoam", default=of.V2406,
-                    help="runner: native, or docker:IMAGE (default: v2406 in Docker)")
+    stored.add_openfoam_argument(ap, of.V2406)
     ap.add_argument("--check-series", action="store_true",
                     help="print the exact solution's checks and stop")
     args = ap.parse_args(argv)

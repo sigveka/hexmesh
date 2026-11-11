@@ -68,6 +68,21 @@ def add_arguments(ap: argparse.ArgumentParser, here: Path) -> None:
                     help="keep each level's case directory (deleted once its results are stored)")
 
 
+def add_openfoam_argument(ap: argparse.ArgumentParser, default: str) -> None:
+    """``--openfoam``: how the driver runs OpenFOAM.  ``HEXMESH_OPENFOAM``,
+    when set, replaces the case's *default*; the option replaces both.  The
+    driver passes ``args.openfoam`` to ``hexmesh.study.openfoam.set_runner``."""
+    import os
+    env = os.environ.get("HEXMESH_OPENFOAM")
+    ap.add_argument("--openfoam", default=env or default, metavar="RUNNER",
+                    help="how to run OpenFOAM: 'native' (sources the bashrc in "
+                         "HEXMESH_OPENFOAM_RC, default /usr/share/openfoam/etc/bashrc), "
+                         "'path' (OpenFOAM already loaded in this shell), "
+                         "'docker:IMAGE' or 'apptainer:IMAGE' "
+                         f"(default: {'HEXMESH_OPENFOAM, ' + env if env else default}; "
+                         "the environment variable HEXMESH_OPENFOAM sets it for every case)")
+
+
 def environment() -> dict:
     """hexmesh commit, gmsh, Python, the OpenFOAM version and runner, and
     today's date."""

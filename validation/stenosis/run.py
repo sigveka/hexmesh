@@ -602,20 +602,25 @@ def extrapolate(rows: list[dict], ref: dict | None) -> dict:
 
 def main(argv=None) -> dict:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("--levels", nargs="+", default=DEFAULT_LEVELS, choices=list(LEVELS))
+    ap.add_argument("--levels", nargs="+", default=DEFAULT_LEVELS, choices=list(LEVELS),
+                    help='meshes to run: coarse, k2, k3, k4, where k multiplies the cells along each direction (default: %(default)s)')
     ap.add_argument("--reference", type=Path,
                     help="the database's Re = 500 vel.dat (default: download it)")
     ap.add_argument("--no-reference", action="store_true", help="skip the comparison")
-    ap.add_argument("--work", type=Path, default=HERE / "work")
+    ap.add_argument("--work", type=Path, default=HERE / "work",
+                    help="folder for each level's OpenFOAM case (default: validation/stenosis/work/, not committed); a level's case is deleted once its results are stored, unless --keep-work")
     ap.add_argument("--end-time", type=float, default=60.0,
                     help="stop here if not steady before (time units, D / U)")
     ap.add_argument("--np", type=int, default=1, dest="n_proc",
                     help="MPI processes for pimpleFoam (levels other than coarse)")
     stored.add_arguments(ap, HERE)
+    stored.add_openfoam_argument(ap, "native")
     ap.add_argument("--repost", action="store_true",
                     help="don't run: measure the latest fields of the stored levels again "
                          "(their cases in --work, kept with --keep-work)")
     args = ap.parse_args(argv)
+    from hexmesh.study.openfoam import set_runner
+    set_runner(args.openfoam)
     ref = (None if args.no_reference
            else read_reference(reference(args.reference, args.work)))
     ref_att = reference_reattachment(ref) if ref else None

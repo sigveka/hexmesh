@@ -552,6 +552,19 @@ def render() -> str:
            "with more computing power can take the validation cases beyond what the "
            "maintainer can run on one desktop.  Expect rough edges, and tell us what went "
            "wrong (an issue) as well as what worked.", "",
+           "## Before you start", "",
+           "- **Python 3.11 or later and git.**  `pip install -e .` brings hexmesh and "
+           "gmsh.",
+           "- **OpenFOAM, in the version the card names**, by any one of: a cluster module "
+           "(`module load …`), an installed OpenFOAM, "
+           "[Apptainer or Singularity](https://apptainer.org/docs/user/latest/quick_start.html), "
+           "or [Docker](https://docs.docker.com/get-started/get-docker/).  With Apptainer or "
+           "Docker there is nothing else to install: the card's image downloads itself on "
+           "the first run (OpenFOAM v2406's takes about 1.5 GB of disk).",
+           "- **Resources:** check the card's cores, memory, disk and wall time below "
+           "against what you have before you start.", "",
+           "The general guide to running validation cases is "
+           "[validation/README.md](README.md).", "",
            "## The five commands", "",
            "```bash",
            "git clone --branch <tag> https://github.com/sigveka/hexmesh && cd hexmesh",
@@ -568,7 +581,9 @@ def render() -> str:
            "Send the `.contrib.json` file back: in a pull request, attached to the case's "
            "issue (label `volunteer-run`), or by e-mail.  Nothing else is needed.  "
            "`collect --name \"Your Name\" --machine \"cluster, node type\"` puts your credit "
-           "in the file.", "",
+           "in the file.  To see the verdict before you send it, run the same check we "
+           "do: `python3 -m validation.volunteer check <file>.contrib.json` (it meshes the "
+           "level again to compare, which takes about as long as `prepare` did).", "",
            "- **`<tag>`** is the release named in the card below: the mesh check needs the "
            "same hexmesh and gmsh versions.",
            "- **OpenFOAM:** `prepare` uses the first of these it finds: `HEXMESH_OPENFOAM` "
@@ -628,9 +643,10 @@ def main(argv=None) -> int:
     sub = ap.add_subparsers(dest="command", required=True)
     sub.add_parser("list", help="cases and their requirements")
     p = sub.add_parser("prepare", help="mesh, case and job script for a level")
-    p.add_argument("case")
-    p.add_argument("level")
-    p.add_argument("--dir", type=Path, required=True)
+    p.add_argument("case", help="the case, as `list` shows it (e.g. helical_pipe)")
+    p.add_argument("level", help="the level, as `list` shows it (e.g. re3000_n24)")
+    p.add_argument("--dir", type=Path, required=True,
+                   help="new directory for the run (mesh, OpenFOAM case, job.sh)")
     p.add_argument("--mesh-only", action="store_true", help="only the mesh; print its hash")
     p.add_argument("--runner", help="native, path, docker:IMAGE or apptainer:IMAGE "
                                     "(default: found; see VOLUNTEERS.md)")
@@ -638,16 +654,17 @@ def main(argv=None) -> int:
     p.add_argument("--allow-version", action="store_true",
                    help="run with another OpenFOAM version than the card's (recorded)")
     p = sub.add_parser("run", help="solve a prepared level (job.sh calls this); resumable")
-    p.add_argument("dir", type=Path)
-    p.add_argument("--np", type=int)
+    p.add_argument("dir", type=Path, help="the directory prepare made")
+    p.add_argument("--np", type=int, help="MPI processes (default: prepare's; SLURM_NTASKS under Slurm)")
     p = sub.add_parser("collect", help="write the .contrib.json")
-    p.add_argument("dir", type=Path)
+    p.add_argument("dir", type=Path, help="the directory prepare made, after the run")
     p.add_argument("--name", help="your name, for the credit")
     p.add_argument("--machine", help="the machine, e.g. 'cluster X, 2x EPYC 7763'")
     p.add_argument("--out", type=Path, help="directory for the file (default: here)")
     p.add_argument("--delete", action="store_true", help="delete the run directory after")
-    p = sub.add_parser("check", help="check a contribution (maintainers)")
-    p.add_argument("file", type=Path)
+    p = sub.add_parser("check", help="check a .contrib.json as the maintainers will: "
+                                     "anyone can run it before sending the file")
+    p.add_argument("file", type=Path, help="the .contrib.json that collect wrote")
     p.add_argument("--merge", action="store_true", help="store an accepted level")
     p.add_argument("--results", type=Path, help="results.json to compare and merge into "
                                                 "(default: the case's)")

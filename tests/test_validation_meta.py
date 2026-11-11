@@ -335,3 +335,43 @@ def test_every_case_says_how_it_converts():
         toolchain = json.loads(c.read_text(encoding="utf-8"))["tags"]["toolchain"]
         if "openfoam" in toolchain:                     # FEniCSx reads the .msh (task 0077)
             assert "-keepOrientation" in toolchain["conversion"], c.parent.name
+
+
+# --- the drivers' command lines are documented (task 0144) ----------------------
+
+_CLI_FILES = sorted([*ROOT.glob("validation/*/run.py"), *ROOT.glob("validation/tools/*.py"),
+                     ROOT / "validation" / "volunteer.py"])
+
+
+@pytest.mark.parametrize("path", _CLI_FILES, ids=lambda p: str(p.relative_to(ROOT)))
+def test_every_command_line_option_has_help(path):
+    import ast
+    missing = [n.lineno for n in ast.walk(ast.parse(path.read_text(encoding="utf-8")))
+               if isinstance(n, ast.Call) and getattr(n.func, "attr", "") == "add_argument"
+               and not any(k.arg == "help" for k in n.keywords)]
+    assert not missing, f"{path.relative_to(ROOT)}: add_argument without help= at lines {missing}"
+
+
+@pytest.mark.parametrize("path", sorted(ROOT.glob("validation/*/run.py")),
+                         ids=lambda p: p.parent.name)
+def test_every_openfoam_driver_takes_the_shared_runner_option(path):
+    text = path.read_text(encoding="utf-8")
+    if "hexmesh.study" not in text or "openfoam" not in text or "fenicsx" in path.parent.name:
+        pytest.skip("no OpenFOAM")
+    assert "stored.add_openfoam_argument(" in text, \
+        "use validation/tools/results.py's add_openfoam_argument (HEXMESH_OPENFOAM honoured)"
+    assert "set_runner(args.openfoam)" in text
+
+
+def test_hexmesh_openfoam_sets_the_runner_default(monkeypatch):
+    import argparse
+    results = _load("results_cli", "validation/tools/results.py")
+    monkeypatch.delenv("HEXMESH_OPENFOAM", raising=False)
+    ap = argparse.ArgumentParser()
+    results.add_openfoam_argument(ap, "native")
+    assert ap.parse_args([]).openfoam == "native"
+    monkeypatch.setenv("HEXMESH_OPENFOAM", "path")
+    ap = argparse.ArgumentParser()
+    results.add_openfoam_argument(ap, "native")
+    assert ap.parse_args([]).openfoam == "path"
+    assert ap.parse_args(["--openfoam", "docker:x"]).openfoam == "docker:x"

@@ -451,13 +451,19 @@ def trend_table(trend: list[dict]) -> str:
 
 def main(argv=None) -> list[dict]:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("--levels", nargs="+", default=list(LEVELS), choices=list(LEVELS))
-    ap.add_argument("--work", type=Path, default=HERE / "work")
-    ap.add_argument("--end-time", type=int, default=20000)
+    ap.add_argument("--levels", nargs="+", default=list(LEVELS), choices=list(LEVELS),
+                    help='meshes to run: coarse, medium and fine are k = 1, 2, 4, where k multiplies the cells along each direction (default: all)')
+    ap.add_argument("--work", type=Path, default=HERE / "work",
+                    help="folder for each level's OpenFOAM case (default: validation/poiseuille/work/, not committed); a level's case is deleted once its results are stored, unless --keep-work")
+    ap.add_argument("--end-time", type=int, default=20000,
+                    help="the solver's last iteration (default %(default)s); the solve stops earlier once its residuals converge")
     stored.add_arguments(ap, HERE)
+    stored.add_openfoam_argument(ap, "native")
     ap.add_argument("--no-trend", action="store_true",
                     help="skip the checkMesh-only non-orthogonality sweep")
     args = ap.parse_args(argv)
+    from hexmesh.study.openfoam import set_runner
+    set_runner(args.openfoam)
     store = stored.Store(args.json, "poiseuille")
     store.put_extra("exact", {"dp": DP_EXACT, "u_max": U_MAX_EXACT})
     rows = []

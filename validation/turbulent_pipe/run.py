@@ -527,16 +527,18 @@ def recheck(data: dict) -> list[dict]:
 
 def main(argv=None) -> dict:
     ap = argparse.ArgumentParser(description=__doc__.strip().split("\n\n")[0])
-    ap.add_argument("--cases", nargs="+", choices=list(CASES), default=list(CASES))
+    ap.add_argument("--cases", nargs="+", choices=list(CASES), default=list(CASES),
+                    help="cases to run: 'lowre' resolves the wall (first cell at y+ 1), 'wf' uses wall functions (y+ 100), 'wfu' and 'wfs' the velocity-based nutU and Spalding's law (nutUSpalding: the gated variant); 550 and 1000 are the DNS friction Reynolds numbers, 1e5 a bulk Reynolds number without DNS (default: all of %(choices)s)")
     ap.add_argument("--levels", nargs="+", type=int, default=None,
                     help="override every case's levels")
-    ap.add_argument("--work", type=Path, default=HERE / "work")
-    ap.add_argument("--end-time", type=int, default=20000)
+    ap.add_argument("--work", type=Path, default=HERE / "work",
+                    help="folder for each level's OpenFOAM case (default: validation/turbulent_pipe/work/, not committed); a level's case is deleted once its results are stored, unless --keep-work")
+    ap.add_argument("--end-time", type=int, default=20000,
+                    help="the solver's last iteration (default %(default)s); the solve stops earlier once its residuals converge")
     ap.add_argument("--np", type=int, default=1, dest="n_proc",
                     help="MPI processes per solve (check other runs first, CLAUDE.md)")
     stored.add_arguments(ap, HERE)
-    ap.add_argument("--openfoam", default=of.V2406,
-                    help="runner: native, or docker:IMAGE (default: v2406 in Docker)")
+    stored.add_openfoam_argument(ap, of.V2406)
     args = ap.parse_args(argv)
     of.set_runner(args.openfoam)
     store = stored.Store(args.json, "turbulent_pipe")

@@ -323,12 +323,19 @@ def table(rows: list[dict]) -> str:
 
 def main(argv=None) -> dict:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("--levels", nargs="+", type=int, default=list(LEVELS))
-    ap.add_argument("--series", nargs="+", default=list(SERIES), choices=SERIES)
-    ap.add_argument("--work", type=Path, default=HERE / "work")
-    ap.add_argument("--end-time", type=int, default=200)
+    ap.add_argument("--levels", nargs="+", type=int, default=list(LEVELS),
+                    help="refinement levels k to run: k multiplies the coarsest mesh's cells along each refined direction (default: %(default)s)")
+    ap.add_argument("--series", nargs="+", default=list(SERIES), choices=SERIES,
+                    help="mesh series: 'uniform' cells, or 'graded' towards the wall (default: both)")
+    ap.add_argument("--work", type=Path, default=HERE / "work",
+                    help="folder for each level's OpenFOAM case (default: validation/heated_rod/work/, not committed); a level's case is deleted once its results are stored, unless --keep-work")
+    ap.add_argument("--end-time", type=int, default=200,
+                    help="the solver's last iteration (default %(default)s); the solve stops earlier once its residuals converge")
     stored.add_arguments(ap, HERE)
+    stored.add_openfoam_argument(ap, "native")
     args = ap.parse_args(argv)
+    from hexmesh.study.openfoam import set_runner
+    set_runner(args.openfoam)
     store = stored.Store(args.json, "heated_rod")
     store.put_extra("exact", {"dt0": DT0_EXACT})
     data = {"exact": {"dt0": DT0_EXACT}, "series": {}}

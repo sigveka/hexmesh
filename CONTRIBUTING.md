@@ -75,7 +75,7 @@ are responsible for the change, and it must follow the same rules.
 ```bash
 pip install -e ".[dev]"     # from a checkout
 python3 -m pytest -q        # the suite, in parallel; OpenFOAM and slow tests excluded
-python3 -m pytest -q -m openfoam   # needs OpenFOAM (native, or HEXMESH_OPENFOAM=docker:opencfd/openfoam-default:2406)
+python3 -m pytest -q -m openfoam   # needs an installed OpenFOAM: most of these skip with Docker only
 python3 -m pytest -q -m slow       # the package installed into a venv; the README example meshed
 ```
 
@@ -118,6 +118,10 @@ the vendored simple.css and KaTeX); `docs/site.py` holds the sidebar's
 order.
 
 ## Run a validation case
+
+[validation/README.md](validation/README.md) is the guide: what to
+install (OpenFOAM in Docker is enough), what each case costs, how to
+run one, read its verdict and send the results back.
 
 Some validation cases need more computing power than we have: a single
 level can take hours on several cores.  If you have access to a cluster,

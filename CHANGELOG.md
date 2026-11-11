@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+**Validation documentation for people** (task 0144).
+- `validation/README.md` is now a guide: what to install (OpenFOAM v2406
+  by Docker, Apptainer or an installed copy), what each case costs, how
+  to run one, how to read `recheck`'s verdicts, and how to send results
+  back.
+- Every validation driver takes `--openfoam RUNNER`, and
+  `HEXMESH_OPENFOAM` now reaches all of them.  Eight of them ignored the
+  variable before.  Without it, each driver's default is unchanged.
+- Every option of the drivers and of `python3 -m validation.volunteer`
+  has help text.  The volunteer page gains *Before you start*, and
+  volunteers can run `check` on their own file before sending it.
+- CONTRIBUTING: most `-m openfoam` tests need an installed OpenFOAM;
+  with Docker only they skip.
+
 **The snap tolerance is the model's, set by its reader** (task 0138).
 - `NetworkModel.snap_tolerance` (metres) and `snap_source`: ends closer
   than it are one point when the model is built (or 1e-4 of the model's

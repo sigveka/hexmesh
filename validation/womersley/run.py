@@ -537,15 +537,16 @@ def level_name(level: str, dt_factor: float = 1.0) -> str:
 
 def main(argv=None) -> dict:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("--levels", nargs="+", default=list(LEVELS), choices=list(LEVELS))
+    ap.add_argument("--levels", nargs="+", default=list(LEVELS), choices=list(LEVELS),
+                    help='meshes to run: k1, k2, k4, where k multiplies the cells along each direction (default: all)')
     ap.add_argument("--dt-halved", nargs="?", const="last", metavar="LEVEL",
                     help="also run LEVEL (default: the finest given) with Δt halved, "
                          "warm-started from its periodic state")
     ap.add_argument("--np", type=int, default=1, help="MPI processes (levels k2 and up)")
-    ap.add_argument("--work", type=Path, default=HERE / "work")
+    ap.add_argument("--work", type=Path, default=HERE / "work",
+                    help="folder for each level's OpenFOAM case (default: validation/womersley/work/, not committed); a level's case is deleted once its results are stored, unless --keep-work")
     stored.add_arguments(ap, HERE)
-    ap.add_argument("--openfoam", default=of.V2406,
-                    help="runner: 'native' or 'docker:<image>' (default v2406 in Docker)")
+    stored.add_openfoam_argument(ap, of.V2406)
     args = ap.parse_args(argv)
     of.set_runner(args.openfoam)
     # levels already in results.json (same level and time step) are reused,

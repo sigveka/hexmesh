@@ -244,9 +244,12 @@ def _environment() -> dict:
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("--work", type=Path, default=HERE / "work")
-    ap.add_argument("--cases", nargs="+", choices=list(CASES), default=list(CASES))
-    ap.add_argument("--levels", nargs="+", type=int, default=list(LEVELS))
+    ap.add_argument("--work", type=Path, default=HERE / "work",
+                    help='folder for the meshes (default: validation/fenicsx_second_order/work/, not committed); deleted once each level is stored')
+    ap.add_argument("--cases", nargs="+", choices=list(CASES), default=list(CASES),
+                    help='geometries to solve on (default: all of %(choices)s)')
+    ap.add_argument("--levels", nargs="+", type=int, default=list(LEVELS),
+                    help="refinement levels k to run: k multiplies the coarsest mesh's cells along each refined direction (default: %(default)s)")
     ap.add_argument("--memory", help="cap each container's memory (docker run --memory), "
                                      "e.g. 6g")
     stored.add_arguments(ap, HERE)

@@ -496,15 +496,18 @@ def recheck(data: dict) -> list[dict]:
 
 def main(argv=None) -> dict:
     ap = argparse.ArgumentParser(description=__doc__.strip().split("\n\n")[0])
-    ap.add_argument("--levels", nargs="+", type=int, default=list(LEVELS))
-    ap.add_argument("--inlets", nargs="+", choices=INLETS, default=list(INLETS))
-    ap.add_argument("--work", type=Path, default=HERE / "work")
-    ap.add_argument("--end-time", type=int, default=5000)
+    ap.add_argument("--levels", nargs="+", type=int, default=list(LEVELS),
+                    help="refinement levels k to run: k multiplies the coarsest mesh's cells along each refined direction (default: %(default)s)")
+    ap.add_argument("--inlets", nargs="+", choices=INLETS, default=list(INLETS),
+                    help="where the uniform inlet starts: 'matched', 12.6 hydraulic diameters before the bend, the length that best matches the measured profile (the gated run); 'rig', at the rig's contraction exit, 7.5 diameters before (a sensitivity check) (default: both)")
+    ap.add_argument("--work", type=Path, default=HERE / "work",
+                    help="folder for each level's OpenFOAM case (default: validation/square_bend/work/, not committed); a level's case is deleted once its results are stored, unless --keep-work")
+    ap.add_argument("--end-time", type=int, default=5000,
+                    help="the solver's last iteration (default %(default)s); the solve stops earlier once its residuals converge")
     ap.add_argument("--np", type=int, default=1, dest="n_proc",
                     help="MPI processes per solve (check other runs first, CLAUDE.md)")
     stored.add_arguments(ap, HERE)
-    ap.add_argument("--openfoam", default=of.V2406,
-                    help="runner: native, or docker:IMAGE (default: v2406 in Docker)")
+    stored.add_openfoam_argument(ap, of.V2406)
     args = ap.parse_args(argv)
     of.set_runner(args.openfoam)
     store = stored.Store(args.json, "square_bend")

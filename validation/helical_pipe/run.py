@@ -545,15 +545,18 @@ def recheck(data: dict) -> list[dict]:
 
 def main(argv=None) -> dict:
     ap = argparse.ArgumentParser(description=__doc__.strip().split("\n\n")[0])
-    ap.add_argument("--res", nargs="+", type=int, default=list(RES))
-    ap.add_argument("--levels", nargs="+", type=int, default=list(LEVELS))
-    ap.add_argument("--work", type=Path, default=HERE / "work")
-    ap.add_argument("--end-time", type=int, default=END_TIME)
+    ap.add_argument("--res", nargs="+", type=int, default=list(RES),
+                    help='Reynolds numbers to run (default: %(default)s)')
+    ap.add_argument("--levels", nargs="+", type=int, default=list(LEVELS),
+                    help="meshes, by nang, the cells around a quarter of the tube (default: %(default)s; 24 starts from 16's mapped result)")
+    ap.add_argument("--work", type=Path, default=HERE / "work",
+                    help="folder for each level's OpenFOAM case (default: validation/helical_pipe/work/, not committed); a level's case is deleted once its results are stored, unless --keep-work")
+    ap.add_argument("--end-time", type=int, default=END_TIME,
+                    help="the solver's last iteration (default %(default)s); the solve stops earlier once its residuals converge")
     ap.add_argument("--np", type=int, default=1, dest="n_proc",
                     help="MPI processes per solve (check other runs first, CLAUDE.md)")
     stored.add_arguments(ap, HERE)
-    ap.add_argument("--openfoam", default=of.V2406,
-                    help="runner: native, or docker:IMAGE (default: v2406 in Docker)")
+    stored.add_openfoam_argument(ap, of.V2406)
     args = ap.parse_args(argv)
     of.set_runner(args.openfoam)
     store = stored.Store(args.json, "helical_pipe")
