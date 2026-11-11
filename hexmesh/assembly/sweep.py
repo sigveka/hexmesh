@@ -495,6 +495,13 @@ class Sweep:
         if self.stack_changes:
             self.check_stack_changes(spec)
 
+    def tight_spot(self, a: Frame, b: Frame, spec: PipeSpec, R: float):
+        """Where a path with no ``radius`` field bends tightest, for
+        ``bend_radius_below_outer_radius``: ``(where, hint, text)``, the
+        text appended to the message; ``None`` for a fitting whose
+        ``radius`` sets it (task 0129)."""
+        return None
+
     def validate(self, frames: list[Frame], spec: PipeSpec) -> None:
         self.check(spec)
         a, b = frames
@@ -517,12 +524,15 @@ class Sweep:
         if path.min_radius <= R:
             what = ("the pipe outer radius" if type(spec.outlines[-1]).side_curve == "arc"
                     else f"the section's half-extent {self.clearance_note}")
+            spot = self.tight_spot(a, b, spec, R)
+            where, hint, at = ({"field": "radius"}, f"a bend radius above {R:.4g}", "") \
+                if spot is None else spot
             raise AssemblyError(
                 f"path bends with radius {path.min_radius:.4g}, tighter than "
-                f"{what} {R:.4g}",
-                code="bend_radius_below_outer_radius", where={"field": "radius"},
+                f"{what} {R:.4g}{at}",
+                code="bend_radius_below_outer_radius", where=where,
                 value=float(path.min_radius), limit={"min_exclusive": float(R)},
-                hint=f"a bend radius above {R:.4g}",
+                hint=hint,
             )
         if path.axial is None and not path.prism:
             for k, turn in enumerate(path.turns()):

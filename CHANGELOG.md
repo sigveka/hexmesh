@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+**Two errors say where and what to do** (decision 0042; task 0129).
+- A `SplinePipe` that bends tighter than the pipe names the place: arc
+  length, point, and the segment `points[i]`–`points[i+1]`; `where` is
+  `{"field": "points", "index": i}` (was `{"field": "radius"}`, which a
+  spline doesn't have), or `end_tangent` when that causes it.  The hint
+  names the point to move.  Bends keep their wording.
+- `toward_off_allowed`: the hint gives a working straight,
+  `Straight(L, n_layers=n)`, instead of `Straight(…, twist=X)`.
+
 **Length units** (decision 0047; task 0128).
 - `hexmesh.units`: `m`, `cm`, `mm`, `um`, `inch`, `ft`, plain floats in
   metres (`radius=13.25 * mm`).  Not re-exported from `hexmesh`.  The

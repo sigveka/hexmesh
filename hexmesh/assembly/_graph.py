@@ -25,7 +25,8 @@ from .errors import AssemblyError, AssemblyTypeError
 from ..core.spec import PipeSpec
 from .fittings import Straight
 from . import limits
-from .interface import Frame, Interface, check_supported, hydraulic_diameter, rolled, toward_roll
+from .interface import (Frame, Interface, check_supported, hydraulic_diameter, outer_radius,
+                        rolled, toward_roll)
 
 
 def _at(origin: dict | None) -> str:
@@ -239,13 +240,21 @@ def _twist_for_toward(asm, fitting, source: Interface) -> None:
     edge = source.edges[0] if len(source.edges) == 1 else None
     if (edge is None or edge.kind != "add" or type(edge.fitting) is not Straight
             or edge.ports[-1] is not source or edge.fitting.twist):
+        # at least a radius long: the shear tiers alone allow a sliver
+        fit = Straight._shortest_twisted(source.spec, rest, at_least=outer_radius(source.spec))
+        if fit is None:
+            hint = (f"no Straight takes a {rest:.4g}° twist within the wall-shear tiers "
+                    f"(PREDICTED_SJ_WARN, OUTLINE_NONORTH_WARN) on this section: turn "
+                    f"toward onto an allowed roll")
+        else:
+            hint = (f"add Straight({fit[0]:g}, n_layers={fit[1]}) before the {name}; "
+                    f"hexmesh twists it by {rest:.4g}° to reach toward")
         raise AssemblyError(
             f"{name}: toward is {abs(rest):.3g}° from the nearest allowed roll (rolls are "
             f"multiples of the section's period {P:g}°), and there is no untwisted "
             f"Straight ending at {source} to take the rest",
             code="toward_off_allowed", where={"field": "toward"}, value=abs(rest),
-            limit="JUNCTION_TOWARD_TOL",
-            hint=f"add Straight(…, twist={rest:.6g}) before the {name}")
+            limit="JUNCTION_TOWARD_TOL", hint=hint)
     straight = replace(edge.fitting, twist=rest)
     try:
         straight.check(edge.ports[0].spec)

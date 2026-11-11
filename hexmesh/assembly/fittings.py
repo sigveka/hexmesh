@@ -233,6 +233,35 @@ class Straight(Sweep):
             break
         return out
 
+    @classmethod
+    def _shortest_twisted(cls, spec: PipeSpec, twist: float,
+                         at_least: float = 0.0) -> tuple[float, int] | None:
+        """The shortest uniform ``Straight(length, n_layers=n)`` on *spec*,
+        at least *at_least* long, that takes *twist* (degrees) with no twist
+        warning: a roll per layer within ``STRAIGHT_TWIST_WARN``, and a twist
+        per length whose wall shear passes the warn tiers the section itself
+        passes (as :meth:`_twist_quality`).  ``(length, n)``, the length
+        rounded up to three figures; ``None`` if no length passes (task
+        0129)."""
+        from .section_quality import section_quality
+        layers = section_quality(spec)
+        sj_tier = limits.PREDICTED_SJ_WARN
+        no_tier = limits.OUTLINE_NONORTH_WARN
+        sj_tier = sj_tier if min(q.min_sj for q in layers) >= sj_tier else None
+        no_tier = no_tier if max(q.max_non_ortho for q in layers) <= no_tier else None
+        # _twist_rate searches below the probe's own twist per length: a probe
+        # a thousandth of the radius long starts it far above any that passes
+        probe = cls(1e-3 * outer_radius(spec), n_layers=1, twist=twist)
+        rate = 0.99 * probe._twist_rate(spec, sj_tier, no_tier)     # a margin for rounding
+        if rate <= 0:
+            return None
+        length = max(abs(twist) / rate, at_least)
+        e = math.floor(math.log10(length)) - 2
+        length = math.ceil(length / 10 ** e - 1e-9) * 10 ** e
+        length = float(f"{length:.3g}")
+        n = replace(probe, length=length).layers_for(limits.STRAIGHT_TWIST_WARN)
+        return length, n
+
     def _twist_rate(self, spec: PipeSpec, min_sj: float | None = None,
                     max_nonorth: float | None = None) -> float:
         """The largest twist per length, degrees per unit length, whose
@@ -1146,6 +1175,18 @@ def _min_radius(curve) -> float:
     return float(1.0 / kappa.max()) if kappa.max() > 0 else math.inf
 
 
+def _tightest(curve) -> tuple[float, float, float, np.ndarray]:
+    """Where *curve* bends tightest, sampled as :func:`_min_radius`:
+    ``(u, s, length, point)``, its parameter, its arc length from the
+    start, the curve's length and the point (task 0129)."""
+    u = np.linspace(0.0, 1.0, _SAMPLES)
+    pos, d1, d2 = curve(u)
+    kappa = np.linalg.norm(np.cross(d1, d2), axis=1) / np.linalg.norm(d1, axis=1)**3
+    s = np.concatenate([[0.0], np.cumsum(np.linalg.norm(np.diff(pos, axis=0), axis=1))])
+    k = int(np.argmax(kappa))
+    return float(u[k]), float(s[k]), float(s[-1]), pos[k]
+
+
 def _arc_length(curve) -> float:
     pos, _, _ = curve(np.linspace(0.0, 1.0, _SAMPLES))
     return float(np.linalg.norm(np.diff(pos, axis=0), axis=1).sum())
@@ -1344,6 +1385,34 @@ class SplinePipe(Sweep):
         frames, _ = _transported_stations(self._curve(inlet), self.n_layers, inlet,
                                           fractions=self.fractions(self.n_layers))
         return [(frames[-1], spec)]
+
+    def tight_spot(self, a: Frame, b: Frame, spec: PipeSpec, R: float):
+        """The tightest place: its arc length, point and segment
+        ``points[i]``–``points[i+1]``; the hint names the segment's end
+        nearer to it (never ``points[0]``, the inlet).  In the last segment with an
+        *end_tangent*, the end tangent is named when the same points
+        without it (a free end) bend wider than *R* there (task 0129)."""
+        u, s, length, x = _tightest(self._curve(a))
+        P = np.asarray(self.points)
+        knots = np.concatenate([[0.0], np.cumsum(np.linalg.norm(np.diff(P, axis=0), axis=1))])
+        i = int(np.clip(np.searchsorted(knots / knots[-1], u, side="right") - 1, 0, len(P) - 2))
+        at = (f" at {s:.4g} along it ({s / length:.0%} of {length:.4g}), point "
+              f"({x[0]:.4g}, {x[1]:.4g}, {x[2]:.4g}), between points[{i}] and points[{i + 1}]")
+        if self.end_tangent is not None and i == len(P) - 2:
+            free = _cubic_spline(P, a.normal, None)
+            t = np.linspace(knots[i] / knots[-1], 1.0, _SAMPLES)
+            _, d1, d2 = free(t)
+            kappa = np.linalg.norm(np.cross(d1, d2), axis=1) / np.linalg.norm(d1, axis=1)**3
+            if kappa.max() < 1 / R:
+                return ({"field": "end_tangent"},
+                        f"turn end_tangent toward the last segment's direction "
+                        f"(points[{i + 1}] − points[{i}]), or leave it out, so the path turns "
+                        f"over a longer distance; the radius must exceed {R:.4g}", at)
+        j = i if i > 0 and u - knots[i] / knots[-1] < knots[i + 1] / knots[-1] - u else i + 1
+        return ({"field": "points", "index": i},
+                f"move points[{j}] (or add a point between points[{i}] and "
+                f"points[{i + 1}]) so the path turns over a longer distance; the radius must "
+                f"exceed {R:.4g}", at)
 
     def path(self, a: Frame, b: Frame, spec: PipeSpec) -> Path:
         self._check_points(a)

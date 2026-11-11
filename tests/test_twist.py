@@ -187,11 +187,14 @@ def test_toward_within_tolerance_still_snaps():
     assert asm.edges[0].fitting.twist == 0 and asm.edges[1].fitting.roll == 90
 
 
+TOWARD_HINT = (r"add Straight\(([\d.e-]+), n_layers=(\d+)\) before the Tee; hexmesh "
+               r"twists it by 37° to reach toward")
+
+
 @pytest.mark.parametrize("before, code, hint", [
-    (None, "toward_off_allowed", "add Straight(…, twist=37) before the Tee"),
-    (Straight(0.4, n_layers=4, twist=10), "toward_off_allowed",
-     "add Straight(…, twist=37) before the Tee"),
-    (Straight(0.4, n_layers=1), "twist_per_layer_above_maximum", "n_layers >= 2"),
+    (None, "toward_off_allowed", TOWARD_HINT),
+    (Straight(0.4, n_layers=4, twist=10), "toward_off_allowed", TOWARD_HINT),
+    (Straight(0.4, n_layers=1), "twist_per_layer_above_maximum", re.escape("n_layers >= 2")),
 ])
 def test_toward_without_a_straight_to_twist_is_rejected(before, code, hint):
     asm = _asm()
@@ -200,10 +203,35 @@ def test_toward_without_a_straight_to_twist_is_rejected(before, code, hint):
     with pytest.raises(AssemblyError) as e:
         asm.add(Tee(run_length=0.2, branch_length=0.3, branch_radius=0.5 * R,
                     toward=_toward(37 + (before.twist if before else 0))))
-    assert e.value.code == code and e.value.hint == hint
+    assert e.value.code == code and re.fullmatch(hint, e.value.hint)
     assert len(asm.edges) == (before is not None)
     if before is not None:
         assert asm.edges[0].fitting == before          # untouched
+
+
+@pytest.mark.parametrize("deg", [1.3, 37])
+def test_the_hints_straight_takes_the_roll(deg):
+    """Task 0129: the hint's Straight(L, n_layers=n), added as it says,
+    builds the tee with no twist warning; L is at least the outer radius
+    and each layer rolls at most STRAIGHT_TWIST_WARN."""
+    from hexmesh.assembly import limits
+    with pytest.raises(AssemblyError) as e:
+        _asm().add(Tee(run_length=0.2, branch_length=0.3, branch_radius=0.5 * R,
+                       toward=_toward(deg)))
+    L, n = re.match(r"add Straight\(([\d.e-]+), n_layers=(\d+)\)", e.value.hint).groups()
+    assert f"twists it by {deg:g}°" in e.value.hint
+    L, n = float(L), int(n)
+    assert L >= R and deg / n <= limits.STRAIGHT_TWIST_WARN
+    asm = _asm()
+    asm.add(Straight(L, n_layers=n))
+    with warnings.catch_warnings(record=True) as ws:
+        warnings.simplefilter("always")
+        asm.add(Tee(run_length=0.2, branch_length=0.3, branch_radius=0.5 * R,
+                    toward=_toward(deg)))
+        asm.validate()
+    assert asm.edges[0].fitting.twist == pytest.approx(deg, abs=1e-9)
+    twist_warnings = [w for w in ws if "twist" in str(w.message)]
+    assert twist_warnings == []
 
 
 def test_refined_keeps_the_twist():

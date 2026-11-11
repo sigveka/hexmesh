@@ -524,9 +524,12 @@ layouts), grading and `stack_changes`. `twist=0` meshes exactly as before.
   section's period) twists the `Straight` that ends at its inlet by the
   rest. The straight must be untwisted, so the stored network stays
   explicit: the straight's `twist` and the junction's `roll`. Otherwise
-  `add()` raises `toward_off_allowed`, naming the twist and where to put
-  it (`Straight(…, twist=37) before the Tee`), and a straight with too
-  few layers names the `n_layers` it needs.
+  `add()` raises `toward_off_allowed`; its hint gives a straight that
+  works, `add Straight(L, n_layers=n) before the Tee; hexmesh twists it
+  by 37° to reach toward`: the shortest length, at least the outer
+  radius, whose twist per length passes the wall-shear warn tiers, and
+  the fewest layers that roll at most `STRAIGHT_TWIST_WARN` each (task
+  0129).  A straight with too few layers names the `n_layers` it needs.
 
 ### `Bend(radius, angle, n_layers=None, roll=0.0, axial_grading=1.0, toward=None)`
 
@@ -702,7 +705,14 @@ A pipe along a cubic spline through `points`, parametrised by chord length.
   turning angle, with rotation-minimising (Bishop) frames. The outlet roll
   follows from the curve.
 - **Validation.** It rejects curvature tighter than the outer radius, and
-  more than 30° of turn per layer.
+  more than 30° of turn per layer.  The tight-curvature error
+  (`bend_radius_below_outer_radius`) names the tightest place: its arc
+  length from the inlet, its point, and the segment `points[i]`–`points[i+1]`
+  it lies in, with `where = {"field": "points", "index": i}`; the hint
+  names the point to move (the segment's end nearer the place, never
+  `points[0]`).  In the last segment it names `end_tangent` instead
+  (`where = {"field": "end_tangent"}`) when the same points with a free
+  end bend wider than the radius there (task 0129).
 
 ### `Tee(run_length=None, branch_length, branch_radius, n_run=3, n_branch=3, n_turn=2, roll=0.0, toward=None, angle=90.0, offset=0.0, branch=None, face=None, margin=None, dome=None, sheet=None, n_wall=None)`
 

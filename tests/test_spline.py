@@ -9,6 +9,7 @@ covers groups, walls and interfaces.
 """
 
 import math
+import re
 
 import gmsh
 import numpy as np
@@ -139,3 +140,57 @@ class TestMesh:
             asm.validate()
             counts.append(asm.cell_count())
         assert counts[1] == 2 * counts[0]
+
+
+# --- task 0129: where a spline bends too tightly ------------------------------
+
+CORNER = [(0, 0, 0), (0.2, 0, 0), (0.3, 0, 0), (0.3, 0.1, 0), (0.3, 0.4, 0)]
+
+
+def _tight(points, end_tangent=None):
+    asm = Assembly(_spec(), direction=[1, 0, 0], up=[0, 0, 1])
+    asm.add(SplinePipe(points, n_layers=60, end_tangent=end_tangent))
+    with pytest.raises(AssemblyError) as e:
+        asm.validate()
+    return e.value
+
+
+def test_a_tight_spline_names_its_place_and_point():
+    e = _tight(CORNER)
+    assert e.code == "bend_radius_below_outer_radius"
+    assert e.where == {"field": "points", "index": 2, "fitting": 0, "label": "SplinePipe0"}
+    msg = str(e)
+    m = re.search(r"at ([\d.]+) along it \((\d+)% of ([\d.]+)\), point \(([-\d.e]+), ", msg)
+    s, pct, length, x = float(m[1]), int(m[2]), float(m[3]), float(m[4])
+    assert s == pytest.approx(0.3, abs=0.01) and x == pytest.approx(0.3, abs=0.01)
+    assert pct == round(100 * s / length)
+    assert "between points[2] and points[3]" in msg
+    assert e.hint == ("move points[2] (or add a point between points[2] and points[3]) so the "
+                      "path turns over a longer distance; the radius must exceed 0.05")
+
+
+def test_moving_the_named_point_fixes_it():
+    asm = Assembly(_spec(), direction=[1, 0, 0], up=[0, 0, 1])
+    asm.add(SplinePipe(CORNER[:2] + [(0.27, 0.03, 0)] + CORNER[3:], n_layers=60))
+    asm.validate()
+
+
+def test_an_end_tangent_that_causes_it_is_named():
+    """The same points with a free end bend wider than R: the tangent is
+    the cause."""
+    points = [(0, 0, 0), (0.3, 0, 0), (0.6, 0, 0)]
+    e = _tight(points, end_tangent=(0, 1, 0))
+    assert e.where["field"] == "end_tangent" and "index" not in e.where
+    assert e.hint.startswith("turn end_tangent toward the last segment's direction")
+    asm = Assembly(_spec(), direction=[1, 0, 0], up=[0, 0, 1])
+    asm.add(SplinePipe(points, n_layers=60))                  # left out, as the hint says
+    asm.validate()
+
+
+def test_a_bend_keeps_its_radius_wording():
+    from hexmesh.assembly import Bend
+    asm = Assembly(_spec(), direction=[1, 0, 0], up=[0, 0, 1])
+    asm.add(Bend(0.04, 90, n_layers=4))
+    with pytest.raises(AssemblyError) as e:
+        asm.validate()
+    assert e.value.where["field"] == "radius" and e.value.hint == "a bend radius above 0.05"
