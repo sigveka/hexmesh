@@ -118,14 +118,28 @@ examples' docstrings shrink to a line and a link.
   cheap, and the release step that runs them, belong in the release
   checklist (stage 2 or a task of its own).
 
+**Answered (2026-11-11, the user):** "docs/features/<family>.md works,
+table and coloured image, cut-away and face."
+- **Where:** `docs/features/<family>.md`, and `docs/applications/<name>.md`
+  for the applications.
+- **An application's fitting map:** a table (label, fitting, key
+  parameters, link to its family) **and** an image of the network
+  coloured by fitting, with a legend; plus a **cut-away** (as the
+  aorta's `gallery_cutaway()`) and the **cross-section face**.
+
 **Still to settle before accepting:**
-- Where the units live (e.g. `docs/features/<family>.md`,
-  `docs/applications/<name>.md`).
-- The fitting map's form: a table only (label, fitting, key
-  parameters, link to the feature), or also an image coloured by fitting.
-- The feature tags' list (decision 0012) lacks `reducer`, `elbow`,
-  `closure`, `switch`: extend it, so every feature unit can name its
-  validation coverage, including "none".
+- **The validation feature tags** (decision 0012).  Each case's
+  `case.json` names the features it exercises from a fixed list
+  (`straight`, `bend`, `miter`, `spline`, `profiled-reducer`,
+  `transition`, `tee`, `duct-tap`, `wye`, `stack-changes`, `layers`,
+  `section:circle`, `section:rect`, `projection`); the gallery's
+  coverage matrix is built from them.  A family document finds "its"
+  validation cases through these tags, but the list doesn't match the
+  families: a plain `reducer`, `elbow`, `closure` and `switch` have no
+  tag.  Recommended: keep the fine tags, and give each family the tags
+  it collects (bends: `bend`, `miter`, `spline`; junctions: `tee`,
+  `duct-tap`, `wye`; …), adding the missing ones, so a family
+  shows every case that touches it, or says "none".
 
 ## Consequences
 
