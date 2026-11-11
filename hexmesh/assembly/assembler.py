@@ -539,8 +539,10 @@ class Assembly:
         A spec built with ``first_cell=`` stores its resolved ``mprg``, so
         the refined first cell is smaller, not the requested height.
 
-        Use it for grid-convergence studies (decision 0015); refining part
-        of a network needs density switches (decision 0003).
+        Use it for grid-convergence studies (decision 0015).  It refines
+        the whole network: ``nang`` and every layer's ``nrad`` are the same
+        in every pipe of a connected network, so part of one can't be
+        refined alone (GUIDE, "One density per network").
         """
         if isinstance(k, bool) or not isinstance(k, (int, np.integer)) or k < 1:
             raise AssemblyError(f"refined(k): k must be an integer >= 1, got {k!r}",
