@@ -123,6 +123,8 @@ A pipe tee (R 0.02, steel shell 0.003, branch r 0.012) at direction
   gmsh's messages off for the attempts that may fail.  Here the first
   retry builds (`tol3d` 1.65e-8 m); the mesh is within 1.8e-4 R of the
   `[-1, 0, 0]` tee's, worst minSICN 0.178 in both.
+  Since task 0139 every plate starts at `tol3d` 1e-3 of the face's
+  extent (relative `tol2d` too), and a refused one is retried at 1e-6.
 
 ### Filled OCC surfaces deviate from true geometry — *verified*
 About 3 % of the radius on a 30° bend slab, and about 21 % on a 90° slab
@@ -669,6 +671,32 @@ millimetres and up; a scaled-down network is a different mesh, and
 junctions below a few millimetres fail.  Making the interior plates'
 `tol3d` relative would change full-size meshes (task 0128, question for
 design).
+
+**Fixed in task 0139 (2026-11-11), with a second finding: `tol2d` is a
+length too.**  Every plate hexmesh makes (`_occ.plate`, the wall plates)
+now passes `tol3d` *and* `tol2d` relative to the face's extent:
+`PLATE_TOL` 1e-3, `WALL_TOL` 1e-6, `PLATE_TOL2D` 1e-4 (today's
+1e-4 / 1e-5 on a 0.1 m face).  Evidence, the README tee, nodes against
+the full-size mesh × s, as a fraction of the size:
+- relative `tol3d` alone: 1e-15 at s = 0.5, but 2.3e-5 at 0.1 and
+  2.4e-4 at 0.05; fails at 0.02 (as the 0128 probe).
+- with `tol2d` × s as well (patched in a probe): 7.6e-7 at 0.1.  So
+  `tol2d`, documented as parametric, acts as a length (*verified* by
+  this difference).  `Geometry.Tolerance` × s on top: no change.
+- relative `tol3d` and `tol2d` (the fix): exact (≤ 1.4e-15) at s = 0.5
+  and 0.25, where scaling is exact in binary.  7.6e-7 at 0.1, from four
+  interior plates only: the scaled inputs differ in the last bits, and
+  the plate is chaotic at rounding level (task 0141).  3.6e-6 at 1/16,
+  4.5e-6 at 0.05, 6e-5 at 1/32, 3.3e-3 at 0.01, levelling at 5.8e-3
+  from 1/128 down to 0.001, wall plates included there: presumably
+  OCC's fixed `Precision::Confusion` (*assumed*; not reachable through
+  the API).  It **builds down to s = 0.001** (0.1 mm main radius), with
+  the same cell count and min scaled Jacobian (0.3156) at every scale.
+- `tol3d` candidates at full size (15 junction examples): 1e-3 and 1e-6
+  both build every one with the same min SJ and build time; 1e-3 moves
+  today's nodes less (≤ 5.2e-5 of the size, against 1.4e-4) and builds
+  the tee to 1:33 where 1e-6 fails at 1:20 (both before the `tol2d`
+  fix).  Chosen: 1e-3.
 
 ## Open questions
 

@@ -206,11 +206,11 @@ def connect_patch(in_cs: CrossSection, out_cs: CrossSection, g_in: dict, g_out: 
         raise InternalError("a one-patch face has no layers outside its core (task 0086)")
     geo = gmsh.model.occ
     axial_curve = axial_curve or _occ.line
-    side_surface = side_surface or geo.addSurfaceFilling
+    side_surface = side_surface or _occ.plate
     op_in, oc_in, op_out, oc_out = g_in['op'], g_in['oc'], g_out['op'], g_out['oc']
     n = in_cs.n_outer
     axial = [axial_curve(a, b) for a, b in zip(op_in, op_out)]
-    sides = [side_surface(geo.addCurveLoop([oc_in[i], axial[(i + 1) % n], -oc_out[i], -axial[i]]))
+    sides = [side_surface(_occ.curve_loop([oc_in[i], axial[(i + 1) % n], -oc_out[i], -axial[i]]))
              for i in range(n)]
     vol = geo.addVolume([geo.addSurfaceLoop([in_cs.surfaces[0], out_cs.surfaces[0], *sides])])
     counts = side_counts(in_cs)
@@ -253,7 +253,8 @@ def connect_aligned(
     outside the core, one, or four of a partitioned face (``n_outer = 8``,
     task 0088), the one around even corner 2c at index c.
     *side_surface* builds the non-planar side faces from a curve loop
-    (default: OCC plate filling, ``addSurfaceFilling``).
+    (default: OCC plate filling, ``_occ.plate``: its tolerance relative
+    to the face; task 0139).
     Returns ``(volumes, outer_side_surfs, outer_axial, deferred)``; the
     outer side surfaces and axial curves seed the next layer
     (*prev_outer_side_surfs*, *prev_outer_axial*).  *deferred* holds the
@@ -265,7 +266,7 @@ def connect_aligned(
     if axial_curve is None:
         axial_curve = _occ.line
     if side_surface is None:
-        side_surface = geo.addSurfaceFilling
+        side_surface = _occ.plate
     ip_in, op_in, ic_in, oc_in, rc_in = (g_in[k] for k in ('ip', 'op', 'ic', 'oc', 'rc'))
     ip_out, op_out, ic_out, oc_out, rc_out = (g_out[k] for k in ('ip', 'op', 'ic', 'oc', 'rc'))
     n = in_cs.n_outer
@@ -304,7 +305,7 @@ def connect_aligned(
     outer_side_surfs: list[int] = []
     for i in range(n):
         j = (i + 1) % n
-        loop = geo.addCurveLoop([oc_in[i], outer_axial[j], -oc_out[i], -outer_axial[i]])
+        loop = _occ.curve_loop([oc_in[i], outer_axial[j], -oc_out[i], -outer_axial[i]])
         surf = side_surface(loop)
         outer_side_surfs.append(surf)
 
@@ -318,7 +319,7 @@ def connect_aligned(
         inner_side_surfs: list[int] = []
         for i in range(n):
             j = (i + 1) % n
-            loop = geo.addCurveLoop([
+            loop = _occ.curve_loop([
                 ic_in[i], inner_axial[j], -ic_out[i], -inner_axial[i],
             ])
             surf = side_surface(loop)
@@ -336,7 +337,7 @@ def connect_aligned(
     # ------------------------------------------------------------------
     radial_side_surfs: list[int] = []
     for i in range(n):
-        loop = geo.addCurveLoop([
+        loop = _occ.curve_loop([
             rc_in[i], outer_axial[i], -rc_out[i], -inner_axial[i],
         ])
         if planar_radial:
@@ -367,7 +368,7 @@ def connect_aligned(
         centre_axial = [axial_curve(in_cs.center, out_cs.center)]
         cut = {}
         for k in range(1, n, 2):
-            loop = geo.addCurveLoop([g_in['cut'][k], inner_axial[k],
+            loop = _occ.curve_loop([g_in['cut'][k], inner_axial[k],
                                      -g_out['cut'][k], -centre_axial[0]])
             cut[k] = geo.addPlaneSurface([loop]) if planar_radial else side_surface(loop)
             cut_surfs.append(cut[k])

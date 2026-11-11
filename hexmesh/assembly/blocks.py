@@ -42,7 +42,6 @@ Hex corner order (GMSH convention)::
 
 from __future__ import annotations
 import math
-from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -65,22 +64,7 @@ _EDGES = {  # direction → the four parallel edges
 # (boundary included), plate tolerance relative to the face size, and the
 # plate's polynomial limits.
 _WALL_SAMPLES = 9
-_WALL_TOL = 1e-6
-@contextmanager
-def _quiet():
-    """gmsh's own messages off: an attempt hexmesh retries isn't the
-    user's error."""
-    was = gmsh.option.getNumber("General.Verbosity")
-    gmsh.option.setNumber("General.Verbosity", 0)
-    try:
-        yield
-    finally:
-        gmsh.option.setNumber("General.Verbosity", was)
-
-
-# a plate gmsh's default tolerance refuses: tol3d retried at these
-# fractions of the face's extent (task 0141)
-_PLATE_RETRY_TOLS = (_WALL_TOL, 1e-3)
+_WALL_TOL = _occ.WALL_TOL       # beside the other plates' (``_occ.PLATE_TOL``, task 0139)
 _WALL_DEGREE = 8
 _WALL_SEGMENTS = 9
 
@@ -595,31 +579,16 @@ class BlockLayout:
         return self.faces[k]
 
     def _plate(self, cyc, loop: int) -> int:
-        """OCC's plate filling of *loop*, at gmsh's default tolerance.
-        The plate is chaotic at rounding level: a tee's face filled at
-        one direction fails at the direction 1e-16 off it, at the default
-        ``tol3d`` and every degree and point count, and builds at a
-        tighter or looser tolerance (gmsh 4.12.1, task 0141,
-        ``docs/integrations/gmsh.md``).  So a refused plate is retried at
-        ``tol3d`` relative to the face, ``_PLATE_RETRY_TOLS``; a plate that
-        builds is today's, unchanged."""
-        geo = gmsh.model.occ
-        try:
-            with _quiet():
-                return geo.addSurfaceFilling(loop)
-        except Exception:
-            pts = np.vstack([self._edge_points(cyc[i], cyc[(i + 1) % 4], 17)
-                             if _key(cyc[i], cyc[(i + 1) % 4]) in self.edges else
-                             np.array([self.coords[cyc[i]], self.coords[cyc[(i + 1) % 4]]])
-                             for i in range(4)])
-            scale = float(max(np.ptp(pts, axis=0)))
-            for i, tol in enumerate(_PLATE_RETRY_TOLS):
-                try:
-                    with _quiet() if i + 1 < len(_PLATE_RETRY_TOLS) else nullcontext():
-                        return geo.addSurfaceFilling(loop, tol3d=tol * scale)
-                except Exception:
-                    if i + 1 == len(_PLATE_RETRY_TOLS):
-                        raise
+        """OCC's plate filling of *loop*, ``tol3d`` relative to the face's
+        extent (``_occ.plate``; task 0139), measured on points along its
+        sides.  The plate is chaotic at rounding level, so a refused one
+        is retried at another tolerance (task 0141,
+        ``docs/integrations/gmsh.md``)."""
+        pts = np.vstack([self._edge_points(cyc[i], cyc[(i + 1) % 4], 17)
+                         if _key(cyc[i], cyc[(i + 1) % 4]) in self.edges else
+                         np.array([self.coords[cyc[i]], self.coords[cyc[(i + 1) % 4]]])
+                         for i in range(4)])
+        return _occ.plate(loop, pts)
 
     def edge_lengths(self) -> dict[frozenset, tuple[float, int]]:
         """Edge key → (length along its declared geometry, divisions), for
@@ -681,6 +650,7 @@ class BlockLayout:
         scale = max(np.ptp(grid.reshape(-1, 3), axis=0))
         tags = [geo.addPoint(*q) for q in wall(grid[1:-1, 1:-1].reshape(-1, 3))]
         tag = geo.addSurfaceFilling(loop, pointTags=tags, tol3d=_WALL_TOL * scale,
+                                    tol2d=_occ.PLATE_TOL2D * scale,
                                     maxDegree=_WALL_DEGREE, maxSegments=_WALL_SEGMENTS)
         for t_ in tags:
             _occ.discard(t_)

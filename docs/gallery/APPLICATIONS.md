@@ -7,12 +7,12 @@ channels, and an idealised aorta: the examples closest to a real model.
 
 | Example | Shows | Cells | min SICN | min SJ | Build |
 |---|---|---|---|---|---|
-| [drum_nozzle](#drum_nozzle) | Line from a drum nozzle: a horizontal drum with a top nozzle, a riser, an elbow, a tee and CFD extensions on the open ends. | 10 272 | 0.150 | 0.331 | 2.9 s |
+| [drum_nozzle](#drum_nozzle) | Line from a drum nozzle: a horizontal drum with a top nozzle, a riser, an elbow, a tee and CFD extensions on the open ends. | 10 272 | 0.150 | 0.331 | 7.5 s |
 | [hvac_supply](#hvac_supply) | Ventilation supply run: a fan's round outlet, a flat duct through the building, and a square terminal. | 6 912 | 0.246 | 0.577 | 1.9 s |
-| [hvac_branched](#hvac_branched) | Branched ventilation supply: a fan's round outlet, a flat main duct with three taps, and a bend at the end of the run. | 24 704 | 0.157 | 0.421 | 6.0 s |
+| [hvac_branched](#hvac_branched) | Branched ventilation supply: a fan's round outlet, a flat main duct with three taps, and a bend at the end of the run. | 24 704 | 0.157 | 0.421 | 8.0 s |
 | [cooling_channels](#cooling_channels) | Cooling channels: a supply pipe split by a wye into two flat rectangular channels, each returning to a round outlet. | 8 280 | 0.152 | 0.204 | 5.0 s |
-| [pcf_line](#pcf_line) | A plant line from a PCF isometric: the network comes from the file, not from Python. | 35 712 | 0.062 | 0.258 | 9.1 s |
-| [idealised_aorta](#idealised_aorta) | Idealised aorta: the arch with its three branches, the tapering descending and abdominal aorta, and the iliac bifurcation. | 40 448 | 0.089 | 0.133 | 17.3 s |
+| [pcf_line](#pcf_line) | A plant line from a PCF isometric: the network comes from the file, not from Python. | 35 712 | 0.062 | 0.258 | 16.2 s |
+| [idealised_aorta](#idealised_aorta) | Idealised aorta: the arch with its three branches, the tapering descending and abdominal aorta, and the iliac bifurcation. | 40 448 | 0.089 | 0.133 | 19.4 s |
 
 ## drum_nozzle
 
@@ -32,7 +32,7 @@ python3 -m hexmesh.examples.applications.drum_nozzle
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 7: Straight ×4, Elbow ×2, Tee | 134 | 10 272 | 0.150 | 0.381 | 0.331 (#2 Tee) | 12.5 | 2.9 s |
+| 7: Straight ×4, Elbow ×2, Tee | 134 | 10 272 | 0.150 | 0.380 | 0.331 (#2 Tee) | 12.5 | 7.5 s |
 
 - **Open ends:** `water_D101_N1`, `water_outlet`, `water_vent`
 - **Walls:** `water_wall`
@@ -106,7 +106,7 @@ python3 -m hexmesh.examples.applications.hvac_branched
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 14: Straight ×9, Transition, Tee ×3, Bend | 216 | 24 704 | 0.157 | 0.551 | 0.421 (#6 Tee) | 10.7 | 6.0 s |
+| 14: Straight ×9, Transition, Tee ×3, Bend | 216 | 24 704 | 0.157 | 0.551 | 0.421 (#6 Tee) | 10.7 | 8.0 s |
 
 - **Open ends:** `air_inlet`, `air_main_end`, `air_supply_down`, `air_supply_side`, `air_supply_up`
 - **Walls:** `air_wall`
@@ -164,7 +164,7 @@ python3 -m hexmesh.examples.applications.pcf_line
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 9: Straight ×6, Tee, Bend, Reducer | 357 | 35 712 | 0.062 | 0.273 | 0.258 (#1 Tee) | 30.9 | 9.1 s |
+| 9: Straight ×6, Tee, Bend, Reducer | 357 | 35 712 | 0.062 | 0.273 | 0.258 (#1 Tee) | 30.9 | 16.2 s |
 
 - **Open ends:** `fluid_A_100_end2`, `fluid_A_100_end3`, `fluid_V_101_N1`, `insulation_A_100_end2`, `insulation_A_100_end3`, `insulation_V_101_N1`, `steel_A_100_end2`, `steel_A_100_end3`, `steel_V_101_N1`
 - **Walls:** `insulation_end`, `insulation_wall`, `steel_wall`
@@ -258,7 +258,7 @@ python3 -m hexmesh.examples.applications.idealised_aorta
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 24: Reducer ×7, SplinePipe ×4, Straight ×9, Tee ×3, Wye | 651 | 40 448 | 0.089 | 0.577 | 0.133 (#19 Wye) | 20.3 | 17.3 s |
+| 24: Reducer ×7, SplinePipe ×4, Straight ×9, Tee ×3, Wye | 651 | 40 448 | 0.089 | 0.577 | 0.133 (#19 Wye) | 20.3 | 19.4 s |
 
 - **Open ends:** `fluid_aortic_root`, `fluid_brachiocephalic`, `fluid_left_common_carotid`, `fluid_left_common_iliac`, `fluid_left_subclavian`, `fluid_right_common_iliac`
 - **Walls:** `fluid_wall`
@@ -268,4 +268,4 @@ python3 -m hexmesh.examples.applications.idealised_aorta
 
 ---
 
-Generated 2026-11-10 from hexmesh 3bdc2d0 + uncommitted changes, gmsh 4.12.1, Python 3.12.3, 8 CPUs, 1 job(s).
+Generated 2026-11-11 from hexmesh c04a71e + uncommitted changes, gmsh 4.12.1, Python 3.12.3, 8 CPUs, 1 job(s).

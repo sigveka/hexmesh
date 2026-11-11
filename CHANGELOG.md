@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+**Junction plates' tolerances are relative to the face** (task 0139).
+- Every plate filling hexmesh makes passes `tol3d` and `tol2d` as a
+  fraction of the face's extent (`tol3d` 1e-3, walls 1e-6; `tol2d` 1e-4)
+  instead of gmsh's absolute defaults.  `tol2d`, documented as
+  parametric, turned out to act as a length.
+- **Junction meshes move slightly**: interior nodes of 11 of the 31
+  examples by up to 5.2e-5 of the network's size; cell counts and
+  minimum quality unchanged.  Gallery regenerated.
+- A network scaled down keeps its cells and quality: the README tee
+  builds down to 1:1000 (0.1 mm main radius; it failed below 1:33), and
+  its nodes match the full-size mesh exactly at 1:2 and 1:4.  Below about
+  1:30 OCC's own fixed tolerance still moves junction nodes, by up to
+  0.6 % of the size.
+
 **Validation documentation for people** (task 0144).
 - `validation/README.md` is now a guide: what to install (OpenFOAM v2406
   by Docker, Apptainer or an installed copy), what each case costs, how

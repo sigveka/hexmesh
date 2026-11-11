@@ -73,9 +73,9 @@ What it gives (the gallery's `hexmesh.examples.sections.insulated_tee`):
 
 | cells (predicted = meshed) | regions | min scaled Jacobian (where) | min SICN | build |
 |---|---|---|---|---|
-| 13 164 = 13 164 | fluid · steel · insulation | 0.32 (the tee) | 0.11 | 8.0 s |
+| 13 164 = 13 164 | fluid · steel · insulation | 0.32 (the tee) | 0.11 | 9.2 s |
 
-<sub>gmsh 4.12.1, one core, 2026-11-10.  Every example's numbers: [GALLERY.md](docs/GALLERY.md).</sub>
+<sub>gmsh 4.12.1, one core, 2026-11-11.  Every example's numbers: [GALLERY.md](docs/GALLERY.md).</sub>
 <!-- readme:metrics:end -->
 
 Doubling every density parameter doubles the nodes in each direction:

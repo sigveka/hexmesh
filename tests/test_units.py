@@ -17,6 +17,7 @@ every length × 1e-3 (millimetre scale) gives the same mesh scaled: same
 cell count, same quality.
 """
 
+import functools
 import warnings
 
 import gmsh
@@ -71,6 +72,7 @@ def _wye(s):
     return asm
 
 
+@functools.cache
 def _meshed(build, s):
     with Session("scale"), warnings.catch_warnings():
         warnings.simplefilter("ignore")
@@ -89,15 +91,13 @@ def _meshed(build, s):
     return predicted, cells
 
 
-@pytest.mark.parametrize("build, s", [(_readme, 0.05), (_wye, 1e-3)],
-                         ids=["readme_tee_1:20", "wye_1:1000"])
+@pytest.mark.parametrize("build, s", [(_readme, 0.05), (_readme, 1e-3), (_wye, 1e-3)],
+                         ids=["readme_tee_1:20", "readme_tee_1:1000", "wye_1:1000"])
 def test_scaled_build_same_cells_and_quality(build, s):
     """Every length × *s*: same cell count, same min SJ (task 0128, step 6).
 
-    Not the same nodes: hexmesh isn't scale-free.  gmsh's
-    ``addSurfaceFilling`` default ``tol3d`` (1e-4, a length) and OCC's own
-    absolute tolerances move nodes by up to 3e-4 of the size (the tee at
-    1:20; the wye at 1:1000 by 4e-6); see task 0128's Outcome.
+    The README tee builds at 1:1000 (a 0.1 mm main radius) since its plates'
+    tolerances are relative (task 0139); it failed below 1:33.
     """
     n1, c1 = _meshed(build, 1.0)
     n2, c2 = _meshed(build, s)
@@ -105,13 +105,29 @@ def test_scaled_build_same_cells_and_quality(build, s):
     assert abs(min_scaled_jacobians(c1).min() - min_scaled_jacobians(c2).min()) < 1e-9
 
 
-@pytest.mark.xfail(strict=True, reason="not scale-free: a 2 mm tee fails its fill "
-                                       "(absolute OCC tolerances; task 0128)")
-def test_small_tee_builds():
-    """The README tee at 1:50 (2 mm main radius; it builds to about 1:33).
-    When this passes, the GUIDE's *Current limitations* line on scale can
-    go."""
-    _meshed(_readme, 0.02)
+def _drift(build, s):
+    """Largest node difference between the build at *s* and the full-size
+    build × *s*, as a fraction of the size."""
+    _, c1 = _meshed(build, 1.0)
+    _, c2 = _meshed(build, s)
+    return float(np.abs(c2 / s - c1).max() / np.ptp(c1.reshape(-1, 3), axis=0).max())
+
+
+@pytest.mark.parametrize("s", [0.5, 0.25])
+def test_scaled_tee_same_nodes(s):
+    """At a power of two, scaling is exact in floating point, and so is
+    the mesh: every plate's ``tol3d`` and ``tol2d`` are relative to its
+    face (task 0139).  With gmsh's absolute defaults the tee drifted
+    7.4e-5 of its size at 1:2."""
+    assert _drift(_readme, s) < 1e-9
+
+
+def test_scaled_tee_drift_at_1_to_20():
+    """Elsewhere OCC's plate sees inputs scaled to the last bit, and below
+    about 1:16 its own fixed tolerance (``Precision::Confusion``, assumed):
+    4.5e-6 of the size at 1:20 (2.5e-4 with gmsh's defaults), up to 0.6 %
+    at 1:1000.  ``docs/integrations/gmsh.md``, task 0139."""
+    assert _drift(_readme, 0.05) < 1e-5
 
 
 @pytest.mark.parametrize("s", [1.0, 1e-3, 1e-5, 1e-6])

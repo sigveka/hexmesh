@@ -232,7 +232,7 @@ PipeSpec(nang=6).core("fluid", radius=2 * inch, nrad=4)
 ```
 
 Don't work in a unit of your own (millimetres written as metres):
-hexmesh isn't scale-free (see *Current limitations*).
+hexmesh isn't quite scale-free (see *Current limitations*).
 
 ```python
 from hexmesh import PipeSpec
@@ -929,13 +929,14 @@ Regenerate it with `python3 docs/gallery/build.py` (needs `vtk`).
 - **One density per network:** `nang` and every layer's `nrad` are the
   same in every pipe of a connected network; only radial grading may
   change ([One density per network](#one-density-per-network)).
-- **Metres, and not scale-free:** some geometry-kernel tolerances are
-  absolute lengths.  The same network at another scale gives a slightly
-  different mesh (nodes off by up to 3e-4 of the network's size in task
-  0128's measurements; minimum quality unchanged), and small junctions
-  fail to build: a tee on a 0.1 m main builds down to about 1:33 (3 mm
-  radius), not at 1:50.  Vessels of a few millimetres are affected (task
-  0128).
+- **Metres, and not quite scale-free:** hexmesh gives its own geometry
+  tolerances relative to each face (task 0139), but the geometry
+  kernel keeps a fixed one of its own.  The same network at another
+  scale gives the same cells and the same minimum quality.  A tee on a
+  0.1 m main builds down to 1:1000 (0.1 mm radius).  The nodes match
+  the full-size mesh × the scale exactly at 1:2 and 1:4.  At 1:20 they
+  are off by 5e-6 of the network's size, and below about 1:30 by up to
+  0.6 % (1:1000), inside the junctions.
 - **Tee:** branch perpendicular or leaning downstream (a lateral,
   `angle=`, in the range of DESIGN §7.1), centred or offset (`offset=`,
   `|offset| + r < R` and `|offset| ≤ r`), branch radius at most

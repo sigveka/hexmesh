@@ -19,11 +19,13 @@ pipe = PipeSpec(nang=8).core("blood", radius=13.25 * mm, nrad=6)
 
 Nothing checks or converts: a length is a number in metres, and outputs
 (meshes, saved files, `describe`) are in metres.  Give lengths in metres,
-not in a unit of your own: hexmesh is **not scale-free**.  Some geometry
-kernel tolerances are absolute lengths, so the same network at another
-scale gives a slightly different mesh, and small junctions fail: a tee
-with a 0.1 m main builds down to about 1:33 (3 mm radius), not at 1:50
-(task 0128, measured 2026-11-11).
+not in a unit of your own: hexmesh is **not quite scale-free**.  Its
+own plate tolerances are relative to each face (task 0139), but the
+geometry kernel keeps a fixed one.  The same network at another scale
+has the same cells and minimum quality: a tee with a 0.1 m main builds
+down to 1:1000 (0.1 mm radius).  Its junction nodes are off from the
+full-size mesh × the scale by 5e-6 of the size at 1:20, and up to 0.6 %
+below about 1:30 (measured 2026-11-11).
 
 ---
 

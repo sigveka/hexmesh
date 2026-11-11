@@ -197,10 +197,10 @@ Where a network branches: a tee puts a side branch on a pipe, a wye splits one p
 
 | Example | Shows | Cells | min SICN | min SJ | Build |
 |---|---|---|---|---|---|
-| [tee](#tee) | Side-branch tee: straight run, tee, then a bend on the main line. | 7 464 | 0.189 | 0.316 | 2.4 s |
+| [tee](#tee) | Side-branch tee: straight run, tee, then a bend on the main line. | 7 464 | 0.189 | 0.316 | 4.6 s |
 | [equal_tee](#equal_tee) | Equal tee: a branch as wide as the main. | 8 000 | 0.167 | 0.511 | 2.8 s |
 | [wye](#wye) | Symmetric wye: straight inlet, a 60° Y-junction, a straight on each daughter. | 5 724 | 0.170 | 0.156 | 1.4 s |
-| [junction_walls](#junction_walls) | Exact junction walls: a tee and a narrow 30° wye, their wall nodes moved onto the analytic walls after surface meshing. | 10 176 | 0.041 | 0.065 | 3.2 s |
+| [junction_walls](#junction_walls) | Exact junction walls: a tee and a narrow 30° wye, their wall nodes moved onto the analytic walls after surface meshing. | 16 576 | 0.041 | 0.065 | 4.5 s |
 
 ### tee
 
@@ -221,7 +221,7 @@ python3 -m hexmesh.examples.fittings.tee
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 5: Straight ×3, Tee, Bend | 99 | 7 464 | 0.189 | 0.478 | 0.316 (#1 Tee) | 10.4 | 2.4 s |
+| 5: Straight ×3, Tee, Bend | 99 | 7 464 | 0.189 | 0.478 | 0.316 (#1 Tee) | 10.4 | 4.6 s |
 
 - **Open ends:** `fluid_branch_end`, `fluid_inlet`, `fluid_main_end`
 - **Walls:** `fluid_wall`
@@ -310,7 +310,7 @@ python3 -m hexmesh.examples.fittings.junction_walls
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 7: Straight ×5, Tee, Wye | 78 | 10 176 | 0.041 | 0.426 | 0.065 (#4 Wye) | 15.7 | 3.2 s |
+| 7: Straight ×5, Tee, Wye | 78 | 16 576 | 0.041 | 0.635 | 0.065 (#4 Wye) | 12.8 | 4.5 s |
 
 - **Open ends:** `fluid_branch_end`, `fluid_inlet`, `fluid_left_end`, `fluid_right_end`
 - **Walls:** `fluid_wall`
@@ -425,8 +425,8 @@ What surrounds the flow: a pipe wall, insulation, lagging, each its own region f
 | [layer_outlines](#layer_outlines) | Layer outlines: a round conductor in a square filler in a round sheath. | 11 040 | 0.132 | 0.706 | 5.8 s |
 | [lagged_duct](#lagged_duct) | Lagged duct: a rectangular air duct with a steel wall and lagging, through a reducer and bends both ways. | 7 176 | 0.024 | 0.690 | 4.6 s |
 | [insulated_transition](#insulated_transition) | Insulated transition: an insulated round pipe becomes an insulated duct, turns, and the insulation stops. | 6 972 | 0.048 | 0.577 | 7.3 s |
-| [insulated_tee](#insulated_tee) | Insulated tee: a three-layer header with a side branch, the steel and the insulation running through the junction into the branch. | 13 164 | 0.107 | 0.316 | 8.0 s |
-| [insulated_network](#insulated_network) | Insulated network: a three-layer header with a tee and a wye, the steel and the insulation running through both junctions, and one branch left bare. | 18 012 | 0.059 | 0.156 | 9.0 s |
+| [insulated_tee](#insulated_tee) | Insulated tee: a three-layer header with a side branch, the steel and the insulation running through the junction into the branch. | 13 164 | 0.107 | 0.316 | 9.2 s |
+| [insulated_network](#insulated_network) | Insulated network: a three-layer header with a tee and a wye, the steel and the insulation running through both junctions, and one branch left bare. | 18 012 | 0.059 | 0.156 | 10.0 s |
 
 ### insulated_pipe
 
@@ -598,7 +598,7 @@ python3 -m hexmesh.examples.sections.insulated_tee
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 5: Straight ×3, Tee, Bend | 231 | 13 164 | 0.107 | 0.422 | 0.316 (#1 Tee) | 15.6 | 8.0 s |
+| 5: Straight ×3, Tee, Bend | 231 | 13 164 | 0.107 | 0.422 | 0.316 (#1 Tee) | 15.6 | 9.2 s |
 
 - **Open ends:** `fluid_branch_end`, `fluid_inlet`, `fluid_main_end`, `insulation_branch_end`, `insulation_inlet`, `insulation_main_end`, `steel_branch_end`, `steel_inlet`, `steel_main_end`
 - **Walls:** `insulation_wall`
@@ -631,7 +631,7 @@ python3 -m hexmesh.examples.sections.insulated_network
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 7: Straight ×5, Tee, Wye | 211 | 18 012 | 0.059 | 0.439 | 0.156 (#4 Wye) | 25.0 | 9.0 s |
+| 7: Straight ×5, Tee, Wye | 211 | 18 012 | 0.059 | 0.439 | 0.156 (#4 Wye) | 25.0 | 10.0 s |
 
 - **Open ends:** `fluid_inlet`, `fluid_left`, `fluid_right`, `fluid_tap`, `insulation_inlet`, `insulation_left`, `insulation_right`, `steel_inlet`, `steel_left`, `steel_right`, `steel_tap`
 - **Walls:** `insulation_end`, `insulation_wall`, `steel_wall`
@@ -707,11 +707,11 @@ Fittings join in any order and any orientation: a network is a sequence of `add`
 | Example | Shows | Cells | min SICN | min SJ | Build |
 |---|---|---|---|---|---|
 | [loop](#loop) | Closed loop: three bends, a straight, and a `Closure` that joins the end back to the start. | 14 688 | 0.140 | 0.790 | 8.1 s |
-| [pipe_network](#pipe_network) | Branched network built as a graph: a header with two side taps, each pointing a different way. | 11 496 | 0.189 | 0.316 | 2.9 s |
+| [pipe_network](#pipe_network) | Branched network built as a graph: a header with two side taps, each pointing a different way. | 11 496 | 0.189 | 0.316 | 5.7 s |
 | [pipe_rack](#pipe_rack) | 3-D pipe route mixing every sweep fitting: elbow, riser, segmented miter, spline offset, reducer and a rolled bend. | 13 872 | 0.100 | 0.766 | 6.4 s |
-| [distribution_tree](#distribution_tree) | Two-level distribution tree: a header with two tees, and a second tee on one of the branches after a reducer. | 16 152 | 0.149 | 0.258 | 5.5 s |
+| [distribution_tree](#distribution_tree) | Two-level distribution tree: a header with two tees, and a second tee on one of the branches after a reducer. | 16 152 | 0.149 | 0.258 | 9.9 s |
 | [bifurcation_tree](#bifurcation_tree) | Two-level bifurcation tree: one inlet, two wyes deep, four parallel outlets. | 14 472 | 0.117 | 0.204 | 6.7 s |
-| [skewed_network](#skewed_network) | Off-axis network: a drum on a skewed axis, a nozzle at 35° from vertical, and fittings at arbitrary angles and rolls. | 9 492 | 0.150 | 0.331 | 3.3 s |
+| [skewed_network](#skewed_network) | Off-axis network: a drum on a skewed axis, a nozzle at 35° from vertical, and fittings at arbitrary angles and rolls. | 9 492 | 0.150 | 0.331 | 5.3 s |
 
 ### loop
 
@@ -755,7 +755,7 @@ python3 -m hexmesh.examples.networks.pipe_network
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 8: Straight ×5, Tee ×2, Elbow | 123 | 11 496 | 0.189 | 0.433 | 0.316 (#4 Tee) | 10.4 | 2.9 s |
+| 8: Straight ×5, Tee ×2, Elbow | 123 | 11 496 | 0.189 | 0.432 | 0.316 (#4 Tee) | 10.4 | 5.7 s |
 
 - **Open ends:** `water_header_end`, `water_inlet`, `water_tap0`, `water_tap1`
 - **Walls:** `water_wall`
@@ -809,7 +809,7 @@ python3 -m hexmesh.examples.networks.distribution_tree
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 13: Straight ×6, Tee ×3, MiterBend ×2, Elbow, Reducer | 232 | 16 152 | 0.149 | 0.412 | 0.258 (#7 Tee) | 15.6 | 5.5 s |
+| 13: Straight ×6, Tee ×3, MiterBend ×2, Elbow, Reducer | 232 | 16 152 | 0.149 | 0.412 | 0.258 (#7 Tee) | 15.6 | 9.9 s |
 
 - **Open ends:** `water_branch_a`, `water_branch_a_tap`, `water_branch_b`, `water_header_end`, `water_inlet`
 - **Walls:** `water_wall`
@@ -867,7 +867,7 @@ python3 -m hexmesh.examples.networks.skewed_network
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 8: Straight ×4, Bend, Tee, MiterBend, Elbow | 164 | 9 492 | 0.150 | 0.412 | 0.331 (#2 Tee) | 15.0 | 3.3 s |
+| 8: Straight ×4, Bend, Tee, MiterBend, Elbow | 164 | 9 492 | 0.150 | 0.411 | 0.331 (#2 Tee) | 15.0 | 5.3 s |
 
 - **Open ends:** `water_D201_N1`, `water_branch`, `water_outlet`
 - **Walls:** `water_wall`
@@ -876,4 +876,4 @@ python3 -m hexmesh.examples.networks.skewed_network
 
 ---
 
-Generated 2026-11-10 from hexmesh 3bdc2d0 + uncommitted changes, gmsh 4.12.1, Python 3.12.3, 8 CPUs, 1 job(s).
+Generated 2026-11-11 from hexmesh c04a71e + uncommitted changes, gmsh 4.12.1, Python 3.12.3, 8 CPUs, 1 job(s).

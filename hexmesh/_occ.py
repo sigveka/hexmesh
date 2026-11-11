@@ -29,7 +29,7 @@ builders skip theirs.
 from __future__ import annotations
 
 import math
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 
 import numpy as np
 
@@ -38,6 +38,7 @@ from .errors import InternalError
 
 _ends: dict[int, tuple[int, int]] = {}
 _kind: dict[int, str] = {}
+_loops: dict[int, list[int]] = {}
 _discarded: list[int] = []
 fallbacks = 0
 in_build = False
@@ -47,6 +48,7 @@ def reset() -> None:
     """Forget every record (tags restart in a new GMSH model)."""
     _ends.clear()
     _kind.clear()
+    _loops.clear()
 
 
 @contextmanager
@@ -119,6 +121,63 @@ def conic_arc(start: int, center: int, end: int, center_xyz,
                          knots=[0.0, 1.0], multiplicities=[3, 3])
     discard(mid)
     return tag
+
+
+def curve_loop(curves: list[int]) -> int:
+    """``occ.addCurveLoop``, its curves recorded for :func:`plate`."""
+    tag = gmsh.model.occ.addCurveLoop(curves)
+    _loops[tag] = list(curves)
+    return tag
+
+
+# Plate filling (``occ.addSurfaceFilling``): ``tol3d`` as a fraction of the
+# face's extent, the largest side of its boundary's bounding box.  gmsh's
+# default is an absolute 1e-4 (model units), which made junction meshes
+# depend on the network's size (task 0128; task 0139).
+#: wall plates, fitted to points on the wall (``BlockLayout._wall_surface``)
+WALL_TOL = 1e-6
+#: every other plate: the junction's interior faces, the side faces of a
+#: slab between two faces
+PLATE_TOL = 1e-3
+#: a plate OCC refuses at ``PLATE_TOL`` is retried at these: the plate is
+#: chaotic at rounding level (task 0141)
+PLATE_RETRY_TOLS = (WALL_TOL,)
+#: ``tol2d`` of every plate, also × the extent: documented as parametric,
+#: it acts as a length (gmsh 4.12.1; docs/integrations/gmsh.md, task 0139)
+PLATE_TOL2D = 1e-4
+
+
+@contextmanager
+def quiet():
+    """gmsh's own messages off: an attempt hexmesh retries isn't the
+    user's error."""
+    was = gmsh.option.getNumber("General.Verbosity")
+    gmsh.option.setNumber("General.Verbosity", 0)
+    try:
+        yield
+    finally:
+        gmsh.option.setNumber("General.Verbosity", was)
+
+
+def plate(loop: int, points=None) -> int:
+    """OCC's plate filling of *loop* at ``tol3d`` = ``PLATE_TOL`` × the
+    face's extent, then at ``PLATE_RETRY_TOLS`` if OCC refuses it.  The
+    extent is that of *points* (on the boundary), else of the corners of a
+    loop made by :func:`curve_loop`."""
+    if points is None:
+        points = [coords(q) for c in _loops[loop] for q in endpoints(c)]
+    scale = float(max(np.ptp(np.asarray(points, dtype=float), axis=0)))
+    tols = (PLATE_TOL, *PLATE_RETRY_TOLS)
+    for i, tol in enumerate(tols):
+        last = i + 1 == len(tols)
+        try:
+            with nullcontext() if last else quiet():
+                return gmsh.model.occ.addSurfaceFilling(loop, tol3d=tol * scale,
+                                                        tol2d=PLATE_TOL2D * scale)
+        except Exception:
+            if last:
+                raise
+    raise AssertionError("unreachable")
 
 
 def discard(point: int) -> None:
