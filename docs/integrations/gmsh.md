@@ -126,6 +126,35 @@ A pipe tee (R 0.02, steel shell 0.003, branch r 0.012) at direction
   Since task 0139 every plate starts at `tol3d` 1e-3 of the face's
   extent (relative `tol2d` too), and a refused one is retried at 1e-6.
 
+### A free plate is a different surface in each OCC version (gmsh 4.12.1 / OCC 7.6.3 and 4.15.2 / OCC 7.8.1, task 0145, 2026-11-11) — *verified*
+The gmsh 4.15.2 wheel `pip install` gives is built with OCC 7.8.1;
+4.12.1 with 7.6.3 (`General.BuildInfo`).  The same model, each 4.12.1
+surface node's distance to the 4.15.2 surface of the same tag
+(`getClosestPoint`), as a fraction of the model's size:
+
+| surface | tee r/R 0.5 | 35° lateral r/R 0.9 | duct taps (4 kit cases) |
+|---|---|---|---|
+| `addPlaneSurface` | 2e-17 | 5e-17 | ≤ 1.3e-16 |
+| `addBSplineFilling` (Stretch) | 3e-16 | 4e-16 | ≤ 3.4e-16 |
+| `addSurfaceFilling` with `pointTags` (tee walls) | 4.6e-5 | 3.6e-5 | (none) |
+| `addSurfaceFilling`, no points (interior) | **3.3e-3** | **1.5e-2** | **3.4e-4 – 8.2e-3** |
+
+No curve node moves.  The free plates move the junction's interior
+nodes and its quality with them.  At the tee r/R 0.5, meshed
+non-orthogonality is 63.1° on 4.12.1 and 61.4° on 4.15.2.  The 35°
+lateral goes from 72.8° to 73.4°, and the offset set-on PCF case from
+min SJ ≥ 0.1 to 0.088.  Those were three CI failures on 4.15.2.
+**hexmesh's answer:** the tee's interior faces are Stretch B-spline
+fillings (`Tee.layout`: `lay.filling = "Stretch"`), as the wye's and the
+cube's.  The tee's versions then agree to ≤ 1.1e-4 of the size (the
+pinned wall plates); min SJ is unchanged and max non-orthogonality equal
+or better (12 junction examples).  This changes the interior faces only.
+Task 0051's step 8 kept the pinned plates on the tee's *walls*, and they
+stay.  The duct taps (`DuctTap`) still fill their interior faces with
+free plates, which differ by up to 8.2e-3 of the size between the
+versions, so their meshes do too.  No test fails on either version (a
+follow-up).
+
 ### Filled OCC surfaces deviate from true geometry — *verified*
 About 3 % of the radius on a 30° bend slab, and about 21 % on a 90° slab
 (DESIGN §6).  Hence "exactness lives in curves and nodes": every node sits

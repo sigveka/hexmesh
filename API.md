@@ -829,10 +829,10 @@ a block layout.
   The message names the block (e.g. "the turn block on the branch's
   downstream side") and what lowers it. The same check runs on duct taps
   and wyes. Against the meshed value, over the conformance kit's
-  junctions and a sweep of tees and laterals (78 cases), the median
-  error is 0.5° and 59 cases are within 2°. **Its known error: up to 3.4°
-  optimistic at r/R ≥ 0.6** (a 35° lateral at r/R 0.9 meshes at 72.8°,
-  predicted 69.7°), and up to 15° pessimistic on 90° tees at r/R 0.9
+  junctions and a sweep of tees and laterals (85 cases), the median
+  error is 0.2° and 71 cases are within 2°. **Its known error: up to 3.7°
+  optimistic at r/R ≥ 0.6** (a 45° lateral at r/R 0.9 meshes at 66.9°,
+  predicted 63.2°; task 0145), and up to 15° pessimistic on 90° tees at r/R 0.9
   with shells (benchmarks/junction_nonorth.py). So `mesh()` also checks
   every junction's meshed non-orthogonality on the same tiers
   (`meshed_nonorth_high`, `meshed_nonorth_above_maximum`), as for

@@ -836,6 +836,11 @@ class Tee:
             lay.block([("Z", l, k) for (_, l, k) in cyc] + list(cyc), material)
         # wall and shell boundaries on the offset cylinders (tasks 0051, 0052)
         lay.walls = {l: tee_wall(o, ex, d, Rl[l], rl[l], ob) for l in levels}
+        # interior faces: Stretch B-spline fillings, as the wye's.  A free
+        # plate is a different surface in each OCC version (7.6.3 / 7.8.1:
+        # up to 1.5 % of the size), and the junction's quality moved with
+        # it (task 0145, docs/integrations/gmsh.md)
+        lay.filling = "Stretch"
         return lay
 
     # -- contract -----------------------------------------------------
@@ -920,8 +925,8 @@ class Tee:
         return None
 
     def meshed_nonorth_check(self, spec: PipeSpec) -> bool:
-        """Every tee: the prediction is up to 3.4° optimistic at r/R ≥ 0.6
-        (task 0104), and a graded H main's switch legs are an empirical
+        """Every tee: the prediction is up to 3.7° optimistic at r/R ≥ 0.6
+        (tasks 0104, 0145), and a graded H main's switch legs are an empirical
         bound (task 0086)."""
         return True
 

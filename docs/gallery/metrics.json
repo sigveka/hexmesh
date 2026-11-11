@@ -1,7 +1,7 @@
 {
  "meta": {
-  "date": "2026-11-11",
-  "commit": "c04a71e + uncommitted changes",
+  "date": "2026-11-12",
+  "commit": "e19c844 + uncommitted changes",
   "gmsh": "4.12.1",
   "python": "3.12.3",
   "cpus": 8,
@@ -173,7 +173,7 @@
     "fluid"
    ],
    "min_sicn": 0.18931207855177531,
-   "mean_sicn": 0.4777522906983272,
+   "mean_sicn": 0.4778364183195188,
    "min_sj": 0.31555732096171213,
    "min_sj_fitting": "#1 Tee",
    "max_aspect": 10.416666666666828,
@@ -193,7 +193,7 @@
    },
    "predicted": 7464,
    "meshed": 7464,
-   "build_s": 4.63
+   "build_s": 3.63
   },
   "fittings.wye": {
    "fittings": 4,
@@ -464,7 +464,7 @@
     "water"
    ],
    "min_sicn": 0.18931207855177531,
-   "mean_sicn": 0.43219014199196976,
+   "mean_sicn": 0.43229938495719356,
    "min_sj": 0.3155573209617119,
    "min_sj_fitting": "#4 Tee",
    "max_aspect": 10.416666666666977,
@@ -485,7 +485,7 @@
    },
    "predicted": 11496,
    "meshed": 11496,
-   "build_s": 5.72
+   "build_s": 5.96
   },
   "networks.pipe_rack": {
    "fittings": 9,
@@ -543,7 +543,7 @@
     "water"
    ],
    "min_sicn": 0.14928396972842686,
-   "mean_sicn": 0.4116091212856253,
+   "mean_sicn": 0.4117044863252022,
    "min_sj": 0.25765212801399884,
    "min_sj_fitting": "#7 Tee",
    "max_aspect": 15.625000000000227,
@@ -565,7 +565,7 @@
    },
    "predicted": 16152,
    "meshed": 16152,
-   "build_s": 9.92
+   "build_s": 8.92
   },
   "networks.bifurcation_tree": {
    "fittings": 16,
@@ -617,7 +617,7 @@
     "water"
    ],
    "min_sicn": 0.15049432309518468,
-   "mean_sicn": 0.41143213118120425,
+   "mean_sicn": 0.4115710961168797,
    "min_sj": 0.3305417555823075,
    "min_sj_fitting": "#2 Tee",
    "max_aspect": 15.000000000000547,
@@ -637,7 +637,7 @@
    },
    "predicted": 9492,
    "meshed": 9492,
-   "build_s": 5.33
+   "build_s": 5.76
   },
   "applications.drum_nozzle": {
    "fittings": 7,
@@ -651,7 +651,7 @@
     "water"
    ],
    "min_sicn": 0.15049432309518168,
-   "mean_sicn": 0.3804050804430994,
+   "mean_sicn": 0.3805319995842553,
    "min_sj": 0.3305417555822979,
    "min_sj_fitting": "#2 Tee",
    "max_aspect": 12.500000000000409,
@@ -671,7 +671,7 @@
    },
    "predicted": 10272,
    "meshed": 10272,
-   "build_s": 7.46
+   "build_s": 5.25
   },
   "applications.hvac_supply": {
    "fittings": 10,
@@ -922,7 +922,7 @@
     "fluid"
    ],
    "min_sicn": 0.04053228617120627,
-   "mean_sicn": 0.6345879463241437,
+   "mean_sicn": 0.6343638341223945,
    "min_sj": 0.06501524284489825,
    "min_sj_fitting": "#4 Wye",
    "max_aspect": 12.767178435462094,
@@ -943,7 +943,7 @@
    },
    "predicted": 16576,
    "meshed": 16576,
-   "build_s": 4.54
+   "build_s": 4.4
   },
   "sections.insulated_tee": {
    "fittings": 5,
@@ -959,7 +959,7 @@
     "insulation"
    ],
    "min_sicn": 0.10740561094895411,
-   "mean_sicn": 0.42246411546621365,
+   "mean_sicn": 0.4223738858113233,
    "min_sj": 0.3155573209617121,
    "min_sj_fitting": "#1 Tee",
    "max_aspect": 15.625000000000261,
@@ -990,7 +990,7 @@
    },
    "predicted": 13164,
    "meshed": 13164,
-   "build_s": 9.22
+   "build_s": 9.09
   },
   "sections.insulated_network": {
    "fittings": 7,
@@ -1006,7 +1006,7 @@
     "insulation"
    ],
    "min_sicn": 0.05872629180967923,
-   "mean_sicn": 0.4391542072957902,
+   "mean_sicn": 0.439535643612581,
    "min_sj": 0.1564439262035709,
    "min_sj_fitting": "#4 Wye",
    "max_aspect": 25.00000000000335,
@@ -1041,7 +1041,7 @@
    },
    "predicted": 18012,
    "meshed": 18012,
-   "build_s": 10.02
+   "build_s": 10.45
   },
   "applications.hvac_branched": {
    "fittings": 14,
@@ -1078,7 +1078,7 @@
    },
    "predicted": 24704,
    "meshed": 24704,
-   "build_s": 7.96
+   "build_s": 8.04
   },
   "applications.pcf_line": {
    "fittings": 9,
@@ -1095,7 +1095,7 @@
     "insulation"
    ],
    "min_sicn": 0.062463469355020416,
-   "mean_sicn": 0.27298745569801836,
+   "mean_sicn": 0.2729717335761082,
    "min_sj": 0.2576521280139925,
    "min_sj_fitting": "#1 Tee",
    "max_aspect": 30.883498224653753,
@@ -1128,7 +1128,7 @@
    },
    "predicted": 35712,
    "meshed": 35712,
-   "build_s": 16.2
+   "build_s": 12.26
   },
   "fittings.equal_tee": {
    "fittings": 4,
@@ -1177,7 +1177,7 @@
     "fluid"
    ],
    "min_sicn": 0.08880579338981244,
-   "mean_sicn": 0.5769720438089097,
+   "mean_sicn": 0.5767942748904161,
    "min_sj": 0.1334131325431257,
    "min_sj_fitting": "#19 Wye",
    "max_aspect": 20.32742386928543,
@@ -1201,7 +1201,7 @@
    "cutaway": true,
    "predicted": 40448,
    "meshed": 40448,
-   "build_s": 19.39
+   "build_s": 21.76
   }
  },
  "validation": {

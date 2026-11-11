@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+**Tee meshes move: interior faces are Stretch fillings** (task 0145).
+- **Why:** with gmsh 4.15.2 (what `pip install` gives, built with OCC
+  7.8.1) the tee's interior plate faces were different surfaces than
+  with 4.12.1 (OCC 7.6.3): up to 1.5 % of the size.  The junction's
+  quality moved with them, and three tests failed in CI.
+- **Change:** a tee's interior faces are now Stretch B-spline fillings,
+  as a wye's.  Its wall faces are unchanged.
+- **Effect:** every tee and lateral mesh moves, by up to 3.3e-3 of the
+  network's size (gmsh 4.12.1).  Min scaled Jacobian is unchanged, and
+  max non-orthogonality is equal or up to 3.4° better.  The two gmsh
+  versions now agree to 1.1e-4 of the size.  The prediction's known
+  optimism is now 3.7° (was 3.4°).
+- **CI:** tests run on gmsh 4.12.1 as well as on the version `pip`
+  installs.  Duct taps still use free plates: their meshes differ
+  between the two versions by up to 8e-3 of the size.
+
 **Junction plates' tolerances are relative to the face** (task 0139).
 - Every plate filling hexmesh makes passes `tol3d` and `tol2d` as a
   fraction of the face's extent (`tol3d` 1e-3, walls 1e-6; `tol2d` 1e-4)

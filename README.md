@@ -73,9 +73,9 @@ What it gives (the gallery's `hexmesh.examples.sections.insulated_tee`):
 
 | cells (predicted = meshed) | regions | min scaled Jacobian (where) | min SICN | build |
 |---|---|---|---|---|
-| 13 164 = 13 164 | fluid · steel · insulation | 0.32 (the tee) | 0.11 | 9.2 s |
+| 13 164 = 13 164 | fluid · steel · insulation | 0.32 (the tee) | 0.11 | 9.1 s |
 
-<sub>gmsh 4.12.1, one core, 2026-11-11.  Every example's numbers: [GALLERY.md](docs/GALLERY.md).</sub>
+<sub>gmsh 4.12.1, one core, 2026-11-12.  Every example's numbers: [GALLERY.md](docs/GALLERY.md).</sub>
 <!-- readme:metrics:end -->
 
 Doubling every density parameter doubles the nodes in each direction:
@@ -303,7 +303,9 @@ pip install -e ".[dev]"       # + pytest, for the test suite
 pip install hexmesh           # once it is on PyPI (not yet)
 ```
 
-Python ≥ 3.11, gmsh ≥ 4.12.  An existing gmsh installation (e.g. from
+Python ≥ 3.11, gmsh ≥ 4.12.  Tested with gmsh 4.12.1 (the reference
+the gallery and validation cases use) and with the version `pip install`
+gives (4.15.2 on 2026-11-11).  An existing gmsh installation (e.g. from
 your system's package manager) is used as is.  Extras: `[bathymetry]`
 (GeoTIFF / NetCDF surfaces and shapefile routes), `[gallery]` (the
 gallery images), `[study]` (`psutil`, so studies can see other runs on

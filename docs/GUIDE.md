@@ -44,9 +44,13 @@ pip install -e ".[gallery]"       # + vtk, Pillow, jsonschema: docs/gallery/buil
 pip install hexmesh               # once it is on PyPI (not yet)
 ```
 
-Python ≥ 3.11.  Developed and tested with GMSH 4.12; a clean install
-from PyPI gets the current gmsh (4.15.2 on 2026-11-02), with which the
-examples mesh as predicted too.  An existing gmsh installation (e.g. from
+Python ≥ 3.11.  Tested with gmsh 4.12.1, the reference the gallery and
+the validation cases were made with, and with the gmsh a clean install
+from PyPI gets (4.15.2 on 2026-11-11); CI runs both (task 0145).  The
+two ship different OpenCASCADE versions (7.6.3, 7.8.1).  Tee, lateral
+and wye meshes agree between them to about 1e-4 of the network's size;
+duct taps differ by up to 0.8 % of it.  The quality checks hold on
+both.  An existing gmsh installation (e.g. from
 your system's package manager) is used as is.  `hexmesh.__version__`
 gives the version; `hexmesh-study` is the study runner's command
 (`python3 -m hexmesh.study` in a checkout that isn't installed).
@@ -966,7 +970,7 @@ Regenerate it with `python3 docs/gallery/build.py` (needs `vtk`).
   `validate()` predicts every junction's non-orthogonality on the 70°/80°
   tiers, before GMSH, naming the block; small-ratio tees (r/R about 0.3)
   and narrow-face taps warn (task 0104).  The prediction can be up to
-  3.4° optimistic at r/R ≥ 0.6, so `mesh()` checks the meshed value too.  A
+  3.7° optimistic at r/R ≥ 0.6, so `mesh()` checks the meshed value too.  A
   tap costs about 1.6–2.3× the cells of a plain run of the same length.
   A stack with a rectangle and a circle needs equal counts per side, and
   so does a circle ↔ rectangle `Transition`: a circle carries one count.
