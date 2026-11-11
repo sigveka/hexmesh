@@ -477,6 +477,12 @@ names the angle and the smallest r/R that passes at it.  Laterals below
 about 57° always warn.  The worst cell is the turn block at the acute
 crotch.  30° laterals need a different crotch layout (held).
 
+**Stated limits for 1.0**
+([decision 0051](docs/decisions/0051-design-9-remaining-rows.md)).  A
+pipe tee's shells are circular (`junction_shells_not_circular`), and the
+branch's shells copy the main's: the same layers and thicknesses.
+Either can be lifted in 1.x without breaking a description.
+
 **Duct junctions and the H layout.**  Duct tees and taps keep O-H
 blocks inside.  They accept H ports by embedding the O-H ↔ H switch in
 their duct legs, a class-1 strategy they declare (A4,
@@ -555,9 +561,8 @@ went with the legacy API, task 0017):
 
 | Deviation | Rule | Where | Removed by |
 |---|---|---|---|
-| Type switches on shapes outside `core.shape` and `sections`: 7 sites by `tests/test_architecture.py`'s definition (cap 7; 69 at task 0081) | §3.1 | the remaining sites (the cap's comment in `tests/test_architecture.py` tracks them) | tasks 0060–0062, as the tee is touched |
-| Readers sit in `io`, above the assembly | §3.1 | `io/readers/` | task 0066 |
-| Tee limited to a perpendicular, centred branch with circular shells copied from the main (multi-layer since task 0052; roll in 90° steps since task 0040) | §7.1 | `hexmesh/assembly/tee.py` | tasks 0060–0062 |
+| Type switches on shapes outside `core.shape` and `sections`: 7 sites by `tests/test_architecture.py`'s definition (cap 7; 69 at task 0081) | §3.1 | the remaining sites (the cap's comment in `tests/test_architecture.py` tracks them) | task 0151 (decision 0051) |
+| Readers sit in `io`, above the assembly (moved by task 0066; the old path re-exports) | §3.1 | `io/readers/` | tasks 0148 (deprecated), 0150 (removed) |
 
 New code must not add to this table.
 

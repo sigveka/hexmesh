@@ -1,6 +1,6 @@
 # 0150 — The API review, then the freeze (0.8)
 
-- **Status:** held (after 0147, 0148, 0149 and decision 0051)
+- **Status:** held (after 0147, 0148, 0149 and 0151)
 - **Decision:** [0042](../decisions/0042-road-to-1-0.md) exit criterion 5
   ("the stable surface reviewed once, then frozen"), milestone 0.8 (the
   release candidate).
@@ -8,8 +8,10 @@
   - 0147 (per-arc counts: a schema field to review);
   - 0148 (`io.readers` deprecated, to remove here);
   - 0149 (wheels);
-  - [decision 0051](../decisions/0051-design-9-remaining-rows.md)
-    (DESIGN §9's last rows).
+  - 0151 (the shape-site cap to 0;
+    [decision 0051](../decisions/0051-design-9-remaining-rows.md)).
+  After these, DESIGN §9 holds only the `io.readers` row, which this
+  task removes.
 
 Ground rules for all tasks: [README](README.md#ground-rules).
 
@@ -40,7 +42,11 @@ must happen once, here, before the freeze.
      `hexmesh.assembly._checks.min_scaled_jacobians`;
    - the network document (decision 0032 stage 2): in the surface, or
      explicitly internal;
-   - `hexmesh.io.readers`: removed (0148 deprecated it).
+   - `hexmesh.io.readers`: removed (0148 deprecated it), and its
+     DESIGN §9 row with it;
+   - **branch shells** (decision 0051, option B, still open): ask the
+     user whether to plan them for 1.x; if yes, reserve the `Tee`
+     argument name (`branch_shells=` or better).
 4. **Apply the table:** renames with deprecated aliases; removals of
    things deprecated for at least one release; each with a CHANGELOG
    line.
