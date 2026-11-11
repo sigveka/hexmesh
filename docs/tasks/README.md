@@ -134,7 +134,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0135](0135-library-deduplication.md) | De-duplicate four repeated blocks in the library | done | 0042 |
 | [0136](0136-split-assembly-internally.md) | Split `Assembly` into internal modules behind the same class | done | 0042 |
 | [0137](0137-docs-site.md) | The docs site: Essens pages, our navigation and template, GitHub Pages | in progress (design session: CI access to Essens pending) | 0049 |
-| [0138](0138-connectivity-floor-scales-with-bore.md) | The connectivity tolerance's floor scales with the bore | proposed (held: PCF reader only?) | 0128 (Q2), 0018 |
+| [0138](0138-snap-tolerance-per-reader.md) | The snap tolerance: one per reader, carried by the model, and documented | ready | 0128 (Q2), 0018 |
 
 ### Validation
 
