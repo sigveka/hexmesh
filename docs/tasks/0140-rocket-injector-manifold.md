@@ -3,8 +3,9 @@
 - **Status:** ready
 - **Decision:** none new: a showcase within today's fittings, as task
   0121's aorta.  DESIGN §8 (closed loops, `Assembly.close`).
-- **Depends on:** none.  Not alongside a task regenerating the gallery
-  (0139): coordinate in the shared tree.
+- **Depends on:** 0141 (a tee placed by trigonometry along −x fails to
+  fill; the ring prototype hit it).  Not alongside a task regenerating
+  the gallery (0139): coordinate in the shared tree.
 
 Ground rules for all tasks: [README](README.md#ground-rules).
 
@@ -34,6 +35,21 @@ from the ring to the tank, and named as the inlet (`lox_inlet`): the
 mesh has no flow direction, only patch names.  So the drum-nozzle start
 (`Assembly.from_nozzle`) can't be used for the tank; the feed line ends
 at an open patch.
+
+**The design session's prototype** (2026-11-11, scratch, R 0.02 with
+a 0.003 steel shell, `nang` 6): rings of 8 and 12 tees, `roll=90` (the
+branches along the ring's axis), `Bend`s of 360°/N between them and a
+`Closure` into the inlet, **validate**.  Two things to plan for:
+- **Branch ratio:** the predicted-SJ tiers, the same at `nang` 6, 8 and
+  12: r/R < 0.2 is rejected (SJ < 0.1); 0.2 to 0.55 builds with a
+  warning (SJ 0.12 at 0.25, 0.15 at 0.3, 0.20 at 0.4, 0.26 at 0.5);
+  0.6 and up are clean.  Injector feeds are naturally small next to
+  the ring, so either choose r/R ≥ 0.6 (a manifold "feed passage"
+  rather than the orifice) or accept and report the warning; say which.
+- **Meshing** at r/R 0.6 failed at the sixth tee: task 0141.
+- The ring's size comes from the tee runs and the bends; choose the
+  bend radius so the tee centres lie on the stated ring circle, and let
+  the `Closure` take only the rounding.
 
 **Do.**
 1. **Sizes from stated design rules, not one engine's drawings.**
