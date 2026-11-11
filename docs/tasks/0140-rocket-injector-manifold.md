@@ -1,0 +1,92 @@
+# 0140 — Example: a liquid-rocket propellant feed line and ring injector manifold
+
+- **Status:** ready
+- **Decision:** none new: a showcase within today's fittings, as task
+  0121's aorta.  DESIGN §8 (closed loops, `Assembly.close`).
+- **Depends on:** none.  Not alongside a task regenerating the gallery
+  (0139): coordinate in the shared tree.
+
+Ground rules for all tasks: [README](README.md#ground-rules).
+
+**Why.**  The user (2026-11-11) wanted an aerospace example in the
+spirit of the idealised aorta, and chose a liquid-rocket feed system
+over an S-duct inlet and an aircraft bleed-air network.  It shows what
+no example shows at this scale: a **closed ring** (`Assembly.close`)
+carrying **many tees**, with an insulated cryogenic feed line, in fluid,
+steel and insulation regions (the conjugate-heat-transfer story), and a
+cut-away of the ring for the gallery.
+
+**Where.**  `hexmesh/examples/applications/rocket_injector_manifold.py`
+(new), the gallery (`docs/gallery/build.py`: the entry and its
+cut-away), the example registry, `docs/GALLERY.md`,
+`docs/references.bib`, `tests/` (the examples' tests pick it up; add it
+to `test_second_order.py`'s exclusions only if it holds an equal tee or
+wye there).
+
+**How it has to be built** (the design session checked this,
+2026-11-11).  Every fitting has one inlet, and `close(source, target)`
+joins an outlet to an *inlet*; in a tree the only free inlet is the
+assembly's.  So **the ring is the root**: start at a point on the ring,
+go round it through the tees and the bends between them, and close the
+last outlet back into the assembly's inlet (a `Closure`, or a `Bend`
+that fits exactly).  The **feed line is a tee branch**, built outward
+from the ring to the tank, and named as the inlet (`lox_inlet`): the
+mesh has no flow direction, only patch names.  So the drum-nozzle start
+(`Assembly.from_nozzle`) can't be used for the tank; the feed line ends
+at an open patch.
+
+**Do.**
+1. **Sizes from stated design rules, not one engine's drawings.**
+   Choose an engine size class (thrust, mixture ratio, specific impulse)
+   and derive the oxidiser mass flow; size the feed line and the ring
+   from recommended line velocities, and the injector feed ports from
+   their count.  Take the rules from an open source, e.g. NASA SP-125
+   (Huzel and Huang, *Design of Liquid Propellant Rocket Engines*), and
+   cite each in the module's docstring and `docs/references.bib`.  Where
+   a value is a modelling choice (ring diameter, number of ports, line
+   route), say so, as task 0121 did for the aorta's lengths.  Wall and
+   insulation thicknesses: typical values, stated as such.
+2. **Build it from fittings:**
+   - **the ring:** `N` tees (8 to 12) evenly around a circle, with
+     `Bend`s of 360°/N between them (or the tees' runs and short bends),
+     closed back into the inlet; the tees' branches point along the
+     engine axis, into the injector face (`roll`);
+   - **the injector feeds:** a short `Straight` on each branch, named
+     `injector_1` … `injector_N`;
+   - **the feed tee:** one more tee on the ring whose branch is the feed
+     line: a `Straight`, a `Bend` or two out to the tank, and a
+     `Reducer` if the sizes call for one, ending at `lox_inlet`.  Its
+     branch ratio within `TEE_MAX_RATIO` (0.95), or an equal tee if the
+     sizes make it one (square and centred only);
+   - **layers:** fluid and a steel wall everywhere; insulation on the
+     feed line (cryogenic), ending before the ring if
+     `Straight(stack_changes=…)` can end it there; if it can't, insulate
+     the whole network and say why under *Agent notes*.
+3. **Mesh and report** as the other examples: cell count before meshing
+   (and equal to the meshed count), min SJ, non-orthogonality, every
+   `validate()` warning and what it names.  If the small injector tees
+   warn on predicted SJ (the aorta's arch tees did, at r/R 0.5), report
+   the numbers and the hint, and choose sizes that pass without new
+   limits where the sources allow.
+4. **The gallery:** the network image, a section image, and a
+   **cut-away of the ring** at the feed tee (the aorta's `gallery_cutaway()`
+   hook): the junction cores visible.
+
+**Accept.**
+- `python3 -m hexmesh.examples.applications.rocket_injector_manifold`
+  writes the mesh; the gallery shows it with its numbers and the
+  cut-away.
+- Every derived size traceable to a cited rule or a stated choice.
+- No new fitting or limit; anything the model needs that hexmesh lacks
+  goes under *Questions for design*.
+- Full suite: no new failures; the gallery's other meshes unchanged.
+
+**Out of scope.**  The fuel side (a second ring as a second assembly:
+a follow-up if this one works); cooling channels; any CFD run; the drum
+start for the tank (see *How it has to be built*).
+
+## Agent notes
+
+## Questions for design
+
+## Outcome

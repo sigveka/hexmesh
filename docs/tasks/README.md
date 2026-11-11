@@ -136,6 +136,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0137](0137-docs-site.md) | The docs site: Essens pages, our navigation and template, GitHub Pages | in progress (design session: waits for an Essens release with folder-pages) | 0049 |
 | [0138](0138-snap-tolerance-per-reader.md) | The snap tolerance: one per reader, carried by the model, and documented | ready | 0128 (Q2), 0018 |
 | [0139](0139-relative-plate-tolerance.md) | Interior plates' tolerance relative to the face (scale) | ready | 0128 (Q1), 0018, 0046 |
+| [0140](0140-rocket-injector-manifold.md) | Example: a liquid-rocket propellant feed line and ring injector manifold | ready | — |
 
 ### Validation
 
