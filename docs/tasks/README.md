@@ -138,6 +138,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0139](0139-relative-plate-tolerance.md) | Interior plates' tolerance relative to the face (scale) | ready | 0128 (Q1), 0018, 0046 |
 | [0140](0140-rocket-injector-manifold.md) | Example: a liquid-rocket propellant feed line and ring injector manifold | ready | — |
 | [0141](0141-tee-fill-fails-at-rounding-level-direction.md) | Bug: a tee's fill fails when its direction is 1e-16 off an axis | ready | — |
+| [0142](0142-gallery-three-pages.md) | The gallery as three pages and a landing page, by family | ready | — |
 
 ### Validation
 

@@ -1,8 +1,8 @@
 # 0050 — Documentation as units: features, applications and validation cases
 
-- **Status:** proposed
+- **Status:** accepted (2026-11-11, the user: "I agree")
 - **Date:** 2026-11-11
-- **Tasks:** none yet (stage 1 is written once this is accepted)
+- **Tasks:** 0142 (stage 1)
 
 ## Context
 
@@ -76,9 +76,9 @@ A feature unit *is* the explanation of its parameters: the GUIDE links
 to it rather than repeating it, and `API.md` stays the reference.  The
 examples' docstrings shrink to a line and a link.
 
-## Decision
+## Decision (accepted: C)
 
-**Recommended: C, in stages; B is stage 1.**
+**C, in stages; B is stage 1.**
 
 1. **Stage 1, the three pages (B),** built so that each entry is
    already one self-contained block (a heading, images, the generated
@@ -127,7 +127,7 @@ table and coloured image, cut-away and face."
   coloured by fitting, with a legend; plus a **cut-away** (as the
   aorta's `gallery_cutaway()`) and the **cross-section face**.
 
-**Still to settle before accepting:**
+**Settled (2026-11-11, the user: "I agree"):**
 - **The validation feature tags** (decision 0012).  Each case's
   `case.json` names the features it exercises from a fixed list
   (`straight`, `bend`, `miter`, `spline`, `profiled-reducer`,
@@ -136,7 +136,7 @@ table and coloured image, cut-away and face."
   coverage matrix is built from them.  A family document finds "its"
   validation cases through these tags, but the list doesn't match the
   families: a plain `reducer`, `elbow`, `closure` and `switch` have no
-  tag.  Recommended: keep the fine tags, and give each family the tags
+  tag.  So: keep the fine tags, and give each family the tags
   it collects (bends: `bend`, `miter`, `spline`; junctions: `tee`,
   `duct-tap`, `wye`; …), adding the missing ones, so a family
   shows every case that touches it, or says "none".
