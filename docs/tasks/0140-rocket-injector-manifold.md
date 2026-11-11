@@ -3,9 +3,11 @@
 - **Status:** ready
 - **Decision:** none new: a showcase within today's fittings, as task
   0121's aorta.  DESIGN §8 (closed loops, `Assembly.close`).
-- **Depends on:** 0141 (a tee placed by trigonometry along −x fails to
-  fill; the ring prototype hit it).  Not alongside a task regenerating
-  the gallery (0139): coordinate in the shared tree.
+- **Depends on:** 0141 (done 2026-11-11: a tee placed by trigonometry
+  along −x failed to fill; OCC's plate is now retried).  0142 (done):
+  the gallery's new layout, so the example goes in
+  `CATEGORIES["applications"]` and the GUIDE's *Examples* table (a test
+  checks both).  Not alongside 0139, which also regenerates the gallery.
 
 Ground rules for all tasks: [README](README.md#ground-rules).
 
