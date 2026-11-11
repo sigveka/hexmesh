@@ -763,8 +763,91 @@ meshes it.  From the `hexmesh` commands, `--insulation` does what
 --insulation`.
 
 It checks every component against its PCF end points and raises
-`AssemblyError` naming the component on any gap; nothing is snapped.  The
-tolerance scales with the model (at least 0.11").
+`AssemblyError` naming the component on any gap larger than the snap
+tolerance (next section).
+
+### How ends are connected: the snap tolerance
+
+A network model is a set of parts with end points.  When it is built,
+two ends **closer than the snap tolerance are the same point**.  That is
+the only way parts are joined by position.
+
+**What it does.**
+- Ends within it are one point.  Each component is placed from the
+  previous component's outlet, so the next one starts exactly there.  A
+  gap inside the tolerance is absorbed by the following straight.  It
+  runs from the placed outlet to its own end point, so gaps never add
+  up.  The largest sideways offset absorbed is in the report
+  (`max_offset`).
+- A pipe or fitting no longer than the tolerance is dropped.  Welds,
+  couplings and gaskets up to `joint_max` (1/16") are joints, absorbed
+  into the runs either side (the report lists them).
+- A PCF set-on branch (`END-CONNECTION-PIPELINE`) is declared at a point
+  where two ports meet within it.
+
+**What it doesn't do.**
+- It never adds pipe across a gap.  To join two ends that are apart,
+  close the gap yourself: `Assembly.close(a, b, fitting)` adds the fitting
+  you choose between two open interfaces.  `model.join(p, q, tol=…)`
+  declares that two ports meet; above the snap tolerance the build needs
+  the same `tol=` to place them as one point.
+- Ends further apart than the tolerance stay apart.  Inside one chain of
+  components that is `chain_gap`; between two pieces it is
+  `network_disconnected`.  Both errors give the distance and name the
+  part and its line in the file.
+
+**The default, and where it comes from.**  0.11" (2.79 mm,
+`TOL_FLOOR` in `hexmesh.interchange.model`), or 1e-4 of the model's diagonal if that is
+larger.  0.11" is the floor of pcf2iso, a PCF converter.  Plant
+isometrics exported in the gap-coupling style leave a 1/16" (1.6 mm)
+weld root gap between components that belong together.  The value sits
+just above that.  Why 0.11" exactly isn't documented anywhere.  One
+*possible* explanation (an inference, not confirmed): a 1/16" gap along
+the pipe and up to 1/16" sideways make 0.088", and 0.11" is that with
+about 25 % margin ([`docs/integrations/pcf.md`](integrations/pcf.md),
+"Where hexmesh's 0.11" comes from").  In plant data it is far below any
+pipe length or bore: ½" NPS is 0.84" outside.
+
+**Why it is per reader.**  The value is a fact about PCF files, not about
+geometry.  In a lab rig of 4 mm tubing, or a network of 1 mm vessels,
+2.79 mm is as large as the pipes.  Distinct ends that close together
+would be **merged without an error**, and the mesh would follow a
+network that isn't the one you drew.  So each model carries its own
+tolerance, `NetworkModel.snap_tolerance` (metres).  The reader that
+made the model sets it: `read_pcf` and `read_bathymetry` use 0.11" by
+default, and a model built by hand has it too.  Merging two models
+keeps the larger of the two, so a PCF file's weld gaps still snap.
+
+**When to set it.**
+- Small bores: below about ½", set it well under the smallest bore or
+  pipe length, but above the gaps your source leaves.
+- An exporter with other gaps: set it just above that exporter's gap.
+- A model you build by hand from exact coordinates: anything above
+  rounding, say 1e-6 m.
+
+**How.**
+
+```python
+net = read_pcf("rig.pcf", snap_tolerance=0.2e-3)   # for this file
+m = ix.NetworkModel(snap_tolerance=1e-6)           # a model built by hand
+m.snap_tolerance = 0.5e-3                          # change it later
+asm = ix.build(m, pipe, tol=1e-3)                  # one build only; wins over both
+```
+
+`read_pcf` records its value in the model's import log, so
+`m.replay(...)` and `m.undo()` keep it.  An older log without it re-reads
+with the default.
+
+**How to see what was used.**  After a build, `model.report["tolerance"]`
+holds the value (metres) and `model.report["tol_source"]` where it came
+from:
+- `"reader pcf"`: the model's own, from its reader;
+- `"default"`: a model no reader made;
+- `"relative"`: 1e-4 of the model's diagonal, larger than the model's;
+- `"given"`: `tol=`.
+
+`describe(model)` (`hexmesh.agent`) shows the model's value and source
+before you build.
 
 Pipeline routes from `hexmesh.interchange.read_bathymetry` bend at
 their vertices without fittings, so build them with

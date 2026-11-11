@@ -245,6 +245,8 @@ class NetworkSpec:
     #: how ``read_pcf`` was called (``{"source": [...], "options": {...}}``),
     #: for the model's import log entry (task 0066)
     read_args:  dict = field(default_factory=dict)
+    #: ``read_pcf``'s *snap_tolerance*, for the model (task 0138)
+    snap_tolerance: float = TOL_FLOOR
 
     def to_assembly(self, spec, *, axial_cell: float | None = None,
                     kinks: str = "error", tol: float | None = None,
@@ -312,8 +314,9 @@ class NetworkSpec:
             ``SplinePipe`` through their end points.
         tol : float, optional
             Position tolerance in metres; directions to ``tol`` per metre.
-            Default: ``TOL_RELATIVE`` × the model diagonal, at least
-            ``TOL_FLOOR`` (0.11").
+            Default: ``TOL_RELATIVE`` × the model diagonal, at least the
+            snap tolerance ``read_pcf`` was given (default ``TOL_FLOOR``,
+            0.11").
         lc : float, optional
             Passed to ``Assembly``.
         inlet : str or 3-vector, optional
@@ -393,6 +396,7 @@ def read_pcf(
     unit_scale:    float | None = None,
     ignore_types:  set[str] | None = None,
     joint_max:     float = JOINT_MAX,
+    snap_tolerance: float = TOL_FLOOR,
 ) -> NetworkSpec:
     """Parse a PCF file, or several into one network, and return a
     NetworkSpec.
@@ -412,17 +416,30 @@ def read_pcf(
         non-geometric types (supports, bolts, direction breaks).
     joint_max : float
         Couplings, gaskets and welds no longer than this (metres) are joints.
+    snap_tolerance : float
+        Ends closer than this (metres) are one point when the network is
+        built (GUIDE, *How ends are connected: the snap tolerance*).
+        Default ``TOL_FLOOR``, 0.11" (2.79 mm): pcf2iso's, just above the
+        1/16" weld gap of plant isometrics.  Set it smaller for small
+        bores, or to an exporter's own gap.  The model keeps it
+        (``NetworkModel.snap_tolerance``).
 
     Returns
     -------
     NetworkSpec
     """
-    called = _read_args(path, unit_scale, ignore_types, joint_max)     # as given
+    called = _read_args(path, unit_scale, ignore_types, joint_max, snap_tolerance)  # as given
+    if not (isinstance(snap_tolerance, (int, float)) and math.isfinite(snap_tolerance)
+            and snap_tolerance > 0):
+        raise ReaderError(f"read_pcf: snap_tolerance must be a positive length in metres, "
+                          f"got {snap_tolerance!r}", code="size_not_positive",
+                          where={"field": "snap_tolerance"}, value=repr(snap_tolerance),
+                          hint=f"the default is {TOL_FLOOR:g} m (0.11 inch)")
     if isinstance(path, (list, tuple)):
         if not path:
             raise ReaderError("read_pcf: empty list of files",
                               code="pcf_no_files", where={"field": "path"})
-        parts = [read_pcf(p, unit_scale, ignore_types, joint_max) for p in path]
+        parts = [read_pcf(p, unit_scale, ignore_types, joint_max, snap_tolerance) for p in path]
         net = NetworkSpec(source=", ".join(n.source for n in parts),
                           header=dict(parts[0].header), coord_scale=parts[0].coord_scale)
         ignored = net.report["ignored"] = {}
@@ -435,6 +452,7 @@ def read_pcf(
             net.insulation_thickness.update(n.insulation_thickness)
             net.connections += n.connections
         net.read_args = called
+        net.snap_tolerance = snap_tolerance
         return net
     path = Path(path)
     if not path.exists():
@@ -535,15 +553,18 @@ def read_pcf(
             if nums and len(nums) >= 3:
                 n["_point"] = np.array(nums[:3], dtype=float) * scale
     spec.read_args = called
+    spec.snap_tolerance = snap_tolerance
     return spec
 
 
-def _read_args(path, unit_scale, ignore_types, joint_max) -> dict:
-    """``read_pcf``'s arguments as JSON data: the import log entry."""
+def _read_args(path, unit_scale, ignore_types, joint_max, snap_tolerance) -> dict:
+    """``read_pcf``'s arguments as JSON data: the import log entry.  A log
+    without ``snap_tolerance`` (before task 0138) re-reads with the default."""
     paths = path if isinstance(path, (list, tuple)) else [path]
     return {"source": [str(p) for p in paths],
             "options": {"unit_scale": unit_scale, "joint_max": joint_max,
-                        "ignore_types": None if ignore_types is None else sorted(ignore_types)}}
+                        "ignore_types": None if ignore_types is None else sorted(ignore_types),
+                        "snap_tolerance": snap_tolerance}}
 
 
 def _reread(source, options: dict) -> "_m.NetworkModel":
@@ -862,7 +883,8 @@ def _to_model(net: NetworkSpec) -> "_m.NetworkModel":
     """*net*'s records as a ``NetworkModel``: one part per component (id =
     its index in the file), one ``Terminal`` per equipment connection, and
     the ``END-CONNECTION-PIPELINE`` points as declared connections."""
-    model = _m.NetworkModel(report={"ignored": net.report.get("ignored", {})})
+    model = _m.NetworkModel(report={"ignored": net.report.get("ignored", {})},
+                            snap_tolerance=net.snap_tolerance, snap_source=FORMAT)
     if net.read_args:
         import_entry(model, FORMAT, net.read_args["source"], net.read_args["options"])
     for name, a in net.pipelines.items():
@@ -947,7 +969,7 @@ def _terminals(net: NetworkSpec, model) -> None:
 
 def _declared_connections(net: NetworkSpec, model) -> None:
     """``END-CONNECTION-PIPELINE`` (at a point where two parts' ports meet,
-    within ``TOL_FLOOR``) → a declared ``Connection``.  The builder still
+    within the model's snap tolerance) → a declared ``Connection``.  The builder still
     joins parts by position; the record says the source meant it."""
     for kind, a in net.connections:
         x = a.get("_point")
@@ -956,7 +978,7 @@ def _declared_connections(net: NetworkSpec, model) -> None:
         near = sorted((float(np.linalg.norm(p.position - x)), p.id)
                       for p in model.ports.values()
                       if p.position is not None and p.equipment is None
-                      and np.linalg.norm(p.position - x) <= TOL_FLOOR)
+                      and np.linalg.norm(p.position - x) <= model.snap_tolerance)
         if len(near) >= 2:
             a_id, b_id = near[0][1], near[1][1]
             model.connections.append(_m.Connection(

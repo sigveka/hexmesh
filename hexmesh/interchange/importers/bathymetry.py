@@ -44,7 +44,7 @@ from typing import Sequence
 import numpy as np
 
 from ...errors import ReaderError
-from ..model import NetworkModel, Polyline, Provenance
+from ..model import TOL_FLOOR, NetworkModel, Polyline, Provenance
 from ..operations import import_entry
 
 
@@ -114,7 +114,7 @@ def read_bathymetry(
         xyz = _subdivide_route(xyz, max_segment_length, interp, burial_depth)
 
     # --- The model: one polyline through the waypoints ---
-    model = NetworkModel()
+    model = NetworkModel(snap_tolerance=TOL_FLOOR, snap_source="bathymetry")   # the default (task 0138)
     model.add_part(Polyline, [p.copy() for p in xyz], id="route", name="PIPE",
                    type="PIPE", provenance=Provenance(source=str(surface_path),
                                                       format="bathymetry", record="route"))

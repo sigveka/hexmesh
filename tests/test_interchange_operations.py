@@ -264,7 +264,8 @@ def test_the_log_replays_on_a_fresh_import_and_undo_restores_the_cut(tmp_path):
     assert m.log[0]["op"] == "import"
     assert m.log[0]["args"] == {"importer": "pcf", "source": [str(path)],
                                 "options": {"unit_scale": None, "joint_max": 1.6e-3,
-                                            "ignore_types": None}}
+                                            "ignore_types": None,
+                                            "snap_tolerance": 0.11 * 0.0254}}
     assert set(m.log[0]) == {"op", "args", "time", "version"}
     a, b = _at(m, "1", 1), _at(m, "2", 0)
     m.cut_at(a)

@@ -26,15 +26,9 @@ from dataclasses import dataclass, field, replace
 import numpy as np
 
 from .model import (
-    Bend, InlineEquipment, Joint, Junction, NetworkModel, Part, Polyline, Reducer, Section,
-    Straight, Terminal, describe,
+    TOL_FLOOR, Bend, InlineEquipment, Joint, Junction, NetworkModel, Part, Polyline, Reducer,
+    Section, Straight, Terminal, describe,
 )
-from ..units import inch
-
-
-#: Connectivity tolerance floor, just above the 1/16" weld gap (pcf2iso: 0.11";
-#: why that value: docs/integrations/pcf.md, "Where hexmesh's 0.11" comes from").
-TOL_FLOOR = 0.11 * inch
 
 
 #: Connectivity tolerance relative to the model's bounding-box diagonal.
@@ -154,10 +148,28 @@ def _unit(v: np.ndarray) -> np.ndarray:
     return v / n if n > 1e-12 else v
 
 
-def _model_tolerance(comps: list[_Comp]) -> float:
+def _model_tolerance(comps: list[_Comp], floor: float = TOL_FLOOR) -> float:
+    return _tolerance_and_source(comps, floor, "default")[0]
+
+
+def _tolerance_and_source(comps: list[_Comp], floor: float, source: str) -> tuple[float, str]:
+    """The builder's snap tolerance: ``TOL_RELATIVE`` × the diagonal of
+    *comps*, at least the model's *floor*; and where it came from,
+    ``"relative"`` or ``"reader <source>"`` (``"default"`` for a model
+    no reader made)."""
     pts = np.array([q for c in comps for q in (c.start, c.end)])
     diagonal = float(np.linalg.norm(pts.max(axis=0) - pts.min(axis=0))) if len(pts) else 0.0
-    return max(TOL_RELATIVE * diagonal, TOL_FLOOR)
+    if TOL_RELATIVE * diagonal > floor:
+        return TOL_RELATIVE * diagonal, "relative"
+    return floor, "default" if source == "default" else f"reader {source}"
+
+
+def snap_tolerance(model: NetworkModel, comps: list[_Comp], tol: float | None) -> tuple[float, str]:
+    """(tolerance, source) for building *comps* of *model*: *tol* if given
+    (``"given"``), else ``_tolerance_and_source`` with the model's floor."""
+    if tol is not None:
+        return float(tol), "given"
+    return _tolerance_and_source(comps, model.snap_tolerance, model.snap_source)
 
 
 def _name(text: str) -> str:

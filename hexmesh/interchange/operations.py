@@ -40,7 +40,7 @@ import numpy as np
 
 from ..assembly import AssemblyError
 from ..version import __version__
-from .graph import TOL_FLOOR, _comps, _model_tolerance
+from .graph import _comps, _model_tolerance
 from .model import (
     IMPORTERS, OPERATIONS, Bend, Connection, Cut, Junction, NetworkModel, Network, Polyline,
     Selection, Terminal,
@@ -56,7 +56,7 @@ SECTION_RTOL = 1e-6
 def tolerance(model: NetworkModel) -> float:
     """The builder's connection tolerance for the whole of *model*."""
     comps = _comps(model, None)
-    return _model_tolerance(comps) if comps else TOL_FLOOR
+    return _model_tolerance(comps, model.snap_tolerance) if comps else model.snap_tolerance
 
 
 # --- who meets whom --------------------------------------------------------------
@@ -130,7 +130,8 @@ def _log(model: NetworkModel, op: str, args: dict) -> None:
 
 
 def _assign(dst: NetworkModel, src: NetworkModel) -> None:
-    for name in ("ports", "parts", "connections", "networks", "report", "cuts", "log"):
+    for name in ("ports", "parts", "connections", "networks", "report", "cuts", "log",
+                 "snap_tolerance", "snap_source"):
         setattr(dst, name, getattr(src, name))
 
 
@@ -365,6 +366,8 @@ def merge(a: NetworkModel, b: NetworkModel, prefix, infer, tol) -> NetworkModel:
             out.networks[name] = Network(n.name, set(n.parts), n.kind, n.insulation_thickness,
                                          dict(n.attributes))
     out.report = {"merge": {"from": [len(a.parts), len(b.parts)]}}
+    if b2.snap_tolerance > out.snap_tolerance:     # the larger: weld gaps still snap
+        out.snap_tolerance, out.snap_source = b2.snap_tolerance, b2.snap_source
     if infer:
         t = tolerance(out) if tol is None else float(tol)
         inner_a = {q for pair in _links(a, tolerance(a)) for q in pair}

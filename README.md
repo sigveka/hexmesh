@@ -125,9 +125,11 @@ asm.write_openfoam("pcf_line.msh")
 - **Insulation** comes from the file's `INSULATION ON` and thickness, and
   stops where the file says (a bare valve or flange).
 - **Nothing moves silently.** Ends join only when they are closer than
-  the snap tolerance: 0.11″ (2.79 mm, just above a 1/16″ weld gap), or
-  1e-4 of the model's size if that is larger; `NetworkSpec.report`
-  records it.  Every component is checked against its end points, and
+  the [snap tolerance](docs/GUIDE.md#how-ends-are-connected-the-snap-tolerance):
+  by default 0.11″ (2.79 mm, just above a 1/16″ weld gap), or 1e-4 of the
+  model's size if that is larger.  Each reader sets its own
+  (`read_pcf(snap_tolerance=…)`), and the build report says which was
+  used and where it came from.  Every component is checked against its end points, and
   every error and warning names the component and its line in the file:
 
   ```json

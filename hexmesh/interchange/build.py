@@ -39,6 +39,7 @@ import numpy as np
 from .model import BUILDERS, Bend, NetworkModel, Reducer, Section, Straight, Terminal
 from .graph import (
     TOL_FLOOR, TOL_RELATIVE, _Comp, _comps, _unit, _model_tolerance, _name, _Part, _ports,
+    snap_tolerance,
     _source, _part_id, _describe, _graph, _joints_from, _pieces_hint, _check_tree,
     _cut_index, _boundary_names,
     _end_names, _choose_root, _orient, _equipment_ends, _reject_unsupported, _pieces,
@@ -398,7 +399,9 @@ def build(model: NetworkModel, spec, selection=None, *, axial_cell: float | None
     nominal size in metres (``spec(bore)``).  *selection*: part ids to
     build (default all), e.g. a ``Selection`` from ``model.select``;
     terminals outside it are ignored.  The other options are as for
-    ``NetworkSpec.to_assembly``.  ``model.report`` records the tolerance,
+    ``NetworkSpec.to_assembly``.  ``model.report`` records the tolerance
+    and where it came from (``tol_source``: ``"given"``, ``"relative"``,
+    ``"reader <name>"`` or ``"default"``; task 0138),
     the joints absorbed, the largest lateral offset and, under
     ``"selection"``, the parts built and how they were chosen.
     """
@@ -410,13 +413,13 @@ def build(model: NetworkModel, spec, selection=None, *, axial_cell: float | None
     comps = _comps(model, None if selection is None else set(selection))
     if not comps:
         raise AssemblyError("the network model has no parts to build.", code="network_empty")
-    if tol is None:
-        tol = _model_tolerance(comps)
+    tol, source = snap_tolerance(model, comps, tol)
     _reject_unsupported(comps)
     terminals = [t for t in model.parts.values() if isinstance(t, Terminal)
                  and (selection is None or t.id in selection)]
     asm, report = _build(model, comps, terminals, spec, axial_cell, kinks, tol, lc, inlet,
                          insulation, insulation_nrad)
+    report["tol_source"] = source
     if selection is not None:
         report["selection"] = {"parts": sorted(selection),
                                "how": dict(getattr(selection, "how", {}))}
@@ -441,8 +444,7 @@ def build_pieces(model: NetworkModel, spec, *, axial_cell: float | None = None,
     comps = _comps(model, None)
     if not comps:
         raise AssemblyError("the network model has no parts to build.", code="network_empty")
-    if tol is None:
-        tol = _model_tolerance(comps)
+    tol, source = snap_tolerance(model, comps, tol)
     _reject_unsupported(comps)
     ignored = model.report.get("ignored", {})
     terminals = [t for t in model.parts.values() if isinstance(t, Terminal)]
@@ -464,7 +466,8 @@ def build_pieces(model: NetworkModel, spec, *, axial_cell: float | None = None,
         except AssemblyError as e:
             raise AssemblyError.wrap(e, f"{name}: {e}",
                                      code="network_piece_invalid", label=name) from None
-    model.report = {"ignored": ignored, "tolerance": tol, "pieces": reports}
+    model.report = {"ignored": ignored, "tolerance": tol, "tol_source": source,
+                    "pieces": reports}
     return out
 
 

@@ -37,6 +37,15 @@ from typing import Callable
 
 import numpy as np
 
+from ..units import inch
+
+
+#: The default snap tolerance: two ends closer than this are one point.
+#: pcf2iso's floor, just above the 1/16" weld gap of plant isometrics (why
+#: that value: docs/integrations/pcf.md, "Where hexmesh's 0.11" comes
+#: from").  A model carries its own (``NetworkModel.snap_tolerance``).
+TOL_FLOOR = 0.11 * inch
+
 
 # ---------------------------------------------------------------------------
 # Sections and provenance
@@ -299,7 +308,14 @@ class NetworkModel:
     ``Cut``s made.  ``log``: the operations applied, in order (task 0066;
     decision 0032, settled 2026-10-29).  The importer writes the first
     entry, and ``cut``, ``cut_at``, ``join`` and ``merge`` append theirs.
-    Each entry has ``op``, ``args`` (by id), ``time`` and ``version``."""
+    Each entry has ``op``, ``args`` (by id), ``time`` and ``version``.
+
+    ``snap_tolerance`` (metres): ends closer than this are one point when
+    the model is built, unless the model's size makes the relative
+    tolerance larger (GUIDE, *How ends are connected*; task 0138).  The
+    reader that made the model sets it, and ``snap_source`` names it
+    (``"pcf"``, ``"bathymetry"``); a model built by hand has the default,
+    ``TOL_FLOOR`` (0.11"), and ``"default"``."""
 
     ports:       dict = field(default_factory=dict)       # id → Port
     parts:       dict = field(default_factory=dict)       # id → Part, source order
@@ -308,6 +324,8 @@ class NetworkModel:
     report:      dict = field(default_factory=dict)
     cuts:        list = field(default_factory=list)
     log:         list = field(default_factory=list)
+    snap_tolerance: float = TOL_FLOOR
+    snap_source:    str = "default"
 
     # --- construction ------------------------------------------------------
 
@@ -418,7 +436,8 @@ class NetworkModel:
 
         Ids are kept.  A port or part id in both raises ``AssemblyError``
         listing them, unless *prefix* is given: then *b*'s ids get it.
-        Networks of one name are united.  *infer*: add an inferred
+        Networks of one name are united.  The snap tolerance is the larger
+        of the two, so a PCF file's weld gaps still snap.  *infer*: add an inferred
         ``Connection`` between each open port of *a* and one of *b* within
         *tol*; otherwise connect them with ``join``.  The log is *a*'s, then
         a ``merge`` entry holding *b*'s log.

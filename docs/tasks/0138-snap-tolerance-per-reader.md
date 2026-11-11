@@ -1,6 +1,6 @@
 # 0138 — The snap tolerance: one per reader, carried by the model, and documented
 
-- **Status:** ready
+- **Status:** done
 - **Decision:** task 0128's design answer (2026-11-11, Q2, revised the same day); [0018](../decisions/0018-future-vascular-networks.md) (constraint 8); [0032](../decisions/0032-network-interchange.md)
 - **Depends on:** none.
 
@@ -81,6 +81,63 @@ replaced by the per-reader floor); the geometry kernel's tolerances
 
 ## Agent notes
 
+- **"Saved and loaded with it" (step 1): the import log, not a JSON
+  file.**  `NetworkModel` has no JSON save/load; it persists through its
+  log (the import entry's options are JSON data that `replay`, `undo` and
+  `merge` re-read the file with).  Design answer (design session's
+  message, 2026-11-11): the import entry's options carry
+  `snap_tolerance`, `replay` and `undo` keep it, an old log without the
+  key re-reads with the default, and `describe(model)` shows the value
+  and its source; no `NetworkModel.to_dict`/`from_dict` (a new feature,
+  out of scope).  Step 6's "JSON round trip" test is the import entry
+  and a replay.
+- `TOL_FLOOR` moved from `interchange/graph.py` to `interchange/model.py`
+  (the model's field default; `graph` imports `model`, not the other way
+  round); `graph`, `build` and `pcf` still re-export it.
+- **Step 6, 4 mm tubes 2 mm apart with `snap_tolerance` 1e-4:** the build
+  raises `network_disconnected` ("starts 0.002 m from the open end of
+  part t0 …"), not `chain_gap`: two ends that don't meet make two
+  pieces; `chain_gap` is a gap inside one chain.  The GUIDE names both.
+- Sources in the report: `"reader pcf"`, `"reader bathymetry"`,
+  `"default"` (a model no reader made), `"relative"`, `"given"`.
+
 ## Questions for design
 
 ## Outcome
+
+Done 2026-11-11.
+
+- **Code.**  `interchange/model.py`: `TOL_FLOOR` (moved from `graph.py`),
+  `NetworkModel.snap_tolerance` and `snap_source`.  `graph.py`:
+  `snap_tolerance(model, comps, tol)` → (value, source);
+  `_model_tolerance` takes the model's floor.  `build.py`: `build` and
+  `build_pieces` use it, and the report has `tol_source`.
+  `operations.py`: `tolerance(model)` uses the model's floor; `merge`
+  keeps the larger; `undo` restores the field.  `importers/pcf.py`:
+  `read_pcf(snap_tolerance=TOL_FLOOR)` (a positive length, else
+  `ReaderError` `size_not_positive`), kept in the import entry's options
+  and on `NetworkSpec`; the set-on check (`_declared_connections`) uses
+  the model's value.  `importers/bathymetry.py` sets the default
+  explicitly.  `agent/_describe.py`: `snap_tolerance` {value, source}.
+- **Docs.**  GUIDE *How ends are connected: the snap tolerance* (after
+  *Reading plant data*; replaces "nothing is snapped"): what it does
+  and doesn't do, the default and where 0.11" comes from (the possible
+  explanation marked as such, linked to `pcf.md`), why per reader and
+  the small-scale hazard, when and how to set it, how to see what was
+  used.  API.md (`read_pcf`, `NetworkModel`, `merge`, the report),
+  README's PCF bullet (links the section), CHANGELOG.
+- **Tests.**  `tests/test_snap_tolerance.py`, 13: default joins 4 mm
+  tubes 2 mm apart and reports `"default"`; `snap_tolerance` 1e-4 keeps
+  them apart (`network_disconnected`, the gap named); `tol=` wins
+  (`"given"`); a 100 m model uses `"relative"`; a PCF read stores 0.11"
+  in the model and its log and reports `"reader pcf"`; `read_pcf`'s own
+  value survives `replay` and `undo`; an old log without the key
+  re-reads with the default; bad values rejected; `merge` takes the
+  larger either way round; `describe` shows it.  Updated:
+  `test_interchange_operations` (the import entry's options).
+- **Checks.**  Reader, agent, doc, example and architecture tests: 449
+  passed, 1 skipped.  The 31 examples (with the PCF line) byte-identical
+  to `HEAD`.  Full suite not run (the shared machine stopped the last two
+  full runs for low memory); the change is confined to `interchange` and
+  `agent/_describe`, all of whose tests ran.
+

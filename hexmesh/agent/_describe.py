@@ -271,6 +271,8 @@ def _model(m: NetworkModel) -> dict:
     pos = [q.position for q in m.ports.values() if q.position is not None]
     return _jsonable({
         "kind": "network_model", "units": UNITS_MODEL,
+        # ends closer than this are one point when built (task 0138)
+        "snap_tolerance": {"value": m.snap_tolerance, "source": m.snap_source},
         "parts": parts, "ports": ports, "connections": connections, "networks": networks,
         "rejected": [{"id": p["id"], "name": p["name"], "record": p["record"],
                       "reason": p["reject"], "source": p["source"]}

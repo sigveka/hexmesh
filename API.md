@@ -1171,7 +1171,7 @@ The importers live in `hexmesh.interchange.importers` (task 0066), and
 `hexmesh.io.readers` (and `hexmesh.io.readers.pcf`, `.bathymetry`)
 still re-export them, unchanged.
 
-### `pcf.read_pcf(path, unit_scale=None, ignore_types=None, joint_max=1.6e-3) -> NetworkSpec`
+### `pcf.read_pcf(path, unit_scale=None, ignore_types=None, joint_max=1.6e-3, snap_tolerance=0.11 * inch) -> NetworkSpec`
 
 Parses an Isogen PCF file, following the *PCF Reference Guide*
 (`docs/integrations/pcf.md`).  `path` may be a list of files, read into
@@ -1193,6 +1193,12 @@ one network: components in list order, each file with its own units.
 - **Joints.**  `GAP`, and `WELD`, `COUPLING` or `GASKET` no longer than
   `joint_max` (just above the 1/16" weld gap), become `kind="joint"`.
   Longer ones are fittings.
+- **Snap tolerance.**  `snap_tolerance` (metres, default 0.11", 2.79 mm):
+  ends closer than this are one point when the network is built.  The
+  model keeps it (`NetworkModel.snap_tolerance`, source `"pcf"`), and so
+  does its import log entry, so `replay` and `undo` keep it.  Not a
+  positive length: `ReaderError` (`size_not_positive`).  GUIDE, *How
+  ends are connected: the snap tolerance*.
 - **Insulation and equipment.**  `INSULATION` and keypoint
   `INSULATION-*` words are read per component (`insulation`,
   `end_insulation`, `branch_insulation`); `INSULATION-THICKNESS` per
@@ -1257,7 +1263,7 @@ declared connections.  Messages name parts as `component <n> (<TYPE>
 | `spec` | a `PipeSpec`, or a callable `bore → PipeSpec` (nominal size in metres). With a single spec, a reducer outlet scales the core radius by the bore ratio |
 | `axial_cell` | target axial cell length; defaults to the outer radius. Passed to the `Assembly` (`Assembly(axial_cell=…)`), which sets every component's `n_layers` from it |
 | `kinks` | `"error"` raises on pipes that change direction without a fitting; `"spline"` joins such runs into one `SplinePipe` (bathymetry routes) |
-| `tol` | position tolerance in metres.  Default: 1e-4 × the model diagonal, at least 0.11" (2.79 mm), just above the weld gap |
+| `tol` | position tolerance in metres.  Default: 1e-4 × the model diagonal, at least the snap tolerance `read_pcf` was given (default 0.11", 2.79 mm, just above the weld gap) |
 | `inlet` | the root: an open end's name or a point (metres).  Default below |
 | `insulation` | add a shell named `insulation` to insulated components (below).  Off: the spec alone decides the layers |
 | `insulation_nrad` | radial cells across that shell |
@@ -1316,8 +1322,9 @@ host keeps its label with `_1` / `_2`.  Open ends are named
 Every component is checked against its PCF end points (and branch points), and a mismatch raises
 `AssemblyError` naming the component.  Lateral offsets within `tol` are
 accepted, a documented deviation: exporters offset components by up to the
-weld gap.  `NetworkSpec.report` records the tolerance, the joints absorbed or
-dropped, and the largest lateral offset absorbed.
+weld gap.  `NetworkSpec.report` records the tolerance and where it came
+from (`tol_source`), the joints absorbed or dropped, and the largest
+lateral offset absorbed.
 
 ### `NetworkSpec.to_assemblies(spec, *, axial_cell=None, kinks="error", tol=None, lc=None, insulation=False, insulation_nrad=2) -> dict[str, Assembly]`
 
@@ -1369,7 +1376,7 @@ asm = ix.build(m, pipe)            # or m.to_assembly(pipe)
 
 | Class | Fields |
 |---|---|
-| `NetworkModel` | `ports` (id → `Port`), `parts` (id → `Part`, in order), `connections`, `networks` (name → `Network`), `report`, `cuts`, `log`; `add_port(position, **kw)`, `add_part(cls, positions_or_ports, **kw)`, `to_assembly`, `to_assemblies`; the operations below |
+| `NetworkModel` | `ports` (id → `Port`), `parts` (id → `Part`, in order), `connections`, `networks` (name → `Network`), `report`, `cuts`, `log`; `snap_tolerance` (metres; ends closer are one point when built; default `TOL_FLOOR`, 0.11") and `snap_source` (the reader that set it: `"pcf"`, `"bathymetry"`, or `"default"`); `add_port(position, **kw)`, `add_part(cls, positions_or_ports, **kw)`, `to_assembly`, `to_assemblies`; the operations below |
 | `Port` | `id`, `position`, `direction`, `flow` ("in" / "out" / None), `section`, `insulation` ("on" / "off" / None: the part's), `equipment` (`{"tag", "nozzle"}`), `provenance`, `tag` (the open end's name at a cut or a selection's boundary) |
 | `Part` | `id`, `ports` (ids, in order), `name` (the fitting's label; default `<TYPE>_<id>`), `type`, `system` (its network), `insulation`, `attributes`, `provenance`, `reject` (why it can't be built) |
 | `Straight`, `InlineEquipment` | two ports; meshed as a straight |
@@ -1405,7 +1412,7 @@ joins them), unless a `Cut` separates them.
 | `cut(connection)` | disconnect two connected ports (a `Connection`, or a pair of ids); returns the `Cut` | yes |
 | `cut_at(port, names=None)` | disconnect *port* from every port it meets; `names`: tags for (*port*, the other), with one other only | yes |
 | `join(port_a, port_b, *, tol=None)` | connect two open ports: within *tol* (default the builder's), facing each other within `JOIN_ANGLE_TOL` (1°), same section; undoes a cut between them; returns the declared `Connection` | yes |
-| `NetworkModel.merge(a, b, *, prefix=None, infer=False, tol=None)` | a new model, *a* ∪ *b*; shared ids are an error unless `prefix` renames *b*'s; networks of one name unite; `infer`: an inferred `Connection` between each pair of *a*'s and *b*'s open ports that meet | yes (*a*'s log, then a `merge` entry holding *b*'s) |
+| `NetworkModel.merge(a, b, *, prefix=None, infer=False, tol=None)` | a new model, *a* ∪ *b*; shared ids are an error unless `prefix` renames *b*'s; networks of one name unite; the snap tolerance is the larger of the two; `infer`: an inferred `Connection` between each pair of *a*'s and *b*'s open ports that meet | yes (*a*'s log, then a `merge` entry holding *b*'s) |
 | `replay(source)` | apply the log (after its import entry) to *source*, a fresh import, in place; a `merge` re-reads its other model through `IMPORTERS` | — |
 | `undo()` | revert the last logged operation (replays the rest on the state before the first) | — |
 
@@ -1446,8 +1453,10 @@ and ports' status and the network's thickness.
   is named `section` or annotated `Section` gets the port's `Section`;
   any other gets its nominal size in metres (`spec(bore)`, 0 if unknown).
 - `selection`: the part ids to build (default all), e.g. a `Selection`.
-- `model.report`: the tolerance, the joints absorbed or dropped, the
-  largest lateral offset, and `selection` (the parts built, and how they
+- `model.report`: the tolerance (`tolerance`) and where it came from
+  (`tol_source`: `"given"`, `"relative"`, `"reader <name>"` or
+  `"default"`), the joints absorbed or dropped, the largest lateral
+  offset, and `selection` (the parts built, and how they
   were chosen).  The `Assembly` itself doesn't record them, so a
   selected build's `to_dict()` is unchanged by how it was chosen.
 

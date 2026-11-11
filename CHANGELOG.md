@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+**The snap tolerance is the model's, set by its reader** (task 0138).
+- `NetworkModel.snap_tolerance` (metres) and `snap_source`: ends closer
+  than it are one point when the model is built (or 1e-4 of the model's
+  size, if larger).  `read_pcf(snap_tolerance=…)` sets it (default 0.11",
+  as before), and the import log keeps it for `replay` and `undo`;
+  `read_bathymetry` sets the default; `merge` keeps the larger.
+- The build report says where the tolerance came from: `tol_source`
+  (`"given"`, `"relative"`, `"reader pcf"`, `"default"`).
+  `describe(model)` shows it.
+- GUIDE: *How ends are connected: the snap tolerance*: what it does
+  and doesn't do, where 0.11" comes from, and when and how to change it.
+- Meshes unchanged: the default is the same.
+
 **The gallery is three pages, by family** (decision 0050; task 0142).
 - `docs/GALLERY.md` is now a short landing page.  `docs/gallery/FEATURES.md`
   groups the feature examples by family (bends, reducers and profiles,
