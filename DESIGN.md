@@ -375,8 +375,8 @@ and reused unchanged in `fill`; curve directions are resolved by endpoint
 tags.  Nearest-distance matching is forbidden: it fails for faces that
 are far apart or at large angles to each other, such as a junction
 branch.  ([Decision 0010](docs/decisions/0010-section-symmetry-period.md).
-Rectangular sections: decision 0009, accepted; if decision 0005 makes
-`n_outer = 8` a sub-partition, its P becomes π/2.)
+Rectangular sections: decision 0009, accepted.  A circle's P is π/2 at
+every `n_outer`: `n_outer = 8` is a sub-partition, decision 0005.)
 
 **Blocks — every multi-port fitting is a layout of hex blocks.**
 A junction is built from hex blocks (8 corners, 12 edges with a curve
@@ -540,7 +540,7 @@ Implementation (`Assembly.close(source, target, fitting)`):
   higher-order transport (double reflection) are in
   [RESEARCH §1](docs/RESEARCH.md#1-frames-along-a-centreline).
 - Roll only matters modulo the section's symmetry period P (§6.1): 90°
-  for circular sections with `n_outer = 4` and for squares, 180° for
+  for circular sections (every `n_outer`) and for squares, 180° for
   rectangles.  The absorbed twist never exceeds P/2.
 - Validation computes the minimum centreline bend radius before any GMSH
   call and rejects paths tighter than the pipe outer radius.
@@ -557,7 +557,6 @@ went with the legacy API, task 0017):
 |---|---|---|---|
 | Type switches on shapes outside `core.shape` and `sections`: 7 sites by `tests/test_architecture.py`'s definition (cap 7; 69 at task 0081) | §3.1 | the remaining sites (the cap's comment in `tests/test_architecture.py` tracks them) | tasks 0060–0062, as the tee is touched |
 | Readers sit in `io`, above the assembly | §3.1 | `io/readers/` | task 0066 |
-| `n_outer = 8` builds a different face (one 8-sided centre patch that can't bound a hex block) instead of the sub-partition of decision 0005; rejected in validation | §7 | `sections/oh_gmsh.build_oh_circle8`; `interface.check_supported` | task 0088 |
 | Tee limited to a perpendicular, centred branch with circular shells copied from the main (multi-layer since task 0052; roll in 90° steps since task 0040) | §7.1 | `hexmesh/assembly/tee.py` | tasks 0060–0062 |
 
 New code must not add to this table.

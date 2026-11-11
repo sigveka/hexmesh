@@ -129,6 +129,34 @@ today.
 
 ## Verified vs. assumed
 
+- **Note (2026-11-11, task 0088 done).**  Built and measured
+  (`tests/test_n_outer_partition.py`; RESEARCH §9.2):
+  - **The Coons argument below doesn't hold for gmsh.**  gmsh's
+    transfinite fill parametrises a patch by the averaged segment
+    lengths of its opposite sides, not as a Coons patch, so a
+    sub-rectangle's fill isn't the restriction of the full patch's:
+    with exact cut lines alone, the sub-patch interiors are 1.3e-4 R
+    off.  So the partition's nodes are set after `generate(2)`
+    (decision 0029's mechanism) and recorded in `asm.corrections` as
+    `sub_partition` (decision 0046's amendment).  Largest move 4e-3 R
+    (0.026 R with `mbmp` 1.3).
+  - **Connectivity identical**, 2-D and 3-D, for every fitting the task
+    covered; node positions within 4e-15 R in 2-D faces and one-layer
+    slabs.  In a multi-layer `Straight` the two meshes are 1.4e-7 R
+    apart, and the 8-corner one is the closer to the exact extrusion
+    (2.7e-9 R against 1.3e-7 R): gmsh fills a curved face in its own
+    parameter space.  Bound 1e-6 R plus each mesh's distance from the
+    extrusion (the user's answer).
+  - **Second order:** arcs identical; an `n_outer = 8` `Transition`'s
+    mid-face nodes differ by up to 4e-4 R (accepted, documented in
+    API.md: the user's answer).
+  - `n_outer` 12 and up stay rejected (`section_not_supported`; the
+    user's answer).  Junctions still take `n_outer = 4` only
+    (*Deferred* above).
+  - DESIGN §9's `n_outer` deviation row is removed, and §6's two
+    "if decision 0005 makes…" phrasings now state P = π/2 for a circle
+    at every `n_outer`.
+
 - **Verified (2026-11-02):**
   - connectivity identity;
   - ring-cut exactness;

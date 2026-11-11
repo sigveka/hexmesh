@@ -1575,7 +1575,7 @@ cells).  L2 order of the error, k 1→2 and 2→4:
 | `n_outer` choice | Test whether `n_outer = 4` + π/4 interface roll suffices at the wye | §4.4 |
 | Quality gates | Report min scaled Jacobian and NES next to SICN; set limits per fitting | §4.2, §4.4, §7.1 |
 | Flow validation | OpenFOAM loss-coefficient runs for laterals (30–90°) against the Štigler data; acceptance test for equal-diameter tee | §7.2 |
-| `n_outer` | Define `n_outer = 8` as a sub-partition of the 4-corner grid; check node connectivity is unchanged | §9.2 |
+| `n_outer` | Done (task 0088): `n_outer = 8` is the sub-partition; connectivity unchanged, nodes set after `generate(2)` | §9.2 |
 | Density change | Refinement-transition fitting (×2 per direction) or declared non-conformal break; design decision first | §9.3–9.4 |
 | Local refinement | Single-sheet (pillow) insertion inside a fitting, ending on the outermost wall; ports unchanged | §9.5 |
 | Port-face compatibility | Classify port-face pairs (classes 0–3) by mesh signature in `validate()`; decision 0011 (proposed) | §9.6 |
@@ -1660,7 +1660,8 @@ matched by position, then element→node sets compared.
   A uniform straight cut misses it by up to 0.0043 R (s ≈ 0.57).  That
   is a fixed absolute offset: 2 % of the local spacing at `nang` 4,
   10 % at `nang` 24.
-- **Placing the cut nodes exactly is enough.**  A Coons patch restricted
+- **Placing the cut nodes exactly is enough** (for a Coons patch; not
+  for gmsh's fill: see *Built* below).  A Coons patch restricted
   to a sub-rectangle is the Coons patch of that sub-rectangle (the
   part not interpolated from the u-boundaries is linear in u).  So
   with the cut-line nodes on the full patch's isoline, every interior
@@ -1670,6 +1671,29 @@ matched by position, then element→node sets compared.
 So decision 0005 B holds, on one condition: the core cut-line nodes are
 placed at the full patch's (discrete) TFI isoline.  That isoline is
 known before GMSH from the boundary nodes, for any O-H shape.
+
+**Built (task 0088, 2026-11-11; `tests/test_n_outer_partition.py`).**
+- **gmsh's transfinite fill isn't a Coons patch.**  It parametrises a
+  patch by the averaged segment lengths of opposite sides, so a
+  sub-patch isn't the restriction of the full patch: exact cut lines
+  alone leave the sub-patch interiors 1.3e-4 R off.  hexmesh sets the
+  partition's nodes after `generate(1)` (cut lines), `generate(2)`
+  (sub-patch interiors) and `setOrder(2)`, and records them as
+  `corrections[...]["sub_partition"]`.  Largest move: 2e-4 m on R
+  0.05 m (4e-3 R, 0.04–0.14 local edge lengths); 0.026 R with `mbmp` 1.3
+  (gmsh meshes the halves uniformly, then they take the full sides'
+  nodes).  `docs/integrations/gmsh.md` has the fill convention.
+- **Same mesh:** connectivity identical and nodes ≤ 2.7e-15 R in 2-D
+  (circle, 2:1 rectangle, `nang` 8 and 24, graded, bumped, a miter
+  station, a blend station) and ≤ 4e-15 R in one-layer 3-D slabs (bend,
+  miter, rectangle bend, reducer, transition, spline).
+- **Multi-layer `Straight`:** identical connectivity, 1.4e-7 R apart.
+  The exact extrusion is 1.3e-7 R from the 4-corner mesh and 2.7e-9 R
+  from the 8-corner one: gmsh fills a curved face's interior in that
+  face's own parameter space, and the cut faces are closer to flat.
+- **Order 2:** arcs identical to 3.7e-13 R; an `n_outer = 8`
+  `Transition`'s mid-face nodes differ by up to 4e-4 R.
+- Every `n_outer = 4` example mesh is byte-identical to before.
 
 ### 9.3 Node-count changes: twist-plane insertion [`harris_and_benzley_etal_2004`]
 
