@@ -112,6 +112,14 @@ Jekyll would).  A scratch copy of all 233 tracked `.md` files outside
   fixed after 0.1.4 (a path is read from `essens.yaml`'s folder and must
   stay inside the project).  `docs/site.py` passes `--template` until the
   pinned release has the fix.
+- **The local `essens` isn't the pinned release** (2026-11-11): the
+  Essens session reinstalled `~/.local/bin/essens` from its current
+  source, with the yaml template fix and `--format json` on more
+  commands, and it **still reports `0.1.4`**.  So `essens --version`
+  doesn't tell a local build from CI's v0.1.4 archive.  `docs/site.py`
+  uses only what v0.1.4 has (`--template`, `lint --format json`), so
+  both build the same; check a new feature against the release archive
+  before relying on it.
 - **`essens lint --format json` writes one JSON array**, pretty-printed
   over many lines (not one object per line).
 - **Diagnostics on hexmesh's docs** after task 0137's fixes: one
