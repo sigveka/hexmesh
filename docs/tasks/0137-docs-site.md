@@ -1,6 +1,6 @@
 # 0137 — The docs site: Essens pages, our navigation and template, GitHub Pages
 
-- **Status:** in progress (the design session, at the user's request, 2026-11-11): done but for CI access to Essens (its repository is private; the Essens user decides) and the README link once the site is live
+- **Status:** in progress (the design session, at the user's request, 2026-11-11): done but for an Essens release with `folder-pages` (v0.1.4 predates it; CI can reach the releases since 2026-11-11, `ESSENS_TOKEN`) and the README link once the site is live
 - **Decision:** [0049 — A docs site rendered from the Markdown by Essens](../decisions/0049-docs-site-from-markdown.md)
 - **Depends on:** none.
 
