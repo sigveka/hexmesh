@@ -171,6 +171,10 @@ def test_wall_span_matches_geometry(meshed):
     assert np.min(np.abs(ring - inner_mid)) < 1e-9
 
 
-def test_n_outer_8_rejected():
-    with pytest.raises(TypeError, match="n_outer=4"):
-        PipeSpec(nang=4, n_outer=8).core("fluid", radius=R, nrad=6, first_cell=1e-3)
+def test_n_outer_8_takes_it_as_4_and_12_is_rejected():
+    """8 is the 4-corner mesh, cut (task 0088): the same grading."""
+    four = PipeSpec(nang=4).core("fluid", radius=R, nrad=6, first_cell=1e-3)
+    eight = PipeSpec(nang=4, n_outer=8).core("fluid", radius=R, nrad=6, first_cell=1e-3)
+    assert eight._core_mprg == four._core_mprg
+    with pytest.raises(TypeError, match="n_outer=4 or 8"):
+        PipeSpec(nang=6, n_outer=12).core("fluid", radius=R, nrad=6, first_cell=1e-3)

@@ -413,7 +413,7 @@ CODES: dict[str, str] = {
     "reader_format_invalid": "a file whose contents a reader can't use",
     "rect_stack_counts_unequal":
         "a rectangle stack whose outline counts differ from the core's, or unequal per side with a circle",
-    "rect_stack_needs_n_outer_4": "a stack with a rectangle and n_outer other than 4",
+    "rect_stack_needs_n_outer_4": "a stack with a rectangle and n_outer other than 4 or 8",
     "reducer_axis_not_along_pipe": "a network reducer's axis does not continue the incoming pipe",
     "reducer_eccentric": "an eccentric network reducer",
     "reducer_grading_one_end": "a Reducer that grades only one end of an H duct",

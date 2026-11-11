@@ -284,6 +284,16 @@ A circular core (and a rectangular one with `layout="oh"`) is a 5-patch O-H cros
 
 The centre square avoids the singular pole a pure O-grid would have.
 
+`PipeSpec(n_outer=8)` gives the same mesh cut along its middle grid
+lines: 8 corners, the centre square in four, each ring patch in two.
+Every node and cell is the `n_outer = 4` mesh's, so it changes the
+blocks, not the resolution.  Each side's cell count must be even.  It
+works on every sweep (`Straight`, `Bend`, `Elbow`, `MiterBend`,
+`SplinePipe`, `Closure`, `Reducer`, `Transition`), with circular and
+O-H rectangular layers.  Junctions (`Tee`, duct taps, `Wye`) and the H
+layout need `n_outer = 4`.  `Assembly.corrections` records the nodes
+hexmesh sets on these faces (`sub_partition`).
+
 ### Rectangular ducts
 
 ```python

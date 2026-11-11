@@ -38,11 +38,12 @@ from ..core.cross_section import CrossSection, LayeredCrossSection
 from ..core.shape import BlendShape, RectShape
 from . import h, oh
 from ._gmsh_helpers import add_physical_group, add_point
-from .oh_gmsh import (build_annulus, build_oh_blend, build_oh_circle, build_oh_circle8,
-                      build_oh_rect, build_ring)
+from .oh_gmsh import (build_annulus, build_oh_blend, build_oh_circle, build_oh_rect,
+                      build_oh_split, build_ring, place_partition_nodes)
 
-__all__ = ["oh", "h", "SectionLayout", "LAYOUT_MODULES", "layout_of", "build_face", "add_physical_group", "build_oh_circle", "build_oh_circle8",
-           "build_oh_rect", "build_oh_blend", "build_ring", "build_annulus"]
+__all__ = ["oh", "h", "SectionLayout", "LAYOUT_MODULES", "layout_of", "build_face", "add_physical_group", "build_oh_circle", "build_oh_split",
+           "build_oh_rect", "build_oh_blend", "build_ring", "build_annulus",
+           "place_partition_nodes"]
 
 
 @runtime_checkable
@@ -122,12 +123,14 @@ def build_face(spec, position, h_axis, v_axis, lc: float,
         return LayeredCrossSection(layers)
     cx, cy, cz = (float(c) for c in position)
     core_name, core_shape = spec._core
-    if isinstance(core_shape, RectShape):
+    if spec.n_outer == 8:           # the 4-corner face, cut (task 0088)
+        builder = build_oh_split
+    elif isinstance(core_shape, RectShape):
         builder = build_oh_rect
     elif isinstance(core_shape, BlendShape):    # a Transition's stations
         builder = build_oh_blend
     else:
-        builder = build_oh_circle8 if spec.n_outer == 8 else build_oh_circle
+        builder = build_oh_circle
     cs: CrossSection = builder(
         cx=cx, cy=cy, cz=cz,
         shape=core_shape, h_axis=h_axis, v_axis=v_axis, lc=lc,

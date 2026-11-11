@@ -74,8 +74,12 @@ class TestFrameOffset:
             frame_offset(A, b, _spec())
 
     def test_n_outer_8_period(self):
-        b = _rolled(A, 45)
-        assert frame_offset(A, b, _spec(n_outer=8)) == 1
+        """P = π/2 for every n_outer (decision 0010 as amended): a quarter
+        turn is two corners of the cut face, 45° is ambiguous (task 0088)."""
+        assert frame_offset(A, _rolled(A, 90), _spec(n_outer=8)) == 2
+        with pytest.raises(AssemblyError) as e:
+            frame_offset(A, _rolled(A, 45), _spec(n_outer=8))
+        assert e.value.code == "corner_correspondence_ambiguous"
 
 
 class TestCurveEndpoints:
@@ -136,9 +140,11 @@ class TestValidationBeforeGmsh:
     def test_refined_hairpin_closure_accepted(self):
         self._hairpin(20).validate()
 
-    def test_n_outer_8_rejected(self):
-        asm = Assembly(_spec(n_outer=8))
+    def test_n_outer_12_rejected(self):
+        """8 is the 4-corner face cut in half; a 3 × 3 core needs curved
+        cuts (task 0088)."""
+        asm = Assembly(PipeSpec(nang=6, n_outer=12).core("fluid", radius=0.1, nrad=3))
         # add() checks the section before the fitting resolves (task 0106)
-        with pytest.raises(AssemblyError, match="n_outer=4 only") as e:
+        with pytest.raises(AssemblyError, match="n_outer must be 4 or 8") as e:
             asm.add(Straight(0.3, n_layers=2))
         assert e.value.code == "section_not_supported"

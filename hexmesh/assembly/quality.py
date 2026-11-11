@@ -160,7 +160,8 @@ def correction_summary(c: dict) -> str:
     out = []
     for key, what in (("wall_projection", "wall nodes moved"),
                       ("second_order_arc_nodes", "second-order nodes placed on a bend's arcs"),
-                      ("second_order_wall_nodes", "second-order wall nodes placed")):
+                      ("second_order_wall_nodes", "second-order wall nodes placed"),
+                      ("sub_partition", "nodes of an n_outer = 8 face set to the 4-corner face's")):
         r = c.get(key, "none")
         if r != "none":
             out.append(f"{r['nodes']} {what}, largest {r['largest_move']:.3g} "

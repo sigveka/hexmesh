@@ -128,9 +128,11 @@ def signature(spec: PipeSpec) -> Signature:
         if not isinstance(sh, LayerSpec):
             raise InternalError(f"no signature for a {type(sh).__name__} layer")
         layers.append(LayerSig(sh.name, oh.RING_KIND, sh.nrad, sh.mprg))
+    m = spec.n_outer // 4       # the 4-corner face's counts (task 0088)
     c = spec.side_counts
-    period = 360.0 / spec.n_outer if c[0] == c[1] else 180.0
-    return Signature(spec.n_outer, period, c[0], c[1], spec.mbmp, tuple(layers))
+    cw, ch = c[0] * m, c[m] * m
+    period = 90.0 if cw == ch else 180.0
+    return Signature(spec.n_outer, period, cw, ch, spec.mbmp, tuple(layers))
 
 
 def classify(a: Signature, b: Signature) -> SwitchClass:

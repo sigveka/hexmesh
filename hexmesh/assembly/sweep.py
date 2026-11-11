@@ -96,7 +96,11 @@ def face_grading(face: LayeredCrossSection, spec: PipeSpec) -> dict[int, tuple[s
     for (_, cs), mprg in zip(face.layers, mprgs):
         g = canonical_geom(cs)
         if spec.mbmp != 1.0:
-            for c in g['oc'] + g['ic']:
+            # a partitioned face: the bump is on its 4-corner sides; their
+            # nodes are copied onto the halves (task 0088)
+            sides = (cs.full_outer + cs.full_inner if getattr(cs, "full_outer", None)
+                     else g['oc'] + g['ic'])
+            for c in sides:
                 out[abs(c)] = ("Bump", spec.mbmp)
         if mprg != 1.0:
             for c in g['rc']:
@@ -143,6 +147,9 @@ class FillResult:
     # the volumes Assembly.mesh()'s meshed checks measure, if not all of the
     # fitting's (a duct tap's switch legs, task 0086)
     checked_volumes: list[int] | None = None
+    # the partitioned faces (n_outer = 8) a fill built, its stations: mesh()
+    # sets their nodes to the 4-corner face's (task 0088)
+    partitions: list = field(default_factory=list)
 
     def merge(self, other: "FillResult") -> None:
         for k, v in other.volumes.items():
@@ -155,6 +162,7 @@ class FillResult:
         self.surfaces.extend(other.surfaces)
         self.mesh_vols.extend(other.mesh_vols)
         self.projections.extend(other.projections)
+        self.partitions.extend(other.partitions)
 
 
 @dataclass(frozen=True)
@@ -420,6 +428,7 @@ def sweep_fill(path: Path, faces: list[LayeredCrossSection],
                 if (i < up) != (i < down):
                     result.walls.extend(cs.surfaces)
                     result.wall_groups.update((t, f"{name}_end") for t in cs.surfaces)
+    result.partitions.extend(st for st in stations[1:-1] if st.layers[0][1].n_outer == 8)
     return result
 
 

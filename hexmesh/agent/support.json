@@ -10,10 +10,7 @@
      "supported": true
     },
     "circle_n_outer_8": {
-     "code": "section_not_supported",
-     "error": "AssemblyError",
-     "message": "Straight(length=0.1, n_layers=1, axial_grading=1.0, stack_changes=(), twist=0.0) at Interface(inlet, pos=[0. 0. 0.]): assembly prototype supports n_outer=4 only, got 8: the n_outer=8 core centre patch has 8 sides and cannot bound a transfinite hex block",
-     "supported": false
+     "supported": true
     },
     "circle_shells": {
      "supported": true
@@ -46,10 +43,7 @@
      "supported": false
     },
     "circle_n_outer_8": {
-     "code": "section_not_supported",
-     "error": "AssemblyError",
-     "message": "Straight(length=0.1, n_layers=1, axial_grading=1.0, stack_changes=(), twist=0.0) at Interface(inlet, pos=[0. 0. 0.]): assembly prototype supports n_outer=4 only, got 8: the n_outer=8 core centre patch has 8 sides and cannot bound a transfinite hex block",
-     "supported": false
+     "supported": true
     },
     "circle_shells": {
      "supported": true
@@ -84,10 +78,7 @@
      "supported": true
     },
     "circle_n_outer_8": {
-     "code": "section_not_supported",
-     "error": "AssemblyError",
-     "message": "Straight(length=0.1, n_layers=1, axial_grading=1.0, stack_changes=(), twist=0.0) at Interface(inlet, pos=[0. 0. 0.]): assembly prototype supports n_outer=4 only, got 8: the n_outer=8 core centre patch has 8 sides and cannot bound a transfinite hex block",
-     "supported": false
+     "supported": true
     },
     "circle_shells": {
      "supported": true
@@ -113,10 +104,7 @@
      "supported": true
     },
     "circle_n_outer_8": {
-     "code": "section_not_supported",
-     "error": "AssemblyError",
-     "message": "Straight(length=0.1, n_layers=1, axial_grading=1.0, stack_changes=(), twist=0.0) at Interface(inlet, pos=[0. 0. 0.]): assembly prototype supports n_outer=4 only, got 8: the n_outer=8 core centre patch has 8 sides and cannot bound a transfinite hex block",
-     "supported": false
+     "supported": true
     },
     "circle_shells": {
      "supported": true
@@ -142,10 +130,7 @@
      "supported": true
     },
     "circle_n_outer_8": {
-     "code": "section_not_supported",
-     "error": "AssemblyError",
-     "message": "Straight(length=0.1, n_layers=1, axial_grading=1.0, stack_changes=(), twist=0.0) at Interface(inlet, pos=[0. 0. 0.]): assembly prototype supports n_outer=4 only, got 8: the n_outer=8 core centre patch has 8 sides and cannot bound a transfinite hex block",
-     "supported": false
+     "supported": true
     },
     "circle_shells": {
      "supported": true
@@ -171,10 +156,7 @@
      "supported": true
     },
     "circle_n_outer_8": {
-     "code": "section_not_supported",
-     "error": "AssemblyError",
-     "message": "Straight(length=0.1, n_layers=1, axial_grading=1.0, stack_changes=(), twist=0.0) at Interface(inlet, pos=[0. 0. 0.]): assembly prototype supports n_outer=4 only, got 8: the n_outer=8 core centre patch has 8 sides and cannot bound a transfinite hex block",
-     "supported": false
+     "supported": true
     },
     "circle_shells": {
      "supported": true
@@ -206,9 +188,9 @@
      "supported": false
     },
     "circle_n_outer_8": {
-     "code": "section_not_supported",
+     "code": "switch_needs_rectangle",
      "error": "AssemblyError",
-     "message": "Straight(length=0.1, n_layers=1, axial_grading=1.0, stack_changes=(), twist=0.0) at Interface(inlet, pos=[0. 0. 0.]): assembly prototype supports n_outer=4 only, got 8: the n_outer=8 core centre patch has 8 sides and cannot bound a transfinite hex block",
+     "message": "Switch(length=0.2, n_layers=2, outlet=None) at Interface(#1, pos=[0.1 0.  0. ]): Switch changes a rectangular duct's section; the inlet core is a circle",
      "supported": false
     },
     "circle_shells": {
@@ -241,9 +223,9 @@
      "supported": false
     },
     "circle_n_outer_8": {
-     "code": "section_not_supported",
+     "code": "junction_needs_rot_0_n_outer_4",
      "error": "AssemblyError",
-     "message": "Straight(length=0.1, n_layers=1, axial_grading=1.0, stack_changes=(), twist=0.0) at Interface(inlet, pos=[0. 0. 0.]): assembly prototype supports n_outer=4 only, got 8: the n_outer=8 core centre patch has 8 sides and cannot bound a transfinite hex block",
+     "message": "Tee(run_length=None, branch_length=0.15, branch_radius=0.02, n_run=3, n_branch=3, n_turn=2, roll=0.0, toward=None, angle=90.0, offset=0.0, branch=None, face=None, margin=None, dome=None, sheet=None, n_wall=None, nrad=None, mprg=None, branch_first_cell=None, branch_mprg=None) at Interface(#1, pos=[0.1 0.  0. ]): Tee prototype requires rot = 0 and n_outer = 4",
      "supported": false
     },
     "circle_shells": {
@@ -276,10 +258,7 @@
      "supported": false
     },
     "circle_n_outer_8": {
-     "code": "section_not_supported",
-     "error": "AssemblyError",
-     "message": "Straight(length=0.1, n_layers=1, axial_grading=1.0, stack_changes=(), twist=0.0) at Interface(inlet, pos=[0. 0. 0.]): assembly prototype supports n_outer=4 only, got 8: the n_outer=8 core centre patch has 8 sides and cannot bound a transfinite hex block",
-     "supported": false
+     "supported": true
     },
     "circle_shells": {
      "code": "switch_class_not_bridged",
@@ -314,9 +293,9 @@
      "supported": false
     },
     "circle_n_outer_8": {
-     "code": "section_not_supported",
+     "code": "junction_needs_rot_0_n_outer_4",
      "error": "AssemblyError",
-     "message": "Straight(length=0.1, n_layers=1, axial_grading=1.0, stack_changes=(), twist=0.0) at Interface(inlet, pos=[0. 0. 0.]): assembly prototype supports n_outer=4 only, got 8: the n_outer=8 core centre patch has 8 sides and cannot bound a transfinite hex block",
+     "message": "Wye(angle=60.0, run_length=0.3, branch_length=0.3, n_run=None, n_branch=None, n_split=None, roll=0.0, toward=None) at Interface(#1, pos=[0.1 0.  0. ]): Wye prototype requires rot = 0 and n_outer = 4",
      "supported": false
     },
     "circle_shells": {

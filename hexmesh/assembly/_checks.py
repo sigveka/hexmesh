@@ -211,7 +211,8 @@ def _written_elements(asm, e) -> int:
     return asm.cell_counts()[e.index]
 
 
-def _record_corrections(asm, moved: dict, placed: dict, arcs: dict) -> None:
+def _record_corrections(asm, moved: dict, placed: dict, arcs: dict,
+                        split: dict | None = None) -> None:
     """``corrections``, for every fitting (decision 0046 rule 5, tasks
     0123 and 0130): the wall nodes projection moved, a bend's
     second-order nodes placed on its arcs, the second-order wall nodes
@@ -219,7 +220,10 @@ def _record_corrections(asm, moved: dict, placed: dict, arcs: dict) -> None:
     in local edge lengths), or ``"none"``; and the elements hexmesh
     wrote.  A node counts as moved beyond ``CORRECTION_MIN_MOVE`` local
     wall radii (rounding below it).  A wall node of a bend is placed
-    on its arc, then on the wall: each entry measures its own step."""
+    on its arc, then on the wall: each entry measures its own step.
+    ``sub_partition`` is the nodes of an ``n_outer = 8`` face set to the
+    4-corner face's (task 0088), on the fitting's ports and stations."""
+    split = split or {}
     def record(m):
         if m is None:
             return "none"
@@ -235,6 +239,7 @@ def _record_corrections(asm, moved: dict, placed: dict, arcs: dict) -> None:
                  "wall_projection": record(moved.get(e.index)),
                  "second_order_arc_nodes": record(arcs.get(e.index)),
                  "second_order_wall_nodes": record(placed.get(e.index)),
+                 "sub_partition": record(split.get(e.index)),
                  "elements_written": _written_elements(asm, e)}
         for e in asm._edges}
 

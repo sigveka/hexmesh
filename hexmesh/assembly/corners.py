@@ -129,6 +129,8 @@ def canonical_geom(cs: CrossSection) -> dict:
         g |= {'ip': ip,
               'ic': [_oriented(c, ip[k], ip[(k + 1) % n]) for k, c in enumerate(e["ic"])],
               'rc': [_oriented(c, ip[k], op[k]) for k, c in enumerate(e["rc"])]}
+    if "cut" in e:          # a partitioned core: centre → odd inner corner (task 0088)
+        g['cut'] = [_oriented(c, cs.center, ip[k]) if c else 0 for k, c in enumerate(e["cut"])]
     return g
 
 
@@ -180,11 +182,16 @@ def connect_layer(in_cs: CrossSection, out_cs: CrossSection, n_layers: int,
     g_out = {key: [v[(i + offset) % n] for i in range(n)] for key, v in g_out.items()}
     if in_cs.layout == "h":                 # no inner boundary or corner lines
         return connect_patch(in_cs, out_cs, g_in, g_out, n_layers, **kwargs)
-    off = 1 if len(in_cs.surfaces) == n + 1 else 0
+    # the core's patches first: one, or four of a partitioned face, which
+    # turn with the corners (n_outer = 8: offset is even, task 0088)
+    off = len(in_cs.surfaces) - n
     in_quads = [in_cs.surfaces[off + i] for i in range(n)]
     out_quads = [out_cs.surfaces[off + (i + offset) % n] for i in range(n)]
+    in_core = list(in_cs.surfaces[:off])
+    out_core = [out_cs.surfaces[(c + offset * off // n) % off] for c in range(off)]
     return connect_aligned(
-        in_cs, out_cs, g_in, g_out, in_quads, out_quads, n_layers, **kwargs,
+        in_cs, out_cs, g_in, g_out, in_quads, out_quads, n_layers,
+        in_core=in_core, out_core=out_core, **kwargs,
     )
 
 
@@ -232,6 +239,8 @@ def connect_aligned(
     planar_radial: bool = True,
     axial_curve: "Callable[[int, int], int] | None" = None,
     side_surface: "Callable[[int], int] | None" = None,
+    in_core: "list[int] | None" = None,
+    out_core: "list[int] | None" = None,
 ) -> "tuple[list[int], list[int], list[int]]":
     """Build one layer's hex slab once corner correspondence is fixed.
 
@@ -240,6 +249,9 @@ def connect_aligned(
     corresponds to entry ``i`` of the outlet; ``in_quad_surfs[i]`` and
     ``out_quad_surfs[i]`` are the quadrant patches between corners ``i``
     and ``i+1``.  How the correspondence is found is the caller's concern.
+    *in_core* / *out_core* are the core's patches, corresponding: none
+    outside the core, one, or four of a partitioned face (``n_outer = 8``,
+    task 0088), the one around even corner 2c at index c.
     *side_surface* builds the non-planar side faces from a curve loop
     (default: OCC plate filling, ``addSurfaceFilling``).
     Returns ``(volumes, outer_side_surfs, outer_axial, deferred)``; the
@@ -257,7 +269,7 @@ def connect_aligned(
     ip_in, op_in, ic_in, oc_in, rc_in = (g_in[k] for k in ('ip', 'op', 'ic', 'oc', 'rc'))
     ip_out, op_out, ic_out, oc_out, rc_out = (g_out[k] for k in ('ip', 'op', 'ic', 'oc', 'rc'))
     n = in_cs.n_outer
-    is_core = (len(in_cs.surfaces) == n + 1)
+    in_core, out_core = in_core or [], out_core or []
 
     # ------------------------------------------------------------------
     # Axial lines for inner corners
@@ -338,18 +350,34 @@ def connect_aligned(
     # ------------------------------------------------------------------
     vols: list[int] = []
 
-    if is_core:
+    cut_surfs: list[int] = []
+    centre_axial: list[int] = []
+    if len(in_core) == 1:
         # Center patch: in + out + all n inner arc sides
         # OCC addSurfaceLoop: orientation not used, all tags positive
         sloop = geo.addSurfaceLoop([
-            in_cs.surfaces[0], out_cs.surfaces[0],
+            in_core[0], out_core[0],
             *inner_side_surfs,
         ])
         vol = geo.addVolume([sloop])
         vols.append(vol)
-        surf_offset = 1
-    else:
-        surf_offset = 0
+    elif in_core:
+        # A partitioned core (task 0088): four blocks around a centre line,
+        # cut along the odd corners like the radial sides
+        centre_axial = [axial_curve(in_cs.center, out_cs.center)]
+        cut = {}
+        for k in range(1, n, 2):
+            loop = geo.addCurveLoop([g_in['cut'][k], inner_axial[k],
+                                     -g_out['cut'][k], -centre_axial[0]])
+            cut[k] = geo.addPlaneSurface([loop]) if planar_radial else side_surface(loop)
+            cut_surfs.append(cut[k])
+        for c in range(0, n, 2):
+            sloop = geo.addSurfaceLoop([
+                in_core[c // 2], out_core[c // 2],
+                inner_side_surfs[(c - 1) % n], inner_side_surfs[c],
+                cut[(c - 1) % n], cut[c + 1],
+            ])
+            vols.append(geo.addVolume([sloop]))
 
     for i in range(n):
         j = (i + 1) % n
@@ -405,12 +433,23 @@ def connect_aligned(
     # surfaces have matching opposing edge counts.
     _add_arcs(rc_in,  nrad + 1)
     _add_arcs(rc_out, nrad + 1)
+    if centre_axial:
+        # the cuts, opposite the core's halves; and the 4-corner sides,
+        # built for their nodes only (sections.oh_gmsh.build_oh_split)
+        for k in range(1, n, 2):
+            _add_arcs([g_in['cut'][k], g_out['cut'][k]], counts[(k + 1) % n] + 1)
+    for cs in (in_cs, out_cs):
+        full = getattr(cs, "full_outer", None)
+        if full:
+            for j, c in enumerate(cs.full_inner + full if centre_axial else full):
+                _add_arcs([c], cs.full_counts[j % 4] + 1)
 
     deferred: dict = {
-        "curves":      new_inner_axial + outer_axial,
+        "curves":      new_inner_axial + outer_axial + centre_axial,
         "arc_curves":  arc_curve_constraints,
         "surfaces": (
             new_inner_side_surfs
+            + cut_surfs
             + outer_side_surfs
             + radial_side_surfs
             + list(in_cs.surfaces)

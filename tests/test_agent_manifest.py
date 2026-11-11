@@ -78,11 +78,15 @@ def test_the_stored_support_matrix_is_the_library_s():
         "hexmesh/agent/support.json is stale: python3 -m hexmesh.agent._probe"
 
 
-def test_n_outer_8_shows_as_unsupported_with_what_the_library_raises(m):
-    entry = m["support"]["fittings"]["Straight"]["specs"]["circle_n_outer_8"]
-    assert entry["supported"] is False and entry["code"] == "section_not_supported"
-    assert "n_outer=4" in entry["message"]
-    assert m["support"]["fittings"]["Straight"]["specs"]["circle"] == {"supported": True}
+def test_n_outer_8_shows_on_sweeps_and_junctions_raise_their_code(m):
+    """Sweeps take n_outer = 8; junctions say what the library raises (task 0088)."""
+    fittings = m["support"]["fittings"]
+    for name in ("Straight", "Bend", "Elbow", "MiterBend", "SplinePipe", "Reducer", "Transition"):
+        assert fittings[name]["specs"]["circle_n_outer_8"] == {"supported": True}, name
+    for name in ("Tee", "Wye"):
+        entry = fittings[name]["specs"]["circle_n_outer_8"]
+        assert entry["supported"] is False and entry["code"] == "junction_needs_rot_0_n_outer_4"
+    assert fittings["Straight"]["specs"]["circle"] == {"supported": True}
     assert m["support"]["fittings"]["Closure"]["probed"] is False
 
 

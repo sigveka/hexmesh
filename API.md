@@ -105,7 +105,7 @@ in degrees. The thresholds are data, in `hexmesh.assembly.limits`.
 
 | Method | Does |
 |---|---|
-| `mesh(dim=3, *, order=1, incomplete=False, walls_by_fitting=False)` | Build faces, fill all fittings, write physical groups, and mesh. Between the surface and volume mesh, junction wall nodes are projected onto their analytic walls (decision 0029); `projection_report` holds each fitting's largest move, absolute and in local wall radii, and its cells' min corner scaled Jacobian. A move beyond `limits.WALL_PROJECTION_WARN_MOVE` (1) wall radii warns; a folded cell (corner SJ ≤ 0) in a projected fitting or its neighbours raises `AssemblyError`, naming the fitting. An OCC or GMSH error inside a fitting's fill also becomes an `AssemblyError` naming the fitting and quoting the original message. Projected nodes keep stale parametric coordinates, so leave GMSH's mesh optimisers off. Walls are `{layer}_wall`, after the layer outermost where they are, plus `{layer}_end` for the end faces of a terminated layer. With `walls_by_fitting`, each is split per fitting, `{group}_{name}`; *name* is the fitting's label or `<Type><index>` (`Bend3`). *order* 2 (task 0076) raises the checked linear mesh to second order: Hex27, or Hex20 with *incomplete*.  High-order nodes on projected walls are projected too, and a bend's high-order nodes between stations are placed exactly on its arcs (gmsh leaves interior axial edges straight, which folds thin shells in tight bends).  gmsh's high-order optimisers are never run.  A hex whose Jacobian determinant is ≤ 0 at one of its nodes or Gauss4 points raises `AssemblyError` (`second_order_inverted`), naming the fitting.  A `Wye` is rejected before meshing (`second_order_unsupported`): its hexes at the creases invert.  `mesh_order` records the order; `cell_count()` is unchanged (cells, not nodes).  Second order is verified with FEniCSx (task 0077, [RESEARCH §7.15](docs/RESEARCH.md)) on straights, bends and tees, Hex27; not for wyes and equal tees (rejected), second-order OpenFOAM output, or flow |
+| `mesh(dim=3, *, order=1, incomplete=False, walls_by_fitting=False)` | Build faces, fill all fittings, write physical groups, and mesh. Between the surface and volume mesh, junction wall nodes are projected onto their analytic walls (decision 0029); `projection_report` holds each fitting's largest move, absolute and in local wall radii, and its cells' min corner scaled Jacobian. A move beyond `limits.WALL_PROJECTION_WARN_MOVE` (1) wall radii warns; a folded cell (corner SJ ≤ 0) in a projected fitting or its neighbours raises `AssemblyError`, naming the fitting. An OCC or GMSH error inside a fitting's fill also becomes an `AssemblyError` naming the fitting and quoting the original message. Projected nodes keep stale parametric coordinates, so leave GMSH's mesh optimisers off. Walls are `{layer}_wall`, after the layer outermost where they are, plus `{layer}_end` for the end faces of a terminated layer. With `walls_by_fitting`, each is split per fitting, `{group}_{name}`; *name* is the fitting's label or `<Type><index>` (`Bend3`). *order* 2 (task 0076) raises the checked linear mesh to second order: Hex27, or Hex20 with *incomplete*.  High-order nodes on projected walls are projected too, and a bend's high-order nodes between stations are placed exactly on its arcs (gmsh leaves interior axial edges straight, which folds thin shells in tight bends).  gmsh's high-order optimisers are never run.  A hex whose Jacobian determinant is ≤ 0 at one of its nodes or Gauss4 points raises `AssemblyError` (`second_order_inverted`), naming the fitting.  A `Wye` is rejected before meshing (`second_order_unsupported`): its hexes at the creases invert.  On an `n_outer = 8` `Transition` the mid-face nodes differ from the 4-corner mesh's by up to 4e-4 R (both lie on an approximate OCC filling; task 0088).  `mesh_order` records the order; `cell_count()` is unchanged (cells, not nodes).  Second order is verified with FEniCSx (task 0077, [RESEARCH §7.15](docs/RESEARCH.md)) on straights, bends and tees, Hex27; not for wyes and equal tees (rejected), second-order OpenFOAM output, or flow |
 | `write(path, dim=3, *, order=1, incomplete=False, walls_by_fitting=False, provenance=True)` | `mesh()`, then `gmsh.write(path)`; the format follows the extension.  A `.msh` carries the recipe block (see below) unless `provenance=False`, which writes exactly gmsh's file.  *order*, *incomplete*: as for `mesh()`; `.msh` 2.2 and 4.1 both carry Hex27 and the physical groups, and the recipe block's write line adds `order=2 incomplete=…` |
 | `write_openfoam(path, *, interfaces=False, walls_by_fitting=False, provenance=True, order=1)` | `mesh()`, then write a `.msh` for `gmshToFoam`: MSH 2.2 ASCII, without the material-interface groups unless `interfaces=True` (the split rebuilds them as `mappedWall`; kept, they become faceZones); the GMSH options and groups are restored afterwards.  Also writes the role manifest `<stem>.roles.json`.  The recipe block as for `write`; `gmshToFoam` skips it.  *order* other than 1 raises `AssemblyError` (`openfoam_needs_order_1`): `gmshToFoam` reads first-order elements only |
 | `group_roles()` | Physical-group name → role (`volume`, `open_end`, `wall`, `interface`), from the graph, as last written by `mesh()` |
@@ -228,7 +228,7 @@ A builder for a concentric layer stack.
 | `nang_w`, `nang_h` | cells along the width and the height of a rectangular core; one per network, as `nang` |
 | `mbmp` | angular bump factor (1 = uniform) |
 | `rot` | rotation of the O-H corners, in degrees; for a rectangle, of the whole rectangle |
-| `n_outer` | structural corners; the assembly supports 4 |
+| `n_outer` | structural corners: 4, or 8, the 4-corner face cut along its middle grid lines (the same mesh; sweeps only, see below) |
 
 #### `.core(name, radius=..., nrad=..., mprg=1.0, first_cell=None)`
 
@@ -244,7 +244,7 @@ the circle, the pipe wall. The core ring is thickest at mid-arc, 0.491 R
 from the inner arc to the circle
 (`hexmesh.core.shape.core_wall_span`), and the progression is solved
 there. So no wall cell is larger than `first_cell`, and the cells at the
-corners (span 0.4 R) are about 0.81× it. It needs `n_outer = 4`. It raises
+corners (span 0.4 R) are about 0.81× it. It needs `n_outer` 4 or 8. It raises
 `ValueError` if no progression fits (for example `first_cell` ≥ the span),
 and `TypeError` together with `mprg`.
 
@@ -294,7 +294,7 @@ from hexmesh.core.shape import CircleShape, RectShape
   8 × 4 throughout (decision 0041). Once a circle is in the stack, every
   outline has the same count on every side (`nang = nang_w = nang_h`),
   since a circle carries one count. Any stack with a rectangle has
-  `n_outer = 4`. `ValueError` (`rect_stack_counts_unequal`) names the
+  `n_outer` 4 or 8. `ValueError` (`rect_stack_counts_unequal`) names the
   layer.
 - **Containment.** Each outline lies inside the next all round, by at
   least `limits.OUTLINE_MIN_GAP` (10⁻³) of the outer one's largest
@@ -1078,6 +1078,12 @@ onto the exact geometry, and records each move (task 0123).  After
   placed on the wall, in the same form, else `"none"`.  A bend's wall
   node is placed on its arc, then on the wall: each entry measures its
   own step;
+- `sub_partition`: on an `n_outer = 8` fitting, the nodes of its
+  partitioned faces (ports and stations) set to the 4-corner face's
+  (task 0088), in the same form, else `"none"`.  gmsh fills each
+  sub-patch on its own and misses the 4-corner mesh by up to ~1e-4 R;
+  the wall radius is the face's outer extent, the local edge length the
+  shortest edge of the 4-corner patch's grid;
 - `elements_written`: elements hexmesh wrote instead of gmsh (decision
   0046 rule 3; 0 in every build today).
 
@@ -1853,7 +1859,7 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `quality_mode_unknown` | an unknown aggregation mode for a hex quality metric | `HexmeshError` |
 | `reader_format_invalid` | a file whose contents a reader can't use | `ReaderError` |
 | `rect_stack_counts_unequal` | a rectangle stack whose outline counts differ from the core's, or unequal per side with a circle | `SpecError` |
-| `rect_stack_needs_n_outer_4` | a stack with a rectangle and n_outer other than 4 | `SpecError` |
+| `rect_stack_needs_n_outer_4` | a stack with a rectangle and n_outer other than 4 or 8 | `SpecError` |
 | `reducer_axis_not_along_pipe` | a network reducer's axis does not continue the incoming pipe | `AssemblyError` |
 | `reducer_eccentric` | an eccentric network reducer | `AssemblyError` |
 | `reducer_grading_one_end` | a Reducer that grades only one end of an H duct | `AssemblyError` |

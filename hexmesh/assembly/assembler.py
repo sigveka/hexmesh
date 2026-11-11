@@ -95,6 +95,8 @@ class Assembly:
         self._checked_volumes: dict[int, list[int]] = {}
         self._fitting_walls:   dict[int, dict[str, list[int]]] = {}
         self._fitting_projections: dict[int, list[tuple[object, list[int]]]] = {}
+        # per fitting: its partitioned faces, ports and stations (task 0088)
+        self._fitting_partitions: dict[int, list] = {}
         # per fitting name: largest projection move and move / local edge
         # length, from the last mesh() (decision 0029)
         self.projection_report: dict[str, dict[str, float]] = {}

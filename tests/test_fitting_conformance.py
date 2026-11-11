@@ -529,6 +529,45 @@ CASES.update({
 })
 
 
+
+def _n8(spec):
+    """*spec* with n_outer = 8: its face cut along the middle grid lines
+    (decision 0005, task 0088)."""
+    d = spec.to_dict()
+    d["n_outer"] = 8
+    return PipeSpec.from_dict(d)
+
+
+# n_outer = 8 on every sweep (task 0088); junctions reject it
+CASES.update({
+    "n8-straight":          lambda: _between(_n8(_one()), Straight(0.3, n_layers=3)),
+    "n8-straight-rolled-90": lambda: _rolled_outlet(_n8(_two()), Straight(0.3, n_layers=3), 90),
+    "n8-straight-twist-90": lambda: _between(_n8(_one()), Straight(0.3, n_layers=8, twist=90)),
+    "n8-bend-rolled-2layer": lambda: _between(_n8(_two()), Bend(0.3, -60, n_layers=4, roll=45)),
+    "n8-closure-twisted":   lambda: _ring(_n8(_one()), [60, 0], Closure(n_layers=12),
+                                          extra_straight=True),
+    "n8-miter-rolled":      lambda: _between(_n8(_two()), MiterBend(0.3, -60, n_cuts=2, roll=30)),
+    "n8-elbow-short":       lambda: _between(_n8(_two()), Elbow(90, "short", n_layers=4,
+                                                               roll=45)),
+    "n8-reducer-2layer":    lambda: _between(_n8(_two()), Reducer(_n8(_two(0.07, 0.015)), 0.2,
+                                                                   n_layers=4)),
+    "n8-profile-cosine":    lambda: _between(_n8(_one()), Reducer(_n8(_one()), 0.4, n_layers=40,
+                                                                   profile=("cosine", 0.25))),
+    "n8-spline-3d-2layer":  lambda: _spline(_n8(_two()), ((0, 0, 0), (0.1, 0.4, 0.1),
+                                                         (0.4, 0.7, 0.4), (0.5, 0.9, 0.9)),
+                                            end_tangent=(0, 0, 1)),
+    "n8-insulation-gap":    lambda: _between(_n8(_three()), Straight(
+        0.6, n_layers=6, stack_changes=((2, _n8(_two())), (4, _n8(_three()))))),
+    "n8-duct-bend-hard":    lambda: _between(_n8(_duct()), Bend(0.3, 90, n_layers=6, roll=90)),
+    "n8-duct-closure":      lambda: _ring(_n8(_duct()), [60, 0, 120], Closure(n_layers=12)),
+    "n8-outline-c-r-c":     lambda: _between(_n8(_cyl_box_cyl()), Bend(0.5, -60, n_layers=4,
+                                                                       roll=45)),
+    "n8-transition-circle-2to1": lambda: _between(_n8(_one()), Transition(_n8(_flat()), 0.3, 4)),
+    "n8-transition-2layer-circle-rect": lambda: _between(_n8(_two()), Transition(
+        _n8(_rect3(0.14, 0.07, lagging=False)), 0.3, 4)),
+})
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

@@ -100,6 +100,10 @@ def _realised(spec):
                 curves[((0, k), (0, j))] = g["ic"][k]
             curves[((lvl + 1, k), (lvl + 1, j))] = g["oc"][k]
             curves[((lvl, k), (lvl + 1, k))] = g["rc"][k]
+        if "cut" in g:      # a partitioned core: the centre and its cuts (task 0088)
+            points[(0, oh.CENTRE)] = cs.center
+            for k in range(1, n, 2):
+                curves[((0, oh.CENTRE), (0, k))] = g["cut"][k]
     return face, points, curves
 
 

@@ -334,7 +334,8 @@ class PipeSpec:
             circle); sets ``mprg`` (< 1).  The core ring is thickest at
             mid-arc (``core_wall_span``), where the wall cell equals
             *first_cell*; at the corners it is about 0.81 of it.  Circular,
-            ``n_outer = 4`` cores only; mutually exclusive with ``mprg``
+            ``n_outer`` 4 or 8 cores only (8 is the 4-corner mesh, cut;
+            task 0088); mutually exclusive with ``mprg``
             (docs/tasks/0002).  On an H core: the end cell of every side,
             at all four walls, resolved here to ``wall_bump`` (task 0084).
         layout : str, optional
@@ -472,8 +473,8 @@ class PipeSpec:
                 raise SpecTypeError("first_cell= supports circular cores only",
                                     code="first_cell_unsupported",
                                     where={"label": name, "field": "first_cell"})
-            if self._n_outer != 4:
-                raise SpecTypeError("first_cell= supports n_outer=4 cores only",
+            if self._n_outer not in (4, 8):
+                raise SpecTypeError("first_cell= supports n_outer=4 or 8 cores only",
                                     code="first_cell_unsupported",
                                     where={"label": name, "field": "first_cell"})
             # Solved on the thickest span (mid-arc), so first_cell is the
@@ -522,8 +523,8 @@ class PipeSpec:
         nang_h)``, which may differ (decision 0041, option B).  A stack
         with a rectangle and a circle has equal counts on every side of
         every outline (``nang = nang_w = nang_h``): a circle carries one
-        count.  Any stack with a rectangle has ``n_outer = 4``.  Checked
-        here.
+        count.  Any stack with a rectangle has ``n_outer`` 4 or 8 (8 cuts
+        the 4-corner face, task 0088).  Checked here.
         That each outline lies inside the next is checked by the
         assembly's validation.
 
@@ -599,9 +600,9 @@ class PipeSpec:
         outlines = self.outlines + [outline]
         if all(type(o).side_curve == "arc" for o in outlines):
             return                              # circles: nang already shared
-        if self._n_outer != 4:
+        if self._n_outer not in (4, 8):     # 8: the 4-corner face, cut (task 0088)
             raise SpecError(f"shell `{name}`: a stack with a rectangular outline "
-                             f"needs n_outer = 4, got {self._n_outer}",
+                             f"needs n_outer = 4 or 8, got {self._n_outer}",
                             code="rect_stack_needs_n_outer_4",
                             where={"label": name, "field": "n_outer"}, value=self._n_outer,
                             limit=4, hint="use PipeSpec(n_outer=4)")
@@ -666,12 +667,11 @@ class PipeSpec:
     def corners(self) -> list[list]:
         """Corner points ``(u, v)`` of every layer's outer boundary, before
         ``rot``: the core's O-H corners, then each ring's (its corner lines
-        run from the previous layer's corners; ``ring_corners``)."""
+        run from the previous layer's corners; ``ring_corners``).  The four
+        structural corners for every ``n_outer``: a partitioned face only
+        cuts between them (decision 0005, task 0088)."""
         outlines = self.outlines
-        n = self._n_outer if type(outlines[0]).side_curve == "arc" else 4
-        out = [[outlines[0].corner(k * 4 // n) if n == 4 else
-                outlines[0].ring_corner(math.pi / 4 + 2 * math.pi * k / n)
-                for k in range(n)]]
+        out = [[outlines[0].corner(k) for k in range(4)]]
         for o in outlines[1:]:
             out.append(ring_corners(out[-1], o))
         return out
@@ -725,16 +725,15 @@ class PipeSpec:
         (NE→NW first): ``nang // (n_outer // 4)`` per arc of a circle;
         ``(nang_w, nang_h, nang_w, nang_h)`` for a rectangle."""
         shape = self.core_shape
-        n = self._n_outer if shape.is_round else 4
-        return tuple(shape.side_count(k, n) for k in range(n))
+        return tuple(shape.side_count(k, self._n_outer) for k in range(self._n_outer))
 
     @property
     def period(self) -> float:
         """Geometric symmetry period P in radians: the smallest roll that
         maps the section onto itself (DESIGN §6.1, decision 0010).
-        ``2π / n_outer`` for a circle, π/2 for a square, π for any other
-        rectangle; for a stack, the largest over its outlines (they are
-        all of the form 2π/m with m dividing 4)."""
+        π/2 for a circle and a square, for every ``n_outer`` (decision
+        0010 as amended: a partition doesn't change the mesh), π for any
+        other rectangle; for a stack, the largest over its outlines."""
         return max(o.period(self._n_outer) for o in self.outlines)
 
     @property

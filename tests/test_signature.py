@@ -102,7 +102,7 @@ class TestClassify:
         a = PipeSpec(nang=4).core("fluid", radius=0.1, nrad=3)
         b = PipeSpec(nang=4, n_outer=8).core("fluid", radius=0.1, nrad=3)
         c = _cls(a, b)
-        assert c.cls == 3 and {d.field for d in c.differences} == {"n_outer", "period"}
+        assert c.cls == 3 and {d.field for d in c.differences} == {"n_outer"}   # P = 90° both (0088)
 
 
 # ---------------------------------------------------------------------------

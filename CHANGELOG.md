@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+**`n_outer = 8` is the 4-corner mesh, cut** (decision 0005; task 0088).
+- The face is the `n_outer = 4` face cut along its middle grid lines:
+  four core blocks around the centre, two per ring patch.  Its nodes and
+  cells are the 4-corner mesh's (1e-10 R in faces and one-layer sweeps;
+  see the task for multi-layer slabs and second order).  Every sweep
+  takes it, with circular and O-H rectangular layers; junctions and the
+  H layout still need 4.  `n_outer = 12` is rejected
+  (`section_not_supported`).
+- `build_oh_circle8` (one 8-sided centre patch, never meshable) is gone;
+  `sections.build_oh_split` builds the face.
+- `Assembly.corrections` has a `sub_partition` entry: the nodes set to
+  the 4-corner mesh's (gmsh's own fill of a sub-patch misses it by up to
+  ~1e-4 R).
+- The section period is 90° for a circle at every `n_outer` (decision
+  0010), in `PipeSpec.period` and the signature; `first_cell=` and
+  rectangle stacks take `n_outer = 8`.
+- `n_outer = 4` meshes are unchanged (every example, byte for byte).
+
 **A tee branch with its own wall cell** (decision 0028; task 0131).
 - `Tee(branch_first_cell=…)` or `branch_mprg=`: the branch port's core
   grading, blended from the main's along the branch run.  Stored as

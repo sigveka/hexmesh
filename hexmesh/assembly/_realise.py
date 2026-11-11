@@ -31,6 +31,7 @@ from .sweep import Arc
 from .corners import transfinite_surface_corners, transfinite_volume_corners
 from .fittings import FillResult
 from .interface import build_face
+from ..sections.oh_gmsh import place_partition_nodes
 from . import _checks
 from ._checks import _require_session
 
@@ -197,6 +198,8 @@ def fill(asm, order: Iterable[int] | None = None) -> None:
             walls.setdefault(part.wall_groups.get(w, default), []).append(w)
         asm._fitting_walls[edge.index] = walls
         asm._fitting_projections[edge.index] = part.projections
+        asm._fitting_partitions[edge.index] = (
+            [p.face for p in edge.ports if p.face.layers[0][1].n_outer == 8] + part.partitions)
         fill.merge(part)
     _occ.remove_discarded()
     gmsh.model.occ.synchronize()
@@ -249,17 +252,49 @@ def mesh(asm, dim: int = 3, *, order: int = 1, incomplete: bool = False,
     asm.write_physical_groups(walls_by_fitting)
     with _occ.building():       # the build's records are still valid
         _set_constraints(asm)
-    gmsh.model.mesh.generate(min(dim, 2))
+    faces = list({id(f): f for fs in asm._fitting_partitions.values() for f in fs}.values())
+    if faces and dim >= 2:
+        # n_outer = 8: every node of a partitioned face onto the 4-corner
+        # face's, before the wall projection (task 0088)
+        gmsh.model.mesh.generate(1)
+        split = place_partition_nodes(faces, 1)
+        gmsh.model.mesh.generate(2)
+        split += place_partition_nodes(faces, 2)
+    else:
+        gmsh.model.mesh.generate(min(dim, 2))
+        split = []
     moved = asm._project_walls() if dim >= 2 else {}
     if dim == 3:
         gmsh.model.mesh.generate(3)
     _checks._check_projection(asm, moved)
     if dim == 3:
         _checks._check_meshed_sj(asm)
-    placed, arcs = _second_order(asm, incomplete) if order == 2 else ({}, {})
-    _checks._record_corrections(asm, moved, placed, arcs)
+    if order == 2:
+        placed, arcs, split_ho = _second_order(asm, incomplete, faces)
+        split += split_ho
+    else:
+        placed, arcs = {}, {}
+    _checks._record_corrections(asm, moved, placed, arcs, _split_moves(asm, split))
     asm.mesh_order = order
     asm._meshed = True
+
+
+def _split_moves(asm, split) -> dict[int, tuple[np.ndarray, np.ndarray, np.ndarray]]:
+    """Per fitting index, the moves of ``place_partition_nodes`` on its
+    partitioned faces (ports and stations), as :meth:`_project_walls`'s:
+    lengths, the face's radius (its outline's largest extent), the local
+    grid edge."""
+    by_face: dict[int, list] = {}
+    for face, move, edge in split:
+        by_face.setdefault(id(face), []).append((face, move, edge))
+    out = {}
+    for i, faces in asm._fitting_partitions.items():
+        parts = [r for f in faces for r in by_face.get(id(f), [])]
+        if parts:
+            out[i] = tuple(np.concatenate(c) for c in zip(*(
+                (m, np.full(len(m), f.layers[-1][1].shape.max_extent), h)
+                for f, m, h in parts)))
+    return out
 
 
 def _project_walls(asm) -> dict[int, tuple[np.ndarray, np.ndarray]]:
@@ -294,12 +329,14 @@ def _project_walls(asm) -> dict[int, tuple[np.ndarray, np.ndarray]]:
     return {i: tuple(np.concatenate(c) for c in zip(*v)) for i, v in moved.items()}
 
 
-def _second_order(asm, incomplete: bool) -> tuple[dict, dict]:
-    """``setOrder(2)`` on the checked linear mesh, a bend's high-order
-    nodes onto its arcs, then every high-order node on a projected
-    fitting's walls onto that fitting's projector, and the validity
-    check (task 0076).  Returns the wall placement's and the arc
-    placement's moves per fitting index, as :meth:`_project_walls`."""
+def _second_order(asm, incomplete: bool, faces: list) -> tuple[dict, dict, list]:
+    """``setOrder(2)`` on the checked linear mesh, the halves' mid-edge
+    nodes of partitioned *faces* onto the 4-corner face's (task 0088), a
+    bend's high-order nodes onto its arcs, then every high-order node on
+    a projected fitting's walls onto that fitting's projector, and the
+    validity check (task 0076).  Returns the wall placement's and the arc
+    placement's moves per fitting index, as :meth:`_project_walls`, and
+    the partition's, as ``place_partition_nodes``."""
     opt = "Mesh.SecondOrderIncomplete"
     was = gmsh.option.getNumber(opt)
     try:
@@ -307,6 +344,7 @@ def _second_order(asm, incomplete: bool) -> tuple[dict, dict]:
         gmsh.model.mesh.setOrder(2)
     finally:
         gmsh.option.setNumber(opt, was)
+    split = place_partition_nodes(faces, 3)
     msh = gmsh.model.mesh
     placed: dict[int, list] = {}
     arcs: dict[int, tuple] = {}
@@ -336,7 +374,7 @@ def _second_order(asm, incomplete: bool) -> tuple[dict, dict]:
                  np.array([ho[int(t)] for t in tags])))
     _checks._check_second_order(asm)
     return ({i: tuple(np.concatenate(c) for c in zip(*v)) for i, v in placed.items()},
-            arcs)
+            arcs, split)
 
 
 def _revolve_high_order(asm, e, arc: Arc) -> None:

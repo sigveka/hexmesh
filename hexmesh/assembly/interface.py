@@ -287,13 +287,14 @@ def check_supported(spec: PipeSpec) -> None:
             code="section_not_supported", value=type(shape).__name__,
             hint="use a CircleShape or RectShape core"
         )
-    if spec.n_outer != 4:
+    if spec.n_outer not in (4, 8):
+        # n_outer = 12: the core's grid lines at 1/3 and 2/3 are curved, so
+        # straight cuts can't carry them (task 0088)
         raise AssemblyError(
-            f"assembly prototype supports n_outer=4 only, got {spec.n_outer}: "
-            f"the n_outer=8 core centre patch has 8 sides and cannot bound a "
-            f"transfinite hex block",
+            f"n_outer must be 4 or 8, got {spec.n_outer}: a core cut into "
+            f"{spec.n_outer // 4} × {spec.n_outer // 4} needs curved cuts",
             code="section_not_supported", where={"field": "n_outer"}, value=spec.n_outer,
-            limit=4, hint="use n_outer=4 (n_outer=8 comes with task 0088)"
+            limit=[4, 8], hint="use n_outer=4 or 8"
         )
     check_outlines(spec)
 

@@ -197,6 +197,16 @@ def _check_circle(spec: PipeSpec) -> None:
                                 f"shells are circular only (decisions 0026, 0028)",
                                 code="junction_shells_not_circular", where={"label": sh.name},
                                 hint=f"give shell `{sh.name}` dR= (a circle) instead of outer=")
+    _check_rot_n_outer(spec)
+
+
+def _check_rot_n_outer(spec: PipeSpec) -> None:
+    """The template's corners are the 4-corner face's at rot = 0: before
+    resolve() measures it (n_outer = 8 passes check_supported, task 0088)."""
+    if spec.rot != 0 or spec.n_outer != 4:
+        raise AssemblyError("Tee prototype requires rot = 0 and n_outer = 4",
+                            code="junction_needs_rot_0_n_outer_4", where={"field": "rot"},
+                            hint="use PipeSpec(rot=0, n_outer=4)")
 
 
 def turning_height(R: float, r: float, T: float, angle: float = 90.0) -> float:
@@ -572,10 +582,7 @@ class Tee:
                                 hint="add the fitting to an assembly")
         R, r = spec.core_shape.radius, self.branch_radius
         T = thicknesses(spec)[-1]
-        if spec.rot != 0 or spec.n_outer != 4:
-            raise AssemblyError("Tee prototype requires rot = 0 and n_outer = 4",
-                                code="junction_needs_rot_0_n_outer_4", where={"field": "rot"},
-                                hint="use PipeSpec(rot=0, n_outer=4)")
+        _check_rot_n_outer(spec)
         if self.toward is not None:
             raise AssemblyError("Tee: toward is resolved by Assembly.add(); add the "
                                 "fitting to an assembly",

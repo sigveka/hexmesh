@@ -48,6 +48,17 @@ Topology, viewed from the extrusion direction::
 - **Vertex keys** of a block layout are ``(prefix, level, k)``; the tee,
   wye and duct tap bind to them.
 
+- **Partition** (decision 0005, task 0088): ``n_outer = 8`` is the
+  4-corner face cut along its middle grid lines.  Corner 2j is 4-corner
+  corner j; corner 2j + 1 is the middle of side j (``split_corners``), on
+  every level.  The core is four sub-patches around the centre, corner
+  ``(0, n_outer)`` (``CENTRE``), cut by the lines from it to the odd
+  inner corners; each ring patch is cut by the odd corner lines.  Node
+  for node it is the 4-corner mesh: ``coons`` gives the full patches'
+  grids, which the GMSH face's nodes are set to
+  (``oh_gmsh.place_partition_nodes``).  Only m = 2: at m = 3 the core's
+  grid lines at 1/3 and 2/3 are curved.
+
 Which ``CrossSection`` fields are O-H anatomy rather than generic (task
 0082, item 4): ``inner_points``, ``inner_curves`` and ``radial_curves``
 (the core's inner square and the corner lines), ``corner_angles``, and
@@ -164,6 +175,55 @@ def outline(shape, k: int, s, inner: bool = False) -> np.ndarray:
     raise InternalError(f"no outline for {type(shape).__name__}")
 
 
+#: corner index of the core centre on level 0 of a partitioned face
+#: (``n_outer = 8``): ``(0, CENTRE)``
+CENTRE = 8
+
+
+def partition(n_outer: int) -> int:
+    """Pieces per side of an ``n_outer`` face: m = n_outer / 4."""
+    return n_outer // 4
+
+
+def split_corners(shape, rot: float) -> tuple[list[np.ndarray], list[np.ndarray]]:
+    """(inner, outer) corners of *shape*'s core for ``n_outer = 8``, ``(u,
+    v)`` with *rot*: the 4-corner face's corners at even indices, the
+    middles of its sides (inner and outer curves, ``outline`` at s = ½)
+    at odd ones.  The GMSH face moves its middle nodes onto the full
+    curves' own (``oh_gmsh``); these are the geometry's points."""
+    inner4, outer4 = core_corners(shape, 4, rot)
+    inner, outer = [], []
+    for j in range(4):
+        inner += [inner4[j], rotated(outline(shape, j, 0.5, inner=True), rot)]
+        outer += [outer4[j], rotated(outline(shape, j, 0.5), rot)]
+    return inner, outer
+
+
+def coons(bottom, right, top, left) -> np.ndarray:
+    """A transfinite patch's nodes as GMSH 4.12.1 fills it, from its four
+    boundary rows: *bottom* and *top* run along u (left → right), *left*
+    and *right* along v (bottom → top), corners shared.  Node i's u is
+    the cumulative average of the bottom and top segment lengths,
+    normalised; v likewise from left and right (``docs/integrations/
+    gmsh.md``, task 0088; ``_coons`` above uses one side's chord
+    fractions, for the predicted quality).  Returns ``(len(bottom),
+    len(left), dim)``."""
+    bottom, right, top, left = (np.asarray(a, dtype=float) for a in (bottom, right, top, left))
+
+    def frac(a, b):
+        d = 0.5 * (np.linalg.norm(np.diff(a, axis=0), axis=1)
+                   + np.linalg.norm(np.diff(b, axis=0), axis=1))
+        c = np.concatenate([[0.0], np.cumsum(d)])
+        return c / c[-1]
+    u = frac(bottom, top)[:, None, None]
+    v = frac(left, right)[None, :, None]
+    B, T = bottom[:, None, :], top[:, None, :]
+    L, R = left[None, :, :], right[None, :, :]
+    return ((1 - u) * L + u * R + (1 - v) * B + v * T
+            - ((1 - u) * (1 - v) * bottom[0] + u * (1 - v) * bottom[-1]
+               + u * v * top[-1] + (1 - u) * v * top[0]))
+
+
 def corner0_angle(spec) -> float:
     """Angle of corner 0 (NE) from ``frame.right`` for faces built from
     *spec*, ``rot`` included."""
@@ -176,7 +236,10 @@ def core_directions(shape, n_outer: int) -> list[float]:
     none, so its rings start from the circle's directions."""
     if isinstance(shape, RectShape):
         a0 = math.atan2(shape.half_h, shape.half_w)
-        return [a0, math.pi - 2 * a0 + a0, math.pi + a0, 2 * math.pi - 2 * a0 + a0]
+        four = [a0, math.pi - 2 * a0 + a0, math.pi + a0, 2 * math.pi - 2 * a0 + a0]
+        if n_outer == 8:            # the middles of the sides between (task 0088)
+            return [a for j in range(4) for a in (four[j], (j + 1) * math.pi / 2)]
+        return four
     if n_outer == 8:
         return [(k + 1) * math.pi / 4 for k in range(8)]
     return [(2 * k + 1) * math.pi / 4 for k in range(n_outer)]
@@ -193,6 +256,8 @@ def core_corners(shape, n_outer: int, rot: float) -> tuple[list[np.ndarray], lis
     """(inner, outer) corners of the core, ``(u, v)`` with *rot* applied.
     A circle's are placed at their angles (``rot`` added to the angle),
     the others turned as points."""
+    if n_outer == 8:
+        return split_corners(shape, rot)
     if isinstance(shape, CircleShape):
         d = [a + rot for a in core_directions(shape, n_outer)]
         polar = lambda r, a: np.array([math.cos(a) * r, math.sin(a) * r])
@@ -210,6 +275,17 @@ def ring_corners(outline, angles, rot: float) -> tuple[list[np.ndarray], list[fl
     the inner corners' *angles* (radians, ``rot`` included, as
     ``CrossSection.corner_angles``), and the angles the next ring starts
     from: the same on a circle, else toward the new corners."""
+    if len(angles) == 8 and type(outline).side_curve != "arc":
+        # a partitioned face (task 0088): the 4-corner ring's corners, and
+        # the middles of its sides between them
+        four, four_angles = ring_corners(outline, angles[::2], rot)
+        corners = []
+        for j in range(4):
+            a, b = four[j], four[(j + 1) % 4]
+            mid = (outline.side_samples(j, np.array([0.5]))[0]
+                   if type(outline).side_curve == "spline" else 0.5 * (a + b))
+            corners += [a, mid]
+        return corners, [rot + math.atan2(p[1], p[0]) for p in corners]
     corners = outline.corners_from([a - rot for a in angles])
     if type(outline).side_curve == "arc":
         return corners, list(angles)
@@ -259,11 +335,15 @@ def levels(spec) -> list[Level]:
         corners, angles = ring_corners(o, angles, rot)
         pts.append([rotated(p, rot) for p in corners])
     polar = [None] * len(pts)
+    if n == 8:              # the centre, on level 0 (task 0088)
+        pts[0] = list(pts[0]) + [np.zeros(2)]
     if all(isinstance(o, CircleShape) for o in outlines):
         a0 = corner0_angle(spec)
         ang = tuple(a0 + 2 * math.pi * k / n for k in range(n))
         radii = [inner_radius(outlines[0].radius)] + [o.radius for o in outlines]
         polar = [(r, ang) for r in radii]
+        if n == 8:          # the inner side middles aren't at the inner radius
+            polar[0] = None
     nrads = [spec._core_nrad] + [sh.nrad for sh in spec.shells]
     mprgs = [spec._core_mprg] + [sh.mprg for sh in spec.shells]
     bump = ("Bump", spec.mbmp) if spec.mbmp != 1.0 else None
@@ -277,6 +357,9 @@ def levels(spec) -> list[Level]:
             if lvl:
                 edges.append(Edge((lvl - 1, k), (lvl, k), nrads[lvl - 1],
                                   ("Progression", mprgs[lvl - 1])))
+        if n == 8 and lvl == 0:     # the core cuts: centre → odd inner corners
+            for k in range(1, n, 2):
+                edges.append(Edge((0, CENTRE), (0, k), counts[0][(k + 1) % n], None))
         out.append(Level(tuple(corners), tuple(edges), polar[lvl]))
     return out
 
@@ -286,7 +369,11 @@ def patches(spec) -> list[tuple[str, tuple[tuple[int, int], ...]]]:
     centre patch, then each layer's ring patches."""
     n = spec.n_outer
     names = spec.layer_names
-    out = [(names[0], tuple((0, k) for k in range(n)))]
+    if n == 8:              # four core sub-patches around the centre (task 0088)
+        out = [(names[0], ((0, (c - 1) % n), (0, c), (0, c + 1), (0, CENTRE)))
+               for c in range(0, n, 2)]
+    else:
+        out = [(names[0], tuple((0, k) for k in range(n)))]
     for lvl, name in enumerate(names):
         for k in range(n):
             j = (k + 1) % n
@@ -357,5 +444,6 @@ def section_cells(spec) -> int:
     ``nang_w, nang_h, nang_w, nang_h``.
     """
     c = spec.side_counts
+    m = partition(spec.n_outer)        # a partitioned face: the same cells (task 0088)
     nrads = [spec._core_nrad] + [sh.nrad for sh in spec.shells]
-    return c[0] * c[1] + sum(c) * sum(nrads)
+    return m * c[0] * m * c[m] + sum(c) * sum(nrads)

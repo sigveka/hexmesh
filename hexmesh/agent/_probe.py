@@ -71,6 +71,9 @@ PROBE_SPECS = {
 
 def _other_shape(key: str) -> PipeSpec:
     """A Transition's outlet: a rectangle from a circle, a circle from a rectangle."""
+    if key == "circle_n_outer_8":           # an O-H rectangle of the inlet's topology
+        return PipeSpec(nang_w=8, nang_h=8, n_outer=8).core(
+            "fluid", half_w=0.04, half_h=0.04, nrad=2, layout="oh")
     if PROBE_SPECS[key][0] == "circle":
         return PipeSpec(nang_w=4, nang_h=4).core("fluid", half_w=0.04, half_h=0.04)
     return PipeSpec(nang=4).core("fluid", radius=0.05, nrad=2)

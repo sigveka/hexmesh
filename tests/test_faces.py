@@ -31,7 +31,8 @@ import numpy as np
 from hexmesh.core.cross_section import BoundaryType
 from hexmesh.assembly.interface import Frame
 from hexmesh.core.shape import CircleShape, RectShape
-from hexmesh.sections import build_oh_circle, build_oh_circle8
+from hexmesh.errors import SpecError
+from hexmesh.sections import build_oh_circle, build_oh_split
 from hexmesh.sections import build_oh_rect
 from hexmesh.sections import build_annulus
 from hexmesh.sections import build_ring
@@ -156,11 +157,12 @@ class TestBuildOhCircle:
 
 
 # ===========================================================================
-# build_oh_circle8
+# build_oh_split (n_outer = 8, task 0088)
 # ===========================================================================
 
-class TestBuildOhCircle8:
-    """Stage 1: 9-patch OH with n_outer=8 (8 outer corners at every 45°)."""
+class TestBuildOhSplit:
+    """n_outer=8: the 4-corner face cut along its middle grid lines, four
+    core sub-patches and eight ring patches (decision 0005, task 0088)."""
 
     def _build(self, gmsh_session, **kwargs):
         c = _cursor_xz()
@@ -171,11 +173,11 @@ class TestBuildOhCircle8:
             lc=0.1, nrad=3,
         )
         defaults.update(kwargs)
-        return build_oh_circle8(**defaults)
+        return build_oh_split(**defaults)
 
-    def test_returns_nine_surfaces(self, gmsh_session):
+    def test_returns_twelve_surfaces(self, gmsh_session):
         cs = self._build(gmsh_session)
-        assert len(cs.surfaces) == 9
+        assert len(cs.surfaces) == 12
 
     def test_boundary_type_circular(self, gmsh_session):
         cs = self._build(gmsh_session)
@@ -224,7 +226,7 @@ class TestBuildOhCircle8:
 
     def test_non_origin_position(self, gmsh_session):
         cs = self._build(gmsh_session, cx=0.5, cy=0.0, cz=0.5)
-        assert len(cs.surfaces) == 9
+        assert len(cs.surfaces) == 12
 
     def test_arbitrary_orientation(self, gmsh_session):
         c = Frame.from_vectors(
@@ -232,7 +234,7 @@ class TestBuildOhCircle8:
             np.array([1., 1., 0.]) / np.sqrt(2),
             np.array([0., 0., 1.]),
         )
-        cs = build_oh_circle8(
+        cs = build_oh_split(
             cx=0., cy=0., cz=0.,
             shape=CircleShape(radius=0.1, nang=4),
             h_axis=c.right, v_axis=c.up,
@@ -242,20 +244,21 @@ class TestBuildOhCircle8:
         np.testing.assert_allclose(cs.v_axis, c.up,    atol=1e-12)
 
     def test_odd_nang_raises(self, gmsh_session):
-        """nang must be even for 8-corner OH."""
-        with pytest.raises(ValueError, match="nang to be even"):
+        """Each side is cut in half: its divisions must be even."""
+        with pytest.raises(SpecError) as e:
             self._build(gmsh_session, shape=CircleShape(radius=0.1, nang=3))
+        assert e.value.code == "nang_not_divisible"
 
     def test_nang_6_works(self, gmsh_session):
         """nang=6 (even) is valid."""
         cs = self._build(gmsh_session, shape=CircleShape(radius=0.1, nang=6))
-        assert len(cs.surfaces) == 9
+        assert len(cs.surfaces) == 12
 
     def test_rot_offset(self, gmsh_session):
         """rot parameter rotates all corners without changing surface count."""
         import math
         cs = self._build(gmsh_session, rot=math.pi / 8)
-        assert len(cs.surfaces) == 9
+        assert len(cs.surfaces) == 12
         assert len(cs.outer_points) == 8
 
     def test_5patch_n_outer_is_4(self, gmsh_session):
@@ -415,7 +418,7 @@ class TestBuildAnnulus8:
 
     def _core8(self, gmsh_session):
         c = _cursor_xz()
-        return build_oh_circle8(
+        return build_oh_split(
             cx=0., cy=0., cz=0.,
             shape=CircleShape(radius=0.1, nang=4),
             h_axis=c.right, v_axis=c.up,

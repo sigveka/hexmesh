@@ -42,6 +42,7 @@ Checked against meshed straights for every case of
 
 from __future__ import annotations
 
+import copy
 import math
 from dataclasses import dataclass
 
@@ -111,14 +112,17 @@ def section_quality(spec: PipeSpec) -> list[LayerQuality]:
     each layer of *spec*'s section, core first (pure Python).
 
     A layer's non-orthogonality includes the faces it shares with the
-    layer inside it.  Needs circle and rectangle outlines and
-    ``n_outer = 4``, as ``check_supported``.
+    layer inside it.  Needs circle and rectangle outlines, as
+    ``check_supported``.  ``n_outer = 8`` is the 4-corner face's mesh
+    (task 0088), so its quality.
     """
-    if spec.n_outer != 4 or any(o.is_station for o in spec.outlines):
-        raise AssemblyError("section_quality needs circle and rectangle "
-                            "outlines and n_outer = 4",
+    if any(o.is_station for o in spec.outlines):
+        raise AssemblyError("section_quality needs circle and rectangle outlines",
                             code="section_not_supported",
-                            hint="use circle or rectangle layers and n_outer=4")
+                            hint="use circle or rectangle layers")
+    if spec.n_outer != 4:
+        spec = copy.copy(spec)
+        spec._n_outer = 4
     quads, layer = [], []
     for i, grid in layout_of(spec).node_grids(spec):
         q = _quads(grid)

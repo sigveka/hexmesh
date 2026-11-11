@@ -206,7 +206,9 @@ class CircleShape:
         return self.radius if np.ndim(angle) == 0 else np.full(np.shape(angle), self.radius)
 
     def period(self, n_corners: int) -> float:
-        return 2 * math.pi / n_corners
+        # π/2 for every n_outer: a partition doesn't change the mesh
+        # (decision 0010 as amended by decision 0005)
+        return math.pi / 2
 
     def distance(self, u, v):
         return np.abs(np.hypot(u, v) - self.radius)
@@ -320,7 +322,8 @@ class RectShape:
         return np.asarray(p0) + (np.asarray(p1) - np.asarray(p0)) * s
 
     def side_count(self, k: int, n_corners: int) -> int:
-        return self.nang_w if k % 2 == 0 else self.nang_h
+        m = n_corners // 4          # curve k is a piece of side k // m (task 0088)
+        return (self.nang_w if (k // m) % 2 == 0 else self.nang_h) // m
 
     def extent(self, angle):
         return self.half_w * np.abs(np.cos(angle)) + self.half_h * np.abs(np.sin(angle))
@@ -536,7 +539,8 @@ class BlendShape:
         return self.side_samples(k, 0.0)
 
     def side_count(self, k: int, n_corners: int) -> int:
-        return self.nang_w if k % 2 == 0 else self.nang_h
+        m = n_corners // 4          # curve k is a piece of side k // m (task 0088)
+        return (self.nang_w if (k // m) % 2 == 0 else self.nang_h) // m
 
     def corners_from(self, directions) -> list[np.ndarray]:
         """The blended corners; a station's corner lines join the blended

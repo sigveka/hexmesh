@@ -1127,7 +1127,7 @@ class Transition(_AxialOutlet):
         ca, cb = spec.corners(), b.corners()
         oa, ob = spec.outlines, b.outlines
         name, shape = spec._core
-        out = PipeSpec(rot=spec.rot, mbmp=spec.mbmp).core(
+        out = PipeSpec(rot=spec.rot, mbmp=spec.mbmp, n_outer=spec.n_outer).core(
             name, BlendShape(shape, b.core_shape, u),
             nrad=spec._core_nrad, mprg=spec._core_mprg)
         for i, sh in enumerate(spec.shells, start=1):

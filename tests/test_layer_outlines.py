@@ -73,10 +73,13 @@ class TestSpec:
         with pytest.raises(ValueError, match=r"shell `block`: .*layer `block` has \(4, 2\)"):
             _in(RectShape(0.25, 0.125, 4, 2))
 
-    def test_rectangle_needs_n_outer_4(self):
+    def test_rectangle_needs_n_outer_4_or_8(self):
+        """8 is the 4-corner face cut (task 0088); 12 is not built."""
         spec = PipeSpec(nang=8, n_outer=8).core("fluid", CircleShape(0.1, 8), nrad=3)
-        with pytest.raises(ValueError, match="n_outer = 4"):
-            spec.shell("block", outer=RectShape(0.2, 0.2, 8, 8), nrad=2)
+        spec.shell("block", outer=RectShape(0.2, 0.2, 8, 8), nrad=2)
+        spec = PipeSpec(nang=12, n_outer=12).core("fluid", CircleShape(0.1, 12), nrad=3)
+        with pytest.raises(ValueError, match="n_outer = 4 or 8"):
+            spec.shell("block", outer=RectShape(0.2, 0.2, 12, 12), nrad=2)
 
     def test_round_trip(self):
         spec = (_in(RectShape(0.25, 0.125, 4, 4), "filler")

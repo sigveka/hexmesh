@@ -279,6 +279,55 @@ lies on an analytic wall.
     didn't help.  Not used for the wye: its nodes are projected instead
     (next section).
 
+### Transfinite surfaces: parameters from averaged opposite sides; moved curve nodes stick — *verified*
+
+gmsh 4.12.1, 2026-11-11, task 0088 (decision 0005).  Scratch script: the
+O-H circle face cut into a 2×2 core and 8 ring patches, against
+`build_oh_circle`, `nang` 4/8/24.
+
+- **The 2-D transfinite fill (`generate(2)`) parametrises a patch by the
+  averaged segment lengths of its opposite sides**: node i's u is the
+  cumulative ½(|b_i b_{i+1}| + |t_i t_{i+1}|) over bottom b and top t,
+  normalised; v likewise from left and right.  Coons with these u, v
+  reproduces gmsh's patch interior to 7e-16 R.  The four other choices
+  (one side's own fractions, either pair; the fractions averaged) miss by
+  1e-5 to 1.3e-4 R.  So a sub-patch of a Coons patch is *not* the
+  restriction of the whole when its new side (a cut) is spaced unlike the
+  side it faces: the averaging mixes them.  On the whole O-H core the
+  opposite sides are mirror images, so the averaging changes nothing.
+- **Explicit corners don't change it**: `setTransfiniteSurface(s,
+  "Left", corners)` with the first two sides on the original boundary
+  gives the same result.
+- **1-D nodes moved between `generate(1)` and `generate(2)` stick**:
+  `setNode(tag, xyz, [t])` on a straight line's interior nodes (t the
+  line parameter of the new position), then `generate(2)`: the nodes stay
+  (0.0 shift) and the patches are filled from them.  `generate(2)` keeps
+  an existing 1-D mesh.
+- **What makes the partitioned face exact**: move the cut lines' 1-D
+  nodes onto the full patch's grid line after `generate(1)`, then each
+  sub-patch's interior nodes onto the full patch's grid after
+  `generate(2)` (with `getParametrization` for their (u, v)).  Result:
+  identical node and quad counts, identical connectivity, max shift
+  2.7e-15 R (`nang` 4, 8, 24; `mprg` 1, 1.2, 1.05).
+- Construction points (arc centres, the centre point) get a mesh node
+  each; compare only the nodes elements use.
+- **Curved faces are filled in their own parameter space** (same task,
+  whole assemblies): the interior nodes of a curved transfinite face (a
+  ruled B-spline side face of a multi-layer `Straight`) are placed by
+  TFI in the face's (u, v), then evaluated on the face.  A half face is
+  parametrised differently from the whole, so the cut mesh differs from
+  the 4-corner one there by 1.4e-7 R; the 4-corner mesh is itself
+  1.3e-7 R off the exact extrusion, the cut one 2.7e-9 R.  Faces with
+  one layer per slab carry no interior nodes, and planar faces are
+  exact.
+- **`setOrder(2)` places high-order nodes at the parameter midpoint of
+  the CAD entity**: on a curve, the parameter midpoint between the end
+  nodes, so a half B-spline's mid-edge nodes differ from the whole's
+  (4e-4 R on a `Transition` station); copying them from the whole curve
+  (meshed as a construction curve, whose line elements are raised too)
+  fixes it.  On a B-spline filled face the mid-face nodes differ the
+  same way and are left (4e-4 R; circular arcs: 3e-13 R).
+
 ### Moving surface nodes before volume meshing — *verified*
 
 gmsh 4.12.1, 2026-10-29, task 0051 (decision 0029).  `Assembly.mesh()`

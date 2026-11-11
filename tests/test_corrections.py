@@ -30,7 +30,7 @@ from hexmesh.core.spec import PipeSpec
 from hexmesh.examples.fittings import junction_walls, tee
 
 KEYS = {"fitting", "type", "wall_projection", "second_order_arc_nodes", "second_order_wall_nodes",
-        "elements_written"}
+        "sub_partition", "elements_written"}
 
 
 @pytest.mark.parametrize("order", [1, 2])
@@ -45,6 +45,7 @@ def test_every_fitting_is_recorded_and_matches_projection_report(order):
     assert report.corrections == asm.corrections
     for name, c in asm.corrections.items():
         assert set(c) == KEYS and c["elements_written"] == 0
+        assert c["sub_partition"] == "none"            # n_outer = 4
         proj = asm.projection_report.get(name)
         if proj is None:
             assert c["wall_projection"] == "none"
@@ -58,6 +59,30 @@ def test_every_fitting_is_recorded_and_matches_projection_report(order):
         assert (placed == "none") == (order == 1)
     assert "What hexmesh changed in gmsh's mesh" in str(report)
     assert "none" in str(report)
+
+
+@pytest.mark.parametrize("order", [1, 2])
+def test_every_fitting_of_an_n_outer_8_assembly_records_its_partition(order):
+    """Task 0088: the nodes set to the 4-corner face's are recorded on
+    every fitting, ports and stations; the moves are gmsh's own fill
+    missing the 4-corner mesh (~1e-4 R), well under a cell."""
+    asm = Assembly(PipeSpec(nang=8, n_outer=8).core("fluid", radius=0.05, nrad=3)
+                   .shell("wall", dR=0.01, nrad=2), direction=[1, 0, 0], up=[0, 0, 1])
+    asm.add(Straight(0.1, n_layers=2))
+    asm.add(Bend(0.15, 90, n_layers=4))
+    asm.add(Straight(0.1, n_layers=2))
+    with Session("corrections-8"), warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        asm.mesh(order=order)
+        report = str(asm.check_quality())
+    assert set(asm.corrections) == {e.name for e in asm.edges}
+    for c in asm.corrections.values():
+        assert set(c) == KEYS
+        r = c["sub_partition"]
+        assert r != "none" and r["nodes"] > 0
+        assert 1e-6 < r["largest_move_radii"] < 1e-2
+        assert r["largest_move_radii"] < r["largest_move_edges"] < 0.25
+    assert "n_outer = 8 face set to the 4-corner face's" in report
 
 
 def _straight():
