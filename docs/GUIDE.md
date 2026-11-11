@@ -148,7 +148,7 @@ OpenFOAM output, or flow.
 | `Bend(radius, angle, n_layers, roll=0, axial_grading=1, stack_changes=(), toward=None)` | Circular-arc bend. `roll` (degrees) turns the bend plane about the pipe axis; 0 bends toward `up`. Or `toward=(x, y, z)`: the absolute direction to turn toward |
 | `Elbow(angle=90, schedule="long", n_layers=8, roll=0, axial_grading=1, toward=None)` | Butt-weld elbow: a `Bend` with radius 1.5 D (`"long"`) or 1 D (`"short"`), D = outer diameter |
 | `MiterBend(radius, angle, n_cuts=1, n_layers=2, roll=0, toward=None)` | Segmented bend of straight pieces. Same ports as `Bend(radius, angle)`; each cut turns ≤ 90° |
-| `Reducer(outlet, length, n_layers, axial_grading=1)` | Concentric cone to another radius (reducer or expander). Only radii may change |
+| `Reducer(outlet, length, n_layers, axial_grading=1)` | Concentric cone to another radius (reducer or expander). Radii and radial grading (`mprg`, `first_cell`) may change; `nang`, `nrad` and the layer stack may not |
 | `Transition(outlet, length, n_layers, axial_grading=1)` | Circle ↔ rectangle, or rectangle ↔ rectangle, in every layer; equal counts per side |
 | `Switch(length, n_layers=None, outlet=None)` | A duct's O-H section ↔ its H (Cartesian) section, either way; the rectangle stays |
 | `SplinePipe(points, n_layers, end_tangent=None, axial_grading=1)` | Pipe along a cubic spline; `points[0]` is the inlet position |
@@ -395,6 +395,39 @@ is always the ratio of the radii.  What to do:
 hexmesh doesn't change `nang` or `nrad` inside a network: a `Reducer`
 whose outlet asks for other counts is rejected, with this section as its
 hint.  Decision 0003 keeps density changes as a later, additive feature.
+
+**A branch with its own wall cell.**  A tee's branch copies the main's
+`nrad` and grading, so its wall cell scales with r/R: a `first_cell` set
+on the main is about halved on a branch at r/R 0.5.  To give the branch
+its own, add a grading-only `Reducer` right after it: the same radius,
+the branch's spec with its own `first_cell`.
+
+```python
+main = PipeSpec(nang=8).core("fluid", radius=0.05, nrad=10, first_cell=5e-4)
+asm = Assembly(main, direction=[1, 0, 0], up=[0, 0, 1])
+asm.add(Straight(0.3, n_layers=6))
+run, branch = asm.add(Tee(branch_length=0.1, branch_radius=0.025))
+small = PipeSpec(nang=8).core("fluid", radius=0.025, nrad=10, first_cell=5e-4)
+out = asm.add(branch, Reducer(small, length=0.1, n_layers=4))   # same radius: grading only
+asm.add(out, Straight(0.3, n_layers=6))
+asm.add(run, Straight(0.3, n_layers=6))
+```
+
+The `Reducer` moves the grading from the tee's to `small`'s along its
+length; everything downstream uses `small`.
+
+Since task 0131 a pipe tee does this itself, without the extra fitting:
+
+```python
+run, branch = asm.add(Tee(branch_length=0.1, branch_radius=0.025,
+                          branch_first_cell=5e-4))
+```
+
+The branch's grading is reached at the branch port: the branch run
+blends the wall cell linearly from the main's at the junction to
+`branch_first_cell`.  For a geometric change instead, use the
+grading-only `Reducer` above.  An equal tee or a duct tap rejects the
+field: use the `Reducer` there.
 
 **Axial cell size.** Instead of `n_layers` on every fitting, give the
 assembly a target axial cell length and leave `n_layers` out: each sweep

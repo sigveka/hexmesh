@@ -714,7 +714,7 @@ A pipe along a cubic spline through `points`, parametrised by chord length.
   (`where = {"field": "end_tangent"}`) when the same points with a free
   end bend wider than the radius there (task 0129).
 
-### `Tee(run_length=None, branch_length, branch_radius, n_run=3, n_branch=3, n_turn=2, roll=0.0, toward=None, angle=90.0, offset=0.0, branch=None, face=None, margin=None, dome=None, sheet=None, n_wall=None)`
+### `Tee(run_length=None, branch_length, branch_radius, n_run=3, n_branch=3, n_turn=2, roll=0.0, toward=None, angle=90.0, offset=0.0, branch=None, face=None, margin=None, dome=None, sheet=None, n_wall=None, branch_first_cell=None, branch_mprg=None)`
 
 A centred side-branch tee, perpendicular or a lateral (`angle`), built as
 a block layout.
@@ -772,6 +772,25 @@ a block layout.
   `branch_length` and `branch_radius` are required.
 - **Layers.** `n_run`, `n_branch` and `n_turn` are the axial layers of the
   runs, the branch, and the turning blocks.
+- **Branch grading** (task 0131; decision 0028). By default the branch
+  copies the main's core `nrad` and `mprg`, so its wall cell scales with
+  r/R (about half the main's at r/R 0.5). `branch_first_cell=` (as
+  `PipeSpec.core`'s `first_cell`) or `branch_mprg=` gives the branch port
+  its own core grading; at most one (`grading_args_conflict`).
+  `branch_first_cell` resolves in `add()` to `branch_mprg`, which is what
+  `to_dict()` stores and `refined(k)` takes the k-th root of, so the
+  levels nest. The turning station keeps the main's grading and the
+  branch run blends to the port's over its `n_branch` layers (the wall
+  cell changes linearly along it); the branch port's spec carries the
+  new grading, so the next fitting matches it. Counts and shells are
+  unchanged, and so are the tee's worst cells (min SJ and
+  non-orthogonality equal at r/R 0.3, 0.5 and 0.8, branch wall cell 0.5×
+  to 2×, `n_branch` 3 and 6: the junction core sets them). Pipe tees with
+  a smaller branch only: an equal tee or a duct tap raises
+  `branch_grading_unsupported` (a grading-only `Reducer` after the
+  branch does it there; it also gives a geometric change of `mprg`
+  along its length instead of the linear blend). The agent's density table sets every grading,
+  so `advise` drops `branch_mprg`.
 - **Shells.** Any stack of circular shells runs through the junction
   (decision 0028). The branch copies the main's shells: same names,
   thicknesses, `nrad` and `mprg`. Each interface group (`interface_fluid_steel`
@@ -1652,6 +1671,7 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `block_inverted` | a block of a layout is inverted or degenerate at a corner | `LayoutError` |
 | `block_layout_invalid` | a fitting's block layout fails its checks | `AssemblyError` |
 | `branch_args_conflict` | a tee given both branch_radius and branch | `AssemblyTypeError` |
+| `branch_grading_unsupported` | a tee branch's own grading on an equal tee or a duct tap | `AssemblyError` |
 | `branch_length_too_short` | a tee branch does not reach past the main's wall | `AssemblyError` |
 | `branch_radius_out_of_range` | a pipe-tee branch radius not in (0, main radius) | `AssemblyError` |
 | `bundle_pipe_has_no_shells` | a bundle pipe with no shell layers | `SpecError` |

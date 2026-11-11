@@ -304,6 +304,8 @@ def _refine_fitting_dict(d: dict, k: int) -> dict:
     if d.get("type") == "Tee" and d.get("nrad") is not None:   # an H main's ring (task 0086)
         d["nrad"] *= k
         d["mprg"] = d.get("mprg", 1.0) ** (1.0 / k)
+    if d.get("type") == "Tee" and d.get("branch_mprg") is not None:   # task 0131
+        d["branch_mprg"] **= 1.0 / k
     if "stack_changes" in d:          # (axial cell index, spec): cell i → cell k·i
         d["stack_changes"] = [[i * k, refine_spec_dict(spec, k)]
                               for i, spec in d["stack_changes"]]

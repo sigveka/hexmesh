@@ -582,8 +582,9 @@ def apply(description: dict, table: dict) -> dict:
             f["stack_changes"] = [[j, _spec_with(s, dens)] for j, s in f["stack_changes"]]
         if isinstance(f.get("branch"), dict):              # a duct tap's branch shape
             f["branch"] = _shape_with(f["branch"], dens)
-        if f["type"] == "Tee":                              # re-derived for the new counts
-            for key in ("n_wall", "nrad", "mprg"):
+        if f["type"] == "Tee":                              # re-derived for the new counts;
+            # the branch's own grading is the table's, as every spec's (task 0131)
+            for key in ("n_wall", "nrad", "mprg", "branch_mprg"):
                 if f.get(key) is not None:
                     f[key] = None
     return d

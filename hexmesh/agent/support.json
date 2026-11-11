@@ -237,7 +237,7 @@
     "circle_in_rect": {
      "code": "junction_shells_not_circular",
      "error": "AssemblyError",
-     "message": "Tee(run_length=None, branch_length=0.15, branch_radius=0.02, n_run=3, n_branch=3, n_turn=2, roll=0.0, toward=None, angle=90.0, offset=0.0, branch=None, face=None, margin=None, dome=None, sheet=None, n_wall=None, nrad=None, mprg=None) at Interface(#1, pos=[0.1 0.  0. ]): Tee: shell `box` is not circular; junction shells are circular only (decisions 0026, 0028)",
+     "message": "Tee(run_length=None, branch_length=0.15, branch_radius=0.02, n_run=3, n_branch=3, n_turn=2, roll=0.0, toward=None, angle=90.0, offset=0.0, branch=None, face=None, margin=None, dome=None, sheet=None, n_wall=None, nrad=None, mprg=None, branch_first_cell=None, branch_mprg=None) at Interface(#1, pos=[0.1 0.  0. ]): Tee: shell `box` is not circular; junction shells are circular only (decisions 0026, 0028)",
      "supported": false
     },
     "circle_n_outer_8": {
@@ -258,7 +258,7 @@
     "rect_shells": {
      "code": "junction_shells_unsupported",
      "error": "AssemblyError",
-     "message": "fitting #1 Tee(run_length=0.083, branch_length=0.15, branch_radius=None, n_run=3, n_branch=3, n_turn=2, roll=0.0, toward=None, angle=90.0, offset=0.0, branch=RectShape(half_w=0.02, half_h=0.02, nang_w=4, nang_h=4), face='wide', margin=2.0, dome=0.35, sheet=0.35, n_wall=3, nrad=1, mprg=1.0): Tee: duct taps are single-layer; shelled duct taps are not supported yet (decisions 0026, 0028)",
+     "message": "fitting #1 Tee(run_length=0.083, branch_length=0.15, branch_radius=None, n_run=3, n_branch=3, n_turn=2, roll=0.0, toward=None, angle=90.0, offset=0.0, branch=RectShape(half_w=0.02, half_h=0.02, nang_w=4, nang_h=4), face='wide', margin=2.0, dome=0.35, sheet=0.35, n_wall=3, nrad=1, mprg=1.0, branch_first_cell=None, branch_mprg=None): Tee: duct taps are single-layer; shelled duct taps are not supported yet (decisions 0026, 0028)",
      "supported": false
     }
    }

@@ -130,13 +130,18 @@ def main_radii(spec: PipeSpec) -> tuple[float, float]:
     return spec.core_shape.radius, thicknesses(spec)[-1]
 
 
-def branch_spec(spec: PipeSpec, radius: float) -> PipeSpec:
+def branch_spec(spec: PipeSpec, radius: float, mprg: float | None = None,
+                first_cell: float | None = None) -> PipeSpec:
     """Branch spec: *spec* with core radius *radius* and the same shells
-    (names, thicknesses, ``nrad``, ``mprg``)."""
+    (names, thicknesses, ``nrad``, ``mprg``).  The core's grading is the
+    main's unless *mprg* or *first_cell* gives the branch its own (task
+    0131)."""
     name, shape = spec._core
+    if mprg is None and first_cell is None:
+        mprg = spec._core_mprg
     out = (PipeSpec(nang=spec.nang, n_outer=spec.n_outer, rot=spec.rot, mbmp=spec.mbmp)
            .core(name, CircleShape(radius=radius, nang=shape.nang),
-                 nrad=spec._core_nrad, mprg=spec._core_mprg))
+                 nrad=spec._core_nrad, mprg=mprg, first_cell=first_cell))
     T = thicknesses(spec)
     for sh, t0, t1 in zip(spec.shells, T, T[1:]):
         out.shell(sh.name, dR=t1 - t0, nrad=sh.nrad, mprg=sh.mprg)
@@ -270,14 +275,23 @@ class Tee:
         ring thickness of the wall, and the H face's wall cell) and stored;
         give them to override.  An O-H main's ring is its own: not allowed
         there.
+    branch_first_cell, branch_mprg : float, optional
+        Pipe tees: the branch port's own core grading (task 0131; decision
+        0028), as ``PipeSpec.core``'s ``first_cell`` (resolved to
+        ``branch_mprg`` when the tee is added) or ``mprg``; at most one.
+        The turning station keeps the main's grading, and the branch run's
+        cells blend to the port's over its ``n_branch`` layers.  Without
+        them the branch copies the main's ``mprg``, so its wall cell
+        scales with r/R.  Not on an equal tee or a duct tap.
 
     Ports are ``main`` (the run outlet, keeping the inlet's ``up``) and
     ``branch``: ``add(…, names={"main": …, "branch": …})``.
     """
 
-    # both port pairs: main in → main out, → branch; class 1 (a pillow) for
-    # a round branch on an H main, whose port is O-H (task 0086)
-    strategies = frozenset({0, 1})
+    # per port pair, main in → main out and → branch: class 1 (a pillow) for
+    # a round branch on an H main, whose port is O-H (task 0086); the branch
+    # also class 2, grading only: its own core grading (task 0131)
+    strategies = (frozenset({0, 1}), frozenset({0, 1, 2}))
     pillows = True
     port_names = ("main", "branch")
     toward_offset = 0.0     # the roll of toward's direction from the junction's up
@@ -330,6 +344,12 @@ class Tee:
     mprg:     float | None = param(
         "1", "duct taps on an H main: radial growth of the O-H ring; derived when added",
         input=True, exclusiveMinimum=0)
+    branch_first_cell: float | None = param(
+        "length", "pipe tees: the branch port's core wall cell; resolves to branch_mprg when "
+        "added", input=True, exclusiveMinimum=0)
+    branch_mprg: float | None = param(
+        "1", "pipe tees: the branch port's core radial growth (None: the main's)",
+        input=True, exclusiveMinimum=0)
 
     def __post_init__(self):
         missing = ["branch_length"] if self.branch_length is None else []
@@ -341,10 +361,34 @@ class Tee:
         if self.branch_radius is not None and self.branch is not None:
             raise AssemblyTypeError("Tee: give branch_radius or branch, not both",
                                     code="branch_args_conflict", where={"field": "branch"})
+        if self.branch_first_cell is not None and self.branch_mprg is not None:
+            raise AssemblyTypeError("Tee: give branch_first_cell or branch_mprg, not both",
+                                    code="grading_args_conflict",
+                                    where={"field": "branch_first_cell"},
+                                    hint="give branch_first_cell or branch_mprg")
+
+    def _branch_graded(self) -> bool:
+        return self.branch_first_cell is not None or self.branch_mprg is not None
+
+    def _check_branch_grading(self, spec: PipeSpec) -> None:
+        """The branch's own grading: a pipe tee with a smaller round
+        branch only (task 0131)."""
+        if not self._branch_graded():
+            return
+        field = "branch_first_cell" if self.branch_first_cell is not None else "branch_mprg"
+        what = ("a duct tap (a rectangular main)" if not spec.core_shape.is_round
+                else "an equal tee" if self._is_equal(spec) else None)
+        if what is not None:
+            raise AssemblyError(f"Tee: {field} is for a pipe tee with a smaller branch, not "
+                                f"{what}",
+                                code="branch_grading_unsupported", where={"field": field},
+                                hint="leave it out and add a grading-only Reducer after the "
+                                     "branch (GUIDE, \"A branch with its own wall cell\")")
 
     def resolve(self, inlet: Frame, spec: PipeSpec, axial_cell=None, outlet=None) -> "Tee":
         tpl = self._template(spec)
         if tpl is not None:
+            self._check_branch_grading(spec)
             return tpl.resolve(inlet, spec)
         if self.branch is not None and self.branch.is_round:   # the shorthand's long form
             if self.branch.nang != spec.core_shape.nang:
@@ -355,6 +399,11 @@ class Tee:
                                     hint=f"give the branch nang={spec.core_shape.nang}")
             self = replace(self, branch_radius=self.branch.radius, branch=None)
         tee = junction_toward(self, inlet, spec, self.toward_offset)  # counts keep defaults
+        tee._check_branch_grading(spec)
+        if tee.branch_first_cell is not None:     # stored as its mprg, which nests (task 0131)
+            _check_circle(spec)
+            tee = replace(tee, branch_first_cell=None, branch_mprg=branch_spec(
+                spec, tee.branch_radius, first_cell=tee.branch_first_cell)._core_mprg)
         if tee._is_equal(spec):
             tee = replace(tee, branch_radius=spec.core_shape.max_extent)   # exactly the main's
             if tee.run_length is None:
@@ -494,11 +543,16 @@ class Tee:
         branch = Frame(ob + self.branch_length * d, d, u)
         if self._is_equal(spec):            # the inlet's own spec, not rebuilt
             return [(main, spec), (branch, spec)]
-        return [(main, spec), (branch, branch_spec(spec, self.branch_radius))]
+        return [(main, spec), (branch, self._branch_port_spec(spec))]
+
+    def _branch_port_spec(self, spec: PipeSpec) -> PipeSpec:
+        return branch_spec(spec, self.branch_radius, mprg=self.branch_mprg,
+                           first_cell=self.branch_first_cell)
 
     # -- topology -----------------------------------------------------
 
     def check(self, spec: PipeSpec) -> None:
+        self._check_branch_grading(spec)
         tpl = self._template(spec)
         if tpl is not None:
             return tpl.check(spec)
@@ -665,7 +719,10 @@ class Tee:
         lay = BlockLayout()
         face_vertices(lay, "A", A, spec)
         face_vertices(lay, "B", B, spec)
-        face_vertices(lay, "E", E, bspec)
+        if self._branch_graded():     # the port's own grading; Z keeps the main's (task 0131)
+            face_vertices(lay, "E", E, self._branch_port_spec(spec), own_grading=True)
+        else:
+            face_vertices(lay, "E", E, bspec)
 
         # Stations Sa (approach end) and Sd (departure end); level l at the x
         # of its top corners, which sit on the offset saddle at the branch

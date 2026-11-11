@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+**A tee branch with its own wall cell** (decision 0028; task 0131).
+- `Tee(branch_first_cell=…)` or `branch_mprg=`: the branch port's core
+  grading, blended from the main's along the branch run.  Stored as
+  `branch_mprg`; `refined(k)` nests it.  Pipe tees with a smaller branch
+  only (`branch_grading_unsupported` otherwise).  Without it, meshes are
+  unchanged.
+- `Tee.strategies` is per port pair: the branch pair also allows
+  grading-only class 2.
+- GUIDE: the grading-only `Reducer` after a branch, and the fittings
+  table's `Reducer` row (grading may change, since task 0027).
+
 **Two errors say where and what to do** (decision 0042; task 0129).
 - A `SplinePipe` that bends tighter than the pipe names the place: arc
   length, point, and the segment `points[i]`–`points[i+1]`; `where` is

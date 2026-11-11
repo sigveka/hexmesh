@@ -174,8 +174,10 @@ def test_every_fitting_declares_strategies():
     for cls in (fittings.MiterBend, fittings.Elbow,
                 fittings.SplinePipe, fittings.Closure):
         assert cls.__dict__.get("strategies") == frozenset({0}), cls.__name__
-    # class 1 for a duct tap's H ports, a pillow (task 0086)
-    assert Tee.__dict__.get("strategies") == frozenset({0, 1}) and Tee.pillows
+    # class 1 for a duct tap's H ports, a pillow (task 0086); the branch's
+    # own grading, grading-only class 2 (task 0131)
+    assert Tee.__dict__.get("strategies") == (frozenset({0, 1}), frozenset({0, 1, 2}))
+    assert Tee.pillows
     # grading-only class 2 (decision 0016)
     assert fittings.Reducer.__dict__.get("strategies") == frozenset({0, 2})
     for cls in (fittings.Straight, fittings.Bend):          # layer termination (0018)

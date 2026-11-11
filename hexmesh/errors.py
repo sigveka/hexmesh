@@ -224,6 +224,7 @@ CODES: dict[str, str] = {
     "block_inverted": "a block of a layout is inverted or degenerate at a corner",
     "block_layout_invalid": "a fitting's block layout fails its checks",
     "branch_args_conflict": "a tee given both branch_radius and branch",
+    "branch_grading_unsupported": "a tee branch's own grading on an equal tee or a duct tap",
     "branch_length_too_short": "a tee branch does not reach past the main's wall",
     "branch_radius_out_of_range": "a pipe-tee branch radius not in (0, main radius)",
     "bundle_pipe_has_no_shells": "a bundle pipe with no shell layers",
