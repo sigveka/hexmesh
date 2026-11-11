@@ -125,3 +125,56 @@ If accepted later:
   family for studies (lay-up, tube sizes, filler conductivity).
 - **0034 (secondary solvers):** rod-bundle users are Nek5000 users.
   Second-order export would then need multi-core sections too.
+
+## Note (2026-11-12): stage B's first case, a buried district-heating pair
+
+**The user** (2026-11-12): district heating "can have two pipes (each with
+a square layer representing the close soil) and a rectangular layer
+representing soil further away, and to make sure everything conforms";
+"B must be designed first".  So stage B's design starts with this
+lay-up, before the umbilical rings of item 3.
+
+**The lay-up:**
+- two pipes side by side, one hot (supply) and one cold (return): each
+  a fluid core, a steel wall, insulation and a casing;
+- around each, a **square layer of near soil**: decision 0026's
+  circle-in-square shell, which exists today;
+- the two squares share one side, and together form a 2:1 rectangle;
+- around both, a **rectangular layer of far soil** to the domain's
+  boundary.  Its inner outline is the 2:1 rectangle; its outer one, the
+  ground surface above and the soil domain's sides and bottom.
+
+**Why it is a good first case:**
+- It is stage B's simplest section: two cells.  Each pipe's cell (the
+  Voronoi cell of two centres, clipped) is a rectangle, so the cells
+  need no per-arc counts or polygons.
+- **The depth asymmetry is in the far layer.**  The pipes sit about 1 m
+  deep in a soil domain several metres deep and wide.  The far layer is
+  thinner above the pair than below and beside it, so each pipe stays
+  centred in its square.  This avoids the off-centre core that a
+  single-pipe circle-in-rectangle layout would need.
+- **Coarsening away from the pipes** is grading: the far layer's
+  progression grows cells toward the boundary.  Fewer cells farther out
+  would be a density change (task 0133), not needed here.
+
+**What the design must settle (to verify, not assumed):**
+- **Conformity across the shared side and at the far layer's inner
+  outline.**  The far layer's inner long side has 2n divisions, and its
+  midpoint must be the node where the two squares meet.  The node
+  spacing along each square's outer side must match the far layer's
+  along the same line.  Check whether today's circle-in-square and
+  rectangle-in-rectangle layers (decisions 0026, 0041, task 0101) place
+  those nodes the same way.
+- **The section abstraction:** a section whose faces are a graph of
+  blocks (two O-grid cells and one ring), not the 5-patch O-H face.  This
+  is the stage B prerequisite already listed.
+- **Two fluid regions in one section** (hot and cold): stage A item 1
+  (a layer as a second fluid region; patches and CHT regions in the
+  OpenFOAM writer).
+- **Fittings:** straights only (stage B item 4).  A buried pair with
+  bends is stage C.  So are the house connections, which would also need
+  junctions with non-circular shells (decision 0051 states that limit for
+  1.0).
+- **Validation:** heat loss from a buried pipe pair has classical
+  analytic estimates, by conduction shape factors.  Check the references
+  before using them as a V1 case.
