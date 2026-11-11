@@ -47,6 +47,8 @@ must happen once, here, before the freeze.
    - **branch shells** (decision 0051, option B, still open): ask the
      user whether to plan them for 1.x; if yes, reserve the `Tee`
      argument name (`branch_shells=` or better).
+   - **an output `scale=` on the writers** (decision 0047's note of
+     2026-11-11, from task 0139): ask the user; add or reserve it.
 4. **Apply the table:** renames with deprecated aliases; removals of
    things deprecated for at least one release; each with a CHANGELOG
    line.

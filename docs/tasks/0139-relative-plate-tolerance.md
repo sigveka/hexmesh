@@ -142,3 +142,25 @@ Done 2026-11-11.
   at a reference size and scaling the mesh would make small networks
   exact, since 1:2 and 1:4 already are.
 
+## Design review (2026-11-11)
+
+**Accepted, with the deviation.**
+- **The 1e-9 match at every scale was the wrong target.**  It asked for
+  more than hexmesh controls.  Two things stand in the way, both outside
+  hexmesh's plate tolerances:
+  - the plate is chaotic at rounding level (0141), and a non-power-of-two
+    scale changes the inputs' last bits;
+  - OCC keeps a fixed tolerance of its own.
+
+  What 1.0 needs holds at every scale down to 1:1000: the same cells and
+  the same minimum quality.  The exact match at 1:2 and 1:4 shows the
+  plate tolerances are no longer the cause.
+- **The moved nodes are noted in the CHANGELOG,** as the 0.5.0 promise
+  requires.
+- **The `tol2d` finding** is in `gmsh.md`; good.
+- **Output `scale=`:** not a task yet.  Decision 0047 left it as an idea
+  until hexmesh was shown scale-free.  0139 shows it is exact only at
+  powers of two, so `scale=` would make output exact for a user who
+  builds at a reference size.  It is noted on 0047 for the API review
+  (task 0150): it adds an argument to every writer.
+

@@ -80,3 +80,20 @@ If task 0128's audit and scaled-build test show hexmesh is scale-free
 unit and convert once at the output (e.g. `write_openfoam(..., scale=1e-3)`).
 That would be an amendment here, after 0128, alongside or instead of
 `hexmesh.units`.
+
+## Note (2026-11-11): task 0139's measurements, for `scale=`
+
+Task 0139 measured how close hexmesh is to scale-free.
+- Every plate tolerance hexmesh sets is now relative to its face.
+- The README tee builds down to 1:1000, with the same cells and minimum
+  quality at every scale.
+- Its nodes match the full-size mesh × the scale **exactly** (< 1e-15) at
+  1:2 and 1:4.  At other scales they drift: 7.6e-7 of the size at 1:10,
+  4.5e-6 at 1:20, and up to 0.6 % below about 1:30.  The causes are OCC's
+  fixed tolerance and the plate's chaos at rounding level.
+
+So an output `scale=` (build at a reference size, scale once when
+writing) would give exact small meshes, which building small doesn't.
+Not decided.  It adds an argument to every writer, so the API review
+(task 0150) takes it up, or reserves the name.
+
