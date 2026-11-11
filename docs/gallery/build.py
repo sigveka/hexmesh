@@ -12,18 +12,29 @@
 #
 """
 Example gallery: meshes every example, renders it, measures it, and writes
-``docs/GALLERY.md``.  Not part of the test suite.
+the gallery's pages.  Not part of the test suite.
 
     python3 docs/gallery/build.py                   # every example, one at a time
     python3 docs/gallery/build.py --jobs 4          # four examples at once
     python3 docs/gallery/build.py --only tee wye    # re-run some, keep the rest
-    python3 docs/gallery/build.py --markdown-only   # rewrite GALLERY.md and the README's blocks
+    python3 docs/gallery/build.py --markdown-only   # rewrite the pages and the README's blocks
     python3 docs/gallery/build.py --hero            # render img/hero.png only
     python3 docs/gallery/build.py --validation      # validation meshes, all cases
     python3 docs/gallery/build.py --validation poiseuille
 
-The prose comes from the examples' docstrings and the category packages'
-docstrings, so edit it there.  Validation cases come from
+**The pages** (decision 0050, task 0142): ``docs/GALLERY.md``, the landing
+page; ``docs/gallery/FEATURES.md``, the feature examples by family
+(``hexmesh.examples.FAMILIES``: title, introduction, fittings, validation
+tags), each family with its API sections and the validation cases whose
+tags it collects (status and last run, from ``results.json``);
+``docs/gallery/APPLICATIONS.md``, each application with the fittings it
+uses, linked to their family; ``docs/gallery/VALIDATION.md``, the cases
+and the coverage matrix.  Every example is one block
+(:func:`example_md`), so a later stage can write it into
+``docs/features/<family>.md``.
+
+The prose comes from the examples' docstrings, ``FAMILIES``' introductions
+and the ``applications`` package's docstring, so edit it there.  Validation cases come from
 ``validation/<case>/`` (README.md, RESULTS.md with a ``**Status:**`` line,
 optional ``figure.png``, and ``case.json`` checked against
 ``validation/case.schema.json``: a missing or invalid one stops the build)
@@ -44,7 +55,7 @@ full run; build times measured with ``--jobs`` > 1, or while other runs
 are active, are contended.
 
 Writes ``docs/gallery/img/<name>.png`` (overview), ``<name>_section.png``
-(inlet cross-section), ``docs/gallery/metrics.json`` and ``docs/GALLERY.md``.
+(inlet cross-section), ``docs/gallery/metrics.json`` and the pages.
 A full run also renders ``img/hero.png``, the README's cut-away of
 ``insulated_network``.
 
@@ -84,7 +95,12 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 IMG = HERE / "img"
 METRICS = HERE / "metrics.json"
-GALLERY = ROOT / "docs" / "GALLERY.md"
+GALLERY = ROOT / "docs" / "GALLERY.md"           # the landing page
+#: the three generated pages beside this script (decision 0050, task 0142)
+FEATURES = HERE / "FEATURES.md"
+APPLICATIONS = HERE / "APPLICATIONS.md"
+VALIDATION = HERE / "VALIDATION.md"
+API = ROOT / "API.md"
 
 sys.path.insert(0, str(ROOT))
 
@@ -659,17 +675,45 @@ def fittings_text(types: dict) -> str:
     return ", ".join(t if n == 1 else f"{t} ×{n}" for t, n in types.items())
 
 
-def example_md(qualname: str, m: dict | None) -> str:
+def slug(heading: str) -> str:
+    """GitHub's (and Essens's) anchor for a Markdown heading."""
+    s = heading.strip().lower()
+    s = re.sub(r"[^\w\- ]", "", s)
+    return s.replace(" ", "-")
+
+
+def api_anchors() -> dict[str, str]:
+    """``{"Bend": "API.md#bendradius-angle-…"}``: each class's or
+    function's first ``###`` section in API.md."""
+    out: dict[str, str] = {}
+    for line in API.read_text(encoding="utf-8").splitlines():
+        m = re.match(r"### `(?:Assembly\.)?(\w+)\(", line)
+        if m and m.group(1) not in out:
+            out[m.group(1)] = slug(line[4:])
+    return out
+
+
+def api_link(name: str, anchors: dict[str, str], up: str = "../../") -> str:
+    """``[`Bend`](../../API.md#…)``, or the bare name if API.md has no section."""
+    return f"[`{name}`]({up}API.md#{anchors[name]})" if name in anchors else f"`{name}`"
+
+
+def example_md(qualname: str, m: dict | None, img: str = "img/",
+               anchors: dict[str, str] | None = None, level: int = 3) -> str:
+    """One example's self-contained block (decision 0050): heading, images,
+    what it shows, the command, the numbers, the names, and the API
+    sections of the fittings it uses.  *img* is the image folder relative
+    to the page; *level* the heading level."""
     module = importlib.import_module(f"hexmesh.examples.{qualname}")
     name = qualname.split(".")[-1]
     summary, body = md_doc(module.__doc__)
-    out = [f"### {name}", "", f"**{summary}**", ""]
+    out = [f"{'#' * level} {name}", "", f"**{summary}**", ""]
     if m and "error" not in m:
-        out += [f'<p><img src="gallery/img/{name}.png" width="68%" alt="{name}"> '
-                f'<img src="gallery/img/{name}_section.png" width="29%" '
+        out += [f'<p><img src="{img}{name}.png" width="68%" alt="{name}"> '
+                f'<img src="{img}{name}_section.png" width="29%" '
                 f'alt="{name}, inlet section"></p>', ""]
         if m.get("cutaway"):
-            out += [f'<p><img src="gallery/img/{name}_cutaway.png" width="60%" '
+            out += [f'<p><img src="{img}{name}_cutaway.png" width="60%" '
                     f'alt="{name}, cut away"></p>', ""]
     out += [body, "", "```bash", f"python3 -m hexmesh.examples.{qualname}", "```", ""]
     if not m:
@@ -696,7 +740,11 @@ def example_md(qualname: str, m: dict | None) -> str:
     ]
     if g["interface"]:
         out.append(f"- **Interfaces:** {', '.join(f'`{x}`' for x in g['interface'])}")
-    out += [f"- **Colours:** {colours}; walls grey.", ""]
+    out += [f"- **Colours:** {colours}; walls grey."]
+    if anchors is not None:
+        out.append("- **Parameters:** " + ", ".join(api_link(t, anchors)
+                                                    for t in m["fitting_types"]))
+    out.append("")
     return "\n".join(out)
 
 
@@ -768,7 +816,8 @@ def planned_cases(done_tasks: set[str]) -> list[dict]:
     return out
 
 
-def coverage_md(cases: list[tuple[str, dict]], planned: list[dict]) -> list[str]:
+def coverage_md(cases: list[tuple[str, dict]], planned: list[dict],
+                level: int = 3) -> list[str]:
     """Features down, cases across (existing, then planned); a mark per
     feature a case exercises, by status.  Empty rows are what isn't
     validated yet."""
@@ -782,17 +831,29 @@ def coverage_md(cases: list[tuple[str, dict]], planned: list[dict]) -> list[str]
         label = f"`{f}`" if any(marks) else f"`{f}` (none)"
         rows.append(f"| {label} | " + " | ".join(marks) + " |")
     legend = ", ".join(f"{m} {s}" for s, m in STATUS_MARK.items())
-    return ["### Coverage", "",
-            "Which hexmesh features each case exercises (decision 0012's fixed list). "
+    return [f"{'#' * level} Coverage", "",
+            "Which hexmesh features each case exercises (decision 0012's list, "
+            "extended by decision 0050). "
             f"Marks: {legend}; planned cases are named by task.  Rows marked "
             "*(none)* have no validation case, existing or planned.", "",
             *rows, ""]
 
 
-def validation_md() -> str:
+def last_run(case: str) -> dict | None:
+    """The latest-dated level's ``environment`` in ``validation/<case>/results.json``
+    (date, hexmesh commit, …), or None."""
+    path = ROOT / "validation" / case / "results.json"
+    if not path.exists():
+        return None
+    envs = [lv["environment"] for lv in json.loads(path.read_text(encoding="utf-8"))["levels"]
+            if lv.get("environment") and lv["environment"].get("date")]
+    return max(envs, key=lambda e: e["date"]) if envs else None
+
+
+def validation_md(val: str = "../../validation/", tasks: str = "../tasks/") -> str:
+    """The Validation page's body; *val* and *tasks* are the paths from the
+    page to ``validation/`` and ``docs/tasks/``."""
     out = [
-        "## Validation",
-        "",
         "Meshes from hexmesh solved with OpenFOAM and compared with a reference "
         "(decision 0012); each case is judged by grid convergence against gates "
         "set in advance (decision 0015).  Cases are grouped by their reference: "
@@ -810,7 +871,7 @@ def validation_md() -> str:
     for cat, what in CATEGORIES_V.items():
         mine = [(c, m) for c, m in cases if m["category"] == cat]
         later = [p for p in planned if p["category"] == cat]
-        out += [f"### {cat}: {what}", ""]
+        out += [f"## {cat}: {what}", ""]
         if not mine and not later:
             out += ["_No cases yet._", ""]
         for name, m in mine:
@@ -823,8 +884,12 @@ def validation_md() -> str:
             refs = "; ".join((f"{r['source']} [`{r['key']}`]" if "key" in r else r["source"])
                              + ("" if r["role"] == "primary" else " (secondary)")
                              for r in m["references"])
-            out += [f"#### {m['title']}", "",
-                    f"**Status:** {m['status']} (task {m['task']}).  **Reference:** {refs}.", "",
+            run = last_run(name)
+            stamp = (f"  **Last run:** {run['date']}, hexmesh {run.get('hexmesh', '?')}."
+                     if run else "")
+            out += [f"### {m['title']}", "",
+                    f"**Status:** {m['status']} (task {m['task']}).  **Reference:** {refs}."
+                    + stamp, "",
                     "Tags: " + ", ".join(f"`{t}`" for t in tag_list) + ".", ""]
             if m["gates"]:
                 out += ["Gates: " + "; ".join(f"{g['quantity']}: {g['limit']}"
@@ -834,20 +899,20 @@ def validation_md() -> str:
             if name in validation_cases():
                 first = load_case(name).meshes()[0][0]
                 if (case / "img" / f"{first}.png").exists():
-                    out += [f'<p><img src="../validation/{name}/img/{first}.png" width="68%"> '
-                            f'<img src="../validation/{name}/img/{first}_section.png" '
+                    out += [f'<p><img src="{val}{name}/img/{first}.png" width="68%"> '
+                            f'<img src="{val}{name}/img/{first}_section.png" '
                             f'width="29%"></p>', ""]
             if (case / "figure.png").exists():
-                out += [f'<img src="../validation/{name}/figure.png" width="70%">', ""]
-            links = [f"[{f}](../validation/{name}/{f})" for f in ("README.md", "RESULTS.md")
+                out += [f'<img src="{val}{name}/figure.png" width="70%">', ""]
+            links = [f"[{f}]({val}{name}/{f})" for f in ("README.md", "RESULTS.md")
                      if (case / f).exists()]
-            links.append(f"[case.json](../validation/{name}/case.json)")
+            links.append(f"[case.json]({val}{name}/case.json)")
             out += [f"Case: `validation/{name}/`: " + ", ".join(links) + ".", ""]
         if later:
             out += ["Planned:", "", "| Task | Status |", "|---|---|",
-                    *(f"| [{p['task']}: {p['title']}](tasks/{p['file']}) | {p['status']} |"
+                    *(f"| [{p['task']}: {p['title']}]({tasks}{p['file']}) | {p['status']} |"
                       for p in later), ""]
-    out += coverage_md(cases, planned)
+    out += coverage_md(cases, planned, level=2)
     return "\n".join(out)
 
 
@@ -952,66 +1017,199 @@ def write_readme(metrics: dict, meta: dict) -> bool:
     return new != text
 
 
-def write_markdown(metrics: dict, meta: dict) -> None:
-    from hexmesh.examples import CATEGORIES
+READING_NUMBERS = [
+    "- **Cells:** hexahedra in the written mesh.  hexmesh predicts the count "
+    "before GMSH runs (`Assembly.cell_count()`); a ✗ marks a mismatch.",
+    "- **SICN:** GMSH's signed inverse condition number, per cell: 1 for a "
+    "cube, 0 or below for an inverted cell.  Examples must have none at or "
+    "below 0.",
+    "- **SJ:** the minimum scaled Jacobian over a hex's corners (1 for a "
+    "cube), with the fitting holding the worst cell.  Junctions (tee, wye) "
+    "are where it is lowest.",
+    "- **Aspect:** the largest ratio of a cell's longest to shortest edge.  "
+    "Wall grading and long axial cells raise it deliberately.",
+    "- **Build:** wall time of `main()` (build, mesh, write, quality check) on "
+    "the machine in the page's footer.  Compare within one run only.",
+    "- **Images:** the network from outside (walls grey, open ends coloured "
+    "by material), and the inlet cross-section seen from upstream.",
+]
 
-    jobs = meta.get("jobs", 1)
-    lines = [
-        "# hexmesh examples",
-        "",
-        "What each example shows, what its mesh looks like, and how good the "
-        "cells are.  Every example is a runnable module; this page is "
-        "generated by `docs/gallery/build.py` (prose from the examples' "
-        "docstrings, numbers and images from meshing them).",
-        "",
-        "## Reading the numbers",
-        "",
-        "- **Cells:** hexahedra in the written mesh.  hexmesh predicts the count "
-        "before GMSH runs (`Assembly.cell_count()`); a ✗ marks a mismatch.",
-        "- **SICN:** GMSH's signed inverse condition number, per cell: 1 for a "
-        "cube, 0 or below for an inverted cell.  Examples must have none at or "
-        "below 0.",
-        "- **SJ:** the minimum scaled Jacobian over a hex's corners (1 for a "
-        "cube), with the fitting holding the worst cell.  Junctions (tee, wye) "
-        "are where it is lowest.",
-        "- **Aspect:** the largest ratio of a cell's longest to shortest edge.  "
-        "Wall grading and long axial cells raise it deliberately.",
-        "- **Build:** wall time of `main()` (build, mesh, write, quality check) on "
-        f"the machine below{' with ' + str(jobs) + ' examples at once' if jobs > 1 else ''}.  "
-        "Compare within one run only.",
-        "- **Images:** the network from outside (walls grey, open ends coloured "
-        "by material), and the inlet cross-section seen from upstream.",
-        "",
-        "## Contents",
-        "",
-        "| Example | Shows | Cells | min SICN | min SJ | Build |",
-        "|---|---|---|---|---|---|",
-    ]
-    body = []
-    for cat, names in CATEGORIES.items():
-        pkg = importlib.import_module(f"hexmesh.examples.{cat}")
-        title, intro = md_doc(pkg.__doc__)
-        lines.append(f"| **{title.rstrip('.')}** | | | | | |")
-        body += [f"## {title.rstrip('.')}", "", intro, ""]
-        for name in names:
-            qual = f"{cat}.{name}"
-            m = metrics.get(qual)
-            summary, _ = md_doc(importlib.import_module(f"hexmesh.examples.{qual}").__doc__)
-            if m and "error" not in m:
-                nums = (f"{fmt_int(m['meshed'])} | {m['min_sicn']:.3f} | "
-                        f"{m['min_sj']:.3f} | {m['build_s']:.1f} s")
-            else:
-                nums = "— | — | — | —"
-            lines.append(f"| [{name}](#{name}) | {summary} | {nums} |")
-            body.append(example_md(qual, m))
-    lines += ["", *body, validation_md(), "---", ""]
-    if meta:
-        lines += [f"Generated {meta['date']} from hexmesh {meta['commit']}, "
-                  f"gmsh {meta['gmsh']}, Python {meta['python']}, "
-                  f"{meta['cpus']} CPUs, {meta['jobs']} job(s).", ""]
-    else:
-        lines += ["_Examples not measured yet: run `python3 docs/gallery/build.py`._", ""]
-    GALLERY.write_text("\n".join(lines), encoding="utf-8")
+#: a fitting type's family when more than one family lists it
+FITTING_HOME = {"Straight": "networks", "PipeSpec": "sections", "Assembly": "networks"}
+
+
+def fitting_family() -> dict[str, str]:
+    """Fitting type → the family that explains it (the first listing it,
+    unless :data:`FITTING_HOME` says otherwise)."""
+    from hexmesh.examples import FAMILIES
+    out: dict[str, str] = {}
+    for fam, f in FAMILIES.items():
+        for t in f["fittings"]:
+            out.setdefault(t, fam)
+    return {**out, **FITTING_HOME}
+
+
+def footer(meta: dict) -> list[str]:
+    if not meta:
+        return ["---", "", "_Examples not measured yet: run `python3 docs/gallery/build.py`._", ""]
+    return ["---", "",
+            f"Generated {meta['date']} from hexmesh {meta['commit']}, gmsh {meta['gmsh']}, "
+            f"Python {meta['python']}, {meta['cpus']} CPUs, {meta['jobs']} job(s).", ""]
+
+
+def validated_by(tags: list[str], cases: list[tuple[str, dict]], planned: list[dict],
+                 val: str = "../../validation/", tasks: str = "../tasks/") -> str:
+    """The family's "Validated by" line: every case carrying one of *tags*,
+    with its status and last run, or "none"."""
+    if not tags:
+        return "**Validated by:** no validation tag covers this family yet."
+    items = []
+    for name, m in cases:
+        hit = [t for t in m["tags"]["features"] if t in tags]
+        if not hit:
+            continue
+        run = last_run(name)
+        when = f"; last run {run['date']}, hexmesh {run.get('hexmesh', '?')}" if run else ""
+        items.append(f"{STATUS_MARK[m['status']]} [{m['title']}]({val}{name}/README.md) "
+                     f"({m['category']}, {m['status']}{when}; "
+                     + ", ".join(f"`{t}`" for t in hit) + ")")
+    for p in planned:
+        hit = [t for t in p["features"] if t in tags]
+        if hit:
+            items.append(f"{STATUS_MARK['planned']} [task {p['task']}]({tasks}{p['file']}) "
+                         f"({p['category']}, planned; " + ", ".join(f"`{t}`" for t in hit) + ")")
+    tag_text = ", ".join(f"`{t}`" for t in tags)
+    if not items:
+        return f"**Validated by:** none yet (tags {tag_text})."
+    return "\n".join([f"**Validated by** (tags {tag_text}):", "", *(f"- {i}" for i in items)])
+
+
+def numbers_cells(m: dict | None) -> str:
+    if m and "error" not in m:
+        return (f"{fmt_int(m['meshed'])} | {m['min_sicn']:.3f} | "
+                f"{m['min_sj']:.3f} | {m['build_s']:.1f} s")
+    return "— | — | — | —"
+
+
+def features_md(metrics: dict, meta: dict, anchors: dict[str, str],
+                cases: list[tuple[str, dict]], planned: list[dict]) -> str:
+    from hexmesh.examples import FAMILIES
+    lines = ["# Features", "",
+             "The building blocks of a hexmesh network, by family: what each looks "
+             "like, how good its cells are, the API sections that explain its "
+             "parameters, and the validation cases that cover it.  "
+             "[The gallery](../GALLERY.md) explains the numbers.", "",
+             "| Family | Examples |", "|---|---|"]
+    for fam, f in FAMILIES.items():
+        names = ", ".join(f"[{q.split('.')[-1]}](#{q.split('.')[-1]})" for q in f["examples"])
+        lines.append(f"| [{f['title']}](#{slug(f['title'])}) | {names} |")
+    lines.append("")
+    for fam, f in FAMILIES.items():
+        lines += [f"## {f['title']}", "", f["intro"], "",
+                  "**Fittings:** " + ", ".join(api_link(t, anchors) for t in f["fittings"])
+                  + ".", "",
+                  validated_by(f["tags"], cases, planned), "",
+                  "| Example | Shows | Cells | min SICN | min SJ | Build |",
+                  "|---|---|---|---|---|---|"]
+        for q in f["examples"]:
+            name = q.split(".")[-1]
+            summary, _ = md_doc(importlib.import_module(f"hexmesh.examples.{q}").__doc__)
+            lines.append(f"| [{name}](#{name}) | {summary} | {numbers_cells(metrics.get(q))} |")
+        lines.append("")
+        for q in f["examples"]:
+            lines.append(example_md(q, metrics.get(q), anchors=anchors))
+    return "\n".join(lines + footer(meta))
+
+
+def applications_md(metrics: dict, meta: dict, anchors: dict[str, str]) -> str:
+    from hexmesh.examples import CATEGORIES, FAMILIES
+    home = fitting_family()
+    pkg = importlib.import_module("hexmesh.examples.applications")
+    _, intro = md_doc(pkg.__doc__)
+    lines = ["# Applications", "",
+             "Networks closer to a real model, built from the [features](FEATURES.md).  "
+             "Each lists the fittings it uses, linked to their family.  "
+             "[The gallery](../GALLERY.md) explains the numbers.", "", intro, "",
+             "| Example | Shows | Cells | min SICN | min SJ | Build |",
+             "|---|---|---|---|---|---|"]
+    names = CATEGORIES["applications"]
+    for name in names:
+        q = f"applications.{name}"
+        summary, _ = md_doc(importlib.import_module(f"hexmesh.examples.{q}").__doc__)
+        lines.append(f"| [{name}](#{name}) | {summary} | {numbers_cells(metrics.get(q))} |")
+    lines.append("")
+    for name in names:
+        q = f"applications.{name}"
+        m = metrics.get(q)
+        block = example_md(q, m, anchors=anchors, level=2)
+        if m and "error" not in m:
+            used = []
+            for t, n in m["fitting_types"].items():
+                fam = home.get(t)
+                label = f"{t} ×{n}" if n > 1 else t
+                used.append(f"{label} ([{FAMILIES[fam]['title'].lower()}]"
+                            f"(FEATURES.md#{slug(FAMILIES[fam]['title'])}))" if fam else label)
+            block = block.rstrip("\n") + "\n- **Fittings used:** " + ", ".join(used) + "\n"
+        lines.append(block)
+    return "\n".join(lines + footer(meta))
+
+
+def validation_page_md(meta: dict) -> str:
+    return "\n".join(["# Validation cases", "", validation_md()] + footer(meta))
+
+
+def landing_md(metrics: dict, meta: dict, cases: list[tuple[str, dict]]) -> str:
+    from hexmesh.examples import CATEGORIES, FAMILIES
+    n_feat = sum(len(f["examples"]) for f in FAMILIES.values())
+    lines = ["# hexmesh gallery", "",
+             "What hexmesh's meshes look like and how good their cells are, on "
+             "three pages.  Every example is a runnable module; the pages are "
+             "generated by `docs/gallery/build.py` (prose from the examples' "
+             "docstrings, numbers and images from meshing them).", "",
+             f"- **[Features](gallery/FEATURES.md):** the building blocks, by family "
+             f"({len(FAMILIES)} families, {n_feat} examples): bends, reducers, "
+             "junctions, sections, layers, grading, and how networks are built.",
+             f"- **[Applications](gallery/APPLICATIONS.md):** {len(CATEGORIES['applications'])} "
+             "networks closer to a real model, and which fittings they use.",
+             f"- **[Validation](gallery/VALIDATION.md):** {len(cases)} cases solved "
+             "and compared with a reference, judged by grid convergence.", "",
+             "## Features", "", "| | Family | Examples |", "|---|---|---|"]
+    for fam, f in FAMILIES.items():
+        first = f["examples"][0].split(".")[-1]
+        thumb = (f'<img src="gallery/img/{first}.png" width="160" alt="{first}">'
+                 if (IMG / f"{first}.png").exists() else "")
+        names = ", ".join(f"[{q.split('.')[-1]}](gallery/FEATURES.md#{q.split('.')[-1]})"
+                          for q in f["examples"])
+        lines.append(f"| {thumb} | [{f['title']}](gallery/FEATURES.md#{slug(f['title'])}) "
+                     f"| {names} |")
+    lines += ["", "## Applications", "", "| | Example | Shows |", "|---|---|---|"]
+    for name in CATEGORIES["applications"]:
+        q = f"applications.{name}"
+        summary, _ = md_doc(importlib.import_module(f"hexmesh.examples.{q}").__doc__)
+        thumb = (f'<img src="gallery/img/{name}.png" width="160" alt="{name}">'
+                 if (IMG / f"{name}.png").exists() else "")
+        lines.append(f"| {thumb} | [{name}](gallery/APPLICATIONS.md#{name}) | {summary} |")
+    by_status = Counter(m["status"] for _, m in cases)
+    lines += ["", "## Validation", "",
+              "Cases by status: " + ", ".join(f"{STATUS_MARK[s]} {n} {s}"
+                                               for s, n in by_status.items()) + ".  "
+              "[The Validation page](gallery/VALIDATION.md) has each case and the "
+              "coverage matrix (which features each case exercises).", "",
+              "## Reading the numbers", "", *READING_NUMBERS, ""]
+    return "\n".join(lines + footer(meta))
+
+
+def write_markdown(metrics: dict, meta: dict) -> None:
+    """The landing page and the three pages (decision 0050, task 0142)."""
+    anchors = api_anchors()
+    cases = [(c, case_meta(c)) for c in case_dirs()]
+    planned = planned_cases({m["task"] for _, m in cases})
+    pages = {GALLERY: landing_md(metrics, meta, cases),
+             FEATURES: features_md(metrics, meta, anchors, cases, planned),
+             APPLICATIONS: applications_md(metrics, meta, anchors),
+             VALIDATION: validation_page_md(meta)}
+    for path, text in pages.items():
+        path.write_text(text, encoding="utf-8", newline="\n")
 
 
 def main() -> None:
@@ -1058,7 +1256,7 @@ def main() -> None:
         saved["validation"] = vmetrics
         METRICS.write_text(json.dumps(saved, indent=1), encoding="utf-8")
         write_markdown(metrics, meta)
-        print(f"wrote {GALLERY.relative_to(ROOT)}")
+        print("wrote the gallery pages")
         return
     if not args.markdown_only:
         names = ALL
@@ -1074,7 +1272,7 @@ def main() -> None:
         if not args.only:
             run_hero()
     write_markdown(metrics, meta)
-    print(f"wrote {GALLERY.relative_to(ROOT)}")
+    print("wrote the gallery pages")
     print("wrote README.md" if write_readme(metrics, meta) else "README.md unchanged")
 
 

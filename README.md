@@ -258,7 +258,7 @@ convergence against gates set in advance.
 <!-- readme:validation:end -->
 
 Categories, the coverage matrix (which features are validated and which
-aren't yet) and every case's mesh: [GALLERY.md, Validation](docs/GALLERY.md#validation).
+aren't yet) and every case's mesh: [the gallery's Validation page](docs/gallery/VALIDATION.md).
 
 ---
 
@@ -328,7 +328,7 @@ change between minor versions.  Every breaking change is marked
 |---|---|
 | [Guide](docs/GUIDE.md) | every fitting, cross-sections, physical groups, OpenFOAM output, studies, plant data |
 | [API](API.md) | the reference |
-| [Gallery](docs/GALLERY.md) | every example with its mesh, quality numbers and the code; the validation cases |
+| [Gallery](docs/GALLERY.md) | every example with its mesh, quality numbers and the code, on three pages: features by family, applications, validation cases |
 | [Why hexmesh?](docs/WHY.md) | the case for structured all-hex networks, and when not to use hexmesh |
 | [Design](DESIGN.md) | the rules every fitting follows: interfaces first, fittings as fills, conformal by construction |
 | [Contributing](CONTRIBUTING.md) | reporting a bug, asking for a feature, and how changes are made: decisions first |

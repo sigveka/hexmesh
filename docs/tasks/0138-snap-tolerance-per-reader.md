@@ -1,7 +1,7 @@
 # 0138 — The snap tolerance: one per reader, carried by the model, and documented
 
 - **Status:** ready
-- **Decision:** task 0128's design answer (2026-11-11, Q2, revised the same day); [0018](../decisions/0018-future-vascular-networks.md) (constraint 8); [0032](../decisions/0032-network-model.md)
+- **Decision:** task 0128's design answer (2026-11-11, Q2, revised the same day); [0018](../decisions/0018-future-vascular-networks.md) (constraint 8); [0032](../decisions/0032-network-interchange.md)
 - **Depends on:** none.
 
 Ground rules for all tasks: [README](README.md#ground-rules).

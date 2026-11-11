@@ -813,23 +813,31 @@ both files together only if their components carry
 
 ## Examples
 
-The examples are grouped by what they illustrate.  Each writes
-`<name>.msh` to the current directory:
+Every example is a runnable module that writes `<name>.msh` to the
+current directory:
 
 ```bash
 python3 -m hexmesh.examples.fittings.smooth_bend
 ```
 
-**[docs/GALLERY.md](GALLERY.md)** shows every example with images,
-cell counts and quality metrics, and the validation cases.  Regenerate it
-with `python3 docs/gallery/build.py` (needs `vtk`).
+**[The gallery](GALLERY.md)** shows them with images, cell counts and
+quality numbers, on three pages: the
+**[features](gallery/FEATURES.md)** by family, with the API sections
+for their parameters and the validation cases that cover them; the
+**[applications](gallery/APPLICATIONS.md)**, with the fittings each
+uses; and the **[validation cases](gallery/VALIDATION.md)**.
+Regenerate it with `python3 docs/gallery/build.py` (needs `vtk`).
 
-| Category | Examples | Shows |
-|---|---|---|
-| `fittings` | `smooth_bend`, `miter_bend`, `spline_pipe`, `reducer_network`, `stenosis`, `tee`, `wye`, `loop` | one building block each: bends, reducer, profiled reducer (cosine constriction), junctions, `Closure` |
-| `sections` | `insulated_pipe`, `insulated_route`, `graded_bend`, `rect_duct`, `duct_transition`, `layer_outlines`, `lagged_duct`, `insulated_transition`, `insulated_tee`, `insulated_network` | what runs through the pipe: layer stacks, wall and axial grading, rectangular ducts, shells of any outline, `Transition` of a whole stack |
-| `networks` | `pipe_network`, `pipe_rack`, `distribution_tree`, `bifurcation_tree`, `skewed_network` | composing fittings: routes, branches, trees, any orientation |
-| `applications` | `drum_nozzle`, `hvac_supply`, `hvac_branched`, `cooling_channels` | equipment nozzles, ventilation ducting, cooling channels |
+| Family | Examples (`hexmesh.examples.…`) |
+|---|---|
+| Bends | `fittings.smooth_bend`, `fittings.miter_bend`, `fittings.spline_pipe` |
+| Reducers and profiles | `fittings.reducer_network`, `fittings.stenosis` |
+| Junctions | `fittings.tee`, `fittings.equal_tee`, `fittings.wye`, `fittings.junction_walls` |
+| Sections and transitions | `sections.rect_duct`, `sections.duct_transition` |
+| Layers | `sections.insulated_pipe`, `sections.insulated_route`, `sections.layer_outlines`, `sections.lagged_duct`, `sections.insulated_transition`, `sections.insulated_tee`, `sections.insulated_network` |
+| Grading and resolution | `sections.graded_bend` |
+| Building networks | `fittings.loop`, `networks.pipe_network`, `networks.pipe_rack`, `networks.distribution_tree`, `networks.bifurcation_tree`, `networks.skewed_network` |
+| Applications | `applications.drum_nozzle`, `applications.hvac_supply`, `applications.hvac_branched`, `applications.cooling_channels`, `applications.pcf_line`, `applications.idealised_aorta` |
 
 ---
 

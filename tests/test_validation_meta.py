@@ -60,7 +60,7 @@ def test_schema_rejects_bad_fields(build):
     schema = build.case_schema()
     jsonschema.validate(good, schema)
     for bad in ({"category": "V5"},
-                {"tags": {**good["tags"], "features": ["elbow"]}},
+                {"tags": {**good["tags"], "features": ["corkscrew"]}},
                 {"status": "done"},
                 {"references": []}):
         with pytest.raises(jsonschema.ValidationError):

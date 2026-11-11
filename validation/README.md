@@ -3,7 +3,7 @@
 One directory per case: `README.md` (the case), `case.json` (title,
 status, gates), `run.py` (the driver), `results.json` (every level's
 numbers) and `RESULTS.md` (the tables, gates and graphs).  The gallery's
-validation section (`docs/GALLERY.md`) lists them.
+Validation page (`docs/gallery/VALIDATION.md`) lists them.
 
 From the repository root, with no OpenFOAM and no GMSH:
 

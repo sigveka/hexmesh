@@ -118,7 +118,7 @@ examples' docstrings shrink to a line and a link.
   cheap, and the release step that runs them, belong in the release
   checklist (stage 2 or a task of its own).
 
-**Answered (2026-11-11, the user):** "docs/features/<family>.md works,
+**Answered (2026-11-11, the user):** "`docs/features/<family>.md` works,
 table and coloured image, cut-away and face."
 - **Where:** `docs/features/<family>.md`, and `docs/applications/<name>.md`
   for the applications.

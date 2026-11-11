@@ -57,7 +57,7 @@ TOP = {"README.md": "Home", "docs/GUIDE.md": "User guide", "API.md": "API refere
        "validation/README.md": "Validation", "CHANGELOG.md": "Changes",
        "CONTRIBUTING.md": "Contributing"}
 #: folder → sidebar group title, in this order; unlisted folders go under "More"
-GROUPS = {"docs/decisions": "Decisions", "docs/tasks": "Tasks",
+GROUPS = {"docs/gallery": "Gallery", "docs/decisions": "Decisions", "docs/tasks": "Tasks",
           "docs/integrations": "Integrations", "validation": "Validation cases"}
 #: tracked .md files that aren't pages
 SKIP = {"CLAUDE.md"}

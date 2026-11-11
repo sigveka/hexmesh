@@ -1,6 +1,6 @@
 # 0142 — The gallery as three pages and a landing page, by family
 
-- **Status:** ready
+- **Status:** done (the design session, at the user's request: "you are responsible to do the documentation changes", 2026-11-11)
 - **Decision:** [0050 — Documentation as units](../decisions/0050-documents-as-units.md) (stage 1)
 - **Depends on:** none.  Not alongside another task that regenerates the
   gallery (0139, 0140): suggested after 0139 and before 0140, so the
@@ -99,6 +99,79 @@ prose for readability (stage 2, with the user); PDFs (stage 3).
 
 ## Agent notes
 
+- **Done by the design session**, at the user's request (2026-11-11).
+- **The families are as proposed in step 1.**  Each family's fittings
+  and tags:
+
+  | Family | Fittings | Tags |
+  |---|---|---|
+  | Bends | `Bend`, `Elbow`, `MiterBend`, `SplinePipe` | `bend`, `elbow`, `miter`, `spline` |
+  | Reducers and profiles | `Reducer` | `reducer`, `profiled-reducer` |
+  | Junctions | `Tee`, `Wye` | `tee`, `duct-tap`, `wye`, `projection` |
+  | Sections and transitions | `PipeSpec`, `Transition`, `Switch` | `section:circle`, `section:rect`, `transition`, `switch` |
+  | Layers | `PipeSpec`, `Straight` | `layers`, `stack-changes` |
+  | Grading and resolution | `PipeSpec`, `Assembly` | none |
+  | Building networks | `Assembly`, `Straight`, `Closure` | `straight`, `closure` |
+
+  - `projection` (wall nodes moved onto the analytic wall) went to
+    Junctions, beside `junction_walls`.  It's broader than junctions:
+    stage 2 may give it a family of its own.
+  - **Grading has no tag.**  Its block says so.  The cases do grade
+    their walls (`turbulent_pipe`), but no tag records that; a
+    `grading` tag is a candidate for stage 2.
+- **"Validated by" is per family, not per example**, since it comes
+  from the family's tags: it would repeat in every example of a family.
+  Each example block carries **Parameters** (API links for the fitting
+  types it uses).  In applications, a **Fittings used** line links each
+  type to its family.
+- **Step 3's check:** no case's code builds a plain `Reducer` (mms and
+  both stenosis cases use a profile), an `Elbow`, a `Closure` or a
+  `Switch`, checked by grepping each `run.py`.  So no `case.json`
+  changed, and the four new rows read "(none)".
+- **API anchors** are computed from API.md's `###` headings with
+  GitHub's slug rule.  The site build checked every one.
+
 ## Questions for design
 
 ## Outcome
+
+Done 2026-11-11.
+
+- **Files:**
+  - `docs/gallery/build.py`: four pages, `example_md` as a parametrised
+    block, `api_anchors`, `last_run`, `validated_by`;
+  - `hexmesh/examples/__init__.py`: `FAMILIES`;
+  - `validation/case.schema.json`: four tags;
+  - `docs/GALLERY.md`, now 47 lines, down from 1 236;
+  - new `docs/gallery/FEATURES.md` (879 lines), `APPLICATIONS.md`
+    (271) and `VALIDATION.md` (235);
+  - links: `README.md` (2), `docs/WHY.md` (2), `validation/README.md`,
+    the GUIDE's *Examples* section (a family table);
+  - `docs/site.py`: a "Gallery" sidebar group;
+  - CHANGELOG.
+- **Tests:**
+  - three new in `tests/test_examples.py`: every feature example in
+    exactly one family; the families' tags exist and every tag has a
+    family; the families' fittings have API sections; the GUIDE's
+    table matches `FAMILIES`;
+  - `test_validation_meta.py`'s "unknown tag" example changed from
+    `elbow`, which is now a tag, to `corkscrew`;
+  - `test_validation_meta`, `test_volunteer`, `test_architecture` and
+    the new tests pass (73 + 167 + 4).
+  - **Every test that touches the examples, the schema or the gallery**
+    (13 files: test_examples, test_h_examples, test_agent_*,
+    test_second_order, test_readme, test_validation_meta, …): 485
+    passed, `-n 3`, 12.5 min, with the coding session's uncommitted
+    0141 fix in the tree.  Full suite not run: nothing outside the
+    docs, the example registry and the schema changed.
+- **Site build** (`python3 docs/site.py`, local Essens): 246 pages; no
+  broken links or anchors.
+  - It found one broken link outside this task: task 0138's link to
+    decision 0032 (`0032-network-model.md`, really
+    `0032-network-interchange.md`).  Fixed.
+  - It found one Essens warning: a bare `<family>` in decision 0050
+    (now in a code span).
+- **Images and numbers: unchanged.**  `--markdown-only` from the stored
+  `metrics.json`; no example was re-meshed, and no meshing code changed.
+- **Follow-ups for stage 2:** a `grading` tag; whether `projection` is
+  its own family; the family documents themselves.

@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+**The gallery is three pages, by family** (decision 0050; task 0142).
+- `docs/GALLERY.md` is now a short landing page.  `docs/gallery/FEATURES.md`
+  groups the feature examples by family (bends, reducers and profiles,
+  junctions, sections and transitions, layers, grading and resolution,
+  building networks), each with links to its API sections and the
+  validation cases that cover it, with their status and last run (date
+  and hexmesh commit).  `docs/gallery/APPLICATIONS.md` lists each
+  application with the fittings it uses, linked to their family.
+  `docs/gallery/VALIDATION.md` holds the validation cases and the
+  coverage matrix.
+- `hexmesh.examples.FAMILIES` holds the families.  The module paths
+  (`hexmesh.examples.fittings.…`) are unchanged.
+- Validation feature tags gain `reducer`, `elbow`, `closure` and `switch`
+  (no case covers them yet; the coverage matrix says so).
+
 **`n_outer = 8` is the 4-corner mesh, cut** (decision 0005; task 0088).
 - The face is the `n_outer = 4` face cut along its middle grid lines:
   four core blocks around the centre, two per ring patch.  Its nodes and

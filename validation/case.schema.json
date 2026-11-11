@@ -45,12 +45,13 @@
           "uniqueItems": true
         },
         "features": {
-          "description": "The hexmesh features the case exercises (decision 0012's fixed list).",
+          "description": "The hexmesh features the case exercises (decision 0012's fixed list, extended by decision 0050).",
           "type": "array",
           "minItems": 1,
           "items": {"enum": ["section:circle", "section:rect", "layers", "straight", "bend",
-                             "miter", "spline", "profiled-reducer", "transition", "tee",
-                             "duct-tap", "wye", "stack-changes", "projection"]},
+                             "elbow", "miter", "spline", "reducer", "profiled-reducer",
+                             "transition", "switch", "tee", "duct-tap", "wye", "closure",
+                             "stack-changes", "projection"]},
           "uniqueItems": true
         },
         "toolchain": {

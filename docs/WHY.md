@@ -47,11 +47,12 @@ What that gives you:
 
 - **The [gallery](GALLERY.md):** every example with its mesh, its quality
   numbers (min scaled Jacobian and where it is, SICN, aspect ratio) and
-  its code.
+  its code: the [features](gallery/FEATURES.md) by family, and the
+  [applications](gallery/APPLICATIONS.md).
 - **Validation:** grid-convergence studies against exact solutions, DNS
   and (planned) experiments, with gates set before the runs.  Cases,
   categories and the coverage matrix:
-  [GALLERY.md, Validation](GALLERY.md#validation).
+  [the gallery's Validation page](gallery/VALIDATION.md).
 - **Design records:** every design choice, the options rejected and the
   measurements behind it are in [decisions/](decisions/).  Fitting
   mathematics and sources: [RESEARCH.md](RESEARCH.md).
