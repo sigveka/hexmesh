@@ -282,6 +282,20 @@ source found:
      `CENTRE-POINT`.
   Its connectivity tolerance therefore has a floor just above 1/16"
   (`geometry.model_tolerance`).
+- **Where hexmesh's 0.11" comes from** (`interchange/graph.py`
+  `TOL_FLOOR`, 2.79 mm; recorded 2026-11-11 at the user's request).
+  The PCF Reference Guide gives no connectivity tolerance.  The value is
+  pcf2iso's floor, adopted by task 0021: its `geometry.model_tolerance`
+  joins ends closer than 0.11" (pcf2iso, commit `ab0764b`).  Neither
+  pcf2iso nor the guide says why 0.11" exactly.  **A possible
+  explanation (the design session's inference, unconfirmed):** in the
+  gap-coupling dialect, two ends that belong together can be 1/16" apart
+  along the pipe (the weld root gap) and also offset sideways by up to
+  1/16".  Both together put them √2 × 1/16" = 0.088" (2.25 mm) apart;
+  0.11" is that with about 25 % margin, and still far below any pipe
+  length or bore in plant data (the smallest common bore, ½" NPS, is
+  0.84" outside).  The floor is about welds in plant isometrics, not a
+  property of geometry in general.
 - `MATERIALS` dialect: `ITEM-CODE n` lines in **column 1** under
   `MATERIALS` (instead of `MATERIAL-IDENTIFIER`).
 - Example files: `examples/simple_spool/demo_spool.pcf` and

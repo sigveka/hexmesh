@@ -32,7 +32,8 @@ from .model import (
 from ..units import inch
 
 
-#: Connectivity tolerance floor, just above the 1/16" weld gap (pcf2iso: 0.11").
+#: Connectivity tolerance floor, just above the 1/16" weld gap (pcf2iso: 0.11";
+#: why that value: docs/integrations/pcf.md, "Where hexmesh's 0.11" comes from").
 TOL_FLOOR = 0.11 * inch
 
 

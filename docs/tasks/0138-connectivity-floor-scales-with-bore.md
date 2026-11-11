@@ -1,6 +1,6 @@
 # 0138 — The connectivity tolerance's floor scales with the bore
 
-- **Status:** ready
+- **Status:** proposed (held 2026-11-11: the user asks whether the floor belongs in the PCF reader only; wait for the answer)
 - **Decision:** task 0128's design answer (2026-11-11, Q2); [0018](../decisions/0018-future-vascular-networks.md) (constraint 8)
 - **Depends on:** none.
 
