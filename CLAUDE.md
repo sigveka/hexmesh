@@ -91,18 +91,18 @@ radii only.  Topology and density must match.
 | `n_outer` | outer arc angle | assembly support |
 |-----------|-----------------|------------------|
 | 4         | 90°             | yes: the 5-patch O-H face |
-| 8         | 45°             | no: `check_supported` rejects it |
+| 8         | 45°             | yes, except at junctions: the same face cut along its grid lines |
+| 12 and up | ≤ 30°           | no: `check_supported` rejects it |
 
 - **Constraint:** `nang % (n_outer // 4) == 0`, so each outer arc gets a
   whole number of divisions.  `n_outer` is a multiple of 4.  Both are
   enforced in `PipeSpec`.
-- **Why `n_outer = 8` is rejected:** today's `build_oh_circle8` makes one
-  8-sided centre patch, which can't bound a transfinite hex block
-  (DESIGN §9).
-- **Decided (decision 0005, accepted 2026-11-02):** `n_outer = 8` is a
-  sub-partition of the 4-corner grid: the same mesh, cut along the
-  0°/90°/180°/270° grid lines.  Task 0088 replaces `build_oh_circle8`;
-  until then `check_supported` still rejects it.
+- **`n_outer = 8` is a sub-partition** (decision 0005, task 0088): the
+  4-corner mesh, cut along its 0°/90°/180°/270° grid lines into 8 ring
+  patches and a 2×2 core.  Connectivity is identical.  gmsh's fill isn't
+  a Coons patch, so the partition's nodes are set after `generate(2)`
+  and recorded as `sub_partition` corrections.  Junctions still take
+  `n_outer = 4` ports only.
 - **Junction relevance:** junctions need corners at 0°/90°/180°/270°
   (DESIGN §7).  The wye's background is in `docs/RESEARCH.md` §4.
 
