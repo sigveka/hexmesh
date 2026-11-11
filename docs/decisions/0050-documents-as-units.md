@@ -96,14 +96,31 @@ examples' docstrings shrink to a line and a link.
 3. **Stage 3, PDFs:** a fittings booklet and one validation paper,
    once Essens's PDF output has been tried on these documents.
 
-**To settle before accepting:**
-- Where the units live (e.g. `docs/features/<name>.md`,
-  `docs/applications/<name>.md`), and whether a feature unit covers one
-  fitting or a family (bends; junctions; sections and layers).
-- What "Checked by" lists for a feature: the validation cases (from
-  their tags: generated) and which tests (the fitting conformance
-  matrix, cell-count prediction, quality tiers).  Tests have no feature
-  tags today; a hand-kept map, or tags on the tests.
+**Answered (2026-11-11, the user):**
+- **One unit per family**, not per fitting ("one per family"): e.g.
+  bends (`Bend`, `Elbow`, `MiterBend`, `SplinePipe`), reducers and
+  profiles, sections and transitions, layers, junctions (`Tee`, `Wye`),
+  building networks (`add`, `close`, `Closure`, roll and `toward`).
+  The list itself is stage 2's to propose.
+- **Verification is shown as dated, stamped evidence** ("tests should
+  just be dated and stamped with the hexmesh version or commit ID such
+  that we can trace where they were from"): a unit's generated block
+  shows the results of its family's tests with the date and the
+  hexmesh version or commit they ran on, not a claim that stays true
+  by itself.  Which tests belong to a family is then a mechanism detail
+  for stage 2 (e.g. a pytest marker per family, collected into a
+  stamped JSON like the gallery's `metrics.json`).
+- **Validation cases are run for releases** ("at least for the cheaper
+  cases"): a unit shows its family's cases with the release (or commit)
+  and date of their last run.  Each level of a case's `results.json`
+  already records its `environment` (date, hexmesh commit, gmsh,
+  OpenFOAM), checked 2026-11-11 on `poiseuille`; which cases count as
+  cheap, and the release step that runs them, belong in the release
+  checklist (stage 2 or a task of its own).
+
+**Still to settle before accepting:**
+- Where the units live (e.g. `docs/features/<family>.md`,
+  `docs/applications/<name>.md`).
 - The fitting map's form: a table only (label, fitting, key
   parameters, link to the feature), or also an image coloured by fitting.
 - The feature tags' list (decision 0012) lacks `reducer`, `elbow`,
