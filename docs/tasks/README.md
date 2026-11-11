@@ -139,6 +139,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0140](0140-rocket-injector-manifold.md) | Example: a liquid-rocket propellant feed line and ring injector manifold | ready | — |
 | [0141](0141-tee-fill-fails-at-rounding-level-direction.md) | Bug: a tee's fill fails when its direction is 1e-16 off an axis | done | — |
 | [0142](0142-gallery-three-pages.md) | The gallery as three pages and a landing page, by family | done | — |
+| [0143](0143-merge-warns-on-snap-tolerance-mismatch.md) | `merge` warns when the two models' snap tolerances differ | ready | — |
 
 ### Validation
 
