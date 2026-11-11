@@ -56,8 +56,14 @@ subsea pipelines.
 - Sources cited; choices said to be choices.
 - Gallery entry and tests; full suite: no new failures.
 
-**Out of scope.**  Umbilicals and pipe-in-pipe (decision 0035); seabed
-soil as a mesh region; real survey data in the repository.
+**Out of scope.**
+- **A flexible riser on a rigid flowline** (the user, 2026-11-12): every
+  wall layer changes between the two, which needs decision 0021 stage 1
+  (a material-change stack change; see its note of 2026-11-12).  Here
+  the riser, if built, has the flowline's section.  The two-type line is
+  this example's follow-up.
+- Umbilicals and pipe-in-pipe (decision 0035); seabed soil as a mesh
+  region; real survey data in the repository.
 
 ## Agent notes
 

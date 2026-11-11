@@ -178,3 +178,30 @@ lay-up, before the umbilical rings of item 3.
 - **Validation:** heat loss from a buried pipe pair has classical
   analytic estimates, by conduction shape factors.  Check the references
   before using them as a V1 case.
+
+**Research (design session, 2026-11-12; the user: "yes" to recording it):**
+- **The user's layout is the classic pair of single pipes** (EN 253):
+  two pipes, each with its own polyurethane (PUR) insulation and
+  polyethylene casing, side by side in soil.  It is the most common
+  layout in existing networks, and stage B's first lay-up.
+- **A "twin pipe" is a different product** (EN 15698-1, revised 2025):
+  both steel service pipes inside **one** PUR body and **one** PE
+  casing, DN 15–250, up to 120 °C.  Bøhm and Kristjansson (2005) found an
+  egg-shaped twin pipe loses 37 % less heat than a pair of single pipes.
+  In hexmesh terms it is a two-core section inside a circle: stage B's
+  second lay-up.
+- **Validation:** steady heat loss from buried pipes has a standard
+  analytic method, the multipole method (Bennet, Claesson and Hellström,
+  1987), and dimensionless correlations for twin pipes (Corcione et al.,
+  *Appl. Sci.* 2021, doi 10.3390/app11209685).  A lab comparison reported
+  about 8 % between measurement and analytical models for twin pipes.  A
+  V1 conduction case against the multipole method is the candidate.
+- **Colours carry the picture.**  The gallery cycles five colours by
+  material order.  This example needs a material-to-colour map of its
+  own:
+  - hot water red, cold water blue;
+  - steel grey, PUR yellow, PE casing black;
+  - near soil light brown, far soil dark brown.
+
+  A small gallery feature: an example declares its colours.  It goes
+  with the stage B example's task, unless wanted earlier.

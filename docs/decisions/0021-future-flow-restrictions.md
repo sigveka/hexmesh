@@ -131,3 +131,44 @@ Literature survey: RESEARCH §10 (2026-10-27).
   orifice); the standards' exact limits (sources disagree on the Venturi
   Re limit); installation-effect figures from industry and vendor
   sources.
+
+## Note (2026-11-12): a second case for the material change, the flexible riser
+
+**The user** (2026-11-12) asked for a subsea line whose riser is a
+flexible pipe and whose flowline is well insulated.  Today that needs
+exactly this decision's stage 1, so it is recorded here as a second
+motivating case beside the orifice plate.
+
+**The two pipe types** (design session's search, 2026-11-12):
+- **Unbonded flexible riser** (API 17J; API RP 17B), from inside out:
+  - a stainless steel **carcass**, touching the fluid;
+  - a polymer **pressure sheath**;
+  - a **pressure armour** of interlocked steel wire;
+  - two cross-wound **tensile armour** layers;
+  - a polymer **outer sheath**.
+- **Rigid flowline:** steel pipe, an anti-corrosion coating, and thick
+  polypropylene wet insulation (solid and foamed layers).
+- **The connection:** an end fitting on the flexible pipe, a flange or
+  connector, often at a pipeline-end termination (PLET) near the riser
+  base.
+
+**Why it needs stage 1:**
+- Every wall layer changes: material, thickness, and the number of
+  layers.
+- A stack change (decision 0006) only adds or removes whole outermost
+  layers, and `Reducer` only changes radii.  So the pair is switch class
+  3, which no fitting bridges.
+- With a material-change stack change (this decision's table, "the ring
+  changes material"), a short **connector section** can do it: the bore
+  runs straight through while the wall layers change material and
+  thickness.  Physically that is the end fitting, a solid steel body.
+  Layers missing on one side end or start as today (class 1).
+
+**What the design must answer for this case:**
+- whether a material change and a radius change may happen at the same
+  station, or need a `Reducer` between them;
+- how the carcass, a porous steel strip wetted by the fluid, is modelled:
+  a solid layer, or a wall roughness.
+
+Task 0153 (the subsea example) stays with one pipe type until then.  The
+riser is its follow-up.
