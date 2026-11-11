@@ -106,6 +106,17 @@ rejects both); JSON in other units.
 Neither blocks this task: the acceptance allows the scale test's failure
 to be a question for design.
 
+## Design answer (2026-11-11, the user: "It seems reasonable that to scale with bore, right?")
+
+Q2: the connectivity floor scales with the bore, keeping the weld gap
+for plant data: `min(0.11", 0.25 × the model's smallest bore)`.  Every
+plant line from ½" up keeps 0.11" (0.25 × 15.8 mm ≈ 4 mm), so PCF
+reads are unchanged; a 1 mm vessel gets 0.25 mm.  Task 0138.
+
+Q1 (relative `tol3d` on the interior plates): the user's reasoning
+points the same way; open until they confirm, since it moves
+full-size junction meshes (gallery and pinned numbers regenerated).
+
 ## Outcome
 
 **Done 2026-11-11.**  **hexmesh is not scale-free.**  The same network
