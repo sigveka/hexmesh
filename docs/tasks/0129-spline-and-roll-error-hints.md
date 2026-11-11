@@ -100,6 +100,21 @@ centreline builder (decision 0048, proposed).
 
 ## Questions for design
 
+## Design review (2026-11-11, the design session)
+
+The three choices in *Agent notes* are accepted, and stand as the rule:
+- **The point to move** is the segment end nearer the tightest place
+  (never `points[0]`), in place of step 1's `points[i+1]`: a corner at an
+  input point is fixed by moving that point, as the test shows.
+- **The suggested straight is at least one outer radius long.**  The
+  twist limits alone allow a sliver (0.39 mm for 1.3° on R 0.05) that no
+  user would draw; a radius is short and sensible, and the limits hold
+  either way.
+- **`Closure` keeps its message.**  Its curve is set by two interfaces
+  and `tension`, so a hint needs its own wording and a test that it fixes
+  a case.  Recorded as a candidate, not a task: write it when a user or
+  an example meets the error.
+
 ## Outcome
 
 **Done 2026-11-11.**
