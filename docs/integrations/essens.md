@@ -120,6 +120,14 @@ Jekyll would).  A scratch copy of all 233 tracked `.md` files outside
   uses only what v0.1.4 has (`--template`, `lint --format json`), so
   both build the same; check a new feature against the release archive
   before relying on it.
+- **The v0.1.4 release has no `folder-pages`** (checked 2026-11-11 with
+  the release archive itself, after the first CI run failed): two
+  same-named files fail lint with "duplicate document id 'RESULTS' …
+  Rename one file or set a unique 'id:' in the front matter", whatever
+  `essens.yaml` says.  hexmesh has 21 `README.md` and 13 `RESULTS.md`.
+  The local builds since 2026-11-10 have the feature, so the earlier
+  note that "0.1.4" matched `folder-pages` was about a local build, not
+  the release.  CI needs a later release (asked of the Essens session).
 - **`essens lint --format json` writes one JSON array**, pretty-printed
   over many lines (not one object per line).
 - **Diagnostics on hexmesh's docs** after task 0137's fixes: one
