@@ -13,7 +13,8 @@ Ground rules for all tasks: [README](README.md#ground-rules).
 spirit of the idealised aorta, and chose a liquid-rocket feed system
 over an S-duct inlet and an aircraft bleed-air network.  It shows what
 no example shows at this scale: a **closed ring** (`Assembly.close`)
-carrying **many tees**, with an insulated cryogenic feed line, in fluid,
+carrying **many tees**, with an insulated cryogenic feed line and a
+cavitating venturi, in fluid,
 steel and insulation regions (the conjugate-heat-transfer story), and a
 cut-away of the ring for the gallery.
 
@@ -50,6 +51,10 @@ branches along the ring's axis), `Bend`s of 360°/N between them and a
 - The ring's size comes from the tee runs and the bends; choose the
   bend radius so the tee centres lie on the stated ring circle, and let
   the `Closure` take only the rounding.
+- **The venturi** validates on the insulated line (r 0.012, steel 0.003,
+  insulation 0.01, `nang` 6, 40 layers): `beta` 0.5 and 0.4, 7°
+  divergent, length 0.3.  Shorter is rejected with the length needed
+  (`profile_too_short`: 0.142 at `beta` 0.5, 7°).  Not meshed.
 
 **Do.**
 1. **Sizes from stated design rules, not one engine's drawings.**
@@ -74,6 +79,18 @@ branches along the ring's axis), `Bend`s of 360°/N between them and a
      `Reducer` if the sizes call for one, ending at `lox_inlet`.  Its
      branch ratio within `TEE_MAX_RATIO` (0.95), or an equal tee if the
      sizes make it one (square and centred only);
+   - **a cavitating venturi** in the feed line, upstream of the feed
+     tee (the user, 2026-11-11): `Reducer(spec, length, n_layers,
+     profile=("venturi", beta, divergent))`.  Rocket feed lines and test
+     stands use one to fix the propellant mass flow and isolate the line
+     from chamber-pressure oscillations: once the throat cavitates, the
+     flow depends on the upstream pressure only.  Take `beta` and the
+     divergent angle from a cited source on cavitating venturis (or state
+     them as choices); the throat is where the mesh needs to show the
+     contraction.  Name nothing new: it is a stretch of the feed line.
+     The profile scales every layer, so the steel and insulation neck
+     down with the bore (a real venturi body is straight outside): say
+     so in the docstring, as a modelling simplification;
    - **layers:** fluid and a steel wall everywhere; insulation on the
      feed line (cryogenic), ending before the ring if
      `Straight(stack_changes=…)` can end it there; if it can't, insulate
