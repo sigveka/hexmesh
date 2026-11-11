@@ -17,6 +17,13 @@
 - Validation feature tags gain `reducer`, `elbow`, `closure` and `switch`
   (no case covers them yet; the coverage matrix says so).
 
+**A junction face OCC refuses is retried** (task 0141).
+- A tee at direction `[-1, 0, -1.2246e-16]` (−sin π, from trigonometry)
+  failed to fill: OCC's plate filling refuses one face at a rounding-level
+  change of its input.  The plate is now retried at a tolerance relative
+  to the face (1e-6, then 1e-3 of its size).  Faces that built before
+  are unchanged, so no mesh changes.
+
 **`n_outer = 8` is the 4-corner mesh, cut** (decision 0005; task 0088).
 - The face is the `n_outer = 4` face cut along its middle grid lines:
   four core blocks around the centre, two per ring patch.  Its nodes and

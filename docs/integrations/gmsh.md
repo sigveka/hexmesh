@@ -99,6 +99,31 @@ Cause of the 10 `TestYJunctionQuality` failures, which were removed with
 the legacy code in task 0017 (last legacy commit: tag `legacy-final`).  It is the reason
 behind DESIGN P2, and the wye is being rebuilt as a block layout instead.
 
+### Plate filling is chaotic at rounding level (gmsh 4.12.1, task 0141, 2026-11-11) — *verified*
+
+A pipe tee (R 0.02, steel shell 0.003, branch r 0.012) at direction
+`[-1, 0, -1.2246e-16]` (−sin π), up `[0, -1, 0]`: one junction face
+(two lines and two splines, 3 × 16 mm) fails in `addSurfaceFilling`
+("Could not build surface filling") at gmsh's defaults.  At direction
+`[-1, 0, 0]`, `+1.2246e-16`, `-1e-12` … `-1e-6` it builds.
+
+- The face's curves, sampled from OCC, agree between the passing and the
+  failing case to 1e-17; hexmesh's frames, corner order and block layout
+  are the same.  So it isn't a sign or `atan2` flip in hexmesh.
+- In the failing model: every `degree` (2–10), `numPointsOnCurves`
+  (5–30), `maxDegree` 10 and `maxSegments` 20 fail too, and so do copies
+  of the four curves; `tol3d` 1e-6 and 1e-3 build (1e-5 fails), and so
+  do both B-spline fillings.
+- The four curves alone, written to BREP and read back, build at every
+  tolerance: the text format changes the last bits.  So there is no
+  minimal file; the reproduction is the tee (task 0141).
+- hexmesh's workaround (`blocks.BlockLayout._plate`): the default plate
+  first, so every face that builds today is unchanged; a refused plate
+  is retried at `tol3d` = 1e-6 then 1e-3 of the face's extent, with
+  gmsh's messages off for the attempts that may fail.  Here the first
+  retry builds (`tol3d` 1.65e-8 m); the mesh is within 1.8e-4 R of the
+  `[-1, 0, 0]` tee's, worst minSICN 0.178 in both.
+
 ### Filled OCC surfaces deviate from true geometry — *verified*
 About 3 % of the radius on a 30° bend slab, and about 21 % on a 90° slab
 (DESIGN §6).  Hence "exactness lives in curves and nodes": every node sits
