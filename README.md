@@ -38,6 +38,13 @@ transfer.
 | ✔ **Writes OpenFOAM cases** (patches, regions, CHT setup) | ✔ **Same connectivity across a parameter sweep** (studies, surrogates) |
 <!-- readme:features:end -->
 
+**See it first: [the gallery](docs/GALLERY.md).**  Every
+[feature](docs/gallery/FEATURES.md) by family (bends, reducers,
+junctions, ducts, layers, networks), [applications](docs/gallery/APPLICATIONS.md)
+built from them (an idealised aorta, ventilation runs, a plant line from
+a PCF file, cooling channels), and the [validation cases](docs/gallery/VALIDATION.md),
+each with its mesh, its cell quality and the code that made it.
+
 ---
 
 ## Ten lines, one checked mesh
@@ -117,9 +124,11 @@ asm.write_openfoam("pcf_line.msh")
   equipment nozzle `V_101_N1`), so a result traces back to the isometric.
 - **Insulation** comes from the file's `INSULATION ON` and thickness, and
   stops where the file says (a bare valve or flange).
-- **Nothing is snapped.** Every component is checked against its end
-  points, and every error and warning names the component and its line in
-  the file:
+- **Nothing moves silently.** Ends join only when they are closer than
+  the snap tolerance: 0.11″ (2.79 mm, just above a 1/16″ weld gap), or
+  1e-4 of the model's size if that is larger; `NetworkSpec.report`
+  records it.  Every component is checked against its end points, and
+  every error and warning names the component and its line in the file:
 
   ```json
   {"code": "run_length_too_short",
@@ -190,24 +199,27 @@ hexmesh build header.json --out header.msh       # the only step that runs gmsh
 
 ## Fittings
 
+Click a picture for the example, its numbers and its code; the
+[features page](docs/gallery/FEATURES.md) has them all, by family.
+
 <table>
 <tr>
-<td align="center"><img src="docs/gallery/img/smooth_bend.png" width="180"><br><code>Bend</code> · <code>Elbow</code></td>
-<td align="center"><img src="docs/gallery/img/miter_bend.png" width="180"><br><code>MiterBend</code></td>
-<td align="center"><img src="docs/gallery/img/spline_pipe.png" width="180"><br><code>SplinePipe</code></td>
-<td align="center"><img src="docs/gallery/img/stenosis.png" width="180"><br><code>Reducer</code> (profiled)</td>
+<td align="center"><a href="docs/gallery/FEATURES.md#smooth_bend"><img src="docs/gallery/img/smooth_bend.png" width="180"></a><br><code>Bend</code> · <code>Elbow</code></td>
+<td align="center"><a href="docs/gallery/FEATURES.md#miter_bend"><img src="docs/gallery/img/miter_bend.png" width="180"></a><br><code>MiterBend</code></td>
+<td align="center"><a href="docs/gallery/FEATURES.md#spline_pipe"><img src="docs/gallery/img/spline_pipe.png" width="180"></a><br><code>SplinePipe</code></td>
+<td align="center"><a href="docs/gallery/FEATURES.md#stenosis"><img src="docs/gallery/img/stenosis.png" width="180"></a><br><code>Reducer</code> (profiled)</td>
 </tr>
 <tr>
-<td align="center"><img src="docs/gallery/img/tee.png" width="180"><br><code>Tee</code></td>
-<td align="center"><img src="docs/gallery/img/wye.png" width="180"><br><code>Wye</code></td>
-<td align="center"><img src="docs/gallery/img/duct_transition.png" width="180"><br><code>Transition</code> (circle ↔ rectangle)</td>
-<td align="center"><img src="docs/gallery/img/loop.png" width="180"><br><code>Closure</code> (loops)</td>
+<td align="center"><a href="docs/gallery/FEATURES.md#tee"><img src="docs/gallery/img/tee.png" width="180"></a><br><code>Tee</code></td>
+<td align="center"><a href="docs/gallery/FEATURES.md#wye"><img src="docs/gallery/img/wye.png" width="180"></a><br><code>Wye</code></td>
+<td align="center"><a href="docs/gallery/FEATURES.md#duct_transition"><img src="docs/gallery/img/duct_transition.png" width="180"></a><br><code>Transition</code> (circle ↔ rectangle)</td>
+<td align="center"><a href="docs/gallery/FEATURES.md#loop"><img src="docs/gallery/img/loop.png" width="180"></a><br><code>Closure</code> (loops)</td>
 </tr>
 <tr>
-<td align="center"><img src="docs/gallery/img/equal_tee.png" width="180"><br><code>Tee</code> (equal)</td>
-<td align="center"><img src="docs/gallery/img/rect_duct.png" width="180"><br>rectangular ducts</td>
-<td align="center"><img src="docs/gallery/img/hvac_branched.png" width="180"><br>duct taps</td>
-<td align="center"><img src="docs/gallery/img/layer_outlines.png" width="180"><br>layer outlines</td>
+<td align="center"><a href="docs/gallery/FEATURES.md#equal_tee"><img src="docs/gallery/img/equal_tee.png" width="180"></a><br><code>Tee</code> (equal)</td>
+<td align="center"><a href="docs/gallery/FEATURES.md#rect_duct"><img src="docs/gallery/img/rect_duct.png" width="180"></a><br>rectangular ducts</td>
+<td align="center"><a href="docs/gallery/APPLICATIONS.md#hvac_branched"><img src="docs/gallery/img/hvac_branched.png" width="180"></a><br>duct taps</td>
+<td align="center"><a href="docs/gallery/FEATURES.md#layer_outlines"><img src="docs/gallery/img/layer_outlines.png" width="180"></a><br>layer outlines</td>
 </tr>
 </table>
 
