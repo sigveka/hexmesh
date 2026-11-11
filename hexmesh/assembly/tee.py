@@ -102,7 +102,8 @@ from .blocks import (
 )
 from .cube import CubeTee
 from .duct_tap import TapTemplate
-from .interface import Frame, junction_roll, junction_toward, lean, outer_radius, rolled
+from .interface import (Frame, check_port_frames, junction_roll, junction_toward, lean,
+                        outer_radius, rolled)
 from .junction_quality import (CUBE_HINT, TAP_HINT, TEE_BLOCKS, TEE_HINT, nonorth_tiers,
                                predicted_angle)
 from .limits import (EQUAL_TEE_RTOL, PREDICTED_SJ_MIN, PREDICTED_SJ_WARN, TEE_MAX_OFFSET_RATIO,
@@ -780,13 +781,8 @@ class Tee:
         below ``PREDICTED_SJ_WARN``)."""
         self.check(spec)
         check_port_pairs(self, [spec] + [s for _, s in self.ports(frames[0], spec)])
-        expected = [f for f, _ in self.ports(frames[0], spec)]
-        for want, got in zip(expected, frames[1:]):
-            if (np.linalg.norm(want.position - got.position) > 1e-9 * self.run_length
-                    or np.dot(want.normal, got.normal) < 1 - 1e-9
-                    or np.dot(want.up, got.up) < 1 - 1e-9):
-                raise AssemblyError("port interface does not match Tee geometry",
-                                    code="outlet_frame_mismatch")
+        check_port_frames(self, [f for f, _ in self.ports(frames[0], spec)], frames[1:],
+                          self.run_length)
         tpl = self._template(spec)
         if tpl is not None:
             return tpl.validate(frames, spec)

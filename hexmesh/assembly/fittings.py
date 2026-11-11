@@ -93,6 +93,14 @@ class _Toward:
 # Straight
 # ---------------------------------------------------------------------------
 
+def _check_length(fitting) -> None:
+    """``size_not_positive`` unless *fitting*'s ``length`` is positive."""
+    if fitting.length <= 0:
+        raise AssemblyError(f"length must be positive, got {fitting.length!r}",
+                            code="size_not_positive", where={"field": "length"},
+                            value=fitting.length, limit={"min_exclusive": 0})
+
+
 @dataclass(frozen=True)
 class Straight(Sweep):
     """Straight pipe run between two parallel interfaces.
@@ -139,10 +147,7 @@ class Straight(Sweep):
 
     def check(self, spec: PipeSpec) -> None:
         super().check(spec)
-        if self.length <= 0:
-            raise AssemblyError(f"length must be positive, got {self.length!r}",
-                                code="size_not_positive", where={"field": "length"},
-                                value=self.length, limit={"min_exclusive": 0})
+        _check_length(self)
         if self.twist and self.layer_twist() > limits.STRAIGHT_TWIST_MAX + 1e-9:
             raise AssemblyError(
                 f"Straight: twist {self.twist:g}° rolls one axial layer by "
@@ -670,8 +675,23 @@ def _mprgs(spec: PipeSpec) -> np.ndarray:
     return np.array([spec._core_mprg] + [sh.mprg for sh in spec.shells])
 
 
+class _AxialOutlet(Sweep):
+    """A straight two-port fitting with an ``outlet`` spec: the outlet
+    frame *length* along the inlet's axis, and the positive-length check
+    (``Reducer``, ``Transition``; task 0135)."""
+
+    def ports(self, inlet: Frame, spec: PipeSpec) -> list[tuple[Frame, PipeSpec]]:
+        out = Frame(inlet.position + self.length * inlet.normal,
+                    inlet.normal, inlet.up)
+        return [(out, self.outlet)]
+
+    def check(self, spec: PipeSpec) -> None:
+        super().check(spec)
+        _check_length(self)
+
+
 @dataclass(frozen=True)
-class Reducer(Sweep):
+class Reducer(_AxialOutlet):
     """Concentric reducer (or expander): a straight cone between two radii.
 
     *outlet* is the outlet spec.  It must equal the inlet spec in everything
@@ -728,17 +748,8 @@ class Reducer(Sweep):
         prof = self._profile(spec)
         return prof.chord_gaps(prof.stations(self.fractions(n))).max() <= self.chord_tol
 
-    def ports(self, inlet: Frame, spec: PipeSpec) -> list[tuple[Frame, PipeSpec]]:
-        out = Frame(inlet.position + self.length * inlet.normal,
-                    inlet.normal, inlet.up)
-        return [(out, self.outlet)]
-
     def check(self, spec: PipeSpec) -> None:
         super().check(spec)
-        if self.length <= 0:
-            raise AssemblyError(f"length must be positive, got {self.length!r}",
-                                code="size_not_positive", where={"field": "length"},
-                                value=self.length, limit={"min_exclusive": 0})
         # rot is placement, not connectivity (task 0019), so the signature
         # check in Sweep.validate does not see it; the cone needs it equal.
         if spec.rot != self.outlet.rot:
@@ -836,7 +847,7 @@ _BOTH_H = ("Transition with H at both ends: both are rectangles, so use Reducer,
 
 
 @dataclass(frozen=True)
-class Transition(Sweep):
+class Transition(_AxialOutlet):
     """Straight transition that changes outline shapes: a circle to a
     rectangle, or a rectangle to another (decision 0009, option B; task
     0029), in every layer of a stack (decision 0026, task 0046).
@@ -881,17 +892,8 @@ class Transition(Sweep):
         "1", "ratio of consecutive axial cell lengths, inlet → outlet (1 = uniform)", default=1.0,
         exclusiveMinimum=0)
 
-    def ports(self, inlet: Frame, spec: PipeSpec) -> list[tuple[Frame, PipeSpec]]:
-        out = Frame(inlet.position + self.length * inlet.normal,
-                    inlet.normal, inlet.up)
-        return [(out, self.outlet)]
-
     def check(self, spec: PipeSpec) -> None:
         super().check(spec)
-        if self.length <= 0:
-            raise AssemblyError(f"length must be positive, got {self.length!r}",
-                                code="size_not_positive", where={"field": "length"},
-                                value=self.length, limit={"min_exclusive": 0})
         h_end = self._h_end(spec)
         if h_end is not None:
             self._check_h_end(spec, h_end)

@@ -187,6 +187,19 @@ def junction_toward(fitting, inlet: Frame, spec: PipeSpec, offset: float = 0.0):
     return replace(fitting, roll=math.remainder(roll, 360.0) + 0.0, toward=None)
 
 
+def check_port_frames(fitting, expected: list[Frame], given: list[Frame],
+                      scale: float) -> None:
+    """``AssemblyError`` (``outlet_frame_mismatch``) unless each *expected*
+    port frame of a junction or switch equals the *given* one: position
+    within 1e-9 *scale*, normal and up within 1e-9 (task 0135)."""
+    for want, got in zip(expected, given):
+        if (np.linalg.norm(want.position - got.position) > 1e-9 * scale
+                or np.dot(want.normal, got.normal) < 1 - 1e-9
+                or np.dot(want.up, got.up) < 1 - 1e-9):
+            raise AssemblyError(f"port interface does not match {type(fitting).__name__} "
+                                "geometry", code="outlet_frame_mismatch")
+
+
 def roll_mismatch(up_from: np.ndarray, up_to: np.ndarray, normal: np.ndarray,
                   period: float) -> float:
     """Signed roll (radians, about *normal*) taking *up_from* to *up_to*.

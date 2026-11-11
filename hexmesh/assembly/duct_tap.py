@@ -94,6 +94,37 @@ def _label_map(lay, prefix, o, e1, e2) -> dict:
     return out
 
 
+def _stations(lay, spec, maps, n_y, n_z, n_x, n_run, place) -> None:
+    """The two stations Sa (sx = −1) and Sd (sx = 1) of a tap's core box:
+    their corners from ``place(sx, sy, sz)`` → (core point, outline
+    point), their ring and radial edges, the port slabs A → Sa and B → Sd
+    (*maps*: face A's and B's label maps), and the edges Sa → Sd (*n_x*
+    divisions; task 0135)."""
+    for X, sx in (("Sa", -1), ("Sd", 1)):
+        for (sy, sz) in _LABS:
+            inner, outer = place(sx, sy, sz)
+            lay.vertex((X, 0, (sy, sz)), inner)
+            lay.vertex((X, 1, (sy, sz)), outer)
+        for i, l0 in enumerate(_LABS):
+            l1 = _LABS[(i + 1) % 4]
+            n = n_y if l0[1] == l1[1] else n_z
+            for lvl in (0, 1):
+                lay.edge((X, lvl, l0), (X, lvl, l1), divisions=n)
+            lay.edge((X, 0, l0), (X, 1, l0), divisions=spec._core_nrad,
+                     grading=("Progression", spec._core_mprg))
+    # Port slabs.
+    for port, X, m in (("A", "Sa", maps[0]), ("B", "Sd", maps[1])):
+        inv = {k: lab for lab, k in m.items()}
+        for k in range(4):
+            for lvl in (0, 1):
+                lay.edge((port, lvl, k), (X, lvl, inv[k]), divisions=n_run)
+        for material, cyc in face_patches(port, spec):
+            lay.block(list(cyc) + [(X, l, inv[k]) for (_, l, k) in cyc], material)
+    for lab in _LABS:
+        for lvl in (0, 1):
+            lay.edge(("Sa", lvl, lab), ("Sd", lvl, lab), divisions=n_x)
+
+
 @dataclass(frozen=True)
 class DuctTap:
     """Duct-tap layout engine (``Tee`` on a rectangular main).
@@ -234,29 +265,10 @@ class DuctTap:
         n_j = n_z if self.radius is None else n_y      # the branch's count along x
         nrad = spec._core_nrad
 
-        # Stations: ids by canonical (sy, sz).
-        for X, x in (("Sa", xc - s), ("Sd", xc + s)):
-            for (sy, sz) in _LABS:
-                lay.vertex((X, 0, (sy, sz)), P(x, sy * iw, sz * ih))
-                lay.vertex((X, 1, (sy, sz)), P(x, sy * a, sz * b))
-            for i, l0 in enumerate(_LABS):
-                l1 = _LABS[(i + 1) % 4]
-                n = n_y if l0[1] == l1[1] else n_z
-                for lvl in (0, 1):
-                    lay.edge((X, lvl, l0), (X, lvl, l1), divisions=n)
-                lay.edge((X, 0, l0), (X, 1, l0), divisions=nrad,
-                         grading=("Progression", spec._core_mprg))
-        # Port slabs.
-        for port, X, m in (("A", "Sa", mapA), ("B", "Sd", mapB)):
-            inv = {k: lab for lab, k in m.items()}
-            for k in range(4):
-                for lvl in (0, 1):
-                    lay.edge((port, lvl, k), (X, lvl, inv[k]), divisions=self.n_run)
-            for material, cyc in face_patches(port, spec):
-                lay.block(list(cyc) + [(X, l, inv[k]) for (_, l, k) in cyc], material)
-        for lab in _LABS:
-            for lvl in (0, 1):
-                lay.edge(("Sa", lvl, lab), ("Sd", lvl, lab), divisions=n_j)
+        # Stations at x = xc ∓ s: ids by canonical (sy, sz).
+        _stations(lay, spec, (mapA, mapB), n_y, n_z, n_j, self.n_run,
+                  lambda sx, sy, sz: (P(xc + sx * s, sy * iw, sz * ih),
+                                      P(xc + sx * s, sy * a, sz * b)))
 
         sa = lambda l, sy, sz: ("Sa", l, (sy, sz))
         sd = lambda l, sy, sz: ("Sd", l, (sy, sz))
@@ -425,34 +437,14 @@ class FullWidthTap(DuctTap):
         mapZ = _label_map(lay, "Z", Z.position, u, ey)
         n_y = sh.nang_w if on_U else sh.nang_h
         n_z = sh.nang_h if on_U else sh.nang_w       # also the branch's count along x
-        nrad = spec._core_nrad
 
         # Stations at the hole's ends x = xc ∓ p k: ids by canonical (sy, sz).
         # A shoe's core-top corners centre on the branch axis at z = ih, so
         # the turn blocks lean with it (centred on the hole they fold at 45°).
         x_top = ih * (xc / b)
-        for X, sx in (("Sa", -1), ("Sd", 1)):
-            for (sy, sz) in _LABS:
-                lay.vertex((X, 0, (sy, sz)), P((x_top if sz > 0 else xc) + sx * cx, sy * iw,
-                                               sz * ih))
-                lay.vertex((X, 1, (sy, sz)), P(xc + sx * pk, sy * a, sz * b))
-            for i, l0 in enumerate(_LABS):
-                l1 = _LABS[(i + 1) % 4]
-                n = n_y if l0[1] == l1[1] else n_z
-                for lvl in (0, 1):
-                    lay.edge((X, lvl, l0), (X, lvl, l1), divisions=n)
-                lay.edge((X, 0, l0), (X, 1, l0), divisions=nrad,
-                         grading=("Progression", spec._core_mprg))
-        for port, X, m in (("A", "Sa", mapA), ("B", "Sd", mapB)):
-            inv = {k: lab for lab, k in m.items()}
-            for k in range(4):
-                for lvl in (0, 1):
-                    lay.edge((port, lvl, k), (X, lvl, inv[k]), divisions=self.n_run)
-            for material, cyc in face_patches(port, spec):
-                lay.block(list(cyc) + [(X, l, inv[k]) for (_, l, k) in cyc], material)
-        for lab in _LABS:
-            for lvl in (0, 1):
-                lay.edge(("Sa", lvl, lab), ("Sd", lvl, lab), divisions=n_z)
+        _stations(lay, spec, (mapA, mapB), n_y, n_z, n_z, self.n_run,
+                  lambda sx, sy, sz: (P((x_top if sz > 0 else xc) + sx * cx, sy * iw, sz * ih),
+                                      P(xc + sx * pk, sy * a, sz * b)))
 
         sa = lambda l, sy, sz: ("Sa", l, (sy, sz))
         sd = lambda l, sy, sz: ("Sd", l, (sy, sz))

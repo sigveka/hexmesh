@@ -131,7 +131,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0132](0132-one-density-stated-up-front.md) | One density per network: say so up front, in the docs and in the error | done | 0003, 0042 |
 | [0133](0133-density-change-probe.md) | Probe: two density changes meshed by gmsh (+1 radial ring, ×2 nang slab) | ready (after 1.0) | 0003, 0046, 0018 |
 | [0134](0134-remove-cube-probe-and-gallery-render-helper.md) | Housekeeping: one render helper in the gallery builder (`_cube_probe.py` stays) | done | 0043 |
-| [0135](0135-library-deduplication.md) | De-duplicate four repeated blocks in the library | ready | 0042 |
+| [0135](0135-library-deduplication.md) | De-duplicate four repeated blocks in the library | done | 0042 |
 | [0136](0136-split-assembly-internally.md) | Split `Assembly` into internal modules behind the same class | ready | 0042 |
 | [0137](0137-docs-site.md) | The docs site: Essens pages, our navigation and template, GitHub Pages | ready | 0049 |
 

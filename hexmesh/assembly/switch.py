@@ -66,7 +66,7 @@ from ..core.spec import PipeSpec
 from ..sections import h, layout_of, oh
 from . import limits
 from .blocks import BlockLayout, LayoutError, bind_face, face_vertices
-from .interface import Frame
+from .interface import Frame, check_port_frames
 from .signature import check_port_pairs
 
 
@@ -253,13 +253,8 @@ class Switch:
             raise AssemblyError("n_layers unresolved (add the switch to an Assembly)",
                                 code="n_layers_unresolved", where={"field": "n_layers"},
                                 hint="add the switch to an Assembly")
-        (want, _), = self.ports(frames[0], spec)
-        got = frames[1]
-        if (np.linalg.norm(want.position - got.position) > 1e-9 * self.length
-                or np.dot(want.normal, got.normal) < 1 - 1e-9
-                or np.dot(want.up, got.up) < 1 - 1e-9):
-            raise AssemblyError("port interface does not match Switch geometry",
-                                code="outlet_frame_mismatch")
+        check_port_frames(self, [f for f, _ in self.ports(frames[0], spec)], frames[1:],
+                          self.length)
         try:
             self.layout(frames, spec).validate()
         except LayoutError as e:

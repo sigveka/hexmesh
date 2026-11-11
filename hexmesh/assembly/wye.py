@@ -67,7 +67,8 @@ from .blocks import (
     ArcAbout, BlockLayout, LayoutError, Polyline, Spline, bind_face,
     corner_shift, face_patches, face_vertices,
 )
-from .interface import Frame, junction_roll, junction_toward, port_type, rolled
+from .interface import (Frame, check_port_frames, junction_roll, junction_toward, port_type,
+                        rolled)
 from .junction_quality import WYE_BLOCKS, WYE_HINT, _layout_key, nonorth_tiers, predicted_angle
 from .projection import Tube, TubeUnion
 from .signature import check_port_pairs
@@ -590,13 +591,8 @@ class Wye:
         wye until its layout redesign."""
         self.check(spec)
         check_port_pairs(self, [spec] + [s for _, s in self.ports(frames[0], spec)])
-        expected = [f for f, _ in self.ports(frames[0], spec)]
-        for want, got in zip(expected, frames[1:]):
-            if (np.linalg.norm(want.position - got.position) > 1e-9 * self.run_length
-                    or np.dot(want.normal, got.normal) < 1 - 1e-9
-                    or np.dot(want.up, got.up) < 1 - 1e-9):
-                raise AssemblyError("port interface does not match Wye geometry",
-                                    code="outlet_frame_mismatch")
+        check_port_frames(self, [f for f, _ in self.ports(frames[0], spec)], frames[1:],
+                          self.run_length)
         try:
             sj = self.layout(frames, spec).validate()["min_corner_sj"]
         except LayoutError as e:
