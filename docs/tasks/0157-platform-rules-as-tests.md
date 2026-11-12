@@ -31,7 +31,11 @@ works this way.
 4. **Apply the marker** to `tests/test_volunteer.py`'s `bash -n` check
    (replacing c7a64b9's inline `sys.platform` skip) and to anything step
    2 finds.
-5. **`platforms.md`:** each rule cites the entry it comes from, and each
+5. **Check the WSL cause** that `platforms.md` only infers: a CI step
+   on Windows printing `where bash` and `bash --version`, or the test
+   capturing `bash -n`'s stderr.  Update the entry's heading to
+   *verified* or correct it.
+6. **`platforms.md`:** each rule cites the entry it comes from, and each
    entry names its rule.
 
 **Accept.**

@@ -61,13 +61,15 @@ failed on every CI job (runs 42476909094 and 42478255352, 2026-11-08;
 fixed in task 0113).  Format `float(x)`, or `x.tolist()` values, in
 text that's parsed back.
 
-### Windows: `bash` on the runner's PATH is WSL's launcher — *verified*
+### Windows: `bash -n C:\…` exits 1 on the runners — *exit verified; cause inferred*
 `subprocess.run(["bash", "-n", r"C:\…\job.sh"])` exited 1 on both
 `windows-latest` jobs (run 43185960002, 2026-11-12, commit c1c7c9f;
-`tests/test_volunteer.py`).  The first `bash` found is the WSL
-launcher (the coding session's reading of the log), which can't open a
-`C:\` path given that way.  Its exact location on the PATH, and where
-Git Bash's `bash` sits, weren't checked.
+`tests/test_volunteer.py`).  **Verified:** the exit code, from the
+job's summary line.  The log has no bash stderr.  **Inferred, not
+checked:** the first `bash` on the PATH is System32's WSL launcher,
+ahead of Git's, and it can't open a `C:\` path given that way (the known
+`windows-latest` PATH order).  Task 0157 checks it (`where bash`,
+`bash --version`, or a test that captures stderr).
 A test that runs `bash` (or any POSIX tool) is POSIX-only; c7a64b9
 skips that check on win32.  Decision 0052 makes this a rule.
 
