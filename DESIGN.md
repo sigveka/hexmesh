@@ -557,11 +557,11 @@ Implementation (`Assembly.close(source, target, fitting)`):
 
 Known deviations of the current code (refreshed 2026-11-02 by decision
 0037, and 2026-11-05 after tasks 0082–0087; the legacy connector rows
-went with the legacy API, task 0017):
+went with the legacy API, task 0017; the shape-switch row went with task
+0151, decision 0051, 2026-11-12):
 
 | Deviation | Rule | Where | Removed by |
 |---|---|---|---|
-| Type switches on shapes outside `core.shape` and `sections`: 7 sites by `tests/test_architecture.py`'s definition (cap 7; 69 at task 0081) | §3.1 | the remaining sites (the cap's comment in `tests/test_architecture.py` tracks them) | task 0151 (decision 0051) |
 | Readers sit in `io`, above the assembly (moved by task 0066; the old path re-exports) | §3.1 | `io/readers/` | tasks 0148 (deprecated), 0150 (removed) |
 
 New code must not add to this table.
