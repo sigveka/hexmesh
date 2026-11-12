@@ -101,8 +101,9 @@ ALLOWED_CYCLES: dict[frozenset, str] = {}
 #: (RESEARCH §12's cruder grep found 89), 59 at task 0082 (the face
 #: dispatch, corner 0 and side counts moved into sections), 15 at task
 #: 0083 (the shape protocol; all 15 in tee.py, left for the tee split,
-#: task 0060).  Only goes down.
-SHAPE_SITES_CAP = 7
+#: task 0060), 7 after it, 0 at task 0151 (the pipe tee's circle reads go
+#: through ``sections.circle_radius``; decision 0051).  Keep it at 0.
+SHAPE_SITES_CAP = 0
 SHAPE_TYPES = {"CircleShape", "RectShape", "BlendShape"}
 SHAPE_FIELDS = {"radius", "half_w", "half_h", "nang_w", "nang_h"}
 SHAPE_VALUES = {"core_shape", "shape", "branch"}

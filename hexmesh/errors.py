@@ -450,6 +450,7 @@ CODES: dict[str, str] = {
     "shell_nrad_missing": "a shell without nrad",
     "shell_outline_args": "a shell given both or neither of dR and outer",
     "shell_type_unknown": "an unknown shell type in a description",
+    "shape_not_circular": "a circle's radius asked of a non-circular shape",
     "size_not_positive": "a size or length that must be positive is not",
     "snap_tolerance_mismatch": "merged models with different snap tolerances: the larger is "
                                "kept (warning)",

@@ -952,7 +952,8 @@ Regenerate it with `python3 docs/gallery/build.py` (needs `vtk`).
   `|offset| + r < R` and `|offset| ≤ r`), branch radius at most
   `TEE_MAX_RATIO` (0.95) R, or equal to R (an equal tee: square, centred,
   first order only); shells circular, and the branch's copy the main's (no separate
-  branch wall thickness).
+  branch wall thickness).  Both are stated limits for 1.0 (DESIGN §7.1,
+  decision 0051); either may be lifted in 1.x.
 - **Wye (prototype):** circular shells from 40°, total thickness up to
   0.65 R·tan(angle/2), at most 0.55 R (`API.md`), equal daughters with the inlet's
   spec, coplanar and symmetric, angle 30°–120°. Quality is measured, not

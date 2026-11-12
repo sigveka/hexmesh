@@ -36,12 +36,13 @@ import numpy as np
 
 from ..core.cross_section import CrossSection, LayeredCrossSection
 from ..core.shape import BlendShape, RectShape
+from ..errors import SpecError
 from . import h, oh
 from ._gmsh_helpers import add_physical_group, add_point
 from .oh_gmsh import (build_annulus, build_oh_blend, build_oh_circle, build_oh_rect,
                       build_oh_split, build_ring, place_partition_nodes)
 
-__all__ = ["oh", "h", "SectionLayout", "LAYOUT_MODULES", "layout_of", "build_face", "add_physical_group", "build_oh_circle", "build_oh_split",
+__all__ = ["oh", "h", "SectionLayout", "LAYOUT_MODULES", "layout_of", "circle_radius", "build_face", "add_physical_group", "build_oh_circle", "build_oh_split",
            "build_oh_rect", "build_oh_blend", "build_ring", "build_annulus",
            "place_partition_nodes"]
 
@@ -96,6 +97,19 @@ LAYOUT_MODULES: dict[str, SectionLayout] = {oh.NAME: oh, h.NAME: h}
 def layout_of(spec) -> SectionLayout:
     """*spec*'s section layout module (``LAYOUT_MODULES``)."""
     return LAYOUT_MODULES[spec.layout]
+
+
+def circle_radius(shape) -> float:
+    """The radius of a circular *shape*: a pipe tee's core or its branch,
+    whose shells are circular (decision 0051, a stated 1.0 limit).  The
+    one place the tee reads a circle (task 0151); a fitting checks its
+    own rule first, with its own code, so this one is a backstop."""
+    if not shape.is_round:
+        raise SpecError(f"a circle's radius was asked of a {type(shape).__name__}",
+                        code="shape_not_circular",
+                        hint="a pipe tee needs a circular main; a rectangular main is a "
+                             "duct tap (branch=, face=)")
+    return shape.radius
 
 
 def build_face(spec, position, h_axis, v_axis, lc: float,

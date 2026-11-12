@@ -795,7 +795,9 @@ a block layout.
   so `advise` drops `branch_mprg`.
 - **Shells.** Any stack of circular shells runs through the junction
   (decision 0028). The branch copies the main's shells: same names,
-  thicknesses, `nrad` and `mprg`. Each interface group (`interface_fluid_steel`
+  thicknesses, `nrad` and `mprg`. Circular shells and the copied branch
+  are stated 1.0 limits (DESIGN §7.1, decision 0051;
+  `junction_shells_not_circular`). Each interface group (`interface_fluid_steel`
   …) and the outer wall continue from the main through the junction into
   the branch. Wall and shell-boundary nodes lie on their offset cylinders
   to rounding: the faces are plates through cylinder points (3e-4 of the
@@ -1903,6 +1905,7 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `shell_nrad_missing` | a shell without nrad | `SpecTypeError` |
 | `shell_outline_args` | a shell given both or neither of dR and outer | `SpecError` |
 | `shell_type_unknown` | an unknown shell type in a description | `SpecError` |
+| `shape_not_circular` | a circle's radius asked of a non-circular shape | `SpecError` |
 | `size_not_positive` | a size or length that must be positive is not | `AssemblyError`, `EquipmentError`, `ReaderError`, `SpecError` |
 | `snap_tolerance_mismatch` | merged models with different snap tolerances: the larger is kept (warning) | `HexmeshWarning` |
 | `source_not_interface` | a source that is not an Interface | `AssemblyTypeError` |

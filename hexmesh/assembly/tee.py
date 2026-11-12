@@ -95,7 +95,7 @@ from .errors import AssemblyError, AssemblyTypeError
 from ..core.shape import CircleShape, RectShape
 from ..core.params import param
 from ..core.spec import PipeSpec
-from ..sections import oh
+from ..sections import circle_radius, oh
 from .blocks import (
     ArcAbout, BlockLayout, LayoutError, Spline, bind_face, corner_shift,
     face_patches, face_vertices,
@@ -121,13 +121,13 @@ _BOTTOM_SHIFT = 0.25
 
 def thicknesses(spec: PipeSpec) -> list[float]:
     """Cumulative shell thickness at each level ≥ 1 (0 at the wall)."""
-    R = spec.core_shape.radius
+    R = circle_radius(spec.core_shape)
     return [o.radius - R for o in spec.outlines]
 
 
 def main_radii(spec: PipeSpec) -> tuple[float, float]:
     """``(R, T)``: the main's core radius and total shell thickness."""
-    return spec.core_shape.radius, thicknesses(spec)[-1]
+    return circle_radius(spec.core_shape), thicknesses(spec)[-1]
 
 
 def branch_spec(spec: PipeSpec, radius: float, mprg: float | None = None,
@@ -409,7 +409,7 @@ class Tee:
                                     code="counts_mismatch", where={"field": "branch"},
                                     value=self.branch.nang, limit=spec.core_shape.nang,
                                     hint=f"give the branch nang={spec.core_shape.nang}")
-            self = replace(self, branch_radius=self.branch.radius, branch=None)
+            self = replace(self, branch_radius=circle_radius(self.branch), branch=None)
         tee = junction_toward(self, inlet, spec, self.toward_offset)  # counts keep defaults
         tee._check_branch_grading(spec)
         if tee.branch_first_cell is not None:     # stored as its mprg, which nests (task 0131)
@@ -423,7 +423,7 @@ class Tee:
             return tee
         if tee.run_length is None:
             _check_circle(spec)
-            R, r, T = spec.core_shape.radius, tee.branch_radius, thicknesses(spec)[-1]
+            R, r, T = circle_radius(spec.core_shape), tee.branch_radius, thicknesses(spec)[-1]
             run = (max(tip_reach(R + T, r + T, tee.angle, tee._hy())) if r < R
                    else r + T) + 0.5 * R
             if r < R:              # else check() rejects it, naming the radius
@@ -500,7 +500,7 @@ class Tee:
             need = self.shortest_run(inlet, spec, tier)
             if need is None:
                 hint = (f"no run length reaches it: the branch ratio r/R "
-                        f"{self.branch_radius / spec.core_shape.radius:.3g} limits the "
+                        f"{self.branch_radius / circle_radius(spec.core_shape):.3g} limits the "
                         f"junction core")
                 if self.angle != 90:
                     q = self.smallest_ratio(inlet, spec, tier)
@@ -582,7 +582,7 @@ class Tee:
                                 "add the fitting to an assembly",
                                 code="fitting_not_resolved", where={"field": "run_length"},
                                 hint="add the fitting to an assembly")
-        R, r = spec.core_shape.radius, self.branch_radius
+        R, r = circle_radius(spec.core_shape), self.branch_radius
         T = thicknesses(spec)[-1]
         _check_rot_n_outer(spec)
         if self.toward is not None:
@@ -674,7 +674,7 @@ class Tee:
         # Declared in the rolled frame; fill() binds the main ports' faces
         # (built in the unrolled one) with the corner shift between them.
         A, B, E = rolled(frames[0], self.roll), rolled(frames[1], self.roll), frames[2]
-        R, r = spec.core_shape.radius, self.branch_radius
+        R, r = circle_radius(spec.core_shape), self.branch_radius
         bspec = branch_spec(spec, r)
         o, ex, ey, ez = self._origin_basis(frames[0])
         ob, d, u = self._branch_axes(frames[0])

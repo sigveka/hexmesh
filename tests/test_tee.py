@@ -437,3 +437,14 @@ def test_offset_quality_names_the_smallest_ratio():
     with pytest.raises(AssemblyError, match=r"at angle 45°; r/R 0\.5\d\d or more reaches it") as e:
         _tee_asm(0.45, angle=45, run=None, branch=0.8, offset=0.2 * R)[0].validate()
     assert e.value.code == "predicted_sj_below_minimum"
+
+
+def test_circle_radius_is_the_one_read_and_rejects_a_rectangle():
+    """The pipe tee reads circles only through ``sections.circle_radius``
+    (task 0151); anything else is a coded SpecError."""
+    from hexmesh.errors import SpecError
+    from hexmesh.sections import circle_radius
+    assert circle_radius(CircleShape(radius=0.1, nang=4)) == 0.1
+    with pytest.raises(SpecError) as e:
+        circle_radius(RectShape(half_w=0.1, half_h=0.05, nang_w=4, nang_h=4))
+    assert e.value.code == "shape_not_circular"

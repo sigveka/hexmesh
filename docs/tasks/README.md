@@ -147,7 +147,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0148](0148-deprecate-io-readers.md) | Deprecate `hexmesh.io.readers` (removed in 0.8) | ready | 0042, 0037 |
 | [0149](0149-wheels-on-github-releases.md) | A wheel and an sdist on every GitHub release | ready (after 0146) | 0042 |
 | [0150](0150-api-review-and-freeze.md) | The API review, then the freeze (0.8) | held (after 0147–0149, 0151) | 0042, 0051 |
-| [0151](0151-pipe-tee-circle-reads.md) | The pipe tee's circle reads through one helper: the shape-site cap to 0 | ready | 0051 |
+| [0151](0151-pipe-tee-circle-reads.md) | The pipe tee's circle reads through one helper: the shape-site cap to 0 | done | 0051 |
 | [0152](0152-example-micromixer.md) | Example: a lipid-nanoparticle T-mixer with a twisted mixing channel | done | — |
 | [0153](0153-example-subsea-pipeline.md) | Example: a subsea pipeline over a sandwave field (the bathymetry reader) | done | 0032 |
 | [0154](0154-example-buried-pipe.md) | Example: a buried district-heating pipe with graded soil; example colours in the gallery | done | — |
