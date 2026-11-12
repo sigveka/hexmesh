@@ -45,3 +45,9 @@ works this way.
 
 **Out of scope.**  Rules on `hexmesh/` code beyond the existing
 encoding rule (propose any under *Questions for design*).
+
+## Agent notes
+
+## Questions for design
+
+## Outcome

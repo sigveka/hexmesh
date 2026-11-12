@@ -27,3 +27,9 @@ patterns (0157) before a commit, rather than after a CI run.
 - Its time on this machine is under *Outcome*, and is a few seconds.
 
 **Out of scope.**  Formatters and linters (none is used today).
+
+## Agent notes
+
+## Questions for design
+
+## Outcome

@@ -44,3 +44,9 @@ machine isn't (decision 0052's context).  CI should test a commit before
 **Out of scope.**  CLAUDE.md and the tasks README's ground rules: the
 design session updates them when this task is done.  Pull-request
 workflows (decision 0052, option B).
+
+## Agent notes
+
+## Questions for design
+
+## Outcome

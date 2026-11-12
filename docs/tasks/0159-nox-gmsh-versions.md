@@ -28,3 +28,9 @@ before it is pushed, in minutes rather than one CI cycle.
 - CONTRIBUTING says when to use them.
 
 **Out of scope.**  Windows or macOS locally; CI covers them.
+
+## Agent notes
+
+## Questions for design
+
+## Outcome
