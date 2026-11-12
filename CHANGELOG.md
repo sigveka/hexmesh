@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+**`merge` warns when the two models' snap tolerances differ** (task
+0143): `snap_tolerance_mismatch`, naming both values, their sources and
+the one kept (still the larger).  The merge report records them.
+
 **Four application examples** (tasks 0140, 0152, 0153, 0154).
 - `rocket_injector_manifold`: a liquid-oxygen ring closed on itself,
   eight injector legs, and an insulated feed line through a cavitating

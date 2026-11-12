@@ -1,6 +1,6 @@
 # 0143 — `merge` warns when the two models' snap tolerances differ
 
-- **Status:** ready
+- **Status:** done
 - **Decision:** none new: a follow-up to task 0138's design (the
   design session's own rule; the user, 2026-11-11: "write the task").
   Decision 0018 (vascular networks) is the constraint it protects.
@@ -62,6 +62,42 @@ would be design questions.
 
 ## Agent notes
 
+- **Which model may now join:** the message names the source of the
+  model with the smaller tolerance ("ends of the vessels model closer
+  than that, which stayed apart at 0.01 mm, may now be joined").  It
+  points at the caller of `NetworkModel.merge` (`stacklevel` 4).
+- **Replay warns again (step 4), and that is right.**  The log's merge
+  entry is replayed through the same `merge`, which keeps the larger
+  tolerance again.  A value set on the result by hand
+  (`m.snap_tolerance = …`) is an attribute, not a logged operation, so
+  `replay` doesn't restore it; the repeated warning is what tells the
+  user to set it again.  (Logging a "set the tolerance" operation would
+  make replay keep it; not asked for, so not done.)
+- `test_merge_takes_the_larger` (task 0138) merged different
+  tolerances; it now asserts the warning.
+- `API.md`'s catalogue: `size_not_positive` gains `ReaderError` (raised
+  by `read_pcf`'s check since task 0138; missed then).
+
 ## Questions for design
 
 ## Outcome
+
+Done 2026-11-12.
+
+- `hexmesh/interchange/operations.py`: `merge` calls `_snap_mismatch`,
+  which records `report["merge"]["snap_tolerance"]` (`a`, `b`, `kept`:
+  value and source each) and, if the two differ, warns
+  `snap_tolerance_mismatch` (`value` the kept, `limit` the other,
+  `where` `{"field": "snap_tolerance"}`, `hint`: set
+  `model.snap_tolerance` or pass `tol=`).  `hexmesh/errors.py`: the code.
+- Docs: GUIDE *Why it is per reader*; API.md (`merge`, the catalogue);
+  CHANGELOG.
+- Tests (`tests/test_snap_tolerance.py`, now 18): a 1e-5 m model and a
+  PCF model, either way round, warn and keep 0.11", the report has
+  both; two default PCF models merge silently (warnings as errors); a
+  tolerance set on the result is what the build uses ("relative" or
+  "reader vessels"); replay warns again.  Reader, interchange, agent,
+  doc and architecture tests: 340 passed, 1 skipped.
+- Meshes unchanged: no example, gallery entry or validation case
+  merges models.
+

@@ -820,7 +820,13 @@ network that isn't the one you drew.  So each model carries its own
 tolerance, `NetworkModel.snap_tolerance` (metres).  The reader that
 made the model sets it: `read_pcf` and `read_bathymetry` use 0.11" by
 default, and a model built by hand has it too.  Merging two models
-keeps the larger of the two, so a PCF file's weld gaps still snap.
+keeps the larger of the two, so a PCF file's weld gaps still snap.  If
+the two differ, `merge` warns (`snap_tolerance_mismatch`): the model
+with the smaller one may now have ends joined that stayed apart before.
+Set `merged.snap_tolerance` to the value you want, or pass `tol=` to the
+build.  `merged.report["merge"]["snap_tolerance"]` records both values
+and the one kept.  A hand-set value isn't in the log, so `replay`
+merges, and warns, again.
 
 **When to set it.**
 - Small bores: below about ½", set it well under the smallest bore or

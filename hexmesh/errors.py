@@ -451,6 +451,8 @@ CODES: dict[str, str] = {
     "shell_outline_args": "a shell given both or neither of dR and outer",
     "shell_type_unknown": "an unknown shell type in a description",
     "size_not_positive": "a size or length that must be positive is not",
+    "snap_tolerance_mismatch": "merged models with different snap tolerances: the larger is "
+                               "kept (warning)",
     "source_not_interface": "a source that is not an Interface",
     "spec_core_twice": "PipeSpec.core() called a second time",
     "spec_no_core": "a PipeSpec used before core() defined its core",

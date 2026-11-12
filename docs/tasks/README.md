@@ -139,7 +139,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0140](0140-rocket-injector-manifold.md) | Example: a liquid-rocket propellant feed line and ring injector manifold | done | — |
 | [0141](0141-tee-fill-fails-at-rounding-level-direction.md) | Bug: a tee's fill fails when its direction is 1e-16 off an axis | done | — |
 | [0142](0142-gallery-three-pages.md) | The gallery as three pages and a landing page, by family | done | — |
-| [0143](0143-merge-warns-on-snap-tolerance-mismatch.md) | `merge` warns when the two models' snap tolerances differ | ready | — |
+| [0143](0143-merge-warns-on-snap-tolerance-mismatch.md) | `merge` warns when the two models' snap tolerances differ | done | — |
 | [0144](0144-validation-docs-for-people.md) | Validation documentation for people: install, run, read, send back | done | — |
 | [0145](0145-ci-green-on-gmsh-4-15.md) | CI green: three junction tests fail on gmsh 4.15.2 (what pip installs) | done | 0042 |
 | [0146](0146-release-0-6-0.md) | Release 0.6.0: junction completeness, and a release checklist | ready (after 0145) | 0042, 0050 |

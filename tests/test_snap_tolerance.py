@@ -124,9 +124,12 @@ def test_merge_takes_the_larger():
     a, b = _tubes(snap=1e-4), ix.NetworkModel(snap_tolerance=TOL_FLOOR)
     b.snap_source = "pcf"
     part = b.add_part(ix.Straight, [(1, 1, 0), (2, 1, 0)], id="x", system="other")
-    m = ix.NetworkModel.merge(a, b, prefix="b_")
+    from hexmesh.errors import HexmeshWarning
+    with pytest.warns(HexmeshWarning, match="snap tolerances differ"):    # task 0143
+        m = ix.NetworkModel.merge(a, b, prefix="b_")
     assert (m.snap_tolerance, m.snap_source) == (TOL_FLOOR, "pcf")
-    m = ix.NetworkModel.merge(b, a, prefix="a_")
+    with pytest.warns(HexmeshWarning, match="snap tolerances differ"):
+        m = ix.NetworkModel.merge(b, a, prefix="a_")
     assert (m.snap_tolerance, m.snap_source) == (TOL_FLOOR, "pcf")
 
 
@@ -134,3 +137,80 @@ def test_describe_shows_it():
     from hexmesh.agent import describe
     d = describe(_tubes(snap=1e-4))
     assert d["snap_tolerance"] == {"value": 1e-4, "source": "default"}
+
+
+# --- merge warns when the tolerances differ (task 0143) -----------------------------
+
+def _vessel(snap=1e-5):
+    """A 1 mm vessel model: its own tolerance, its own ids."""
+    m = ix.NetworkModel(snap_tolerance=snap, snap_source="vessels")
+    part = m.add_part(ix.Straight, [(0, 0, 1), (0.01, 0, 1)], id="v", system="vessel")
+    for q in part.ports:
+        m.ports[q].section = ix.Section(nominal=1 * mm)
+    return m
+
+
+@pytest.mark.parametrize("vessel_first", [True, False])
+def test_merge_warns_when_the_tolerances_differ_and_keeps_the_larger(tmp_path, vessel_first):
+    from hexmesh.errors import HexmeshWarning
+    plant = ix.read_pcf(_pcf(tmp_path)).to_model()
+    a, b = (_vessel(), plant) if vessel_first else (plant, _vessel())
+    with pytest.warns(HexmeshWarning) as rec:
+        m = ix.NetworkModel.merge(a, b, prefix="b_")
+    [w] = [r.message for r in rec if getattr(r.message, "code", None) == "snap_tolerance_mismatch"]
+    assert (w.value, w.limit) == (TOL_FLOOR, 1e-5) and w.where == {"field": "snap_tolerance"}
+    assert "0.01 mm (vessels)" in str(w) and "2.794 mm (pcf)" in str(w)
+    assert "ends of the vessels model" in str(w) and "snap_tolerance" in w.hint
+    assert rec[0].filename == __file__                 # points at the caller
+    assert (m.snap_tolerance, m.snap_source) == (TOL_FLOOR, "pcf")
+    st = m.report["merge"]["snap_tolerance"]
+    assert st["kept"] == {"value": TOL_FLOOR, "source": "pcf"}
+    assert {st["a"]["source"], st["b"]["source"]} == {"vessels", "pcf"}
+
+
+def test_merge_of_equal_tolerances_is_silent(tmp_path):
+    import warnings
+    p1 = _pcf(tmp_path)
+    p2 = tmp_path / "other.pcf"
+    p2.write_text(LINE, encoding="utf-8")
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        m = ix.NetworkModel.merge(ix.read_pcf(p1).to_model(), ix.read_pcf(p2).to_model(),
+                                  prefix="b_")
+    assert m.report["merge"]["snap_tolerance"]["kept"]["value"] == TOL_FLOOR
+
+
+def test_the_tolerance_set_on_the_result_is_used(tmp_path):
+    from hexmesh.errors import HexmeshWarning
+    with pytest.warns(HexmeshWarning, match="snap tolerances differ"):
+        m = ix.NetworkModel.merge(_vessel(), ix.read_pcf(_pcf(tmp_path)).to_model(), prefix="b_")
+    m.snap_tolerance, m.snap_source = 1e-5, "vessels"
+    from hexmesh.interchange.graph import _comps, snap_tolerance
+    # the diagonal: 2 m along the pipe, 1 m up to the vessel
+    assert snap_tolerance(m, _comps(m, None), None) == (pytest.approx(1e-4 * 5 ** 0.5),
+                                                         "relative")
+    m.snap_tolerance = 0.5   # larger than the relative one: the model's own is used
+    assert snap_tolerance(m, _comps(m, None), None) == (0.5, "reader vessels")
+
+
+def test_replaying_the_merge_warns_again(tmp_path):
+    """The replayed merge keeps the larger again: a tolerance set on the
+    result by hand isn't in the log, so the warning is the reminder."""
+    from hexmesh.errors import HexmeshWarning
+    path = _pcf(tmp_path)
+    plant = ix.read_pcf(path).to_model()
+    with pytest.warns(HexmeshWarning, match="snap tolerances differ"):
+        m = ix.NetworkModel.merge(plant, _vessel_pcf(tmp_path), prefix="b_")
+    m.snap_tolerance = 1e-5
+    with pytest.warns(HexmeshWarning, match="snap tolerances differ"):
+        again = m.replay(ix.read_pcf(path).to_model())
+    assert again.snap_tolerance == TOL_FLOOR
+
+
+def _vessel_pcf(tmp_path):
+    """A model read through an importer (so a merge of it replays), with a
+    small tolerance."""
+    p = tmp_path / "vessel.pcf"
+    p.write_text(LINE.replace("0 0 0 100", "0 0 500 1").replace("1000 0 0 100", "1000 0 500 1")
+                 .replace("2000 0 0 100", "2000 0 500 1"), encoding="utf-8")
+    return ix.read_pcf(p, snap_tolerance=1e-5).to_model()

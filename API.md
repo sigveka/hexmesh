@@ -1414,7 +1414,7 @@ joins them), unless a `Cut` separates them.
 | `cut(connection)` | disconnect two connected ports (a `Connection`, or a pair of ids); returns the `Cut` | yes |
 | `cut_at(port, names=None)` | disconnect *port* from every port it meets; `names`: tags for (*port*, the other), with one other only | yes |
 | `join(port_a, port_b, *, tol=None)` | connect two open ports: within *tol* (default the builder's), facing each other within `JOIN_ANGLE_TOL` (1°), same section; undoes a cut between them; returns the declared `Connection` | yes |
-| `NetworkModel.merge(a, b, *, prefix=None, infer=False, tol=None)` | a new model, *a* ∪ *b*; shared ids are an error unless `prefix` renames *b*'s; networks of one name unite; the snap tolerance is the larger of the two; `infer`: an inferred `Connection` between each pair of *a*'s and *b*'s open ports that meet | yes (*a*'s log, then a `merge` entry holding *b*'s) |
+| `NetworkModel.merge(a, b, *, prefix=None, infer=False, tol=None)` | a new model, *a* ∪ *b*; shared ids are an error unless `prefix` renames *b*'s; networks of one name unite; the snap tolerance is the larger of the two, with a `snap_tolerance_mismatch` warning when they differ (both, and the one kept, in `report["merge"]["snap_tolerance"]`); `infer`: an inferred `Connection` between each pair of *a*'s and *b*'s open ports that meet | yes (*a*'s log, then a `merge` entry holding *b*'s) |
 | `replay(source)` | apply the log (after its import entry) to *source*, a fresh import, in place; a `merge` re-reads its other model through `IMPORTERS` | — |
 | `undo()` | revert the last logged operation (replays the rest on the state before the first) | — |
 
@@ -1903,7 +1903,8 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `shell_nrad_missing` | a shell without nrad | `SpecTypeError` |
 | `shell_outline_args` | a shell given both or neither of dR and outer | `SpecError` |
 | `shell_type_unknown` | an unknown shell type in a description | `SpecError` |
-| `size_not_positive` | a size or length that must be positive is not | `AssemblyError`, `EquipmentError`, `SpecError` |
+| `size_not_positive` | a size or length that must be positive is not | `AssemblyError`, `EquipmentError`, `ReaderError`, `SpecError` |
+| `snap_tolerance_mismatch` | merged models with different snap tolerances: the larger is kept (warning) | `HexmeshWarning` |
 | `source_not_interface` | a source that is not an Interface | `AssemblyTypeError` |
 | `spec_core_twice` | PipeSpec.core() called a second time | `SpecUsageError` |
 | `spec_no_core` | a PipeSpec used before core() defined its core | `SpecUsageError` |

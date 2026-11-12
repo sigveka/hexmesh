@@ -34,11 +34,13 @@ from __future__ import annotations
 
 import copy
 import math
+import warnings
 from datetime import datetime, timezone
 
 import numpy as np
 
 from ..assembly import AssemblyError
+from ..errors import HexmeshWarning
 from ..version import __version__
 from .graph import _comps, _model_tolerance
 from .model import (
@@ -368,6 +370,7 @@ def merge(a: NetworkModel, b: NetworkModel, prefix, infer, tol) -> NetworkModel:
     out.report = {"merge": {"from": [len(a.parts), len(b.parts)]}}
     if b2.snap_tolerance > out.snap_tolerance:     # the larger: weld gaps still snap
         out.snap_tolerance, out.snap_source = b2.snap_tolerance, b2.snap_source
+    _snap_mismatch(out, a, b2)
     if infer:
         t = tolerance(out) if tol is None else float(tol)
         inner_a = {q for pair in _links(a, tolerance(a)) for q in pair}
@@ -386,6 +389,29 @@ def merge(a: NetworkModel, b: NetworkModel, prefix, infer, tol) -> NetworkModel:
                     "time": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                     "version": __version__})
     return out
+
+
+def _snap_mismatch(out: NetworkModel, a: NetworkModel, b: NetworkModel) -> None:
+    """Record both models' snap tolerances in the merge report, and warn
+    when they differ: the merged model keeps the larger, so ends of the
+    model with the smaller may now join (task 0143)."""
+    tols = [{"value": m.snap_tolerance, "source": m.snap_source} for m in (a, b)]
+    out.report["merge"]["snap_tolerance"] = {
+        "a": tols[0], "b": tols[1],
+        "kept": {"value": out.snap_tolerance, "source": out.snap_source}}
+    if a.snap_tolerance == b.snap_tolerance:
+        return
+    other = min(a.snap_tolerance, b.snap_tolerance)
+    small = tols[0] if a.snap_tolerance == other else tols[1]
+    warnings.warn(HexmeshWarning(
+        f"merge: the snap tolerances differ, {a.snap_tolerance * 1e3:.4g} mm ({a.snap_source}) "
+        f"and {b.snap_tolerance * 1e3:.4g} mm ({b.snap_source}); the merged model keeps "
+        f"{out.snap_tolerance * 1e3:.4g} mm, so ends of the {small['source']} model closer "
+        f"than that, which stayed apart at {other * 1e3:.4g} mm, may now be joined",
+        code="snap_tolerance_mismatch", where={"field": "snap_tolerance"},
+        value=out.snap_tolerance, limit=other,
+        hint="set model.snap_tolerance on the merged model, or pass tol= to the build"),
+        stacklevel=4)                       # the caller of NetworkModel.merge
 
 
 # --- replay and undo ---------------------------------------------------------------
