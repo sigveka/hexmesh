@@ -144,7 +144,9 @@ def branch_spec(spec: PipeSpec, radius: float, mprg: float | None = None,
                  nrad=spec._core_nrad, mprg=mprg, first_cell=first_cell))
     T = thicknesses(spec)
     for sh, t0, t1 in zip(spec.shells, T, T[1:]):
-        out.shell(sh.name, dR=t1 - t0, nrad=sh.nrad, mprg=sh.mprg)
+        # the given dR, exactly: t1 - t0 differs in the last bits, and a
+        # stack change on the branch compares outlines exactly (task 0155)
+        out.shell(sh.name, dR=t1 - t0 if sh.dR is None else sh.dR, nrad=sh.nrad, mprg=sh.mprg)
     return out
 
 

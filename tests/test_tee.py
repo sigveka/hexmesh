@@ -157,6 +157,26 @@ def test_branch_spec_copies_shells():
     assert [(s.nrad, s.mprg) for s in b.shells] == [(2, 1.2), (3, 1.0)]
 
 
+def test_branch_keeps_the_given_dR_so_a_stack_change_matches(gmsh_session):
+    """A shell given by dR keeps it exactly on the branch, so insulation
+    can start on the branch line (task 0155: dR rebuilt from the outline
+    radii was 0.0015000000000000013, and the stack change was rejected)."""
+    from hexmesh.assembly.tee import branch_spec
+    main = (PipeSpec(nang=8).core("lox", radius=0.0149, nrad=4)
+            .shell("steel", dR=0.0015, nrad=2))
+    assert branch_spec(main, 0.01215).shells[0].dR == 0.0015
+    asm = Assembly(main, direction=[1, 0, 0], up=[0, 0, 1])
+    asm.add(Straight(0.05, n_layers=2))
+    run, branch = asm.add(Tee(branch_radius=0.01215, branch_length=0.05))
+    asm.add(run, Straight(0.05, n_layers=2))
+    insulated = (PipeSpec(nang=8).core("lox", radius=0.01215, nrad=4)
+                 .shell("steel", dR=0.0015, nrad=2).shell("insulation", dR=0.02, nrad=2))
+    asm.add(branch, Straight(0.12, n_layers=8, stack_changes=((2, insulated),)))
+    asm.mesh()
+    _, _, nodes = gmsh.model.mesh.getElements(3)
+    assert sum(len(n) for n in nodes) > 0
+
+
 @pytest.mark.parametrize("ratio", [0.5, 0.9])
 def test_interfaces_continuous_through_tee(gmsh_session, ratio):
     """Each interface group covers all four fittings, main and branch, as one

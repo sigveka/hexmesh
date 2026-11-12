@@ -151,7 +151,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0152](0152-example-micromixer.md) | Example: a lipid-nanoparticle T-mixer with a twisted mixing channel | done | — |
 | [0153](0153-example-subsea-pipeline.md) | Example: a subsea pipeline over a sandwave field (the bathymetry reader) | done | 0032 |
 | [0154](0154-example-buried-pipe.md) | Example: a buried district-heating pipe with graded soil; example colours in the gallery | done | — |
-| [0155](0155-branch-spec-keeps-dr.md) | A tee's branch keeps its shells' given thicknesses exactly | ready (after 0145) | — |
+| [0155](0155-branch-spec-keeps-dr.md) | A tee's branch keeps its shells' given thicknesses exactly | done | — |
 
 ### Validation
 
