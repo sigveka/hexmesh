@@ -16,6 +16,7 @@ someone with cluster time runs, sending back one small file that is
 checked mechanically.  From the repository root::
 
     python3 -m validation.volunteer list
+    python3 -m validation.volunteer info <case>
     python3 -m validation.volunteer prepare <case> <level> --dir run/
     sbatch run/job.sh        # or: bash run/job.sh   (resumable)
     python3 -m validation.volunteer collect run/
@@ -50,6 +51,7 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import difflib
 import hashlib
 import importlib.util
 import json
@@ -62,6 +64,7 @@ import signal
 import subprocess
 import sys
 import tempfile
+import textwrap
 import threading
 import time
 from pathlib import Path
@@ -78,6 +81,21 @@ STATE = "volunteer-run.json"            # a run directory's record
 MAX_CONTRIB_BYTES = 1_000_000
 LOG_LINES = 200
 BASES = ("measured", "estimated")
+PROG = "python3 -m validation.volunteer"
+WIDTH = 100                             # list and info fit a terminal this wide
+
+
+class VolunteerError(Exception):
+    """A person's mistake (a wrong name, a missing directory): the command
+    line prints it as one line and exits 2, without a traceback."""
+
+
+def _unknown(what: str, name: str, options: list[str], of: str = "") -> VolunteerError:
+    near = difflib.get_close_matches(name, options, n=1)
+    guess = f"; did you mean {near[0]!r}?" if near else ";"
+    return VolunteerError(f"unknown {what} {name!r}{f' for {of}' if of else ''}{guess} "
+                          f"{what.capitalize()}s: {', '.join(options) or 'none'}.  "
+                          f"See: {PROG} list")
 
 
 def _load(name: str, path: Path):
@@ -111,8 +129,23 @@ def cards() -> dict[str, dict]:
 def card(case: str) -> dict:
     all_ = cards()
     if case not in all_:
-        raise SystemExit(f"no volunteer card for {case!r}; cases: {', '.join(all_) or 'none'}")
+        raise _unknown("case", case, list(all_))
     return all_[case]
+
+
+def offered_level(case: str, level: str) -> dict | None:
+    """*level* of *case* as its card offers it, or ``None`` for a level
+    the driver builds but the card doesn't offer (no stated requirements).
+    Checked before anything else (task 0160): a level neither knows is a
+    :class:`VolunteerError` naming the card's levels."""
+    c = card(case)
+    if level in c["levels"]:
+        return c["levels"][level]
+    try:
+        driver(case).check_level(level)
+    except ValueError:
+        raise _unknown("level", level, list(c["levels"]), case) from None
+    return None
 
 
 def gates(case: str) -> list[dict]:
@@ -154,8 +187,9 @@ def pick_runner(c: dict, given: str | None) -> str:
         return f"apptainer:docker://{image}"
     if shutil.which("docker"):
         return f"docker:{image}"
-    raise SystemExit("no OpenFOAM found: load it (module load …), set HEXMESH_OPENFOAM_RC to "
-                     "its bashrc, or install Apptainer or Docker; see validation/VOLUNTEERS.md")
+    raise VolunteerError("no OpenFOAM found: load it (module load …), set HEXMESH_OPENFOAM_RC "
+                         "to its bashrc, or install Apptainer or Docker; see "
+                         "validation/VOLUNTEERS.md")
 
 
 def use_runner(spec: str, required: str, allow_version: bool) -> str:
@@ -304,7 +338,7 @@ def job_script(case: str, level: str, d: Path, req: dict | None, n_proc: int) ->
 def cmd_prepare(args) -> int:
     from hexmesh.study.manifest import versions
     c = card(args.case)
-    offered = c["levels"].get(args.level)
+    offered = offered_level(args.case, args.level)        # names first: no runner, no gmsh
     if offered is None:
         print(f"note: {args.case} doesn't offer {args.level!r} (offered: "
               f"{', '.join(c['levels'])}); it has no stated requirements", file=sys.stderr)
@@ -317,7 +351,7 @@ def cmd_prepare(args) -> int:
         print(h)
         return 0
     if (d / STATE).exists():
-        raise SystemExit(f"{d} is already prepared; run {d / 'job.sh'}, or use a new --dir")
+        raise VolunteerError(f"{d} is already prepared; run {d / 'job.sh'}, or use a new --dir")
     req = offered["requirements"] if offered else None
     if req:
         free = shutil.disk_usage(d if d.exists() else d.parent).free / 1e9
@@ -349,11 +383,27 @@ def cmd_prepare(args) -> int:
 def _state(d: Path) -> dict:
     path = Path(d) / STATE
     if not path.exists():
-        raise SystemExit(f"{d} isn't a prepared run directory (no {STATE}): run prepare first")
+        raise VolunteerError(f"{d} isn't a prepared run directory (no {STATE}): give the "
+                             f"directory `prepare --dir` made, or run {PROG} prepare "
+                             "<case> <level> --dir DIR first")
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _dir_not_names(args, command: str) -> None:
+    """``run`` and ``collect`` take the run directory; a case and level
+    typed instead get the commands that take them."""
+    words = [str(args.dir), *args.extra]
+    if args.extra or (str(args.dir) in cards() and not (args.dir / STATE).exists()):
+        raise VolunteerError(f"{command} takes the directory `prepare --dir` made, not "
+                             f"{' '.join(words)!r}: {PROG} prepare <case> <level> --dir run/ "
+                             "makes it, and bash run/job.sh (or sbatch) runs it"
+                             if command == "run" else
+                             f"{command} takes the directory `prepare --dir` made, not "
+                             f"{' '.join(words)!r}: {PROG} {command} run/")
+
+
 def cmd_run(args) -> int:
+    _dir_not_names(args, "run")
     d = args.dir.resolve()
     state = _state(d)
     c = card(state["case"])
@@ -387,6 +437,7 @@ def _log_tail(d: Path) -> list[str]:
 
 
 def cmd_collect(args) -> int:
+    _dir_not_names(args, "collect")
     stored = results_module()
     d = args.dir.resolve()
     state = _state(d)
@@ -519,6 +570,9 @@ def check(path: Path, *, results: Path | None = None, merge: bool = False,
 
 
 def cmd_check(args) -> int:
+    if not args.file.is_file():
+        raise VolunteerError(f"no file {str(args.file)!r}: give the .contrib.json that "
+                             f"collect wrote ({PROG} check <case>-<level>.contrib.json)")
     ok, lines = check(args.file, results=args.results, merge=args.merge)
     print("\n".join(lines))
     return 0 if ok else 1
@@ -526,13 +580,70 @@ def cmd_check(args) -> int:
 
 # --- list and VOLUNTEERS.md --------------------------------------------------------------
 
-def cmd_list(args) -> int:
+def _short(req: dict) -> str:
+    """*req*'s value for one line: ``~`` marks an estimate."""
+    return ("~" if req["basis"] == "estimated" else "") + _value(req)
+
+
+def list_lines() -> list[str]:
+    """``list``: per case its title, and per level one line of what it
+    costs and the ``prepare`` command to copy."""
+    out = []
     for case, c in cards().items():
-        print(f"{case}: {c['title']}")
+        out += [f"{case}: {c['title']}"]
+        if c["hexmesh"]["tag"]:
+            out += [f"  hexmesh: git clone --branch {c['hexmesh']['tag']} "
+                    "https://github.com/sigveka/hexmesh"]
         for name, lv in c["levels"].items():
-            print(f"\n  level {name}: {lv['title']}")
-            print("\n".join("  " + line for line in requirements_table(lv)))
-        print()
+            r = lv["requirements"]
+            out += [f"  {name}: {_short(r['cores'])} cores, {_short(r['wall_time'])}, "
+                    f"{_short(r['peak_memory'])} memory, {_short(r['peak_disk'])} disk, "
+                    f"{_short(r['cells'])} cells",
+                    f"    {PROG} prepare {case} {name} --dir run/"]
+        out += [f"  more: {PROG} info {case}", ""]
+    return out + ["~ estimated, not measured.  Everything else: validation/VOLUNTEERS.md"]
+
+
+def cmd_list(args) -> int:
+    print("\n".join(list_lines()))
+    return 0
+
+
+def _wrap(text: str, indent: str = "", hang: str = "  ") -> list[str]:
+    """*text* wrapped to :data:`WIDTH`, its first line after *indent*, the
+    rest under it, *hang* further in."""
+    return textwrap.wrap(text, WIDTH, initial_indent=indent,
+                         subsequent_indent=" " * len(indent) + hang,
+                         break_on_hyphens=False) or [indent]
+
+
+def info_lines(case: str, level: str | None = None) -> list[str]:
+    """``info``: a case's card as wrapped text: the summary, the versions,
+    each level's requirements with their basis and source, the gates."""
+    c = card(case)
+    if level is not None and level not in c["levels"]:
+        raise _unknown("level", level, list(c["levels"]), case)
+    out = [f"{case}: {c['title']}", "", *_wrap(c["summary"], hang=""), ""]
+    out += _wrap(f"OpenFOAM: {c['openfoam']['version']} (image {c['openfoam']['image']})")
+    out += _wrap(f"hexmesh: {c['hexmesh']['tag'] or 'the first release with this tool'} "
+                 f"({c['hexmesh']['note']})")
+    out += _wrap(f"gmsh: {c['gmsh']['version']} ({c['gmsh']['note']})")
+    for name, lv in c["levels"].items():
+        if level not in (None, name):
+            continue
+        out += ["", f"level {name}: {lv['title']}", *_wrap(lv["what"], "  ", ""),
+                f"  {PROG} prepare {case} {name} --dir run/"]
+        for req in lv["requirements"].values():
+            out += _wrap(f"{req['label']}: {_value(req)}, {req['basis']}: {req['how']}", "  - ", "")
+    out += ["", "Pass/fail limits (fixed before any run; reported whether passed or not):"]
+    out += [line for g in gates(case)
+            for line in _wrap(f"{g['quantity']}: {g['limit']}", "  - ", "")]
+    out += ["", *_wrap(f"Sent back: {c['returns']}")]
+    return [line.replace("`", "").replace("$", "") for line in out]   # Markdown and TeX marks
+
+
+def cmd_info(args) -> int:
+    print("\n".join(info_lines(args.case, args.level)))
     return 0
 
 
@@ -569,8 +680,8 @@ def render() -> str:
            "```bash",
            "git clone --branch <tag> https://github.com/sigveka/hexmesh && cd hexmesh",
            "pip install -e .",
-           "python3 -m validation.volunteer list                      # cases and their "
-           "requirements",
+           "python3 -m validation.volunteer list                      # cases, what each "
+           "level costs",
            "python3 -m validation.volunteer prepare <case> <level> --dir run/   # mesh, case, "
            "job script",
            "sbatch run/job.sh        # or: bash run/job.sh  (resumable: run it again after a "
@@ -584,8 +695,9 @@ def render() -> str:
            "in the file.  To see the verdict before you send it, run the same check we "
            "do: `python3 -m validation.volunteer check <file>.contrib.json` (it meshes the "
            "level again to compare, which takes about as long as `prepare` did).", "",
-           "- **`<tag>`** is the release named in the card below: the mesh check needs the "
-           "same hexmesh and gmsh versions.",
+           "- **`<tag>`** is the tag named in the card below (`list` prints the whole "
+           "`git clone` line): the mesh check needs the same hexmesh and gmsh versions.  "
+           "`python3 -m validation.volunteer info <case>` prints the card in full.",
            "- **OpenFOAM:** `prepare` uses the first of these it finds: `HEXMESH_OPENFOAM` "
            "if set; OpenFOAM already loaded (`module load …`, the `path` runner); the "
            "bashrc in `HEXMESH_OPENFOAM_RC`; Apptainer or Singularity with the card's "
@@ -637,11 +749,25 @@ def cmd_docs(args) -> int:
     return 0
 
 
+def _commands() -> str:
+    """The module docstring's command block, for ``-h``."""
+    block = __doc__.split("::\n\n", 1)[1].split("\n\n", 1)[0]
+    return textwrap.dedent(block)
+
+
 def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(prog="python3 -m validation.volunteer",
-                                 description=__doc__.strip().split("\n\n")[0])
-    sub = ap.add_subparsers(dest="command", required=True)
-    sub.add_parser("list", help="cases and their requirements")
+    first = __doc__.strip().split("\n\n")[0]
+    ap = argparse.ArgumentParser(
+        prog=PROG, formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=re.sub(r" \(decision [^)]*\)", "",
+                           first.replace("  From the repository root::", "")),
+        epilog="From the repository root:\n\n" + textwrap.indent(_commands(), "  ")
+               + f"\n\nEach command's own help: {PROG} <command> -h")
+    sub = ap.add_subparsers(dest="command", required=True, metavar="<command>")
+    sub.add_parser("list", help="cases, what each level costs, and the command to prepare it")
+    p = sub.add_parser("info", help="a case's card in full: requirements, sources, gates")
+    p.add_argument("case", help="the case, as `list` shows it (e.g. helical_pipe)")
+    p.add_argument("level", nargs="?", help="only this level")
     p = sub.add_parser("prepare", help="mesh, case and job script for a level")
     p.add_argument("case", help="the case, as `list` shows it (e.g. helical_pipe)")
     p.add_argument("level", help="the level, as `list` shows it (e.g. re3000_n24)")
@@ -653,25 +779,37 @@ def main(argv=None) -> int:
     p.add_argument("--np", type=int, help="MPI processes (default: the card's)")
     p.add_argument("--allow-version", action="store_true",
                    help="run with another OpenFOAM version than the card's (recorded)")
-    p = sub.add_parser("run", help="solve a prepared level (job.sh calls this); resumable")
-    p.add_argument("dir", type=Path, help="the directory prepare made")
+    p = sub.add_parser("run", help="run DIR: solve a prepared level; job.sh calls this "
+                                   "(resumable)")
+    p.add_argument("dir", type=Path, metavar="DIR",
+                   help="the directory `prepare --dir` made; job.sh calls this")
+    p.add_argument("extra", nargs="*", help=argparse.SUPPRESS)
     p.add_argument("--np", type=int, help="MPI processes (default: prepare's; SLURM_NTASKS under Slurm)")
-    p = sub.add_parser("collect", help="write the .contrib.json")
-    p.add_argument("dir", type=Path, help="the directory prepare made, after the run")
+    p = sub.add_parser("collect", help="collect DIR: write the .contrib.json after the run")
+    p.add_argument("dir", type=Path, metavar="DIR",
+                   help="the directory `prepare --dir` made, after the run")
+    p.add_argument("extra", nargs="*", help=argparse.SUPPRESS)
     p.add_argument("--name", help="your name, for the credit")
     p.add_argument("--machine", help="the machine, e.g. 'cluster X, 2x EPYC 7763'")
     p.add_argument("--out", type=Path, help="directory for the file (default: here)")
     p.add_argument("--delete", action="store_true", help="delete the run directory after")
-    p = sub.add_parser("check", help="check a .contrib.json as the maintainers will: "
+    p = sub.add_parser("check", help="check FILE: a .contrib.json, as the maintainers will; "
                                      "anyone can run it before sending the file")
-    p.add_argument("file", type=Path, help="the .contrib.json that collect wrote")
+    p.add_argument("file", type=Path, metavar="FILE", help="the .contrib.json that collect wrote")
     p.add_argument("--merge", action="store_true", help="store an accepted level")
     p.add_argument("--results", type=Path, help="results.json to compare and merge into "
                                                 "(default: the case's)")
     sub.add_parser("docs", help="regenerate validation/VOLUNTEERS.md")
     args = ap.parse_args(argv)
-    return {"list": cmd_list, "prepare": cmd_prepare, "run": cmd_run, "collect": cmd_collect,
-            "check": cmd_check, "docs": cmd_docs}[args.command](args)
+    from hexmesh.study.definition import StudyError
+    try:
+        return {"list": cmd_list, "info": cmd_info, "prepare": cmd_prepare, "run": cmd_run,
+                "collect": cmd_collect, "check": cmd_check, "docs": cmd_docs}[args.command](args)
+    except (VolunteerError, StudyError) as e:     # a person's mistake: one line, no traceback
+        hint = getattr(e, "hint", None)
+        print(f"{ap.prog} {args.command}: error: {e}" + (f"; {hint}" if hint else ""),
+              file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":

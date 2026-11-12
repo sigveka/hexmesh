@@ -615,6 +615,12 @@ def _parse(level: str) -> tuple[int, int]:
     return int(m[1]), int(m[2])
 
 
+def check_level(level: str) -> None:
+    """Raise ``ValueError`` unless this driver can build *level* (the
+    tool asks before anything else: no gmsh, no OpenFOAM)."""
+    _parse(level)
+
+
 def prepare(level: str, d: Path, mesh_only: bool = False) -> dict:
     """Mesh *level*, and unless *mesh_only*, set up its case (and its
     mapped start's source case).  Returns ``{"msh": path}``, the mesh as

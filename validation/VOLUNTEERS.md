@@ -19,7 +19,7 @@ The general guide to running validation cases is [validation/README.md](README.m
 ```bash
 git clone --branch <tag> https://github.com/sigveka/hexmesh && cd hexmesh
 pip install -e .
-python3 -m validation.volunteer list                      # cases and their requirements
+python3 -m validation.volunteer list                      # cases, what each level costs
 python3 -m validation.volunteer prepare <case> <level> --dir run/   # mesh, case, job script
 sbatch run/job.sh        # or: bash run/job.sh  (resumable: run it again after a stop)
 python3 -m validation.volunteer collect run/              # writes one .contrib.json
@@ -27,7 +27,7 @@ python3 -m validation.volunteer collect run/              # writes one .contrib.
 
 Send the `.contrib.json` file back: in a pull request, attached to the case's issue (label `volunteer-run`), or by e-mail.  Nothing else is needed.  `collect --name "Your Name" --machine "cluster, node type"` puts your credit in the file.  To see the verdict before you send it, run the same check we do: `python3 -m validation.volunteer check <file>.contrib.json` (it meshes the level again to compare, which takes about as long as `prepare` did).
 
-- **`<tag>`** is the release named in the card below: the mesh check needs the same hexmesh and gmsh versions.
+- **`<tag>`** is the tag named in the card below (`list` prints the whole `git clone` line): the mesh check needs the same hexmesh and gmsh versions.  `python3 -m validation.volunteer info <case>` prints the card in full.
 - **OpenFOAM:** `prepare` uses the first of these it finds: `HEXMESH_OPENFOAM` if set; OpenFOAM already loaded (`module load …`, the `path` runner); the bashrc in `HEXMESH_OPENFOAM_RC`; Apptainer or Singularity with the card's image; Docker.  Choose one with `--runner path`, `--runner apptainer:docker://<image>` and so on.  It refuses another OpenFOAM version than the card's, unless you pass `--allow-version` (the version is recorded either way).
 - **Cores:** `job.sh` asks for the card's recommended cores; `prepare --np N` changes that.  Under Slurm the run uses `SLURM_NTASKS`.
 - **Stopping and resuming:** the run saves its state every 50 solver steps.  Run `job.sh` again after a stop; it continues from the last save.
@@ -38,7 +38,7 @@ Send the `.contrib.json` file back: in a pull request, attached to the case's is
 Steady laminar flow through four turns of a helical coil (the SIET coil: 12.53 mm tube, 1 m helix diameter, 0.8 m pitch), meshed by hexmesh along a spline through the helix.  It checks that the friction factor converges as the mesh is refined and lands within 5 % of Ito's correlation.  Two of the three Reynolds numbers are done on the finest mesh; the last one, Re 3000, needs 9 to 12 hours on 4 cores and several GB of memory, which our one desktop can't spare.
 
 - **OpenFOAM:** v2406 (image `opencfd/openfoam-default:2406`)
-- **hexmesh:** volunteer-helical-1 (git checkout volunteer-helical-1 before prepare: the mesh check needs the same meshing code as ours)
+- **hexmesh:** volunteer-helical-1 (clone this tag with git clone --branch, as in the five commands: the mesh check needs the same meshing code as ours)
 - **gmsh:** 4.12.1 (the version pip installs with hexmesh is fine: our test level's mesh check gives the same fingerprint with gmsh 4.12.1 and 4.15.2)
 
 ### Level `re3000_n24`: Re 3000 on the finest mesh (nang 24)

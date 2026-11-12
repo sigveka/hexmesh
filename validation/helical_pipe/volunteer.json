@@ -10,7 +10,7 @@
   },
   "hexmesh": {
     "tag": "volunteer-helical-1",
-    "note": "git checkout volunteer-helical-1 before prepare: the mesh check needs the same meshing code as ours"
+    "note": "clone this tag with git clone --branch, as in the five commands: the mesh check needs the same meshing code as ours"
   },
   "gmsh": {
     "version": "4.12.1",

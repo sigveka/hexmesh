@@ -148,6 +148,90 @@ def test_job_script_is_bash_with_slurm_directives(tmp_path):
     assert subprocess.run(["bash", "-n", str(path)]).returncode == 0
 
 
+
+# --- the command line, for people (task 0160) ------------------------------------------
+
+@pytest.fixture
+def no_runner(monkeypatch):
+    """A runner is never looked for: a name mistake is caught before it."""
+    def touched(*a, **k):
+        raise AssertionError("the runner was touched")
+    monkeypatch.setattr(vol, "pick_runner", touched)
+    monkeypatch.setattr(vol, "use_runner", touched)
+
+
+def _cli(capsys, *argv) -> tuple[int, str]:
+    code = vol.main([str(a) for a in argv])
+    out = capsys.readouterr()
+    return code, out.err.strip()
+
+
+@pytest.mark.parametrize("argv, says", [
+    (("prepare", "helical_pipe", "re3000", "--dir", "{tmp}/run"),
+     "unknown level 're3000' for helical_pipe; did you mean 're3000_n24'? Levels: re3000_n24."),
+    (("prepare", "helical", "re3000_n24", "--dir", "{tmp}/run"),
+     "unknown case 'helical'; did you mean 'helical_pipe'?"),
+    (("info", "helical_pipe", "re3000"), "did you mean 're3000_n24'?"),
+    (("run", "helical_pipe", "re3000_n24"), "run takes the directory `prepare --dir` made"),
+    (("collect", "helical_pipe"), "collect takes the directory `prepare --dir` made"),
+    (("run", "{tmp}/nothere"), "isn't a prepared run directory"),
+    (("check", "{tmp}/nothere.contrib.json"), "no file"),
+])
+def test_a_mistake_is_one_line_naming_the_fix(capsys, tmp_path, no_runner, argv, says):
+    code, err = _cli(capsys, *(a.format(tmp=tmp_path) for a in argv))
+    assert code == 2 and says in err, err
+    assert len(err.splitlines()) == 1 and "Traceback" not in err
+    assert not (tmp_path / "run").exists()
+
+
+def test_a_runner_error_is_one_line(capsys, tmp_path, monkeypatch):
+    """The names are right, OpenFOAM isn't: the StudyError is one line."""
+    from hexmesh.study.definition import StudyError
+    def wrong_version(*a, **k):
+        raise StudyError("runner 'path' has no OpenFOAM; this needs OpenFOAM v2406",
+                         code="openfoam_version_mismatch", hint="pick a runner with OpenFOAM v2406")
+    monkeypatch.setattr(vol, "pick_runner", lambda c, given: "path")
+    monkeypatch.setattr(vol, "use_runner", wrong_version)
+    code, err = _cli(capsys, "prepare", "helical_pipe", "re3000_n24", "--dir", tmp_path / "run")
+    assert code == 2 and len(err.splitlines()) == 1 and "Traceback" not in err
+    assert "needs OpenFOAM v2406; pick a runner" in err
+
+
+def test_a_level_the_driver_builds_but_the_card_does_not_offer_is_allowed(monkeypatch):
+    """A stored level (re1800_n12) still prepares, with no requirements."""
+    assert vol.offered_level("helical_pipe", "re1800_n12") is None
+    assert vol.offered_level("helical_pipe", "re3000_n24")["requirements"]["cores"]["value"] == 4
+
+
+def test_list_and_info_fit_a_terminal(capsys):
+    for argv in (("list",), ("info", "helical_pipe")):
+        assert vol.main(list(argv)) == 0
+        out = capsys.readouterr().out
+        assert out and max(map(len, out.splitlines())) <= vol.WIDTH, argv
+        assert "|---" not in out and "$" not in out
+    assert vol.main(["list"]) == 0
+    out = capsys.readouterr().out
+    assert ("python3 -m validation.volunteer prepare helical_pipe re3000_n24 --dir run/" in out
+            and "git clone --branch volunteer-helical-" in out)
+
+
+def test_help_shows_the_commands(capsys):
+    with pytest.raises(SystemExit) as e:
+        vol.main(["-h"])
+    out = capsys.readouterr().out
+    assert e.value.code == 0 and "prepare <case> <level> --dir run/" in out
+    assert "sbatch run/job.sh" in out and "decision" not in out
+    with pytest.raises(SystemExit):
+        vol.main(["run", "-h"])
+    assert "the directory `prepare --dir` made; job.sh calls this" in capsys.readouterr().out
+
+
+def test_card_note_and_five_commands_say_the_same():
+    """One instruction for the version: git clone --branch <tag> (task 0160)."""
+    c = vol.card("helical_pipe")
+    assert "git clone --branch" in c["hexmesh"]["note"] and "checkout" not in c["hexmesh"]["note"]
+    assert "git clone --branch <tag>" in vol.render()
+
 # --- the mesh hash -------------------------------------------------------------------
 
 MSH = ("$MeshFormat\n2.2 0 8\n$EndMeshFormat\n{comments}$PhysicalNames\n1\n3 1 \"fluid\"\n"

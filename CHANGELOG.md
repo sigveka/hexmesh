@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+**The volunteer command line, for people** (task 0160).
+- A wrong case or level name is caught first, before OpenFOAM or gmsh
+  is looked for: one line naming the card's levels, with a suggestion
+  (`did you mean 're3000_n24'?`), exit 2.  So are `run`/`collect` given a
+  case instead of the run directory, a missing `check` file and a
+  runner's error: no tracebacks for a person's mistake.
+- `list` prints one line per level (cores, wall time, memory, disk,
+  cells; `~` marks an estimate) and the `prepare` command to copy.  New
+  `info <case> [<level>]` prints the card in full as wrapped text.
+- `-h` lists the commands.  The card and `VOLUNTEERS.md` give one way to
+  get the version: `git clone --branch <tag>`.
+
 ## 0.6.0 (2026-11-12)
 
 Junction completeness.

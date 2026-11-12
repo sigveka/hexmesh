@@ -1,6 +1,6 @@
 # 0160 — The volunteer command line, for people: names checked first, a readable `list`, help with the commands
 
-- **Status:** ready
+- **Status:** in progress
 - **Decision:** none new; [0044](../decisions/0044-volunteer-runs.md)
   (volunteer runs).  The user, 2026-11-13: a volunteer run "did not
   recognize the documented case name. The output from the 'list' option
