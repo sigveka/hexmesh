@@ -143,6 +143,8 @@ def test_job_script_is_bash_with_slurm_directives(tmp_path):
     assert text.rstrip().endswith(f"validation.volunteer run {shlex.quote(str(tmp_path))}")
     path = tmp_path / "job.sh"
     path.write_text(text, encoding="utf-8", newline="\n")
+    if sys.platform == "win32":       # the job runs on a Linux cluster; Windows'
+        return                        # first bash on PATH is WSL's, which can't open C:\ paths
     assert subprocess.run(["bash", "-n", str(path)]).returncode == 0
 
 
