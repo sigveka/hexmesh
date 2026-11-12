@@ -47,11 +47,11 @@ open, asked again in task 0150).
   code and message (`_check_circle`, the wye's `wye_needs_circle`), so
   the helper is a backstop.  `_check_circle` stays as it is: it also
   checks the shells, and its message is the tee's.
-- **Step 3's DESIGN edit isn't mine to make, and was already made:**
-  DESIGN §9 has no shape-switch row (the design session removed it with
-  decision 0051, per its message of 2026-11-11), and the coding session
-  never edits DESIGN.md (CLAUDE.md).  So this task's only cap edit is
-  `SHAPE_SITES_CAP = 0`.
+- **Step 3's DESIGN edit is the design session's.**  The coding
+  session never edits DESIGN.md (CLAUDE.md), so this task's commit has
+  only `SHAPE_SITES_CAP = 0`.  I first wrote here that the row was
+  already gone; it wasn't (my search missed its wording, "Type switches
+  on shapes").  The design session removed it in 0e4aa24, 2026-11-12.
 
 ## Questions for design
 
