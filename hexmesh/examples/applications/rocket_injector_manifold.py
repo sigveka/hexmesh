@@ -56,16 +56,10 @@ below the 0.3 tier, at a branch ratio r/R of 0.5 ("no run length reaches
 it").  Faster legs would be narrower and worse; the warning is the cost
 of eight legs off a slow ring.  No cell is inverted.
 
-**A workaround, for now:** the feed line's insulated section is built
-from the tee branch's own spec (``copy.deepcopy(feed.spec)``), because a
-tee's branch recomputes its shells' thicknesses and differs from the
-given 1.5 mm in the last bits (task 0155).
-
 Inlet ``lox_inlet``; outlets ``injector_1`` … ``injector_8``.  The
 ring's start, ``ring_start``, is closed: it isn't an open end.
 """
 
-import copy
 import math
 
 import numpy as np
@@ -123,8 +117,8 @@ def build() -> Assembly:
         else:          # the last bend closes the ring
             asm.close(end, asm.inlet, bend)
     # The feed line: insulated from two cells out, then up toward the tank
-    # through the venturi.  Its spec is the branch's own (task 0155).
-    insulated = copy.deepcopy(feed.spec).shell("insulation", dR=INSULATION, nrad=2)
+    # through the venturi.
+    insulated = pipe(D_FEED).shell("insulation", dR=INSULATION, nrad=2)
     end = asm.add(feed, Straight(0.12, n_layers=8, stack_changes=((2, insulated),)))
     end = asm.add(end, Bend(radius=0.08, angle=90, toward=(0, 0, 1), n_layers=8))
     end = asm.add(end, Straight(0.15, n_layers=6))

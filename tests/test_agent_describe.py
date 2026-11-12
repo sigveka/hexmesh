@@ -16,6 +16,7 @@ GMSH (task 0097)."""
 import hashlib
 import importlib
 import json
+import os
 import textwrap
 import time
 import warnings
@@ -92,7 +93,9 @@ def test_describe_every_example_without_gmsh(name):
     the assembly and its saved description; cells equal cell_count().
     A file's provenance (``origin``, task 0096) is never saved, so an
     example read from a PCF (``pcf_line``) matches its description once
-    its origins are cleared, and differs only by them before."""
+    its origins are cleared.  Before, it differs only where a message
+    names the file (a warning's ``<file>:<line>``); an imported network
+    with no such message (``subsea_pipeline``) matches already."""
     assert not gmsh.isInitialized()
     asm = _example(name)
     text = json.dumps(describe(asm), sort_keys=True, allow_nan=False)
@@ -100,7 +103,8 @@ def test_describe_every_example_without_gmsh(name):
     assert text == json.dumps(describe(asm), sort_keys=True, allow_nan=False)
     saved = json.dumps(describe(asm.to_dict()), sort_keys=True, allow_nan=False)
     if any(e.origin for e in asm.edges):
-        assert saved != text                       # the file:line is what's lost
+        files = {os.path.basename(str(e.origin.get("file"))) for e in asm.edges if e.origin}
+        assert saved == text or any(f in text for f in files)   # only the file:line is lost
         for e in asm.edges:
             e.origin = None
         text = json.dumps(describe(asm), sort_keys=True, allow_nan=False)

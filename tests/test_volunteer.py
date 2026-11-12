@@ -24,6 +24,7 @@ import os
 import pathlib
 import re
 import shutil
+import shlex
 import subprocess
 import sys
 
@@ -139,7 +140,7 @@ def test_job_script_is_bash_with_slurm_directives(tmp_path):
     req = vol.card("helical_pipe")["levels"]["re3000_n24"]["requirements"]
     text = vol.job_script("helical_pipe", "re3000_n24", tmp_path, req, 4)
     assert "#SBATCH --ntasks=4" in text and "#SBATCH --time=" in text and "#SBATCH --mem=" in text
-    assert text.rstrip().endswith(f"validation.volunteer run {tmp_path}")
+    assert text.rstrip().endswith(f"validation.volunteer run {shlex.quote(str(tmp_path))}")
     path = tmp_path / "job.sh"
     path.write_text(text, encoding="utf-8", newline="\n")
     assert subprocess.run(["bash", "-n", str(path)]).returncode == 0

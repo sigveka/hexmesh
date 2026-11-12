@@ -160,5 +160,6 @@ None.
   injector tee), min SICN 0.064, max aspect 44; 8 `validate()` warnings,
   one per injector tee, as above.
 - **Tests:** `tests/test_examples.py` (the example meshes; registry, families and GUIDE table): 8 passed for the new examples and the listing checks.
-- **Follow-ups:** drop the `copy.deepcopy` workaround after 0155; the
-  fuel side (a second ring) remains out of scope.
+- **After 0155** (069f44b): the `copy.deepcopy` workaround is gone; the
+  feed line's spec is `pipe(D_FEED)` plus insulation.  Example test passes.
+- **Follow-ups:** the fuel side (a second ring) remains out of scope.
