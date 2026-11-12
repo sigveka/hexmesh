@@ -1,11 +1,11 @@
 {
  "meta": {
   "date": "2026-11-12",
-  "commit": "e19c844 + uncommitted changes",
+  "commit": "73a2f07 + uncommitted changes",
   "gmsh": "4.12.1",
   "python": "3.12.3",
   "cpus": 8,
-  "jobs": 1
+  "jobs": 2
  },
  "examples": {
   "fittings.smooth_bend": {
@@ -1202,6 +1202,210 @@
    "predicted": 40448,
    "meshed": 40448,
    "build_s": 21.76
+  },
+  "applications.rocket_injector_manifold": {
+   "fittings": 31,
+   "fitting_types": {
+    "Tee": 9,
+    "Bend": 10,
+    "Straight": 11,
+    "Reducer": 1
+   },
+   "volumes": 1487,
+   "materials": [
+    "lox",
+    "steel",
+    "insulation"
+   ],
+   "min_sicn": 0.06387293726088622,
+   "mean_sicn": 0.37046044226559005,
+   "min_sj": 0.25765212801398313,
+   "min_sj_fitting": "#14 Tee",
+   "max_aspect": 44.444444444453424,
+   "groups": {
+    "open_end": [
+     "insulation_lox_inlet",
+     "lox_injector_1",
+     "lox_injector_2",
+     "lox_injector_3",
+     "lox_injector_4",
+     "lox_injector_5",
+     "lox_injector_6",
+     "lox_injector_7",
+     "lox_injector_8",
+     "lox_lox_inlet",
+     "steel_injector_1",
+     "steel_injector_2",
+     "steel_injector_3",
+     "steel_injector_4",
+     "steel_injector_5",
+     "steel_injector_6",
+     "steel_injector_7",
+     "steel_injector_8",
+     "steel_lox_inlet"
+    ],
+    "wall": [
+     "insulation_end",
+     "insulation_wall",
+     "steel_wall"
+    ],
+    "interface": [
+     "interface_lox_steel",
+     "interface_steel_insulation"
+    ],
+    "volume": [
+     "insulation",
+     "lox",
+     "steel"
+    ]
+   },
+   "cutaway": true,
+   "predicted": 80768,
+   "meshed": 80768,
+   "build_s": 103.23
+  },
+  "applications.micromixer": {
+   "fittings": 6,
+   "fitting_types": {
+    "Straight": 5,
+    "Tee": 1
+   },
+   "volumes": 94,
+   "materials": [
+    "fluid"
+   ],
+   "min_sicn": 0.145603941593205,
+   "mean_sicn": 0.5560988512531245,
+   "min_sj": 0.5773502691896074,
+   "min_sj_fitting": "#1 Tee",
+   "max_aspect": 12.00000000000153,
+   "groups": {
+    "open_end": [
+     "fluid_aqueous_inlet",
+     "fluid_lipid_inlet",
+     "fluid_outlet"
+    ],
+    "wall": [
+     "fluid_wall"
+    ],
+    "interface": [],
+    "volume": [
+     "fluid"
+    ]
+   },
+   "cutaway": true,
+   "predicted": 10112,
+   "meshed": 10112,
+   "build_s": 28.66
+  },
+  "applications.subsea_pipeline": {
+   "fittings": 5,
+   "fitting_types": {
+    "Straight": 3,
+    "SplinePipe": 1,
+    "Bend": 1
+   },
+   "volumes": 8092,
+   "materials": [
+    "oil",
+    "steel",
+    "coating",
+    "insulation"
+   ],
+   "min_sicn": 0.0030112120524958394,
+   "mean_sicn": 0.0618795935044549,
+   "min_sj": 0.771357371664469,
+   "min_sj_fitting": "#3 Bend",
+   "max_aspect": 985.2693311112954,
+   "groups": {
+    "open_end": [
+     "coating_inlet",
+     "coating_riser_top",
+     "insulation_inlet",
+     "insulation_riser_top",
+     "oil_inlet",
+     "oil_riser_top",
+     "steel_inlet",
+     "steel_riser_top"
+    ],
+    "wall": [
+     "insulation_wall"
+    ],
+    "interface": [
+     "interface_coating_insulation",
+     "interface_oil_steel",
+     "interface_steel_coating"
+    ],
+    "volume": [
+     "coating",
+     "insulation",
+     "oil",
+     "steel"
+    ]
+   },
+   "cutaway": true,
+   "predicted": 183744,
+   "meshed": 183744,
+   "build_s": 220.63
+  },
+  "applications.district_heating": {
+   "fittings": 3,
+   "fitting_types": {
+    "Straight": 2,
+    "Bend": 1
+   },
+   "volumes": 350,
+   "materials": [
+    "water",
+    "steel",
+    "pur",
+    "casing",
+    "near_soil",
+    "far_soil"
+   ],
+   "min_sicn": 0.023176230845993996,
+   "mean_sicn": 0.25629696508036787,
+   "min_sj": 0.598715353943159,
+   "min_sj_fitting": "#1 Bend",
+   "max_aspect": 126.92491574171859,
+   "groups": {
+    "open_end": [
+     "casing_house_side",
+     "casing_supply",
+     "far_soil_house_side",
+     "far_soil_supply",
+     "near_soil_house_side",
+     "near_soil_supply",
+     "pur_house_side",
+     "pur_supply",
+     "steel_house_side",
+     "steel_supply",
+     "water_house_side",
+     "water_supply"
+    ],
+    "wall": [
+     "far_soil_wall"
+    ],
+    "interface": [
+     "interface_casing_near_soil",
+     "interface_near_soil_far_soil",
+     "interface_pur_casing",
+     "interface_steel_pur",
+     "interface_water_steel"
+    ],
+    "volume": [
+     "casing",
+     "far_soil",
+     "near_soil",
+     "pur",
+     "steel",
+     "water"
+    ]
+   },
+   "cutaway": true,
+   "predicted": 23040,
+   "meshed": 23040,
+   "build_s": 8.41
   }
  },
  "validation": {

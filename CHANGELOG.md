@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+**Four application examples** (tasks 0140, 0152, 0153, 0154).
+- `rocket_injector_manifold`: a liquid-oxygen ring closed on itself,
+  eight injector legs, and an insulated feed line through a cavitating
+  venturi; sized from NASA SP-125's worked example.
+- `micromixer`: the T-mixer engulfment benchmark's T (Bothe et al. 2006),
+  in micrometres, then a mixing channel twisted one full turn.
+- `subsea_pipeline`: an insulated flowline read from a generated seabed
+  survey of sand waves (`read_bathymetry`), turning up into a riser.
+- `district_heating`: a buried pre-insulated pipe with a square of near
+  soil and a rectangle of far soil, both graded outward.
+- **Gallery:** an example may set `GALLERY_COLOURS` (material colours
+  that mean something), and a cut-away may colour its faces by material
+  (`"by_material": True`).
+
+**Fixed:** `read_bathymetry`, subdividing a route, called `float()` on a
+one-element array, deprecated in NumPy (task 0153).
+
 **Tee meshes move: interior faces are Stretch fillings** (task 0145).
 - **Why:** with gmsh 4.15.2 (what `pip install` gives, built with OCC
   7.8.1) the tee's interior plate faces were different surfaces than

@@ -26,7 +26,8 @@ CATEGORIES: dict[str, list[str]] = {
     "networks": ["pipe_network", "pipe_rack", "distribution_tree",
                  "bifurcation_tree", "skewed_network"],
     "applications": ["drum_nozzle", "hvac_supply", "hvac_branched", "cooling_channels",
-                     "pcf_line", "idealised_aorta"],
+                     "pcf_line", "idealised_aorta", "rocket_injector_manifold", "micromixer",
+                     "subsea_pipeline", "district_heating"],
 }
 
 #: Every example as ``"<category>.<name>"``, in reading order.

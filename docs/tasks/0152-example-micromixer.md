@@ -1,6 +1,6 @@
 # 0152 — Example: a lipid-nanoparticle T-mixer with a twisted mixing channel
 
-- **Status:** ready
+- **Status:** done (the design session, at the user's request, 2026-11-12)
 - **Decision:** none new.  The user, 2026-11-12: "yes to micromixer",
   after the design session proposed a T-junction followed by a twisted
   rectangular channel (passive mixing by swirl); "yes" to grounding it on
@@ -99,6 +99,34 @@ not the summaries):
 
 ## Agent notes
 
+- **Geometry checked** in Bothe, Stemich and Warnecke's proceedings paper
+  (read 2026-11-12): inlets 100 × 100 µm, mixing channel 200 × 100 µm;
+  computational domain inlets 0.4 mm, mixing channel 1.5 mm; engulfment
+  above about 1.1 m/s, Re ≈ 146 on the mixing channel's hydraulic
+  diameter (133 µm).  The journal papers (Bothe et al., Hoffmann et al.)
+  are cited, not read.
+- **The T** is a full-width duct tap on a 100 µm square main: across the
+  face the duct's depth, along the main 200 µm.  It builds with no
+  warning (min SJ 0.58, the full-width tap's limit).  Nothing new needed.
+- **The twist:** one turn over 2 mm, 48 layers (7.5° each); no warning.
+- **Scale:** built in metres at real size (100 µm), as task 0139 made
+  possible.  The ×1000 comparison wasn't run separately: 0139's tests
+  cover the scaling of plates, and a duct tap has no plates of the
+  kind 0139 changed.  Said here rather than claimed.
+- **Serpentine:** left out; the twist alone makes the point.
+
 ## Questions for design
 
+None.
+
 ## Outcome
+
+- **Files:** `hexmesh/examples/applications/micromixer.py`; registry,
+  GUIDE table; `docs/references.bib` (three Bothe/Hoffmann entries,
+  `sivashankar_and_agambayev_etal_2016`); the gallery entry with a
+  cut-away of the T.
+- **Numbers:** 10 112 cells, min SJ 0.577 (the T), min SICN 0.146, max
+  aspect 12; no `validate()` warning.
+- **Tests:** `tests/test_examples.py` (the example meshes; registry, families and GUIDE table): 8 passed for the new examples and the listing checks.
+- **Follow-ups:** the engulfment benchmark as a V3 validation case (this
+  T is sized for it).

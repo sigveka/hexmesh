@@ -110,6 +110,8 @@ PALETTE = ["#3b7dd8", "#d9822b", "#5aa469", "#a361c7", "#c9b037"]
 COLOUR_NAMES = ["blue", "orange", "green", "purple", "yellow"]
 WALL = "#d5d9df"
 EDGE = "#55606e"
+# An example may set GALLERY_COLOURS = {material: ("#rrggbb", "name")} when
+# its colours mean something (hot red, cold blue); the others use PALETTE.
 # Cut-away images: (face, edge) per kind of face.
 CUTAWAY = {"wall": ("#b3202a", "#5a0d12"), "cut": ("#f2b8a2", "#8c3b2e"),
            "ends": ("#2a6f97", "#123a52")}
@@ -124,6 +126,20 @@ HEX_FACES = [(0, 3, 2, 1), (4, 5, 6, 7), (0, 1, 5, 4), (1, 2, 6, 5), (2, 3, 7, 6
 def rgb(h: str) -> tuple[float, float, float]:
     """``"#rrggbb"`` as VTK's 0–1 floats."""
     return tuple(int(h[i:i + 2], 16) / 255 for i in (1, 3, 5))
+
+
+def material_colour(material: str, materials: list[str], colours: dict | None = None) -> str:
+    """*material*'s face colour: the example's ``GALLERY_COLOURS``, else
+    :data:`PALETTE` in the order the assembly lists its materials."""
+    if colours and material in colours:
+        return colours[material][0]
+    return PALETTE[materials.index(material) % len(PALETTE)]
+
+
+def darker(h: str, f: float = 0.45) -> str:
+    """*h* darkened to *f* of its brightness (cut-away edges)."""
+    r, g, b = (int(h[i:i + 2], 16) for i in (1, 3, 5))
+    return "#{:02x}{:02x}{:02x}".format(*(int(f * c) for c in (r, g, b)))
 
 
 def vtk_points(xyz):
@@ -283,7 +299,7 @@ def render(scene: dict, path: Path, size, view: str, fit: bool = False) -> None:
         for poly in polys:
             used.extend(poly)
         colour = WALL if key == "wall" or key is None else \
-            PALETTE[scene["materials"].index(key) % len(PALETTE)]
+            material_colour(key, scene["materials"], scene.get("colours"))
         actor = poly_actor(points, polys, colour, EDGE, 0.6 if view == "overview" else 1.0)
         if view == "section":
             actor.GetProperty().LightingOff()
@@ -316,9 +332,13 @@ def render(scene: dict, path: Path, size, view: str, fit: bool = False) -> None:
         crop_to_content(path, size[0], 0.04)
 
 
-def cutaway_scene(asm, spec: dict) -> dict:
+def cutaway_scene(asm, spec: dict, colours: dict | None = None) -> dict:
     """Faces of the cells *spec*'s ``keep`` draws, sorted into wall, open
-    ends and cut (every other face exposed by the cut)."""
+    ends and cut (every other face exposed by the cut).
+
+    With ``spec["by_material"]`` every face takes its cell's material
+    colour instead (*colours*: the example's ``GALLERY_COLOURS``), so the
+    layers of a section read apart."""
     import gmsh
     import numpy as np
 
@@ -326,7 +346,8 @@ def cutaway_scene(asm, spec: dict) -> dict:
     xyz = xyz.reshape(-1, 3)
     index = {int(t): i for i, t in enumerate(tags)}
     roles = asm.group_roles()
-    hexes, kind = [], {}
+    hexes, mats, kind = [], [], {}
+    materials = list(asm.volumes)
     for dim, tag in gmsh.model.getPhysicalGroups():
         role = roles.get(gmsh.model.getPhysicalName(dim, tag))
         if dim not in (2, 3) or (dim == 2 and role not in ("wall", "open_end")):
@@ -335,24 +356,34 @@ def cutaway_scene(asm, spec: dict) -> dict:
             for typ, conn in zip(*gmsh.model.mesh.getElements(dim, e)[::2]):
                 if dim == 3 and typ == 5:                   # 8-node hexahedron
                     hexes.append(np.asarray(conn, np.int64).reshape(-1, 8))
+                    mats += [gmsh.model.getPhysicalName(dim, tag)] * len(hexes[-1])
                 elif dim == 2 and typ == 3:                 # 4-node quadrangle
                     for q in np.asarray(conn, np.int64).reshape(-1, 4):
                         kind[frozenset(index[int(v)] for v in q)] = \
                             "wall" if role == "wall" else "ends"
     hexes = np.vectorize(index.get)(np.vstack(hexes))
-    keep = hexes[np.asarray(spec["keep"](xyz[hexes].mean(axis=1)), bool)]
+    kept = np.asarray(spec["keep"](xyz[hexes].mean(axis=1)), bool)
+    keep, mats = hexes[kept], [m for m, k in zip(mats, kept) if k]
+    by_material = spec.get("by_material", False)
     seen: dict = {}
-    for h in keep:
+    for h, mat in zip(keep, mats):
         for f in HEX_FACES:
             q = tuple(int(h[i]) for i in f)
             k = frozenset(q)
-            seen[k] = None if k in seen else q
+            seen[k] = None if k in seen else (q, mat)
     polys: dict[str, list] = {"wall": [], "ends": [], "cut": []}
-    for k, q in seen.items():
-        if q is not None:
-            polys[kind.get(k, "cut")].append(q)
+    palette = dict(CUTAWAY, **spec.get("colours", {}))
+    for k, v in seen.items():
+        if v is None:
+            continue
+        q, mat = v
+        key = f"material:{mat}" if by_material else kind.get(k, "cut")
+        if key not in palette:
+            face = material_colour(mat, materials, colours)
+            palette[key] = (face, darker(face))
+        polys.setdefault(key, []).append(q)
     pts = xyz[np.unique(keep)]
-    return {"xyz": xyz, "polys": polys, "colours": {**CUTAWAY, **spec.get("colours", {})},
+    return {"xyz": xyz, "polys": polys, "colours": palette,
             "direction": np.asarray(spec["direction"], float), "up": spec["up"],
             "focus": np.asarray(spec.get("focus", pts.mean(axis=0)), float)}
 
@@ -392,8 +423,11 @@ def worker(qualname: str, out: Path) -> None:
         t = time.perf_counter()
         captured["metrics"] = measure(asm)
         captured["overview"], captured["section"] = faces(asm)
+        for scene in (captured["overview"], captured["section"]):
+            scene["colours"] = getattr(module, "GALLERY_COLOURS", None)
         if hasattr(module, "gallery_cutaway"):
-            captured["cutaway"] = cutaway_scene(asm, module.gallery_cutaway())
+            captured["cutaway"] = cutaway_scene(asm, module.gallery_cutaway(),
+                                                getattr(module, "GALLERY_COLOURS", None))
         spent[0] = time.perf_counter() - t
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -724,7 +758,8 @@ def example_md(qualname: str, m: dict | None, img: str = "img/",
         return "\n".join(out)
     cells = fmt_int(m["meshed"]) + ("" if m["meshed"] == m["predicted"]
                                     else f" ✗ (predicted {fmt_int(m['predicted'])})")
-    colours = ", ".join(f"{mat} {COLOUR_NAMES[i % len(COLOUR_NAMES)]}"
+    own = getattr(module, "GALLERY_COLOURS", {})
+    colours = ", ".join(f"{mat} {own[mat][1] if mat in own else COLOUR_NAMES[i % len(COLOUR_NAMES)]}"
                         for i, mat in enumerate(m["materials"]))
     g = m["groups"]
     out += [

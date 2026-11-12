@@ -286,5 +286,5 @@ def _subdivide_route(
             t   = k / n_splits
             pt  = p0 + t * (p1 - p0)
             z_s = interp(pt[0:1], pt[1:2])
-            result.append(np.array([pt[0], pt[1], float(z_s) - burial_depth]))
+            result.append(np.array([pt[0], pt[1], float(np.ravel(z_s)[0]) - burial_depth]))
     return np.array(result)

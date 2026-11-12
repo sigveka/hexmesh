@@ -876,4 +876,4 @@ python3 -m hexmesh.examples.networks.skewed_network
 
 ---
 
-Generated 2026-11-12 from hexmesh e19c844 + uncommitted changes, gmsh 4.12.1, Python 3.12.3, 8 CPUs, 1 job(s).
+Generated 2026-11-12 from hexmesh 73a2f07 + uncommitted changes, gmsh 4.12.1, Python 3.12.3, 8 CPUs, 2 job(s).

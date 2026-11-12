@@ -136,7 +136,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0137](0137-docs-site.md) | The docs site: Essens pages, our navigation and template, GitHub Pages | in progress (design session: waits for an Essens release with folder-pages) | 0049 |
 | [0138](0138-snap-tolerance-per-reader.md) | The snap tolerance: one per reader, carried by the model, and documented | done | 0128 (Q2), 0018 |
 | [0139](0139-relative-plate-tolerance.md) | Interior plates' tolerance relative to the face (scale) | done | 0128 (Q1), 0018, 0046 |
-| [0140](0140-rocket-injector-manifold.md) | Example: a liquid-rocket propellant feed line and ring injector manifold | ready | — |
+| [0140](0140-rocket-injector-manifold.md) | Example: a liquid-rocket propellant feed line and ring injector manifold | done | — |
 | [0141](0141-tee-fill-fails-at-rounding-level-direction.md) | Bug: a tee's fill fails when its direction is 1e-16 off an axis | done | — |
 | [0142](0142-gallery-three-pages.md) | The gallery as three pages and a landing page, by family | done | — |
 | [0143](0143-merge-warns-on-snap-tolerance-mismatch.md) | `merge` warns when the two models' snap tolerances differ | ready | — |
@@ -148,8 +148,9 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0149](0149-wheels-on-github-releases.md) | A wheel and an sdist on every GitHub release | ready (after 0146) | 0042 |
 | [0150](0150-api-review-and-freeze.md) | The API review, then the freeze (0.8) | held (after 0147–0149, 0151) | 0042, 0051 |
 | [0151](0151-pipe-tee-circle-reads.md) | The pipe tee's circle reads through one helper: the shape-site cap to 0 | ready | 0051 |
-| [0152](0152-example-micromixer.md) | Example: a lipid-nanoparticle T-mixer with a twisted mixing channel | ready | — |
-| [0153](0153-example-subsea-pipeline.md) | Example: a subsea pipeline over a sandwave field (the bathymetry reader) | ready | 0032 |
+| [0152](0152-example-micromixer.md) | Example: a lipid-nanoparticle T-mixer with a twisted mixing channel | done | — |
+| [0153](0153-example-subsea-pipeline.md) | Example: a subsea pipeline over a sandwave field (the bathymetry reader) | done | 0032 |
+| [0154](0154-example-buried-pipe.md) | Example: a buried district-heating pipe with graded soil; example colours in the gallery | done | — |
 | [0155](0155-branch-spec-keeps-dr.md) | A tee's branch keeps its shells' given thicknesses exactly | ready (after 0145) | — |
 
 ### Validation

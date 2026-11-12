@@ -1,6 +1,6 @@
 # 0140 — Example: a liquid-rocket propellant feed line and ring injector manifold
 
-- **Status:** ready
+- **Status:** done (the design session, at the user's request, 2026-11-12)
 - **Decision:** none new: a showcase within today's fittings, as task
   0121's aorta.  DESIGN §8 (closed loops, `Assembly.close`).
 - **Depends on:** 0141 (done 2026-11-11: a tee placed by trigonometry
@@ -122,6 +122,43 @@ start for the tank (see *How it has to be built*).
 
 ## Agent notes
 
+- **The user, 2026-11-12:** "you can make these three examples we do
+  not need the coding agent for that"; the design session built it.
+- **Sizes:** NASA SP-125's only line velocity found in the text is its
+  worked example (p. 286): liquid oxygen at 79.4 ft/s in an 8 in. duct.
+  The feed line is sized at it; the ring and the injector legs at a third
+  of it (a choice).  An engine class (50 kN, LOX/RP-1, MR 2.35, Isp 280
+  s) gives 12.8 kg/s of oxygen: feed 24.3 mm, ring 29.7 mm, legs 14.9 mm.
+- **Legs at the line velocity** (8.6 mm, r/R 0.29) warned on SJ (0.144)
+  and on non-orthogonality (74.7°).  At the ring's velocity (r/R 0.5)
+  only the SJ warning remains (0.258 against the 0.3 tier).  Kept, and
+  reported in the docstring.
+- **Building the ring:** a `Bend` without `toward=` turns toward `up`
+  (the ring left its plane); each bend now turns toward the ring's
+  centre.  A `Closure` can't take the last 40° in a short gap; the last
+  `Bend` closes the ring exactly, once every tee has the same
+  `run_length` (the feed tee's default was longer, so the ring didn't
+  close).
+- **Bug found:** a tee's branch recomputes its shells' `dR` and differs
+  in the last bits, so a stack change on the branch is rejected.  Task
+  0155.  The example builds the insulated spec from the branch port's
+  own spec meanwhile.
+- **The venturi's divergent:** 8°, from US 5,647,201's 6°–8° (seen as
+  a summary), within hexmesh's ISO 7°–15°.
+
 ## Questions for design
 
+None.
+
 ## Outcome
+
+- **Files:** `hexmesh/examples/applications/rocket_injector_manifold.py`;
+  the registry, GUIDE table and applications docstring;
+  `docs/references.bib` (`huzel_and_huang_1971`, `us5647201`); the
+  gallery entry with a cut-away of the feed tee.
+- **Numbers:** 80 768 cells (predicted = meshed), min SJ 0.258 (an
+  injector tee), min SICN 0.064, max aspect 44; 8 `validate()` warnings,
+  one per injector tee, as above.
+- **Tests:** `tests/test_examples.py` (the example meshes; registry, families and GUIDE table): 8 passed for the new examples and the listing checks.
+- **Follow-ups:** drop the `copy.deepcopy` workaround after 0155; the
+  fuel side (a second ring) remains out of scope.

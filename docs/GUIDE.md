@@ -924,7 +924,7 @@ Regenerate it with `python3 docs/gallery/build.py` (needs `vtk`).
 | Layers | `sections.insulated_pipe`, `sections.insulated_route`, `sections.layer_outlines`, `sections.lagged_duct`, `sections.insulated_transition`, `sections.insulated_tee`, `sections.insulated_network` |
 | Grading and resolution | `sections.graded_bend` |
 | Building networks | `fittings.loop`, `networks.pipe_network`, `networks.pipe_rack`, `networks.distribution_tree`, `networks.bifurcation_tree`, `networks.skewed_network` |
-| Applications | `applications.drum_nozzle`, `applications.hvac_supply`, `applications.hvac_branched`, `applications.cooling_channels`, `applications.pcf_line`, `applications.idealised_aorta` |
+| Applications | `applications.drum_nozzle`, `applications.hvac_supply`, `applications.hvac_branched`, `applications.cooling_channels`, `applications.pcf_line`, `applications.idealised_aorta`, `applications.rocket_injector_manifold`, `applications.micromixer`, `applications.subsea_pipeline`, `applications.district_heating` |
 
 ---
 

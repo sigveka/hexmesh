@@ -75,7 +75,7 @@ What it gives (the gallery's `hexmesh.examples.sections.insulated_tee`):
 |---|---|---|---|---|
 | 13 164 = 13 164 | fluid · steel · insulation | 0.32 (the tee) | 0.11 | 9.1 s |
 
-<sub>gmsh 4.12.1, one core, 2026-11-12.  Every example's numbers: [GALLERY.md](docs/GALLERY.md).</sub>
+<sub>gmsh 4.12.1, 2 examples at once, 2026-11-12.  Every example's numbers: [GALLERY.md](docs/GALLERY.md).</sub>
 <!-- readme:metrics:end -->
 
 Doubling every density parameter doubles the nodes in each direction:

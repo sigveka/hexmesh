@@ -3,7 +3,9 @@
 Networks closer to a real model, built from the [features](FEATURES.md).  Each lists the fittings it uses, linked to their family.  [The gallery](../GALLERY.md) explains the numbers.
 
 Networks starting at equipment nozzles, ventilation ducting, cooling
-channels, and an idealised aorta: the examples closest to a real model.
+channels, an idealised aorta, a rocket engine's oxidiser manifold, a
+lipid-nanoparticle micromixer, a subsea pipeline read from a seabed survey
+and a buried district-heating pipe: the examples closest to a real model.
 
 | Example | Shows | Cells | min SICN | min SJ | Build |
 |---|---|---|---|---|---|
@@ -13,6 +15,10 @@ channels, and an idealised aorta: the examples closest to a real model.
 | [cooling_channels](#cooling_channels) | Cooling channels: a supply pipe split by a wye into two flat rectangular channels, each returning to a round outlet. | 8 280 | 0.152 | 0.204 | 5.0 s |
 | [pcf_line](#pcf_line) | A plant line from a PCF isometric: the network comes from the file, not from Python. | 35 712 | 0.062 | 0.258 | 12.3 s |
 | [idealised_aorta](#idealised_aorta) | Idealised aorta: the arch with its three branches, the tapering descending and abdominal aorta, and the iliac bifurcation. | 40 448 | 0.089 | 0.133 | 21.8 s |
+| [rocket_injector_manifold](#rocket_injector_manifold) | Rocket injector manifold: a liquid-oxygen ring feeding eight injector legs, supplied by an insulated feed line through a cavitating venturi. | 80 768 | 0.064 | 0.258 | 103.2 s |
+| [micromixer](#micromixer) | Micromixer: a T-mixer for lipid nanoparticles, with a twisted mixing channel, at its real size in micrometres. | 10 112 | 0.146 | 0.577 | 28.7 s |
+| [subsea_pipeline](#subsea_pipeline) | Subsea pipeline: an insulated flowline laid over a field of sand waves, read from a seabed survey, rising at its end into a riser. | 183 744 | 0.003 | 0.771 | 220.6 s |
+| [district_heating](#district_heating) | District heating: a buried pre-insulated pipe, its soil meshed with it, turning a street corner. | 23 040 | 0.023 | 0.599 | 8.4 s |
 
 ## drum_nozzle
 
@@ -266,6 +272,263 @@ python3 -m hexmesh.examples.applications.idealised_aorta
 - **Parameters:** [`Reducer`](../../API.md#reduceroutlet-length-n_layersnone-axial_grading10-profilenone-chord_tol1e-3), [`SplinePipe`](../../API.md#splinepipepoints-n_layersnone-end_tangentnone-axial_grading10), [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Tee`](../../API.md#teerun_lengthnone-branch_length-branch_radius-n_run3-n_branch3-n_turn2-roll00-towardnone-angle900-offset00-branchnone-facenone-marginnone-domenone-sheetnone-n_wallnone-branch_first_cellnone-branch_mprgnone), [`Wye`](../../API.md#wyeangle-run_length-branch_length-n_runnone-n_branchnone-n_splitnone-roll00-towardnone)
 - **Fittings used:** Reducer ×7 ([reducers and profiles](FEATURES.md#reducers-and-profiles)), SplinePipe ×4 ([bends](FEATURES.md#bends)), Straight ×9 ([building networks](FEATURES.md#building-networks)), Tee ×3 ([junctions](FEATURES.md#junctions)), Wye ([junctions](FEATURES.md#junctions))
 
+## rocket_injector_manifold
+
+**Rocket injector manifold: a liquid-oxygen ring feeding eight injector legs, supplied by an insulated feed line through a cavitating venturi.**
+
+<p><img src="img/rocket_injector_manifold.png" width="68%" alt="rocket_injector_manifold"> <img src="img/rocket_injector_manifold_section.png" width="29%" alt="rocket_injector_manifold, inlet section"></p>
+
+<p><img src="img/rocket_injector_manifold_cutaway.png" width="60%" alt="rocket_injector_manifold, cut away"></p>
+
+A liquid-rocket engine's oxidiser reaches the injector through a
+manifold: a ring around the injector that spreads the flow evenly to its
+feeds.  Test stands and pressure-fed engines put a **cavitating venturi**
+in the feed line.  Once its throat cavitates, the flow depends only on
+the upstream pressure, so it fixes the mass flow and isolates the line
+from chamber-pressure oscillations.
+
+**The ring is a closed loop** (`Assembly.close`): nine tees, one for
+the feed line and eight for the injector legs, joined by 40° bends, the
+last bend closing back onto the ring's start.  The feed line is the
+feed tee's branch, built outward to the tank end, `lox_inlet`.
+
+**Where each number comes from:**
+- **The line velocity** is the worked example's in Huzel and Huang,
+  NASA SP-125 (`huzel_and_huang_1971`, p. 286): liquid oxygen at 79.4
+  ft/s (24.2 m/s) in an 8 in. duct.
+- **The venturi's divergent**, 8°, from the 6°–8° of a cavitating
+  venturi patent for propellants (`us5647201`), within ISO 5167-4's
+  7°–15° that hexmesh's venturi profile takes.
+
+**Not from a source** (modelling choices, stated as such):
+- **the engine:** 50 kN thrust, liquid oxygen and RP-1 at a mixture
+  ratio of 2.35, specific impulse 280 s: 12.8 kg/s of oxygen
+  (1141 kg/m³), 11.2 L/s;
+- **the feed line** at the line velocity: 24.3 mm bore;
+- **the ring and the injector legs at a third of it** (the ring slow, so
+  the legs see the same pressure): a 29.7 mm ring, each half carrying
+  half the flow, and 14.9 mm legs, each an eighth;
+- the venturi's throat at half the bore (β 0.5), the ring's 60 mm bend
+  radius, the tees' 30 mm runs, the lengths of the feed line and legs;
+- 1.5 mm steel everywhere, and 20 mm of foam insulation on the feed line
+  only, starting two cells out from the ring (a stack change);
+- the venturi necks every layer down with the bore, insulation
+  included.  A real venturi body is straight outside: a simplification.
+
+**Quality:** each injector tee warns: predicted min scaled Jacobian 0.258
+below the 0.3 tier, at a branch ratio r/R of 0.5 ("no run length reaches
+it").  Faster legs would be narrower and worse; the warning is the cost
+of eight legs off a slow ring.  No cell is inverted.
+
+**A workaround, for now:** the feed line's insulated section is built
+from the tee branch's own spec (`copy.deepcopy(feed.spec)`), because a
+tee's branch recomputes its shells' thicknesses and differs from the
+given 1.5 mm in the last bits (task 0155).
+
+Inlet `lox_inlet`; outlets `injector_1` … `injector_8`.  The
+ring's start, `ring_start`, is closed: it isn't an open end.
+
+```bash
+python3 -m hexmesh.examples.applications.rocket_injector_manifold
+```
+
+| Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
+|---|---|---|---|---|---|---|---|
+| 31: Tee ×9, Bend ×10, Straight ×11, Reducer | 1487 | 80 768 | 0.064 | 0.370 | 0.258 (#14 Tee) | 44.4 | 103.2 s |
+
+- **Open ends:** `insulation_lox_inlet`, `lox_injector_1`, `lox_injector_2`, `lox_injector_3`, `lox_injector_4`, `lox_injector_5`, `lox_injector_6`, `lox_injector_7`, `lox_injector_8`, `lox_lox_inlet`, `steel_injector_1`, `steel_injector_2`, `steel_injector_3`, `steel_injector_4`, `steel_injector_5`, `steel_injector_6`, `steel_injector_7`, `steel_injector_8`, `steel_lox_inlet`
+- **Walls:** `insulation_end`, `insulation_wall`, `steel_wall`
+- **Interfaces:** `interface_lox_steel`, `interface_steel_insulation`
+- **Colours:** lox light blue, steel grey, insulation yellow; walls grey.
+- **Parameters:** [`Tee`](../../API.md#teerun_lengthnone-branch_length-branch_radius-n_run3-n_branch3-n_turn2-roll00-towardnone-angle900-offset00-branchnone-facenone-marginnone-domenone-sheetnone-n_wallnone-branch_first_cellnone-branch_mprgnone), [`Bend`](../../API.md#bendradius-angle-n_layersnone-roll00-axial_grading10-towardnone), [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Reducer`](../../API.md#reduceroutlet-length-n_layersnone-axial_grading10-profilenone-chord_tol1e-3)
+- **Fittings used:** Tee ×9 ([junctions](FEATURES.md#junctions)), Bend ×10 ([bends](FEATURES.md#bends)), Straight ×11 ([building networks](FEATURES.md#building-networks)), Reducer ([reducers and profiles](FEATURES.md#reducers-and-profiles))
+
+## micromixer
+
+**Micromixer: a T-mixer for lipid nanoparticles, with a twisted mixing channel, at its real size in micrometres.**
+
+<p><img src="img/micromixer.png" width="68%" alt="micromixer"> <img src="img/micromixer_section.png" width="29%" alt="micromixer, inlet section"></p>
+
+<p><img src="img/micromixer_cutaway.png" width="60%" alt="micromixer, cut away"></p>
+
+The lipid nanoparticles in mRNA vaccines form when a lipid-in-ethanol
+stream meets an mRNA-in-water stream and the two mix fast.  Lab work
+uses microfluidic mixers, T-junctions among them.  Production uses
+T-mixers and impinging-jet mixers.  Scaling between the two by Reynolds
+number is an open problem.
+
+**The T is the engulfment benchmark's** (Bothe, Stemich and Warnecke 2006,
+`bothe_and_stemich_etal_2006`, and their proceedings paper,
+`bothe_and_stemich_etal_2006b`; experiments in Hoffmann, Schlüter and
+Räbiger 2006, `hoffmann_and_schluter_etal_2006`):
+- two inlets 100 µm wide and 100 µm deep, meeting head-on;
+- a mixing channel 200 µm wide and 100 µm deep, leaving at right angles;
+- their computational domain: inlets 400 µm long, mixing channel 1.5 mm.
+
+Below a critical Reynolds number the two streams run side by side; above
+it they engulf each other and mix.  Bothe et al. put the onset at a mean
+velocity of about 1.1 m/s in water: Re ≈ 146 on the mixing channel's
+hydraulic diameter (133 µm).
+
+**In hexmesh's terms** the inlet line is the main, a 100 µm square duct.
+The mixing channel is a **full-width duct tap** on its side: as deep as
+the duct across, and 200 µm along the inlets' axis.  The tap keeps the
+main's 8 cells per side, so the mixing channel's cells are 25 × 12.5 µm.
+
+**Not from a source** (modelling choices, stated as such):
+- **the twisted channel:** after the benchmark's 1.5 mm, the mixing
+  channel twists one full turn over 2 mm (`Straight(twist=360)`), then
+  runs straight for 1 mm to the outlet.  Twisted microchannels mix
+  passively by swirl (e.g. `sivashankar_and_agambayev_etal_2016`, whose
+  twist comes from stacked quarter-circle units rather than a twisted
+  duct).  This one is inspired by them, not a copy;
+- the counts (8 per side), a resolution for the picture rather than a
+  converged mixing study (Bothe et al. used about a million cells).
+
+**Quality:** no `validate()` warning.  The T's turn blocks hold the worst
+cells (min scaled Jacobian 0.58, the full-width tap's limit).  The
+largest aspect ratio, 12, is in the inlet straights.
+
+Inlets `lipid_inlet` and `aqueous_inlet`; outlet `outlet`.
+
+```bash
+python3 -m hexmesh.examples.applications.micromixer
+```
+
+| Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
+|---|---|---|---|---|---|---|---|
+| 6: Straight ×5, Tee | 94 | 10 112 | 0.146 | 0.556 | 0.577 (#1 Tee) | 12.0 | 28.7 s |
+
+- **Open ends:** `fluid_aqueous_inlet`, `fluid_lipid_inlet`, `fluid_outlet`
+- **Walls:** `fluid_wall`
+- **Colours:** fluid blue; walls grey.
+- **Parameters:** [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Tee`](../../API.md#teerun_lengthnone-branch_length-branch_radius-n_run3-n_branch3-n_turn2-roll00-towardnone-angle900-offset00-branchnone-facenone-marginnone-domenone-sheetnone-n_wallnone-branch_first_cellnone-branch_mprgnone)
+- **Fittings used:** Straight ×5 ([building networks](FEATURES.md#building-networks)), Tee ([junctions](FEATURES.md#junctions))
+
+## subsea_pipeline
+
+**Subsea pipeline: an insulated flowline laid over a field of sand waves, read from a seabed survey, rising at its end into a riser.**
+
+<p><img src="img/subsea_pipeline.png" width="68%" alt="subsea_pipeline"> <img src="img/subsea_pipeline_section.png" width="29%" alt="subsea_pipeline, inlet section"></p>
+
+<p><img src="img/subsea_pipeline_cutaway.png" width="60%" alt="subsea_pipeline, cut away"></p>
+
+The example shows the **bathymetry reader**.  `read_bathymetry` takes a
+seabed surface (here an XYZ point file) and a route of waypoints in plan,
+drapes the route on the seabed, and returns a network model.
+`to_assembly(spec, kinks="spline")` turns it into one `SplinePipe` that
+follows the terrain.  The riser is then added to the imported network
+like any other fitting: an imported assembly is an ordinary one.
+
+**The seabed is generated, not downloaded:** the example writes a small
+XYZ file to a temporary folder.  For real data, public bathymetry such
+as GEBCO's grids reads the same way (`surface_format="geotiff"` or
+`"netcdf"`).  The surface is a gentle slope with straight-crested sand
+waves crossing the route at an angle.  Sand waves are a real concern for
+subsea lines: they migrate, and can leave a pipeline spanning between
+their crests.  From Dronkers 2024 (`dronkers_2024`, the Coastal Wiki
+review):
+- crest spacing "most often between 200 and 700 m": **300 m** here;
+- mean height H ≈ 0.07 λ^0.8 (Flemming 2000, as cited there): **6.7 m**
+  at λ = 300 m.
+
+**Not from a source** (modelling choices, stated as such):
+- the water depth (80 m at the start, 1 m deeper per 100 m), the crests'
+  angle to the route (17°) and the route (three waypoints over 700 m,
+  turning once);
+- **the section, typical values for a wet-insulated flowline:** a
+  10-inch line (273.1 mm outer diameter, 15.9 mm steel wall), a 3 mm
+  anti-corrosion coating and 50 mm of polypropylene insulation;
+- the riser: a bend of 5 m radius at the route's end, then 70 m straight
+  up, stopping short of the surface (`riser_top`).  A real riser here
+  would often be a flexible pipe with a different wall.  That needs a
+  layer that changes material along the line (decision 0021's note of
+  2026-11-12), so this riser keeps the flowline's section;
+- 1.5 m axial cells: a pipeline-scale mesh.  The coating's cells are
+  3 mm thick, so the aspect ratio reaches about 1000 and SICN is small.
+  A flow case near the riser base would refine there.
+
+**What the reader did:** the route was split into segments of at most
+10 m (`max_segment_length`) so the spline follows the sand waves.  The
+build's join tolerance came out relative to the network's size
+(`model.report["tol_source"] == "relative"`, task 0138).
+
+Ends `flowline_start` and `riser_top`.
+
+```bash
+python3 -m hexmesh.examples.applications.subsea_pipeline
+```
+
+| Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
+|---|---|---|---|---|---|---|---|
+| 5: Straight ×3, SplinePipe, Bend | 8092 | 183 744 | 0.003 | 0.062 | 0.771 (#3 Bend) | 985.3 | 220.6 s |
+
+- **Open ends:** `coating_inlet`, `coating_riser_top`, `insulation_inlet`, `insulation_riser_top`, `oil_inlet`, `oil_riser_top`, `steel_inlet`, `steel_riser_top`
+- **Walls:** `insulation_wall`
+- **Interfaces:** `interface_coating_insulation`, `interface_oil_steel`, `interface_steel_coating`
+- **Colours:** oil dark brown, steel grey, coating blue, insulation orange; walls grey.
+- **Parameters:** [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`SplinePipe`](../../API.md#splinepipepoints-n_layersnone-end_tangentnone-axial_grading10), [`Bend`](../../API.md#bendradius-angle-n_layersnone-roll00-axial_grading10-towardnone)
+- **Fittings used:** Straight ×3 ([building networks](FEATURES.md#building-networks)), SplinePipe ([bends](FEATURES.md#bends)), Bend ([bends](FEATURES.md#bends))
+
+## district_heating
+
+**District heating: a buried pre-insulated pipe, its soil meshed with it, turning a street corner.**
+
+<p><img src="img/district_heating.png" width="68%" alt="district_heating"> <img src="img/district_heating_section.png" width="29%" alt="district_heating, inlet section"></p>
+
+<p><img src="img/district_heating_cutaway.png" width="60%" alt="district_heating, cut away"></p>
+
+A district-heating main is a steel service pipe, insulated with
+polyurethane foam (PUR) inside a polyethylene casing, all bonded together
+and buried (the single pipes of EN 253).  Heat lost to the ground is what
+a model of it is usually for, so the soil is part of the mesh:
+- a **square of near soil** around the casing, finely meshed, where the
+  temperature changes fastest;
+- a **rectangle of far soil** around that, to the domain's boundary, its
+  cells growing outward (radial grading, `mprg`).
+
+Every layer is a region of its own, with an interface to the next, so a
+conjugate heat-transfer case can give each its conductivity.
+
+**Typical values, not checked against the standard's table** (EN 253's
+dimension table is not open): a DN 100 service pipe, 114.3 mm × 3.6 mm
+steel, in a 200 mm casing (a manufacturer's insulation series 1) with a
+3.2 mm wall.
+
+**Not from a source** (modelling choices, stated as such):
+- the near soil 0.6 m square, the far soil 3.0 m wide and 2.4 m deep;
+- **the pipe is centred in the soil.**  A buried pipe sits about a metre
+  down, nearer the surface than the bottom of a heat-loss domain.  An
+  off-centre pipe in a rectangle isn't a hexmesh section today;
+- the run: 3 m, a 90° bend of 3 m radius, 3 m.
+
+**The pair waits for a design.**  Real networks lay a supply and a
+return pipe side by side, hot and cold.  Two pipes in one block of soil
+is a section with two cores, decision 0035 stage B, whose first case
+this is (the user, 2026-11-12): each pipe in its square of near soil,
+the two squares side by side, and the far soil around both.  The far
+layer then also carries the depth: thinner above the pair than below.
+
+**Colours** mean something here: water red, steel grey, PUR yellow,
+casing black, near soil light brown, far soil dark brown.
+
+Ends `supply` and `house_side`.
+
+```bash
+python3 -m hexmesh.examples.applications.district_heating
+```
+
+| Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
+|---|---|---|---|---|---|---|---|
+| 3: Straight ×2, Bend | 350 | 23 040 | 0.023 | 0.256 | 0.599 (#1 Bend) | 126.9 | 8.4 s |
+
+- **Open ends:** `casing_house_side`, `casing_supply`, `far_soil_house_side`, `far_soil_supply`, `near_soil_house_side`, `near_soil_supply`, `pur_house_side`, `pur_supply`, `steel_house_side`, `steel_supply`, `water_house_side`, `water_supply`
+- **Walls:** `far_soil_wall`
+- **Interfaces:** `interface_casing_near_soil`, `interface_near_soil_far_soil`, `interface_pur_casing`, `interface_steel_pur`, `interface_water_steel`
+- **Colours:** water red, steel grey, pur yellow, casing black, near_soil light brown, far_soil dark brown; walls grey.
+- **Parameters:** [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Bend`](../../API.md#bendradius-angle-n_layersnone-roll00-axial_grading10-towardnone)
+- **Fittings used:** Straight ×2 ([building networks](FEATURES.md#building-networks)), Bend ([bends](FEATURES.md#bends))
+
 ---
 
-Generated 2026-11-12 from hexmesh e19c844 + uncommitted changes, gmsh 4.12.1, Python 3.12.3, 8 CPUs, 1 job(s).
+Generated 2026-11-12 from hexmesh 73a2f07 + uncommitted changes, gmsh 4.12.1, Python 3.12.3, 8 CPUs, 2 job(s).
