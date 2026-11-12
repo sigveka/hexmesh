@@ -9,7 +9,7 @@ Junction completeness.
   axis; angled PCF tees; shoe taps on ducts; twisted straights, and
   junctions at any roll.  Every junction predicts its non-orthogonality
   before meshing.  Tee meshes are the same with gmsh 4.12.1 and with
-  the gmsh `pip` installs (4.15.2) to 1e-4 of the size; CI runs both.
+  the gmsh `pip` installs (4.15.2) to 1.1e-4 of the size; CI runs both.
 - **From plant data:** the snap tolerance is each model's own, set by
   its reader and documented; `merge` warns when two differ.
 - **Sections:** `n_outer = 8`, the 4-corner face cut along its grid
