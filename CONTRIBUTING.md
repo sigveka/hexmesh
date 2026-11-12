@@ -131,6 +131,12 @@ takes five commands, and you send back one small file, which we check
 mechanically and merge with your credit.  Contributed results are under
 the project's BSD-3 licence.
 
+## Making a release
+
+[docs/RELEASING.md](docs/RELEASING.md) is the checklist: CI, the
+version, the CHANGELOG, the quick validation checks, the gallery, then
+the tag and the GitHub release, which the maintainer approves.
+
 ## Licence
 
 hexmesh is under the [BSD 3-Clause licence](LICENSE).  By contributing,

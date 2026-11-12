@@ -2,6 +2,38 @@
 
 ## Unreleased
 
+## 0.6.0 (2026-11-12)
+
+Junction completeness.
+- **Junctions:** equal tees and equal laterals; tees offset off the main
+  axis; angled PCF tees; shoe taps on ducts; twisted straights, and
+  junctions at any roll.  Every junction predicts its non-orthogonality
+  before meshing.  Tee meshes are the same with gmsh 4.12.1 and with
+  the gmsh `pip` installs (4.15.2) to 1e-4 of the size; CI runs both.
+- **From plant data:** the snap tolerance is each model's own, set by
+  its reader and documented; `merge` warns when two differ.
+- **Sections:** `n_outer = 8`, the 4-corner face cut along its grid
+  lines.
+- **Units and scale:** `hexmesh.units`; plate tolerances relative to
+  each face, so a tee builds down to 1:1000.
+- **Docs:** the gallery as three pages by family; four application
+  examples; validation documented for people; hints on equipment and
+  study errors.
+- **Breaking:** 15 error codes retired and `sections.build_oh_circle8`
+  removed (each marked below); `Tee`'s `offset` is a new parameter
+  before `branch`, so pass `branch=` and later ones by keyword.  Junction
+  meshes move (by how much: each entry below).
+
+**A tee's circle reads go through `sections.circle_radius`** (decision
+0051; task 0151).  Its backstop error is a new code,
+`shape_not_circular`.  A pipe tee's circular shells, and its branch
+copying the main's, are stated 1.0 limits.  Meshes unchanged.
+
+**Fixed:** a tee's branch keeps its shells' given `dR` exactly (task
+0155).  A stack change on the branch line (insulation starting there)
+was rejected, `steel` radius 0.0015000000000000013 vs 0.0015.  Two
+examples move by at most 1.6e-13 of their size.
+
 **`merge` warns when the two models' snap tolerances differ** (task
 0143): `snap_tolerance_mismatch`, naming both values, their sources and
 the one kept (still the larger).  The merge report records them.
@@ -110,7 +142,7 @@ one-element array, deprecated in NumPy (task 0153).
   takes it, with circular and O-H rectangular layers; junctions and the
   H layout still need 4.  `n_outer = 12` is rejected
   (`section_not_supported`).
-- `build_oh_circle8` (one 8-sided centre patch, never meshable) is gone;
+- **Breaking:** `build_oh_circle8` (one 8-sided centre patch, never meshable) is gone;
   `sections.build_oh_split` builds the face.
 - `Assembly.corrections` has a `sub_partition` entry: the nodes set to
   the 4-corner mesh's (gmsh's own fill of a sub-patch misses it by up to
@@ -171,7 +203,7 @@ one-element array, deprecated in NumPy (task 0153).
   passes.  The crease where branch and main meet misses the wall by
   3.7 % R at nang 8 (1.1 % at 32).  First order only:
   `mesh(order=2)` rejects it, as it does the wye.
-- `equal_tee_unsupported` is gone: PCF equal tees are read as `Tee`, and
+- **Breaking:** `equal_tee_unsupported` is gone: PCF equal tees are read as `Tee`, and
   the README's example error is now an insulated equal tee too short for
   the junction.
 - New example `fittings.equal_tee`.
@@ -229,7 +261,7 @@ one-element array, deprecated in NumPy (task 0153).
 - The room checks measure the hole's acute end, with hints;
   `run_length=None` resolves it. Below about 45° the quality tiers warn,
   naming a larger angle.
-- `angle_on_duct_tap` is retired; an angle outside (0, 90] raises
+- **Breaking:** `angle_on_duct_tap` is retired; an angle outside (0, 90] raises
   `tee_angle_out_of_range`, as on pipes.
 
 **Twisted straights, and junctions at any roll** (decision 0031 stage 3;
@@ -254,6 +286,9 @@ task 0062).
   main's right after the roll, for tees and laterals. The saddle is the
   exact intersection of the offset cylinders. `offset=0` meshes exactly
   as before (bit-identical nodes).
+- **Breaking** for a call by position only: `offset` sits after `angle`,
+  so a `branch`, `face`, … given by position now lands one parameter
+  early.  Pass them by keyword (every example and test does).
 - Range: `|offset| + branch_radius < R`, and `|offset| ≤
   limits.TEE_MAX_OFFSET_RATIO × branch_radius` (1.0, proposed to
   design). Past h = r OCC's face fills fail erratically. Both raise
@@ -263,7 +298,7 @@ task 0062).
   min SJ is 0.258 at h/R 0 and 0.209 at 0.4.
 - PCF: offset set-ons (`TOSO`, `TORF`) now build, their offset measured
   from the branch straight. Tangential ones (`TTSO`, `TTRF`) are
-  rejected by the offset range. `seton_offset_unsupported` is retired;
+  rejected by the offset range. **Breaking:** `seton_offset_unsupported` is retired;
   `seton_offset_branch` names a set-on without a branch straight, or
   whose branch axis misses its centre.
 
@@ -273,7 +308,7 @@ task 0062).
   fits in, the largest head offset, a Klöpper head's radii for a
   torispherical drum, and "rename 'paramters' to 'parameters'". Messages
   are unchanged.
-- **12 codes retired.** A block layout that breaks its own rules
+- **Breaking: 12 codes retired.** A block layout that breaks its own rules
   (topology, cell counts, binding) is a bug in a fitting, not the user's
   input, so it is now an `InternalError` (`internal_invariant`) asking
   for a report. No shipped fitting reaches these errors: they come only
