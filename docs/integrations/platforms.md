@@ -61,6 +61,22 @@ failed on every CI job (runs 42476909094 and 42478255352, 2026-11-08;
 fixed in task 0113).  Format `float(x)`, or `x.tolist()` values, in
 text that's parsed back.
 
+### Windows: `bash` on the runner's PATH is WSL's launcher — *verified*
+`subprocess.run(["bash", "-n", r"C:\…\job.sh"])` exited 1 on both
+`windows-latest` jobs (run 43185960002, 2026-11-12, commit c1c7c9f;
+`tests/test_volunteer.py`).  The first `bash` found is the WSL
+launcher (the coding session's reading of the log), which can't open a
+`C:\` path given that way.  Its exact location on the PATH, and where
+Git Bash's `bash` sits, weren't checked.
+A test that runs `bash` (or any POSIX tool) is POSIX-only; c7a64b9
+skips that check on win32.  Decision 0052 makes this a rule.
+
+### Windows: `shlex.quote` quotes a Windows path — *verified*
+`shlex.quote(str(path))` wraps `C:\Users\…` in single quotes (it holds
+`\` and `:`), so text that embeds the quoted path doesn't end with the
+plain path (CI on 61894b1, 2026-11-12).  Compare with the
+same quoting the code applies.
+
 ## Open questions
 
 - The gallery's rendering on Windows is untested (task 0092, out of

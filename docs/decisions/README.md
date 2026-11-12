@@ -66,6 +66,7 @@ rejected.  Records are written in design sessions, and they are the only way
 | [0049](0049-docs-site-from-markdown.md) | A docs site rendered from the Markdown by Essens | accepted |
 | [0050](0050-documents-as-units.md) | Documentation as units: features, applications and validation cases | accepted |
 | [0051](0051-design-9-remaining-rows.md) | DESIGN §9's last rows: the pipe tee's circular shells, for 1.0 | accepted |
+| [0052](0052-ci-gates-main.md) | CI gates `main`; platform rules as tests | accepted |
 
 ## Future expansions
 
