@@ -93,7 +93,8 @@ Before a pull request:
   meshed count for anything you add.
 
 **An optional pre-commit hook** runs `tests/test_architecture.py`
-(about 15 s) before each commit, so a broken layer rule or platform rule
+(about 10 s here; the three tests that start a fresh Python, marked
+`subprocess`, are left to CI) before each commit, so a broken layer rule or platform rule
 (a POSIX tool without `posix_only`, a bare path in compared text) shows
 up before CI.  Opt in, per clone:
 

@@ -63,5 +63,6 @@ addopts = "-n auto -m 'not openfoam and not slow'"
 markers = [
     "openfoam: needs an OpenFOAM installation (gmshToFoam, splitMeshRegions, ...); opt-in with -m openfoam",
     "posix_only: runs a POSIX tool (bash, sh, timeout, OpenFOAM); skipped on Windows, whose bash is WSL's (docs/integrations/platforms.md)",
+    "subprocess: starts a fresh Python to check what importing hexmesh loads (about 2 s each); the pre-commit hook leaves these out, CI runs them",
     "slow: long runs: the package built and installed into a venv (tests/test_install.py), the README's example meshed (tests/test_readme.py); opt-in with -m slow",
 ]

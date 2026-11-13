@@ -1142,18 +1142,21 @@ def light_violations(runs: dict) -> list[str]:
     return bad
 
 
+@pytest.mark.subprocess
 def test_the_light_commands_load_neither_gmsh_nor_scipy(tmp_path):
     runs = run_commands(tmp_path)
     assert all(r["envelope"]["ok"] for r in runs.values()), runs
     assert light_violations(runs) == []
 
 
+@pytest.mark.subprocess
 def test_planted_top_level_gmsh_import(tmp_path):
     """``import gmsh`` run in a light module, as a top-level import would."""
     bad = light_violations(run_commands(tmp_path, plant="hexmesh.agent._commands"))
     assert "validate: gmsh loaded" in bad and "estimate: gmsh loaded" in bad, bad
 
 
+@pytest.mark.subprocess
 def test_without_gmsh_only_build_fails_and_the_manifest_says_so(tmp_path):
     from hexmesh.agent import manifest
     runs = run_commands(tmp_path, block=True)
