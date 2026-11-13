@@ -119,7 +119,8 @@ def build_oh_circle(
 ) -> CrossSection:
     """Build a 5-patch O-H circle in GMSH.
 
-    *shape* carries ``radius`` and ``nang`` (divisions per quadrant arc);
+    *shape* carries ``radius`` and ``nang`` (divisions per quadrant arc),
+    or ``arcs`` (each arc's);
     *h_axis*, *v_axis* are the in-plane unit vectors (``cursor.right``,
     ``cursor.up``); *nrad* and *mprg* the radial divisions and progression;
     *mbmp* the arcs' bump.  ``rot = -π/4`` aligns patch boundaries with the
@@ -163,7 +164,11 @@ def build_oh_circle(
         [a7, -r2, a8, r4])]
 
     set_transfinite_line([r1, r2, r3, r4], nrad, mprg)
-    set_transfinite_line_bump([a1, a2, a3, a4, a5, a6, a7, a8], shape.nang, mbmp)
+    if shape.arcs is None:
+        set_transfinite_line_bump([a1, a2, a3, a4, a5, a6, a7, a8], shape.nang, mbmp)
+    else:                                  # each arc its own count (task 0147)
+        for k, pair in enumerate(([a1, a2], [a3, a4], [a5, a6], [a7, a8])):
+            set_transfinite_line_bump(pair, shape.side_count(k, 4), mbmp)
     set_transfinite_surface(surfaces)
     set_recombine_surface(surfaces)
 

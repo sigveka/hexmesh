@@ -25,7 +25,7 @@ from .errors import AssemblyError, AssemblyTypeError
 from ..core.spec import PipeSpec
 from .fittings import Straight
 from . import limits
-from .interface import (Frame, Interface, check_supported, hydraulic_diameter, outer_radius,
+from .interface import (Frame, Interface, check_arcs, check_supported, hydraulic_diameter, outer_radius,
                         rolled, toward_roll)
 
 
@@ -278,6 +278,7 @@ def _resolved(asm, fitting, source: Interface, target: Interface | None = None,
             # (a Tee's shortest run): an unsupported section is named
             # first (task 0106)
             check_supported(source.spec)
+            check_arcs(fitting, source.spec)
             fitting = resolve(source.frame, source.spec, asm.axial_cell,
                               None if target is None else target.frame)
         except ValueError as e:

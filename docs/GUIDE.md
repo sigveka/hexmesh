@@ -350,6 +350,25 @@ when the counts per side match: a circle's `nang` equals the duct's
 insulated pipe can become an insulated duct.  A transition may also end
 on an H duct (the default); it then embeds a `Switch`.  Between an O-H and an H duct of the same size, put a `Switch`.
 
+**A round pipe into a duct with unequal counts.**  A circle given one
+count per arc, `arcs=[a, b, a, b]`, meets a duct with `nang_w = a` and
+`nang_h = b` (task 0147): `a` cells along the circle's top and bottom
+arcs, `b` along its sides.
+
+```python
+pipe = PipeSpec().core("air", CircleShape(0.06, arcs=[8, 4, 8, 4]), nrad=3)
+duct = PipeSpec(nang_w=8, nang_h=4).core("air", half_w=0.1, half_h=0.05)
+asm = Assembly(pipe, direction=[1, 0, 0], up=[0, 0, 1])
+asm.add(Straight(0.3, n_layers=6))
+asm.add(Transition(duct, length=0.3, n_layers=6))     # ends on the H duct
+asm.add(Straight(0.3, n_layers=6))
+```
+
+The pipe's cells are then uneven around it: each 90° arc has 8 cells on
+top and bottom, 4 at the sides.  `Straight`, `Bend`, `Reducer` and `Transition` take
+such a circle; other fittings, the junctions among them, reject it by
+name (`arcs_unsupported`).  The ratio is topology: `refined(k)` keeps it.
+
 `up` decides which side is the height, and a bend's `roll` decides its
 plane. `Bend(..., roll=0)` turns toward `up`, across the height: the
 **easy way** for a wide, flat duct. `roll=90` turns across the width: the

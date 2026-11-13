@@ -647,6 +647,16 @@ def advise(x, inputs: dict) -> dict:
                                 code="agent_input_type", value=type(x).__name__,
                                 hint="pass an Assembly or assembly.to_dict()")
     asm = Assembly.from_dict(d)
+    for iface in asm._interfaces:
+        arcs = [o.arcs for o in iface.spec.outlines if getattr(o, "arcs", None) is not None]
+        if arcs:                # calibrated on uniform circles; not advised yet (task 0147)
+            raise AdviceError(
+                f"advise doesn't take a circle with per-arc counts (arcs={list(arcs[0])}): "
+                f"its calibration is for one count per arc",
+                code="advice_arcs_unsupported", where={"interface": iface.index},
+                value=list(arcs[0]),
+                hint="advise the network with the circle's nang, then give arcs in the "
+                     "ratio you want, at least that count on each arc")
     sections = _sections(asm, inp)
     scale = LENGTH_UNITS[inp["length_unit"]]
     notes = [HexmeshWarning(calibration()["scope"], code="advice_calibration_scope").to_dict(),

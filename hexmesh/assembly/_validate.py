@@ -22,7 +22,7 @@ from ..errors import HexmeshNotice, HexmeshWarning
 from .errors import AssemblyError
 from .signature import check_port_pairs, classify, signature
 from .section_quality import check_section_quality
-from .interface import check_supported, port_type
+from .interface import check_arcs, check_supported, port_type
 from . import _graph
 from . import _checks
 
@@ -67,7 +67,10 @@ def validate(asm, max_cells: int | None = None) -> None:
     for edge in asm._edges:
         # The fitting's own checks first: they give the most specific
         # reason (e.g. "Wye prototype supports single-layer specs only").
+        # Unequal arcs before them: a fitting that doesn't opt in may not
+        # get that far (task 0147).
         try:
+            check_arcs(edge.fitting, edge.ports[0].spec)
             found = edge.fitting.validate(
                 [p.frame for p in edge.ports], edge.ports[0].spec
             )

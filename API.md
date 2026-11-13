@@ -123,7 +123,7 @@ in degrees. The thresholds are data, in `hexmesh.assembly.limits`.
 | `to_dict()` / `Assembly.from_dict(d)` | The network description as plain JSON-serialisable data, and back |
 | `save(path)` / `Assembly.load(path)` | The same, as a JSON file (indented, sorted keys) |
 | `Assembly.from_msh(path)` | The assembly a `.msh` was written from, by its recipe block: `from_dict(read_recipe(path))`.  `ValueError` when the file has no recipe |
-| `refined(k)` | A new assembly at k× the resolution (integer k ≥ 1), built from `to_dict()`: `nang`, every `nrad`, every `n_layers`, a tee's `n_run` / `n_branch` / `n_turn` and a wye's `n_run` / `n_branch` × k (a wye's `n_split` × k up to `WYE_N_SPLIT_MAX` = 6, never below its own value: more turning layers fold the wye, task 0056), the axial cell index of each `stack_changes` entry × k, and `mprg` and `axial_grading` → their k-th root.  Geometry, topology and `mbmp` stay; `first_cell` specs keep their resolved `mprg` (an H core: `wall_bump`), so the levels nest.  **k³× the cells.** |
+| `refined(k)` | A new assembly at k× the resolution (integer k ≥ 1), built from `to_dict()`: `nang` (a circle's `arcs`, each), every `nrad`, every `n_layers`, a tee's `n_run` / `n_branch` / `n_turn` and a wye's `n_run` / `n_branch` × k (a wye's `n_split` × k up to `WYE_N_SPLIT_MAX` = 6, never below its own value: more turning layers fold the wye, task 0056), the axial cell index of each `stack_changes` entry × k, and `mprg` and `axial_grading` → their k-th root.  Geometry, topology and `mbmp` stay; `first_cell` specs keep their resolved `mprg` (an H core: `wall_bump`), so the levels nest.  **k³× the cells.** |
 
 The file records how the network was built, not its geometry:
 - the pose and spec of the first interface;
@@ -142,6 +142,10 @@ degrees, as in the fitting.
 
 **Versions.** The format is version 2: `PipeSpec.rot` in degrees.
 Version-1 files stored it in radians; `from_dict` and `load` convert them.
+A circle with per-arc counts (0.7, task 0147) is saved as
+`{"type": "circle", "radius": …, "arcs": [a, b, a, b]}` instead of
+`"nang"`; files without `arcs` load unchanged, and are written
+unchanged.
 
 The fitting types are a fixed registry, `hexmesh.assembly.intent.FITTING_TYPES`.
 An unknown type or field raises `ValueError`.
@@ -227,7 +231,7 @@ A builder for a concentric layer stack.
 | Parameter | Meaning |
 |---|---|
 | `nang` | cells per 90° arc, shared by all layers (circular cores); **one per network**: every connected fitting has the same |
-| `nang_w`, `nang_h` | cells along the width and the height of a rectangular core; one per network, as `nang` |
+| `nang_w`, `nang_h` | cells along the width and the height of a rectangular core, or a circle's two arc counts (`arcs=[nang_w, nang_h, nang_w, nang_h]`, below); one per network, as `nang` |
 | `mbmp` | angular bump factor (1 = uniform) |
 | `rot` | rotation of the O-H corners, in degrees; for a rectangle, of the whole rectangle |
 | `n_outer` | structural corners: 4, or 8, the 4-corner face cut along its middle grid lines (the same mesh; sweeps only, see below) |
@@ -235,7 +239,8 @@ A builder for a concentric layer stack.
 #### `.core(name, radius=..., nrad=..., mprg=1.0, first_cell=None)`
 
 The circular core. A `CircleShape(radius, nang)` can be passed as the second
-argument instead of `radius=`. `nrad` is the cells from the inner square to
+argument instead of `radius=`; so can a circle with per-arc counts,
+`CircleShape(radius, arcs=[a, b, a, b])` (below). `nrad` is the cells from the inner square to
 the circle, and `mprg` the radial progression (above 1 refines toward the
 inner side).  `nrad` is **one per network**, per layer: a connected
 fitting can't change it, while `mprg` and `first_cell` may change along a
@@ -297,7 +302,43 @@ from hexmesh.core.shape import CircleShape, RectShape
   outline has the same count on every side (`nang = nang_w = nang_h`),
   since a circle carries one count. Any stack with a rectangle has
   `n_outer` 4 or 8. `ValueError` (`rect_stack_counts_unequal`) names the
-  layer.
+  layer.  A circle with per-arc counts lifts that tie: see below.
+
+#### Per-arc counts: `CircleShape(radius, arcs=[…])`
+
+`arcs` gives each quadrant arc its own count, corner *k* → *k* + 1,
+NE→NW first, instead of `nang` (decision 0041, task 0147).  It is saved
+as a list.
+
+- **What meshes today:** opposite arcs equal, `arcs=[a, b, a, b]`, on
+  `n_outer = 4`.  That circle has `a` cells along its top and bottom
+  arcs and `b` along its sides, so it meets a rectangle with
+  `nang_w = a`, `nang_h = b`, in a stack or through a `Transition`.
+  The field takes any four counts; the O-H and H layouts reject other
+  patterns (`arc_counts_not_opposite`), and `n_outer = 8` too
+  (`arc_counts_need_n_outer_4`).
+- **The spec's counts:** such a circle sets the spec's `nang_w` and
+  `nang_h`, as a rectangle does; give the `PipeSpec` no `nang`
+  (`shape_counts_mismatch`).  Every outline in its stack has the same
+  count on every side (`counts_mismatch` names the layer).  Four equal
+  counts are the same circle as `nang`.
+- **Topology and density:** the pattern (`a : b`) is topology; a
+  uniform multiple is density, so `refined(k)` multiplies every arc
+  by k and nests.
+- **Fittings opt in:** `Straight`, `Bend`, `Reducer` and `Transition`
+  take it.  Every other fitting, the junctions included, raises
+  `AssemblyError` (`arcs_unsupported`), naming the fitting.
+- `CircleShape(radius, nang=…, arcs=…)` raises `arcs_with_nang`; arcs
+  that aren't four whole counts, `arcs_invalid`.
+
+```python
+from hexmesh.core.shape import CircleShape, RectShape
+
+# a round pipe into a 2:1 duct: 8 cells along the long sides, 4 along the short
+pipe = PipeSpec().core("air", CircleShape(0.05, arcs=[8, 4, 8, 4]), nrad=3)
+duct = PipeSpec(nang_w=8, nang_h=4).core("air", RectShape(0.08, 0.04, 8, 4), nrad=3,
+                                          layout="oh")
+```
 - **Containment.** Each outline lies inside the next all round, by at
   least `limits.OUTLINE_MIN_GAP` (10⁻³) of the outer one's largest
   extent. `validate()` names the layer, the gap and its direction.
@@ -1669,6 +1710,7 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | code | rule | class |
 |------|------|-------|
 | `advice_budget_unreachable` | a cell budget advise can't meet; value is the closest result | `AdviceError` |
+| `advice_arcs_unsupported` | advise given a circle with per-arc counts, which its calibration doesn't cover | `AdviceError` |
 | `advice_calibration_scope` | advice is calibrated on developed flow in straight runs (advice note) | advice note |
 | `advice_eight_x` | doubling every count gives 8× the cells (advice note) | advice note |
 | `advice_fluid_unknown` | a fluid name advise has no properties for | `AdviceError` |
@@ -1681,6 +1723,11 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `agent_input_type` | an agent function given something other than an Assembly or its description | `AssemblyTypeError` |
 | `angle_looks_like_radians` | a fitting angle so small it was probably given in radians (warning) | `HexmeshWarning` |
 | `angle_out_of_range` | a bend or wye angle outside its open range | `AssemblyError` |
+| `arc_counts_need_n_outer_4` | a circle with unequal arc counts on n_outer other than 4 (task 0147) | `SpecError` |
+| `arc_counts_not_opposite` | a circle whose opposite arcs differ in count, which no layout meshes yet (task 0147) | `SpecError` |
+| `arcs_invalid` | a circle's arcs not four whole counts | `SpecError` |
+| `arcs_unsupported` | a fitting that doesn't handle a circle with unequal arc counts (task 0147) | `AssemblyError` |
+| `arcs_with_nang` | a circle given both nang and arcs | `SpecError` |
 | `argument_missing` | a required fitting argument is missing | `AssemblyTypeError` |
 | `assembly_already_built` | fittings added or changed after the assembly was built | `AssemblyError` |
 | `assembly_empty` | an assembly with no fittings | `AssemblyError` |
@@ -1710,7 +1757,7 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `cores_exceeded` | more parallel ranks or jobs than the machine has cores | `StudyError` |
 | `corner_correspondence_ambiguous` | a slab twists by half the section's symmetry angle | `AssemblyError` |
 | `count_below_minimum` | a count (cells, layers, jobs) below its minimum or not an integer | `AssemblyError`, `SpecError`, `StudyError` |
-| `counts_mismatch` | cell counts that must match between two sections or sides do not | `AssemblyError` |
+| `counts_mismatch` | cell counts that must match between two sections or sides do not | `AssemblyError`, `SpecError` |
 | `cross_unsupported` | a network cross (four-way junction) | `AssemblyError` |
 | `curve_constraint_conflict` | a curve given two different transfinite constraints | `AssemblyError` |
 | `cut_names_ambiguous` | cut_at(names=…) on a port that meets more than one port | `AssemblyError` |
@@ -1806,7 +1853,7 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `n_layers_unresolvable` | no axial layer count up to the maximum passes the checks | `AssemblyError` |
 | `n_layers_unresolved` | n_layers used before Assembly.add() resolved it | `AssemblyError` |
 | `n_outer_invalid` | n_outer not a positive multiple of 4 | `SpecError` |
-| `nang_missing` | a core given by size on a spec without nang | `SpecTypeError` |
+| `nang_missing` | a core given by size on a spec without nang, or a circle without nang or arcs | `SpecTypeError`, `SpecError` |
 | `nang_not_divisible` | nang not divisible by n_outer // 4 | `SpecError` |
 | `network_disconnected` | a network that is not one connected piece | `AssemblyError` |
 | `network_empty` | a network model with no parts | `AssemblyError` |

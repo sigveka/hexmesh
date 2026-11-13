@@ -53,6 +53,10 @@ _VECTOR = {"type": "array", "prefixItems": [_NUMBER] * 3, "minItems": 3, "maxIte
 #: field name → value schema, for fields a Python annotation can't
 #: describe (tuples and nested registries); the rest follow their type
 _VALUES = {
+    # a circle's per-arc counts (task 0147): four now, a list so that one
+    # count per outer corner can come later (decision 0041, note of 2026-11-13)
+    "arcs": {"type": "array", "items": {"type": "integer", "minimum": 1},
+             "minItems": 4, "maxItems": 4},
     "points": {"type": "array", "items": {"$ref": "#/$defs/Vector3"}, "minItems": 2},
     "toward": {"$ref": "#/$defs/Vector3"},
     "end_tangent": {"$ref": "#/$defs/Vector3"},

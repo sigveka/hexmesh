@@ -277,6 +277,8 @@ def refine_spec_dict(d: dict, k: int) -> dict:
         for key in ("nang", "nang_w", "nang_h"):
             if key in shape:
                 shape[key] *= k
+        if "arcs" in shape:          # a circle's per-arc counts (task 0147): the pattern kept
+            shape["arcs"] = [n * k for n in shape["arcs"]]
     for layer in (d["core"], *d["shells"]):
         layer["nrad"] *= k
         layer["mprg"] = layer.get("mprg", 1.0) ** (1.0 / k)
@@ -299,7 +301,8 @@ def _refine_fitting_dict(d: dict, k: int) -> dict:
     if "outlet" in d:
         d["outlet"] = refine_spec_dict(d["outlet"], k)
     if isinstance(d.get("branch"), dict):    # a duct tap's branch shape: its counts
-        d["branch"] = {key: v * k if key in ("nang", "nang_w", "nang_h") else v
+        d["branch"] = {key: v * k if key in ("nang", "nang_w", "nang_h") else
+                       [n * k for n in v] if key == "arcs" else v
                        for key, v in d["branch"].items()}
     if d.get("type") == "Tee" and d.get("nrad") is not None:   # an H main's ring (task 0086)
         d["nrad"] *= k

@@ -575,6 +575,22 @@ class PipeSpec:
                                       mprg=1.0 if mprg is None else mprg, outer=outer))
         return self
 
+    def _check_arc_counts(self, names, outlines) -> None:
+        """A stack with a circle of unequal arcs (task 0147): every outline
+        has the core's count on each side, ``(a, b, a, b)``."""
+        want = tuple(outlines[0].side_count(k, 4) for k in range(4))
+        for lname, o in zip(names, outlines):
+            have = tuple(o.side_count(k, 4) for k in range(4))
+            if have != want:
+                raise SpecError(
+                    f"layer `{lname}`: a stack with a circle of unequal arcs takes the core's "
+                    f"count on every side, {list(want)} (corner k → k + 1, NE→NW first); "
+                    f"`{lname}` has {list(have)}",
+                    code="counts_mismatch", where={"label": lname}, value=list(have),
+                    limit=list(want),
+                    hint=f"give a circle arcs={list(want)}, a rectangle nang_w={want[0]}, "
+                         f"nang_h={want[1]}")
+
     def with_radii(self, radii: list[float], mprgs: list[float] | None = None) -> "PipeSpec":
         """This spec with core radius ``radii[0]`` and shell thicknesses
         ``radii[1:]``, and, if given, radial gradings *mprgs* (core first).
@@ -585,8 +601,9 @@ class PipeSpec:
                             code="with_radii_needs_dr_shells")
         if mprgs is None:
             mprgs = [self._core_mprg] + [sh.mprg for sh in self.shells]
-        out = (PipeSpec(nang=self.nang, n_outer=self.n_outer, rot=self.rot, mbmp=self.mbmp)
-               .core(name, CircleShape(radius=radii[0], nang=shape.nang),
+        out = (PipeSpec(nang=self.nang, nang_w=self.nang_w, nang_h=self.nang_h,
+                        n_outer=self.n_outer, rot=self.rot, mbmp=self.mbmp)
+               .core(name, shape.resized(radii[0]),
                      nrad=self._core_nrad, mprg=mprgs[0]))
         for sh, dR, m in zip(self.shells, radii[1:], mprgs[1:]):
             out = out.shell(sh.name, dR=dR, nrad=sh.nrad, mprg=m)
@@ -598,6 +615,10 @@ class PipeSpec:
         ``(nang_w, nang_h)`` in a stack of rectangles; equal counts per
         side once a circle is in it, since a circle carries one count."""
         outlines = self.outlines + [outline]
+        names = self.layer_names + [name]
+        if any(getattr(o, "arcs", None) is not None for o in outlines):
+            self._check_arc_counts(names, outlines)
+            return
         if all(type(o).side_curve == "arc" for o in outlines):
             return                              # circles: nang already shared
         if self._n_outer not in (4, 8):     # 8: the 4-corner face, cut (task 0088)
@@ -606,7 +627,6 @@ class PipeSpec:
                             code="rect_stack_needs_n_outer_4",
                             where={"label": name, "field": "n_outer"}, value=self._n_outer,
                             limit=4, hint="use PipeSpec(n_outer=4)")
-        names = self.layer_names + [name]
         core = outlines[0].counts
         if all(type(o).side_curve != "arc" for o in outlines):
             for lname, o in zip(names, outlines):
@@ -751,11 +771,37 @@ class PipeSpec:
     # Internal helpers
     # ------------------------------------------------------------------
 
+    def _check_arcs(self, arcs: tuple) -> None:
+        """What today's layouts mesh of a circle's arcs (decision 0041's note
+        of 2026-11-13): opposite arcs equal, on ``n_outer = 4``."""
+        if arcs[0] != arcs[2] or arcs[1] != arcs[3]:
+            raise SpecError(
+                f"a circle's opposite arcs must have equal counts, got arcs={list(arcs)}: "
+                f"the O-H and H layouts mesh (a, b, a, b) only",
+                code="arc_counts_not_opposite", where={"field": "arcs"}, value=list(arcs),
+                limit="arcs[0] == arcs[2] and arcs[1] == arcs[3]",
+                hint=f"use arcs=[{arcs[0]}, {arcs[1]}, {arcs[0]}, {arcs[1]}]")
+        if self._nang is not None:
+            raise SpecError(
+                f"PipeSpec(nang={self._nang}) and a circle with arcs={list(arcs)}: the arcs "
+                f"set the spec's nang_w and nang_h", code="shape_counts_mismatch",
+                where={"field": "nang"}, value=self._nang, limit=None,
+                hint=f"leave out the PipeSpec's nang, or give nang_w={arcs[0]}, "
+                     f"nang_h={arcs[1]}")
+        if self._n_outer != 4:
+            raise SpecError(
+                f"a circle with unequal arc counts needs n_outer = 4, got {self._n_outer}",
+                code="arc_counts_need_n_outer_4", where={"field": "n_outer"},
+                value=self._n_outer, limit=4, hint="use PipeSpec(n_outer=4), the default")
+
     def _validate_shape_nang(self, shape: Shape) -> None:
         """Check that shape angular divisions match PipeSpec-level values.
         A ``Transition`` station's come from its two ends, checked there."""
         if shape.is_station:
             return
+        arcs = getattr(shape, "arcs", None)
+        if arcs is not None:
+            self._check_arcs(arcs)
         counts = shape.angular_counts
         for name, n in counts.items():
             mine = getattr(self, f"_{name}")

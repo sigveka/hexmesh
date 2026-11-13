@@ -299,6 +299,34 @@ def check_supported(spec: PipeSpec) -> None:
     check_outlines(spec)
 
 
+def _arc_circles(value) -> bool:
+    """True if *value* (a spec, a shape, or a list of them) has a circle
+    with unequal arc counts."""
+    if isinstance(value, PipeSpec):
+        return value._core is not None and any(
+            getattr(o, "arcs", None) is not None for o in value.outlines)
+    if isinstance(value, (list, tuple)):
+        return any(_arc_circles(v) for v in value)
+    return getattr(value, "arcs", None) is not None
+
+
+def check_arcs(fitting, spec: PipeSpec) -> None:
+    """Raise unless *fitting* handles a circle with unequal arc counts, when
+    its inlet *spec* or one of its own specs and shapes (an outlet, a
+    branch) has one (task 0147: fittings opt in with ``handles_arcs``)."""
+    if getattr(fitting, "handles_arcs", False):
+        return
+    fields = getattr(fitting, "__dataclass_fields__", {})
+    if _arc_circles(spec) or any(_arc_circles(getattr(fitting, f, None)) for f in fields):
+        name = type(fitting).__name__
+        raise AssemblyError(
+            f"{name} doesn't handle a circle with unequal arc counts (arcs=…); "
+            f"Straight, Bend, Reducer and Transition do",
+            code="arcs_unsupported", where={"fitting": name}, value=name,
+            limit=["Straight", "Bend", "Reducer", "Transition"],
+            hint="give the circle one count, nang=, at this fitting")
+
+
 def check_outlines(spec: PipeSpec, samples: int = 720) -> None:
     """Each layer's outline strictly inside the next all round, with a gap
     of at least ``OUTLINE_MIN_GAP`` of the outer one's extent (decision

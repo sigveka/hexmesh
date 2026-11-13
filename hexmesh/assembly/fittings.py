@@ -123,6 +123,7 @@ class Straight(Sweep):
     """
 
     strategies = frozenset({0, 1})   # switch classes it bridges (DESIGN A4)
+    handles_arcs = True              # a circle's unequal arcs (task 0147)
 
     length:   float = param("length", "axial length", exclusiveMinimum=0)
     n_layers: int | None = param(
@@ -341,6 +342,7 @@ class Bend(_Toward, Sweep):
     """
 
     strategies = frozenset({0, 1})   # switch classes it bridges (DESIGN A4)
+    handles_arcs = True              # a circle's unequal arcs (task 0147)
 
     radius:   float = param(
         "length", "centreline radius; above the pipe's outer radius", exclusiveMinimum=0)
@@ -753,6 +755,7 @@ class Reducer(_AxialOutlet):
 
     # switch classes it bridges (DESIGN A4): 2 for grading-only pairs
     strategies = frozenset({0, 2})
+    handles_arcs = True              # a circle's unequal arcs (task 0147)
 
     outlet:   PipeSpec = param("-", "outlet spec: the inlet's but for sizes and radial gradings")
     length:   float = param("length", "axial length", exclusiveMinimum=0)
@@ -912,6 +915,7 @@ class Transition(_AxialOutlet):
     # switch classes it bridges (DESIGN A4): 1 only for an H end (a pillow)
     strategies = frozenset({0, 1})
     pillows = True
+    handles_arcs = True              # a circle's unequal arcs (task 0147)
 
     outlet:   PipeSpec = param("-", "outlet spec: the inlet's but for each layer's outline")
     length:   float = param("length", "axial length", exclusiveMinimum=0)

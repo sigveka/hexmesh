@@ -90,6 +90,58 @@ version):
   a pattern change to be class 3, so the signature gains a pattern
   field (the counts divided by their gcd), or the classifier compares
   ratios.
+- **Built (2026-11-13), on the answers and Q6 (B):**
+  - `CircleShape.arcs` (`core/shape.py`): `nang` now defaults to `None`;
+    one of the two is required (`nang_missing`), not both
+    (`arcs_with_nang`); four whole counts ≥ 1 (`arcs_invalid`,
+    `count_below_minimum`).  **Four equal counts are normalised to
+    `nang`**, so `arcs=[4]*4` is the same object, description and
+    signature as `nang=4`.  `side_counts`, `counts`, `side_count`,
+    `angular_counts` (`nang_w`/`nang_h`), `period` (π with unequal
+    arcs), `resized`/`grown`/`scaled`/`lerp` and `to_dict` (`"arcs"`
+    instead of `"nang"`) follow the arcs.  `__repr__` is written out so
+    that a circle without arcs prints as before (it is part of
+    `port_type`'s key and of messages).  `BlendShape` reads its counts
+    from `inlet.counts`, not a `nang` fallback.
+  - `PipeSpec` (`core/spec.py`): `_check_arcs` gives
+    `arc_counts_not_opposite`, `arc_counts_need_n_outer_4`, and
+    `shape_counts_mismatch` for a `PipeSpec(nang=…)` given an arcs
+    circle (its `nang` would be left meaningless).  A stack with an arcs
+    circle takes the core's count on every side (`_check_arc_counts`,
+    `counts_mismatch`, naming the layer); stacks without arcs keep the
+    old rule and messages.  `with_radii` keeps the core's counts.
+  - The face (`sections/oh_gmsh.build_oh_circle`): each pair of arc
+    curves gets its arc's count; the uniform path is the old call.
+  - Fittings opt in with a class flag, `handles_arcs = True`: `Straight`,
+    `Bend`, `Reducer`, `Transition`.  `interface.check_arcs(fitting,
+    spec)` raises **`arcs_unsupported`** (the name chosen for step 3,
+    since "counts" alone also means `nang_w`/`nang_h`), naming the
+    fitting, when the inlet spec or one of the fitting's own fields (an
+    outlet, a tee's `branch` shape) has an arcs circle.  It runs before
+    `resolve()` (`_graph`; a tee would fail in its own code first) and in
+    `validate()` (for `close`, which doesn't resolve).
+  - `refined(k)` (`intent.refine_spec_dict`, and a tee branch's dict)
+    multiplies each arc.
+  - Schema: `arcs` is an array of four integers ≥ 1, nullable; `nang`
+    nullable with default null (`agent/_schema.py`, `_VALUES`).  The
+    format stays version 2: the field is additive, and files without it
+    load and save unchanged (API, *Versions*).
+  - Five error codes registered.
+- **Step 4, what a tee would need** (for later; junctions reject today):
+  - `tee.py` builds the branch's spec from one `nang` (lines 142–143)
+    and checks `branch.nang == main.nang` (406–411): both become a
+    comparison of side counts, with the branch's arcs set by which main
+    arc the hole sits on.
+  - The hole sits on one main arc (count `c[k]` around, `n_run` along).
+    The branch's four arcs meet that arc's patch and the axial blocks, so
+    a branch (a, b, a, b) needs `a` (or `b`, by roll) to equal the
+    main's `c[k]`, and the other pair to fit the axial cells: a new
+    count rule between main and branch.
+  - Roll: period π, so a branch on a (2, 4, 2, 4) main can roll by 180°
+    only, and its side arc changes with the face it is on.
+  - The tee's intersection-curve sampling (RESEARCH §3) assumes equal
+    arc spacing per quadrant; per-arc counts change its node fractions
+    only, which is the easy part.
 
 ## Questions for design
 
@@ -162,5 +214,16 @@ proposals, as written above, with Q5's pattern **left out when uniform**
 (absent means uniform, so existing signatures stay byte-identical).  Q2:
 the four counts are saved as a list.  Recorded in decision 0041's note
 of 2026-11-13, which is the reference.
+
+- **For the design session: step 5's CLAUDE.md sentence** (the coding
+  session doesn't edit CLAUDE.md).  Proposed for *Parameter separation*,
+  after the **Density** list:
+  > A circle's per-arc counts (`CircleShape(radius, arcs=[a, b, a, b])`,
+  > decision 0041) are both: the pattern (which arcs are equal, and their
+  > ratio `a : b`) is topology; a uniform multiple of all four is
+  > density.  So `Reducer` and `refined(k)` keep the pattern.  Today the
+  > layouts mesh opposite arcs equal only, on `n_outer = 4`.
+  And in the `nang` bullet: "divisions per 90° arc, shared by every
+  layer (a circle with `arcs` gives each arc its own)".
 
 ## Outcome

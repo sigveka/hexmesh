@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+**Per-arc counts on a circle** (task 0147, decision 0041).
+- `CircleShape(radius, arcs=[a, b, a, b])`: each quadrant arc its own
+  count, instead of `nang`.  Such a circle meets a duct with
+  `nang_w = a`, `nang_h = b`, in a stack or through a `Transition`.
+- `Straight`, `Bend`, `Reducer` and `Transition` take it; every other
+  fitting raises `arcs_unsupported`, naming itself.  Opposite arcs must
+  be equal (`arc_counts_not_opposite`), on `n_outer = 4`.
+- The pattern is topology, a uniform multiple density: `refined(k)`
+  multiplies every arc.
+- Saved as `"arcs": [a, b, a, b]` in place of `"nang"`.  Descriptions
+  without it load and save unchanged.
+
 **Deprecated** (task 0148).
 - `hexmesh.io.readers` (and `hexmesh.io.readers.pcf`, `.bathymetry`):
   importing it warns (`DeprecationWarning`), and 0.8 removes it.  Change

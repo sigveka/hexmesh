@@ -192,6 +192,8 @@ class HexmeshNotice(_Fields, Exception):
 CODES: dict[str, str] = {
     "advice_budget_unreachable":
         "a cell budget advise can't meet; value is the closest result",
+    "advice_arcs_unsupported":
+        "advise given a circle with per-arc counts, which its calibration doesn't cover",
     "advice_calibration_scope":
         "advice is calibrated on developed flow in straight runs (advice note)",
     "advice_eight_x":
@@ -215,6 +217,14 @@ CODES: dict[str, str] = {
     "angle_looks_like_radians":
         "a fitting angle so small it was probably given in radians (warning)",
     "angle_out_of_range": "a bend or wye angle outside its open range",
+    "arc_counts_need_n_outer_4":
+        "a circle with unequal arc counts on n_outer other than 4 (task 0147)",
+    "arc_counts_not_opposite":
+        "a circle whose opposite arcs differ in count, which no layout meshes yet (task 0147)",
+    "arcs_invalid": "a circle's arcs not four whole counts",
+    "arcs_unsupported":
+        "a fitting that doesn't handle a circle with unequal arc counts (task 0147)",
+    "arcs_with_nang": "a circle given both nang and arcs",
     "argument_missing": "a required fitting argument is missing",
     "assembly_already_built": "fittings added or changed after the assembly was built",
     "assembly_empty": "an assembly with no fittings",
@@ -345,7 +355,8 @@ CODES: dict[str, str] = {
     "n_layers_unresolvable": "no axial layer count up to the maximum passes the checks",
     "n_layers_unresolved": "n_layers used before Assembly.add() resolved it",
     "n_outer_invalid": "n_outer not a positive multiple of 4",
-    "nang_missing": "a core given by size on a spec without nang",
+    "nang_missing":
+        "a core given by size on a spec without nang, or a circle without nang or arcs",
     "nang_not_divisible": "nang not divisible by n_outer // 4",
     "network_disconnected": "a network that is not one connected piece",
     "network_empty": "a network model with no parts",
