@@ -30,6 +30,14 @@ Ground rules for all tasks: [README](README.md#ground-rules).
    (`seconds <`, `elapsed <`, `time.perf_counter`) and list them under
    *Outcome*, with a proposal for each.  Change only the one above.
 
+4. **The other clock assertions** (the design session, 2026-11-13,
+   on step 3's list): take the proposals.
+   - the manifest's `took < 0.2`: assert that the probe isn't called;
+   - `preview_every_example`'s `elapsed < 2.0`: 10 s, with a comment
+     saying it catches a hang, not a slowdown;
+   - the CLI's `took - base < 1.0`: keep.
+   Can go with step 1 or before it.
+
 **Accept.**
 - The preflight test fails when preflight is made to mesh (shown once,
   under *Agent notes*), and passes without a time limit below 10 s.
