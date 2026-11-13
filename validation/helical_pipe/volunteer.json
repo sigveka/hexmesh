@@ -9,7 +9,7 @@
     "image": "opencfd/openfoam-default:2406"
   },
   "hexmesh": {
-    "tag": "volunteer-helical-1",
+    "tag": "volunteer-helical-2",
     "note": "clone this tag with git clone --branch, as in the five commands: the mesh check needs the same meshing code as ours"
   },
   "gmsh": {
