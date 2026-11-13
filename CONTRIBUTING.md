@@ -92,6 +92,20 @@ Before a pull request:
 - **Cell counts stay exact:** `Assembly.cell_count()` must equal the
   meshed count for anything you add.
 
+**An optional pre-commit hook** runs `tests/test_architecture.py`
+(about 15 s) before each commit, so a broken layer rule or platform rule
+(a POSIX tool without `posix_only`, a bare path in compared text) shows
+up before CI.  Opt in, per clone:
+
+```bash
+git config core.hooksPath tools/hooks      # opt in
+git commit --no-verify                     # skip it once
+git config --unset core.hooksPath          # opt out
+```
+
+It needs `python3` (or set `PYTHON=python`), and it tests the working
+tree, not only what is staged.
+
 Questions about the code are welcome as issues too.
 
 ## The docs site

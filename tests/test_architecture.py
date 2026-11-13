@@ -167,6 +167,19 @@ ENCODING_TREES = ("tests", "docs", "validation")         # validation/: task 009
 
 # --- the module tree -----------------------------------------------------------
 
+_PARSED: dict[tuple, ast.Module] = {}
+
+
+def _parse(path: Path) -> ast.Module:
+    """*path*'s AST, parsed once per run while the file is unchanged: the
+    rules walk the same files (task 0158: the hook's time)."""
+    st = path.stat()
+    key = (str(path), st.st_mtime_ns, st.st_size)
+    if key not in _PARSED:
+        _PARSED[key] = ast.parse(path.read_text(encoding="utf-8"), str(path))
+    return _PARSED[key]
+
+
 def modules(root: Path) -> dict[str, Path]:
     """Dotted module name → file, for every ``.py`` under ``root/hexmesh``."""
     out = {}
@@ -231,7 +244,7 @@ def imports(root: Path, mods: dict[str, Path] | None = None) -> list[Import]:
     out = []
     for mod, path in mods.items():
         is_pkg = path.name == "__init__.py"
-        tree = ast.parse(path.read_text(encoding="utf-8"), str(path))
+        tree = _parse(path)
         typing_only = _type_checking_nodes(tree)
         for node in ast.walk(tree):
             tc = id(node) in typing_only
@@ -390,8 +403,9 @@ def shape_sites(root: Path) -> list[str]:
     for mod, path in modules(root).items():
         if not _shape_checked(mod):
             continue
-        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"), str(path))):
-            where = f"{path.relative_to(root).as_posix()}:{getattr(node, 'lineno', 0)}"
+        rel = path.relative_to(root).as_posix()           # once per file: 9 s otherwise
+        for node in ast.walk(_parse(path)):
+            where = f"{rel}:{getattr(node, 'lineno', 0)}"
             if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
                     and node.func.id in ("isinstance", "issubclass") and len(node.args) == 2
                     and _names_shape_type(node.args[1])):
@@ -430,10 +444,11 @@ def encoding_violations(root: Path, trees: tuple[str, ...] = ()) -> list[str]:
     paths = [*modules(root).values(),
              *(p for tree in trees for p in sorted((root / tree).rglob("*.py")))]
     for path in paths:
-        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"), str(path))):
+        rel = path.relative_to(root).as_posix()
+        for node in ast.walk(_parse(path)):
             if not isinstance(node, ast.Call):
                 continue
-            f, where = node.func, f"{path.relative_to(root).as_posix()}:{node.lineno}"
+            f, where = node.func, f"{rel}:{node.lineno}"
             has = any(kw.arg == "encoding" for kw in node.keywords)
             if isinstance(f, ast.Attribute) and f.attr in ("read_text", "write_text"):
                 has = has or len(node.args) > (0 if f.attr == "read_text" else 1)
@@ -499,7 +514,7 @@ def posix_tool_violations(root: Path, tree: str = "tests") -> list[tuple[str, st
     out = []
     for path in sorted((root / tree).rglob("*.py")):
         rel = path.relative_to(root).as_posix()
-        parsed = ast.parse(path.read_text(encoding="utf-8"), str(path))
+        parsed = _parse(path)
         owner = {}
         for fn, marks in _test_functions(parsed):
             for node in ast.walk(fn):
@@ -552,7 +567,7 @@ def path_text_violations(root: Path, tree: str = "tests") -> list[tuple[str, str
     out = []
     for path in sorted((root / tree).rglob("*.py")):
         rel = path.relative_to(root).as_posix()
-        parsed = ast.parse(path.read_text(encoding="utf-8"), str(path))
+        parsed = _parse(path)
         owner = {}
         for fn, _ in _test_functions(parsed):
             for node in ast.walk(fn):
@@ -596,7 +611,7 @@ def code_violations(root: Path) -> list[str]:
     ``CODES`` that nothing uses.  A class whose ``__init__`` passes the
     code itself (``PreflightFailed``, or ``InternalError`` through
     ``_set``) is constructed without one."""
-    trees = {p: ast.parse(p.read_text(encoding="utf-8"), str(p))
+    trees = {p: _parse(p)
              for p in modules(root).values()}
     bases = {n.name: {_base_name(b) for b in n.bases}
              for tree in trees.values() for n in ast.walk(tree) if isinstance(n, ast.ClassDef)}
@@ -668,7 +683,7 @@ def bare_raises(root: Path) -> list[tuple[tuple[str, str, str], int]]:
                     if name in BARE:
                         out.append(((rel, ".".join(scope), name), child.lineno))
                 visit(child, scope)
-        visit(ast.parse(path.read_text(encoding="utf-8"), str(path)), ())
+        visit(_parse(path), ())
     return out
 
 

@@ -1,0 +1,14 @@
+#!/bin/sh
+# hexmesh pre-commit hook (decision 0052; task 0158): the architecture
+# tests only, a few seconds.  Not the suite: CI runs that on `next`.
+#
+# Opt in, per clone:   git config core.hooksPath tools/hooks
+# Skip it once:        git commit --no-verify
+# Another Python:      PYTHON=python git commit ...
+#
+# It tests the working tree, not only what is staged.
+cd "$(git rev-parse --show-toplevel)" || exit 1
+"${PYTHON:-python3}" -m pytest -q -n 0 -p no:cacheprovider tests/test_architecture.py || {
+    echo "pre-commit: tests/test_architecture.py failed; fix it, or commit with --no-verify" >&2
+    exit 1
+}

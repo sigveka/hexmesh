@@ -1,6 +1,6 @@
 # 0158 — An opt-in pre-commit hook: the architecture tests
 
-- **Status:** ready (after 0157)
+- **Status:** in progress
 - **Decision:** [0052](../decisions/0052-ci-gates-main.md) (measure 2).
 - **Depends on:** 0157 (its rules are what the hook runs).
 
