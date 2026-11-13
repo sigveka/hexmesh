@@ -157,7 +157,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0158](0158-pre-commit-hook.md) | An opt-in pre-commit hook: the architecture tests | ready | 0052 |
 | [0159](0159-nox-gmsh-versions.md) | Local test sessions against both gmsh versions (`nox`) | ready | 0052 |
 | [0160](0160-volunteer-cli-for-people.md) | The volunteer command line, for people: names checked first, a readable `list`, help with the commands | done | 0044 |
-| [0161](0161-ci-runs-once-preflight-without-clock.md) | CI runs once per commit; the preflight test without a wall-clock limit | ready | 0052 |
+| [0161](0161-ci-runs-once-preflight-without-clock.md) | CI runs once per commit; the preflight test without a wall-clock limit | in progress | 0052 |
 
 ### Validation
 

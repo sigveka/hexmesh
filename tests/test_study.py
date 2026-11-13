@@ -61,19 +61,34 @@ GRID = {"grid": {"radius": [0.15, 0.2, 0.3], "angle": [45, 60, 90]}}
 
 @pytest.fixture(scope="module")
 def grid(tmp_path_factory):
+    """The grid study, preflight then meshed.  What preflight did to gmsh is
+    recorded: calls to ``initialize`` and ``model.mesh.generate``, and the
+    ``.msh`` files under the output after it (task 0161: these, not a
+    clock, say it meshes nothing)."""
+    import gmsh
     tmp = tmp_path_factory.mktemp("grid")
     study = _study(tmp, sampling=GRID, jobs=3)
-    t0 = time.perf_counter()
-    checked = run(study, "preflight")
-    preflight_time = time.perf_counter() - t0
+    calls = {"initialize": 0, "generate": 0}
+
+    def counted(name, real):
+        def call(*a, **k):
+            calls[name] += 1
+            return real(*a, **k)
+        return call
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(gmsh, "initialize", counted("initialize", gmsh.initialize))
+        mp.setattr(gmsh.model.mesh, "generate", counted("generate", gmsh.model.mesh.generate))
+        checked = run(study, "preflight")
+    preflight = {**calls, "msh": sorted(p.name for p in study.output.rglob("*.msh"))}
     rows = run(study)
-    return study, checked, rows, preflight_time
+    return study, checked, rows, preflight
 
 
 class TestGrid:
-    def test_preflight_is_fast_and_meshes_nothing(self, grid):
-        study, checked, _, seconds = grid
-        assert seconds < 2.0
+    def test_preflight_meshes_nothing(self, grid):
+        study, checked, _, preflight = grid
+        assert preflight == {"initialize": 0, "generate": 0, "msh": []}
         assert [r["status"] for r in checked] == ["checked"] * 9
 
     def test_meshed_equals_predicted(self, grid):
