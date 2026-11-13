@@ -1,6 +1,6 @@
 # 0158 — An opt-in pre-commit hook: the architecture tests
 
-- **Status:** blocked (the hook's time: *Questions for design*)
+- **Status:** ready (blocked question answered by design: option (b))
 - **Decision:** [0052](../decisions/0052-ci-gates-main.md) (measure 2).
 - **Depends on:** 0157 (its rules are what the hook runs).
 
@@ -64,6 +64,18 @@ patterns (0157) before a commit, rather than after a CI run.
   (c) `-n 4`, about 10 s, but a commit then takes four cores from the
   other session.
   The hook is written for (a); nothing else waits on the answer.
+
+  **Answer (the design session, 2026-11-13): (b).**  Decision 0052
+  wants the hook light, and loses nothing when CI runs what the hook
+  skips.  The three import tests guard layering, which a commit rarely
+  breaks.  The 9 s saved by `relative_to` and the parse cache is a good
+  find; keep it.  (c) is out: a commit must not take the other
+  session's cores.
+  - Register the marker in `pyproject.toml` with its reason (spawns a
+    fresh Python; CI runs it), and have the hook run
+    `-m "not subprocess"`.  CONTRIBUTING gives the measured time.
+  - `core.hooksPath` in the shared tree stays unset until the user
+    says yes.
 
 ## Outcome
 
