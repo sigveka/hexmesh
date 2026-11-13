@@ -1,6 +1,6 @@
 # 0157 — Platform rules as architecture tests; a `posix_only` marker
 
-- **Status:** in progress
+- **Status:** done
 - **Decision:** [0052](../decisions/0052-ci-gates-main.md) (measure 1).
 - **Depends on:** none.
 
@@ -80,3 +80,26 @@ encoding rule (propose any under *Questions for design*).
 ## Questions for design
 
 ## Outcome
+
+Done 2026-11-13.
+
+- **Files:** `pyproject.toml` (the `posix_only` marker); `tests/conftest.py`
+  (skips it on win32); `tests/test_architecture.py` (`RULE_POSIX`,
+  `posix_tool_violations`, `POSIX_ALLOWED`; `RULE_PATH_TEXT`,
+  `path_text_violations`, `PATH_TEXT_ALLOWED`; 6 tests, 25 planted
+  cases); `tests/test_volunteer.py` and `tests/test_study.py` (the
+  marker); `docs/integrations/platforms.md`.
+- **Found on the tree:** rule 2, three (two marked, `run_foam` exempt
+  by name); rule 3, none.
+- **CI:** d26b83d on `next`, run 43428690797: all 8 jobs green; both
+  Windows jobs 4523 passed, 19 skipped (the `posix_only` tests among the
+  skips).  Promoted: `main` is d26b83d.
+- **Step 5, the WSL cause, verified** by a temporary CI step (removed
+  after): Git's bash is first on the PATH (`where.exe`,
+  `shutil.which`), but `subprocess.run(["bash", …])` starts System32's
+  WSL launcher (Windows searches System32 first), which exits 1 with "no
+  installed distributions" on stdout, in UTF-16.  `platforms.md`'s entry
+  corrected: the launcher was right, the reason (PATH order) wasn't.
+- **Tests here:** architecture, volunteer, study, README, promote and
+  OpenFOAM-output tests: 236 passed.
+
