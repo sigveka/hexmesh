@@ -1,6 +1,6 @@
 # 0156 — CI on a `next` branch; `main` moves only to a green commit
 
-- **Status:** in progress
+- **Status:** done
 - **Decision:** [0052](../decisions/0052-ci-gates-main.md) (option A).
 - **Depends on:** none.
 
@@ -75,4 +75,51 @@ workflows (decision 0052, option B).
 
 ## Questions for design
 
+- **Should `tests.yml` still run on pushes to `main`?**  Every promotion
+  now runs the suite twice on the same commit (on `next`, then on
+  `main`, about 40 min of runners each).  Dropping `main` from `push:`
+  saves that; keeping it shows a green check on `main` itself, and covers
+  a direct push while `main` isn't protected.  Not changed here.
+- **The flaky timing test** (below): a fixed 2.0 s limit on a shared
+  runner.
+
 ## Outcome
+
+Done 2026-11-13.
+
+- **Files:** `.github/workflows/tests.yml` (push to `main` and `next`);
+  `tools/promote.py` (new); `tests/test_promote.py` (new, 10 tests);
+  `docs/RELEASING.md` (step 1: next, watch, promote; branch protection
+  for the maintainer); `docs/integrations/github.md` (new) and its row in
+  `docs/integrations/README.md`.
+- **A push to `next` starts the tests:** 278ff98 pushed to `next`
+  (creating it) at the user's OK: run 43416947315.
+  - Attempt 1 failed in one job, macOS Python 3.11:
+    `test_study.py::TestGrid::test_preflight_is_fast_and_meshes_nothing`,
+    `assert 2.3421628339999643 < 2.0`, a wall-clock limit; 278ff98
+    changes no study code.  Only that job was rerun.
+  - Attempt 2: all 8 jobs green.
+- **`tools/promote.py` refuses, and promotes:**
+  - refused 278ff98 while its run was in progress (`run 43416947315 on
+    278ff98 is in_progress: gh run watch 43416947315, then promote
+    again`, exit 1);
+  - refused, as dry runs on real history: c1c7c9f (`run 43185960002 …
+    isn't green (failure): windows-latest, Python 3.11: failure;
+    windows-latest, Python 3.x: failure`), 33fb4c4 (`no tests.yml run on
+    33fb4c4: push it to next first`), eca7352 (`doesn't descend from
+    origin/main`);
+  - promoted 278ff98: `278ff98: run 43416947315 (next, push) green, 8
+    jobs` / `origin/main 60767b9 -> 278ff98: a fast-forward` / `pushed:
+    main is 278ff98`.
+- **Step 2's answer** (`docs/integrations/github.md`): both a ruleset
+  and classic protection refuse a direct push of an untested commit, if
+  admins are included (GH013, GH006); a commit green on another branch
+  is accepted as a fast-forward; without "include administrators" the
+  owner's push bypasses classic protection.  An empty commit with a
+  green commit's tree passed both (cause assumed: tree matching).
+- **For the user (step 5):** protecting `main` is yours: Settings →
+  Branches (ruleset or classic rule), the eight checks, **"Do not allow
+  bypassing"**, no force pushes; or the `gh api` call in RELEASING.md.
+  Until it is set, `main` is gated by habit only.
+- **Follow-ups proposed:** the two questions above.
+
