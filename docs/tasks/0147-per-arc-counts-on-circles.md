@@ -1,6 +1,6 @@
 # 0147 — Per-arc counts on `CircleShape`
 
-- **Status:** ready (questions answered: decision 0041's note of 2026-11-13)
+- **Status:** in progress (Q6, the signature's pattern: asked; the rest goes on)
 - **Decision:** [0041](../decisions/0041-per-side-counts-on-rectangles.md),
   option C, in the form fixed under *C's form* (2026-11-06) and taken off
   hold by its amendment (2026-11-08, with decision 0042: "per-arc count
@@ -133,6 +133,29 @@ version):
   should the pattern be left out when it is uniform?
 
 Nothing else waits on 0147; I'm switching to 0148.
+
+- **Q6 (2026-11-13, after the answers). Q5's pattern breaks the
+  motivating Transition.**  A `Transition` needs equal signatures at
+  its ends (class 0; `fittings.py`, `Transition.check`).  With the
+  pattern stored only for circles with unequal arcs, a 2:4 rectangle
+  (no pattern: its signature is unchanged) and a circle with arcs
+  (2, 4, 2, 4) (pattern (1, 2, 1, 2)) differ, so a class-3 error stops
+  the case the task was opened for (step 3).  And "absent means
+  uniform" is false for that rectangle.
+  - **Proposal (B): no `pattern` field in this task.**  While only
+    opposite-equal arcs mesh (Q1), the pattern is fixed by the
+    signature's `nang_w` and `nang_h`, which a circle with arcs now
+    sets.  A circle's ratio change is then class 2, like a rectangle's
+    (neither has a fitting; only the message differs).  This is the
+    inconsistency the note leaves to the API review.  Every signature
+    stays as it is, and the Transition is class 0.  The field comes with
+    general patterns (stage B), when they can no longer be derived.
+  - **(A):** a `pattern` for every outline with unequal side counts,
+    rectangles too.  Existing 2:1 rectangle signatures then gain the
+    field, and a rectangle's ratio change becomes class 3, a behaviour
+    change before the review.
+  - Until the answer: everything else in 0147 is built (B); a
+    `pattern` is added afterwards if the answer is (A).
 
 **Answered (the design session, 2026-11-13; the user: "yes"):** all five
 proposals, as written above, with Q5's pattern **left out when uniform**
