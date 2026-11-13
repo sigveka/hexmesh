@@ -1,6 +1,6 @@
 # 0158 — An opt-in pre-commit hook: the architecture tests
 
-- **Status:** ready (blocked question answered by design: option (b))
+- **Status:** done
 - **Decision:** [0052](../decisions/0052-ci-gates-main.md) (measure 2).
 - **Depends on:** 0157 (its rules are what the hook runs).
 
@@ -79,7 +79,7 @@ patterns (0157) before a commit, rather than after a CI run.
 
 ## Outcome
 
-Code done 2026-11-13 (4109048); blocked on the time question.
+Done 2026-11-13: 4109048, then (b) in 03bbd35.
 
 - **Files:** `tools/hooks/pre-commit` (new, executable);
   `CONTRIBUTING.md` (opt in, skip, opt out); `tests/test_architecture.py`
@@ -96,4 +96,20 @@ Code done 2026-11-13 (4109048); blocked on the time question.
 - **For the user (step 3): enable it in this shared tree?**
   `git config core.hooksPath tools/hooks` here applies to both sessions'
   commits, adding about 16 s to each.  Not set.
+
+**After the answer, (b)** (03bbd35):
+- `pyproject.toml` registers `subprocess` ("starts a fresh Python to
+  check what importing hexmesh loads … the pre-commit hook leaves these
+  out, CI runs them"); the three tests carry it.
+- The hook runs `-m "not subprocess and not openfoam and not slow"`: a
+  `-m` on the command line replaces `addopts`' own, so its exclusions
+  are repeated (the script says so).
+- **Time on this machine: about 10.4 s** (10.27–10.83 s, five runs;
+  7.0–7.3 s in pytest, 97 tests, 3 deselected).  CONTRIBUTING says
+  "about 10 s".  The full file is still 100 tests.
+- The demo again, on 03bbd35 (scratch worktree, deleted): the planted
+  unmarked `bash` test blocked the commit (`test_posix_tools_are_marked`
+  failed, 10.8 s); a docs change went through (`97 passed`, 10.4 s).
+- `core.hooksPath` in this shared tree is still unset: the user's call
+  (step 3; the design session is asking them).
 
