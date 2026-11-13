@@ -1,6 +1,6 @@
 # 0147 — Per-arc counts on `CircleShape`
 
-- **Status:** ready
+- **Status:** blocked (the field's form: *Questions for design*)
 - **Decision:** [0041](../decisions/0041-per-side-counts-on-rectangles.md),
   option C, in the form fixed under *C's form* (2026-11-06) and taken off
   hold by its amendment (2026-11-08, with decision 0042: "per-arc count
@@ -72,6 +72,66 @@ version):
 
 ## Agent notes
 
+- **Read before building** (2026-11-13), no code written:
+  `core/shape.py` (`CircleShape`), `core/spec.py` (`side_counts`, the
+  stack count checks), `sections/oh.py` (`levels`, `patches`,
+  `node_grids`, `section_cells`), `assembly/signature.py`.
+- **The O-H core is one transfinite centre patch** (`oh.patches`: the
+  core's corners `(0, 0..3)`; `node_grids` builds it as one Coons patch
+  of the four inner curves; `section_cells` counts it as `c[0] × c[1]`).
+  A transfinite quad needs equal counts on opposite sides, and each ring
+  patch carries its arc's count from the centre to the wall.  So a
+  circle's four arcs must satisfy `c[0] == c[2]` and `c[1] == c[3]`:
+  (2, 4, 2, 4) meshes, (2, 3, 4, 5) can't, on any n_outer = 4 O-H face.
+  With n_outer = 8 the 2×2 core gives the same constraint on each half.
+- **The signature already carries two counts** (`nang_w`, `nang_h`,
+  period 180° when they differ), and a count difference is class 2
+  (density).  Point 4 of the form ("the pattern is topology") needs
+  a pattern change to be class 3, so the signature gains a pattern
+  field (the counts divided by their gcd), or the classifier compares
+  ratios.
+
 ## Questions for design
+
+- **Q1. General per-arc counts against the transfinite core.**  The
+  form says "each of a circle's arcs carries its own count, not two
+  alternating ones", but today's O-H face can only mesh opposite-equal
+  counts (above).  Proposal: the field holds four general counts, so
+  the schema frozen at 1.0 is the general one.  `PipeSpec` (the O-H and
+  H layouts) rejects `c[0] != c[2]` or `c[1] != c[3]` with a coded
+  error (`arc_counts_not_opposite`), whose hint says what does mesh.
+  A section that meshes general counts comes with stage B's section
+  abstraction (decision 0035), which isn't tied to the O-H face.  Is
+  that the general form, as the decision means it?
+- **Q2. How many arcs?**  A Voronoi cell (the stated main user) has 5,
+  6 or 7 sides, not four quarter arcs, and needs `n_outer = 6` and
+  more.  Is the field four quarter-arc counts (as `nang` is "per 90°
+  arc"), or one count per outer corner (`len == n_outer`)?  The second
+  makes the shape depend on `n_outer`, which it doesn't today
+  (`side_count(k, n_corners)` gets it from the spec).  Proposal: four
+  quarter arcs now, since `n_outer` only takes 4 and 8; a polygon
+  outline for stage B carries its own counts.
+- **Q3. `nang` with per-arc counts.**  Proposal:
+  `CircleShape(radius, arcs=(2, 4, 2, 4))` with `nang` left out
+  (`nang=None` stored, `to_dict` writes `arcs` instead of `nang`).
+  Giving both raises `arcs_with_nang`.  `PipeSpec`'s density for such a
+  circle is `nang_w`/`nang_h`, as for a rectangle (`angular_counts`
+  returns those), so the stack checks and `refined(k)` (which already
+  scales `nang_w`/`nang_h`) need no new parameter.  Is a circle setting
+  `nang_w`/`nang_h` acceptable, or should `PipeSpec` get an `arcs`
+  parameter of its own?
+- **Q4. `n_outer = 8` with unequal arcs:** proposal, rejected
+  (`arc_counts_need_n_outer_4`) in this task, as junctions are.  The
+  partition's node corrections (task 0088) assume one count per arc.
+- **Q5. The signature.**  Proposal: `Signature` gains `pattern`, the four
+  counts divided by their gcd ((1, 1, 1, 1) for every existing
+  section, so existing signatures change only by that field, and
+  equality and classes don't change).  A different pattern is class 3
+  ("a change of section topology"), a uniform multiple stays class 2.
+  Acceptance says "every existing port signature unchanged": does an
+  added field with the same value everywhere count as unchanged, or
+  should the pattern be left out when it is uniform?
+
+Nothing else waits on 0147; I'm switching to 0148.
 
 ## Outcome
