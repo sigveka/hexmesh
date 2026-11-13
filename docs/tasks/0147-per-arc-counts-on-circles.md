@@ -1,6 +1,6 @@
 # 0147 — Per-arc counts on `CircleShape`
 
-- **Status:** blocked (the field's form: *Questions for design*)
+- **Status:** ready (questions answered: decision 0041's note of 2026-11-13)
 - **Decision:** [0041](../decisions/0041-per-side-counts-on-rectangles.md),
   option C, in the form fixed under *C's form* (2026-11-06) and taken off
   hold by its amendment (2026-11-08, with decision 0042: "per-arc count
@@ -133,5 +133,11 @@ version):
   should the pattern be left out when it is uniform?
 
 Nothing else waits on 0147; I'm switching to 0148.
+
+**Answered (the design session, 2026-11-13; the user: "yes"):** all five
+proposals, as written above, with Q5's pattern **left out when uniform**
+(absent means uniform, so existing signatures stay byte-identical).  Q2:
+the four counts are saved as a list.  Recorded in decision 0041's note
+of 2026-11-13, which is the reference.
 
 ## Outcome

@@ -260,3 +260,44 @@ the count pattern is topology, a uniform multiplier density; the 28
 example meshes and every port signature unchanged.  They are reviewed
 with the rest of the public surface before the 1.0 freeze.  Tasks follow
 in milestone order.  The ellipse stays an idea, outside 1.0.
+
+## Note: C's form against the O-H core (2026-11-13; the user: "yes")
+
+Task 0147 found, before writing code, that today's sections can't mesh
+every per-arc pattern.  The O-H core is one transfinite centre patch,
+and each ring patch carries its arc's count from the centre to the wall.
+So opposite arcs must be equal (`c[0] == c[2]`, `c[1] == c[3]`):
+(2, 4, 2, 4) meshes, (2, 3, 4, 5) can't.  With `n_outer = 8` the 2×2
+core gives the same constraint on each half.  Its five questions,
+answered (the user agreed to the recommendation):
+
+1. **The field is general; the layouts opt in.**  `CircleShape` stores
+   every arc's count, so the description frozen at 1.0 is the general
+   one (point 1 above).  The O-H and H layouts reject unequal opposite
+   arcs with a coded error (`arc_counts_not_opposite`), whose hint says
+   what does mesh.  A section that meshes general counts comes with
+   decision 0035 stage B's section abstraction.  This is point 3's "opt
+   in", applied to layouts as well as fittings.
+2. **Four quarter-arc counts, saved as a list.**  The same unit as
+   `nang` (per 90° arc); `n_outer` takes only 4 and 8.  As a list, a
+   later version can accept one count per outer corner without breaking
+   saved descriptions.  Stage B's irregular cells (5–7 sides) are
+   polygon outlines, with their own counts, not circles.
+3. **`CircleShape(radius, arcs=(…))` instead of `nang`.**  Giving both is
+   an error (`arcs_with_nang`).  `to_dict` writes `arcs` instead of
+   `nang`.  `PipeSpec`'s density for such a circle is `nang_w` /
+   `nang_h`, as for a rectangle, so the stack checks and `refined(k)`
+   need no new parameter.  An `arcs=` on `PipeSpec` can come after 1.0
+   (additive).
+4. **`n_outer = 8` with unequal arcs is rejected** in 0147
+   (`arc_counts_need_n_outer_4`): the partition's node corrections (task
+   0088) assume one count per arc.
+5. **The signature gains a `pattern` only when the arcs differ**: the
+   four counts divided by their gcd.  Absent means uniform, so every
+   existing signature and saved description stays byte-identical (point
+   5's acceptance, read literally).  A different pattern is class 3; a
+   uniform multiple stays class 2.
+
+**For the API review (task 0150):** a rectangle's `nang_w : nang_h`
+ratio is still class 2 (density), while a circle's arc pattern is class
+3 (topology).  Acceptable for now; to be looked at before the freeze.
