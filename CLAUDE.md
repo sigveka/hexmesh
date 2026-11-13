@@ -51,6 +51,19 @@ at the same time on this machine.
   exact path.  Before a run likely to write more than ~1 GB, check
   free space (`df -h .`) and say so in the task.
 
+**Both sessions, pushing** (decision 0052, task 0156): `main` only
+moves to a commit CI has passed.
+- Push to `next`, never to `main`: `git push origin HEAD:next`, with
+  the user's OK as before.  The local tree stays on `main`.
+- When the run on that commit is green on every job (`gh run watch`),
+  `python3 tools/promote.py <sha>` fast-forwards `main` to it.  The
+  user's OK for the push covers this promotion; a fixed commit is a new
+  push and needs a new OK.
+- A tag (a release, a volunteer tag) goes only on a commit `main`
+  carries.  `docs/RELEASING.md` has the commands.
+- A job that fails on a timing limit or a runner's network: rerun that
+  job only, and promote only when the whole run is green.
+
 **Design session:** start by reading tasks that are `blocked` or newly
 `done`.  Move measurements into `RESEARCH.md` and answer questions.
 Record settled questions as decisions, then write tasks; unsettled ones

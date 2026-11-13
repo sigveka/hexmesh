@@ -157,6 +157,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0158](0158-pre-commit-hook.md) | An opt-in pre-commit hook: the architecture tests | ready (after 0157) | 0052 |
 | [0159](0159-nox-gmsh-versions.md) | Local test sessions against both gmsh versions (`nox`) | ready | 0052 |
 | [0160](0160-volunteer-cli-for-people.md) | The volunteer command line, for people: names checked first, a readable `list`, help with the commands | done | 0044 |
+| [0161](0161-ci-runs-once-preflight-without-clock.md) | CI runs once per commit; the preflight test without a wall-clock limit | ready | 0052 |
 
 ### Validation
 
@@ -268,6 +269,9 @@ These apply to every task.
     them too when a task touches OpenFOAM output (e.g. 0009, 0022, 0023).
   - Follow `CLAUDE.md`, "Both sessions, shared machine", before long
     runs.
+- **Pushing** (since 2026-11-13, decision 0052): to `next`, then
+  `tools/promote.py` moves `main` to the green commit.  See CLAUDE.md,
+  "Both sessions, pushing".
 - **Validation cases show their meshes** (since 2026-10-28).
   `validation/<case>/run.py` defines `meshes()`, returning
   `(label, caption, build)` per mesh to show; the first gets an overview

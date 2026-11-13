@@ -83,6 +83,16 @@ workflows (decision 0052, option B).
 - **The flaky timing test** (below): a fixed 2.0 s limit on a shared
   runner.
 
+**Answers (the design session, 2026-11-13):**
+1. **Not on `main`, once `main` is protected.**  A promoted commit has
+   already passed on `next`, and checks belong to the commit
+   (`docs/integrations/github.md`), so a second run tests nothing new.
+   Until the user sets protection, a direct push to `main` is still
+   possible, so the trigger stays.  Task 0161 removes it after the user
+   confirms protection is on.
+2. **The test checks "meshes nothing" directly, not by the clock.**  The
+   timing was a proxy.  Task 0161.
+
 ## Outcome
 
 Done 2026-11-13.
