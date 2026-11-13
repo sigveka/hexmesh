@@ -128,13 +128,18 @@ def _timed(*args) -> tuple[float, subprocess.CompletedProcess]:
     return time.perf_counter() - t0, out
 
 
-def test_the_manifest_does_no_expensive_work():
-    """It reads stored data: about 4 ms; the live probe it replaced took
-    1.3 s (task 0102)."""
-    t0 = time.perf_counter()
-    manifest()
-    took = time.perf_counter() - t0
-    assert took < 0.2, f"manifest() took {took:.2f} s: is it probing live?"
+def test_the_manifest_does_no_expensive_work(monkeypatch):
+    """It reads stored data (``support.json``); the live probe it replaced
+    validated an assembly per fitting and shape (task 0102).  Asserted
+    directly, not by a clock (task 0161)."""
+    from hexmesh import Assembly
+    from hexmesh.agent import _probe
+
+    def probing(*a, **k):
+        raise AssertionError("manifest() probed live: it should read support.json")
+    monkeypatch.setattr(Assembly, "validate", probing)
+    monkeypatch.setattr(_probe, "probe", probing)
+    assert manifest()["format"] == "hexmesh.agent.manifest"
 
 
 def test_the_cli_emits_it_in_its_envelope_quickly():

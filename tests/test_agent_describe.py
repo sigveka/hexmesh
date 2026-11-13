@@ -211,7 +211,8 @@ def test_preview_every_example(name, tmp_path):
     assert a.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"
     assert hashlib.sha1(a.read_bytes()).digest() == hashlib.sha1(b.read_bytes()).digest()
     assert b"Software" not in a.read_bytes() and b"Creation" not in a.read_bytes()
-    assert elapsed < 2.0, f"{elapsed:.2f} s"
+    # a hang, not a slowdown: a preview takes 0.5 s here, 1.2 s at most (task 0161)
+    assert elapsed < 10.0, f"{elapsed:.2f} s"
 
 
 def test_preview_of_a_model(tmp_path):

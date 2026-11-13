@@ -82,3 +82,16 @@ protected (with admins included).
     runner.  It already asserts `not gmsh.isInitialized()`, the direct
     check.  Proposal: drop the limit, or make it 10 s.
 
+**Step 4** (done 2026-11-13):
+- `test_agent_manifest.py::test_the_manifest_does_no_expensive_work`:
+  `Assembly.validate` and `_probe.probe` are made to raise, then
+  `manifest()` is called; no clock.  Shown failing in a scratch worktree
+  where `support()` calls `_probe.probe()`: `AssertionError: manifest()
+  probed live: it should read support.json`.
+- `test_agent_describe.py::test_preview_every_example`: `elapsed < 10.0`,
+  commented "a hang, not a slowdown".  Measured here: a preview takes
+  0.5 s on average, 1.2 s at most over the 35 examples, so the old 2.0 s
+  was within 2x on this machine.
+- The CLI's `took - base < 1.0`: kept.
+- `test_agent_manifest.py` and `test_agent_describe.py`: 87 passed.
+
