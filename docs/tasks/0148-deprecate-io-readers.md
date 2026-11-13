@@ -1,6 +1,6 @@
 # 0148 — Deprecate `hexmesh.io.readers` (removed in 0.8)
 
-- **Status:** in progress
+- **Status:** done
 - **Decision:** [0042](../decisions/0042-road-to-1-0.md) exit criterion 1
   ("readers out of `io`: the deprecated `io.readers` path removed before
   1.0; removing it after would be breaking"), and promise 2 (deprecation
@@ -67,3 +67,23 @@ of the 1.0 surface.
 ## Questions for design
 
 ## Outcome
+
+Done 2026-11-13 (code in c4c9a74).
+
+- **Files:** `hexmesh/io/readers/__init__.py` (the warning);
+  `hexmesh/interchange/__init__.py`, `importers/__init__.py`
+  (docstrings); the seven test files that imported the old path now
+  import `hexmesh.interchange` or `hexmesh.interchange.importers`;
+  `tests/test_io_readers.py` (the old-path test); `tests/test_architecture.py`
+  (the re-export check allows the warning); `API.md`; `CHANGELOG.md`
+  (**Deprecated**).
+- **Full suite** at c4c9a74, `-n 2`, with `-W "error:hexmesh.io.readers
+  is deprecated:DeprecationWarning"`: **4527 passed, 16 skipped**, no
+  failures (54 min 54 s).  So nothing in hexmesh or its tests imports
+  the old path.  (A first run at `-n 3` was stopped by Claude Code for
+  low memory, after about 4375 tests with no failures.)
+- **For task 0150 / 0.8:** delete `hexmesh/io/readers/`, the
+  `("io.readers", "interchange")` entry in `ALLOWED_EDGES`,
+  `test_io_readers_only_re_export`, the old-path test, and the DESIGN §9
+  row; API's line goes too.
+
