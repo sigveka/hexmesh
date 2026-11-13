@@ -199,7 +199,7 @@ END-CONNECTION-EQUIPMENT
 
 
 def test_pcf_importer_fills_the_model(tmp_path):
-    from hexmesh.io.readers.pcf import read_pcf
+    from hexmesh.interchange.importers.pcf import read_pcf
     p = tmp_path / "l.pcf"
     p.write_text(PCF, encoding="utf-8")
     net = read_pcf(p)

@@ -32,7 +32,7 @@ from hexmesh import Session
 from hexmesh.assembly import Assembly, AssemblyError, Straight
 from hexmesh.core.shape import CircleShape
 from hexmesh.core.spec import PipeSpec
-from hexmesh.io.readers.pcf import read_pcf
+from hexmesh.interchange.importers.pcf import read_pcf
 
 
 def _steel():

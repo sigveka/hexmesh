@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+**Deprecated** (task 0148).
+- `hexmesh.io.readers` (and `hexmesh.io.readers.pcf`, `.bathymetry`):
+  importing it warns (`DeprecationWarning`), and 0.8 removes it.  Change
+  `from hexmesh.io.readers import read_pcf` to `from hexmesh.interchange
+  import read_pcf` (likewise `read_bathymetry`), and
+  `hexmesh.io.readers.pcf` to `hexmesh.interchange.importers.pcf`.
+
 **The volunteer command line, for people** (task 0160).
 - A wrong case or level name is caught first, before OpenFOAM or gmsh
   is looked for: one line naming the card's levels, with a suggestion

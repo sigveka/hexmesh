@@ -1,6 +1,6 @@
 # 0148 — Deprecate `hexmesh.io.readers` (removed in 0.8)
 
-- **Status:** ready
+- **Status:** in progress
 - **Decision:** [0042](../decisions/0042-road-to-1-0.md) exit criterion 1
   ("readers out of `io`: the deprecated `io.readers` path removed before
   1.0; removing it after would be breaking"), and promise 2 (deprecation
@@ -42,6 +42,27 @@ of the 1.0 surface.
 **Out of scope.**  The removal itself (0.8).
 
 ## Agent notes
+
+- **One warning, in the package's `__init__`:** importing
+  `hexmesh.io.readers.pcf` imports the package first, so the package,
+  each module and each name all warn once per process (the module is
+  cached after).  `stacklevel=2`: `warnings` skips importlib's frames,
+  so it names the importing line (`python3 -c "import
+  hexmesh.io.readers"` prints `<string>:1: DeprecationWarning: …`).
+- **The text:** "hexmesh.io.readers is deprecated and is removed in 0.8:
+  use hexmesh.interchange.read_pcf / read_bathymetry".
+- **`test_io_readers_only_re_export`** (the re-export check, kept) now
+  also allows a `warnings.warn(…, DeprecationWarning, …)` statement.
+- **The old-path test** (`test_io_readers.py::
+  test_the_old_path_warns_and_still_works`) drops the cached
+  `hexmesh.io.readers*` modules (monkeypatched, restored after) and
+  imports again, so it runs in-process, without a fresh Python.
+- **Step 5:** task 0150 already lists the removal (its first list, and
+  "`hexmesh.io.readers`: removed (0148 deprecated it)"): nothing to add.
+- **Docs:** README, GUIDE, the examples, `validation/`, `benchmarks/`,
+  `tools/` and the agent manifest had no `io.readers`.  API's one line
+  now says "deprecated, removed in 0.8".  The `interchange` and
+  `importers` docstrings say the same.
 
 ## Questions for design
 

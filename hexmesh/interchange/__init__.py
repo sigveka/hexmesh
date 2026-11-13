@@ -7,8 +7,8 @@ builder.
   ``Provenance``);
 - ``build``: ``build(model, spec, …) → Assembly`` and
   ``build_pieces(model, spec, …) → {name: Assembly}``;
-- ``importers``: ``read_pcf``, ``read_bathymetry`` (task 0066; also
-  re-exported by ``hexmesh.io.readers``).
+- ``importers``: ``read_pcf``, ``read_bathymetry`` (task 0066; the old
+  ``hexmesh.io.readers`` path is deprecated, removed in 0.8).
 
 The builder and the model import no importer.  The part classes share names with
 ``hexmesh.assembly``'s fittings; use them through this package

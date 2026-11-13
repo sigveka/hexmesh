@@ -144,7 +144,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0145](0145-ci-green-on-gmsh-4-15.md) | CI green: three junction tests fail on gmsh 4.15.2 (what pip installs) | done | 0042 |
 | [0146](0146-release-0-6-0.md) | Release 0.6.0: junction completeness, and a release checklist | done | 0042, 0050 |
 | [0147](0147-per-arc-counts-on-circles.md) | Per-arc counts on `CircleShape` | ready | 0041, 0042 |
-| [0148](0148-deprecate-io-readers.md) | Deprecate `hexmesh.io.readers` (removed in 0.8) | ready | 0042, 0037 |
+| [0148](0148-deprecate-io-readers.md) | Deprecate `hexmesh.io.readers` (removed in 0.8) | in progress | 0042, 0037 |
 | [0149](0149-wheels-on-github-releases.md) | A wheel and an sdist on every GitHub release | ready (after 0146) | 0042 |
 | [0150](0150-api-review-and-freeze.md) | The API review, then the freeze (0.8) | held (after 0147–0149, 0151) | 0042, 0051 |
 | [0151](0151-pipe-tee-circle-reads.md) | The pipe tee's circle reads through one helper: the shape-site cap to 0 | done | 0051 |

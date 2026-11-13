@@ -29,7 +29,7 @@ from hexmesh import PipeSpec, Session
 from hexmesh.agent import describe
 from hexmesh.core.shape import CircleShape
 from hexmesh.examples import ALL
-from hexmesh.io.readers import read_pcf
+from hexmesh.interchange import read_pcf
 
 PCF_TEE = """\
 ISOGEN-FILES ISOGEN.FLS

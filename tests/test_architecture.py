@@ -736,7 +736,8 @@ def test_allowed_edges_still_needed():
 def test_io_readers_only_re_export():
     """The io.readers → interchange edge is a re-export only (task 0066):
     each module holds a docstring, imports, ``__all__`` and the
-    ``sys.modules`` alias, and no code of its own."""
+    ``sys.modules`` alias, and no code of its own; the package also warns
+    that it is deprecated (task 0148)."""
     for path in sorted((ROOT / "hexmesh/io/readers").glob("*.py")):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in tree.body:
@@ -744,6 +745,10 @@ def test_io_readers_only_re_export():
                 continue
             if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant):
                 continue                                     # the docstring
+            if (isinstance(node, ast.Expr) and isinstance(node.value, ast.Call)
+                    and ast.unparse(node.value.func) == "warnings.warn"
+                    and "DeprecationWarning" in ast.unparse(node.value)):
+                continue                                     # the deprecation (task 0148)
             if isinstance(node, ast.Assign) and len(node.targets) == 1:
                 tgt = node.targets[0]
                 if isinstance(tgt, ast.Name) and tgt.id == "__all__":

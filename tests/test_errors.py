@@ -34,7 +34,7 @@ from hexmesh.assembly.blocks import BlockLayout, LayoutError
 from hexmesh.assembly.equipment import OnHead, OnShell
 from hexmesh.core.shape import CircleShape
 from hexmesh.errors import CODES, InternalError, ReaderError, SpecError, SpecTypeError, jsonable
-from hexmesh.io.readers.pcf import read_pcf
+from hexmesh.interchange.importers.pcf import read_pcf
 from hexmesh.study import StudyError, load_study
 
 ROOT = Path(__file__).resolve().parents[1]

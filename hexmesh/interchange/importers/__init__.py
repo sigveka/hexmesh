@@ -18,7 +18,7 @@ Importers (decision 0032 §8): each reads one source format into a
 - ``bathymetry``: ``read_bathymetry``, seabed routes.
 
 They moved here from ``hexmesh.io.readers`` (task 0066, decision 0037
-item 4), which still re-exports them.
+item 4), which still re-exports them, deprecated (removed in 0.8).
 """
 
 from .bathymetry import read_bathymetry

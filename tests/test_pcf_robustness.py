@@ -29,7 +29,7 @@ import pytest
 from hexmesh.assembly import AssemblyError, Reducer, Straight
 from hexmesh.core.shape import CircleShape
 from hexmesh.core.spec import PipeSpec
-from hexmesh.io.readers.pcf import ANNOTATION_TYPES, read_pcf
+from hexmesh.interchange.importers.pcf import ANNOTATION_TYPES, read_pcf
 
 HEADER = """\
 ISOGEN-FILES ISOGEN.FLS

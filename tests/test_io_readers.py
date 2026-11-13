@@ -18,6 +18,7 @@ identifiers, column 5 attributes); see docs/integrations/pcf.md.
 """
 
 import math
+import sys
 import textwrap
 import warnings
 
@@ -29,7 +30,7 @@ from hexmesh import Assembly, Session
 from hexmesh.assembly import AssemblyError
 from hexmesh.core.shape import CircleShape
 from hexmesh.core.spec import PipeSpec
-from hexmesh.io.readers.pcf import INCH, read_pcf
+from hexmesh.interchange.importers.pcf import INCH, read_pcf
 
 
 def _spec(radius=0.1):
@@ -143,7 +144,7 @@ def test_kinks_rejected_or_splined(tmp_path, gmsh_session):
 
 def test_bathymetry_route(tmp_path, gmsh_session):
     pytest.importorskip("scipy")
-    from hexmesh.io.readers.bathymetry import read_bathymetry
+    from hexmesh.interchange.importers.bathymetry import read_bathymetry
     x, y = np.meshgrid(np.linspace(-1, 6, 15), np.linspace(-2, 2, 9))
     z = -10 + 0.3 * np.sin(x)                         # gently undulating seabed
     surf = tmp_path / "seabed.xyz"
@@ -644,3 +645,20 @@ def test_joint_between_two_elbows_rejected(tmp_path):
     net = _read_spool(tmp_path, text)
     with pytest.raises(AssemblyError, match="COUPLING .* between two non-straight fittings"):
         net.to_assembly(_spec(0.05))
+
+
+def test_the_old_path_warns_and_still_works(monkeypatch):
+    """``hexmesh.io.readers`` re-exports the importers and warns that 0.8
+    removes it (task 0148): the package, and each module through it."""
+    import importlib
+
+    import hexmesh.interchange.importers as new
+    for name in [m for m in sys.modules if m.startswith("hexmesh.io.readers")]:
+        monkeypatch.delitem(sys.modules, name)
+    with pytest.warns(DeprecationWarning, match=r"removed in 0\.8: use hexmesh\.interchange"):
+        old = importlib.import_module("hexmesh.io.readers")
+    assert (old.read_pcf, old.read_bathymetry) == (new.read_pcf, new.read_bathymetry)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")                # once per import, not per name
+        from hexmesh.io.readers import pcf, bathymetry
+    assert (pcf, bathymetry) == (new.pcf, new.bathymetry)
