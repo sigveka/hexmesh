@@ -156,7 +156,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0157](0157-platform-rules-as-tests.md) | Platform rules as architecture tests; a `posix_only` marker | ready | 0052 |
 | [0158](0158-pre-commit-hook.md) | An opt-in pre-commit hook: the architecture tests | ready (after 0157) | 0052 |
 | [0159](0159-nox-gmsh-versions.md) | Local test sessions against both gmsh versions (`nox`) | ready | 0052 |
-| [0160](0160-volunteer-cli-for-people.md) | The volunteer command line, for people: names checked first, a readable `list`, help with the commands | in progress | 0044 |
+| [0160](0160-volunteer-cli-for-people.md) | The volunteer command line, for people: names checked first, a readable `list`, help with the commands | done | 0044 |
 
 ### Validation
 

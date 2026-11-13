@@ -1,6 +1,6 @@
 # 0160 — The volunteer command line, for people: names checked first, a readable `list`, help with the commands
 
-- **Status:** in progress
+- **Status:** done
 - **Decision:** none new; [0044](../decisions/0044-volunteer-runs.md)
   (volunteer runs).  The user, 2026-11-13: a volunteer run "did not
   recognize the documented case name. The output from the 'list' option
@@ -109,7 +109,7 @@ session may propose one separately.
 
 ## Outcome
 
-Code done 2026-11-13 (58cb459); the new volunteer tag waits for the user.
+Done 2026-11-13.
 
 - **Files:** `validation/volunteer.py` (`VolunteerError`,
   `offered_level`, `list_lines`, `info_lines`, `info`, the help, the
@@ -161,8 +161,14 @@ helical_pipe: Laminar flow in a helical pipe
   `0a420c64bffbae7d5adcf17e447125943a85cc91defb2b7969b893984c60a1d9` at
   `volunteer-helical-1` (de1d477), at 33fb4c4, and at the fixed 58cb459.
   The same, so a new tag pins the same mesh.
-- **Proposed (needs the user's OK):** after CI is green on 58cb459, a
-  commit setting the card's `tag` to `volunteer-helical-2` (and
-  `VOLUNTEERS.md` regenerated), and the annotated tag
-  `volunteer-helical-2` on it, pushed.
+- **The new tag:** CI green on eca7352 (run 43387708118, all 8 jobs,
+  including 58cb459).  07b12bd sets the card's `tag` to
+  `volunteer-helical-2` (`VOLUNTEERS.md` regenerated), and the annotated
+  tag `volunteer-helical-2` is on it, both pushed 2026-11-13 at the
+  user's "yes".  `volunteer-helical-1` is unchanged, for anyone already
+  on it.
+- **Checked from GitHub:** `git clone --depth 1 --branch
+  volunteer-helical-2` gives 07b12bd; its `list` prints the
+  `volunteer-helical-2` clone line, and `prepare helical_pipe re3000`
+  gives the one-line error, exit 2.  The clone was deleted.
 
