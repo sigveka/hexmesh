@@ -12,6 +12,7 @@ files here, and the installed tool itself, are the source of truth.
 | OpenFOAM | **Consumer**: reads hexmesh output | [openfoam.md](openfoam.md) | v1912 (Debian `openfoam` 1912.200626) |
 | PCF (Isogen piping component file) | **Input format**: plant piping data | [pcf.md](pcf.md) | Reference Guide 2016 (13.0), rev. 2018 |
 | Linux, macOS, Windows | **Platforms** the suite and the Docker runner run on (decision 0039) | [platforms.md](platforms.md) | GitHub Actions `*-latest`, Python 3.11 and 3.x |
+| GitHub (Actions, branch protection) | **Host and CI**: runs the tests; keeps `main` to commits CI passed (decision 0052) | [github.md](github.md) | github.com, 2026-11-13 |
 | Essens | **Docs tool**: renders the docs site from the Markdown (decision 0049, `docs/site.py`); `.ess` sources not used | [essens.md](essens.md) | 0.1.4 |
 | Cubit | **none: abandoned** (decision 0007, option A rejected) | — | — |
 

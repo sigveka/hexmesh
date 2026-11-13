@@ -7,7 +7,7 @@ name: tests
 
 on:
   push:
-    branches: [main]
+    branches: [main, next]        # next: tested before main moves (decision 0052)
   pull_request:
 
 jobs:

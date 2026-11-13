@@ -12,12 +12,57 @@ same goes for every push.
 
 Every job of the `tests` workflow passes on the commit to be tagged:
 Linux, macOS and Windows on the gmsh `pip` installs, and Linux on gmsh
-4.12.1, the reference version.
+4.12.1, the reference version.  The commit reaches `main` only that way
+(decision 0052): push it to `next`, where CI runs, then promote it.
 
 ```sh
-gh run list --branch main --limit 3
-gh run view <run id>
+git push origin HEAD:next                # CI runs on next
+gh run watch                             # pick the run; wait for it
+python3 tools/promote.py <sha>           # main moves to <sha>, if green
 ```
+
+`tools/promote.py` refuses, saying why, unless the newest `tests` run on
+the commit is completed with every job green and the commit is a
+fast-forward of `origin/main`; `--dry-run` checks only.  Then tag the
+promoted commit (step 6).
+
+### Branch protection on `main` (the maintainer; once)
+
+Protection makes the rule GitHub's, not only a habit.  An admin sets it:
+Settings → Branches → Add branch ruleset (or classic rule) for `main`:
+- **Require status checks to pass**, with these eight checks (the job
+  names in `.github/workflows/tests.yml`; source: GitHub Actions):
+  `ubuntu-latest, Python 3.11`, `ubuntu-latest, Python 3.x`,
+  `macos-latest, Python 3.11`, `macos-latest, Python 3.x`,
+  `windows-latest, Python 3.11`, `windows-latest, Python 3.x`,
+  `ubuntu-latest, Python 3.12, gmsh 4.12.1`,
+  `OpenFOAM v2406 in Docker (Linux)`;
+- **Do not allow bypassing the above settings** (include
+  administrators): the maintainer and the agents push with admin rights;
+- no force pushes, no deletion.
+
+Or, with `gh` as an admin:
+
+```sh
+gh api -X PUT repos/sigveka/hexmesh/branches/main/protection --input - <<'JSON'
+{"required_status_checks": {"strict": false, "checks": [
+   {"context": "ubuntu-latest, Python 3.11", "app_id": 15368},
+   {"context": "ubuntu-latest, Python 3.x", "app_id": 15368},
+   {"context": "macos-latest, Python 3.11", "app_id": 15368},
+   {"context": "macos-latest, Python 3.x", "app_id": 15368},
+   {"context": "windows-latest, Python 3.11", "app_id": 15368},
+   {"context": "windows-latest, Python 3.x", "app_id": 15368},
+   {"context": "ubuntu-latest, Python 3.12, gmsh 4.12.1", "app_id": 15368},
+   {"context": "OpenFOAM v2406 in Docker (Linux)", "app_id": 15368}]},
+ "enforce_admins": true, "required_pull_request_reviews": null,
+ "restrictions": null, "allow_force_pushes": false, "allow_deletions": false}
+JSON
+```
+
+`app_id` 15368 is GitHub Actions.  A job renamed in `tests.yml` must be
+renamed here too, or `main` waits for a check that never comes.  What
+GitHub does with a direct push under this rule is recorded in
+`docs/integrations/github.md`.
 
 ## 2. The version
 
@@ -73,7 +118,7 @@ python3 docs/gallery/build.py --only <name> …
 
 ## 6. The tag and the GitHub release
 
-After the release commit is pushed and CI is green on it.  **The user
+After the release commit is promoted to `main` (step 1).  **The user
 approves both commands first.**
 
 ```sh

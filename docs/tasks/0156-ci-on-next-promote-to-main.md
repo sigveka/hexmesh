@@ -1,6 +1,6 @@
 # 0156 — CI on a `next` branch; `main` moves only to a green commit
 
-- **Status:** ready
+- **Status:** in progress
 - **Decision:** [0052](../decisions/0052-ci-gates-main.md) (option A).
 - **Depends on:** none.
 
@@ -46,6 +46,32 @@ design session updates them when this task is done.  Pull-request
 workflows (decision 0052, option B).
 
 ## Agent notes
+
+- **Step 3 is `tools/promote.py`, not a shell script:** it runs the same
+  on Windows, and its checks are unit-tested with a fake `git` and `gh`
+  (`tests/test_promote.py`, 10 tests, no network).  `--dry-run` checks
+  without pushing.  It reads the newest `tests` run on the commit (any
+  branch: checks belong to the commit), requires every job `success`,
+  fetches `origin/main` and requires a fast-forward, then `git push
+  origin <sha>:refs/heads/main`.  It never forces.
+- **Step 2 needed a live test:** GitHub's page *About protected
+  branches* doesn't say what a direct push meets, and says both that
+  admins can be included and that they "are always able to push".  With
+  the user's OK, a throwaway branch `gate-test`, protected one way at a
+  time; all deleted after.  Both assumptions hold, if admins are
+  included: an untested commit is refused (ruleset GH013, classic GH006),
+  and a commit green on `main` is accepted as a fast-forward.  Without
+  "include administrators", the owner's push bypasses classic
+  protection.  `docs/integrations/github.md` has the table.
+- **A surprise on the way:** the first untested commit, an empty one,
+  was accepted by both mechanisms.  It had no check runs, but the same
+  tree as a green commit; a commit that changed a file was refused.  The
+  rule-suite log (`rulesets/rule-suites`) showed the rule evaluated as
+  `pass`, which is how it was caught.  Recorded, cause assumed (tree
+  matching).
+- **Step 5:** RELEASING.md gives both ways (Settings, or a classic `gh
+  api` call with `enforce_admins: true`), the eight job names, and the
+  Actions app id 15368 (checked: `api.github.com/apps/github-actions`).
 
 ## Questions for design
 

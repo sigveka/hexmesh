@@ -152,7 +152,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0153](0153-example-subsea-pipeline.md) | Example: a subsea pipeline over a sandwave field (the bathymetry reader) | done | 0032 |
 | [0154](0154-example-buried-pipe.md) | Example: a buried district-heating pipe with graded soil; example colours in the gallery | done | — |
 | [0155](0155-branch-spec-keeps-dr.md) | A tee's branch keeps its shells' given thicknesses exactly | done | — |
-| [0156](0156-ci-on-next-promote-to-main.md) | CI on a `next` branch; `main` moves only to a green commit | ready | 0052 |
+| [0156](0156-ci-on-next-promote-to-main.md) | CI on a `next` branch; `main` moves only to a green commit | in progress | 0052 |
 | [0157](0157-platform-rules-as-tests.md) | Platform rules as architecture tests; a `posix_only` marker | ready | 0052 |
 | [0158](0158-pre-commit-hook.md) | An opt-in pre-commit hook: the architecture tests | ready (after 0157) | 0052 |
 | [0159](0159-nox-gmsh-versions.md) | Local test sessions against both gmsh versions (`nox`) | ready | 0052 |
