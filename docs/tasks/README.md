@@ -154,7 +154,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0155](0155-branch-spec-keeps-dr.md) | A tee's branch keeps its shells' given thicknesses exactly | done | — |
 | [0156](0156-ci-on-next-promote-to-main.md) | CI on a `next` branch; `main` moves only to a green commit | done | 0052 |
 | [0157](0157-platform-rules-as-tests.md) | Platform rules as architecture tests; a `posix_only` marker | done | 0052 |
-| [0158](0158-pre-commit-hook.md) | An opt-in pre-commit hook: the architecture tests | in progress | 0052 |
+| [0158](0158-pre-commit-hook.md) | An opt-in pre-commit hook: the architecture tests | blocked | 0052 |
 | [0159](0159-nox-gmsh-versions.md) | Local test sessions against both gmsh versions (`nox`) | ready | 0052 |
 | [0160](0160-volunteer-cli-for-people.md) | The volunteer command line, for people: names checked first, a readable `list`, help with the commands | done | 0044 |
 | [0161](0161-ci-runs-once-preflight-without-clock.md) | CI runs once per commit; the preflight test without a wall-clock limit | ready | 0052 |
