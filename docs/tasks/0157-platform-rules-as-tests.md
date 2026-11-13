@@ -1,6 +1,6 @@
 # 0157 — Platform rules as architecture tests; a `posix_only` marker
 
-- **Status:** ready
+- **Status:** in progress
 - **Decision:** [0052](../decisions/0052-ci-gates-main.md) (measure 1).
 - **Depends on:** none.
 
@@ -47,6 +47,35 @@ works this way.
 encoding rule (propose any under *Questions for design*).
 
 ## Agent notes
+
+- **Rule 2's tools:** `bash`, `sh`, `timeout` (Windows has a
+  `timeout.exe` that waits for a key: the same trap as `bash`), and ten
+  OpenFOAM utilities (`OPENFOAM_TOOLS`).  `docker` is left out: it runs
+  on Windows.  Only literal argv lists count; `sys.executable` and
+  computed argv don't.
+- **Helpers count too**, so `run_foam` (`test_openfoam_output.py`, a
+  `bash -c` helper) is caught.  It is called only from openfoam-marked
+  tests, through `_types` in `test_openfoam_boundary.py`, so it is
+  exempt by name in `POSIX_ALLOWED`, with that reason.  Like
+  `BARE_ALLOWED`, a test fails when an exemption is no longer needed.
+- **What rule 2 found today:** `test_volunteer`'s `bash -n` (c7a64b9's
+  inline skip, now the marker); `test_study.py`'s
+  `test_other_runs_sees_a_detached_process`, which ran `bash -c … &`
+  behind `skipif(os.name == "nt" or …)`: now `posix_only`, the `no
+  bash` skip kept; and `run_foam`, exempt.
+- **Rule 3 finds nothing today:** the one case, the volunteer test, was
+  fixed in 4473cb1 with `shlex.quote`.  Its old form is a planted
+  example.  Names: `tmp_path` and `*path`/`*dir`, bare or in `str(…)`;
+  `.name`, `.as_posix()`, `shlex.quote(…)` are safe.  `PATH_TEXT_ALLOWED`
+  exists, empty.
+- **The marker's skip is unit-tested** on fake items with
+  `sys.platform` patched: setting it before pytest imports breaks pytest
+  (`_winapi`).
+- **Step 5:** a Windows-only CI step, `continue-on-error`, prints
+  `where.exe bash`, `shutil.which("bash")` and what
+  `subprocess.run(["bash", "--version"])` returns, stderr included.  The
+  last is what the tests meet: Windows' process search looks in System32
+  before PATH, so it may differ from `where`.
 
 ## Questions for design
 

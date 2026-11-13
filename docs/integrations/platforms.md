@@ -30,6 +30,9 @@ messages that tests match (`0\U: unknown placeholder(s)`) and would have
 changed a content digest across systems (`study.stages._tree_digest`).
 Use `.as_posix()` wherever a path becomes text that is compared, hashed
 or stored.
+**Rule:** `tests/test_architecture.py::test_no_bare_path_in_compared_text`
+(task 0157): an `assert` comparing text with an f-string that holds a
+bare `tmp_path` or `*path`/`*dir` name.
 
 ### Windows: git checks out text with CRLF — *verified*
 Without `.gitattributes`, the runner's git (`core.autocrlf=true`) gave
@@ -70,14 +73,21 @@ checked:** the first `bash` on the PATH is System32's WSL launcher,
 ahead of Git's, and it can't open a `C:\` path given that way (the known
 `windows-latest` PATH order).  Task 0157 checks it (`where bash`,
 `bash --version`, or a test that captures stderr).
-A test that runs `bash` (or any POSIX tool) is POSIX-only; c7a64b9
-skips that check on win32.  Decision 0052 makes this a rule.
+A test that runs `bash` (or any POSIX tool) is POSIX-only.
+**Rule:** `tests/test_architecture.py::test_posix_tools_are_marked`
+(task 0157): a test running `bash`, `sh`, `timeout` or an OpenFOAM
+utility carries `@pytest.mark.posix_only` (or `openfoam`), which
+`tests/conftest.py` skips on Windows.  It replaced c7a64b9's inline
+skip.
 
 ### Windows: `shlex.quote` quotes a Windows path — *verified*
 `shlex.quote(str(path))` wraps `C:\Users\…` in single quotes (it holds
 `\` and `:`), so text that embeds the quoted path doesn't end with the
 plain path (CI on 61894b1, 2026-11-12).  Compare with the
 same quoting the code applies.
+**Rule:** `test_no_bare_path_in_compared_text` (task 0157), as for
+`str(path)` above: the failing assert, `endswith(f"… run {tmp_path}")`,
+is one of its planted examples.
 
 ## Open questions
 

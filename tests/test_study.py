@@ -477,8 +477,8 @@ def _without_psutil(monkeypatch):
     monkeypatch.setitem(sys.modules, "psutil", None)          # import psutil fails
 
 
-@pytest.mark.skipif(os.name == "nt" or shutil.which("bash") is None,
-                    reason="starts a detached process through bash (POSIX)")
+@pytest.mark.posix_only                     # starts a detached process through bash
+@pytest.mark.skipif(shutil.which("bash") is None, reason="no bash")
 @pytest.mark.parametrize("backend", ["psutil", "proc"])
 def test_other_runs_sees_a_detached_process(backend, monkeypatch):
     """A process that isn't ours (reparented) and looks like pytest."""

@@ -21,11 +21,28 @@ Pipe-spec fixtures use the smallest practical nang (4) and nrad (3) to keep
 meshing fast while still exercising all code paths.
 """
 
+import sys
+
 import pytest
 import gmsh
 
 from hexmesh.core.spec import PipeSpec
 from hexmesh.core.shape import CircleShape, RectShape
+
+
+# ---------------------------------------------------------------------------
+# Platforms (decision 0052; task 0157)
+# ---------------------------------------------------------------------------
+
+def pytest_collection_modifyitems(config, items):
+    """``posix_only`` tests are skipped on Windows (the architecture test
+    ``test_posix_tools_are_marked`` finds the tests that need it)."""
+    if sys.platform != "win32":
+        return
+    skip = pytest.mark.skip(reason="needs a POSIX shell (platforms.md: WSL's bash)")
+    for item in items:
+        if item.get_closest_marker("posix_only"):
+            item.add_marker(skip)
 
 
 # ---------------------------------------------------------------------------

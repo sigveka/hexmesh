@@ -136,6 +136,7 @@ def test_volunteer_text_has_no_task_numbers():
     assert not re.search(r"\b(task|decision) \d{4}\b", vol.render(), re.I)
 
 
+@pytest.mark.posix_only
 def test_job_script_is_bash_with_slurm_directives(tmp_path):
     req = vol.card("helical_pipe")["levels"]["re3000_n24"]["requirements"]
     text = vol.job_script("helical_pipe", "re3000_n24", tmp_path, req, 4)
@@ -143,8 +144,6 @@ def test_job_script_is_bash_with_slurm_directives(tmp_path):
     assert text.rstrip().endswith(f"validation.volunteer run {shlex.quote(str(tmp_path))}")
     path = tmp_path / "job.sh"
     path.write_text(text, encoding="utf-8", newline="\n")
-    if sys.platform == "win32":       # the job runs on a Linux cluster; Windows'
-        return                        # first bash on PATH is WSL's, which can't open C:\ paths
     assert subprocess.run(["bash", "-n", str(path)]).returncode == 0
 
 

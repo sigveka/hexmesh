@@ -55,6 +55,7 @@ end run the same code on a synthetic tree.
 from __future__ import annotations
 
 import ast
+import re
 import json
 import subprocess
 import sys
@@ -115,6 +116,27 @@ RULE_SHAPES = "DESIGN §3.1, shapes and section layouts own their behaviour"
 RULE_ENCODING = "decision 0039, text I/O names its encoding"
 RULE_CODES = "decision 0040, every error carries a registered code"
 RULE_BARE = "decision 0040, no bare built-in raise"
+RULE_POSIX = ("decision 0052, a test that runs a POSIX tool is posix_only "
+              "(docs/integrations/platforms.md: WSL's bash)")
+RULE_PATH_TEXT = ("decision 0052, no bare path inside compared text "
+                  "(docs/integrations/platforms.md: str(path) uses \\, shlex.quote quotes it)")
+#: commands a Windows runner lacks, or has as something else (its ``bash``
+#: is WSL's, its ``timeout`` waits for a key): a test running one is
+#: ``posix_only`` (task 0157)
+POSIX_TOOLS = {"bash", "sh", "timeout"}
+#: OpenFOAM utilities: a test running one is ``openfoam`` or ``posix_only``
+OPENFOAM_TOOLS = {"gmshToFoam", "checkMesh", "splitMeshRegions", "blockMesh", "decomposePar",
+                  "reconstructPar", "simpleFoam", "foamRun", "mapFields", "foamDictionary"}
+#: markers that keep a test off Windows (``openfoam`` is opt-in, Linux only)
+POSIX_MARKERS = {"posix_only", "openfoam"}
+#: (test file, function) running a POSIX tool without a marker of its own:
+#: the reason it is safe
+POSIX_ALLOWED = {
+    ("tests/test_openfoam_output.py", "run_foam"):
+        "a helper, called only from openfoam-marked tests (test_openfoam_boundary, via _types)",
+}
+#: (test file, function, line text) comparing text with a bare path: the reason
+PATH_TEXT_ALLOWED: dict[tuple[str, str], str] = {}
 #: the roots of the coded error and warning classes (``hexmesh/errors.py``)
 CODED_ROOTS = {"HexmeshError", "HexmeshWarning", "HexmeshNotice", "InternalError"}
 #: built-in exceptions hexmesh code must not raise bare (task 0106)
@@ -433,6 +455,124 @@ def encoding_violations(root: Path, trees: tuple[str, ...] = ()) -> list[str]:
     return out
 
 
+_SUBPROCESS = {"run", "Popen", "call", "check_call", "check_output"}
+
+
+def _marks(decorators) -> set[str]:
+    """The ``pytest.mark.<name>`` names in *decorators* (bare or called),
+    or in a ``pytestmark`` value."""
+    out = set()
+    for d in decorators:
+        for node in ast.walk(d):
+            if (isinstance(node, ast.Attribute) and isinstance(node.value, ast.Attribute)
+                    and node.value.attr == "mark"):
+                out.add(node.attr)
+    return out
+
+
+def _test_functions(tree: ast.Module):
+    """``(function, its marks)`` for each top-level function and method,
+    with the module's ``pytestmark`` and the class's included."""
+    module = set()
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and any(isinstance(x, ast.Name) and x.id == "pytestmark"
+                                                for x in node.targets):
+            module |= _marks([node.value])
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            yield node, module | _marks(node.decorator_list)
+        elif isinstance(node, ast.ClassDef):
+            cls = module | _marks(node.decorator_list)
+            for sub in node.body:
+                if isinstance(sub, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    yield sub, cls | _marks(sub.decorator_list)
+
+
+def posix_tool_violations(root: Path, tree: str = "tests") -> list[tuple[str, str, str]]:
+    """``(file:line, function, call)`` for each ``subprocess.run``/``Popen``/
+    ``call``/``check_call``/``check_output`` in *tree*'s ``.py`` files whose
+    argv is a list or tuple literal starting with a POSIX tool or an
+    OpenFOAM utility (:data:`POSIX_TOOLS`, :data:`OPENFOAM_TOOLS`), in a
+    function without a :data:`POSIX_MARKERS` mark (its own, its class's or
+    the module's ``pytestmark``).  Module-level calls count as unmarked
+    unless ``pytestmark`` has one."""
+    out = []
+    for path in sorted((root / tree).rglob("*.py")):
+        rel = path.relative_to(root).as_posix()
+        parsed = ast.parse(path.read_text(encoding="utf-8"), str(path))
+        owner = {}
+        for fn, marks in _test_functions(parsed):
+            for node in ast.walk(fn):
+                owner.setdefault(id(node), (fn.name, marks))
+        for node in ast.walk(parsed):
+            if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                    and node.func.attr in _SUBPROCESS and isinstance(node.func.value, ast.Name)
+                    and node.func.value.id == "subprocess" and node.args
+                    and isinstance(node.args[0], (ast.List, ast.Tuple)) and node.args[0].elts
+                    and isinstance(node.args[0].elts[0], ast.Constant)
+                    and node.args[0].elts[0].value in POSIX_TOOLS | OPENFOAM_TOOLS):
+                continue
+            name, marks = owner.get(id(node), ("<module>", None))
+            if marks is None:
+                marks = set()
+                for top in parsed.body:
+                    if isinstance(top, ast.Assign) and any(
+                            isinstance(x, ast.Name) and x.id == "pytestmark" for x in top.targets):
+                        marks |= _marks([top.value])
+            if not marks & POSIX_MARKERS:
+                out.append((f"{rel}:{node.lineno}", name, ast.unparse(node.args[0])))
+    return out
+
+
+def _bare_path(value: ast.expr) -> str | None:
+    """*value*'s path name if it's ``tmp_path`` or a ``*path``/``*dir``
+    name, bare or as ``str(...)``; ``None`` otherwise."""
+    if (isinstance(value, ast.Call) and isinstance(value.func, ast.Name)
+            and value.func.id == "str" and len(value.args) == 1):
+        value = value.args[0]
+    if isinstance(value, ast.Name) and re.search(r"(^|_)(path|dir)$", value.id):
+        return value.id
+    return None
+
+
+def _path_fstrings(node: ast.expr) -> list[str]:
+    """The bare path names interpolated into the f-strings in *node*."""
+    return [name for sub in ast.walk(node) if isinstance(sub, ast.JoinedStr)
+            for part in sub.values if isinstance(part, ast.FormattedValue)
+            for name in [_bare_path(part.value)] if name]
+
+
+def path_text_violations(root: Path, tree: str = "tests") -> list[tuple[str, str, str]]:
+    """``(file:line, function, name)`` for each ``assert`` in *tree* that
+    compares text (``==``, ``!=``, ``in``, ``not in``, ``.startswith``,
+    ``.endswith``) with an f-string interpolating a bare path
+    (:func:`_bare_path`): ``f"{tmp_path}/x"``, ``f"{str(out_dir)}"``.
+    ``.name``, ``.as_posix()`` and ``shlex.quote(...)`` are safe, as is
+    anything not in an ``assert``."""
+    out = []
+    for path in sorted((root / tree).rglob("*.py")):
+        rel = path.relative_to(root).as_posix()
+        parsed = ast.parse(path.read_text(encoding="utf-8"), str(path))
+        owner = {}
+        for fn, _ in _test_functions(parsed):
+            for node in ast.walk(fn):
+                owner.setdefault(id(node), fn.name)
+        for node in ast.walk(parsed):
+            if not isinstance(node, ast.Assert):
+                continue
+            for sub in ast.walk(node.test):
+                operands = []
+                if isinstance(sub, ast.Compare) and all(
+                        isinstance(op, (ast.Eq, ast.NotEq, ast.In, ast.NotIn)) for op in sub.ops):
+                    operands = [sub.left, *sub.comparators]
+                elif (isinstance(sub, ast.Call) and isinstance(sub.func, ast.Attribute)
+                      and sub.func.attr in ("startswith", "endswith")):
+                    operands = [sub.func.value, *sub.args]
+                for name in (n for o in operands for n in _path_fstrings(o)):
+                    out.append((f"{rel}:{sub.lineno}", owner.get(id(node), "<module>"), name))
+    return out
+
+
 def registered_codes(root: Path) -> set[str]:
     """The keys of ``CODES`` in ``hexmesh/errors.py``, read from its AST."""
     tree = ast.parse((root / "hexmesh" / "errors.py").read_text(encoding="utf-8"))
@@ -630,6 +770,51 @@ def test_bare_allow_list_still_needed():
     assert not stale, f"BARE_ALLOWED entries no longer raised (remove them): {stale}"
 
 
+def test_posix_tools_are_marked():
+    bad = [f"{where} in {fn}: {argv}" for where, fn, argv in posix_tool_violations(ROOT)
+           if (where.split(":")[0], fn) not in POSIX_ALLOWED]
+    assert not bad, (f"{RULE_POSIX}; add @pytest.mark.posix_only (or openfoam) to the test, "
+                     "or pytestmark to its module:\n  " + "\n  ".join(bad))
+
+
+@pytest.mark.parametrize("platform, skipped", [("win32", True), ("linux", False),
+                                               ("darwin", False)])
+def test_posix_only_is_skipped_on_windows_only(monkeypatch, platform, skipped):
+    """``conftest.py``'s hook (task 0157), with fake items."""
+    import conftest
+
+    class Item:
+        def __init__(self, marked):
+            self.marked, self.added = marked, []
+
+        def get_closest_marker(self, name):
+            return object() if self.marked and name == "posix_only" else None
+
+        def add_marker(self, mark):
+            self.added.append(mark)
+
+    items = [Item(True), Item(False)]
+    monkeypatch.setattr(conftest.sys, "platform", platform)
+    conftest.pytest_collection_modifyitems(None, items)
+    assert [bool(i.added) for i in items] == [skipped, False]
+    if skipped:
+        assert "WSL's bash" in items[0].added[0].kwargs["reason"]
+
+
+def test_posix_allow_list_still_needed():
+    found = {(where.split(":")[0], fn) for where, fn, _ in posix_tool_violations(ROOT)}
+    stale = sorted(set(POSIX_ALLOWED) - found)
+    assert not stale, f"POSIX_ALLOWED entries no longer needed (remove them): {stale}"
+
+
+def test_no_bare_path_in_compared_text():
+    bad = [f"{where} in {fn}: {name}" for where, fn, name in path_text_violations(ROOT)
+           if (where.split(":")[0], fn) not in PATH_TEXT_ALLOWED]
+    assert not bad, (f"{RULE_PATH_TEXT}; compare with path.as_posix(), path.name or "
+                     "shlex.quote(str(path)), or the text read back as a Path:\n  "
+                     + "\n  ".join(bad))
+
+
 def test_every_error_is_coded():
     bad = code_violations(ROOT)
     assert not bad, (f"{RULE_CODES}; pass code=\"…\" and register it, with a one-line "
@@ -770,6 +955,47 @@ def test_planted_encoding(tmp_path, text, n):
     assert len(bad) == 2 * n, bad
     assert sorted(bad) == sorted(b for f in ("hexmesh/study/x.py", "tests/test_x.py")
                                  for b in bad if b.startswith(f"{f}:1: "))
+
+
+@pytest.mark.parametrize("text, n", [
+    ("def test_a():\n    subprocess.run(['bash', '-n', p])\n", 1),
+    ("def test_a():\n    subprocess.check_output(('sh', '-c', s))\n", 1),
+    ("def test_a():\n    subprocess.run(['timeout', '8', exe])\n", 1),
+    ("def test_a():\n    subprocess.Popen(['checkMesh', '-case', c])\n", 1),
+    ("def helper():\n    return subprocess.run(['bash', '-c', s])\n", 1),      # helpers too
+    ("x = subprocess.run(['bash', '-c', s])\n", 1),                             # module level
+    ("@pytest.mark.posix_only\ndef test_a():\n    subprocess.run(['bash', '-n', p])\n", 0),
+    ("@pytest.mark.openfoam\ndef test_a():\n    subprocess.run(['bash', '-c', s])\n", 0),
+    ("pytestmark = [pytest.mark.openfoam]\n"
+     "def test_a():\n    subprocess.run(['gmshToFoam', m])\n", 0),
+    ("@pytest.mark.posix_only\nclass TestA:\n"
+     "    def test_a(self):\n        subprocess.run(['bash', '-n', p])\n", 0),
+    ("def test_a():\n    subprocess.run([sys.executable, '-c', s])\n", 0),        # not a tool
+    ("def test_a():\n    subprocess.run(['docker', 'ps'])\n", 0),                 # on Windows too
+    ("def test_a():\n    subprocess.run(argv)\n", 0),                             # not a literal
+])
+def test_planted_posix_tools(tmp_path, text, n):
+    root = _tree(tmp_path, {"tests/test_x.py": text})
+    assert len(posix_tool_violations(root)) == n
+
+
+@pytest.mark.parametrize("text, n", [
+    ('assert out.endswith(f"run {tmp_path}")\n', 1),        # the 4473cb1 failure, as it was
+    ('assert f"{tmp_path}/a.msh" in text\n', 1),
+    ('assert text == f"wrote {str(out_dir)}"\n', 1),
+    ('assert line.startswith(f"{case_path}: ")\n', 1),
+    ('assert ok and f"{tmp_path}" != text\n', 1),
+    ('assert out.endswith(f"run {shlex.quote(str(tmp_path))}")\n', 0),
+    ('assert f"{tmp_path.name}/a" in text\n', 0),
+    ('assert f"{tmp_path.as_posix()}/a" in text\n', 0),
+    ('assert Path(text) == tmp_path / "a"\n', 0),            # compared as paths
+    ('msg = f"{tmp_path}"\n', 0),                               # not in an assert
+    ('assert f"{n} cells" in text\n', 0),                       # not a path name
+    ('assert len(f"{tmp_path}") > 3\n', 0),                     # not a text comparison
+])
+def test_planted_path_text(tmp_path, text, n):
+    root = _tree(tmp_path, {"tests/test_x.py": "def test_a(tmp_path):\n    " + text})
+    assert len(path_text_violations(root)) == n
 
 
 _ERRORS = ("class HexmeshError(ValueError): pass\n"

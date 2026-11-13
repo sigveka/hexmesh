@@ -38,6 +38,14 @@ jobs:
         run: python -m pip install "gmsh==${{ matrix.gmsh }}"
       - name: Versions
         run: python -c "import sys, gmsh, hexmesh; print(sys.version, gmsh.__version__, hexmesh.__version__)"
+      - name: Which bash (Windows; docs/integrations/platforms.md, task 0157)
+        if: runner.os == 'Windows'
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          where.exe bash
+          python -c "import shutil; print('shutil.which:', shutil.which('bash'))"
+          python -c "import subprocess as s; r = s.run(['bash', '--version'], capture_output=True); print('subprocess bash:', r.returncode, r.stdout[:120], r.stderr[:400])"
       - name: Test
         run: python -m pytest -q
 
