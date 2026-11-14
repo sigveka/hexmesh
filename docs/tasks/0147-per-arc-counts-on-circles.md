@@ -1,6 +1,6 @@
 # 0147 — Per-arc counts on `CircleShape`
 
-- **Status:** in progress (Q6, the signature's pattern: asked; the rest goes on)
+- **Status:** done
 - **Decision:** [0041](../decisions/0041-per-side-counts-on-rectangles.md),
   option C, in the form fixed under *C's form* (2026-11-06) and taken off
   hold by its amendment (2026-11-08, with decision 0042: "per-arc count
@@ -233,3 +233,49 @@ the design session, *Parameter separation*).
   layer (a circle with `arcs` gives each arc its own)".
 
 ## Outcome
+
+Done 2026-11-14: 31d0962 (the code), 1cababf (docs to (B): the arcs are
+density), 5fce743 (a test fix, below).
+
+- **Files:** `hexmesh/core/shape.py` (`CircleShape.arcs`),
+  `core/spec.py` (`_check_arcs`, `_check_arc_counts`, `with_radii`),
+  `sections/oh_gmsh.py`, `assembly/interface.py` (`check_arcs`),
+  `_graph.py`, `_validate.py`, `fittings.py` (`handles_arcs` on four
+  fittings), `intent.py` (`refined`), `agent/_schema.py`,
+  `agent/advise.py` (refuses arcs), `errors.py` (+6 codes:
+  `arc_counts_need_n_outer_4`, `arc_counts_not_opposite`,
+  `arcs_invalid`, `arcs_unsupported`, `arcs_with_nang`,
+  `advice_arcs_unsupported`); `API.md` (the section, the codes, the
+  format note), `docs/GUIDE.md` (the round pipe into a 2:1 duct),
+  `CHANGELOG.md`; `tests/test_arc_counts.py` (34 tests).
+- **Accept:**
+  - **Every example mesh byte-identical, every port signature
+    unchanged:** all 35 examples meshed at 4aea4a7 and with the change;
+    the sha256 of each one's nodes (tags, coordinates) and 2-D and 3-D
+    elements, and of `repr(signature(…))` of every interface, are equal
+    for all 35.  (The decision says 28: there are 35 now.)
+  - **Full suite:** no failures, in two runs, because the `-n 2` runs
+    were stopped for low memory three times (at 3591 tests each time,
+    in `test_refined.py`'s meshing):
+    - `-n 1` at 1cababf, stopped for memory after 3940 passed, 17
+      skipped, 0 failed (collection positions 1–3957);
+    - the rest, positions 3900–4577 (678 tests, overlapping by 57),
+      `-n 1` at 5fce743: **677 passed, 1 skipped**, 15 min 51 s.
+- **Measured:** a (2, 4, 2, 4) circle with a wall through Straight,
+  Bend, Reducer meshes all-hex, cells as predicted (672 for the trial
+  network); the circle → 2:4 rectangle Transition 560 cells, min SICN
+  0.17; the GUIDE example (8, 4, 8, 4) → an H 2:1 duct, 1536 cells, min
+  SICN 0.26.  `refined(2)`: 8× the cells, every coarse node within
+  1.4e-16 of a fine one.
+- **A bug that reached `next`:** `test_the_description_schema_takes_arcs`
+  imported `hexmesh.agent.schema` (the submodule), which replaces the
+  package's `schema` function for every later test in that worker, so
+  `test_tee_branch_grading`'s schema test failed on CI (run 43599497895,
+  c591252; found by the design session).  Fixed in 5fce743: `from
+  hexmesh.agent import schema`.  The name clash (a function and a
+  submodule both `schema`) is on task 0150's list.
+- **Follow-ups:**
+  - advising a circle with arcs (`advise` refuses it today);
+  - junction support (Agent notes, step 4);
+  - general arcs and the signature's `pattern` (decision 0035 stage B).
+
