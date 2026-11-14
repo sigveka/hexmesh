@@ -146,3 +146,32 @@ record's options:
 - **The 1.x constraint:** whatever comes of it must arrive additively
   (decision 0042's promise): a new fitting or a declared joint, never a
   change of meaning for an existing description.
+
+## Note (2026-11-14): a second use for `Head`, the reentry capsule; after 1.0
+
+The user (2026-11-14) asked whether a reentry capsule's body could be an
+application mesh: the solid only (cabin structure, insulation and heat
+shield), for conduction through the thermal protection.  Asked to
+research it and keep it for after 1.0.  RESEARCH §13 has the survey.
+
+- **It is option A's `Head`**, with a second use beside drum heads.
+  Both of the Apollo command module's ends are torispherical (a
+  spherical crown and a toroidal knuckle), as dished drum heads are.
+  The aft head joins a 33° cone, so a `Head` needs the half-angle of
+  the shell it closes, not only a cylinder.
+- **Its sections are today's:** an O-H core (the cabin) with four
+  shells (aluminium honeycomb, insulation, steel honeycomb, ablator),
+  the same materials everywhere, thicker at the aft end.  A `Reducer`
+  carries the thickness change along the cone.  Constant-thickness
+  shells make the example axisymmetric; the real ablator is thicker on
+  the windward side.
+- **A limit for the `Head`'s design:** the aft stack is 0.178 m thick
+  on a 0.196 m shoulder radius, so the innermost layer turns at 0.018 m.
+  `Head` must reject a non-positive offset knuckle radius with a coded
+  error.
+- **5 patches, not 12, for the shield** (RESEARCH §13.3): `n_outer = 8`
+  is a sub-partition of the same cells, so it doesn't change the mesh.
+  The shield's resolution is through the thickness.
+- **Not affected:** this record's density question (cases 3–4) and
+  1.0.  A `Head` is a new fitting, additive after the freeze (decision
+  0042).  No task until the design session takes 0003 up after 1.0.

@@ -2565,6 +2565,126 @@ rect-duct series on OpenFOAM, waits for task 0090.
     amendment 3 (gate net of the fit's bias) was written for.  A gate
     on raw u_c would have failed on a correct solution.
 
+## 13. A closed, layered body: the Apollo command module (surveyed 2026-11-14, design session)
+
+**Why.**  The user (2026-11-14) asked whether a reentry capsule's body,
+heat shield included, could be a hexmesh application: the solid only,
+for conduction through the thermal protection into the structure, not
+the air around it.  It is a closed vessel with a layer stack, so it
+needs decision 0003's `Head` (a single-port fitting that closes a
+section).  Kept for after 1.0.
+
+### 13.1 Outer shape
+
+From `moss_and_glass_etal_2006`, figure 1 (the outer mould line used
+for their DSMC work, "which does not account for thermal protection
+thickness variations between the leeward and windward sides"), in
+metres:
+
+| quantity | value | / $D_b$ |
+|---|---|---|
+| maximum diameter $D_b$ | 3.9116 | 1 |
+| forebody (heat shield) spherical radius $R_n$ | 4.6939 | 1.20 |
+| shoulder (toroid) radius $R_s$ | 0.1956 | 0.050 |
+| afterbody nose radius $R_a$ | 0.2311 | 0.059 |
+| afterbody cone half-angle | 33° | |
+| length along the axis | 3.4306 | |
+
+The heat shield's spherical cap ends 23.0° from the axis (point 1 at
+$y$ = 1.8368 m), where the toroidal shoulder takes over; the cone then
+runs to the afterbody's rounded nose.  `bertin_1966` gives the same
+maximum radius (77 in. full scale) and the 33° cone.  The real module's
+forward compartment and docking tunnel are replaced here by the
+rounded nose.
+
+**Geometrically, both ends are torispherical heads:** a spherical crown
+with a toroidal knuckle, as on a dished drum head.  The aft head joins
+the 33° cone, not a cylinder; the forward head closes the cone's narrow
+end.  One `Head` fitting with a crown radius, a knuckle radius and the
+half-angle of the shell it closes would cover drum heads and both
+capsule ends.
+
+### 13.2 The layer stack
+
+From `pavlosky_and_stleger_1974` (NASA TN D-7564), figure 4 (read from
+the page image), outside in:
+
+| layer | aft heat shield (A-A, stagnation region) | conical side (B-B, leeward) |
+|---|---|---|
+| Avcoat 5026-39G ablator in a phenolic honeycomb (31 lb/ft³) | 2.7 in. | 0.9 in. (the text says 0.7) |
+| brazed stainless-steel honeycomb substructure | 2.0 in. | 0.5 in. |
+| fibrous insulation (TG15000, 3.5 lb/ft³) | 0.8 in. | 1.33 in. |
+| aluminium honeycomb (the cabin's pressure structure) | 1.5 in. | 0.5 in. |
+| total | 7.0 in. (0.178 m) | 3.23 in. (0.082 m) |
+
+- **The same four materials everywhere**; only the thicknesses change.
+  In hexmesh terms that is density and radii, not topology: a `Reducer`
+  (radii only) carries the stack along the cone.
+- The ablator's thickness "varies with the local thermal environment",
+  thickest at the stagnation region, and differs between windward and
+  leeward sides (the centre of gravity is offset to fly at an angle).
+  hexmesh's shells are offsets of constant thickness around the
+  section, so an example would be axisymmetric, as Moss et al.'s shape
+  is.
+- The conical heat shield is attached to the cabin through fibreglass
+  slip stringers, which a layer model replaces by the insulation layer.
+
+**A geometric limit found here:** the aft stack (0.178 m) is nearly as
+thick as the shoulder radius (0.1956 m).  Offsetting the four layers
+inward around the shoulder leaves the innermost surface a knuckle radius
+of 0.018 m, about a tenth of the outer one.  The cells there are
+strongly curved and thin in the turn.  A `Head` must check the offset
+knuckle radius stays positive (a coded error if not), and the example
+should taper the stack to the cone's 0.082 m on the cone, not in the
+shoulder; where the real taper sits isn't in the report (its figure 2,
+the ablator-thickness map, is a scan without numbers).
+
+### 13.3 The heat shield's face: 5 patches or 12 (`n_outer` 4 or 8)
+
+The user asked whether a 12-patch O-H (`n_outer = 8`: 8 ring patches and
+a 2×2 core) would suit the heat shield better than the 5-patch one
+(`n_outer = 4`).
+
+**For the mesh itself, it makes no difference.**  In hexmesh,
+`n_outer = 8` is the 4-corner face cut along its own grid lines
+(decision 0005, task 0088): node connectivity is identical, and the
+nodes are placed back where the 4-corner mesh has them (§9.2; task
+0088's measurements, ≤ 2.7e-15 R on 2-D faces).  The cells, their
+quality and the four singular corners of the core (where three cells
+meet, instead of four) are the same.  A heat shield over a `Head` would
+inherit them either way.
+
+**What 12 patches would add:** more surface and volume entities,
+splitting the shield into 8 sectors.  That helps only where something
+must land on a 45° line: a port or a boundary between regions at 45°.
+A windward/leeward heat flux doesn't need it: a solver applies a
+non-uniform boundary value on one patch (OpenFOAM: a coded or tabulated
+`fixedGradient`).  It would cost the `Head` the `n_outer = 8`
+node-placement step (task 0088), and junctions take only 4.
+
+**What does matter for the shield's mesh:**
+- **Through the thickness:** `nrad` per layer, with the ablator graded
+  toward the heated surface (`mprg`), since the steep gradients are in
+  the first millimetres of char.  This is the resolution an ablation
+  or conduction study needs, and it is independent of the face layout.
+- **The core's size on the cap:** the O-H core square sits over the
+  stagnation region.  On the shallow cap (23°) the face is nearly
+  flat, so the core keeps its 2-D quality; its singular corners lie at
+  about 0.6·R/√2 from the axis (`OH_RATIO`), where the heating varies
+  slowly.  Worth measuring once `Head` exists, not before.
+- **The inner knuckle** (§13.2): the binding quality limit, whatever
+  the face.
+
+**A different 8-corner topology** (an octagonal centre patch, so the
+core's corners are 135° rather than 90°) would change the cells.  It is
+not what hexmesh's `n_outer = 8` is: the old `build_oh_circle8` built
+one, and decision 0005 replaced it by the sub-partition; 12 corners
+and up are rejected (`section_not_supported`).  Nothing here argues for
+reopening it.
+
+**Answer:** keep 5 patches (`n_outer = 4`) for a heat shield.  Spend
+the effort on the through-thickness grading and the knuckle.
+
 ## Source availability
 
 Downloaded to `papers/`: `bennett_2025`, `decroocq_and_frindel_etal_2023`
