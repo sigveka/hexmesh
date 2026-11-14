@@ -182,6 +182,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0120](0120-validation-vattenfall-tjunction-stage-a.md) | Validation: the Vattenfall T-junction (thermal mixing), stage (a): case, mesh, data and volunteer card | V3 | ready (after 0119) | 0012, 0044 |
 | [0108](0108-gmshtofoam-inversion-audit.md) | Audit the validation cases for gmshToFoam's silent inversions | V1 | done | 0012 |
 | [0109](0109-mms-wall-slope.md) | MMS: does the order track the wall slope? | V1 | done | 0012 |
+| [0162](0162-validation-junction-flow-stigler.md) | Validation: loss coefficients of equal-diameter tees and laterals (Štigler et al. 2014) | V3 | ready | 0042, 0012, 0015 |
 
 
 ### Order
