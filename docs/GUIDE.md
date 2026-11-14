@@ -367,7 +367,7 @@ asm.add(Straight(0.3, n_layers=6))
 The pipe's cells are then uneven around it: each 90° arc has 8 cells on
 top and bottom, 4 at the sides.  `Straight`, `Bend`, `Reducer` and `Transition` take
 such a circle; other fittings, the junctions among them, reject it by
-name (`arcs_unsupported`).  The ratio is topology: `refined(k)` keeps it.
+name (`arcs_unsupported`).  `refined(k)` multiplies every arc.
 
 `up` decides which side is the height, and a bend's `roll` decides its
 plane. `Bend(..., roll=0)` turns toward `up`, across the height: the

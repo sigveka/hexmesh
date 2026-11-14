@@ -241,8 +241,8 @@ def test_a_round_tap_with_arcs_is_rejected():
 # --- refinement --------------------------------------------------------------------
 
 def test_refined_nests():
-    """The pattern is topology, a uniform multiple density: refined(2)
-    doubles each arc, and every coarse node is a fine node."""
+    """refined(2) doubles each arc (the arcs are density, decision 0041's
+    correction to answer 5), and every coarse node is a fine node."""
     pytest.importorskip("scipy")
     from scipy.spatial import cKDTree
     asm = _asm(_circle(shells=1))

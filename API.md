@@ -322,9 +322,10 @@ as a list.
   (`shape_counts_mismatch`).  Every outline in its stack has the same
   count on every side (`counts_mismatch` names the layer).  Four equal
   counts are the same circle as `nang`.
-- **Topology and density:** the pattern (`a : b`) is topology; a
-  uniform multiple is density, so `refined(k)` multiplies every arc
-  by k and nests.
+- **Density:** the arcs are density, like a duct's `nang_w`/`nang_h`
+  (one per network): the face's signature is that of an O-H rectangle
+  with the same counts, and `refined(k)` multiplies every arc by k and
+  nests (decision 0041).  A topology `pattern` comes with general arcs.
 - **Fittings opt in:** `Straight`, `Bend`, `Reducer` and `Transition`
   take it.  Every other fitting, the junctions included, raises
   `AssemblyError` (`arcs_unsupported`), naming the fitting.

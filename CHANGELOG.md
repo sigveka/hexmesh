@@ -9,8 +9,9 @@
 - `Straight`, `Bend`, `Reducer` and `Transition` take it; every other
   fitting raises `arcs_unsupported`, naming itself.  Opposite arcs must
   be equal (`arc_counts_not_opposite`), on `n_outer = 4`.
-- The pattern is topology, a uniform multiple density: `refined(k)`
-  multiplies every arc.
+- The arcs are density, like a duct's `nang_w`/`nang_h`: `refined(k)`
+  multiplies every arc, and the signature is that of an O-H rectangle
+  with the same counts.
 - Saved as `"arcs": [a, b, a, b]` in place of `"nang"`.  Descriptions
   without it load and save unchanged.
 

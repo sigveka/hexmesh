@@ -277,7 +277,7 @@ def refine_spec_dict(d: dict, k: int) -> dict:
         for key in ("nang", "nang_w", "nang_h"):
             if key in shape:
                 shape[key] *= k
-        if "arcs" in shape:          # a circle's per-arc counts (task 0147): the pattern kept
+        if "arcs" in shape:          # a circle's per-arc counts (task 0147), each × k
             shape["arcs"] = [n * k for n in shape["arcs"]]
     for layer in (d["core"], *d["shells"]):
         layer["nrad"] *= k
