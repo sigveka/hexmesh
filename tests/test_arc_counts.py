@@ -102,7 +102,7 @@ def test_the_spec_and_assembly_round_trip():
 
 def test_the_description_schema_takes_arcs():
     jsonschema = pytest.importorskip("jsonschema")
-    from hexmesh.agent.schema import schema
+    from hexmesh.agent import schema      # not the submodule: importing it shadows the function
     v = jsonschema.Draft202012Validator(schema())
     asm = _asm(_circle())
     asm.add(Straight(0.2, n_layers=2))
