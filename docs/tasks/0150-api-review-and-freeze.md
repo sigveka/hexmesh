@@ -49,6 +49,19 @@ must happen once, here, before the freeze.
      argument name (`branch_shells=` or better).
    - **an output `scale=` on the writers** (decision 0047's note of
      2026-11-11, from task 0139): ask the user; add or reserve it.
+   - **`hexmesh.agent.schema` is both a function and a submodule**
+     (`agent/schema.py`, the `python3 -m hexmesh.agent.schema`
+     command).  Importing the submodule replaces the package's function
+     with the module, for the rest of the process: CI run 43599497895
+     failed on it (a test imported the submodule; fixed in 5fce743).  A
+     user can hit it the same way.  Check every package for a public
+     function named like a submodule; rename one side (for example the
+     command module `_schema_cli`, keeping `python3 -m` working through
+     a documented entry point), or document it.  Found by the design
+     session, 2026-11-14.
+   - **Classes of a circle's arc ratio and a rectangle's side ratio:**
+     both class 2 since decision 0041's correction (2026-11-14); check
+     the signature docs say so.
 4. **Apply the table:** renames with deprecated aliases; removals of
    things deprecated for at least one release; each with a CHANGELOG
    line.
