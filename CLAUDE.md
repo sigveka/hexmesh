@@ -100,7 +100,9 @@ topology:
 **Per-arc counts** (`CircleShape(radius, arcs=[a, b, a, b])`, decision
 0041, task 0147).  Today the layouts mesh only opposite-equal arcs, on
 `n_outer = 4`.  Such a circle sets `nang_w = a` and `nang_h = b`, as a
-rectangle does, and its signature is a rectangle's of the same counts.
+rectangle does, and its signature is that of an O-H rectangle with the
+same counts and layers (an H rectangle differs in core kind; a
+`Transition` embeds the switch).
 So the arcs are density, like a rectangle's side counts: `refined(k)`
 scales them, and a circle-to-rectangle `Transition` with the same counts
 joins.  A section signature `pattern` (topology) comes with general
