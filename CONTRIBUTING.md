@@ -107,6 +107,24 @@ git config --unset core.hooksPath          # opt out
 It needs `python3` (or set `PYTHON=python`), and it tests the working
 tree, not only what is staged.
 
+**Both gmsh versions, locally** (task 0159).  CI tests gmsh 4.12.1 (the
+reference) and the gmsh `pip` installs; junction meshes differ between
+them (task 0145).  Before pushing a change to junction or plate code
+(`hexmesh/assembly/tee.py`, `wye.py`, `duct_tap.py`, `cube.py`,
+`corners.py`, `junction_quality.py`, the block layout in `blocks.py`) or to the section
+surfaces in `hexmesh/core/` and `hexmesh/sections/`, run both:
+
+```bash
+uvx nox                                   # both sessions, the junction tests
+uvx nox -s tests-gmsh412 -- -k tee        # one session, your pytest arguments
+```
+
+Each session keeps its venv under `.nox/` (git-ignored, about 0.5 GB for
+both).  Without arguments they run `JUNCTIONS` in `noxfile.py`: the tee,
+equal-tee, wye, duct-tap, branch-grading, junction-quality, PCF-junction
+and unit tests, at `-n 2`.  (`pip install nox` works too, in place of
+`uvx`.)
+
 Questions about the code are welcome as issues too.
 
 ## The docs site

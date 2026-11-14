@@ -21,3 +21,6 @@ validation/*/work/
 
 # Essens working store (local only; lint with --scratch)
 .essens/
+
+# nox sessions (task 0159)
+.nox/

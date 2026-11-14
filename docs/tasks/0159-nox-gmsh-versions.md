@@ -1,6 +1,6 @@
 # 0159 — Local test sessions against both gmsh versions (`nox`)
 
-- **Status:** ready
+- **Status:** done
 - **Decision:** [0052](../decisions/0052-ci-gates-main.md) (measure 3).
 - **Depends on:** none.
 
@@ -31,6 +31,39 @@ before it is pushed, in minutes rather than one CI cycle.
 
 ## Agent notes
 
+- **nox isn't installed here; `uvx nox` runs it** (uv is), without
+  touching the system Python.  CONTRIBUTING gives both `uvx nox` and
+  `pip install nox`.  `venv_backend="uv|virtualenv"`: uv when present.
+- **Install as CI does:** `pip install -e ".[dev,study]"`, then
+  `gmsh==4.12.1` for the reference session (`tests.yml`'s pinned job).
+- **The junction test set** wasn't written down anywhere, so I made it
+  `JUNCTIONS` in `noxfile.py`: `test_tee`, `test_equal_tee`, `test_wye`,
+  `test_duct_tap`, `test_tee_branch_grading`, `test_junction_quality`,
+  `test_pcf_junctions`, `test_units` (task 0145's four failures were in
+  the last three).  With pytest arguments after `--`, those replace the
+  set.
+- **`-n 2` first,** so a `-n` given after `--` wins (xdist takes the
+  last).  `reuse_existing_virtualenvs = True`: a second run doesn't
+  reinstall.
+
 ## Questions for design
 
 ## Outcome
+
+Done 2026-11-14.
+
+- **Files:** `noxfile.py` (new), `.gitignore` (`.nox/`),
+  `CONTRIBUTING.md` (when to run them, the commands, the set).
+- **Both sessions pass the junction tests here** (`uvx nox`, one after
+  the other, nothing else running):
+
+  | session | gmsh | result | wall time | venv |
+  |---|---|---|---|---|
+  | `tests-gmsh412` | 4.12.1 | 262 passed | 286 s | 374 MB |
+  | `tests-gmsh-latest` | 4.15.2 | 262 passed | 252 s | 121 MB |
+
+  Building both venvs took 25 s (uv, warm cache); `du` counts uv's
+  hard-linked files once, so together about 0.5 GB.
+- **Disk:** `.nox/` deleted after the check (CLAUDE.md); the next
+  `uvx nox` rebuilds it.
+
