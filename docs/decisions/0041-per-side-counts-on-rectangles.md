@@ -301,3 +301,27 @@ answered (the user agreed to the recommendation):
 **For the API review (task 0150):** a rectangle's `nang_w : nang_h`
 ratio is still class 2 (density), while a circle's arc pattern is class
 3 (topology).  Acceptable for now; to be looked at before the freeze.
+*(Superseded by the correction below: both are class 2.)*
+
+### Correction to answer 5 (2026-11-14; the user: "Ok, let us do B")
+
+Task 0147's Q6: with a `pattern` only on circles, a 2:4 rectangle (no
+pattern) and a circle with arcs (2, 4, 2, 4) (pattern (1, 2, 1, 2)) have
+different signatures.  So the circle-to-rectangle `Transition`, the case
+per-arc counts were for, would be refused.
+
+**Answer 5 is replaced: no `pattern` field for now.**
+- While only opposite-equal arcs mesh (answer 1), a circle with arcs
+  sets `nang_w` and `nang_h`, which already describe its pattern.  Its
+  signature is a rectangle's of the same counts.
+- A change of a circle's arc ratio is then class 2 (density), like a
+  rectangle's.  No fitting bridges either.  This replaces point 4's
+  "the pattern is topology" until general arcs mesh, and removes the
+  inconsistency this note left to the API review.
+- Every existing signature is unchanged, and the `Transition` is class 0.
+- A `pattern` field comes with general arcs (decision 0035 stage B),
+  when `nang_w`/`nang_h` no longer describe them.
+- Rejected: (A), a pattern on every outline with unequal sides,
+  rectangles included.  It would change every 2:1 rectangle's saved
+  signature, and make a rectangle's ratio change class 3, before the API
+  review.

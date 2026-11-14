@@ -92,9 +92,19 @@ without rebuilding geometry:
 
 **Density** is resolution only, and can be scaled without changing
 topology:
-- `nang`: divisions per 90° arc, shared by every layer;
+- `nang`: divisions per 90° arc, shared by every layer (a circle with
+  `arcs` gives each arc its own);
 - `nrad`: cells across each radial layer;
 - `n_layers`: axial cells, per fitting.
+
+**Per-arc counts** (`CircleShape(radius, arcs=[a, b, a, b])`, decision
+0041, task 0147).  Today the layouts mesh only opposite-equal arcs, on
+`n_outer = 4`.  Such a circle sets `nang_w = a` and `nang_h = b`, as a
+rectangle does, and its signature is a rectangle's of the same counts.
+So the arcs are density, like a rectangle's side counts: `refined(k)`
+scales them, and a circle-to-rectangle `Transition` with the same counts
+joins.  A section signature `pattern` (topology) comes with general
+arcs, in decision 0035 stage B.
 
 `Reducer` relies on this split: its outlet may differ from its inlet in
 radii only.  Topology and density must match.

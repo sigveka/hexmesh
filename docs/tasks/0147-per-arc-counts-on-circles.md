@@ -215,6 +215,12 @@ proposals, as written above, with Q5's pattern **left out when uniform**
 the four counts are saved as a list.  Recorded in decision 0041's note
 of 2026-11-13, which is the reference.
 
+**Q6 answered (the design session, 2026-11-14; the user: "Ok, let us
+do B"): (B).**  No `pattern` field; recorded in decision 0041's
+correction to answer 5.  Steps 2 and 5 follow it: the signature is
+unchanged, and CLAUDE.md says the arcs are density for now (written by
+the design session, *Parameter separation*).
+
 - **For the design session: step 5's CLAUDE.md sentence** (the coding
   session doesn't edit CLAUDE.md).  Proposed for *Parameter separation*,
   after the **Density** list:
