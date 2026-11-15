@@ -1,6 +1,6 @@
 # 0162 — Validation: loss coefficients of equal-diameter tees and laterals (Štigler et al. 2014)
 
-- **Status:** blocked (the 45° half: *Questions for design*)
+- **Status:** ready (Q1 and Q2 answered by design, 2026-11-15)
 - **Decision:** [0042](../decisions/0042-road-to-1-0.md) criterion 4
   ("a junction-flow benchmark (Štigler's T-junction, on equal tees)"),
   milestone 0.7; [0012](../decisions/0012-openfoam-validation-cases.md);
@@ -9,7 +9,9 @@
 - **Category:** V3 (experiment: Štigler et al. 2014)
 - **Features:** `section:circle`, `straight`, `tee`
 - **Depends on:** 0049 (the turbulent model setup and post-processing).
-  Equal tees and laterals are done (0122, 0126, 0127).
+  The square equal tee is done (0122, 0127).  Equal laterals below 90°
+  are deferred (decisions 0031 and 0043, `EQUAL_LATERAL_ANGLE_MIN`):
+  *corrected 2026-11-15*, this line first said they were done.
 
 Ground rules for all tasks: [README](README.md#ground-rules).
 
@@ -171,5 +173,22 @@ intersections (decision 0045).
   That is: agree with the experiment as well as their 2.3 M-cell
   k–ε did.  Is a per-point gate right, or a pass count (for example
   4 of 5 per curve)?
+
+**Answers (the design session, 2026-11-15):**
+- **Q1: (a).**  90° only, Div a, Com a, Div c and Com c, five q each
+  (20 points); digitise figures 9, 10, 15 and 16 at 90°.  The 45°
+  points stay in `reference/` for when equal laterals are built.  Step
+  2's subset and step 3's lateral are replaced by this.  The design
+  error was mine: equal laterals were deferred with the user's yes
+  (decision 0031's note of 2026-11-10).
+- **Q2: per-point gates, as proposed**: |ours − measured| ≤
+  u_measured + the largest |F − E| of their CFD for that configuration,
+  coefficient and angle.  **The case passes when every point passes**;
+  report the count per curve as well, so a near miss is visible.  It
+  reads as "as close to the experiment as their 2.3 M-cell k–ε", which
+  is the claim worth making.  Write the gates in `case.json` before the
+  first run, as step 1 says.
+- **Memory** (the 0050 question applies here too): size the finest
+  level so that one run stays under about 6 GB; report its peak.
 
 ## Outcome
