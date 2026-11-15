@@ -69,6 +69,21 @@ waits weren't tested: the first accepted pushes, right after protecting
 and 60 s after, were the same-tree commit, so they say nothing about
 delay.
 
+### A new fork runs no workflows until a person enables them — *verified*
+Task 0149, 2026-11-15, on `Essens-lang/hexmesh` (forked from
+`sigveka/hexmesh`).  Until someone clicked "I understand my workflows"
+on the fork's Actions page, no workflow was registered and publishing a
+release started nothing, although the API already reported Actions as
+enabled.  After the click, deleting the release and publishing it again
+started the run.  An agent can't do the click: plan a person for it.
+
+### A workflow on `release: published` runs at the release, not the tag push — *by design*
+`docs/RELEASING.md` pushes the tag first and creates the release after,
+so `.github/workflows/release.yml` triggers on `release: published`
+(which includes pre-releases); at the tag push there is no release to
+attach files to.  `workflow_dispatch` with a tag attaches the files to
+an existing release.  (Task 0149.)
+
 ## Open questions
 
 - **Rulesets vs classic protection for `main`:** both refuse an untested
