@@ -1,6 +1,6 @@
 # 0162 — Validation: loss coefficients of equal-diameter tees and laterals (Štigler et al. 2014)
 
-- **Status:** ready
+- **Status:** blocked (the 45° half: *Questions for design*)
 - **Decision:** [0042](../decisions/0042-road-to-1-0.md) criterion 4
   ("a junction-flow benchmark (Štigler's T-junction, on equal tees)"),
   milestone 0.7; [0012](../decisions/0012-openfoam-validation-cases.md);
@@ -103,6 +103,73 @@ intersections (decision 0045).
 
 ## Agent notes
 
+- **2026-11-15, step 1 (in part).**  Read the paper in full.
+  - **Branches against `Tee`:** `a` is the inlet port, `b` is `main`,
+    `c` is `branch`, and γ is `Tee.angle`.  In both Div a and Com a,
+    `a` carries the total flow.
+  - **What is compared:** ξ_PG (eq. 15) and ξ_MGb (eq. 16, p_a = 0)
+    against q_ca.  Miller's K₃₁ (eq. 1) isn't plotted; it can be
+    computed from our runs but has no measured counterpart in this
+    paper.
+  - **Digitised:** 40 points (both angles, both configurations, both
+    coefficients, q = 0.2, 0.4, 0.6, 0.8, 1.0), each with their CFD
+    line at the same q.  They are in
+    `validation/junction_loss/reference/`, with the method and the
+    CC-BY credit in its README.  The reading uncertainty is 0.01 for
+    isolated markers, and up to 0.05 where they cluster (q ≤ 0.4).
+  - **Their CFD against their experiment**, the largest |F − E| over
+    the five q:
+
+    | configuration | coefficient | 90° | 45° |
+    |---|---|---|---|
+    | Div a | ξ_PG | 0.02 | 0.13 |
+    | Div a | ξ_MGb | 0.015 | 0.03 |
+    | Com a | ξ_PG | 0.055 | 0.16 |
+    | Com a | ξ_MGb | 0.035 | 0.04 |
+
+    At 45°, their CFD's ξ_PG is below the measurement by a third to a
+    half at q ≥ 0.6.  The text says so for 30° and 45° (section 6.1).
+  - **Reynolds number:** not found.
+    - The group's 2011 Engineering Mechanics paper (their ref. 12):
+      the proceedings link returns 404.
+    - The 2012 Procedia Engineering paper (their ref. 11, doi
+      10.1016/j.proeng.2012.07.003): the publisher returns 403 here.
+    - The university repository record is behind a bot check.
+    - So the fallback in step 1 applies: Re = 10⁵ on the combined
+      branch, with the check at 5 × 10⁴ and 2 × 10⁵.
+  - **Not done:** RESEARCH §7.2 (waiting on Q1, which changes the
+    subset) and `case.json` with its gates.  No run.
+
 ## Questions for design
+
+- **Q1 (2026-11-15, coding session). hexmesh can't mesh the 45° equal
+  lateral.**  Step 2's subset needs γ = 45° and step 3 "an equal lateral
+  (45°)".  But `Tee` rejects every equal branch below 90°
+  (`equal_lateral_angle_below_min`, `limits.EQUAL_LATERAL_ANGLE_MIN` =
+  90°, `hexmesh/assembly/cube.py:296`).  The limit's comment gives the
+  measurement: equal laterals fold as `nang` rises, and at 45° they fail
+  `checkMesh` skewness (6.2) already at `nang` 8.  The "Depends on" line
+  ("equal tees and laterals are done") is therefore true for the square
+  tee only.  Options:
+  - (a) **90° only, four configurations** (my recommendation).  Div a,
+    Com a, Div c and Com c at five q each, still 20 points.  Div c and
+    Com c (flow into or out of the branch alone) are where their CFD
+    and experiment differ most (figures 9, 15), so they test the
+    junction's cells more.  The 45° points stay in `reference/` for
+    when equal laterals exist.
+  - (b) 90°, Div a and Com a only: 10 points.
+  - (c) 45° with a reduced branch (r/R ≤ `TEE_MAX_RATIO`).  This isn't
+    Štigler's geometry, so it has no reference.  I don't recommend it.
+
+  If (a): I'd digitise figures 9, 10, 15 and 16 at 90°.
+- **Q2. Proposed gates**, for `case.json` once Q1 is settled, following
+  step 1 ("from the digitised scatter and the paper's CFD-to-experiment
+  spread"): at each point, |ours − measured| ≤ u_measured + the largest
+  |F − E| of their CFD for that configuration, coefficient and angle
+  (the table above).  At 90° this gives about 0.03 (Div a ξ_PG),
+  0.025 (Div a ξ_MGb), 0.065 (Com a ξ_PG) and 0.045 (Com a ξ_MGb).
+  That is: agree with the experiment as well as their 2.3 M-cell
+  k–ε did.  Is a per-point gate right, or a pass count (for example
+  4 of 5 per curve)?
 
 ## Outcome

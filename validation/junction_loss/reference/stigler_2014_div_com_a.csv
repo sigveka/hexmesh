@@ -1,0 +1,48 @@
+# Stigler, Klas & Sperka (2014), EPJ Web Conf. 67, 02110, doi 10.1051/epjconf/20146702110,
+# CC-BY 2.0 (stigler_and_klas_etal_2014).  Figures 5, 6, 11, 12: the geometry power
+# coefficient xi_PG (eq. 15) and momentum coefficient xi_MGb (eq. 16, reference
+# pressure p_a = 0) against q_ca = |Q_c/Q_a| (eqs. 17, 20).  Digitised 2026-11-15
+# (task 0162) from a 300 dpi render; see README.md.
+# measured: the marker (E-*); cfd_line: their realizable k-epsilon line (F-*) at q.
+# u_*: the reading uncertainty (half-width), larger where markers overlap.
+figure,configuration,coefficient,gamma_deg,q,measured,u_measured,cfd_line,u_cfd_line,note
+5,Div a,xi_PG,90,0.2,0.10,0.05,0.12,0.02,markers of 30-75 cluster
+5,Div a,xi_PG,90,0.4,0.30,0.04,0.29,0.01,markers of 30-75 cluster
+5,Div a,xi_PG,90,0.6,0.50,0.01,0.48,0.01,
+5,Div a,xi_PG,90,0.8,0.775,0.01,0.76,0.01,
+5,Div a,xi_PG,90,1.0,1.065,0.01,1.06,0.01,
+5,Div a,xi_PG,45,0.2,0.09,0.05,0.06,0.02,markers cluster
+5,Div a,xi_PG,45,0.4,0.17,0.04,0.11,0.02,overlaps E-Da30
+5,Div a,xi_PG,45,0.6,0.215,0.02,0.14,0.02,
+5,Div a,xi_PG,45,0.8,0.28,0.02,0.17,0.02,
+5,Div a,xi_PG,45,1.0,0.37,0.02,0.24,0.02,
+6,Div a,xi_MGb,90,0.2,0.155,0.01,0.14,0.01,
+6,Div a,xi_MGb,90,0.4,0.305,0.01,0.30,0.01,
+6,Div a,xi_MGb,90,0.6,0.437,0.01,0.435,0.01,
+6,Div a,xi_MGb,90,0.8,0.565,0.01,0.565,0.01,
+6,Div a,xi_MGb,90,1.0,0.655,0.015,0.665,0.01,overlaps E-Da105
+6,Div a,xi_MGb,45,0.2,0.13,0.02,0.10,0.02,markers cluster
+6,Div a,xi_MGb,45,0.4,0.155,0.01,0.14,0.02,
+6,Div a,xi_MGb,45,0.6,0.175,0.01,0.155,0.02,
+6,Div a,xi_MGb,45,0.8,0.185,0.01,0.165,0.02,
+6,Div a,xi_MGb,45,1.0,0.175,0.01,0.16,0.02,
+11,Com a,xi_PG,90,0.2,0.14,0.03,0.17,0.01,markers cluster
+11,Com a,xi_PG,90,0.4,0.31,0.01,0.35,0.01,
+11,Com a,xi_PG,90,0.6,0.505,0.01,0.56,0.01,
+11,Com a,xi_PG,90,0.8,0.785,0.01,0.80,0.01,
+11,Com a,xi_PG,90,1.0,1.10,0.01,1.08,0.01,
+11,Com a,xi_PG,45,0.2,0.03,0.03,0.03,0.02,markers cluster
+11,Com a,xi_PG,45,0.4,0.075,0.01,0.05,0.02,
+11,Com a,xi_PG,45,0.6,0.12,0.01,0.06,0.02,
+11,Com a,xi_PG,45,0.8,0.20,0.01,0.10,0.02,
+11,Com a,xi_PG,45,1.0,0.33,0.02,0.17,0.02,
+12,Com a,xi_MGb,90,0.2,0.05,0.01,0.045,0.01,
+12,Com a,xi_MGb,90,0.4,0.115,0.01,0.10,0.01,
+12,Com a,xi_MGb,90,0.6,0.19,0.01,0.155,0.01,
+12,Com a,xi_MGb,90,0.8,0.225,0.01,0.20,0.01,
+12,Com a,xi_MGb,90,1.0,0.245,0.01,0.215,0.01,
+12,Com a,xi_MGb,45,0.2,-0.19,0.01,-0.20,0.03,
+12,Com a,xi_MGb,45,0.4,-0.24,0.01,-0.25,0.03,
+12,Com a,xi_MGb,45,0.6,-0.225,0.01,-0.23,0.03,
+12,Com a,xi_MGb,45,0.8,-0.18,0.015,-0.14,0.03,
+12,Com a,xi_MGb,45,1.0,-0.12,0.02,-0.12,0.03,overlaps E-Ca30 and E-Ca60
