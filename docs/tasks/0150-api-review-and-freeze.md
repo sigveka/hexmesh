@@ -1,6 +1,6 @@
 # 0150 — The API review, then the freeze (0.8)
 
-- **Status:** held (after 0147, 0148, 0149 and 0151)
+- **Status:** ready (0147, 0148, 0149 and 0151 done, 2026-11-15)
 - **Decision:** [0042](../decisions/0042-road-to-1-0.md) exit criterion 5
   ("the stable surface reviewed once, then frozen"), milestone 0.8 (the
   release candidate).
