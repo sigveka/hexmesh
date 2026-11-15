@@ -70,8 +70,9 @@ One version, in five places.  `tests/test_readme.py`
 (`test_the_version_agrees_everywhere`) fails until they agree:
 - `pyproject.toml`: `version` (`hexmesh.__version__` reads it);
 - `CITATION.cff`: `version` and `date-released`;
-- `README.md`: the version badge and the install line
-  (`pip install "hexmesh @ git+https://github.com/sigveka/hexmesh@vX.Y.Z"`);
+- `README.md`: the version badge and the install lines: the wheel's URL
+  (`pip install https://github.com/sigveka/hexmesh/releases/download/vX.Y.Z/hexmesh-X.Y.Z-py3-none-any.whl`),
+  then git (`pip install "hexmesh @ git+https://github.com/sigveka/hexmesh@vX.Y.Z"`);
 - `CHANGELOG.md`: the newest release heading (next step).
 
 ## 3. The CHANGELOG
@@ -132,9 +133,28 @@ made absolute at the tag
 (`https://github.com/sigveka/hexmesh/blob/vX.Y.Z/API.md`).  Check the
 release with `gh release view vX.Y.Z`.
 
+Publishing the release starts the `release` workflow
+(`.github/workflows/release.yml`, task 0149):
+- it builds the wheel and the sdist at the tag, and checks them
+  (`twine check`; `tools/check_dist.py`: the tag's version, no tests or
+  docs, the package data);
+- it attaches both to the release;
+- it installs the wheel by its URL in a clean venv on Linux, macOS and
+  Windows, then runs `hexmesh --version` and the README's example.
+
+Wait for it (`gh run watch`), then check that both files are on the
+release (`gh release view vX.Y.Z`).  If the workflow fails, the release
+stands without files.  Fix the cause on a new commit; the files can't
+come from a commit other than the tag's.  If only an install job failed
+on a runner's network, rerun that job.  To attach the files to an
+existing release by hand: Actions → release → Run workflow, with its
+tag.  That works only for tags whose commit has the workflow, so not
+for 0.6.0 or earlier.
+
 ## 7. After the tag: the install line
 
-In a fresh venv with no system packages, outside the checkout:
+The workflow checked the wheel's URL (step 6).  Check the git line by
+hand, in a fresh venv with no system packages, outside the checkout:
 
 ```sh
 python3 -m venv <tmp>/venv
@@ -146,4 +166,4 @@ python3 -m venv <tmp>/venv
 The version is X.Y.Z, imported from the venv, and the estimate is the
 sample's cell count.  Record it, then delete the venv (about 330 MB).
 
-Wheels on the release (task 0149) and PyPI are later steps.
+PyPI is a later step.

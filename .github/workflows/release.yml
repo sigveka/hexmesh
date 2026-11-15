@@ -1,0 +1,98 @@
+# A wheel and an sdist on every GitHub release (task 0149; decision 0042,
+# criterion 6: distribution without PyPI).  On a published release (or
+# pre-release), at its tag: build, check (tools/check_dist.py: the tag's
+# version, no tests or docs, the package data), attach both files.  Then
+# install the wheel by its release URL on Linux, macOS and Windows, in a
+# clean venv, and run the README's example.
+#
+# Triggered by the release, not the tag's push: docs/RELEASING.md pushes
+# the tag first and creates the release after, so at the push there is no
+# release to attach to.  Run it by hand (Actions → release → Run
+# workflow) to add the files to an existing release.
+name: release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "an existing release's tag, vX.Y.Z"
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  TAG: ${{ github.event.release.tag_name || inputs.tag }}
+
+jobs:
+  build:
+    name: Build, check and attach
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - run: python -m pip install build twine
+      - run: python -m build
+      - run: python -m twine check --strict dist/*
+      - run: python tools/check_dist.py dist --tag "$TAG"
+      - name: Attach to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" dist/* --clobber
+
+  install:
+    name: Install by URL, ${{ matrix.os }}
+    needs: build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4     # the README's example only; hexmesh comes from the URL
+        with:
+          ref: ${{ env.TAG }}
+          sparse-checkout: README.md
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: gmsh's system libraries (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libglu1-mesa libxrender1 libxcursor1 libxft2 libxinerama1
+      - name: A clean venv, the wheel by its URL
+        working-directory: ${{ runner.temp }}
+        run: |
+          python -m venv venv
+          if [ "$RUNNER_OS" = Windows ]; then BIN=venv/Scripts; else BIN=venv/bin; fi
+          echo "BIN=$(pwd)/$BIN" >> "$GITHUB_ENV"   # bash paths, Windows too
+          "$BIN/python" -m pip install \
+            "https://github.com/${{ github.repository }}/releases/download/$TAG/hexmesh-${TAG#v}-py3-none-any.whl"
+      - name: The version is the tag's
+        working-directory: ${{ runner.temp }}
+        run: |
+          got=$("$BIN/hexmesh" --version | tr -d '\r')
+          echo "$got"
+          [ "$got" = "hexmesh ${TAG#v}" ] || { echo "expected hexmesh ${TAG#v}"; exit 1; }
+      - name: The README's example
+        working-directory: ${{ runner.temp }}
+        run: |
+          "$BIN/python" - "$GITHUB_WORKSPACE/README.md" <<'PY'
+          import pathlib, sys
+          import hexmesh
+          print(hexmesh.__version__, hexmesh.__file__)
+          assert "site-packages" in hexmesh.__file__, "not the installed wheel"
+          text = pathlib.Path(sys.argv[1]).read_text(encoding="utf-8")
+          code = text.split("\n## Ten lines, one checked mesh\n")[1].split("```python\n")[1].split("```")[0]
+          exec(compile(code, "README.md", "exec"), {"__name__": "__main__"})
+          assert pathlib.Path("insulated_tee.msh").stat().st_size > 0
+          PY

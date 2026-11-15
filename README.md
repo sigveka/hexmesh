@@ -297,6 +297,8 @@ More in [Why hexmesh?](docs/WHY.md).
 ## Install
 
 ```bash
+pip install https://github.com/sigveka/hexmesh/releases/download/vX.Y.Z/hexmesh-X.Y.Z-py3-none-any.whl
+                              # a release's wheel: no git needed (releases after 0.6.0)
 pip install "hexmesh @ git+https://github.com/sigveka/hexmesh@v0.6.0"   # this release
 pip install -e .              # from a checkout; brings gmsh, numpy, scipy
 pip install -e ".[dev]"       # + pytest, for the test suite

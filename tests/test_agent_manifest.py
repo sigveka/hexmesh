@@ -156,3 +156,14 @@ def test_the_cli_emits_it_in_its_envelope_quickly():
     assert d["result"]["format"] == "hexmesh.agent.manifest"
     assert took - base < 1.0, (f"hexmesh manifest took {took:.2f} s, {took - base:.2f} s "
                                f"over importing hexmesh ({base:.2f} s)")
+
+
+def test_version_prints_the_package_version(capsys):
+    """``hexmesh --version``: what the release job checks an installed
+    wheel by (task 0149)."""
+    import hexmesh
+    from hexmesh.agent import cli
+    with pytest.raises(SystemExit) as e:
+        cli.main(["--version"])
+    assert e.value.code == 0
+    assert capsys.readouterr().out == f"hexmesh {hexmesh.__version__}\n"

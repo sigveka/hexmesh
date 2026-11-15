@@ -34,6 +34,15 @@
 - `-h` lists the commands.  The card and `VOLUNTEERS.md` give one way to
   get the version: `git clone --branch <tag>`.
 
+**A wheel and an sdist on each GitHub release** (task 0149).
+- From the next release on, each GitHub release carries
+  `hexmesh-X.Y.Z-py3-none-any.whl` and `hexmesh-X.Y.Z.tar.gz`.
+  `pip install <the wheel's URL>` needs no git and no PyPI.  A
+  workflow (`.github/workflows/release.yml`) builds and checks them,
+  attaches them, and installs the wheel by its URL on Linux, macOS and
+  Windows.
+- `hexmesh --version` prints `hexmesh X.Y.Z`.
+
 ## 0.6.0 (2026-11-12)
 
 Junction completeness.

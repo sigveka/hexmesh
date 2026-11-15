@@ -190,7 +190,9 @@ def _run(args) -> tuple[bool, object]:
 
 
 def _parser() -> argparse.ArgumentParser:
-    return _commands_parser(__doc__.strip().split("\n\n")[0])
+    ap = _commands_parser(__doc__.strip().split("\n\n")[0])
+    ap.add_argument("--version", action="version", version=f"hexmesh {__version__}")
+    return ap
 
 
 def _emit(payload: dict) -> None:
