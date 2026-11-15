@@ -1,6 +1,6 @@
 # 0149 — A wheel and an sdist on every GitHub release
 
-- **Status:** in progress
+- **Status:** done
 - **Decision:** [0042](../decisions/0042-road-to-1-0.md) exit criterion 6
   (distribution without PyPI), milestone 0.8.
 - **Depends on:** 0146 (the release checklist it extends).
@@ -81,10 +81,59 @@ all three platforms (to check in the wheel task)".
   0.6.0"), since 0.6.0 has no files and can't get them: its tag lacks
   the workflow and the check.  `docs/RELEASING.md` step 2 now makes the
   next release name it.
-- **Not yet done, for the accept criteria:** the live run (a test tag on
-  a fork, or a pre-release here; the user chooses), and so the check on
-  three platforms and decision 0042's assumption.
+- **The live run (2026-11-15), on a fork** (the user chose it):
+  - `Essens-lang/hexmesh`, forked from `sigveka/hexmesh`; tag `v0.6.0`
+    at 0912cdd; a published release.
+  - **One step needed a person:** a new fork runs no workflows until
+    someone clicks "I understand my workflows" on its Actions page.  The
+    API reported Actions enabled before the click, but no workflow was
+    registered and publishing the release started nothing.  After the
+    click, deleting the release and publishing it again started the
+    run.
+  - **The run, 43764695204: all four jobs green.**
+    - Build: `twine check --strict` PASSED for both files;
+      `check_dist`: ready for v0.6.0.  Attached to the release:
+      `hexmesh-0.6.0-py3-none-any.whl` (484 100 bytes) and
+      `hexmesh-0.6.0.tar.gz` (657 095 bytes).
+    - Install by URL on `ubuntu-latest`, `macos-latest` and
+      `windows-latest`:
+      - pip installed hexmesh 0.6.0, with gmsh 4.15.2, numpy 2.5.5 and
+        scipy 1.18.1;
+      - `hexmesh --version` printed `hexmesh 0.6.0`;
+      - hexmesh was imported from the venv's `site-packages`;
+      - the README example printed 13164 cells.
+    - The setup-python "3.x" was 3.15 on Linux and 3.14 on macOS.
+  - The fork's test release and its tag were deleted afterwards; the
+    fork itself is left to the user.
 
 ## Questions for design
 
+_None._
+
 ## Outcome
+
+- **Files:**
+  - `.github/workflows/release.yml` (new);
+  - `tools/check_dist.py` (new);
+  - `tests/test_check_dist.py` (6 tests);
+  - `hexmesh/agent/cli.py` (`--version`), with 1 test in
+    `tests/test_agent_manifest.py`;
+  - `README.md` (the wheel's URL line), `docs/RELEASING.md` (steps 2, 6
+    and 7), `CHANGELOG.md`.
+- **Accept:**
+  - A test tag on a fork produced both files on the release.
+  - The install-by-URL job passed on Linux, macOS and Windows.
+  - **Decision 0042's assumption is checked: true.**  A wheel attached
+    to a GitHub release installs by URL with `pip install <URL>` on all
+    three platforms, with no git and no PyPI.  For the design session to
+    move into 0042.
+- **Surprises:**
+  - A new fork's workflows need the click in the UI (above), whatever
+    the API says.
+  - The workflow runs on the release's publication, not on the tag's
+    push (Agent notes).
+- **Follow-ups (proposed):**
+  - 0.6.0 can't get files: its tag predates the workflow.  The first
+    release with them is the next one; `RELEASING.md` step 2 makes it
+    name its wheel's URL in the README.
+  - The fork `Essens-lang/hexmesh` can be deleted (the user's choice).
