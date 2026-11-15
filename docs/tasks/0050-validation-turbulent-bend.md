@@ -1,6 +1,6 @@
 # 0050 — Validation: turbulent flow in a 90° bend (Sudo et al. 1998)
 
-- **Status:** ready (after 0049)
+- **Status:** blocked (the paper's data: *Questions for design*)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (its "Dean bend" case, turbulent); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V3 (experiment: Sudo et al. 1998)
 - **Features:** `section:circle`, `straight`, `bend`
@@ -68,7 +68,25 @@ _None yet._
 
 ## Questions for design
 
-_None._
+- **Q1 (2026-11-15, coding session). The reference isn't available
+  here.**  `docs/papers/` has no Sudo et al. 1998 (only its BibTeX entry,
+  `sudo_and_sumida_etal_1998`).  The paper is paywalled (Springer, doi
+  10.1007/s003480050206); a web search found no open copy from the
+  publisher or the authors, and no tabulated data or supplementary
+  material.  (A full text appears on a university library proxy; I
+  didn't use it.)  Without it, step "Check in the paper" (curvature
+  ratio, stations, inlet condition, the profiles to compare) can't be
+  done, and nothing else in the task can be judged.  Options:
+  (a) the user adds the PDF to `docs/papers/` (a library copy);
+  (b) a different, open dataset for a turbulent 90° bend.  Candidates
+  to check: the swirl-switching DNS/LES studies that compare with Sudo
+  (e.g. Hufnagel et al., arXiv 1710.08357, whose data may be
+  published), or Kalpakli Vester's PIV;
+  (c) take Sudo's profiles as other papers reproduce them (digitised
+  from a citing paper's figure, with that uncertainty stated).
+  Nothing is built or run; the machine's memory limits (three suites
+  stopped this week) also matter for a three-level 3-D RANS study, so
+  the finest level's size should be agreed with the case.
 
 ## Outcome
 
