@@ -1,6 +1,6 @@
 # 0162 — Validation: loss coefficients of equal-diameter tees and laterals (Štigler et al. 2014)
 
-- **Status:** ready (Q1 and Q2 answered by design, 2026-11-15)
+- **Status:** in progress
 - **Decision:** [0042](../decisions/0042-road-to-1-0.md) criterion 4
   ("a junction-flow benchmark (Štigler's T-junction, on equal tees)"),
   milestone 0.7; [0012](../decisions/0012-openfoam-validation-cases.md);
@@ -141,6 +141,25 @@ intersections (decision 0045).
       branch, with the check at 5 × 10⁴ and 2 × 10⁵.
   - **Not done:** RESEARCH §7.2 (waiting on Q1, which changes the
     subset) and `case.json` with its gates.  No run.
+- **2026-11-15, step 1 done** (after the answers):
+  - **Digitised at 90°:** figures 9, 10, 15 and 16 (Div c, Com c), five
+    q each.  The reference is now `reference/stigler_2014.csv`, 60
+    values: the 40 at 90° and the 20 at 45°.  For c, q = q_ac and
+    p_c = 0.
+  - **RESEARCH §7.2:** the coefficient definitions, the reference
+    pressure, the branch mapping, what isn't given, and the spread of
+    their CFD.
+  - **`case.json` written with the gates,** before any run: T per
+    configuration and coefficient (Q2), every value to pass, and the
+    count per curve reported.
+    - Convergence at q = 0.6, in Div a and Com a.  With one angle left,
+      I took two configurations in place of "one point per angle".
+    - The Re check at Div a, q = 0.6.
+  - **Div c's ξ_PG gate is loose: T = 0.30** (their CFD's miss at
+    q = 0.4).  Their CFD's curve sits near 0.7 and the measurements near
+    1.0.  So a value anywhere between about 0.69 and 1.31 passes there.
+    That is what the rule gives, so I applied it unchanged.  The
+    results will show which side of the measurement we land on.
 
 ## Questions for design
 

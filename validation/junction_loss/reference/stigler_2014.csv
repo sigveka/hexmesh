@@ -1,8 +1,9 @@
 # Stigler, Klas & Sperka (2014), EPJ Web Conf. 67, 02110, doi 10.1051/epjconf/20146702110,
-# CC-BY 2.0 (stigler_and_klas_etal_2014).  Figures 5, 6, 11, 12: the geometry power
-# coefficient xi_PG (eq. 15) and momentum coefficient xi_MGb (eq. 16, reference
-# pressure p_a = 0) against q_ca = |Q_c/Q_a| (eqs. 17, 20).  Digitised 2026-11-15
-# (task 0162) from a 300 dpi render; see README.md.
+# CC-BY 2.0 (stigler_and_klas_etal_2014).  The geometry power coefficient xi_PG
+# (eq. 15) and momentum coefficient xi_MGb (eq. 16).  Figures 5, 6 (Div a), 11, 12
+# (Com a): q = q_ca = |Q_c/Q_a|, reference pressure p_a = 0.  Figures 9, 10 (Div c),
+# 15, 16 (Com c): q = q_ac = |Q_a/Q_c|, reference pressure p_c = 0.  Digitised
+# 2026-11-15 (task 0162) from a 300 dpi render; see README.md.
 # measured: the marker (E-*); cfd_line: their realizable k-epsilon line (F-*) at q.
 # u_*: the reading uncertainty (half-width), larger where markers overlap.
 figure,configuration,coefficient,gamma_deg,q,measured,u_measured,cfd_line,u_cfd_line,note
@@ -46,3 +47,23 @@ figure,configuration,coefficient,gamma_deg,q,measured,u_measured,cfd_line,u_cfd_
 12,Com a,xi_MGb,45,0.6,-0.225,0.01,-0.23,0.03,
 12,Com a,xi_MGb,45,0.8,-0.18,0.015,-0.14,0.03,
 12,Com a,xi_MGb,45,1.0,-0.12,0.02,-0.12,0.03,overlaps E-Ca30 and E-Ca60
+9,Div c,xi_PG,90,0.2,0.99,0.01,0.73,0.01,
+9,Div c,xi_PG,90,0.4,1.00,0.04,0.70,0.01,markers of 60-105 overlap
+9,Div c,xi_PG,90,0.6,0.98,0.04,0.70,0.01,markers of 60-105 overlap
+9,Div c,xi_PG,90,0.8,0.975,0.01,0.72,0.01,
+9,Div c,xi_PG,90,1.0,1.07,0.015,1.04,0.01,two measurements
+10,Div c,xi_MGb,90,0.2,-0.13,0.01,-0.14,0.01,cluster
+10,Div c,xi_MGb,90,0.4,-0.04,0.01,-0.045,0.01,
+10,Div c,xi_MGb,90,0.6,0.04,0.01,0.043,0.01,
+10,Div c,xi_MGb,90,0.8,0.145,0.01,0.135,0.01,overlaps E-Dc75
+10,Div c,xi_MGb,90,1.0,0.262,0.01,0.232,0.01,two measurements
+15,Com c,xi_PG,90,0.2,0.74,0.01,0.81,0.01,
+15,Com c,xi_PG,90,0.4,0.60,0.03,0.66,0.01,markers of 45-105 overlap
+15,Com c,xi_PG,90,0.6,0.60,0.03,0.64,0.01,markers of 45-105 overlap
+15,Com c,xi_PG,90,0.8,0.765,0.01,0.81,0.01,
+15,Com c,xi_PG,90,1.0,1.085,0.01,1.08,0.01,
+16,Com c,xi_MGb,90,0.2,-0.42,0.01,-0.41,0.01,
+16,Com c,xi_MGb,90,0.4,-0.13,0.015,-0.14,0.01,under the axis label
+16,Com c,xi_MGb,90,0.6,0.16,0.01,0.16,0.01,
+16,Com c,xi_MGb,90,0.8,0.43,0.01,0.41,0.01,
+16,Com c,xi_MGb,90,1.0,0.655,0.01,0.66,0.01,

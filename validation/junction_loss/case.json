@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "title": "Equal-diameter 90° tee: loss coefficients, k-ω SST",
+  "category": "V3",
+  "references": [
+    {
+      "source": "stigler_and_klas_etal_2014 (digitised: validation/junction_loss/reference/stigler_2014.csv)",
+      "role": "primary"
+    }
+  ],
+  "tags": {
+    "regime": [
+      "rans:kOmegaSST"
+    ],
+    "physics": [
+      "flow"
+    ],
+    "features": [
+      "section:circle",
+      "straight",
+      "tee"
+    ],
+    "toolchain": {
+      "openfoam": "v2406",
+      "runner": "docker",
+      "conversion": "gmshToFoam, with -keepOrientation when the worst scaled Jacobian is positive (task 0108)"
+    }
+  },
+  "status": "in progress",
+  "task": "0162",
+  "gates": [
+    {
+      "quantity": "geometry coefficients ξ_PG (eq. 15) and ξ_MGb (eq. 16) at γ = 90°, configurations Div a, Com a, Div c, Com c, q = 0.2, 0.4, 0.6, 0.8, 1.0 (40 values, 20 flow points), finest level, Re 10⁵ on the combined branch",
+      "limit": "each value within u_measured + T of the measured point (reference/stigler_2014.csv), where T is the largest |CFD − measured| of the paper's own CFD over the five q: Div a ξ_PG 0.02, ξ_MGb 0.015; Com a ξ_PG 0.055, ξ_MGb 0.035; Div c ξ_PG 0.30, ξ_MGb 0.03; Com c ξ_PG 0.07, ξ_MGb 0.02. The case passes when every value passes; the pass count per curve is reported"
+    },
+    {
+      "quantity": "mesh convergence of ξ_PG and ξ_MGb at q = 0.6, Div a and Com a (refined(k), three levels)",
+      "limit": "Richardson status converging; order, extrapolation and GCI reported"
+    },
+    {
+      "quantity": "Reynolds dependence at Div a, q = 0.6: Re 5 × 10⁴ and 2 × 10⁵",
+      "limit": "reported (the paper gives no Re; 10⁵ is the task's choice)"
+    },
+    {
+      "quantity": "reported, not gated: realizable k–ε with wall functions at one level (their model); the 45° points (no equal lateral in hexmesh); cells, wall time and peak memory per level (finest under about 6 GB)",
+      "limit": "reported"
+    }
+  ]
+}

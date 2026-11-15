@@ -559,6 +559,41 @@ topology or mesh-construction details.
 - Its worst skewness of 0.51 shows an industrial all-hex equal-diameter
   tee lands right at the NES < 0.5 target of §4.2.
 
+**Read in full for task 0162 (2026-11-15).**
+- **What it plots** (figures 5–16) are not Miller's K (eqs. 1–4, given
+  but not plotted).  It plots the authors' geometry coefficients:
+  - ξ_PG = ξ_P − ξ_PF (eq. 15): the total power coefficient of the
+    energy balance (eq. 5), less its friction part (eq. 11);
+  - ξ_MGb = ξ_Mb − ξ_MFb (eq. 16): the run-direction (n_b) component of
+    the momentum balance (eq. 8), less its friction part (eq. 14).
+
+  Both are scaled by the total flow's dynamic pressure,
+  ρ Q_X² / (2 A_X²) for ξ_P and ρ Q_X² / A_X for ξ_M, where X is the
+  branch carrying the total.  The friction parts use each branch's
+  measured pressure gradient per metre and per unit flow (eq. 13), and
+  its length to the station.
+- **ξ_MGb needs a reference pressure,** the branch carrying the total
+  (p_a = 0 or p_c = 0); ξ_PG doesn't.  Measured pressures are wall-tap
+  averages; computed ones are area averages (section 3.1).  The paper
+  calls the difference slight.
+- **Branches against hexmesh:** `a` and `b` are the run's ends and `c`
+  the branch, with γ between `b` and `c`.  On `Tee`: `a` is the inlet
+  port, `b` is `main`, `c` is `branch`, and γ is `angle`.  hexmesh has
+  only γ = 90° for equal tees (`EQUAL_LATERAL_ANGLE_MIN`).
+- **Not given:** the Reynolds number or flow rates, the uncertainty, and
+  the distances of the pressure stations.  Their CFD branches are 25 D
+  from the junction's border.
+- **Digitised:** `validation/junction_loss/reference/` (task 0162).  At
+  90°, their CFD's largest miss from the measurements over q = 0.2–1.0
+  is, for ξ_PG and ξ_MGb respectively:
+  - Div a: 0.02 and 0.015;
+  - Com a: 0.055 and 0.035;
+  - Div c: 0.30 and 0.03;
+  - Com c: 0.07 and 0.02.
+
+  Div c's ξ_PG is the outlier: measured near 1.0 across q, computed
+  near 0.7.  The text agrees ("very high turbulence", section 6.3).
+
 ### 7.3 Smooth axisymmetric constriction (stenosis) benchmark [`varghese_and_frankel_etal_2007`]
 
 **Geometry.**  A straight pipe of diameter $D$ with a cosine-shaped
