@@ -13,4 +13,4 @@
 from .openfoam        import write_openfoam_case
 from .msh_comments    import read_recipe
 
-__all__ = ["write_openfoam_case", "read_recipe"]
+# No __all__: hexmesh.io is the promised path to these (task 0150, row 7).

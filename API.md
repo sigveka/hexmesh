@@ -1214,8 +1214,7 @@ The manifest, `<stem>.roles.json`, looks like this:
 
 The importers live in `hexmesh.interchange.importers` (task 0066), and
 `hexmesh.interchange` exports `read_pcf` and `read_bathymetry`.
-`hexmesh.io.readers` (and `hexmesh.io.readers.pcf`, `.bathymetry`):
-deprecated, removed in 0.8; importing it warns.
+`hexmesh.io.readers`, deprecated in 0.7, is removed (task 0150).
 
 ### `pcf.read_pcf(path, unit_scale=None, ignore_types=None, joint_max=1.6e-3, snap_tolerance=0.11 * inch) -> NetworkSpec`
 

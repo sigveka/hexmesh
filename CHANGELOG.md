@@ -16,6 +16,14 @@
   also one of its submodules.
 - `hexmesh.sections` is importable but no longer promised: it has no
   `__all__`.  Choose a layout with `PipeSpec.core(layout=…)`.
+- **Breaking:** `hexmesh.io.readers`, deprecated in the previous
+  release, is removed.  Import `read_pcf` and `read_bathymetry` from
+  `hexmesh.interchange`, and the modules from
+  `hexmesh.interchange.importers`.
+- One promised path per name: `hexmesh.io` (not `hexmesh.io.writers`)
+  for `write_openfoam_case` and `read_recipe`; `hexmesh` or
+  `hexmesh.assembly` (not `hexmesh.assembly.fittings`) for the fittings.
+  The other paths still import, but aren't promised.
 
 **Per-arc counts on a circle** (task 0147, decision 0041).
 - `CircleShape(radius, arcs=[a, b, a, b])`: each quadrant arc its own

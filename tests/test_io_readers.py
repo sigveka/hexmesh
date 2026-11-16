@@ -645,20 +645,3 @@ def test_joint_between_two_elbows_rejected(tmp_path):
     net = _read_spool(tmp_path, text)
     with pytest.raises(AssemblyError, match="COUPLING .* between two non-straight fittings"):
         net.to_assembly(_spec(0.05))
-
-
-def test_the_old_path_warns_and_still_works(monkeypatch):
-    """``hexmesh.io.readers`` re-exports the importers and warns that 0.8
-    removes it (task 0148): the package, and each module through it."""
-    import importlib
-
-    import hexmesh.interchange.importers as new
-    for name in [m for m in sys.modules if m.startswith("hexmesh.io.readers")]:
-        monkeypatch.delitem(sys.modules, name)
-    with pytest.warns(DeprecationWarning, match=r"removed in 0\.8: use hexmesh\.interchange"):
-        old = importlib.import_module("hexmesh.io.readers")
-    assert (old.read_pcf, old.read_bathymetry) == (new.read_pcf, new.read_bathymetry)
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")                # once per import, not per name
-        from hexmesh.io.readers import pcf, bathymetry
-    assert (pcf, bathymetry) == (new.pcf, new.bathymetry)

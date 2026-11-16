@@ -159,15 +159,14 @@ def test_model_rejects_foreign_classes_and_reused_ids():
 
 def test_builder_imports_no_importer():
     """Constraint 1: the builder and the model know no source format."""
-    for f in ("build.py", "graph.py", "insulation.py", "model.py"):
+    for f in ("_build.py", "graph.py", "insulation.py", "model.py"):
         tree = ast.parse((ROOT / "hexmesh" / "interchange" / f).read_text(encoding="utf-8"))
         mods = [n.module or "" for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)] + \
                [a.name for n in ast.walk(tree) if isinstance(n, ast.Import) for a in n.names]
         assert not [x for x in mods if "readers" in x or "importers" in x or "pcf" in x
                     or "bathymetry" in x], f
     code = ("import sys, hexmesh.interchange; "
-            "print([m for m in sys.modules if m.startswith(('hexmesh.io.readers', "
-            "'hexmesh.interchange.importers'))])")
+            "print([m for m in sys.modules if m.startswith('hexmesh.interchange.importers')])")
     run = subprocess.run([sys.executable, "-c", code], cwd=ROOT, capture_output=True,
                          text=True, check=True)
     assert run.stdout.strip() == "[]"

@@ -46,8 +46,8 @@ from .limits import RADIANS_WARNING_BELOW
 from .profile import CHORD_TOL, Profile
 from .sweep import MAX_CHORD_TURN, Arc, FillResult, Path, Sweep, _check_n_layers
 
-__all__ = ["Straight", "Bend", "MiterBend", "Elbow", "Reducer", "Transition",
-           "SplinePipe", "Closure", "FillResult"]
+# No __all__: hexmesh and hexmesh.assembly are the promised paths to the
+# fittings (task 0150, row 9).
 
 
 # Input-only field: resolved by Assembly.add() and never saved (intent.py).

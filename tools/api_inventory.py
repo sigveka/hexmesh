@@ -180,7 +180,7 @@ def python() -> dict:
 
 def inventory() -> dict:
     with warnings.catch_warnings():
-        warnings.simplefilter("ignore", DeprecationWarning)   # io.readers, until removed
+        warnings.simplefilter("ignore", DeprecationWarning)   # a deprecated module's import
         from hexmesh import agent
         from hexmesh.agent._schema import schema   # python() imports the submodule
         from hexmesh.errors import CODES             # of the same name (task 0150 step 3)
