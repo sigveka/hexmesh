@@ -97,3 +97,12 @@ writing) would give exact small meshes, which building small doesn't.
 Not decided.  It adds an argument to every writer, so the API review
 (task 0150) takes it up, or reserves the name.
 
+## Note (2026-11-16): an output `scale=` is added in 0.8
+
+The user, in the API review (task 0150): **add it**.  Every public writer
+takes `scale: float = 1.0`, applied once to the written node
+coordinates; building and checks are unchanged.  It complements
+`hexmesh.units`, which stays: units say what a number means, `scale=`
+says where the mesh's size is set.  Small parts are best built at a
+reference size and scaled at output (task 0139's drift below 1:30).
+Task 0150 step 4 adds it.

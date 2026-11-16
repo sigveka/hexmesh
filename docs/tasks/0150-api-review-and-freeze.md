@@ -132,6 +132,49 @@ only (the soak).
   in the arguments (the scan found only `unit_scale` on the readers,
   documented as a factor).
 
+- **2026-11-16, the design session's review of the table** (step 2's
+  approval; apply in step 4):
+  - **Approved as proposed:** rows 1, 2, 3, 5, 7, 8, 9, 11, 12, 13, 14
+    and 15.
+    - Row 1: `hexmesh schema` becomes the documented command, with a
+      CHANGELOG **Breaking** line; update every doc that shows
+      `python3 -m hexmesh.agent.schema`.  Add an architecture test: no
+      public package exports a name that is also one of its submodules
+      (the three clashes, and any later one).
+    - Row 5: document it in API.md, one sentence each way.
+  - **Row 4, `hexmesh.sections`: not promised, by removing its
+    `__all__`,** not by renaming the package (no churn in the freeze
+    window).  README *Stability* lists the modules that are importable
+    but not promised (rows 4, 7, 9).  If a doc or example imports from
+    it, change that to the promised path.
+  - **Row 6: keep both `describe`s**; each docstring names the other.
+    Renaming one would need a deprecation that outlives 0.8.
+  - **Row 10:** `rot_rad` and the outline protocol internal, as
+    proposed.  `period`: internal (`_period`) unless a doc, example or
+    test outside the package uses it; if one does, `period_deg` with
+    `period` deprecated.  Units stay degrees in every public member
+    (decision 0047).
+  - **Row 16, branch shells: the user, 2026-11-16, "Plan for 1.x,
+    reserve name".**  Reserve `branch_shells=` on `Tee`: accepted as a
+    keyword whose only allowed value is `None` (the default).  Any
+    other value raises a coded error that says it is planned for 1.x.
+    The inventory records it, so adding it later is additive.  Decision
+    0051's note of today.
+  - **Row 17, writer `scale=`: the user, 2026-11-16, "Add it in 0.8".**
+    Every public writer takes `scale: float = 1.0`, applied once to the
+    node coordinates as written; nothing else changes (the assembly,
+    the cell count, the checks run on the unscaled mesh).
+    `scale <= 0` raises a coded error.  Tests: a tee written at
+    `scale=1e-3` has the full-size nodes × 1e-3 within 1e-15 relative,
+    for each writer; the OpenFOAM writer's `checkMesh`, if it runs, is
+    unchanged apart from size.  API.md and GUIDE: build at a reference
+    size and scale at output for small parts, quoting task 0139's
+    drift.  Decision 0047's note of today.
+  - **Order of step 4:** the renames and internals first (one commit
+    per row group), then `scale=`, then `branch_shells=`, then the
+    inventory regenerated, the CHANGELOG, README *Stability*.  The full
+    suite before the push.
+
 ## Questions for design
 
 ## Outcome

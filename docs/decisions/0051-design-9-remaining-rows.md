@@ -101,3 +101,11 @@ The limit is the pipe tee's shells.
   - the done tasks listed under row 2.
 - **Assumed:** that B is additive as an optional argument.  The API
   review should confirm that no current name blocks it.
+
+## Note (2026-11-16): option B planned for 1.x
+
+The user, in the API review (task 0150): branch shells are **planned for
+1.x**, and the name is reserved now: `Tee(branch_shells=None)`, any other
+value rejected with a coded error until it is built.  This confirms the
+assumption above that B is additive as an optional argument.  The work
+itself waits for a decision and a task after 1.0.
