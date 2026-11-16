@@ -17,7 +17,7 @@
 ![Python ≥ 3.11](https://img.shields.io/badge/python-%E2%89%A5%203.11-3776ab)
 ![gmsh 4.12](https://img.shields.io/badge/gmsh-4.12-555)
 ![OpenFOAM v1912 · v2406](https://img.shields.io/badge/OpenFOAM-v1912%20%C2%B7%20v2406-2a6ebb)
-![version 0.6.0](https://img.shields.io/badge/version-0.6.0-888)
+![version 0.8.0](https://img.shields.io/badge/version-0.8.0-888)
 ![BSD 3-Clause](https://img.shields.io/badge/licence-BSD--3--Clause-2e7d32)
 
 **Structured all-hex meshes for pipe and duct networks, junctions included.**
@@ -297,9 +297,9 @@ More in [Why hexmesh?](docs/WHY.md).
 ## Install
 
 ```bash
-pip install https://github.com/sigveka/hexmesh/releases/download/vX.Y.Z/hexmesh-X.Y.Z-py3-none-any.whl
-                              # a release's wheel: no git needed (releases after 0.6.0)
-pip install "hexmesh @ git+https://github.com/sigveka/hexmesh@v0.6.0"   # this release
+pip install https://github.com/sigveka/hexmesh/releases/download/v0.8.0/hexmesh-0.8.0-py3-none-any.whl
+                              # this release's wheel: no git needed
+pip install "hexmesh @ git+https://github.com/sigveka/hexmesh@v0.8.0"   # this release, from git
 pip install -e .              # from a checkout; brings gmsh, numpy, scipy
 pip install -e ".[dev]"       # + pytest, for the test suite
 pip install hexmesh           # once it is on PyPI (not yet)

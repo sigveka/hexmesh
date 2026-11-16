@@ -245,6 +245,23 @@ only (the soak).
   - **README *Stability*:** rewritten for 1.x.  It lists the promised
     modules and documents, and what is importable but not promised.
 
+- **2026-11-16, the 0.8.0 release (RELEASING.md):**
+  1. **CI:** 18754d7 green on all 8 jobs (run 43893657495); `main`
+     promoted to it.
+  2. **Version:** 0.8.0 in `pyproject.toml`, `CITATION.cff` (released
+     2026-11-16), README (badge; the wheel and git install lines now
+     name v0.8.0).  `test_readme` passes.
+  3. **CHANGELOG:** `## 0.8.0 (2026-11-16)` with a summary and a
+     **Breaking:** line.  Against v0.6.0 (a worktree): no code retired,
+     description `VERSION` 2 both, no parameter moved; every name gone
+     from an `__all__` is in the CHANGELOG.  The `io.readers` entry said
+     "deprecated in the previous release"; no release carried the
+     warning (0148 and the removal are both in 0.8.0), so the entry
+     says so and the separate *Deprecated* block went.  No mesh moved,
+     so no gallery rebuild (step 5).
+  4. **Quick validation checks:** `pytest -m openfoam
+     tests/test_validation.py`, native OpenFOAM, `-n 2`, beside the
+     0162 SST run (3 processes): 21 of 21 passed, 66 min.
 ## Questions for design
 
 ## Outcome

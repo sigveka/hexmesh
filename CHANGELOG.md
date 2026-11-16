@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## 0.8.0 (2026-11-16)
+
+The API review before the 1.0 freeze (decision 0042): the public surface
+is listed in `docs/api-1.0.json` and checked by a test, and from here to
+1.0 only fixes go in.  Also: `scale=` on the writers, per-arc counts on
+a circle, an assembly written twice in one session, a wheel and an sdist
+on each GitHub release, and a volunteer command line for people.
+There is no 0.7.0.
+
+**Breaking:** `python3 -m hexmesh.agent.schema` is gone (run
+`hexmesh schema`); the modules `hexmesh.agent.advise` and
+`hexmesh.interchange.build` are private (the functions of those names
+are unchanged); `hexmesh.io.readers` is removed.  Meshes are unchanged.
+
 **Fixed: writing an assembly twice** (task 0163).
 - A second `write` or `write_openfoam` in the same session failed on a
   tee ("Surface 1 is transfinite but has 8 corners"): `mesh()` meshed
@@ -34,8 +48,8 @@
   also one of its submodules.
 - `hexmesh.sections` is importable but no longer promised: it has no
   `__all__`.  Choose a layout with `PipeSpec.core(layout=…)`.
-- **Breaking:** `hexmesh.io.readers`, deprecated in the previous
-  release, is removed.  Import `read_pcf` and `read_bathymetry` from
+- **Breaking:** `hexmesh.io.readers` is removed (task 0148 deprecated
+  it during this cycle; no release carried the warning).  Import `read_pcf` and `read_bathymetry` from
   `hexmesh.interchange`, and the modules from
   `hexmesh.interchange.importers`.
 - One promised path per name: `hexmesh.io` (not `hexmesh.io.writers`)
@@ -71,13 +85,6 @@
   with the same counts.
 - Saved as `"arcs": [a, b, a, b]` in place of `"nang"`.  Descriptions
   without it load and save unchanged.
-
-**Deprecated** (task 0148).
-- `hexmesh.io.readers` (and `hexmesh.io.readers.pcf`, `.bathymetry`):
-  importing it warns (`DeprecationWarning`), and 0.8 removes it.  Change
-  `from hexmesh.io.readers import read_pcf` to `from hexmesh.interchange
-  import read_pcf` (likewise `read_bathymetry`), and
-  `hexmesh.io.readers.pcf` to `hexmesh.interchange.importers.pcf`.
 
 **The volunteer command line, for people** (task 0160).
 - A wrong case or level name is caught first, before OpenFOAM or gmsh
