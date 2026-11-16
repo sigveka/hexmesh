@@ -96,6 +96,33 @@
    "task": "0075",
    "title": "Laminar flow in a helical pipe (the SIET coil)"
   },
+  "junction_loss": {
+   "case": "junction_loss",
+   "category": "V3",
+   "cells": null,
+   "gates": [
+    {
+     "limit": "each value within u_measured + T of the measured point (reference/stigler_2014.csv), where T is the largest |CFD − measured| of the paper's own CFD over the five q: Div a ξ_PG 0.02, ξ_MGb 0.015; Com a ξ_PG 0.055, ξ_MGb 0.035; Div c ξ_PG 0.30, ξ_MGb 0.03; Com c ξ_PG 0.07, ξ_MGb 0.02. The case passes when every value passes; the pass count per curve is reported",
+     "quantity": "geometry coefficients ξ_PG (eq. 15) and ξ_MGb (eq. 16) at γ = 90°, configurations Div a, Com a, Div c, Com c, q = 0.2, 0.4, 0.6, 0.8, 1.0 (40 values, 20 flow points), finest level, Re 10⁵ on the combined branch"
+    },
+    {
+     "limit": "Richardson status converging; order, extrapolation and GCI reported",
+     "quantity": "mesh convergence of ξ_PG and ξ_MGb at q = 0.6, Div a and Com a (refined(k), three levels)"
+    },
+    {
+     "limit": "reported (the paper gives no Re; 10⁵ is the task's choice)",
+     "quantity": "Reynolds dependence at Div a, q = 0.6: Re 5 × 10⁴ and 2 × 10⁵"
+    },
+    {
+     "limit": "reported",
+     "quantity": "reported, not gated: realizable k–ε with wall functions at one level (their model); the 45° points (no equal lateral in hexmesh); cells, wall time and peak memory per level (finest under about 6 GB)"
+    }
+   ],
+   "levels": 0,
+   "status": "in progress",
+   "task": "0162",
+   "title": "Equal-diameter 90° tee: loss coefficients, k-ω SST"
+  },
   "layered_conduction": {
    "case": "layered_conduction",
    "category": "V1",
@@ -378,6 +405,7 @@
    "heated_pipe",
    "heated_rod",
    "helical_pipe",
+   "junction_loss",
    "layered_conduction",
    "mms",
    "poiseuille",
@@ -403,6 +431,7 @@
    "heated_pipe",
    "heated_rod",
    "helical_pipe",
+   "junction_loss",
    "layered_conduction",
    "mms",
    "poiseuille",
@@ -415,6 +444,7 @@
   ],
   "tee": [
    "fenicsx_second_order",
+   "junction_loss",
    "mms"
   ],
   "transition": [
