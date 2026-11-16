@@ -159,7 +159,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0160](0160-volunteer-cli-for-people.md) | The volunteer command line, for people: names checked first, a readable `list`, help with the commands | done | 0044 |
 | [0161](0161-ci-runs-once-preflight-without-clock.md) | CI runs once per commit; the preflight test without a wall-clock limit | in progress | 0052 |
 | [0163](0163-write-twice-in-one-session.md) | Writing an assembly twice in one session (the second `mesh()` re-meshes and fails) | done | 0042 |
-| [0164](0164-api-hardening-before-freeze.md) | Keyword-only arguments, copy-on-write `PipeSpec`, named outlets from `add` (before the 0.8.0 tag) | ready | 0053 |
+| [0164](0164-api-hardening-before-freeze.md) | Keyword-only arguments, copy-on-write `PipeSpec`, named outlets from `add` (before the 0.8.0 tag) | in progress | 0053 |
 
 ### Validation
 

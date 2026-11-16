@@ -127,3 +127,57 @@ The same as B for the whole 1.x line.
 - **Assumed:** that the work is moderate (the call sites weren't
   counted); that no example depends on `PipeSpec`'s mutation.  The task
   measures both.
+
+## Amendment (2026-11-16): the four deferred items before 1.0
+
+The user: "I also want 4-7 done before 1.0", the four items this
+decision deferred or left unchanged (the design session's review,
+numbered 4 to 7).  They replace *Deferred to 1.x* and *Not changed*
+above.  All four land **before the 0.8.0 tag**, so 0.8 is the surface
+1.0 freezes; no users, so no shims (old saved descriptions still
+migrate on load, decision 0042's promise 3).
+
+4. **A public `Profile` for `Reducer(profile=…)`** (task 0165).  One
+   form, not two: `Profile.cosine(s0)`, `Profile.venturi(beta,
+   divergent)`, and a constructor for new kinds that decision 0021's
+   restrictions (orifices, valves, nozzles) add with named parameters.
+   The tuple form is removed from the API; the description stores the
+   profile as an object with a `kind` and named fields.
+5. **The jargon names are renamed** (task 0166), into the `n_*`
+   convention the counts already use (`n_layers`, `n_outer`, `n_run`)
+   and the `*_grading` one (`axial_grading`):
+
+   | now | 1.0 | meaning |
+   |---|---|---|
+   | `nang` | `n_arc` | cells per 90° arc |
+   | `nang_w`, `nang_h` | `n_width`, `n_height` | cells along a rectangle's width and height |
+   | `nrad` | `n_radial` | cells across a layer |
+   | `mprg` | `radial_grading` | a layer's radial progression ratio |
+   | `mbmp` | `arc_bump` | the arcs' bump factor (1 = uniform) |
+   | `lc` | removed | gmsh's characteristic length: it doesn't affect the structured mesh (API.md) |
+
+   Everywhere: arguments, properties, the description's fields, the
+   schema, error-code *fields* and messages, limits, the CLI's JSON,
+   docs, examples, CLAUDE.md (by the design session).  The error
+   *codes* that contain an old name are renamed too (no users), listed
+   in the CHANGELOG.  §3.1's one name per concept holds: no aliases.
+6. **A section-kind field in the description** (task 0165): each
+   `PipeSpec` saves `"kind": "concentric"`; a description without one
+   loads as concentric.  Decision 0035 stage B adds kinds; until then
+   any other value is a coded error.
+7. **A build call that doesn't depend on `Session`** (task 0167): the
+   assembly meshed into a self-contained result (nodes, cells, groups,
+   quality) that writes itself, so a script, the agent SDK (0019) or the
+   simulation suite (0030) can mesh many assemblies without managing
+   gmsh's global state.  The task starts with a spike on how gmsh allows
+   it (a model per call in one gmsh instance, or a process per call),
+   recorded in `docs/integrations/gmsh.md`, and comes back to design
+   with the result before fixing the API.
+
+**Order:** 0164 (in progress) → 0166 (the renames touch every call
+site; best done right after 0164's rewrite) → 0165 → 0167 → the 0.8.0
+release prep redone.  The validation runs (0162, 0050) continue beside
+them.
+
+**Future expansions:** 0021 gains its profile type; 0035 its section
+kind; 0019 and 0030 their build call.  None is constrained.
