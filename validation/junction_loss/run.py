@@ -186,6 +186,7 @@ divSchemes
     div(phi,U)      bounded Gauss linearUpwind grad(U);
     div(phi,k)      bounded Gauss upwind;
     div(phi,omega)  bounded Gauss upwind;
+    div(phi,epsilon) bounded Gauss upwind;
     div((nuEff*dev2(T(grad(U))))) Gauss linear;
 }
 laplacianSchemes { default Gauss linear limited corrected 0.5; }
@@ -203,7 +204,7 @@ SOLUTION = """solvers
         tolerance       1e-9;
         relTol          0.05;
     }
-    "(U|k|omega)"
+    "(U|k|omega|epsilon)"
     {
         solver          smoothSolver;
         smoother        symGaussSeidel;
@@ -219,38 +220,44 @@ SIMPLE
     {
         p               1e-5;
         U               1e-6;
-        "(k|omega)"     1e-6;
+        "(k|omega|epsilon)" 1e-6;
     }
 }
 relaxationFactors
 {
     fields          { p 1; }
-    equations       { U 0.8; "(k|omega)" 0.6; }
+    equations       { U 0.8; "(k|omega|epsilon)" 0.6; }
 }
 """
+
+#: the gated model, and realizable k-ε for comparison with Štigler et al.'s
+#: CFD (task 0162 step 4); the turbulence fields each solves for
+MODELS = {"sst": ("kOmegaSST", "omega"), "rke": ("realizableKE", "epsilon")}
 
 TURBULENCE = """simulationType  RAS;
 RAS
-{
-    RASModel        kOmegaSST;
+{{
+    RASModel        {ras};
     turbulence      on;
     printCoeffs     on;
-}
+}}
 """
 
 DIMS = {"U": "[0 1 -1 0 0 0 0]", "p": "[0 2 -2 0 0 0 0]", "k": "[0 2 -2 0 0 0 0]",
-        "omega": "[0 0 -1 0 0 0 0]", "nut": "[0 2 -1 0 0 0 0]"}
+        "omega": "[0 0 -1 0 0 0 0]", "epsilon": "[0 2 -3 0 0 0 0]",
+        "nut": "[0 2 -1 0 0 0 0]"}
 
 
-def turbulence(v: float) -> tuple[float, float]:
-    """k and ω for 5 % intensity and a 0.07 D mixing length at speed *v*."""
+def turbulence(v: float) -> tuple[float, float, float]:
+    """k, ω and ε for 5 % intensity and a 0.07 D mixing length at speed *v*."""
     k = max(1.5 * (0.05 * v) ** 2, 1e-10)
-    return k, math.sqrt(k) / (0.09 ** 0.25 * 0.07 * D)
+    omega = math.sqrt(k) / (0.09 ** 0.25 * 0.07 * D)
+    return k, omega, 0.09 * k * omega
 
 
 def boundary(field: str, branch: str, flow: float, pressure: bool, area: float) -> str:
     """One branch's condition for *field*: flow *flow* (out +, m³/s)."""
-    k, omega = turbulence(abs(flow) / area)
+    k, omega, epsilon = turbulence(abs(flow) / area)
     inlet = flow < 0 or (flow == 0 and not pressure)
     if field == "U":
         if pressure:
@@ -264,7 +271,7 @@ def boundary(field: str, branch: str, flow: float, pressure: bool, area: float) 
         return "type fixedValue; value uniform 0;" if pressure else "type zeroGradient;"
     if field == "nut":
         return "type calculated; value uniform 0;"
-    value = {"k": k, "omega": omega}[field]
+    value = {"k": k, "omega": omega, "epsilon": epsilon}[field]
     if inlet:
         return f"type fixedValue; value uniform {value!r};"
     return f"type inletOutlet; inletValue uniform {value!r}; value uniform {value!r};"
@@ -273,11 +280,13 @@ def boundary(field: str, branch: str, flow: float, pressure: bool, area: float) 
 WALL = {"U": "type noSlip;", "p": "type zeroGradient;",
         "k": "type kqRWallFunction; value uniform {k};",
         "omega": "type omegaWallFunction; value uniform {omega};",
+        "epsilon": "type epsilonWallFunction; value uniform {epsilon};",
         "nut": "type nutUSpaldingWallFunction; value uniform 0;"}
 
 
 def write_case(case: Path, flows: dict, pressure_branch: str, area: float, end_time: int,
-               interval: int, purge: int, re: float) -> None:
+               interval: int, purge: int, re: float, model: str = "sst") -> None:
+    ras, extra = MODELS[model]
     for d in ("0", "constant", "system"):
         (case / d).mkdir(parents=True, exist_ok=True)
     files = {
@@ -288,18 +297,21 @@ def write_case(case: Path, flows: dict, pressure_branch: str, area: float, end_t
         "constant/transportProperties": H("dictionary", "transportProperties", "constant")
         + f"transportModel  Newtonian;\nnu              {nu(re)!r};\n",
         "constant/turbulenceProperties": H("dictionary", "turbulenceProperties", "constant")
-        + TURBULENCE,
+        + TURBULENCE.format(ras=ras),
     }
     for name, text in files.items():
         (case / name).write_text(text, encoding="utf-8")
-    k0, omega0 = turbulence(U_TOTAL)
+    k0, omega0, epsilon0 = turbulence(U_TOTAL)
     internal = {"U": "uniform (0 0 0)", "p": "uniform 0", "k": f"uniform {k0!r}",
-                "omega": f"uniform {omega0!r}", "nut": "uniform 0"}
+                "omega": f"uniform {omega0!r}", "epsilon": f"uniform {epsilon0!r}",
+                "nut": "uniform 0"}
     for f, dims in DIMS.items():
+        if f in ("omega", "epsilon") and f != extra:
+            continue
         cls = "volVectorField" if f == "U" else "volScalarField"
         rows = [f"    {PATCH[b]:12s} {{ {boundary(f, b, flows[b], b == pressure_branch, area)} }}"
                 for b in ("a", "b", "c")]
-        rows.append(f'    "fluid_wall.*" {{ {WALL[f].format(k=repr(k0), omega=repr(omega0))} }}')
+        rows.append(f'    "fluid_wall.*" {{ {WALL[f].format(k=repr(k0), omega=repr(omega0), epsilon=repr(epsilon0))} }}')
         text = (H(cls, f, "0") + f"dimensions      {dims};\ninternalField   {internal[f]};\n"
                 "boundaryField\n{\n" + "\n".join(rows) + "\n}\n")
         (case / "0" / f).write_text(text, encoding="utf-8")
@@ -410,16 +422,17 @@ def profile(g: dict, p: np.ndarray, flows: dict, re: float) -> dict:
 
 # --- one point ---------------------------------------------------------------------
 
-def point_name(config: str, q: float, k: int, re: float = RE) -> str:
+def point_name(config: str, q: float, k: int, re: float = RE, model: str = "sst") -> str:
     tail = "" if re == RE else f"_re{re:.0e}".replace("+0", "").replace("+", "")
-    return f"{config}_q{q:.1f}_k{k}{tail}"
+    return f"{config}_q{q:.1f}_k{k}{tail}" + ("" if model == "sst" else f"_{model}")
 
 
 def run_point(config: str, q: float, k: int, work: Path, end_time: int, n_proc: int,
-              reynolds: float = RE, window: int = 1000, samples: int = 10) -> dict:
+              reynolds: float = RE, window: int = 1000, samples: int = 10,
+              model: str = "sst") -> dict:
     total, pressure, flows_of = CONFIGS[config]
     flows = flows_of(q)
-    case = work / point_name(config, q, k, reynolds)
+    case = work / point_name(config, q, k, reynolds, model)
     if case.exists():
         shutil.rmtree(case)
     case.mkdir(parents=True)
@@ -433,7 +446,7 @@ def run_point(config: str, q: float, k: int, work: Path, end_time: int, n_proc: 
     area = math.pi * R ** 2
     # the last samples + 1 writes span the last *window* iterations
     write_case(case, {b: f * U_TOTAL * area for b, f in flows.items()}, pressure, area,
-               end_time, max(window // samples, 1), samples + 1, reynolds)
+               end_time, max(window // samples, 1), samples + 1, reynolds, model)
     of.convert(case, msh, keep_orientation=sj > 0)
     check = of.check_mesh(case)
     log = of.run_solver(case, "simpleFoam", n_proc=n_proc)
@@ -455,7 +468,8 @@ def run_point(config: str, q: float, k: int, work: Path, end_time: int, n_proc: 
     spread = {f"{c}_spread": float(np.std([s[c] for s in series], ddof=1))
               if len(series) > 1 else None for c in coefs}
     drift = {c: series[-1][c] - series[0][c] for c in coefs} if len(series) > 1 else None
-    return {"config": config, "q": q, "k": k, "re": reynolds, "cells": cells, "worst_sj": sj,
+    return {"config": config, "q": q, "k": k, "re": reynolds, "model": model,
+            "cells": cells, "worst_sj": sj,
             **{f"check_{key}": v for key, v in check.items()}, **stored.counts(asm),
             "steps": steps[-1] if steps else 0,
             "converged": "solution converged in" in log, "drift": drift, **res, **spread,
@@ -502,7 +516,7 @@ def recheck(data: dict) -> list[dict]:
             for r in (r for r in rows if r["gamma"] == GAMMA and r["config"] == config
                       and r["coefficient"] == coef):
                 got = [lv for lv in levels if lv["config"] == config and lv["re"] == RE
-                       and abs(lv["q"] - r["q"]) < 1e-9]
+                       and lv.get("model", "sst") == "sst" and abs(lv["q"] - r["q"]) < 1e-9]
                 if not got:
                     continue
                 lv = max(got, key=lambda x: x["k"])
@@ -533,6 +547,7 @@ def analyse(levels: list[dict]) -> dict:
     for spec in CONVERGENCE_POINTS:
         config, q = spec.split(":")
         rows = sorted((lv for lv in levels if lv["config"] == config and lv["re"] == RE
+                       and lv.get("model", "sst") == "sst"
                        and abs(lv["q"] - float(q)) < 1e-9), key=lambda r: r["k"])
         if [r["k"] for r in rows] != list(LEVELS):
             continue
@@ -571,6 +586,10 @@ def main(argv=None) -> dict:
                     help="pressure fields written across the window (default %(default)s)")
     ap.add_argument("--np", type=int, default=1, dest="n_proc",
                     help="MPI processes per solve (check other runs first, CLAUDE.md)")
+    ap.add_argument("--model", choices=sorted(MODELS), default="sst",
+                    help="sst: k-ω SST, the gated model (default); rke: realizable k-ε, "
+                         "for comparison with the paper's CFD (task 0162 step 4); "
+                         "its levels are named *_rke and never gated")
     stored.add_arguments(ap, HERE)
     stored.add_openfoam_argument(ap, of.V2406)
     args = ap.parse_args(argv)
@@ -583,11 +602,11 @@ def main(argv=None) -> dict:
     points = args.points or [(c, q) for c in CONFIGS for q in QS]
     for config, q in points:
         for k in args.levels:
-            name = point_name(config, q, k, args.re)
+            name = point_name(config, q, k, args.re, args.model)
             r = stored.run_level(store, name,
                                  lambda c=config, q=q, k=k: run_point(
                                      c, q, k, args.work, args.end_time, args.n_proc, args.re,
-                                     args.window, args.samples),
+                                     args.window, args.samples, args.model),
                                  args.work / name, args.keep_work)
             print(f"[{name}] ξ_PG {r['xi_PG']:.4f} ± {r['xi_PG_spread'] or 0:.4f} "
                   f"(fit {r['xi_PG_fit']:.4f}), ξ_MGb {r['xi_MGb']:.4f} "
