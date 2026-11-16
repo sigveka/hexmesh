@@ -158,6 +158,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0159](0159-nox-gmsh-versions.md) | Local test sessions against both gmsh versions (`nox`) | done | 0052 |
 | [0160](0160-volunteer-cli-for-people.md) | The volunteer command line, for people: names checked first, a readable `list`, help with the commands | done | 0044 |
 | [0161](0161-ci-runs-once-preflight-without-clock.md) | CI runs once per commit; the preflight test without a wall-clock limit | in progress | 0052 |
+| [0163](0163-write-twice-in-one-session.md) | Writing an assembly twice in one session (the second `mesh()` re-meshes and fails) | ready | 0042 |
 
 ### Validation
 
