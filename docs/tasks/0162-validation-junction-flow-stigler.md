@@ -161,6 +161,92 @@ intersections (decision 0045).
     That is what the rule gives, so I applied it unchanged.  The
     results will show which side of the measurement we land on.
 
+- **2026-11-16, first two runs (Div a, q = 0.6), before the full set:**
+  - `run.py` (k-ω SST, wall functions at y⁺ ≈ 30, the pressures taken
+    to the junction centre along the McKeon friction gradient), not yet
+    committed.
+
+    | k | cells | steps | ξ_PG (fit) | ξ_MGb (fit) | drift, last 400 steps | wall time, np | memory peak |
+    |---|---|---|---|---|---|---|---|
+    | 1 | 65 792 | 4000 | 0.714 (0.660) | 0.455 (0.432) | −0.015, −0.006 | 14:53, 2 | 117 MiB (Docker) |
+    | 2 | 526 336 | 6000 | 0.658 (0.604) | 0.456 (0.436) | −0.019, −0.016 | 3:10:52, 3 | 761 MiB (Docker) |
+
+  - Measured: ξ_PG 0.50, ξ_MGb 0.437.  ξ_MGb passes at both levels.
+    ξ_PG is 0.16 above the measurement at k = 2, against a gate of
+    u + 0.02, and it falls with k.
+  - Neither run is converged; the drift hasn't shrunk with the steps.
+  - The fitted pressure slopes sit 13–27 % above McKeon's.
+  - checkMesh at k = 2: OK, non-orthogonality 49.5, skewness 2.22.
+  - At about 3 h a point, the 20 points at k = 2 take about 60 h on this
+    machine, and the convergence points at k = 3 (1.78 M cells) about
+    10 h each.  I'm asking the user about the budget before the full
+    run.
+
+- **2026-11-16, the user's budget:** "yes, 60 h is fine if level 3 is
+  close".
+  - **"Close":** for both ξ_PG and ξ_MGb at Div a, q = 0.6, the
+    extrapolated value lies within twice the gate's tolerance of the
+    measurement.  If the levels don't converge monotonically, the k = 3
+    value is used instead.
+    - The gate's tolerance is u_measured + T.  So for ξ_PG the band is
+      0.50 ± 2 × (0.01 + 0.02) = 0.44 to 0.56.  For ξ_MGb it is
+      0.437 ± 2 × (0.01 + 0.015) = 0.387 to 0.487.
+  - **If close:** the 20 points at k = 2 in the background (about
+    60 h), with the cost reported.
+  - **If not:** stop, with the numbers under Questions.
+  - Before that, following the design session's order:
+    - a steady solve whose drift doesn't shrink is step 4's case.  The
+      coefficient is the mean over the last iterations (`--window`,
+      `--samples`), with the samples' standard deviation as its spread.
+      A transient run follows only if the spread exceeds the gate.
+    - The local pressure slope per branch, over McKeon's (`profile` in
+      the results), shows whether the stations at 10-18 D lie in
+      developed flow.
+
+- **2026-11-16, the k = 1 check (8000 steps, a sample every 200):**
+  - **The drift is an oscillation, not a creep.**  Period about 1200
+    steps, steady in amplitude from step 200 to 8000: ξ_PG between 0.715
+    and 0.736, ξ_MGb between 0.455 and 0.468.  It is step 4's case (a
+    steady solve that won't settle).  Over the run: ξ_PG 0.7235 ± 0.0064
+    and ξ_MGb 0.4600 ± 0.0034 (mean ± standard deviation).  The spread
+    is under the gates' T (0.02 and 0.015), so no transient run.
+    32:53 at np 3, Docker peak 148 MiB.
+  - **The slope profile** (local slope over McKeon's, 3 to 23 D from
+    the centre, the run's mean field):
+
+    | s/D | 3 | 6 | 8 | 10 | 12 | 14 | 16 | 18 | 20 | 23 |
+    |---|---|---|---|---|---|---|---|---|---|---|
+    | a (in) | 1.07 | 1.06 | 1.07 | 1.08 | 1.10 | 1.12 | 1.16 | 1.20 | 1.26 | 1.48 |
+    | b (out) | −13.2 | −1.64 | 0.49 | 1.09 | 1.24 | 1.26 | 1.25 | 1.23 | 1.22 | 1.19 |
+    | c (out) | −17.3 | −3.84 | −0.08 | 0.97 | 1.22 | 1.27 | 1.26 | 1.24 | 1.22 | 1.23 |
+
+    - b and c recover pressure for about 8 D, then reach a plateau from
+      about 12 D at 1.2-1.27 times McKeon's slope.  It doesn't fall to
+      1 before the outlets.  So the excess is mostly the model's own
+      friction on this mesh (wall functions), not flow still
+      redeveloping.  The stations at 10-11 D sit just before the plateau.
+    - a is still developing from its uniform inlet: 1.06 near the
+      junction, rising to 1.48 near the inlet.  Stations further out
+      would be worse there, not better.
+    - **Size of the effect:** carrying the plateau's extra 20-27 % back
+      over the stations' mean distance (14 D) moves the centre
+      pressures by about 0.005 (b), 0.012 (c) and 0.013 (a, at 10 %).
+      That changes ξ_PG by about 0.04 at most.  The gap to the
+      measurement is 0.16-0.22, so the stations don't explain it.  The
+      fit variant (the model's own slopes) gives ξ_PG 0.672 here, still
+      far off.
+    - **Kept as fixed:** the stations (10-18 D) and the McKeon gradient.
+      Moving b and c to 12-20 D would be a choice made after seeing the
+      results.  So it is not made.
+  - **The convergence run, started 2026-11-16:** Div a, q = 0.6, at k = 1,
+    2 and 3.  Each runs 8000 steps, and the coefficients are averaged
+    over the last 2400 steps (two periods) from 12 samples.  The same
+    method at every level, so k = 2 is rerun.
+    - Expected: about 0.5 h, 4 h and 14 h at np 3.  k = 3 runs longer
+      than the 10 h first estimated: 8000 steps, against 6000 at k = 2.
+    - Disk: about 4-5 GB for k = 3's 13 kept writes (18 GB free).  The
+      work folder is deleted once the numbers are stored.
+
 ## Questions for design
 
 - **Q1 (2026-11-15, coding session). hexmesh can't mesh the 45° equal
