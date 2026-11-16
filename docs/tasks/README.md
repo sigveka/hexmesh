@@ -163,6 +163,8 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0165](0165-profile-type-and-section-kind.md) | A public `Profile` for reducers; a section kind in the description (before the 0.8.0 tag) | ready (after 0166) | 0053 |
 | [0166](0166-rename-jargon-arguments.md) | Rename the mesh-jargon names (`nang` → `n_arc`, `nrad` → `n_radial`, `mprg` → `radial_grading`, …; `lc` removed) | ready (after 0164) | 0053 |
 | [0167](0167-build-without-session.md) | Meshing without managing `Session`: a spike, then the API | ready (after 0165) | 0053 |
+| [0168](0168-volunteer-card-junction-loss.md) | A volunteer card for the junction-flow benchmark (one level per point) | ready (after 0162's level-3 point) | 0044 |
+| [0169](0169-volunteer-card-turbulent-bend.md) | A volunteer card for the turbulent bend | ready (after 0050's driver) | 0044 |
 
 ### Validation
 
