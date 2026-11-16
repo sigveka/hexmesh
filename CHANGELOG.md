@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+**Fixed: writing an assembly twice** (task 0163).
+- A second `write` or `write_openfoam` in the same session failed on a
+  tee ("Surface 1 is transfinite but has 8 corners"): `mesh()` meshed
+  again.  `mesh()` now runs once per option set: the same `dim`, `order`
+  and `incomplete` again do nothing, and another `walls_by_fitting`
+  rewrites only the physical groups.  Other options raise
+  `remesh_with_other_options`: build the assembly in a new `Session`.
+
 **`scale=` on the writers** (task 0150, decision 0047).
 - `Assembly.write(..., scale=1.0)` and `write_openfoam(..., scale=1.0)`
   multiply the written node coordinates, once.  The assembly, its cell

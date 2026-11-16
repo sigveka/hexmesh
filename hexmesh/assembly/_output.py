@@ -30,13 +30,22 @@ from .interface import Interface
 from ._checks import _require_session
 
 
-def write_physical_groups(asm, walls_by_fitting: bool = False) -> None:
+def write_physical_groups(asm, walls_by_fitting: bool = False, *,
+                          renumber: bool = False) -> None:
+    """*renumber*: tag the groups 1, 2, … as on a fresh model, after
+    ``mesh()`` removed them all to switch *walls_by_fitting* (task 0163),
+    so the file matches a fresh write."""
     asm.build()
     fill = asm._fill
     asm._group_roles = {}
+    tags_from = iter(range(1, 1 << 30)) if renumber else None
 
     def group(dim, tags, name, role):
-        add_physical_group(dim, tags, name)
+        if tags_from is None:
+            add_physical_group(dim, tags, name)
+        else:
+            gmsh.model.setPhysicalName(dim, gmsh.model.addPhysicalGroup(
+                dim, tags, next(tags_from)), name)
         asm._group_roles[name] = role
 
     for name, vols in fill.volumes.items():

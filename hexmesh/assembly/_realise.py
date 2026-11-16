@@ -32,7 +32,7 @@ from .corners import transfinite_surface_corners, transfinite_volume_corners
 from .fittings import FillResult
 from .interface import build_face
 from ..sections.oh_gmsh import place_partition_nodes
-from . import _checks
+from . import _checks, _output
 from ._checks import _require_session
 
 
@@ -228,8 +228,45 @@ def _set_constraints(asm) -> None:
         msh.setRecombine(3, tag)
 
 
+def _mesh_options(dim: int, order: int, incomplete: bool) -> dict:
+    """What a mesh depends on: *incomplete* only at order 2."""
+    return {"dim": dim, "order": order, "incomplete": bool(incomplete) and order == 2}
+
+
+def _meshed_already(asm, options: dict, walls_by_fitting: bool) -> bool:
+    """True when *asm* is meshed with *options* (task 0163): a second
+    write reuses the mesh; a change of *walls_by_fitting* rewrites only the
+    physical groups.  Other options raise: the wall projection and the
+    recorded corrections assume one mesh per session."""
+    if not asm._meshed:
+        return False
+    done = asm._mesh_options
+    if done != options:
+        show = lambda o: ", ".join(f"{k}={v}" for k, v in o.items())  # noqa: E731
+        raise AssemblyError(f"the assembly is meshed with {show(done)}; meshing it with "
+                            f"{show(options)} needs a new session",
+                            code="remesh_with_other_options", where={"field": "mesh"},
+                            value=options, limit=done,
+                            hint="build the assembly again in a new Session (one Session "
+                                 "per mesh); writing again with the same options is free")
+    if walls_by_fitting != asm._mesh_walls_by_fitting:
+        # removing a group keeps its name, and a new group given that name
+        # stays unnamed: remove the names too (docs/integrations/gmsh.md)
+        groups = gmsh.model.getPhysicalGroups()
+        names = {gmsh.model.getPhysicalName(d, t) for d, t in groups}
+        gmsh.model.removePhysicalGroups(groups)
+        for name in names - {""}:
+            gmsh.model.removePhysicalName(name)
+        _output.write_physical_groups(asm, walls_by_fitting, renumber=True)
+        asm._mesh_walls_by_fitting = walls_by_fitting
+    return True
+
+
 def mesh(asm, dim: int = 3, *, order: int = 1, incomplete: bool = False,
          walls_by_fitting: bool = False) -> None:
+    options = _mesh_options(dim, order, incomplete)
+    if _meshed_already(asm, options, walls_by_fitting):
+        return
     if order not in (1, 2):
         raise AssemblyError(f"mesh order must be 1 or 2, got {order!r}",
                             code="mesh_order_invalid", where={"field": "order"},
@@ -277,6 +314,7 @@ def mesh(asm, dim: int = 3, *, order: int = 1, incomplete: bool = False,
     _checks._record_corrections(asm, moved, placed, arcs, _split_moves(asm, split))
     asm.mesh_order = order
     asm._meshed = True
+    asm._mesh_options, asm._mesh_walls_by_fitting = options, walls_by_fitting
 
 
 def _split_moves(asm, split) -> dict[int, tuple[np.ndarray, np.ndarray, np.ndarray]]:

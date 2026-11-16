@@ -727,6 +727,19 @@ the full-size mesh × s, as a fraction of the size:
   the tee to 1:33 where 1e-6 fails at 1:20 (both before the `tol2d`
   fix).  Chosen: 1e-3.
 
+### Removing a physical group keeps its name (gmsh 4.12.1, task 0163, 2026-11-16) — *verified*
+`gmsh.model.removePhysicalGroups()` removes the groups but not their
+names.  A new group then given a removed group's name stays unnamed:
+`getPhysicalName` returns `""`, and the written `$PhysicalNames` loses
+it.  Evidence: a box, group 1 named `a`, all groups removed, group 2
+named `b` (fine), all removed, group 3 named `a` → `(3, 3, '')`;
+after `removePhysicalName("a")` the same steps give `(3, 4, 'a')`.  New
+groups' automatic tags also continue past the removed ones (2 → 15 on a
+tee).
+**Consequence:** to rewrite the groups, remove each name with
+`removePhysicalName` as well, and give the tags explicitly if the file
+must match a fresh write (`_realise._meshed_already`).
+
 ## Open questions
 
 - ~~Does `gmsh.write` keep physical names and element orientation the way

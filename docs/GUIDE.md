@@ -559,6 +559,10 @@ only where it is present.
 asm.write_openfoam("pipe.msh")    # MSH 2.2 ASCII, for gmshToFoam
 ```
 
+Writing the same assembly again (a `.msh` beside it, another `scale=`)
+reuses the mesh; meshing it with another `dim` or `order` needs a new
+`Session`.
+
 ```bash
 gmshToFoam pipe.msh
 splitMeshRegions -cellZones -overwrite   # multi-material (CHT) only

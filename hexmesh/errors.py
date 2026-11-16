@@ -434,6 +434,8 @@ CODES: dict[str, str] = {
     "reducer_shape_change": "a Reducer between different outline shapes",
     "reducer_sizes_missing": "a network reducer without both sizes",
     "refine_factor_invalid": "a refinement factor that is not an integer >= 1",
+    "remesh_with_other_options":
+        "mesh() again on a meshed assembly with other dim, order or incomplete",
     "role_manifest_format_unsupported": "a role manifest in an unsupported format",
     "roll_and_toward_conflict": "both roll and toward given",
     "roll_mismatch_ambiguous": "a roll mismatch of half the section's symmetry period",

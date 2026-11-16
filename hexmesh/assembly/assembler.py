@@ -107,6 +107,8 @@ class Assembly:
         self._nozzle = None          # (drum, nozzle name) for from_nozzle()
         self._group_roles: dict[str, str] = {}
         self._meshed = False
+        self._mesh_options: dict | None = None      # what mesh() meshed with (task 0163)
+        self._mesh_walls_by_fitting = False
         self.mesh_order = 1             # 2 after mesh(order=2) (task 0076)
         #: Quality warnings from the last ``validate()`` (task 0047):
         #: ``"<interface>: <message>"``, also issued as ``UserWarning``.
@@ -396,6 +398,13 @@ class Assembly:
         is rejected before meshing.
 
         *walls_by_fitting*: see :meth:`write_physical_groups`.
+
+        Once per session (task 0163): called again with the same *dim*,
+        *order* and *incomplete*, it does nothing, so writing twice is
+        cheap; a different *walls_by_fitting* rewrites only the physical
+        groups.  Other options raise ``AssemblyError``
+        (``remesh_with_other_options``): build the assembly again in a new
+        ``Session``.
         """
         return _realise.mesh(
             self, dim, order=order, incomplete=incomplete, walls_by_fitting=walls_by_fitting)
