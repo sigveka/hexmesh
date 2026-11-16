@@ -2039,8 +2039,8 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 
 `hexmesh.agent.schema()` returns a JSON Schema (draft 2020-12) of the
 saved description, `Assembly.to_dict()` (task 0095).
-`python3 -m hexmesh.agent.schema` prints it, and `hexmesh.agent.dumps()`
-returns that text.  It is generated at call time from the registries,
+`hexmesh schema` prints it (in the CLI's envelope, under `result`), and
+`hexmesh.agent.dumps()` returns the schema as text.  It is generated at call time from the registries,
 never hand-edited, and deterministic (sorted keys):
 - `$defs` has one entry per fitting type (`intent.FITTING_TYPES`), plus
   `PipeSpec`, `Core`, `Shell`, the shapes, `Drum`, `Nozzle`, the nozzle

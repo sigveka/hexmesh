@@ -92,7 +92,7 @@ import numpy as np
 
 from ...errors import HexmeshWarning, ReaderError, ReaderFileNotFound
 from .. import model as _m
-from ..build import INSULATION, TOL_FLOOR, TOL_RELATIVE  # noqa: F401  (re-exported)
+from .._build import INSULATION, TOL_FLOOR, TOL_RELATIVE  # noqa: F401  (re-exported)
 from ..operations import import_entry
 from ...units import inch as INCH, mm
 
@@ -346,7 +346,7 @@ class NetworkSpec:
         -------
         Assembly
         """
-        from ..build import build
+        from .._build import build
         model = self.to_model()
         try:
             return build(model, spec, axial_cell=axial_cell, kinks=kinks, tol=tol, lc=lc,
@@ -372,7 +372,7 @@ class NetworkSpec:
         file's unsupported components (crosses, angled inline components)
         raise before any piece is built.
         """
-        from ..build import build_pieces
+        from .._build import build_pieces
         model = self.to_model()
         try:
             return build_pieces(model, spec, axial_cell=axial_cell, kinks=kinks, tol=tol,

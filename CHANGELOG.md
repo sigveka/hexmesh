@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+**The API review before the 1.0 freeze** (task 0150, decision 0042).
+- **Breaking:** `python3 -m hexmesh.agent.schema` is gone; run
+  `hexmesh schema` (the schema is the envelope's `result`), or call
+  `hexmesh.agent.dumps()`.  Its module shared the name of the
+  `hexmesh.agent.schema` function, and importing it replaced the
+  function for the rest of the process.
+- **Breaking:** the modules `hexmesh.agent.advise` and
+  `hexmesh.interchange.build` are private (`_advise`, `_build`), for the
+  same reason.  The functions `hexmesh.agent.advise` and
+  `hexmesh.interchange.build` are unchanged; import them from the
+  packages.  A test now keeps any package from exporting a name that is
+  also one of its submodules.
+- `hexmesh.sections` is importable but no longer promised: it has no
+  `__all__`.  Choose a layout with `PipeSpec.core(layout=…)`.
+
 **Per-arc counts on a circle** (task 0147, decision 0041).
 - `CircleShape(radius, arcs=[a, b, a, b])`: each quadrant arc its own
   count, instead of `nang`.  Such a circle meets a duct with

@@ -27,9 +27,8 @@ default.  A field checked against a registered limit names it in
 ``x-limit``.  Adding a registry later (the network document's part
 classes, decision 0032) is one more entry in :func:`_defs`.
 
-``python3 -m hexmesh.agent.schema`` prints it (``schema.py``, the command;
-the package imports this module, so running it with ``-m`` would load it
-twice).
+``hexmesh schema`` prints it (task 0150 removed ``python3 -m
+hexmesh.agent.schema``: its module shadowed this function).
 """
 
 from __future__ import annotations

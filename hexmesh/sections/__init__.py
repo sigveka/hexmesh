@@ -26,6 +26,9 @@ tasks 0082, 0084).  Two layouts, chosen on the core
 ``build_face`` builds any layout's GMSH face.  ``sections`` sits between
 ``core`` and ``assembly`` (DESIGN §3.1): it imports ``core``, never
 ``assembly``.
+
+Not part of the promised API (README *Stability*, task 0150): its names
+may change in a minor release.
 """
 
 from __future__ import annotations
@@ -42,9 +45,9 @@ from ._gmsh_helpers import add_physical_group, add_point
 from .oh_gmsh import (build_annulus, build_oh_blend, build_oh_circle, build_oh_rect,
                       build_oh_split, build_ring, place_partition_nodes)
 
-__all__ = ["oh", "h", "SectionLayout", "LAYOUT_MODULES", "layout_of", "circle_radius", "build_face", "add_physical_group", "build_oh_circle", "build_oh_split",
-           "build_oh_rect", "build_oh_blend", "build_ring", "build_annulus",
-           "place_partition_nodes"]
+# No __all__: the package is importable but not promised (task 0150, row 4).
+# The face builders take internal types; users reach a layout through
+# PipeSpec.core(layout=...).
 
 
 @runtime_checkable

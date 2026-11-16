@@ -30,13 +30,14 @@ package (``tests/test_architecture.py``).
 - ``hexmesh`` (``cli.main``): all of them as one command.
 
 The functions live in private modules (``_schema``, ``_describe``,
-``_preview``), so that ``hexmesh.agent.schema`` and the rest stay the
-functions; ``python3 -m hexmesh.agent.schema`` is the one command.
+``_preview``, ``_advise``), so that ``hexmesh.agent.schema`` and the rest
+stay the functions: a public submodule of the same name would replace one
+once imported (task 0150; ``tests/test_architecture.py``).
 """
 
 from ._describe import describe
 from ._manifest import manifest
-from .advise import AdviceError, advise, apply
+from ._advise import AdviceError, advise, apply
 from ._preview import preview
 from ._schema import dumps, schema
 

@@ -30,7 +30,7 @@ from hexmesh.assembly import limits
 from hexmesh.core.grading import first_cell_height, progression_for_first_cell
 from hexmesh.core.shape import core_wall_span
 
-advise_mod = importlib.import_module("hexmesh.agent.advise")   # the module, not the function
+advise_mod = importlib.import_module("hexmesh.agent._advise")
 WATER = {"density": 998.0, "viscosity": 1.00e-3}       # [white_2011, table A.1]
 AIR = {"density": 1.205, "viscosity": 1.80e-5}         # [white_2011, table A.2]
 

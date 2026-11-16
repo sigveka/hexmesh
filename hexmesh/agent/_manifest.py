@@ -35,7 +35,7 @@ from hexmesh.assembly.intent import VERSION as DESCRIPTION_VERSION
 from hexmesh.errors import CODES
 
 from . import _commands
-from . import advise as _advise
+from . import _advise
 
 FORMAT, VERSION = "hexmesh.agent.manifest", 1
 VALIDATION = Path(__file__).with_name("validation.json")

@@ -1174,3 +1174,36 @@ def test_without_gmsh_only_build_fails_and_the_manifest_says_so(tmp_path):
             assert "pip install gmsh" in env["error"]["hint"]
         else:
             assert env["ok"] is True, (c, env)
+
+
+# --- task 0150: an exported name is never also a submodule --------------------
+
+def export_clashes(root: Path) -> list[str]:
+    """Names in a package's ``__all__`` that are also one of its submodules
+    (``x.py`` or ``x/``).  Importing the submodule rebinds the package's
+    attribute to the module, for the rest of the process: the function or
+    class it exported is gone (``hexmesh.agent.schema``, CI run
+    43599497895).  Found from the source, without importing."""
+    bad = []
+    for init in sorted((root / "hexmesh").rglob("__init__.py")):
+        pkg = init.parent
+        names = []
+        for node in ast.parse(init.read_text(encoding="utf-8")).body:
+            if (isinstance(node, ast.Assign)
+                    and any(getattr(t, "id", None) == "__all__" for t in node.targets)):
+                names = ast.literal_eval(node.value)
+        subs = {p.stem for p in pkg.glob("*.py") if p.stem != "__init__"}
+        subs |= {p.name for p in pkg.iterdir() if (p / "__init__.py").is_file()}
+        bad += [f"{pkg.relative_to(root).as_posix()}: {n}" for n in names if n in subs]
+    return bad
+
+
+def test_no_package_exports_a_name_that_is_also_a_submodule():
+    assert export_clashes(ROOT) == []
+
+
+def test_planted_export_clash(tmp_path):
+    root = _tree(tmp_path, {"hexmesh/agent/__init__.py": "from ._s import schema\n"
+                                                         "__all__ = ['schema', 'dumps']\n",
+                            "hexmesh/agent/schema.py": "", "hexmesh/agent/_s.py": ""})
+    assert export_clashes(root) == ["hexmesh/agent: schema"]
