@@ -39,6 +39,7 @@ BundleSpec
 from __future__ import annotations
 import math
 import re
+import warnings
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
@@ -736,7 +737,10 @@ class PipeSpec:
 
     @property
     def rot_rad(self) -> float:
-        """``rot`` in radians, for the face builders."""
+        """Deprecated (task 0150): ``math.radians(spec.rot)``.  Public
+        members are in degrees (decision 0047)."""
+        warnings.warn("PipeSpec.rot_rad is deprecated: use math.radians(spec.rot); "
+                      "public members are in degrees", DeprecationWarning, stacklevel=2)
         return math.radians(self._rot)
 
     @property
@@ -748,13 +752,20 @@ class PipeSpec:
         return tuple(shape.side_count(k, self._n_outer) for k in range(self._n_outer))
 
     @property
-    def period(self) -> float:
-        """Geometric symmetry period P in radians: the smallest roll that
+    def period_deg(self) -> float:
+        """Geometric symmetry period P in degrees: the smallest roll that
         maps the section onto itself (DESIGN §6.1, decision 0010).
-        π/2 for a circle and a square, for every ``n_outer`` (decision
-        0010 as amended: a partition doesn't change the mesh), π for any
+        90 for a circle and a square, for every ``n_outer`` (decision
+        0010 as amended: a partition doesn't change the mesh), 180 for any
         other rectangle; for a stack, the largest over its outlines."""
-        return max(o.period(self._n_outer) for o in self.outlines)
+        return math.degrees(max(o.period(self._n_outer) for o in self.outlines))
+
+    @property
+    def period(self) -> float:
+        """Deprecated (task 0150): P in radians; use :attr:`period_deg`."""
+        warnings.warn("PipeSpec.period (radians) is deprecated: use PipeSpec.period_deg",
+                      DeprecationWarning, stacklevel=2)
+        return math.radians(self.period_deg)
 
     @property
     def graph(self) -> MaterialGraph:

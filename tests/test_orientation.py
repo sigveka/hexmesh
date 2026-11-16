@@ -259,7 +259,8 @@ def _nodes(a):
 
 def test_rot_is_degrees():
     assert _pipe(rot=45).rot == 45.0
-    assert _pipe(rot=45).rot_rad == pytest.approx(math.pi / 4)
+    with pytest.warns(DeprecationWarning, match="rot_rad is deprecated"):
+        assert _pipe(rot=45).rot_rad == pytest.approx(math.pi / 4)
 
 
 def test_version_1_file_converts_rot():

@@ -227,7 +227,7 @@ def coons(bottom, right, top, left) -> np.ndarray:
 def corner0_angle(spec) -> float:
     """Angle of corner 0 (NE) from ``frame.right`` for faces built from
     *spec*, ``rot`` included."""
-    return core_directions(spec.core_shape, spec.n_outer)[0] + spec.rot_rad
+    return core_directions(spec.core_shape, spec.n_outer)[0] + math.radians(spec.rot)
 
 
 def core_directions(shape, n_outer: int) -> list[float]:
@@ -326,7 +326,7 @@ class Level:
 def levels(spec) -> list[Level]:
     """Every corner level of *spec*'s O-H face, in the plane of the face:
     ``position + u·right + v·up``."""
-    n, rot = spec.n_outer, spec.rot_rad
+    n, rot = spec.n_outer, math.radians(spec.rot)
     outlines = spec.outlines
     inner, outer = core_corners(outlines[0], n, rot)
     pts = [inner, outer]

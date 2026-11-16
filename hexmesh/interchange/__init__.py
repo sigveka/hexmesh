@@ -18,23 +18,24 @@ The builder and the model import no importer.  The part classes share names with
 from ._build import build, build_pieces
 from . import operations                 # noqa: F401  (registers the model operations)
 from .model import (
-    FORMATTERS, PART_TYPES, Bend, Connection, InlineEquipment, Joint, Junction, Network,
-    NetworkModel, Part, Polyline, Port, Provenance, Reducer, Section, Straight, Terminal,
-    Transition, describe, register_formatter,
+    FORMATTERS, PART_TYPES, Bend, Connection, Cut, InlineEquipment, Joint, Junction, Network,
+    NetworkModel, Part, Polyline, Port, Provenance, Reducer, Section, Selection, Straight,
+    Terminal, Transition, describe, register_formatter,
 )
 
 __all__ = [
     "build", "build_pieces", "read_pcf", "read_bathymetry", "describe", "register_formatter", "FORMATTERS", "PART_TYPES",
     "NetworkModel", "Port", "Part", "Straight", "InlineEquipment", "Bend", "Reducer",
     "Transition", "Junction", "Joint", "Terminal", "Polyline", "Connection", "Network",
-    "Section", "Provenance",
+    "Section", "Provenance", "Cut", "Selection", "NetworkSpec",
 ]
 
 
 def __getattr__(name: str):
-    """``read_pcf`` and ``read_bathymetry``, loaded on first use: importing
-    the builder or the model loads no importer (constraint 1)."""
-    if name in ("read_pcf", "read_bathymetry"):
+    """``read_pcf``, ``read_bathymetry`` and ``NetworkSpec``, loaded on
+    first use: importing the builder or the model loads no importer
+    (constraint 1)."""
+    if name in ("read_pcf", "read_bathymetry", "NetworkSpec"):
         from . import importers
         return getattr(importers, name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

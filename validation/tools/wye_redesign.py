@@ -190,6 +190,8 @@ def measure_folded(asm, names=None) -> dict:
     and located in the projected mesh."""
     from unittest import mock
     from hexmesh.assembly import _checks        # mesh()'s cell checks (task 0136)
+    # an internal, patched on purpose: tools may use them, and the promised
+    # surface (docs/api-1.0.json, task 0150) doesn't cover validation/
     real = _checks.min_scaled_jacobians
     with mock.patch.object(_checks, "min_scaled_jacobians",
                            lambda v: np.abs(real(v)) + 1e-12):

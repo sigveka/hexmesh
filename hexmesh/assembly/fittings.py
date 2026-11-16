@@ -1476,7 +1476,7 @@ class Closure(Sweep):
 
     def layers_ok(self, n, inlet, spec, outlet=None) -> bool:
         frames, _ = _transported_stations(self._curve(inlet, outlet), n, inlet,
-                                          end=outlet, period=spec.period,
+                                          end=outlet, period=math.radians(spec.period_deg),
                                           fractions=self.fractions(n))
         return _max_turn(frames) <= MAX_CHORD_TURN
 
@@ -1526,11 +1526,12 @@ class Closure(Sweep):
         if np.linalg.norm(b.position - a.position) < 1e-12:
             raise AssemblyError("source and target interfaces coincide",
                                 code="closure_ends_coincide")
-        frames, twist = self.stations(a, b, spec.period)
-        if abs(abs(twist) - spec.period / 2) < 1e-9:
+        period = math.radians(spec.period_deg)
+        frames, twist = self.stations(a, b, period)
+        if abs(abs(twist) - period / 2) < 1e-9:
             raise AssemblyError(
                 f"roll mismatch of {math.degrees(twist):.4g}° is half the section's "
-                f"symmetry period ({math.degrees(spec.period):.4g}°), so it is "
+                f"symmetry period ({spec.period_deg:.4g}°), so it is "
                 f"ambiguous which way to twist; roll one end",
                 code="roll_mismatch_ambiguous", value=math.degrees(twist), hint="roll one end")
         return Path(frames, [1] * self.n_layers,

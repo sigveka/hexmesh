@@ -56,12 +56,16 @@ class TestSpec:
 
     def test_period_is_the_stack_s(self):
         """The section's roll symmetry is that of its least symmetric outline."""
-        assert _core().period == pytest.approx(math.pi / 2)
-        assert _in(RectShape(0.2, 0.2, 4, 4)).period == pytest.approx(math.pi / 2)
-        assert _in(RectShape(0.25, 0.125, 4, 4)).period == pytest.approx(math.pi)
+        assert _core().period_deg == pytest.approx(90)
+        assert _in(RectShape(0.2, 0.2, 4, 4)).period_deg == pytest.approx(90)
+        assert _in(RectShape(0.25, 0.125, 4, 4)).period_deg == pytest.approx(180)
         rc = (PipeSpec(nang=4).core("f", RectShape(0.1, 0.05, 4, 4), nrad=3, layout="oh")
               .shell("c", outer=CircleShape(0.2, 4), nrad=2))
-        assert rc.period == pytest.approx(math.pi)
+        assert rc.period_deg == pytest.approx(180)
+
+    def test_period_in_radians_is_deprecated(self):
+        with pytest.warns(DeprecationWarning, match="use PipeSpec.period_deg"):
+            assert _core().period == pytest.approx(math.pi / 2)
 
     def test_extents_use_the_outermost_outline(self):
         spec = _in(RectShape(0.25, 0.125, 4, 4))

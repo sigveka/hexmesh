@@ -148,7 +148,7 @@ def rolled(frame: Frame, roll: float) -> Frame:
 def junction_roll(fitting, spec: PipeSpec) -> None:
     """A junction's ``roll`` must be a multiple of the section's period:
     only then do its corners land on the inlet face's (decision 0024)."""
-    P = math.degrees(spec.period)
+    P = spec.period_deg
     m = fitting.roll / P
     if abs(m - round(m)) > 1e-9:
         raise AssemblyError(
@@ -174,7 +174,7 @@ def junction_toward(fitting, inlet: Frame, spec: PipeSpec, offset: float = 0.0):
         raise AssemblyError(f"{name}: give roll or toward, not both",
                             code="roll_and_toward_conflict", where={"field": "toward"})
     want = toward_roll(inlet, fitting.toward) - offset
-    P = math.degrees(spec.period)
+    P = spec.period_deg
     roll = round(want / P) * P
     miss = abs(math.remainder(want - roll, 360.0))
     if miss > JUNCTION_TOWARD_TOL:
@@ -229,7 +229,7 @@ def half_extent(spec: PipeSpec, angle: float) -> float:
     outer radius of a circle; ``half_w·|cos| + half_h·|sin|`` for a
     rectangle, so the half-height toward ``up`` and the half-width toward
     ``right``."""
-    return float(spec.outlines[-1].extent(angle - spec.rot_rad))
+    return float(spec.outlines[-1].extent(angle - math.radians(spec.rot)))
 
 
 def hydraulic_diameter(spec: PipeSpec) -> float:

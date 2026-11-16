@@ -677,17 +677,15 @@ def _place(report, parts, nodes, at_node, names, root, spec, axial_cell, kinks, 
                 raise _Reroll(miss)
         state["junctions"] += 1
         try:
-            # a roll between the period's steps: a twist on the straight
-            # before it (task 0062), which rolls the junction's inlet
-            asm._twist_for_toward(fitting, iface)
-            frame = iface.frame
-            fitting.resolve(frame, iface.spec).check(iface.spec)
+            # add() twists the straight before it for a roll between the
+            # period's steps (task 0062), then the check sees the rolled inlet
+            outs = asm.add(iface, fitting, label=p.label, origin=_source(p) or None)
+            fitting.resolve(iface.frame, iface.spec).check(iface.spec)
         except ValueError as e:
             err = AssemblyError.wrap(e, f"{what}: {e}", code="fitting_invalid",
                                      part=_part_id(p), source=_source(p))
             _file_length_hint(err, p)
             raise err from None
-        outs = asm.add(iface, fitting, label=p.label, origin=_source(p) or None)
         for o, x in zip(outs, outs_at):
             check(what, o.frame, x, p)
         return outs, outs_at

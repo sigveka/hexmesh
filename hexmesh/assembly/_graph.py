@@ -232,7 +232,7 @@ def _twist_for_toward(asm, fitting, source: Interface) -> None:
     offset = getattr(fitting, "toward_offset", None)
     if offset is None or getattr(fitting, "toward", None) is None or fitting.roll != 0:
         return                  # not a junction's toward, or junction_toward rejects it
-    P = math.degrees(source.spec.period)
+    P = source.spec.period_deg
     rest = math.remainder(toward_roll(source.frame, fitting.toward) - offset, P)
     if abs(rest) <= limits.JUNCTION_TOWARD_TOL:
         return                  # junction_toward snaps it

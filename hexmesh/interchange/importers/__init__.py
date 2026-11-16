@@ -18,10 +18,10 @@ Importers (decision 0032 §8): each reads one source format into a
 - ``bathymetry``: ``read_bathymetry``, seabed routes.
 
 They moved here from ``hexmesh.io.readers`` (task 0066, decision 0037
-item 4), which still re-exports them, deprecated (removed in 0.8).
+item 4), removed in 0.8.  ``NetworkSpec`` is what ``read_pcf`` returns.
 """
 
 from .bathymetry import read_bathymetry
-from .pcf import read_pcf
+from .pcf import NetworkSpec, read_pcf
 
-__all__ = ["read_pcf", "read_bathymetry"]
+__all__ = ["read_pcf", "read_bathymetry", "NetworkSpec"]

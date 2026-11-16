@@ -56,11 +56,11 @@ def _rolled(frame, degrees, shift=1.0):
 
 class TestPeriod:
     def test_geometric_period(self):
-        assert _duct().period == pytest.approx(math.pi)
-        assert _square().period == pytest.approx(math.pi / 2)
-        assert _circle().period == pytest.approx(math.pi / 2)
+        assert _duct().period_deg == pytest.approx(180)
+        assert _square().period_deg == pytest.approx(90)
+        assert _circle().period_deg == pytest.approx(90)
         # equal sides but unequal counts: the mesh repeats only every π
-        assert _duct(0.07, 0.07, 4, 2).period == pytest.approx(math.pi)
+        assert _duct(0.07, 0.07, 4, 2).period_deg == pytest.approx(180)
 
     def test_side_counts(self):
         assert _duct().side_counts == (4, 2, 4, 2)
@@ -86,7 +86,7 @@ class TestPeriod:
         with pytest.raises(ValueError, match="ambiguous which way to twist"):
             Closure(n_layers=4).validate([A, b], _duct())
         Closure(n_layers=4).validate([A, b], _square())
-        _, twist = Closure(n_layers=4).stations(A, b, _square().period)
+        _, twist = Closure(n_layers=4).stations(A, b, math.radians(_square().period_deg))
         assert abs(twist) < 1e-9
 
     def test_duct_rolled_outlet_quarter_turn_rejected(self):

@@ -27,6 +27,8 @@ What it lists:
   manifest.
 - **manifest:** its format, version and top-level keys.
 - **codes:** every error, warning and notice code (``errors.CODES``).
+- **not_promised:** class members that are importable but not promised
+  (``NOT_PROMISED``), left out of the class entries.
 
 ``tests/test_api_inventory.py`` runs the comparison: a change to the
 surface fails until the file is regenerated on purpose.  The hexmesh
@@ -54,6 +56,24 @@ sys.path.insert(0, str(ROOT))
 
 OUT = ROOT / "docs/api-1.0.json"
 FORMAT = "hexmesh.api_inventory"
+
+#: members that are importable but not promised (task 0150, row 10): the
+#: shapes' outline protocol, for the face builders, which works in
+#: radians.  Listed under "not_promised", left out of the class entries.
+_OUTLINE = {"corner", "ring_corner", "corners_from", "side", "side_count", "extent",
+            "max_extent", "distance", "grown", "lerp", "period"}
+#: Row 11: the block-layout protocol of the junction fittings, which
+#: returns internal types; and the constructors of types users get back
+#: but never build (their attributes are promised).
+_BLOCKS = {"layout", "skeleton", "wall"}
+NOT_PROMISED = {"hexmesh.core.shape.CircleShape": _OUTLINE,
+                "hexmesh.core.shape.RectShape": _OUTLINE,
+                "hexmesh.core.shape.Shape": _OUTLINE,
+                "hexmesh.assembly.tee.Tee": _BLOCKS,
+                "hexmesh.assembly.wye.Wye": _BLOCKS,
+                "hexmesh.assembly.switch.Switch": _BLOCKS,
+                "hexmesh.assembly.interface.Interface": {"__init__"},
+                "hexmesh.assembly.sweep.FillResult": {"__init__"}}
 
 
 _PLAIN = (bool, int, float, str, type(None))
@@ -106,9 +126,10 @@ def _class(cls) -> dict:
     factories = ({f.name: f.default_factory for f in dataclasses.fields(cls)
                   if f.default_factory is not dataclasses.MISSING}
                  if dataclasses.is_dataclass(cls) else None)
+    skip = NOT_PROMISED.get(f"{cls.__module__}.{cls.__qualname__}", set())
     members = {}
     for name, attr in sorted(vars(cls).items()):
-        if name.startswith("_") and name != "__init__":
+        if (name.startswith("_") and name != "__init__") or name in skip:
             continue
         if isinstance(attr, property):
             members[name] = {"kind": "property", "settable": attr.fset is not None}
@@ -194,6 +215,7 @@ def inventory() -> dict:
             "manifest": {"format": man["format"], "manifest_version": man["manifest_version"],
                          "keys": sorted(man)},
             "codes": sorted(CODES),
+            "not_promised": {cls: sorted(names) for cls, names in sorted(NOT_PROMISED.items())},
         }
 
 

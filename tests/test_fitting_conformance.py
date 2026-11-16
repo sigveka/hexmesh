@@ -636,7 +636,7 @@ def _outline_dev(u, v, spec0, spec1=None, t=None):
     outline (decision 0026).  With *spec1* and per-point fractions *t*, the
     outlines are interpolated linearly between the two (a reducer's slab:
     its walls are cones and planes)."""
-    c, d = math.cos(spec0.rot_rad), math.sin(spec0.rot_rad)
+    c, d = math.cos(math.radians(spec0.rot)), math.sin(math.radians(spec0.rot))
     u, v = c * u + d * v, -d * u + c * v
     o0 = spec0.outlines
     o1 = o0 if spec1 is None else spec1.outlines[:len(o0)]

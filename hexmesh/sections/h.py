@@ -59,7 +59,7 @@ def corner0_angle(spec) -> float:
     """Angle of corner 0 (NE) from ``frame.right``, ``rot`` included: the
     rectangle's corner, as on the O-H face."""
     shape = spec.core_shape
-    return math.atan2(shape.half_h, shape.half_w) + spec.rot_rad
+    return math.atan2(shape.half_h, shape.half_w) + math.radians(spec.rot)
 
 
 def side_counts(shape, n_outer: int = 4) -> tuple[int, ...]:
@@ -83,7 +83,7 @@ def levels(spec) -> list[oh.Level]:
     """The corner levels: the rectangle's corners, ``rot`` applied, and
     its four sides; then each shell's outer corners, its sides (graded as
     the core's) and its corner lines from the level below."""
-    shape, rot = spec.core_shape, spec.rot_rad
+    shape, rot = spec.core_shape, math.radians(spec.rot)
     corners = spec.corners()
     out = []
     for lvl, pts in enumerate(corners):

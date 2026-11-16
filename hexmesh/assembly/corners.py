@@ -150,7 +150,7 @@ def frame_offset(a: Frame, b: Frame, spec: PipeSpec) -> int:
     π for a rectangle, so a 2:1 duct only ever matches itself turned by
     half a turn, never a quarter.
     """
-    n, P = spec.n_outer, spec.period
+    n, P = spec.n_outer, math.radians(spec.period_deg)
     d = a.right
 
     axis = np.cross(a.normal, b.normal)

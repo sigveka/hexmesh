@@ -523,7 +523,7 @@ class Sweep:
             if (np.linalg.norm(expected.position - b.position) > 1e-9 * scale
                     or np.dot(expected.normal, b.normal) < 1 - 1e-9
                     or abs(roll_mismatch(expected.up, b.up, b.normal,
-                                         spec.period)) > 1e-9):
+                                         math.radians(spec.period_deg))) > 1e-9):
                 raise AssemblyError(
                     f"outlet interface does not match {type(self).__name__} geometry",
                     code="outlet_frame_mismatch"
