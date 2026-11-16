@@ -51,7 +51,8 @@ UNITS_MODEL = {"length": "m", "angle": "deg"}
 
 def describe(x) -> dict:
     """A JSON-safe summary of *x*: an ``Assembly``, an ``Assembly.to_dict()``
-    description, or a ``NetworkModel``.  Needs no GMSH session."""
+    description, or a ``NetworkModel``.  Needs no GMSH session.  Not
+    ``hexmesh.interchange.describe``, which names one part in a message."""
     if isinstance(x, NetworkModel):
         return _model(x)
     if isinstance(x, dict):

@@ -108,7 +108,9 @@ IMPORTERS: dict[str, Callable] = {}
 
 def describe(part: "Part", at=None, name: str | None = None) -> str:
     """The part as messages name it: by its importer's formatter, or
-    ``part <id> (<type> <name> at <point>)``."""
+    ``part <id> (<type> <name> at <point>)``.  Not
+    ``hexmesh.agent.describe``, which summarises a whole assembly or model
+    as JSON data."""
     name = name or part.name
     fmt = part.provenance.format if part.provenance else ""
     if fmt in FORMATTERS:

@@ -461,6 +461,11 @@ circular.
 
 ## Fittings
 
+`hexmesh.interchange` has network-model parts with the same names
+(`Straight`, `Bend`, `Reducer`, `Transition`): a part is what an importer
+read, and the builder turns it into the fitting of the same name (see
+*Network interchange*).
+
 **Axial grading.** `Straight`, `Bend`, `Elbow`, `Reducer`, `SplinePipe` and
 `Closure` take `axial_grading=1.0`: the ratio of consecutive axial cell
 lengths, inlet → outlet (GMSH's "Progression" law). Above 1 refines toward
