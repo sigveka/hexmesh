@@ -237,6 +237,8 @@ CODES: dict[str, str] = {
     "branch_grading_unsupported": "a tee branch's own grading on an equal tee or a duct tap",
     "branch_length_too_short": "a tee branch does not reach past the main's wall",
     "branch_radius_out_of_range": "a pipe-tee branch radius not in (0, main radius)",
+    "branch_shells_reserved":
+        "Tee(branch_shells=) is reserved for 1.x: only None is accepted",
     "bundle_pipe_has_no_shells": "a bundle pipe with no shell layers",
     "bundle_pipe_outer_not_rectangle": "a bundle pipe whose outermost shell is not rectangular",
     "case_placeholder_unknown": "an OpenFOAM case template uses a placeholder with no parameter",

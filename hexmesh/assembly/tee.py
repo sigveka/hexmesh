@@ -92,6 +92,7 @@ from dataclasses import dataclass, replace
 import numpy as np
 
 from .errors import AssemblyError, AssemblyTypeError
+from ..errors import jsonable
 from ..core.shape import CircleShape, RectShape
 from ..core.params import param
 from ..core.spec import PipeSpec
@@ -287,6 +288,10 @@ class Tee:
         ring thickness of the wall, and the H face's wall cell) and stored;
         give them to override.  An O-H main's ring is its own: not allowed
         there.
+    branch_shells : None
+        Reserved (task 0150; decision 0051): a branch with shells of its
+        own is planned for 1.x.  Only ``None`` is accepted; any other value
+        raises ``AssemblyError`` (``branch_shells_reserved``).
     branch_first_cell, branch_mprg : float, optional
         Pipe tees: the branch port's own core grading (task 0131; decision
         0028), as ``PipeSpec.core``'s ``first_cell`` (resolved to
@@ -362,8 +367,17 @@ class Tee:
     branch_mprg: float | None = param(
         "1", "pipe tees: the branch port's core radial growth (None: the main's)",
         input=True, exclusiveMinimum=0)
+    branch_shells: None = param(
+        "-", "reserved: the branch's own shells, planned for 1.x; None only", input=True)
 
     def __post_init__(self):
+        if self.branch_shells is not None:
+            raise AssemblyError("Tee: branch_shells is reserved: a branch with shells of "
+                                "its own is planned for 1.x; today the branch takes the "
+                                "main's shells", code="branch_shells_reserved",
+                                where={"field": "branch_shells"},
+                                value=jsonable(self.branch_shells),
+                                hint="leave branch_shells unset")
         missing = ["branch_length"] if self.branch_length is None else []
         if self.branch_radius is None and self.branch is None:
             missing.append("branch_radius (or branch)")

@@ -448,3 +448,21 @@ def test_circle_radius_is_the_one_read_and_rejects_a_rectangle():
     with pytest.raises(SpecError) as e:
         circle_radius(RectShape(half_w=0.1, half_h=0.05, nang_w=4, nang_h=4))
     assert e.value.code == "shape_not_circular"
+
+
+# --- task 0150: branch_shells is reserved for 1.x ------------------------------
+
+def test_branch_shells_is_reserved():
+    """Only None today (decision 0051's note): the name is in the frozen
+    surface, so adding branch shells in 1.x is additive."""
+    from hexmesh.agent import schema
+    assert Tee(branch_length=0.3, branch_radius=0.06, branch_shells=None).branch_shells is None
+    with pytest.raises(AssemblyError, match="planned for 1.x") as e:
+        Tee(branch_length=0.3, branch_radius=0.06, branch_shells=[("steel", 0.01)])
+    assert e.value.code == "branch_shells_reserved"
+    assert schema()["$defs"]["Tee"]["properties"]["branch_shells"]["type"] == "null"
+    # unset, it stays out of the saved description
+    asm = Assembly(PipeSpec(nang=6).core("fluid", radius=0.1, nrad=5))
+    asm.add(Straight(0.5, n_layers=4))
+    asm.add(Tee(branch_length=0.3, branch_radius=0.06))
+    assert "branch_shells" not in str(asm.to_dict())

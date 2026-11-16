@@ -122,6 +122,8 @@ def _value(name: str, annotation: str | None, nullable: bool) -> dict:
         s = dict(_VALUES[name])
     else:
         words = [w.strip() for w in (annotation or "").split("|") if w.strip() != "None"]
+        if not words:                       # None only: a reserved name (Tee.branch_shells)
+            return {"type": "null"}
         alts = list({json.dumps(_TYPES[w], sort_keys=True): _TYPES[w] for w in words}.values())
         s = dict(alts[0]) if len(alts) == 1 else {"anyOf": alts}
     if nullable:
