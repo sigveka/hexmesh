@@ -1757,6 +1757,7 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `branch_grading_unsupported` | a tee branch's own grading on an equal tee or a duct tap | `AssemblyError` |
 | `branch_length_too_short` | a tee branch does not reach past the main's wall | `AssemblyError` |
 | `branch_radius_out_of_range` | a pipe-tee branch radius not in (0, main radius) | `AssemblyError` |
+| `branch_shells_reserved` | Tee(branch_shells=) is reserved for 1.x: only None is accepted | `AssemblyError` |
 | `bundle_pipe_has_no_shells` | a bundle pipe with no shell layers | `SpecError` |
 | `bundle_pipe_outer_not_rectangle` | a bundle pipe whose outermost shell is not rectangular | `SpecTypeError` |
 | `case_placeholder_unknown` | an OpenFOAM case template uses a placeholder with no parameter | `StudyError` |
@@ -1944,6 +1945,7 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `reducer_shape_change` | a Reducer between different outline shapes | `AssemblyError` |
 | `reducer_sizes_missing` | a network reducer without both sizes | `AssemblyError` |
 | `refine_factor_invalid` | a refinement factor that is not an integer >= 1 | `AssemblyError` |
+| `remesh_with_other_options` | mesh() again on a meshed assembly with other dim, order or incomplete | `AssemblyError` |
 | `role_manifest_format_unsupported` | a role manifest in an unsupported format | `ReaderError` |
 | `roll_and_toward_conflict` | both roll and toward given | `AssemblyError` |
 | `roll_mismatch_ambiguous` | a roll mismatch of half the section's symmetry period | `AssemblyError` |
