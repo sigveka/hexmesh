@@ -409,17 +409,25 @@ class Assembly:
         return _realise._project_walls(self)
 
     def write(self, path: str, dim: int = 3, *, order: int = 1, incomplete: bool = False,
-              walls_by_fitting: bool = False, provenance: bool = True) -> None:
+              walls_by_fitting: bool = False, provenance: bool = True,
+              scale: float = 1.0) -> None:
         """Mesh and write *path* in the format its extension names.  A
         ``.msh`` carries the recipe block unless *provenance* is false
-        (:meth:`_stamp`).  *order*, *incomplete*: see :meth:`mesh`."""
+        (:meth:`_stamp`).  *order*, *incomplete*: see :meth:`mesh`.
+
+        *scale* multiplies the node coordinates as they are written, once
+        (gmsh's ``Mesh.ScalingFactor``): the assembly, its mesh, the cell
+        count and the checks keep the built size.  Build a small part at
+        a reference size and scale it here: building at 1:30 or smaller
+        drifts (task 0139).  Positive and finite, or ``AssemblyError``
+        (``value_not_positive``)."""
         return _output.write(
             self, path, dim, order=order, incomplete=incomplete, walls_by_fitting=walls_by_fitting,
-            provenance=provenance)
+            provenance=provenance, scale=scale)
 
     def write_openfoam(self, path: str, *, interfaces: bool = False,
                        walls_by_fitting: bool = False, provenance: bool = True,
-                       order: int = 1) -> None:
+                       order: int = 1, scale: float = 1.0) -> None:
         """Mesh and write a ``.msh`` file for OpenFOAM's ``gmshToFoam``.
 
         Writes MSH 2.2 ASCII (``Mesh.MshFileVersion = 2.2``,
@@ -448,10 +456,12 @@ class Assembly:
 
         *order* must be 1: ``gmshToFoam`` reads first-order elements only
         (task 0076), so ``order=2`` is an ``AssemblyError``.
+
+        *scale*: as :meth:`write`, the written nodes times *scale*.
         """
         return _output.write_openfoam(
             self, path, interfaces=interfaces, walls_by_fitting=walls_by_fitting,
-            provenance=provenance, order=order)
+            provenance=provenance, order=order, scale=scale)
 
     # ------------------------------------------------------------------
     # Quality

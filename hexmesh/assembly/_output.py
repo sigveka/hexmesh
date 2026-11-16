@@ -17,6 +17,9 @@ files (task 0136).
 
 from __future__ import annotations
 
+import math
+from contextlib import contextmanager
+
 from .._gmsh import gmsh
 from .errors import AssemblyError
 from ..sections import add_physical_group
@@ -70,15 +73,45 @@ def patch_name(asm, iface: Interface) -> str:
     return f"port{iface.index}"
 
 
+def _check_scale(scale) -> float:
+    if (isinstance(scale, bool) or not isinstance(scale, (int, float))
+            or not math.isfinite(scale) or scale <= 0):
+        raise AssemblyError(f"scale must be a positive, finite number, got {scale!r}",
+                            code="value_not_positive", where={"field": "scale"}, value=scale,
+                            hint="scale multiplies the written node coordinates: 1e-3 "
+                                 "writes a model built in millimetres in metres")
+    return float(scale)
+
+
+@contextmanager
+def _scaled(scale: float):
+    """gmsh's ``Mesh.ScalingFactor`` while writing: the nodes are multiplied
+    once, as written; the model and its mesh keep their size (task 0150,
+    decision 0047's note of 2026-11-16)."""
+    old = gmsh.option.getNumber("Mesh.ScalingFactor")
+    gmsh.option.setNumber("Mesh.ScalingFactor", scale)
+    try:
+        yield
+    finally:
+        gmsh.option.setNumber("Mesh.ScalingFactor", old)
+
+
+def _scale_note(scale: float) -> str:
+    return "" if scale == 1.0 else f" scale={scale!r}"
+
+
 def write(asm, path: str, dim: int = 3, *, order: int = 1, incomplete: bool = False,
-          walls_by_fitting: bool = False, provenance: bool = True) -> None:
+          walls_by_fitting: bool = False, provenance: bool = True, scale: float = 1.0) -> None:
+    scale = _check_scale(scale)
     asm.mesh(dim, order=order, incomplete=incomplete, walls_by_fitting=walls_by_fitting)
-    gmsh.write(path)
+    with _scaled(scale):
+        gmsh.write(path)
     if str(path).endswith(".msh"):
         msh_comments.to_lf(path)
         if provenance:
             hi = "" if order == 1 else f" order={order} incomplete={incomplete}"
-            _stamp(asm, path, f"write dim={dim}{hi} walls_by_fitting={walls_by_fitting}")
+            _stamp(asm, path, f"write dim={dim}{hi} walls_by_fitting={walls_by_fitting}"
+                              f"{_scale_note(scale)}")
 
 
 def _stamp(asm, path, write: str) -> None:
@@ -95,7 +128,8 @@ def _stamp(asm, path, write: str) -> None:
 
 def write_openfoam(asm, path: str, *, interfaces: bool = False,
                    walls_by_fitting: bool = False, provenance: bool = True,
-                   order: int = 1) -> None:
+                   order: int = 1, scale: float = 1.0) -> None:
+    scale = _check_scale(scale)
     if order != 1:
         raise AssemblyError(f"write_openfoam writes first-order meshes only, got "
                             f"order={order!r}: gmshToFoam reads no second-order elements",
@@ -124,11 +158,12 @@ def write_openfoam(asm, path: str, *, interfaces: bool = False,
     try:
         gmsh.option.setNumber("Mesh.MshFileVersion", 2.2)
         gmsh.option.setNumber("Mesh.Binary", 0)
-        gmsh.write(str(path))
+        with _scaled(scale):
+            gmsh.write(str(path))
         msh_comments.to_lf(path)
         if provenance:
             _stamp(asm, path, f"write_openfoam dim=3 interfaces={interfaces} "
-                              f"walls_by_fitting={walls_by_fitting}")
+                              f"walls_by_fitting={walls_by_fitting}{_scale_note(scale)}")
     finally:
         for k, v in options.items():
             gmsh.option.setNumber(k, v)

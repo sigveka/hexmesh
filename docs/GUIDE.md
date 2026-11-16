@@ -236,7 +236,11 @@ PipeSpec(nang=6).core("fluid", radius=2 * inch, nrad=4)
 ```
 
 Don't work in a unit of your own (millimetres written as metres):
-hexmesh isn't quite scale-free (see *Current limitations*).
+hexmesh isn't quite scale-free (see *Current limitations*).  For a
+small part (below about 1:30 of a 0.1 m pipe), build it at a reference
+size and scale it as it is written: `write_openfoam(path, scale=1e-3)`
+writes the full-size mesh × 1e-3 exactly, where building it small would
+move junction nodes by up to 0.6 % (task 0139).
 
 ```python
 from hexmesh import PipeSpec
@@ -965,7 +969,8 @@ Regenerate it with `python3 docs/gallery/build.py` (needs `vtk`).
   0.1 m main builds down to 1:1000 (0.1 mm radius).  The nodes match
   the full-size mesh × the scale exactly at 1:2 and 1:4.  At 1:20 they
   are off by 5e-6 of the network's size, and below about 1:30 by up to
-  0.6 % (1:1000), inside the junctions.
+  0.6 % (1:1000), inside the junctions.  The writers' `scale=` avoids
+  it: build at a reference size and scale the output.
 - **Tee:** branch perpendicular or leaning downstream (a lateral,
   `angle=`, in the range of DESIGN §7.1), centred or offset (`offset=`,
   `|offset| + r < R` and `|offset| ≤ r`), branch radius at most
