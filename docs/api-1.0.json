@@ -321,6 +321,7 @@
   "branch_grading_unsupported",
   "branch_length_too_short",
   "branch_radius_out_of_range",
+  "branch_shells_reserved",
   "bundle_pipe_has_no_shells",
   "bundle_pipe_outer_not_rectangle",
   "case_placeholder_unknown",
@@ -633,6 +634,68 @@
    "workflow"
   ],
   "manifest_version": 1
+ },
+ "not_promised": {
+  "hexmesh.assembly.interface.Interface": [
+   "__init__"
+  ],
+  "hexmesh.assembly.sweep.FillResult": [
+   "__init__"
+  ],
+  "hexmesh.assembly.switch.Switch": [
+   "layout",
+   "skeleton",
+   "wall"
+  ],
+  "hexmesh.assembly.tee.Tee": [
+   "layout",
+   "skeleton",
+   "wall"
+  ],
+  "hexmesh.assembly.wye.Wye": [
+   "layout",
+   "skeleton",
+   "wall"
+  ],
+  "hexmesh.core.shape.CircleShape": [
+   "corner",
+   "corners_from",
+   "distance",
+   "extent",
+   "grown",
+   "lerp",
+   "max_extent",
+   "period",
+   "ring_corner",
+   "side",
+   "side_count"
+  ],
+  "hexmesh.core.shape.RectShape": [
+   "corner",
+   "corners_from",
+   "distance",
+   "extent",
+   "grown",
+   "lerp",
+   "max_extent",
+   "period",
+   "ring_corner",
+   "side",
+   "side_count"
+  ],
+  "hexmesh.core.shape.Shape": [
+   "corner",
+   "corners_from",
+   "distance",
+   "extent",
+   "grown",
+   "lerp",
+   "max_extent",
+   "period",
+   "ring_corner",
+   "side",
+   "side_count"
+  ]
  },
  "python": {
   "hexmesh": {
@@ -1160,6 +1223,13 @@
         },
         "kind": "keyword_only",
         "name": "provenance"
+       },
+       {
+        "default": {
+         "value": 1.0
+        },
+        "kind": "keyword_only",
+        "name": "scale"
        }
       ]
      },
@@ -1201,6 +1271,13 @@
         },
         "kind": "keyword_only",
         "name": "order"
+       },
+       {
+        "default": {
+         "value": 1.0
+        },
+        "kind": "keyword_only",
+        "name": "scale"
        }
       ]
      },
@@ -1441,116 +1518,13 @@
       "kind": "property",
       "settable": false
      },
-     "corner": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "k"
-       }
-      ]
-     },
-     "corners_from": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "directions"
-       }
-      ]
-     },
      "counts": {
       "kind": "property",
       "settable": false
      },
-     "distance": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "u"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "v"
-       }
-      ]
-     },
-     "extent": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "angle"
-       }
-      ]
-     },
-     "grown": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "dR"
-       }
-      ]
-     },
      "hydraulic_diameter": {
       "kind": "property",
       "settable": false
-     },
-     "lerp": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "other"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "u"
-       }
-      ]
-     },
-     "max_extent": {
-      "kind": "property",
-      "settable": false
-     },
-     "period": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "n_corners"
-       }
-      ]
      },
      "resized": {
       "kind": "method",
@@ -1565,19 +1539,6 @@
        }
       ]
      },
-     "ring_corner": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "d"
-       }
-      ]
-     },
      "scaled": {
       "kind": "method",
       "signature": [
@@ -1588,44 +1549,6 @@
        {
         "kind": "positional_or_keyword",
         "name": "f"
-       }
-      ]
-     },
-     "side": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "p0"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "p1"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "s"
-       }
-      ]
-     },
-     "side_count": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "k"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "n_corners"
        }
       ]
      },
@@ -2497,55 +2420,6 @@
     "bases": [],
     "kind": "class",
     "members": {
-     "__init__": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "index"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "frame"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "spec"
-       },
-       {
-        "default": {
-         "value": null
-        },
-        "kind": "positional_or_keyword",
-        "name": "name"
-       },
-       {
-        "default": {
-         "value": []
-        },
-        "kind": "positional_or_keyword",
-        "name": "edges"
-       },
-       {
-        "default": {
-         "value": null
-        },
-        "kind": "positional_or_keyword",
-        "name": "face"
-       },
-       {
-        "default": {
-         "value": false
-        },
-        "kind": "positional_or_keyword",
-        "name": "equipment"
-       }
-      ]
-     },
      "is_open": {
       "kind": "property",
       "settable": false
@@ -2986,6 +2860,10 @@
       "settable": false
      },
      "period": {
+      "kind": "property",
+      "settable": false
+     },
+     "period_deg": {
       "kind": "property",
       "settable": false
      },
@@ -3813,23 +3691,6 @@
        }
       ]
      },
-     "layout": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "frames"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "spec"
-       }
-      ]
-     },
      "meshed_nonorth_check": {
       "kind": "method",
       "signature": [
@@ -4116,6 +3977,13 @@
         },
         "kind": "positional_or_keyword",
         "name": "branch_mprg"
+       },
+       {
+        "default": {
+         "value": null
+        },
+        "kind": "positional_or_keyword",
+        "name": "branch_shells"
        }
       ]
      },
@@ -4171,23 +4039,6 @@
        {
         "kind": "positional_or_keyword",
         "name": "lc"
-       }
-      ]
-     },
-     "layout": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "frames"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "spec"
        }
       ]
      },
@@ -4696,23 +4547,6 @@
        }
       ]
      },
-     "layout": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "frames"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "spec"
-       }
-      ]
-     },
      "meshed_nonorth_check": {
       "kind": "method",
       "signature": [
@@ -4817,23 +4651,6 @@
        }
       ]
      },
-     "skeleton": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "inlet"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "spec"
-       }
-      ]
-     },
      "validate": {
       "kind": "method",
       "signature": [
@@ -4848,30 +4665,6 @@
        {
         "kind": "positional_or_keyword",
         "name": "spec"
-       }
-      ]
-     },
-     "wall": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "inlet"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "spec"
-       },
-       {
-        "default": {
-         "value": null
-        },
-        "kind": "positional_or_keyword",
-        "name": "radius"
        }
       ]
      }
@@ -5481,6 +5274,13 @@
         },
         "kind": "keyword_only",
         "name": "provenance"
+       },
+       {
+        "default": {
+         "value": 1.0
+        },
+        "kind": "keyword_only",
+        "name": "scale"
        }
       ]
      },
@@ -5522,6 +5322,13 @@
         },
         "kind": "keyword_only",
         "name": "order"
+       },
+       {
+        "default": {
+         "value": 1.0
+        },
+        "kind": "keyword_only",
+        "name": "scale"
        }
       ]
      },
@@ -6272,85 +6079,6 @@
     "bases": [],
     "kind": "class",
     "members": {
-     "__init__": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "default": {
-         "value": {}
-        },
-        "kind": "positional_or_keyword",
-        "name": "volumes"
-       },
-       {
-        "default": {
-         "value": []
-        },
-        "kind": "positional_or_keyword",
-        "name": "walls"
-       },
-       {
-        "default": {
-         "value": {}
-        },
-        "kind": "positional_or_keyword",
-        "name": "wall_groups"
-       },
-       {
-        "default": {
-         "value": {}
-        },
-        "kind": "positional_or_keyword",
-        "name": "interfaces"
-       },
-       {
-        "default": {
-         "value": []
-        },
-        "kind": "positional_or_keyword",
-        "name": "curves"
-       },
-       {
-        "default": {
-         "value": []
-        },
-        "kind": "positional_or_keyword",
-        "name": "surfaces"
-       },
-       {
-        "default": {
-         "value": []
-        },
-        "kind": "positional_or_keyword",
-        "name": "mesh_vols"
-       },
-       {
-        "default": {
-         "value": []
-        },
-        "kind": "positional_or_keyword",
-        "name": "projections"
-       },
-       {
-        "default": {
-         "value": null
-        },
-        "kind": "positional_or_keyword",
-        "name": "checked_volumes"
-       },
-       {
-        "default": {
-         "value": []
-        },
-        "kind": "positional_or_keyword",
-        "name": "partitions"
-       }
-      ]
-     },
      "merge": {
       "kind": "method",
       "signature": [
@@ -6427,55 +6155,6 @@
     "bases": [],
     "kind": "class",
     "members": {
-     "__init__": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "index"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "frame"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "spec"
-       },
-       {
-        "default": {
-         "value": null
-        },
-        "kind": "positional_or_keyword",
-        "name": "name"
-       },
-       {
-        "default": {
-         "value": []
-        },
-        "kind": "positional_or_keyword",
-        "name": "edges"
-       },
-       {
-        "default": {
-         "value": null
-        },
-        "kind": "positional_or_keyword",
-        "name": "face"
-       },
-       {
-        "default": {
-         "value": false
-        },
-        "kind": "positional_or_keyword",
-        "name": "equipment"
-       }
-      ]
-     },
      "is_open": {
       "kind": "property",
       "settable": false
@@ -7271,23 +6950,6 @@
        }
       ]
      },
-     "layout": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "frames"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "spec"
-       }
-      ]
-     },
      "meshed_nonorth_check": {
       "kind": "method",
       "signature": [
@@ -7574,6 +7236,13 @@
         },
         "kind": "positional_or_keyword",
         "name": "branch_mprg"
+       },
+       {
+        "default": {
+         "value": null
+        },
+        "kind": "positional_or_keyword",
+        "name": "branch_shells"
        }
       ]
      },
@@ -7629,23 +7298,6 @@
        {
         "kind": "positional_or_keyword",
         "name": "lc"
-       }
-      ]
-     },
-     "layout": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "frames"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "spec"
        }
       ]
      },
@@ -8154,23 +7806,6 @@
        }
       ]
      },
-     "layout": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "frames"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "spec"
-       }
-      ]
-     },
      "meshed_nonorth_check": {
       "kind": "method",
       "signature": [
@@ -8275,23 +7910,6 @@
        }
       ]
      },
-     "skeleton": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "inlet"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "spec"
-       }
-      ]
-     },
      "validate": {
       "kind": "method",
       "signature": [
@@ -8306,30 +7924,6 @@
        {
         "kind": "positional_or_keyword",
         "name": "spec"
-       }
-      ]
-     },
-     "wall": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "inlet"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "spec"
-       },
-       {
-        "default": {
-         "value": null
-        },
-        "kind": "positional_or_keyword",
-        "name": "radius"
        }
       ]
      }
@@ -8438,116 +8032,13 @@
       "kind": "property",
       "settable": false
      },
-     "corner": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "k"
-       }
-      ]
-     },
-     "corners_from": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "directions"
-       }
-      ]
-     },
      "counts": {
       "kind": "property",
       "settable": false
      },
-     "distance": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "u"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "v"
-       }
-      ]
-     },
-     "extent": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "angle"
-       }
-      ]
-     },
-     "grown": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "dR"
-       }
-      ]
-     },
      "hydraulic_diameter": {
       "kind": "property",
       "settable": false
-     },
-     "lerp": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "other"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "u"
-       }
-      ]
-     },
-     "max_extent": {
-      "kind": "property",
-      "settable": false
-     },
-     "period": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "n_corners"
-       }
-      ]
      },
      "resized": {
       "kind": "method",
@@ -8562,19 +8053,6 @@
        }
       ]
      },
-     "ring_corner": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "d"
-       }
-      ]
-     },
      "scaled": {
       "kind": "method",
       "signature": [
@@ -8585,44 +8063,6 @@
        {
         "kind": "positional_or_keyword",
         "name": "f"
-       }
-      ]
-     },
-     "side": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "p0"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "p1"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "s"
-       }
-      ]
-     },
-     "side_count": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "k"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "n_corners"
        }
       ]
      },
@@ -9069,6 +8509,10 @@
       "kind": "property",
       "settable": false
      },
+     "period_deg": {
+      "kind": "property",
+      "settable": false
+     },
      "rot": {
       "kind": "property",
       "settable": false
@@ -9201,78 +8645,9 @@
       "kind": "property",
       "settable": false
      },
-     "corner": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "k"
-       }
-      ]
-     },
-     "corners_from": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "directions"
-       }
-      ]
-     },
      "counts": {
       "kind": "property",
       "settable": false
-     },
-     "distance": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "u"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "v"
-       }
-      ]
-     },
-     "extent": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "angle"
-       }
-      ]
-     },
-     "grown": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "dR"
-       }
-      ]
      },
      "hydraulic_diameter": {
       "kind": "property",
@@ -9286,53 +8661,6 @@
       "kind": "property",
       "settable": false
      },
-     "lerp": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "other"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "u"
-       }
-      ]
-     },
-     "max_extent": {
-      "kind": "property",
-      "settable": false
-     },
-     "period": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "n_corners"
-       }
-      ]
-     },
-     "ring_corner": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "d"
-       }
-      ]
-     },
      "scaled": {
       "kind": "method",
       "signature": [
@@ -9343,44 +8671,6 @@
        {
         "kind": "positional_or_keyword",
         "name": "f"
-       }
-      ]
-     },
-     "side": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "p0"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "p1"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "s"
-       }
-      ]
-     },
-     "side_count": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "k"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "n_corners"
        }
       ]
      },
@@ -9422,48 +8712,9 @@
       "kind": "property",
       "settable": false
      },
-     "corner": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "k"
-       }
-      ]
-     },
-     "corners_from": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "directions"
-       }
-      ]
-     },
      "counts": {
       "kind": "property",
       "settable": false
-     },
-     "extent": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "angle"
-       }
-      ]
      },
      "hydraulic_diameter": {
       "kind": "property",
@@ -9480,40 +8731,6 @@
      "label": {
       "kind": "property",
       "settable": false
-     },
-     "max_extent": {
-      "kind": "property",
-      "settable": false
-     },
-     "period": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "n_corners"
-       }
-      ]
-     },
-     "side_count": {
-      "kind": "method",
-      "signature": [
-       {
-        "kind": "positional_or_keyword",
-        "name": "self"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "k"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "n_corners"
-       }
-      ]
      }
     }
    }
@@ -9552,6 +8769,7 @@
      "branch_grading_unsupported",
      "branch_length_too_short",
      "branch_radius_out_of_range",
+     "branch_shells_reserved",
      "bundle_pipe_has_no_shells",
      "bundle_pipe_outer_not_rectangle",
      "case_placeholder_unknown",
@@ -10268,6 +9486,29 @@
      }
     }
    },
+   "Cut": {
+    "bases": [],
+    "kind": "class",
+    "members": {
+     "__init__": {
+      "kind": "method",
+      "signature": [
+       {
+        "kind": "positional_or_keyword",
+        "name": "self"
+       },
+       {
+        "kind": "positional_or_keyword",
+        "name": "a"
+       },
+       {
+        "kind": "positional_or_keyword",
+        "name": "b"
+       }
+      ]
+     }
+    }
+   },
    "FORMATTERS": {
     "keys": [
      "pcf"
@@ -10890,6 +10131,224 @@
      }
     }
    },
+   "NetworkSpec": {
+    "bases": [],
+    "kind": "class",
+    "members": {
+     "__init__": {
+      "kind": "method",
+      "signature": [
+       {
+        "kind": "positional_or_keyword",
+        "name": "self"
+       },
+       {
+        "default": {
+         "value": []
+        },
+        "kind": "positional_or_keyword",
+        "name": "components"
+       },
+       {
+        "default": {
+         "value": []
+        },
+        "kind": "positional_or_keyword",
+        "name": "skipped"
+       },
+       {
+        "default": {
+         "value": ""
+        },
+        "kind": "positional_or_keyword",
+        "name": "source"
+       },
+       {
+        "default": {
+         "value": {}
+        },
+        "kind": "positional_or_keyword",
+        "name": "header"
+       },
+       {
+        "default": {
+         "value": {}
+        },
+        "kind": "positional_or_keyword",
+        "name": "pipelines"
+       },
+       {
+        "default": {
+         "value": []
+        },
+        "kind": "positional_or_keyword",
+        "name": "connections"
+       },
+       {
+        "default": {
+         "value": {}
+        },
+        "kind": "positional_or_keyword",
+        "name": "insulation_thickness"
+       },
+       {
+        "default": {
+         "value": 0.001
+        },
+        "kind": "positional_or_keyword",
+        "name": "coord_scale"
+       },
+       {
+        "default": {
+         "value": {}
+        },
+        "kind": "positional_or_keyword",
+        "name": "report"
+       },
+       {
+        "default": {
+         "value": {}
+        },
+        "kind": "positional_or_keyword",
+        "name": "read_args"
+       },
+       {
+        "default": {
+         "value": 0.002794
+        },
+        "kind": "positional_or_keyword",
+        "name": "snap_tolerance"
+       }
+      ]
+     },
+     "to_assemblies": {
+      "kind": "method",
+      "signature": [
+       {
+        "kind": "positional_or_keyword",
+        "name": "self"
+       },
+       {
+        "kind": "positional_or_keyword",
+        "name": "spec"
+       },
+       {
+        "default": {
+         "value": null
+        },
+        "kind": "keyword_only",
+        "name": "axial_cell"
+       },
+       {
+        "default": {
+         "value": "error"
+        },
+        "kind": "keyword_only",
+        "name": "kinks"
+       },
+       {
+        "default": {
+         "value": null
+        },
+        "kind": "keyword_only",
+        "name": "tol"
+       },
+       {
+        "default": {
+         "value": null
+        },
+        "kind": "keyword_only",
+        "name": "lc"
+       },
+       {
+        "default": {
+         "value": false
+        },
+        "kind": "keyword_only",
+        "name": "insulation"
+       },
+       {
+        "default": {
+         "value": 2
+        },
+        "kind": "keyword_only",
+        "name": "insulation_nrad"
+       }
+      ]
+     },
+     "to_assembly": {
+      "kind": "method",
+      "signature": [
+       {
+        "kind": "positional_or_keyword",
+        "name": "self"
+       },
+       {
+        "kind": "positional_or_keyword",
+        "name": "spec"
+       },
+       {
+        "default": {
+         "value": null
+        },
+        "kind": "keyword_only",
+        "name": "axial_cell"
+       },
+       {
+        "default": {
+         "value": "error"
+        },
+        "kind": "keyword_only",
+        "name": "kinks"
+       },
+       {
+        "default": {
+         "value": null
+        },
+        "kind": "keyword_only",
+        "name": "tol"
+       },
+       {
+        "default": {
+         "value": null
+        },
+        "kind": "keyword_only",
+        "name": "lc"
+       },
+       {
+        "default": {
+         "value": null
+        },
+        "kind": "keyword_only",
+        "name": "inlet"
+       },
+       {
+        "default": {
+         "value": false
+        },
+        "kind": "keyword_only",
+        "name": "insulation"
+       },
+       {
+        "default": {
+         "value": 2
+        },
+        "kind": "keyword_only",
+        "name": "insulation_nrad"
+       }
+      ]
+     },
+     "to_model": {
+      "kind": "method",
+      "signature": [
+       {
+        "kind": "positional_or_keyword",
+        "name": "self"
+       }
+      ]
+     }
+    }
+   },
    "PART_TYPES": {
     "items": [
      {
@@ -11338,6 +10797,13 @@
       "settable": false
      }
     }
+   },
+   "Selection": {
+    "bases": [
+     "builtins.frozenset"
+    ],
+    "kind": "class",
+    "members": {}
    },
    "Straight": {
     "bases": [
@@ -11822,6 +11288,224 @@
    }
   },
   "hexmesh.interchange.importers": {
+   "NetworkSpec": {
+    "bases": [],
+    "kind": "class",
+    "members": {
+     "__init__": {
+      "kind": "method",
+      "signature": [
+       {
+        "kind": "positional_or_keyword",
+        "name": "self"
+       },
+       {
+        "default": {
+         "value": []
+        },
+        "kind": "positional_or_keyword",
+        "name": "components"
+       },
+       {
+        "default": {
+         "value": []
+        },
+        "kind": "positional_or_keyword",
+        "name": "skipped"
+       },
+       {
+        "default": {
+         "value": ""
+        },
+        "kind": "positional_or_keyword",
+        "name": "source"
+       },
+       {
+        "default": {
+         "value": {}
+        },
+        "kind": "positional_or_keyword",
+        "name": "header"
+       },
+       {
+        "default": {
+         "value": {}
+        },
+        "kind": "positional_or_keyword",
+        "name": "pipelines"
+       },
+       {
+        "default": {
+         "value": []
+        },
+        "kind": "positional_or_keyword",
+        "name": "connections"
+       },
+       {
+        "default": {
+         "value": {}
+        },
+        "kind": "positional_or_keyword",
+        "name": "insulation_thickness"
+       },
+       {
+        "default": {
+         "value": 0.001
+        },
+        "kind": "positional_or_keyword",
+        "name": "coord_scale"
+       },
+       {
+        "default": {
+         "value": {}
+        },
+        "kind": "positional_or_keyword",
+        "name": "report"
+       },
+       {
+        "default": {
+         "value": {}
+        },
+        "kind": "positional_or_keyword",
+        "name": "read_args"
+       },
+       {
+        "default": {
+         "value": 0.002794
+        },
+        "kind": "positional_or_keyword",
+        "name": "snap_tolerance"
+       }
+      ]
+     },
+     "to_assemblies": {
+      "kind": "method",
+      "signature": [
+       {
+        "kind": "positional_or_keyword",
+        "name": "self"
+       },
+       {
+        "kind": "positional_or_keyword",
+        "name": "spec"
+       },
+       {
+        "default": {
+         "value": null
+        },
+        "kind": "keyword_only",
+        "name": "axial_cell"
+       },
+       {
+        "default": {
+         "value": "error"
+        },
+        "kind": "keyword_only",
+        "name": "kinks"
+       },
+       {
+        "default": {
+         "value": null
+        },
+        "kind": "keyword_only",
+        "name": "tol"
+       },
+       {
+        "default": {
+         "value": null
+        },
+        "kind": "keyword_only",
+        "name": "lc"
+       },
+       {
+        "default": {
+         "value": false
+        },
+        "kind": "keyword_only",
+        "name": "insulation"
+       },
+       {
+        "default": {
+         "value": 2
+        },
+        "kind": "keyword_only",
+        "name": "insulation_nrad"
+       }
+      ]
+     },
+     "to_assembly": {
+      "kind": "method",
+      "signature": [
+       {
+        "kind": "positional_or_keyword",
+        "name": "self"
+       },
+       {
+        "kind": "positional_or_keyword",
+        "name": "spec"
+       },
+       {
+        "default": {
+         "value": null
+        },
+        "kind": "keyword_only",
+        "name": "axial_cell"
+       },
+       {
+        "default": {
+         "value": "error"
+        },
+        "kind": "keyword_only",
+        "name": "kinks"
+       },
+       {
+        "default": {
+         "value": null
+        },
+        "kind": "keyword_only",
+        "name": "tol"
+       },
+       {
+        "default": {
+         "value": null
+        },
+        "kind": "keyword_only",
+        "name": "lc"
+       },
+       {
+        "default": {
+         "value": null
+        },
+        "kind": "keyword_only",
+        "name": "inlet"
+       },
+       {
+        "default": {
+         "value": false
+        },
+        "kind": "keyword_only",
+        "name": "insulation"
+       },
+       {
+        "default": {
+         "value": 2
+        },
+        "kind": "keyword_only",
+        "name": "insulation_nrad"
+       }
+      ]
+     },
+     "to_model": {
+      "kind": "method",
+      "signature": [
+       {
+        "kind": "positional_or_keyword",
+        "name": "self"
+       }
+      ]
+     }
+    }
+   },
    "read_bathymetry": {
     "kind": "function",
     "signature": [
@@ -13895,6 +13579,12 @@
       "description": "branch radius: at most TEE_MAX_RATIO times the main radius, or equal to it (an equal tee); or branch.\n\nBranch radius: at most ``TEE_MAX_RATIO`` × the main radius, or equal to it (an equal tee or lateral: the oriented junction cube, task 0122).\n\nAn input: left out of the description while unset.",
       "exclusiveMinimum": 0,
       "x-unit": "length"
+     },
+     "branch_shells": {
+      "default": null,
+      "description": "reserved: the branch's own shells, planned for 1.x; None only.\n\nReserved (task 0150; decision 0051): a branch with shells of its own is planned for 1.x. Only ``None`` is accepted; any other value raises ``AssemblyError`` (``branch_shells_reserved``).\n\nAn input: left out of the description while unset.",
+      "type": "null",
+      "x-unit": "-"
      },
      "dome": {
       "anyOf": [

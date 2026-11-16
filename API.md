@@ -27,6 +27,16 @@ down to 1:1000 (0.1 mm radius).  Its junction nodes are off from the
 full-size mesh × the scale by 5e-6 of the size at 1:20, and up to 0.6 %
 below about 1:30 (measured 2026-11-11).
 
+**Small parts: build at a reference size, scale at output.**
+`write(..., scale=)` and `write_openfoam(..., scale=)` multiply the
+written nodes once (task 0150): the result is the full-size mesh × the
+scale to within 1e-15, at any scale.  The assembly, its cell count and
+its checks keep the built size.
+
+```python
+asm.write_openfoam("micromixer.msh", scale=1e-3)   # built at 1000:1, written in metres
+```
+
 ---
 
 ## Session
@@ -108,8 +118,8 @@ in degrees. The thresholds are data, in `hexmesh.assembly.limits`.
 | Method | Does |
 |---|---|
 | `mesh(dim=3, *, order=1, incomplete=False, walls_by_fitting=False)` | Build faces, fill all fittings, write physical groups, and mesh. Between the surface and volume mesh, junction wall nodes are projected onto their analytic walls (decision 0029); `projection_report` holds each fitting's largest move, absolute and in local wall radii, and its cells' min corner scaled Jacobian. A move beyond `limits.WALL_PROJECTION_WARN_MOVE` (1) wall radii warns; a folded cell (corner SJ ≤ 0) in a projected fitting or its neighbours raises `AssemblyError`, naming the fitting. An OCC or GMSH error inside a fitting's fill also becomes an `AssemblyError` naming the fitting and quoting the original message. Projected nodes keep stale parametric coordinates, so leave GMSH's mesh optimisers off. Walls are `{layer}_wall`, after the layer outermost where they are, plus `{layer}_end` for the end faces of a terminated layer. With `walls_by_fitting`, each is split per fitting, `{group}_{name}`; *name* is the fitting's label or `<Type><index>` (`Bend3`). *order* 2 (task 0076) raises the checked linear mesh to second order: Hex27, or Hex20 with *incomplete*.  High-order nodes on projected walls are projected too, and a bend's high-order nodes between stations are placed exactly on its arcs (gmsh leaves interior axial edges straight, which folds thin shells in tight bends).  gmsh's high-order optimisers are never run.  A hex whose Jacobian determinant is ≤ 0 at one of its nodes or Gauss4 points raises `AssemblyError` (`second_order_inverted`), naming the fitting.  A `Wye` is rejected before meshing (`second_order_unsupported`): its hexes at the creases invert.  On an `n_outer = 8` `Transition` the mid-face nodes differ from the 4-corner mesh's by up to 4e-4 R (both lie on an approximate OCC filling; task 0088).  `mesh_order` records the order; `cell_count()` is unchanged (cells, not nodes).  Second order is verified with FEniCSx (task 0077, [RESEARCH §7.15](docs/RESEARCH.md)) on straights, bends and tees, Hex27; not for wyes and equal tees (rejected), second-order OpenFOAM output, or flow |
-| `write(path, dim=3, *, order=1, incomplete=False, walls_by_fitting=False, provenance=True)` | `mesh()`, then `gmsh.write(path)`; the format follows the extension.  A `.msh` carries the recipe block (see below) unless `provenance=False`, which writes exactly gmsh's file.  *order*, *incomplete*: as for `mesh()`; `.msh` 2.2 and 4.1 both carry Hex27 and the physical groups, and the recipe block's write line adds `order=2 incomplete=…` |
-| `write_openfoam(path, *, interfaces=False, walls_by_fitting=False, provenance=True, order=1)` | `mesh()`, then write a `.msh` for `gmshToFoam`: MSH 2.2 ASCII, without the material-interface groups unless `interfaces=True` (the split rebuilds them as `mappedWall`; kept, they become faceZones); the GMSH options and groups are restored afterwards.  Also writes the role manifest `<stem>.roles.json`.  The recipe block as for `write`; `gmshToFoam` skips it.  *order* other than 1 raises `AssemblyError` (`openfoam_needs_order_1`): `gmshToFoam` reads first-order elements only |
+| `write(path, dim=3, *, order=1, incomplete=False, walls_by_fitting=False, provenance=True, scale=1.0)` | `mesh()`, then `gmsh.write(path)`; the format follows the extension.  *scale* multiplies the written nodes, once (gmsh's `Mesh.ScalingFactor`); the model keeps its size, and the recipe block's write line adds `scale=…`; not positive and finite: `AssemblyError` (`value_not_positive`).  A `.msh` carries the recipe block (see below) unless `provenance=False`, which writes exactly gmsh's file.  *order*, *incomplete*: as for `mesh()`; `.msh` 2.2 and 4.1 both carry Hex27 and the physical groups, and the recipe block's write line adds `order=2 incomplete=…` |
+| `write_openfoam(path, *, interfaces=False, walls_by_fitting=False, provenance=True, order=1, scale=1.0)` | `mesh()`, then write a `.msh` for `gmshToFoam` (*scale* as for `write`): MSH 2.2 ASCII, without the material-interface groups unless `interfaces=True` (the split rebuilds them as `mappedWall`; kept, they become faceZones); the GMSH options and groups are restored afterwards.  Also writes the role manifest `<stem>.roles.json`.  The recipe block as for `write`; `gmshToFoam` skips it.  *order* other than 1 raises `AssemblyError` (`openfoam_needs_order_1`): `gmshToFoam` reads first-order elements only |
 | `group_roles()` | Physical-group name → role (`volume`, `open_end`, `wall`, `interface`), from the graph, as last written by `mesh()` |
 | `check_quality(quality_name="minSICN", threshold=None, by="material")` | `QualityReport` per material, or per fitting with `by="fitting"` (see Quality) |
 | `fitting_volumes()` | Volume tags per fitting (edge index → tags) |
@@ -369,7 +379,7 @@ Cartesian grid of the same cells converges at second order
 five-patch O-H face; `nrad=` alone is a `ValueError` naming both fixes.
 Circles stay O-H.
 
-- **Symmetry period** (DESIGN §6.1, `spec.period`): 90° for a square
+- **Symmetry period** (DESIGN §6.1, `spec.period_deg`): 90° for a square
   (`half_w == half_h` and `nang_w == nang_h`), 180° for any other
   rectangle. Corners match, and loop twist is absorbed, modulo that
   period; a mismatch of exactly half of it is ambiguous and rejected.
@@ -763,7 +773,7 @@ A pipe along a cubic spline through `points`, parametrised by chord length.
   (`where = {"field": "end_tangent"}`) when the same points with a free
   end bend wider than the radius there (task 0129).
 
-### `Tee(run_length=None, branch_length, branch_radius, n_run=3, n_branch=3, n_turn=2, roll=0.0, toward=None, angle=90.0, offset=0.0, branch=None, face=None, margin=None, dome=None, sheet=None, n_wall=None, branch_first_cell=None, branch_mprg=None)`
+### `Tee(run_length=None, branch_length, branch_radius, n_run=3, n_branch=3, n_turn=2, roll=0.0, toward=None, angle=90.0, offset=0.0, branch=None, face=None, margin=None, dome=None, sheet=None, n_wall=None, branch_first_cell=None, branch_mprg=None, branch_shells=None)`
 
 A centred side-branch tee, perpendicular or a lateral (`angle`), built as
 a block layout.
@@ -842,7 +852,9 @@ a block layout.
   so `advise` drops `branch_mprg`.
 - **Shells.** Any stack of circular shells runs through the junction
   (decision 0028). The branch copies the main's shells: same names,
-  thicknesses, `nrad` and `mprg`. Circular shells and the copied branch
+  thicknesses, `nrad` and `mprg`. `branch_shells=` is reserved for a
+  branch with shells of its own, planned for 1.x (decision 0051): only
+  `None` is accepted today (`branch_shells_reserved`). Circular shells and the copied branch
   are stated 1.0 limits (DESIGN §7.1, decision 0051;
   `junction_shells_not_circular`). Each interface group (`interface_fluid_steel`
   …) and the outer wall continue from the main through the junction into

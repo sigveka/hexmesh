@@ -322,10 +322,33 @@ them without it.
 
 ### Stability
 
-hexmesh is at 0.x.  The Python API and the commands' JSON may still
-change between minor versions.  Every breaking change is marked
-**Breaking** in the [CHANGELOG](CHANGELOG.md), with what to do.
+**From 1.0, nothing promised breaks until 2.0.**  Until then (0.8 is the
+release candidate) a change is still possible, and every breaking
+change is marked **Breaking** in the [CHANGELOG](CHANGELOG.md), with
+what to do.
 
+- **What is promised** is listed in
+  [`docs/api-1.0.json`](docs/api-1.0.json), generated from the code and
+  checked by a test:
+  - the names in the `__all__` of `hexmesh`, `hexmesh.agent`,
+    `hexmesh.assembly`, `hexmesh.core`, `hexmesh.errors`,
+    `hexmesh.interchange`, `hexmesh.interchange.importers`, `hexmesh.io`,
+    `hexmesh.study` and `hexmesh.units`, with every argument and default;
+  - the saved description's schema (`hexmesh schema`), the CLI's
+    commands and JSON envelope, and the manifest's format;
+  - every error, warning and notice code.
+
+  In 1.x a name, argument or code may be added, never removed or
+  renamed.  A name may be deprecated (it warns) and is removed in 2.0
+  at the earliest.
+- **Importable but not promised:** everything else.  Named here because
+  they are easy to reach: `hexmesh.sections` (the face builders),
+  `hexmesh.io.writers` (use `hexmesh.io`), `hexmesh.assembly.fittings`
+  (use `hexmesh` or `hexmesh.assembly`), the shapes' outline methods
+  (`corner`, `ring_corner`, `extent`, `period`, …), the junctions'
+  block-layout methods (`layout`, `skeleton`, `wall`), the constructors
+  of `Interface` and `FillResult`, and any module or name starting with
+  `_`.  The network document (decision 0032) isn't in 1.0.
 - **Saved descriptions** (`Assembly.save`, `to_dict`) carry a format
   version.  An older one either loads, migrated on load (version 1's
   `rot` in radians is converted to degrees), or fails with

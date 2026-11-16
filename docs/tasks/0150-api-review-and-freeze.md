@@ -175,6 +175,76 @@ only (the soak).
     inventory regenerated, the CHANGELOG, README *Stability*.  The full
     suite before the push.
 
+- **2026-11-16, step 4 applied** (the review's order; commits f511c19,
+  98c7659 and 8ee542e for rows 1-9, then the rest):
+  - **Rows 1-3:**
+    - `agent/schema.py` is deleted rather than renamed to `_schema_cli`:
+      `hexmesh schema` already prints the schema, so a private command
+      module would be dead code.
+    - `agent/advise.py` and `interchange/build.py` became `_advise.py` and
+      `_build.py`.
+    - `tests/test_architecture.py::export_clashes` reads the source.
+    - Found on the way: `agent/_manifest.py` imported `from . import
+      advise as _advise`.  That worked only because the submodule had
+      already loaded; it is now `from . import _advise`.
+  - **Rows 4, 7, 9:** no `__all__` on `hexmesh.sections`,
+    `hexmesh.io.writers` or `hexmesh.assembly.fittings`.
+  - **Row 8:** `io/readers/` is deleted, along with its re-export test,
+    its old-path test and the `io.readers → interchange` allowed edge.
+    **DESIGN §9's `io.readers` row is still there:** it is the design
+    session's to remove.
+  - **Rows 5, 6:** documentation only (API.md, both docstrings).
+  - **Row 10:**
+    - `PipeSpec.period_deg` is new.  `period` (radians) and `rot_rad`
+      are deprecated: both still work and warn.  API.md cited
+      `spec.period` as 90°, so the rule's `period_deg` branch applied.
+      Package code now uses `period_deg` and `math.radians(spec.rot)`.
+    - **The outline methods are not renamed.**  Following row 4's "no
+      churn", they are listed as not promised: the inventory's
+      `NOT_PROMISED` keeps them out of the class entries and records
+      them under `not_promised`, and README *Stability* names them.
+      Renaming 11 methods on 3 classes would touch about 200 call sites.
+  - **Row 11:**
+    - `NetworkSpec`, `Cut` and `Selection` are exported (`NetworkSpec`
+      lazily, so importing `hexmesh.interchange` still loads no
+      importer).
+    - **`layout`, `skeleton` and `wall` stay unrenamed** (84 call sites
+      across 5 fittings, their tests and 3 tools).  They and the
+      `Interface`/`FillResult` constructors are in `NOT_PROMISED`, the
+      same mechanism as row 10.  If you want the underscores anyway,
+      it's a mechanical follow-up.
+  - **Row 12:** the builder no longer calls `_twist_for_toward`.  It calls
+    `add()` (which twists) inside its error wrapper, then checks the
+    resolved fitting at the rolled inlet.  The interchange and PCF
+    tests pass (131).
+  - **Row 13:** a comment in the tool.
+  - **Row 17, `scale=`:**
+    - On `write` and `write_openfoam`, through gmsh's
+      `Mesh.ScalingFactor`, set and restored around `gmsh.write`.  The
+      recipe block's write line adds `scale=…` when it isn't 1.
+    - `write_openfoam_case` (`hexmesh.io`) writes OpenFOAM
+      dictionaries, not nodes, so it takes no `scale`.
+    - `tests/test_write_scale.py`:
+      - the README tee with each writer at 1e-3 is the full-size mesh ×
+        1e-3 within 1e-15 relative;
+      - the model keeps its size;
+      - the option is restored;
+      - the recipe records the scale;
+      - 0, −1, NaN, inf, `True` and `"1"` raise `value_not_positive`.
+    - The optional OpenFOAM `checkMesh` comparison isn't written.
+    - **Found:** writing the same meshed tee twice in one session fails
+      ("Surface 1 is transfinite but has 8 corners"), with or without
+      `scale`.  The second `mesh()` re-meshes.  The test writes each
+      file in a session of its own.  A follow-up: `mesh()` should be
+      idempotent, or a second write should reuse the mesh.
+  - **Row 16:** `Tee.branch_shells: None`, an input field.
+    - Any other value raises `AssemblyError` (`branch_shells_reserved`,
+      a new code), and the field stays out of `to_dict` while unset.
+    - Its schema is `{"type": "null"}`: the generator gave `anyOf: []`
+      (invalid) for a `None`-only annotation, now fixed in `_schema`.
+  - **README *Stability*:** rewritten for 1.x.  It lists the promised
+    modules and documents, and what is importable but not promised.
+
 ## Questions for design
 
 ## Outcome

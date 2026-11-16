@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+**`scale=` on the writers** (task 0150, decision 0047).
+- `Assembly.write(..., scale=1.0)` and `write_openfoam(..., scale=1.0)`
+  multiply the written node coordinates, once.  The assembly, its cell
+  count and its checks keep the built size; the `.msh` recipe block
+  records `scale=`.  Build a small part at a reference size and scale it
+  at output: the nodes are the full-size mesh × the scale to 1e-15,
+  where building it small moves junction nodes by up to 0.6 % below
+  about 1:30.  A scale that isn't positive and finite raises
+  `value_not_positive`.
+
 **The API review before the 1.0 freeze** (task 0150, decision 0042).
 - **Breaking:** `python3 -m hexmesh.agent.schema` is gone; run
   `hexmesh schema` (the schema is the envelope's `result`), or call
@@ -24,6 +34,22 @@
   for `write_openfoam_case` and `read_recipe`; `hexmesh` or
   `hexmesh.assembly` (not `hexmesh.assembly.fittings`) for the fittings.
   The other paths still import, but aren't promised.
+- **Degrees in every public member** (decision 0047).  New
+  `PipeSpec.period_deg`, the section's symmetry period in degrees.
+  **Deprecated:** `PipeSpec.period` (radians; use `period_deg`) and
+  `PipeSpec.rot_rad` (use `math.radians(spec.rot)`); both warn.  The
+  shapes' outline methods (`corner`, `ring_corner`, `corners_from`,
+  `side`, `side_count`, `extent`, `max_extent`, `distance`, `grown`,
+  `lerp`, `period`), which the face builders use in radians, are not
+  promised.
+- `hexmesh.interchange` exports `NetworkSpec` (what `read_pcf` returns),
+  `Cut` and `Selection` (what `NetworkModel.cut` and `.select` return).
+  The junctions' block-layout methods (`layout`, `skeleton`, `wall`) and
+  the constructors of `Interface` and `FillResult` (users get these back
+  but never build them) are not promised.
+- `Tee(branch_shells=None)` is reserved: a branch with shells of its own
+  is planned for 1.x (decision 0051).  Any other value raises
+  `branch_shells_reserved`.
 
 **Per-arc counts on a circle** (task 0147, decision 0041).
 - `CircleShape(radius, arcs=[a, b, a, b])`: each quadrant arc its own
