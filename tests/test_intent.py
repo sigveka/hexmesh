@@ -169,6 +169,11 @@ def test_an_unknown_version_fails_naming_it(version):
 # --- version 2 → 3: the 1.0 names (decision 0053, task 0166) ------------------------
 
 V2_EXAMPLES = Path(__file__).parent / "data" / "examples_v2.json"
+#: the same 35 descriptions at the current version, as the examples built
+#: them on 2026-11-17: fixed, so the test checks the migration only (an
+#: example may change later, and ``subsea_pipeline`` drapes its route over a
+#: surface differently on macOS)
+CURRENT_EXAMPLES = Path(__file__).parent / "data" / "examples_current.json"
 
 
 def _same(a, b, path="") -> list[str]:
@@ -193,15 +198,14 @@ def _same(a, b, path="") -> list[str]:
 
 @pytest.mark.parametrize("name", sorted(json.loads(V2_EXAMPLES.read_text(encoding="utf-8"))))
 def test_version_2_example_loads_as_today(name, gmsh_session):
-    """Every example's description as 0.7 saved it (``nang``, ``nrad``,
-    ``mprg``, …) loads as the description the example builds today."""
-    import importlib
+    """Every example's description as 0.6 saved it (``nang``, ``nrad``,
+    ``mprg``, …) loads as the same description at the current version."""
     old = json.loads(V2_EXAMPLES.read_text(encoding="utf-8"))[name]
     assert old["version"] == 2
     loaded = Assembly.from_dict(old).to_dict()
-    today = importlib.import_module("hexmesh.examples." + name).build().to_dict()
-    assert _same(loaded, today) == []
-    assert loaded["version"] == intent.VERSION
+    expected = json.loads(CURRENT_EXAMPLES.read_text(encoding="utf-8"))[name]
+    assert loaded["version"] == expected["version"] == intent.VERSION
+    assert _same(loaded, expected) == []
 
 
 def test_version_2_names_are_renamed_as_name_parts():
