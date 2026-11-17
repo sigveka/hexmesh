@@ -1,6 +1,6 @@
 # 0167 — Meshing without managing `Session`
 
-- **Status:** blocked (the spike is done; the API needs design's answer)
+- **Status:** ready (Q1 answered)
 - **Decision:** [0053](../decisions/0053-api-hardening-before-freeze.md), amendment item 7
 - **Depends on:** 0163 (mesh once per option set), 0165.
 - **Blocks:** the 0.8.0 tag.
@@ -91,5 +91,55 @@ the tests, examples byte-identical, full suite and CI green.
      written interleaved give each one's bytes alone; RSS flat over
      repeated builds; the caller's model untouched; `meshed()` twice
      with different `order` on one assembly; `mesh_closed`.
+
+**Answers (the design session, 2026-11-17).**  The proposal is accepted,
+with these changes:
+1. **The name: `Assembly.to_mesh(*, dim=3, order=1, incomplete=False)
+   -> Mesh`.**  `meshed()` beside `mesh()` would put two names on two
+   different behaviours that differ by a suffix (DESIGN §3.1).  `to_mesh`
+   reads like `to_dict`: a value made from the assembly, which stays as
+   it was.  No module-level function.
+2. **The copy must not need `to_dict()`.**  `to_dict()` raises
+   `TypeError` for an assembly it can't describe (`_output._stamp`
+   handles that case), and `write` works on such an assembly today.  So
+   `to_mesh()` copies the assembly's unbuilt intent internally (the
+   graph and fittings, before `build`), not through the description.
+   `Mesh.description` is `to_dict()` when it works, else `None`, as the
+   `.msh` stamp does.  Test with an assembly that has no description.
+3. **gmsh options are global, not per model.**  The options a build sets
+   (element order, `Mesh.ScalingFactor`, MSH version, and the others
+   `mesh()` and the writers set) are set for each `to_mesh()` and each
+   `Mesh.write*`, and restored after.  So interleaving a second-order
+   `Mesh` with a first-order one gives each one's bytes alone.  Add
+   that test: write A (order 2) and B (order 1), interleaved, against
+   each alone.
+4. **Arrays, so the format is frozen at 1.0:**
+   - `nodes`: (N, 3) float array, in the built unit;
+   - `cells`: element type name → (M, k) int array of 0-based node rows,
+     **for every dimension the mesh has** (`"hex8"`, `"quad4"`, …), in
+     gmsh's node order per type, which the docstring states;
+   - `groups`: physical name → `{type name: row indices into
+     cells[type]}`.  One shape for volumes and boundaries.
+   Type names are listed in one public mapping (gmsh type number → name),
+   so a new element type is an addition.
+5. **Closing:** `close()`, the context manager and `weakref.finalize`,
+   not `__del__`, so that interpreter shutdown, with gmsh possibly
+   finalized first, never raises.  After `close()`, `description` still
+   works; everything else raises `mesh_closed`.  A `Session` that ends
+   closes the `Mesh`es made in it.
+6. **`write` and `write_openfoam` outside a `Session`:** yes, they become
+   `to_mesh(...).write(...)` and close.  They loosen today's
+   `no_gmsh_session` error, so this isn't breaking; note it in the
+   CHANGELOG.  Inside a `Session` they behave as today.  `mesh()` and
+   `check_quality()` on the assembly still need a `Session`; the
+   `no_gmsh_session` hint names `to_mesh()`.
+7. **Not thread-safe:** say so in the docstring and API.md, with the
+   process pool as the way to run builds in parallel (one example in the
+   GUIDE).  `Mesh` isn't picklable; it raises a coded error naming
+   `write` or the arrays, not pickle's own.
+8. **The tests:** the spike's checks, plus 2, 3 and 5's.  The examples
+   stay byte-identical, and `docs/api-1.0.json` gains `Mesh` and
+   `to_mesh`.
+Set the task `ready` again.
 
 ## Outcome
