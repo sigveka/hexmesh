@@ -161,7 +161,7 @@ def up_to_date(study: Study, row: dict) -> bool:
     return same and result.get("status") == "meshed" and (d / study.mesh_name).exists()
 
 
-def mesh(study: Study, rows: list[dict], jobs: int | None = None) -> list[str]:
+def mesh(study: Study, rows: list[dict], *, jobs: int | None = None) -> list[str]:
     """Mesh every "checked" row that isn't up to date; fills each row's
     mesh fields from its ``result.json``.  Returns the hashes meshed."""
     jobs = jobs or study.jobs
@@ -309,7 +309,7 @@ def keep_orientation(row: dict) -> bool:
     return False
 
 
-def case_stage(study: Study, rows: list[dict], jobs: int | None = None) -> list[str]:
+def case_stage(study: Study, rows: list[dict], *, jobs: int | None = None) -> list[str]:
     """Make the OpenFOAM case of every meshed variant whose case is missing
     or out of date.  Returns the hashes done (ready or failed)."""
     import shutil
@@ -432,7 +432,7 @@ def other_runs() -> list[str]:
     return []
 
 
-def run_stage(study: Study, rows: list[dict], jobs: int | None = None,
+def run_stage(study: Study, rows: list[dict], *, jobs: int | None = None,
               force: bool = False) -> list[str]:
     """Run the command in every ready case whose run is missing or out of
     date, then the post-processing function.  Returns the hashes run."""

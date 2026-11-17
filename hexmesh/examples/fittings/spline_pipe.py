@@ -19,7 +19,7 @@ def build() -> Assembly:
     start = asm.add(Straight(0.3, n_layers=6)).frame.position
     points = [start, start + (0.5, 0.2, 0.0), start + (1.0, 0.1, 0.3),
               start + (1.4, 0.5, 0.5)]
-    asm.add(SplinePipe(points, n_layers=40, end_tangent=(0, 1, 0)))
+    asm.add(SplinePipe(points=points, n_layers=40, end_tangent=(0, 1, 0)))
     asm.add(Straight(0.3, n_layers=6))
     return asm
 

@@ -39,7 +39,7 @@ from hexmesh.core.spec import PipeSpec
 
 
 def _pipe(rot=0.0):
-    return PipeSpec(nang=4, rot=rot).core("fluid", CircleShape(radius=0.1, nang=4), nrad=3)
+    return PipeSpec(nang=4, rot=rot).core("fluid", shape=CircleShape(radius=0.1, nang=4), nrad=3)
 
 
 def _tee():
@@ -47,7 +47,7 @@ def _tee():
 
 
 def _wye(**kw):
-    return Wye(60, run_length=0.25, branch_length=0.4, **kw)
+    return Wye(angle=60, run_length=0.25, branch_length=0.4, **kw)
 
 
 # ---------------------------------------------------------------------------
@@ -121,7 +121,7 @@ def test_toward_turns_into_the_plane_toward_side(make):
     for _ in range(25):
         inlet = _random_frame(rng)
         t = rng.normal(size=3)
-        a = Assembly(_pipe(), inlet.position, inlet.normal, inlet.up)
+        a = Assembly(_pipe(), position=inlet.position, direction=inlet.normal, up=inlet.up)
         out = a.add(make(tuple(t)))
         n, m = inlet.normal, out.frame.normal
         p = t - np.dot(t, n) * n
@@ -171,14 +171,14 @@ def test_tee_branch_follows_roll():
     for roll, want in ((0, [0, 0, 1]), (90, [0, -1, 0]), (180, [0, 0, -1]),
                        (270, [0, 1, 0]), (-90, [0, 1, 0])):
         a = Assembly(_pipe(), direction=[1, 0, 0], up=[0, 0, 1])
-        main, branch = a.add(Tee(0.2, 0.25, 0.06, roll=roll))
+        main, branch = a.add(Tee(run_length=0.2, branch_length=0.25, branch_radius=0.06, roll=roll))
         np.testing.assert_allclose(branch.frame.normal, want, atol=1e-12)
         np.testing.assert_allclose(main.frame.up, [0, 0, 1], atol=1e-12)
 
 
 def test_roll_off_period_rejected():
     a = Assembly(_pipe())
-    a.add(Tee(0.2, 0.25, 0.06, roll=45))
+    a.add(Tee(run_length=0.2, branch_length=0.25, branch_radius=0.06, roll=45))
     with pytest.raises(AssemblyError, match="period 90°"):
         a.validate()
     b = Assembly(_pipe())
@@ -189,11 +189,11 @@ def test_roll_off_period_rejected():
 
 def test_junction_toward_snaps_and_rejects():
     a = Assembly(_pipe(), direction=[1, 0, 0], up=[0, 0, 1])
-    _, branch = a.add(Tee(0.2, 0.25, 0.06, toward=(0, 1, 0.01)))   # 0.57° off +y
+    _, branch = a.add(Tee(run_length=0.2, branch_length=0.25, branch_radius=0.06, toward=(0, 1, 0.01)))   # 0.57° off +y
     assert a.edges[0].fitting.roll == pytest.approx(-90.0)
     np.testing.assert_allclose(branch.frame.normal, [0, 1, 0], atol=1e-12)
     with pytest.raises(AssemblyError, match=r"5\.71° from the nearest"):
-        a.add(a.interfaces[1], Tee(0.2, 0.25, 0.06, toward=(0, 0.1, 1)))
+        a.add(a.interfaces[1], Tee(run_length=0.2, branch_length=0.25, branch_radius=0.06, toward=(0, 0.1, 1)))
 
 
 def test_wye_toward_names_right_daughter():
@@ -209,7 +209,7 @@ def _junction_case(kind, roll, after_bend):
         a.add(Bend(radius=0.3, angle=60, n_layers=4, roll=30))
     else:
         a.add(Straight(0.2, n_layers=2))
-    j = (Tee(0.2, 0.25, 0.06, roll=roll) if kind == "tee" else _wye(roll=roll))
+    j = (Tee(run_length=0.2, branch_length=0.25, branch_radius=0.06, roll=roll) if kind == "tee" else _wye(roll=roll))
     for out in a.add(j):
         a.add(out, Straight(0.15, n_layers=2))
     return a

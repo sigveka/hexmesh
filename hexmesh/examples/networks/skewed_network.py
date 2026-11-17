@@ -16,7 +16,7 @@ from hexmesh import (Assembly, Bend, Drum, Elbow, MiterBend, Nozzle, OnShell,
 PIPE = PipeSpec(nang=6).core("water", radius=0.08, nrad=5)
 
 DRUM = Drum("D201", diameter=1.6, length=4.0, axis=(1, 0.5, 0), up=(0, 0, 1),
-            nozzles=[Nozzle("N1", PIPE, OnShell(axial=1.2, angle=35, projection=1.1))])
+            nozzles=[Nozzle("N1", spec=PIPE, location=OnShell(axial=1.2, angle=35, projection=1.1))])
 
 
 def build() -> Assembly:

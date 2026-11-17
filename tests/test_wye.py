@@ -22,12 +22,12 @@ R = 0.1
 
 
 def _spec(nang=4, nrad=3, **kw):
-    return PipeSpec(nang=nang, **kw).core("fluid", CircleShape(radius=R, nang=nang), nrad=nrad)
+    return PipeSpec(nang=nang, **kw).core("fluid", shape=CircleShape(radius=R, nang=nang), nrad=nrad)
 
 
 def _wye_asm(angle=60, spec=None, run=0.3, branch=0.5, direction=(1, 0, 0), **kw):
     asm = Assembly(spec or _spec(), direction=list(direction), up=[0, 0, 1], lc=0.05)
-    left, right = asm.add(Wye(angle, run_length=run, branch_length=branch, **kw),
+    left, right = asm.add(Wye(angle=angle, run_length=run, branch_length=branch, **kw),
                           names=["left", "right"])
     return asm, left, right
 
@@ -111,7 +111,7 @@ class TestTopology:
         assert not gmsh.isInitialized()
 
     @pytest.mark.parametrize("spec, message", [
-        (_spec().shell("box", outer=RectShape(0.15, 0.15, 4, 4), nrad=2),
+        (_spec().shell("box", outer=RectShape(0.15, 0.15, nang_w=4, nang_h=4), nrad=2),
          "circular only.*0026"),
         (_spec(rot=0.2), "rot = 0"),
     ])
@@ -260,7 +260,7 @@ def test_openfoam_check_mesh(gmsh_session, tmp_path):
     from test_openfoam_output import foam_case
     asm = Assembly(_spec(nang=6, nrad=3), direction=[1, 0, 0], up=[0, 0, 1], lc=0.05)
     asm.add(Straight(0.3, n_layers=6))
-    left, right = asm.add(Wye(60, run_length=0.3, branch_length=0.5, n_run=4,
+    left, right = asm.add(Wye(angle=60, run_length=0.3, branch_length=0.5, n_run=4,
                               n_branch=4, n_split=4), names=["left", "right"])
     asm.add(left, Straight(0.3, n_layers=6))
     asm.add(right, Straight(0.3, n_layers=6))
@@ -370,8 +370,8 @@ def test_a_frame_mutated_in_place_misses(cached, port, vector):
 
 @pytest.mark.parametrize("spec", [
     _spec(nang=8), _spec(nrad=4), _spec().shell("steel", dR=0.01, nrad=1),
-    PipeSpec(nang=4).core("fluid", CircleShape(radius=R, nang=4), nrad=3, mprg=0.8),
-    PipeSpec(nang=4).core("fluid", CircleShape(radius=1.1 * R, nang=4), nrad=3)],
+    PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=R, nang=4), nrad=3, mprg=0.8),
+    PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=1.1 * R, nang=4), nrad=3)],
     ids=["nang", "nrad", "shell", "mprg", "radius"])
 def test_a_changed_spec_misses(cached, spec):
     wye, frames, base_spec = _resolved()

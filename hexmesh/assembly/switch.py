@@ -118,7 +118,7 @@ def shear_sj(shear: float) -> float:
     return 0.0
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class Switch:
     """Change a rectangular duct between the O-H and H sections.
 
@@ -177,7 +177,7 @@ class Switch:
                                 code="switch_needs_outlet", where={"field": "outlet"})
         sh = spec.core_shape
         out = PipeSpec(nang_w=sh.nang_w, nang_h=sh.nang_h, mbmp=spec.mbmp,
-                       rot=spec.rot).core(spec.layer_names[0], sh, layout="h")
+                       rot=spec.rot).core(spec.layer_names[0], shape=sh, layout="h")
         for s in spec.shells:
             out = out.shell(s.name, dR=s.dR, nrad=s.nrad, mprg=s.mprg, outer=s.outer)
         return out

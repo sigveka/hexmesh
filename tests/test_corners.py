@@ -34,7 +34,7 @@ from hexmesh.core.spec import PipeSpec
 
 def _spec(n_outer=4, rot=0.0):
     return (PipeSpec(nang=4, n_outer=n_outer, rot=rot)
-            .core("fluid", CircleShape(radius=0.1, nang=4), nrad=3)
+            .core("fluid", shape=CircleShape(radius=0.1, nang=4), nrad=3)
             .shell("wall", dR=0.025, nrad=2))
 
 
@@ -123,7 +123,7 @@ class TestCanonicalGeom:
 
 class TestValidationBeforeGmsh:
     def _hairpin(self, n):
-        spec = PipeSpec(nang=4).core("fluid", CircleShape(radius=0.1, nang=4), nrad=3)
+        spec = PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=0.1, nang=4), nrad=3)
         asm = Assembly(spec, up=[0, 0, 1])
         for r in (45, 225, 45):
             asm.add(Straight(0.6, n_layers=3))

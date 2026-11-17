@@ -69,9 +69,9 @@ SPEC = (PipeSpec(nang=N).core("water", radius=STEEL_OD / 2 - STEEL_WALL, nrad=4)
         .shell("steel", dR=STEEL_WALL, nrad=1)
         .shell("pur", dR=CASING_OD / 2 - CASING_WALL - STEEL_OD / 2, nrad=3)
         .shell("casing", dR=CASING_WALL, nrad=1)
-        .shell("near_soil", outer=RectShape(NEAR_SOIL / 2, NEAR_SOIL / 2, N, N), nrad=4,
+        .shell("near_soil", outer=RectShape(NEAR_SOIL / 2, NEAR_SOIL / 2, nang_w=N, nang_h=N), nrad=4,
                mprg=1.2)
-        .shell("far_soil", outer=RectShape(FAR_W / 2, FAR_H / 2, N, N), nrad=5, mprg=1.3))
+        .shell("far_soil", outer=RectShape(FAR_W / 2, FAR_H / 2, nang_w=N, nang_h=N), nrad=5, mprg=1.3))
 
 #: The gallery's colours (``docs/gallery/build.py``).
 GALLERY_COLOURS = {"water": ("#c0392b", "red"), "steel": ("#8e979f", "grey"),

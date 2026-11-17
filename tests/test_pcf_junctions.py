@@ -38,7 +38,7 @@ from hexmesh.interchange.importers.pcf import read_pcf
 
 def _spec(radius=0.05):
     """Single-layer: the junction prototypes take no shells."""
-    return PipeSpec(nang=4).core("fluid", CircleShape(radius=radius, nang=4), nrad=3)
+    return PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=radius, nang=4), nrad=3)
 
 
 HEADER = """\
@@ -423,7 +423,7 @@ PIPE
 # --- angled tees (task 0103) ------------------------------------------------------
 
 def _bore_spec(bore):
-    return PipeSpec(nang=4).core("fluid", CircleShape(radius=bore / 2, nang=4), nrad=3)
+    return PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=bore / 2, nang=4), nrad=3)
 
 
 def _lateral(angle, bore, lean=+1, pipe=None):

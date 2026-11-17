@@ -54,7 +54,7 @@ def build() -> Assembly:
     run = asm.add(Straight(0.8, n_layers=8))
     # sideways jog of 0.6 over 2.0, leaving and arriving along the duct axis
     p, d, side = run.frame.position, run.frame.normal, -run.frame.right
-    asm.add(SplinePipe((tuple(p), tuple(p + 1.0 * d + 0.3 * side),
+    asm.add(SplinePipe(points=(tuple(p), tuple(p + 1.0 * d + 0.3 * side),
                         tuple(p + 2.0 * d + 0.6 * side)),
                        n_layers=16, end_tangent=tuple(d)))
     asm.add(Reducer(TERMINAL, length=0.4, n_layers=4))

@@ -53,15 +53,15 @@ def build() -> Assembly:
     asm.add(Transition(DUCT, length=0.6))
     asm.add(Straight(0.6))
     # on the top face, half_w runs across the duct and half_h along it
-    main, up = asm.add(Tee(branch=RectShape(0.15, 0.1, N, N), branch_length=0.4))
+    main, up = asm.add(Tee(branch=RectShape(0.15, 0.1, nang_w=N, nang_h=N), branch_length=0.4))
     asm.add(up, Straight(0.4), names=["supply_up"])
     main = asm.add(main, Straight(0.4))
-    main, down = asm.add(main, Tee(branch=CircleShape(0.1, N), branch_length=0.4, roll=180))
+    main, down = asm.add(main, Tee(branch=CircleShape(0.1, nang=N), branch_length=0.4, roll=180))
     asm.add(down, Straight(0.4), names=["supply_down"])
     main = asm.add(main, Straight(0.4))
     # on the side face, half_w runs along the duct and half_h across it:
     # the duct's full half-height, a full-width tap
-    main, side = asm.add(main, Tee(branch=RectShape(0.1, HALF_H, N, N), face="narrow",
+    main, side = asm.add(main, Tee(branch=RectShape(0.1, HALF_H, nang_w=N, nang_h=N), face="narrow",
                                    branch_length=0.4))
     asm.add(side, Straight(0.4), names=["supply_side"])
     main = asm.add(main, Straight(0.4))

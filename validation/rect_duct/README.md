@@ -70,7 +70,7 @@ solution is also the solution for the meshed geometry.
 | Inlet | the exact developed profile, written once at the inlet face centres as a nonuniform `fixedValue`, scaled so the discrete flow rate is Ū·A.  The same profile is the initial field in every cell, so the duct is developed throughout and no development length is needed |
 | Other boundaries | outlet p = 0, U `zeroGradient`; inlet p `zeroGradient`; walls `noSlip` |
 | Planes | Δp between 3 D_h and 7 D_h; velocity field at 5 D_h.  Each lies on an interface between `Straight`s, so it's a plane of mesh faces |
-| Mesh | `RectShape(a, b, nang_w, nang_h)` core: `nang_h` 6, `nang_w` 6·(a/b) (cells near square in the centre), `nrad` 3; axial cell D_h/2 |
+| Mesh | `RectShape(a, b, nang_w=…, nang_h=…)` core: `nang_h` 6, `nang_w` 6·(a/b) (cells near square in the centre), `nrad` 3; axial cell D_h/2 |
 | Levels | `Assembly.refined(k)`, k = 1, 2, 4: every count × k, k³ cells |
 | Control | `blockMesh`, four blocks split at the three planes; uniform square cells, `nz` × `nz`·(a/b) per section with `nz` = round(√(O-H section cells / (a/b))): 10 × 10, 18 × 9, 36 × 9 (100, 162, 324 against the O-H's 108, 180, 324); the same axial cells and the same × k levels |
 | Solver | `simpleFoam`, laminar; Poiseuille's schemes, solvers and residual control (p 1e-6, U 1e-7) |

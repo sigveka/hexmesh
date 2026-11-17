@@ -106,7 +106,7 @@ def test_editing_a_parameter_moves_downstream():
 def test_spec_round_trip_keeps_resolved_grading():
     spec = (PipeSpec(nang=6).core("fluid", radius=0.1, nrad=4, first_cell=0.002)
             .shell("wall", dR=0.02, nrad=3, first_cell=1e-3)
-            .shell("box", outer=RectShape(0.2, 0.2, 6, 6), nrad=2))
+            .shell("box", outer=RectShape(0.2, 0.2, nang_w=6, nang_h=6), nrad=2))
     again = PipeSpec.from_dict(json.loads(json.dumps(spec.to_dict())))
     assert again.to_dict() == spec.to_dict()
     assert again._core_mprg == spec._core_mprg

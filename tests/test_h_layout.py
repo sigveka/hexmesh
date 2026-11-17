@@ -48,10 +48,10 @@ def _oh(half_w=0.1, half_h=0.05, nw=8, nh=4, nrad=2):
 # -- the H default (0.4.0, task 0087) ---------------------------------------
 
 def test_layout_defaults_to_h_for_a_rectangle_and_oh_for_a_circle():
-    assert PipeSpec().core("air", RectShape(0.1, 0.05, 8, 4)).layout == "h"
+    assert PipeSpec().core("air", shape=RectShape(0.1, 0.05, nang_w=8, nang_h=4)).layout == "h"
     assert PipeSpec(nang_w=8, nang_h=4).core("air", half_w=0.1, half_h=0.05).layout == "h"
     assert PipeSpec(nang=4).core("air", radius=0.1, nrad=2).layout == "oh"
-    assert PipeSpec().core("air", RectShape(0.1, 0.05, 8, 4), nrad=2,
+    assert PipeSpec().core("air", shape=RectShape(0.1, 0.05, nang_w=8, nang_h=4), nrad=2,
                            layout="oh").layout == "oh"
 
 
@@ -59,7 +59,7 @@ def test_nrad_on_a_default_rectangle_names_both_fixes():
     with pytest.raises(ValueError, match=r"nrad=3 on a rectangular core is H by default "
                                          r"since 0\.4\.0.*Drop nrad and grade the walls.*"
                                          r"layout='oh'"):
-        PipeSpec().core("air", RectShape(0.1, 0.05, 8, 4), nrad=3)
+        PipeSpec().core("air", shape=RectShape(0.1, 0.05, nang_w=8, nang_h=4), nrad=3)
 
 
 def test_saved_before_0087_reproduces_its_oh_mesh():
@@ -76,11 +76,11 @@ def test_saved_before_0087_reproduces_its_oh_mesh():
                                                  layout="oh")
     fresh = Assembly(duct(0.1, 0.05), direction=[1, 0, 0], up=[0, 0, 1], lc=0.1)
     fresh.add(Straight(0.2, n_layers=3))
-    main, br = fresh.add(Tee(branch=RectShape(0.06, 0.06, 4, 4), branch_length=0.25,
+    main, br = fresh.add(Tee(branch=RectShape(0.06, 0.06, nang_w=4, nang_h=4), branch_length=0.25,
                              n_run=3, n_branch=3), names=["main", "branch"])
     fresh.add(br, Straight(0.1, n_layers=2))
     main = fresh.add(main, Bend(0.2, 90, n_layers=4))
-    fresh.add(main, Reducer(duct(0.08, 0.04), 0.2, n_layers=3))
+    fresh.add(main, Reducer(duct(0.08, 0.04), length=0.2, n_layers=3))
     assert fresh.to_dict() == asm.to_dict()
     nodes = []
     for a in (asm, fresh):
@@ -244,14 +244,14 @@ def test_wye_takes_circles_only():
     """An H core is a rectangle: the wye's circular-cores rule, not a layout
     rejection (task 0086)."""
     with pytest.raises(AssemblyError, match="circular cores only"):
-        _validate(_h(), Wye(60, run_length=0.25, branch_length=0.4))
+        _validate(_h(), Wye(angle=60, run_length=0.25, branch_length=0.4))
 
 
 def test_reducer_keeps_the_layout():
     with pytest.raises(AssemblyError, match="not layouts"):
-        _validate(_h(), Reducer(_oh(0.07, 0.035), 0.2, n_layers=3))
+        _validate(_h(), Reducer(_oh(0.07, 0.035), length=0.2, n_layers=3))
     with pytest.raises(AssemblyError, match="grade both ends of an H duct"):
-        _validate(_h(first_cell=0.003), Reducer(_h(0.07, 0.035), 0.2, n_layers=3))
+        _validate(_h(first_cell=0.003), Reducer(_h(0.07, 0.035), length=0.2, n_layers=3))
 
 
 def test_predicted_quality_is_the_tensor_grid():

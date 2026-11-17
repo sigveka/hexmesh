@@ -185,7 +185,7 @@ def assembly(nang: int = LEVELS[0]) -> Assembly:
     asm = Assembly(spec, position=list(helix(0.0) - L_IN * t0), direction=list(t0),
                    up=[1.0, 0.0, 0.0])
     asm.add(Straight(L_IN, n_layers=LAYERS_IN[nang]))
-    asm.add(SplinePipe(tuple(map(tuple, spline_points())), n_layers=TURNS * LAYERS_PER_TURN[nang],
+    asm.add(SplinePipe(points=tuple(map(tuple, spline_points())), n_layers=TURNS * LAYERS_PER_TURN[nang],
                        end_tangent=tuple(tangent(T))))
     return asm
 

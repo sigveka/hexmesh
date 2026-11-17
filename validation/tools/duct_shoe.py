@@ -56,11 +56,11 @@ def assembly(kind: str, ratio: float, angle: float):
     from hexmesh.core.spec import PipeSpec
     from hexmesh.assembly.interface import lean
     a = 2 * B
-    spec = PipeSpec(nang_w=N, nang_h=N).core("fluid", RectShape(a, B, N, N), nrad=3, layout="oh")
+    spec = PipeSpec(nang_w=N, nang_h=N).core("fluid", shape=RectShape(a, B, nang_w=N, nang_h=N), nrad=3, layout="oh")
     if kind == "full":
-        shape, reach = RectShape(a, ratio * a, N, N), ratio * a
+        shape, reach = RectShape(a, ratio * a, nang_w=N, nang_h=N), ratio * a
     elif kind == "rect":
-        shape, reach = RectShape(ratio * a, ratio * a, N, N), ratio * a
+        shape, reach = RectShape(ratio * a, ratio * a, nang_w=N, nang_h=N), ratio * a
     else:
         shape, reach = CircleShape(radius=ratio * a, nang=N), ratio * a
     ca, sa = lean(angle)

@@ -18,7 +18,7 @@ R = 0.1
 
 
 def _spec(nang=4, nrad=3):
-    return PipeSpec(nang=nang).core("fluid", CircleShape(radius=R, nang=nang), nrad=nrad)
+    return PipeSpec(nang=nang).core("fluid", shape=CircleShape(radius=R, nang=nang), nrad=nrad)
 
 
 def _tee_asm(ratio=0.5, spec=None, **kw):
@@ -74,7 +74,7 @@ class TestTopology:
         assert not gmsh.isInitialized()
 
     def test_rectangular_shell_rejected(self):
-        spec = _spec().shell("box", outer=RectShape(0.15, 0.15, 4, 4), nrad=2)
+        spec = _spec().shell("box", outer=RectShape(0.15, 0.15, nang_w=4, nang_h=4), nrad=2)
         # the branch spec needs circular shells, so it fails in add()
         with pytest.raises((AssemblyError, ValueError), match="circular only.*0026"):
             asm, _, _ = _tee_asm(0.5, spec=spec)
@@ -221,7 +221,7 @@ def test_interfaces_continuous_through_tee(gmsh_session, ratio):
 def _shelled_tee(ratio, T, run):
     spec = _spec() if T == 0 else _spec().shell("steel", dR=T, nrad=2)
     asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1], lc=0.05)
-    asm.add(Tee(run, 0.5, ratio * R), names=["main", "branch"])
+    asm.add(Tee(run_length=run, branch_length=0.5, branch_radius=ratio * R), names=["main", "branch"])
     return asm
 
 
@@ -267,7 +267,7 @@ def test_default_run_length(ratio, T):
     asm = _shelled_tee(ratio, T, None)
     e = asm.edges[0]
     tee, inlet, spec = e.fitting, e.ports[0].frame, e.ports[0].spec
-    need = tee.shortest_run(inlet, spec, 0.3) or 0.0
+    need = tee.shortest_run(inlet, spec, tier=0.3) or 0.0
     assert tee.run_length == pytest.approx(max(ratio * R + T + 0.5 * R, need))
     assert asm.to_dict()["edges"][0]["fitting"]["run_length"] == tee.run_length
     with warnings.catch_warnings():
@@ -275,7 +275,7 @@ def test_default_run_length(ratio, T):
         asm.validate()
     # the default nearly reaches the long-run quality (0.493 of 0.509 at r/R 0.9)
     assert tee.predicted_sj(inlet, spec) == pytest.approx(
-        tee.predicted_sj(inlet, spec, tee.run_length + R), abs=0.02)
+        tee.predicted_sj(inlet, spec, run_length=tee.run_length + R), abs=0.02)
 
 
 def test_default_run_length_needs_an_assembly():
@@ -283,7 +283,7 @@ def test_default_run_length_needs_an_assembly():
     with pytest.raises(ValueError, match="run_length=None is resolved by Assembly.add"):
         tee.check(_spec())
     with pytest.raises(TypeError, match="missing required argument.*branch_radius"):
-        Tee(0.2, 0.25)
+        Tee(run_length=0.2, branch_length=0.25)
 
 
 # -- laterals: Tee(angle=…) (task 0060) --------------------------------------
@@ -372,7 +372,7 @@ def test_branch_ratio_cut_off(ratio, code, hint):
 
 
 def test_duct_tap_rejects_an_offset():
-    spec = PipeSpec(nang=4).core("air", RectShape(half_w=0.1, half_h=0.05, nang_w=4, nang_h=2))
+    spec = PipeSpec(nang=4).core("air", shape=RectShape(half_w=0.1, half_h=0.05, nang_w=4, nang_h=2))
     asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1], lc=0.05)
     with pytest.raises(AssemblyError) as e:
         asm.add(Tee(branch_length=0.2, branch=RectShape(half_w=0.02, half_h=0.02, nang_w=4,

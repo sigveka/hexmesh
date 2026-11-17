@@ -24,8 +24,8 @@ NANG = 6
 
 CABLE = (PipeSpec(nang=NANG)
          .core("copper", radius=0.01, nrad=4)
-         .shell("filler", outer=RectShape(0.015, 0.015, NANG, NANG), nrad=3)
-         .shell("sheath", outer=CircleShape(0.026, NANG), nrad=3))
+         .shell("filler", outer=RectShape(0.015, 0.015, nang_w=NANG, nang_h=NANG), nrad=3)
+         .shell("sheath", outer=CircleShape(0.026, nang=NANG), nrad=3))
 
 
 def build() -> Assembly:

@@ -164,7 +164,7 @@ def _spline_to(asm, start, s_from, s_to, end, end_tangent):
         h00, h10 = 2 * u**3 - 3 * u**2 + 1, u**3 - 2 * u**2 + u
         h01, h11 = -2 * u**3 + 3 * u**2, u**3 - u**2
         pts.append(h00 * p0 + h10 * k * t0 + h01 * p1 + h11 * k * t1)
-    return asm.add(start, SplinePipe([p0, *pts], end_tangent=tuple(t1),
+    return asm.add(start, SplinePipe(points=[p0, *pts], end_tangent=tuple(t1),
                                      n_layers=max(4, int(round((s_to - s_from) / (D_ARCH / 4))))))
 
 
@@ -210,7 +210,7 @@ def build() -> Assembly:
     # The daughters' stations must clear each other: R·(cot(angle/2) + 1)
     # from the fork, 2.8 cm here; the common iliac's 5 cm is counted from it.
     fork = 3 * CM
-    left, right = asm.add(end, Wye(BIFURCATION_ANGLE, run_length=1.2 * CM,
+    left, right = asm.add(end, Wye(angle=BIFURCATION_ANGLE, run_length=1.2 * CM,
                                    branch_length=fork, toward=(0, -1, 0)))
     for port, name in ((right, "right_common_iliac"), (left, "left_common_iliac")):
         port = asm.add(port, Reducer(pipe(D_ILIAC), length=1.5 * CM, n_layers=4))

@@ -23,15 +23,15 @@ from .fittings  import (
     Straight, Bend, MiterBend, Elbow, Reducer, Transition, SplinePipe, Closure, FillResult,
 )
 from .assembler import Assembly, AssemblyError, AssemblyTypeError
-from .tee       import Tee
+from .tee       import Tee, TeeOutlets
 from .switch    import Switch
-from .wye       import Wye
+from .wye       import Wye, WyeOutlets
 from .equipment import Drum, Nozzle, OnHead, OnShell, EquipmentError
 
 __all__ = [
     "Frame", "Interface", "port_type",
     "Straight", "Bend", "MiterBend", "Elbow", "Reducer", "Transition", "SplinePipe", "Closure",
     "FillResult",
-    "Assembly", "AssemblyError", "AssemblyTypeError", "Tee", "Wye", "Switch",
+    "Assembly", "AssemblyError", "AssemblyTypeError", "Tee", "TeeOutlets", "Wye", "WyeOutlets", "Switch",
     "Drum", "Nozzle", "OnShell", "OnHead", "EquipmentError",
 ]

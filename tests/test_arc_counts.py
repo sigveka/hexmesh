@@ -33,7 +33,7 @@ ARCS = (2, 4, 2, 4)
 
 
 def _circle(radius=0.05, arcs=ARCS, nrad=2, shells=0):
-    spec = PipeSpec().core("fluid", CircleShape(radius, arcs=arcs), nrad=nrad)
+    spec = PipeSpec().core("fluid", shape=CircleShape(radius, arcs=arcs), nrad=nrad)
     for i in range(shells):
         spec = spec.shell(f"wall{i}", dR=0.01, nrad=2)
     return spec
@@ -70,9 +70,9 @@ def test_the_field_and_its_round_trip():
 def test_uniform_arcs_are_the_nang_circle():
     """Four equal counts are ``nang``: the same circle, saved as before."""
     c = CircleShape(0.05, arcs=[4, 4, 4, 4])
-    assert c == CircleShape(0.05, 4) and c.arcs is None
+    assert c == CircleShape(0.05, nang=4) and c.arcs is None
     assert c.to_dict() == {"type": "circle", "radius": 0.05, "nang": 4}
-    assert repr(CircleShape(0.05, 4)) == "CircleShape(radius=0.05, nang=4)"
+    assert repr(CircleShape(0.05, nang=4)) == "CircleShape(radius=0.05, nang=4)"
 
 
 @pytest.mark.parametrize("kw, code", [
@@ -117,13 +117,13 @@ def test_the_description_schema_takes_arcs():
 @pytest.mark.parametrize("make, code", [
     (lambda: _circle(arcs=(2, 3, 4, 5)), "arc_counts_not_opposite"),
     (lambda: _circle(arcs=(2, 4, 4, 2)), "arc_counts_not_opposite"),
-    (lambda: PipeSpec(n_outer=8).core("f", CircleShape(0.05, arcs=ARCS), nrad=2),
+    (lambda: PipeSpec(n_outer=8).core("f", shape=CircleShape(0.05, arcs=ARCS), nrad=2),
      "arc_counts_need_n_outer_4"),
-    (lambda: PipeSpec(nang=4).core("f", CircleShape(0.05, arcs=ARCS), nrad=2),
+    (lambda: PipeSpec(nang=4).core("f", shape=CircleShape(0.05, arcs=ARCS), nrad=2),
      "shape_counts_mismatch"),
-    (lambda: _circle().shell("box", outer=RectShape(0.1, 0.1, 4, 4), nrad=2), "counts_mismatch"),
-    (lambda: _circle().shell("pipe", outer=CircleShape(0.1, 4), nrad=2), "counts_mismatch"),
-    (lambda: PipeSpec(nang_w=2, nang_h=4).core("f", RectShape(0.05, 0.04, 2, 4), nrad=2,
+    (lambda: _circle().shell("box", outer=RectShape(0.1, 0.1, nang_w=4, nang_h=4), nrad=2), "counts_mismatch"),
+    (lambda: _circle().shell("pipe", outer=CircleShape(0.1, nang=4), nrad=2), "counts_mismatch"),
+    (lambda: PipeSpec(nang_w=2, nang_h=4).core("f", shape=RectShape(0.05, 0.04, nang_w=2, nang_h=4), nrad=2,
                                                layout="oh")
      .shell("p", outer=CircleShape(0.1, arcs=(4, 2, 4, 2)), nrad=2), "counts_mismatch"),
 ])
@@ -136,9 +136,9 @@ def test_layout_rejections(make, code):
 def test_a_circle_with_arcs_and_a_rectangle_share_a_stack():
     """The tie of decision 0041 lifted: a 2:4 rectangle around a (2, 4, 2, 4)
     circle, and the other way round."""
-    spec = _circle().shell("box", outer=RectShape(0.1, 0.08, 2, 4), nrad=2)
+    spec = _circle().shell("box", outer=RectShape(0.1, 0.08, nang_w=2, nang_h=4), nrad=2)
     assert spec.side_counts == ARCS
-    rect = (PipeSpec(nang_w=2, nang_h=4).core("f", RectShape(0.05, 0.03, 2, 4), nrad=2,
+    rect = (PipeSpec(nang_w=2, nang_h=4).core("f", shape=RectShape(0.05, 0.03, nang_w=2, nang_h=4), nrad=2,
                                               layout="oh")
             .shell("p", outer=CircleShape(0.1, arcs=ARCS), nrad=2))
     assert [o.counts for o in rect.outlines] == [(2, 4), (2, 4)]
@@ -152,10 +152,10 @@ def test_the_signature():
     rectangle; equal arcs that of ``nang``."""
     s = signature(_circle())
     assert (s.nang_w, s.nang_h, s.period) == (2, 4, 180.0)
-    rect = PipeSpec(nang_w=2, nang_h=4).core("fluid", RectShape(0.05, 0.03, 2, 4), nrad=2,
+    rect = PipeSpec(nang_w=2, nang_h=4).core("fluid", shape=RectShape(0.05, 0.03, nang_w=2, nang_h=4), nrad=2,
                                                layout="oh")
     assert s == signature(rect)
-    assert (signature(PipeSpec().core("fluid", CircleShape(0.05, arcs=(4,) * 4), nrad=2))
+    assert (signature(PipeSpec().core("fluid", shape=CircleShape(0.05, arcs=(4,) * 4), nrad=2))
             == signature(PipeSpec(nang=4).core("fluid", radius=0.05, nrad=2)))
     assert int(classify(s, signature(_circle(arcs=(4, 8, 4, 8))))) == 2
 
@@ -175,10 +175,10 @@ def test_the_sweeps_mesh(shells):
 @pytest.mark.parametrize("shells", [0, 1])
 def test_a_transition_to_a_duct_with_unequal_counts(shells):
     """The motivating case: a circle (2, 4, 2, 4) to a 2:4 rectangle."""
-    duct = PipeSpec(nang_w=2, nang_h=4).core("fluid", RectShape(0.06, 0.04, 2, 4), nrad=2,
+    duct = PipeSpec(nang_w=2, nang_h=4).core("fluid", shape=RectShape(0.06, 0.04, nang_w=2, nang_h=4), nrad=2,
                                                layout="oh")
     if shells:
-        duct = duct.shell("wall0", outer=RectShape(0.075, 0.055, 2, 4), nrad=2)
+        duct = duct.shell("wall0", outer=RectShape(0.075, 0.055, nang_w=2, nang_h=4), nrad=2)
     asm = _asm(_circle(shells=shells))
     asm.add(Straight(0.2, n_layers=3))
     asm.add(Transition(duct, length=0.2, n_layers=4))
@@ -189,7 +189,7 @@ def test_a_transition_to_a_duct_with_unequal_counts(shells):
 
 def test_the_guide_example():
     """GUIDE, 'A round pipe into a duct with unequal counts': to an H duct."""
-    pipe = PipeSpec().core("air", CircleShape(0.06, arcs=[8, 4, 8, 4]), nrad=3)
+    pipe = PipeSpec().core("air", shape=CircleShape(0.06, arcs=[8, 4, 8, 4]), nrad=3)
     duct = PipeSpec(nang_w=8, nang_h=4).core("air", half_w=0.1, half_h=0.05)
     asm = _asm(pipe)
     asm.add(Straight(0.3, n_layers=6))

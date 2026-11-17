@@ -365,8 +365,8 @@ def merge(a: NetworkModel, b: NetworkModel, prefix, infer, tol) -> NetworkModel:
         if name in out.networks:
             out.networks[name].parts |= n.parts
         else:
-            out.networks[name] = Network(n.name, set(n.parts), n.kind, n.insulation_thickness,
-                                         dict(n.attributes))
+            out.networks[name] = Network(n.name, parts=set(n.parts), kind=n.kind, insulation_thickness=n.insulation_thickness,
+                                         attributes=dict(n.attributes))
     out.report = {"merge": {"from": [len(a.parts), len(b.parts)]}}
     if b2.snap_tolerance > out.snap_tolerance:     # the larger: weld gaps still snap
         out.snap_tolerance, out.snap_source = b2.snap_tolerance, b2.snap_source

@@ -356,7 +356,7 @@ def _split_hosts(comps, labels, tol, seton_run):
         del comps[k], labels[k]
 
 
-def build(model: NetworkModel, spec, selection=None, *, axial_cell: float | None = None,
+def build(model: NetworkModel, spec, *, selection=None, axial_cell: float | None = None,
           kinks: str = "error", tol: float | None = None, lc: float | None = None,
           inlet=None, insulation: bool = False, insulation_nrad: int = 2):
     """Build an ``hexmesh.assembly.Assembly`` from a network model.
@@ -512,7 +512,7 @@ def _build(model, comps, terminals, spec, axial_cell, kinks, tol, lc, inlet, ins
             if not (h + rb < R and h <= TEE_MAX_OFFSET_RATIO * rb):
                 return j_c.branch_bore   # the junction rejects it, naming the margin
         lean = _tee_angle(b, axis)
-        tee = Tee(None, 10 * R, rb, angle=min(lean, 180.0 - lean), offset=h).resolve(
+        tee = Tee(run_length=None, branch_length=10 * R, branch_radius=rb, angle=min(lean, 180.0 - lean), offset=h).resolve(
             Frame(np.zeros(3), np.array([1.0, 0, 0]), np.array([0, 0, 1.0])), main)
         return tee.run_length
 
@@ -644,7 +644,7 @@ def _place(report, parts, nodes, at_node, names, root, spec, axial_cell, kinks, 
                                     where={"part": _part_id(p), "source": _source(p)})
             R = _radius(iface.spec)
             rb = _branch_radius(spec, R, c.branch_sec, main_bore)
-            fitting = Tee(run, blen, rb, toward=tuple(_unit(b)), angle=angle, offset=h)
+            fitting = Tee(run_length=run, branch_length=blen, branch_radius=rb, toward=tuple(_unit(b)), angle=angle, offset=h)
             outs_at = [c.end, c.branch]
         else:
             d1, d2 = _unit(c.branch - centre), _unit(c.branch2 - centre)
@@ -667,7 +667,7 @@ def _place(report, parts, nodes, at_node, names, root, spec, axial_cell, kinks, 
                                         where={"part": _part_id(p), "source": _source(p)},
                                         hint="give both daughters the stem's bore; reduce after the Y piece")
             side = d1 - np.dot(d1, axis) * axis            # BRANCH1 is the "right" daughter
-            fitting = Wye(h1 + h2, run, l1, toward=tuple(_unit(side)))
+            fitting = Wye(angle=h1 + h2, run_length=run, branch_length=l1, toward=tuple(_unit(side)))
             outs_at = [c.branch2, c.branch]                # [left, right]
         if reroll and state["junctions"] == 0:
             offset = 0.0 if p.kind == "tee" else 90.0
@@ -820,7 +820,7 @@ def _place_chain(asm, iface, chain, end_dir, spec, kinks, tol, ins, to_junction,
                 nxt = comps[j + 1] if j + 1 < len(comps) else None
                 end_t = (tuple(_start_direction(nxt)) if nxt is not None
                          else None if end_dir is None else tuple(end_dir))
-                iface = asm.add(iface, SplinePipe(tuple(map(tuple, pts)), end_tangent=end_t),
+                iface = asm.add(iface, SplinePipe(points=tuple(map(tuple, pts)), end_tangent=end_t),
                                 label=lab, origin=_source(c) or None)   # its first pipe
                 check(j, iface.frame, comps[j].end)
                 k = j + 1
@@ -834,7 +834,7 @@ def _place_chain(asm, iface, chain, end_dir, spec, kinks, tol, ins, to_junction,
                 iface = asm.add(iface, Straight(ax), label=lab, origin=_source(c) or None)
             else:
                 n, changes = switch
-                iface = asm.add(iface, Straight(ax, n, stack_changes=changes), label=lab,
+                iface = asm.add(iface, Straight(ax, n_layers=n, stack_changes=changes), label=lab,
                                 origin=_source(c) or None)
             check(k, iface.frame, c.end)
         elif c.kind == "elbow":
@@ -880,7 +880,7 @@ def _place_chain(asm, iface, chain, end_dir, spec, kinks, tol, ins, to_junction,
                                     where={"part": _part_id(c), "source": _source(c)})
             ax, lat = along(frame, c.end)
             report["max_offset"] = max(report["max_offset"], lat)
-            iface = asm.add(iface, Reducer(outlet, ax), label=lab, origin=_source(c) or None)
+            iface = asm.add(iface, Reducer(outlet, length=ax), label=lab, origin=_source(c) or None)
             check(k, iface.frame, c.end)
         else:
             raise AssemblyError(f"{label(k)}: unsupported kind {c.kind!r}",

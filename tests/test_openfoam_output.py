@@ -184,7 +184,7 @@ def test_case_files_have_lf_line_endings_on_any_platform(tmp_path, monkeypatch):
         return real(self, data, encoding, errors, "\r\n" if newline is None else newline)
 
     monkeypatch.setattr(pathlib.Path, "write_text", windows_write_text)
-    write_openfoam_case(tmp_path / "case", ["fluid", "steel"],
+    write_openfoam_case(tmp_path / "case", regions=["fluid", "steel"],
                         fluid_regions=["fluid"], solid_regions=["steel"])
     files = [p for p in (tmp_path / "case").rglob("*") if p.is_file()]
     assert len(files) >= 7 and (tmp_path / "case" / "Allrun") in files

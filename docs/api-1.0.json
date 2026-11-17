@@ -719,42 +719,42 @@
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "position"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "direction"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "up"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "lc"
        },
        {
         "default": {
          "value": "inlet"
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "inlet_name"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "axial_cell"
        }
       ]
@@ -781,21 +781,21 @@
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "names"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "label"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "origin"
        }
       ]
@@ -861,14 +861,14 @@
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "threshold"
        },
        {
         "default": {
          "value": "material"
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "by"
        }
       ]
@@ -896,14 +896,14 @@
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "label"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "origin"
        }
       ]
@@ -937,7 +937,7 @@
         "default": {
          "value": 4.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "cells_per_diameter"
        }
       ]
@@ -1000,14 +1000,14 @@
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "lc"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "axial_cell"
        }
       ]
@@ -1112,14 +1112,14 @@
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "label"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "origin"
        }
       ]
@@ -1194,7 +1194,7 @@
         "default": {
          "value": 3
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "dim"
        },
        {
@@ -1333,35 +1333,35 @@
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "n_layers"
        },
        {
         "default": {
          "value": 0.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "roll"
        },
        {
         "default": {
          "value": 1.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "axial_grading"
        },
        {
         "default": {
          "value": []
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "stack_changes"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "toward"
        }
       ]
@@ -1503,14 +1503,14 @@
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "nang"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "arcs"
        }
       ]
@@ -1585,21 +1585,21 @@
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "n_layers"
        },
        {
         "default": {
          "value": 1.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "tension"
        },
        {
         "default": {
          "value": 1.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "axial_grading"
        }
       ]
@@ -1746,11 +1746,11 @@
         "name": "name"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "diameter"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "length"
        },
        {
@@ -1761,7 +1761,7 @@
           0.0
          ]
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "position"
        },
        {
@@ -1772,7 +1772,7 @@
           0.0
          ]
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "axis"
        },
        {
@@ -1783,35 +1783,35 @@
           1.0
          ]
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "up"
        },
        {
         "default": {
          "value": "ellipsoidal_2_1"
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "head"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "crown_radius"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "knuckle_radius"
        },
        {
         "default": {
          "value": []
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "nozzles"
        }
       ]
@@ -1937,28 +1937,28 @@
         "default": {
          "value": 8
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "n_layers"
        },
        {
         "default": {
          "value": 0.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "roll"
        },
        {
         "default": {
          "value": 1.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "axial_grading"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "toward"
        }
       ]
@@ -2453,28 +2453,28 @@
         "default": {
          "value": 1
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "n_cuts"
        },
        {
         "default": {
          "value": 2
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "n_layers"
        },
        {
         "default": {
          "value": 0.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "roll"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "toward"
        }
       ]
@@ -2602,11 +2602,11 @@
         "name": "name"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "spec"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "location"
        }
       ]
@@ -2629,15 +2629,15 @@
         "name": "head"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "offset"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "angle"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "projection"
        }
       ]
@@ -2660,11 +2660,11 @@
         "name": "axial"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "angle"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "projection"
        }
       ]
@@ -2686,42 +2686,42 @@
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "nang"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "nang_w"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "nang_h"
        },
        {
         "default": {
          "value": 1.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "mbmp"
        },
        {
         "default": {
          "value": 0.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "rot"
        },
        {
         "default": {
          "value": 4
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "n_outer"
        }
       ]
@@ -2741,21 +2741,21 @@
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "shape"
        },
        {
         "default": {
          "value": 0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "nrad"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "mprg"
        },
        {
@@ -2891,21 +2891,21 @@
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "dR"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "nrad"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "mprg"
        },
        {
@@ -3059,35 +3059,35 @@
         "name": "outlet"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "length"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "n_layers"
        },
        {
         "default": {
          "value": 1.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "axial_grading"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "profile"
        },
        {
         "default": {
          "value": 0.001
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "chord_tol"
        }
       ]
@@ -3276,28 +3276,28 @@
         "name": "self"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "points"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "n_layers"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "end_tangent"
        },
        {
         "default": {
          "value": 1.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "axial_grading"
        }
       ]
@@ -3440,28 +3440,28 @@
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "n_layers"
        },
        {
         "default": {
          "value": 1.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "axial_grading"
        },
        {
         "default": {
          "value": []
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "stack_changes"
        },
        {
         "default": {
          "value": 0.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "twist"
        }
       ]
@@ -3605,21 +3605,21 @@
         "name": "self"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "length"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "n_layers"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "outlet"
        }
       ]
@@ -3843,147 +3843,147 @@
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "run_length"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "branch_length"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "branch_radius"
        },
        {
         "default": {
          "value": 3
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "n_run"
        },
        {
         "default": {
          "value": 3
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "n_branch"
        },
        {
         "default": {
          "value": 2
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "n_turn"
        },
        {
         "default": {
          "value": 0.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "roll"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "toward"
        },
        {
         "default": {
          "value": 90.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "angle"
        },
        {
         "default": {
          "value": 0.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "offset"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "branch"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "face"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "margin"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "dome"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "sheet"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "n_wall"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "nrad"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "mprg"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "branch_first_cell"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "branch_mprg"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "branch_shells"
        }
       ]
@@ -4148,7 +4148,7 @@
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "run_length"
        }
       ]
@@ -4213,7 +4213,7 @@
         "name": "spec"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "tier"
        }
       ]
@@ -4234,7 +4234,7 @@
         "name": "spec"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "tier"
        }
       ]
@@ -4258,6 +4258,13 @@
      }
     }
    },
+   "TeeOutlets": {
+    "bases": [
+     "builtins.tuple"
+    ],
+    "kind": "class",
+    "members": {}
+   },
    "Transition": {
     "bases": [
      "hexmesh.assembly.fittings._AxialOutlet"
@@ -4276,21 +4283,21 @@
         "name": "outlet"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "length"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "n_layers"
        },
        {
         "default": {
          "value": 1.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "axial_grading"
        }
       ]
@@ -4445,50 +4452,50 @@
         "name": "self"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "angle"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "run_length"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "branch_length"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "n_run"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "n_branch"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "n_split"
        },
        {
         "default": {
          "value": 0.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "roll"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "toward"
        }
       ]
@@ -4671,6 +4678,13 @@
      }
     }
    },
+   "WyeOutlets": {
+    "bases": [
+     "builtins.tuple"
+    ],
+    "kind": "class",
+    "members": {}
+   },
    "hex_all_metrics": {
     "kind": "function",
     "signature": [
@@ -4770,42 +4784,42 @@
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "position"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "direction"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "up"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "lc"
        },
        {
         "default": {
          "value": "inlet"
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "inlet_name"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "axial_cell"
        }
       ]
@@ -4832,21 +4846,21 @@
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "names"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "label"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "origin"
        }
       ]
@@ -4912,14 +4926,14 @@
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "threshold"
        },
        {
         "default": {
          "value": "material"
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "by"
        }
       ]
@@ -4947,14 +4961,14 @@
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "label"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "origin"
        }
       ]
@@ -4988,7 +5002,7 @@
         "default": {
          "value": 4.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "cells_per_diameter"
        }
       ]
@@ -5051,14 +5065,14 @@
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "lc"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "axial_cell"
        }
       ]
@@ -5163,14 +5177,14 @@
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "label"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "origin"
        }
       ]
@@ -5245,7 +5259,7 @@
         "default": {
          "value": 3
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "dim"
        },
        {
@@ -5392,35 +5406,35 @@
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "n_layers"
        },
        {
         "default": {
          "value": 0.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "roll"
        },
        {
         "default": {
          "value": 1.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "axial_grading"
        },
        {
         "default": {
          "value": []
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "stack_changes"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "toward"
        }
       ]
@@ -5560,21 +5574,21 @@
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "n_layers"
        },
        {
         "default": {
          "value": 1.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "tension"
        },
        {
         "default": {
          "value": 1.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "axial_grading"
        }
       ]
@@ -5721,11 +5735,11 @@
         "name": "name"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "diameter"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "length"
        },
        {
@@ -5736,7 +5750,7 @@
           0.0
          ]
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "position"
        },
        {
@@ -5747,7 +5761,7 @@
           0.0
          ]
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "axis"
        },
        {
@@ -5758,35 +5772,35 @@
           1.0
          ]
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "up"
        },
        {
         "default": {
          "value": "ellipsoidal_2_1"
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "head"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "crown_radius"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "knuckle_radius"
        },
        {
         "default": {
          "value": []
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "nozzles"
        }
       ]
@@ -5912,28 +5926,28 @@
         "default": {
          "value": 8
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "n_layers"
        },
        {
         "default": {
          "value": 0.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "roll"
        },
        {
         "default": {
          "value": 1.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "axial_grading"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "toward"
        }
       ]
@@ -6188,28 +6202,28 @@
         "default": {
          "value": 1
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "n_cuts"
        },
        {
         "default": {
          "value": 2
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "n_layers"
        },
        {
         "default": {
          "value": 0.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "roll"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "toward"
        }
       ]
@@ -6337,11 +6351,11 @@
         "name": "name"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "spec"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "location"
        }
       ]
@@ -6364,15 +6378,15 @@
         "name": "head"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "offset"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "angle"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "projection"
        }
       ]
@@ -6395,11 +6409,11 @@
         "name": "axial"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "angle"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "projection"
        }
       ]
@@ -6424,35 +6438,35 @@
         "name": "outlet"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "length"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "n_layers"
        },
        {
         "default": {
          "value": 1.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "axial_grading"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "profile"
        },
        {
         "default": {
          "value": 0.001
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "chord_tol"
        }
       ]
@@ -6535,28 +6549,28 @@
         "name": "self"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "points"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "n_layers"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "end_tangent"
        },
        {
         "default": {
          "value": 1.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "axial_grading"
        }
       ]
@@ -6699,28 +6713,28 @@
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "n_layers"
        },
        {
         "default": {
          "value": 1.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "axial_grading"
        },
        {
         "default": {
          "value": []
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "stack_changes"
        },
        {
         "default": {
          "value": 0.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "twist"
        }
       ]
@@ -6864,21 +6878,21 @@
         "name": "self"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "length"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "n_layers"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "outlet"
        }
       ]
@@ -7102,147 +7116,147 @@
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "run_length"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "branch_length"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "branch_radius"
        },
        {
         "default": {
          "value": 3
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "n_run"
        },
        {
         "default": {
          "value": 3
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "n_branch"
        },
        {
         "default": {
          "value": 2
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "n_turn"
        },
        {
         "default": {
          "value": 0.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "roll"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "toward"
        },
        {
         "default": {
          "value": 90.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "angle"
        },
        {
         "default": {
          "value": 0.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "offset"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "branch"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "face"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "margin"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "dome"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "sheet"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "n_wall"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "nrad"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "mprg"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "branch_first_cell"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "branch_mprg"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "branch_shells"
        }
       ]
@@ -7407,7 +7421,7 @@
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "run_length"
        }
       ]
@@ -7472,7 +7486,7 @@
         "name": "spec"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "tier"
        }
       ]
@@ -7493,7 +7507,7 @@
         "name": "spec"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "tier"
        }
       ]
@@ -7517,6 +7531,13 @@
      }
     }
    },
+   "TeeOutlets": {
+    "bases": [
+     "builtins.tuple"
+    ],
+    "kind": "class",
+    "members": {}
+   },
    "Transition": {
     "bases": [
      "hexmesh.assembly.fittings._AxialOutlet"
@@ -7535,21 +7556,21 @@
         "name": "outlet"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "length"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "n_layers"
        },
        {
         "default": {
          "value": 1.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "axial_grading"
        }
       ]
@@ -7704,50 +7725,50 @@
         "name": "self"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "angle"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "run_length"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "branch_length"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "n_run"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "n_branch"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "n_split"
        },
        {
         "default": {
          "value": 0.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "roll"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "toward"
        }
       ]
@@ -7930,6 +7951,13 @@
      }
     }
    },
+   "WyeOutlets": {
+    "bases": [
+     "builtins.tuple"
+    ],
+    "kind": "class",
+    "members": {}
+   },
    "port_type": {
     "kind": "function",
     "signature": [
@@ -7968,18 +7996,18 @@
         "name": "pipe"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "nx"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "ny"
        },
        {
         "default": {
          "value": "shell"
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "shell_name"
        }
       ]
@@ -8017,14 +8045,14 @@
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "nang"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "arcs"
        }
       ]
@@ -8189,25 +8217,25 @@
         "name": "name"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "dR"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "nrad"
        },
        {
         "default": {
          "value": 1.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "mprg"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "outer"
        }
       ]
@@ -8259,7 +8287,7 @@
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "label"
        }
       ]
@@ -8332,42 +8360,42 @@
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "nang"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "nang_w"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "nang_h"
        },
        {
         "default": {
          "value": 1.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "mbmp"
        },
        {
         "default": {
          "value": 0.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "rot"
        },
        {
         "default": {
          "value": 4
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "n_outer"
        }
       ]
@@ -8387,21 +8415,21 @@
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "shape"
        },
        {
         "default": {
          "value": 0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "nrad"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "mprg"
        },
        {
@@ -8537,21 +8565,21 @@
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "dR"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "nrad"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "mprg"
        },
        {
@@ -8633,11 +8661,11 @@
         "name": "half_h"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "nang_w"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "nang_h"
        }
       ]
@@ -9360,84 +9388,84 @@
         "name": "id"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "ports"
        },
        {
         "default": {
          "value": ""
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "name"
        },
        {
         "default": {
          "value": ""
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "type"
        },
        {
         "default": {
          "value": ""
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "system"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "insulation"
        },
        {
         "default": {
          "value": {}
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "attributes"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "provenance"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "reject"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "corner"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "stated_angle"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "stated_radius"
        },
        {
         "default": {
          "value": {}
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "stated_names"
        }
       ]
@@ -9467,21 +9495,21 @@
         "default": {
          "value": "inferred"
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "origin"
        },
        {
         "default": {
          "value": 0.0
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "distance"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "provenance"
        }
       ]
@@ -9535,56 +9563,56 @@
         "name": "id"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "ports"
        },
        {
         "default": {
          "value": ""
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "name"
        },
        {
         "default": {
          "value": ""
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "type"
        },
        {
         "default": {
          "value": ""
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "system"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "insulation"
        },
        {
         "default": {
          "value": {}
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "attributes"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "provenance"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "reject"
        }
       ]
@@ -9609,56 +9637,56 @@
         "name": "id"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "ports"
        },
        {
         "default": {
          "value": ""
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "name"
        },
        {
         "default": {
          "value": ""
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "type"
        },
        {
         "default": {
          "value": ""
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "system"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "insulation"
        },
        {
         "default": {
          "value": {}
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "attributes"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "provenance"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "reject"
        }
       ]
@@ -9683,77 +9711,77 @@
         "name": "id"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "ports"
        },
        {
         "default": {
          "value": ""
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "name"
        },
        {
         "default": {
          "value": ""
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "type"
        },
        {
         "default": {
          "value": ""
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "system"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "insulation"
        },
        {
         "default": {
          "value": {}
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "attributes"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "provenance"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "reject"
        },
        {
         "default": {
          "value": "tee"
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "form"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "centre"
        },
        {
         "default": {
          "value": false
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "offset"
        }
       ]
@@ -9779,28 +9807,28 @@
         "default": {
          "repr": "set()"
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "parts"
        },
        {
         "default": {
          "value": "network"
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "kind"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "insulation_thickness"
        },
        {
         "default": {
          "value": {}
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "attributes"
        }
       ]
@@ -9822,63 +9850,63 @@
         "default": {
          "value": {}
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "ports"
        },
        {
         "default": {
          "value": {}
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "parts"
        },
        {
         "default": {
          "value": []
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "connections"
        },
        {
         "default": {
          "value": {}
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "networks"
        },
        {
         "default": {
          "value": {}
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "report"
        },
        {
         "default": {
          "value": []
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "cuts"
        },
        {
         "default": {
          "value": []
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "log"
        },
        {
         "default": {
          "value": 0.002794
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "snap_tolerance"
        },
        {
         "default": {
          "value": "default"
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "snap_source"
        }
       ]
@@ -10399,56 +10427,56 @@
         "name": "id"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "ports"
        },
        {
         "default": {
          "value": ""
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "name"
        },
        {
         "default": {
          "value": ""
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "type"
        },
        {
         "default": {
          "value": ""
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "system"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "insulation"
        },
        {
         "default": {
          "value": {}
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "attributes"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "provenance"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "reject"
        }
       ]
@@ -10473,56 +10501,56 @@
         "name": "id"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "ports"
        },
        {
         "default": {
          "value": ""
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "name"
        },
        {
         "default": {
          "value": ""
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "type"
        },
        {
         "default": {
          "value": ""
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "system"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "insulation"
        },
        {
         "default": {
          "value": {}
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "attributes"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "provenance"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "reject"
        }
       ]
@@ -10545,56 +10573,56 @@
         "name": "id"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "position"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "direction"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "flow"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "section"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "insulation"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "equipment"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "provenance"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "tag"
        }
       ]
@@ -10623,42 +10651,42 @@
         "default": {
          "value": ""
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "format"
        },
        {
         "default": {
          "value": ""
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "record"
        },
        {
         "default": {
          "value": ""
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "record_id"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "line"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "guid"
        },
        {
         "default": {
          "value": []
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "attributes"
        }
       ]
@@ -10683,63 +10711,63 @@
         "name": "id"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "ports"
        },
        {
         "default": {
          "value": ""
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "name"
        },
        {
         "default": {
          "value": ""
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "type"
        },
        {
         "default": {
          "value": ""
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "system"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "insulation"
        },
        {
         "default": {
          "value": {}
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "attributes"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "provenance"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "reject"
        },
        {
         "default": {
          "value": false
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "eccentric"
        }
       ]
@@ -10761,35 +10789,35 @@
         "default": {
          "value": "circle"
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "shape"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "nominal"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "diameter"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "width"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "height"
        }
       ]
@@ -10825,56 +10853,56 @@
         "name": "id"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "ports"
        },
        {
         "default": {
          "value": ""
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "name"
        },
        {
         "default": {
          "value": ""
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "type"
        },
        {
         "default": {
          "value": ""
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "system"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "insulation"
        },
        {
         "default": {
          "value": {}
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "attributes"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "provenance"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "reject"
        }
       ]
@@ -10899,63 +10927,63 @@
         "name": "id"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "ports"
        },
        {
         "default": {
          "value": ""
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "name"
        },
        {
         "default": {
          "value": ""
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "type"
        },
        {
         "default": {
          "value": ""
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "system"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "insulation"
        },
        {
         "default": {
          "value": {}
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "attributes"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "provenance"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "reject"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "check_point"
        }
       ]
@@ -10980,63 +11008,63 @@
         "name": "id"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "ports"
        },
        {
         "default": {
          "value": ""
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "name"
        },
        {
         "default": {
          "value": ""
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "type"
        },
        {
         "default": {
          "value": ""
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "system"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "insulation"
        },
        {
         "default": {
          "value": {}
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "attributes"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "provenance"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "reject"
        },
        {
         "default": {
          "value": false
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "eccentric"
        }
       ]
@@ -11058,7 +11086,7 @@
       "default": {
        "value": null
       },
-      "kind": "positional_or_keyword",
+      "kind": "keyword_only",
       "name": "selection"
      },
      {
@@ -11178,14 +11206,14 @@
       "default": {
        "value": null
       },
-      "kind": "positional_or_keyword",
+      "kind": "keyword_only",
       "name": "at"
      },
      {
       "default": {
        "value": null
       },
-      "kind": "positional_or_keyword",
+      "kind": "keyword_only",
       "name": "name"
      }
     ]
@@ -11205,35 +11233,35 @@
       "default": {
        "value": 0.0
       },
-      "kind": "positional_or_keyword",
+      "kind": "keyword_only",
       "name": "burial_depth"
      },
      {
       "default": {
        "value": "xyz"
       },
-      "kind": "positional_or_keyword",
+      "kind": "keyword_only",
       "name": "surface_format"
      },
      {
       "default": {
        "value": null
       },
-      "kind": "positional_or_keyword",
+      "kind": "keyword_only",
       "name": "route_format"
      },
      {
       "default": {
        "value": 1.0
       },
-      "kind": "positional_or_keyword",
+      "kind": "keyword_only",
       "name": "unit_scale"
      },
      {
       "default": {
        "value": null
       },
-      "kind": "positional_or_keyword",
+      "kind": "keyword_only",
       "name": "max_segment_length"
      }
     ]
@@ -11249,28 +11277,28 @@
       "default": {
        "value": null
       },
-      "kind": "positional_or_keyword",
+      "kind": "keyword_only",
       "name": "unit_scale"
      },
      {
       "default": {
        "value": null
       },
-      "kind": "positional_or_keyword",
+      "kind": "keyword_only",
       "name": "ignore_types"
      },
      {
       "default": {
        "value": 0.0016
       },
-      "kind": "positional_or_keyword",
+      "kind": "keyword_only",
       "name": "joint_max"
      },
      {
       "default": {
        "value": 0.002794
       },
-      "kind": "positional_or_keyword",
+      "kind": "keyword_only",
       "name": "snap_tolerance"
      }
     ]
@@ -11523,35 +11551,35 @@
       "default": {
        "value": 0.0
       },
-      "kind": "positional_or_keyword",
+      "kind": "keyword_only",
       "name": "burial_depth"
      },
      {
       "default": {
        "value": "xyz"
       },
-      "kind": "positional_or_keyword",
+      "kind": "keyword_only",
       "name": "surface_format"
      },
      {
       "default": {
        "value": null
       },
-      "kind": "positional_or_keyword",
+      "kind": "keyword_only",
       "name": "route_format"
      },
      {
       "default": {
        "value": 1.0
       },
-      "kind": "positional_or_keyword",
+      "kind": "keyword_only",
       "name": "unit_scale"
      },
      {
       "default": {
        "value": null
       },
-      "kind": "positional_or_keyword",
+      "kind": "keyword_only",
       "name": "max_segment_length"
      }
     ]
@@ -11567,28 +11595,28 @@
       "default": {
        "value": null
       },
-      "kind": "positional_or_keyword",
+      "kind": "keyword_only",
       "name": "unit_scale"
      },
      {
       "default": {
        "value": null
       },
-      "kind": "positional_or_keyword",
+      "kind": "keyword_only",
       "name": "ignore_types"
      },
      {
       "default": {
        "value": 0.0016
       },
-      "kind": "positional_or_keyword",
+      "kind": "keyword_only",
       "name": "joint_max"
      },
      {
       "default": {
        "value": 0.002794
       },
-      "kind": "positional_or_keyword",
+      "kind": "keyword_only",
       "name": "snap_tolerance"
      }
     ]
@@ -11612,49 +11640,49 @@
       "name": "path"
      },
      {
-      "kind": "positional_or_keyword",
+      "kind": "keyword_only",
       "name": "regions"
      },
      {
       "default": {
        "value": "chtMultiRegionFoam"
       },
-      "kind": "positional_or_keyword",
+      "kind": "keyword_only",
       "name": "solver"
      },
      {
       "default": {
        "value": 1.0
       },
-      "kind": "positional_or_keyword",
+      "kind": "keyword_only",
       "name": "end_time"
      },
      {
       "default": {
        "value": 0.01
       },
-      "kind": "positional_or_keyword",
+      "kind": "keyword_only",
       "name": "delta_t"
      },
      {
       "default": {
        "value": 10
       },
-      "kind": "positional_or_keyword",
+      "kind": "keyword_only",
       "name": "write_interval"
      },
      {
       "default": {
        "value": null
       },
-      "kind": "positional_or_keyword",
+      "kind": "keyword_only",
       "name": "fluid_regions"
      },
      {
       "default": {
        "value": null
       },
-      "kind": "positional_or_keyword",
+      "kind": "keyword_only",
       "name": "solid_regions"
      }
     ]
@@ -11715,77 +11743,77 @@
         "name": "path"
        },
        {
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "template"
        },
        {
         "default": {
          "value": {}
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "parameters"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "sampling"
        },
        {
         "default": {
          "value": {}
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "budget"
        },
        {
         "default": {
          "path": "study"
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "output"
        },
        {
         "default": {
          "value": 1
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "jobs"
        },
        {
         "default": {
          "value": "msh"
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "format"
        },
        {
         "default": {
          "value": false
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "walls_by_fitting"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "case"
        },
        {
         "default": {
          "value": null
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "run"
        },
        {
         "default": {
          "value": {}
         },
-        "kind": "positional_or_keyword",
+        "kind": "keyword_only",
         "name": "raw"
        }
       ]
@@ -11883,7 +11911,7 @@
       "default": {
        "value": null
       },
-      "kind": "positional_or_keyword",
+      "kind": "keyword_only",
       "name": "jobs"
      }
     ]
@@ -11921,7 +11949,7 @@
       "default": {
        "value": null
       },
-      "kind": "positional_or_keyword",
+      "kind": "keyword_only",
       "name": "jobs"
      }
     ]
@@ -11957,28 +11985,28 @@
       "default": {
        "value": null
       },
-      "kind": "positional_or_keyword",
+      "kind": "keyword_only",
       "name": "jobs"
      },
      {
       "default": {
        "value": false
       },
-      "kind": "positional_or_keyword",
+      "kind": "keyword_only",
       "name": "keep_going"
      },
      {
       "default": {
        "value": null
       },
-      "kind": "positional_or_keyword",
+      "kind": "keyword_only",
       "name": "log"
      },
      {
       "default": {
        "value": false
       },
-      "kind": "positional_or_keyword",
+      "kind": "keyword_only",
       "name": "force"
      }
     ]
@@ -11998,14 +12026,14 @@
       "default": {
        "value": null
       },
-      "kind": "positional_or_keyword",
+      "kind": "keyword_only",
       "name": "jobs"
      },
      {
       "default": {
        "value": false
       },
-      "kind": "positional_or_keyword",
+      "kind": "keyword_only",
       "name": "force"
      }
     ]

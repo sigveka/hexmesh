@@ -36,12 +36,12 @@ from hexmesh.interchange.importers.pcf import read_pcf
 
 
 def _steel():
-    return (PipeSpec(nang=4).core("fluid", CircleShape(radius=0.05, nang=4), nrad=3)
+    return (PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=0.05, nang=4), nrad=3)
             .shell("steel", dR=0.005, nrad=2))
 
 
 def _single():
-    return PipeSpec(nang=4).core("fluid", CircleShape(radius=0.05, nang=4), nrad=3)
+    return PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=0.05, nang=4), nrad=3)
 
 
 HEADER = """\

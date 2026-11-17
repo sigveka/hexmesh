@@ -33,12 +33,12 @@ from hexmesh.sections import h, layout_of, oh
 
 
 def _rect(a, b, n=4, **kw):
-    return PipeSpec(nang=n, **kw).core("fluid", RectShape(a, b, n, n), nrad=3, layout="oh")
+    return PipeSpec(nang=n, **kw).core("fluid", shape=RectShape(a, b, nang_w=n, nang_h=n), nrad=3, layout="oh")
 
 
 def _h(a, b, nw, nh, rot=0.0, **kw):
     return PipeSpec(nang_w=nw, nang_h=nh, rot=rot).core(
-        "fluid", RectShape(a, b, nw, nh), layout="h", **kw)
+        "fluid", shape=RectShape(a, b, nang_w=nw, nang_h=nh), layout="h", **kw)
 
 
 SPECS = {
@@ -47,20 +47,20 @@ SPECS = {
     "rect-2": lambda: _rect(0.10, 0.05),
     "rect-4": lambda: _rect(0.20, 0.05),
     "rect-unequal-counts": lambda: PipeSpec(nang_w=6, nang_h=3).core(
-        "fluid", RectShape(0.10, 0.05, 6, 3), nrad=3, layout="oh"),
+        "fluid", shape=RectShape(0.10, 0.05, nang_w=6, nang_h=3), nrad=3, layout="oh"),
     "circle-3layer": lambda: (PipeSpec(nang=4).core("fluid", radius=0.05, nrad=3, mprg=0.9)
                               .shell("wall", dR=0.004, nrad=2, mprg=1.1)
                               .shell("lagging", dR=0.02, nrad=3)),
     "rect-3layer": lambda: (_rect(0.10, 0.05).shell("wall", dR=0.01, nrad=2)
                             .shell("lagging", dR=0.03, nrad=2)),
     "circle-in-rect": lambda: (PipeSpec(nang=4).core("fluid", radius=0.05, nrad=3)
-                               .shell("block", outer=RectShape(0.25, 0.125, 4, 4), nrad=3)),
+                               .shell("block", outer=RectShape(0.25, 0.125, nang_w=4, nang_h=4), nrad=3)),
     "circle-square-circle": lambda: (
         PipeSpec(nang=4).core("fluid", radius=0.05, nrad=3)
-        .shell("filler", outer=RectShape(0.08, 0.08, 4, 4), nrad=2)
-        .shell("sheath", outer=CircleShape(0.14, 4), nrad=2)),
+        .shell("filler", outer=RectShape(0.08, 0.08, nang_w=4, nang_h=4), nrad=2)
+        .shell("sheath", outer=CircleShape(0.14, nang=4), nrad=2)),
     "rect-in-circle": lambda: (_rect(0.10, 0.05)
-                               .shell("casing", outer=CircleShape(0.16, 4), nrad=3)),
+                               .shell("casing", outer=CircleShape(0.16, nang=4), nrad=3)),
     "circle-rot": lambda: (PipeSpec(nang=4, rot=30).core("fluid", radius=0.05, nrad=3)
                            .shell("wall", dR=0.01, nrad=2)),
     "rect-rot-bump": lambda: (_rect(0.10, 0.05, rot=-17, mbmp=0.7)

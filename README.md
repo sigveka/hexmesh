@@ -356,6 +356,11 @@ what to do.
   misread.
 - **Error codes are stable.**  A code may be added; removing or renaming
   one is a breaking change.
+- **Limits may move.**  A limit's value (`hexmesh.assembly.limits`) and
+  its level (warning or error) may change in 1.x as measurements justify.
+  Loosening one isn't noted; tightening one, or turning a warning into an
+  error, is noted in the CHANGELOG under *Behaviour*, with the
+  measurement.  The limits' codes are only added.
 - **Meshes are reproducible.**  The same description, hexmesh version,
   gmsh version and system give the same mesh, byte for byte; every
   gallery example is checked.  A change that moves nodes is noted in

@@ -133,7 +133,7 @@ def assembly(k: int = 1) -> Assembly:
     asm = Assembly(spec, position=[X_IN, 0, 0], direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Straight(up, n_layers=BASE["up"],
                      axial_grading=1 / growth(h, up, BASE["up"])))
-    asm.add(Reducer(spec, L_STEN, n_layers=BASE["sten"], profile=("cosine", S0)))
+    asm.add(Reducer(spec, length=L_STEN, n_layers=BASE["sten"], profile=("cosine", S0)))
     asm.add(Straight(near, n_layers=BASE["near"],
                      axial_grading=growth(h, near, BASE["near"])))
     asm.add(Straight(X_OUT - X_SPLIT, n_layers=BASE["far"]))

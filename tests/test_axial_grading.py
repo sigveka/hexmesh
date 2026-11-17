@@ -27,7 +27,7 @@ from tests.test_blocks import A, B, BlockStraight
 
 
 def _one(radius=0.1):
-    return PipeSpec(nang=4).core("fluid", CircleShape(radius=radius, nang=4), nrad=3)
+    return PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=radius, nang=4), nrad=3)
 
 
 def _two():
@@ -67,7 +67,7 @@ class TestStationFractions:
 
     def test_reducer_stations(self):
         a = Frame.from_vectors([0, 0, 0], [1, 0, 0], [0, 0, 1])
-        red = Reducer(_one(0.06), 0.3, n_layers=5, axial_grading=1.25)
+        red = Reducer(_one(0.06), length=0.3, n_layers=5, axial_grading=1.25)
         b = red.ports(a, _one())[0][0]
         path = red.path(a, b, _one())
         _, ratios = _ratios([f.position[0] for f in path.frames])
@@ -78,7 +78,7 @@ class TestStationFractions:
     def test_spline_and_closure_stations_on_a_line(self):
         a = Frame.from_vectors([0, 0, 0], [1, 0, 0], [0, 0, 1])
         b = Frame.from_vectors([1, 0, 0], [1, 0, 0], [0, 0, 1])
-        spline = SplinePipe([(0, 0, 0), (0.4, 0, 0), (1, 0, 0)], n_layers=6,
+        spline = SplinePipe(points=[(0, 0, 0), (0.4, 0, 0), (1, 0, 0)], n_layers=6,
                             end_tangent=(1, 0, 0), axial_grading=1.2)
         closure = Closure(n_layers=6, axial_grading=1.2)
         for fit in (spline, closure):
@@ -108,7 +108,7 @@ class TestValidation:
     def test_spline_rejects_at_add(self):
         asm = Assembly(_one())
         with pytest.raises(ValueError, match="axial_grading must be positive"):
-            asm.add(SplinePipe([(0, 0, 0), (0.5, 0.1, 0)], n_layers=4, axial_grading=0))
+            asm.add(SplinePipe(points=[(0, 0, 0), (0.5, 0.1, 0)], n_layers=4, axial_grading=0))
 
 
 # ---------------------------------------------------------------------------
@@ -155,8 +155,8 @@ class TestMeshedSpacing:
                 return c[np.lexsort(c.T)]
             finally:
                 gmsh.finalize()
-        np.testing.assert_array_equal(nodes(Straight(0.3, 4)),
-                                      nodes(Straight(0.3, 4, axial_grading=1.0)))
+        np.testing.assert_array_equal(nodes(Straight(0.3, n_layers=4)),
+                                      nodes(Straight(0.3, n_layers=4, axial_grading=1.0)))
 
 
 # ---------------------------------------------------------------------------
@@ -165,7 +165,7 @@ class TestMeshedSpacing:
 
 class TestBlockGrading:
     def _layout(self):
-        return BlockStraight(0.3, 3).layout(A, B, _one())
+        return BlockStraight(0.3, n_layers=3).layout(A, B, _one())
 
     def test_class_grading_propagates_with_direction(self):
         lay = self._layout()

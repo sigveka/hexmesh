@@ -111,7 +111,7 @@ class TestClassify:
 
 def test_reducer_changing_nang_rejected():
     asm = Assembly(_spec())
-    asm.add(Reducer(_spec(r=0.06, nang=8), 0.2, n_layers=3))
+    asm.add(Reducer(_spec(r=0.06, nang=8), length=0.2, n_layers=3))
     with pytest.raises(AssemblyError, match=r"nang \(4 vs 8\)\. That is switch class 2") as e:
         asm.validate()
     assert not gmsh.isInitialized()
@@ -124,7 +124,7 @@ def test_reducer_changing_nang_rejected():
 def test_reducer_changing_nrad_and_grading_rejected():
     """Class 2 with a count change is not bridged, even with a grading change."""
     asm = Assembly(_spec())
-    asm.add(Reducer(_spec(r=0.06, nrad=5, mprg=1.2), 0.2, n_layers=3))
+    asm.add(Reducer(_spec(r=0.06, nrad=5, mprg=1.2), length=0.2, n_layers=3))
     with pytest.raises(AssemblyError, match=r"core nrad \(3 vs 5\).*switch class 2 beyond "
                                             r"radial grading.*radial grading \(mprg\) only") as e:
         asm.validate()

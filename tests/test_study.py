@@ -202,8 +202,8 @@ from hexmesh import Assembly, PipeSpec, Straight
 from hexmesh.core.shape import CircleShape, RectShape
 
 def build(p):
-    spec = (PipeSpec(nang=4).core("core", CircleShape(0.1, 4), nrad=3)
-            .shell("block", outer=RectShape(p["w"], 0.13, 4, 4), nrad=3))
+    spec = (PipeSpec(nang=4).core("core", shape=CircleShape(0.1, nang=4), nrad=3)
+            .shell("block", outer=RectShape(p["w"], 0.13, nang_w=4, nang_h=4), nrad=3))
     asm = Assembly(spec)
     asm.add(Straight(0.3, n_layers=2))
     return asm

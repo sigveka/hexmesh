@@ -68,7 +68,7 @@ def test_off_by_default(gmsh_session):
 def test_tee_branch_walls(gmsh_session):
     asm = Assembly(_one(), up=[0, 0, 1], lc=0.1)
     asm.add(Straight(0.2, n_layers=2))
-    main, branch = asm.add(Tee(0.2, 0.25, 0.05), label="tee")
+    main, branch = asm.add(Tee(run_length=0.2, branch_length=0.25, branch_radius=0.05), label="tee")
     asm.add(main, Straight(0.2, n_layers=2), label="run")
     asm.add(branch, Straight(0.2, n_layers=2), label="branch")
     asm.mesh(walls_by_fitting=True)

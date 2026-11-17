@@ -63,7 +63,7 @@ class BlockStraight(Straight):
 
 
 def _one():
-    return PipeSpec(nang=4).core("fluid", CircleShape(radius=0.1, nang=4), nrad=3)
+    return PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=0.1, nang=4), nrad=3)
 
 
 def _two():
@@ -81,13 +81,13 @@ B = Frame(A.position + 0.3 * A.normal, A.normal, A.up)
 class TestValidation:
     @pytest.mark.parametrize("spec, blocks", [(_one(), 5), (_two(), 9)])
     def test_oh_slab_validates_without_gmsh(self, spec, blocks):
-        report = BlockStraight(0.3, 3).layout(A, B, spec).validate()
+        report = BlockStraight(0.3, n_layers=3).layout(A, B, spec).validate()
         assert not gmsh.isInitialized()
         assert report["blocks"] == blocks
         assert report["min_corner_sj"] > 0.3
 
     def test_division_conflict(self):
-        lay = BlockStraight(0.3, 3).layout(A, B, _one())
+        lay = BlockStraight(0.3, n_layers=3).layout(A, B, _one())
         lay.edge(("A", 1, 0), ("B", 1, 0), divisions=5)   # parallel axials disagree
         with pytest.raises(InternalError, match="division conflict"):
             lay.validate()
@@ -102,7 +102,7 @@ class TestValidation:
             lay.validate()
 
     def test_port_not_tiled(self):
-        lay = BlockStraight(0.3, 3).layout(A, B, _one())
+        lay = BlockStraight(0.3, n_layers=3).layout(A, B, _one())
         lay.blocks.pop(0)                                   # drop the core block
         with pytest.raises(InternalError, match="port face .* not used"):
             lay.validate()
@@ -116,7 +116,7 @@ class TestValidation:
         import sys
         code = ("from tests.test_blocks import BlockStraight, A, B, _one\n"
                 "from hexmesh.errors import InternalError\n"
-                "lay = BlockStraight(0.3, 3).layout(A, B, _one()); lay.blocks.pop(0)\n"
+                "lay = BlockStraight(0.3, n_layers=3).layout(A, B, _one()); lay.blocks.pop(0)\n"
                 "try:\n    lay.validate()\nexcept InternalError as e:\n    print(e)\n")
         root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         out = {subprocess.run([sys.executable, "-c", code], capture_output=True, text=True,
@@ -129,7 +129,7 @@ class TestValidation:
             "('A', 0, 3)} is not used by any block (an internal check failed")
 
     def test_inverted_block(self):
-        lay = BlockStraight(0.3, 3).layout(A, B, _one())
+        lay = BlockStraight(0.3, n_layers=3).layout(A, B, _one())
         ids, m = lay.blocks[1]
         lay.blocks[1] = ((ids[1], ids[0], *ids[2:]), m)     # fold one corner
         with pytest.raises(LayoutError, match="inverted or degenerate"):

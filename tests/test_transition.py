@@ -41,7 +41,7 @@ def _rect(hw=0.14, hh=0.07, nang_w=6, nang_h=6, nrad=3, name="fluid", **kw):
 
 def _asm(inlet, outlet, n_layers=4, length=0.3):
     asm = Assembly(inlet, direction=[1, 0, 0], up=[0, 0, 1])
-    asm.add(Transition(outlet, length, n_layers))
+    asm.add(Transition(outlet, length=length, n_layers=n_layers))
     return asm
 
 
@@ -93,12 +93,12 @@ class TestRules:
         again = Assembly.load(path)
         assert again.to_dict() == asm.to_dict()
         assert again.cell_count() == asm.cell_count()
-        assert again.edges[0].fitting.outlet.core_shape == RectShape(0.14, 0.07, 6, 6)
+        assert again.edges[0].fitting.outlet.core_shape == RectShape(0.14, 0.07, nang_w=6, nang_h=6)
 
 
 class TestStationShape:
     def test_ends_are_the_end_outlines(self):
-        c, r = CircleShape(0.1, 6), RectShape(0.14, 0.07, 6, 6)
+        c, r = CircleShape(0.1, nang=6), RectShape(0.14, 0.07, nang_w=6, nang_h=6)
         s = np.linspace(0, 1, 7)
         for k in range(4):
             for inner in (False, True):
@@ -112,8 +112,8 @@ class TestStationShape:
         from hexmesh.sections import build_oh_circle
         from hexmesh.sections import build_oh_rect
         h, v = np.array([1.0, 0, 0]), np.array([0, 1.0, 0])
-        for shape, build in ((CircleShape(0.1, 6), build_oh_circle),
-                             (RectShape(0.14, 0.07, 6, 6), build_oh_rect)):
+        for shape, build in ((CircleShape(0.1, nang=6), build_oh_circle),
+                             (RectShape(0.14, 0.07, nang_w=6, nang_h=6), build_oh_rect)):
             cs = build(0, 0, 0, shape, h, v, 0.1, 3)
             gmsh.model.occ.synchronize()
             for k in range(4):
@@ -150,13 +150,13 @@ class TestStationShape:
 # ---------------------------------------------------------------------------
 
 def _insulated(core, outer, nang=6):
-    return (PipeSpec(nang=nang).core("fluid", core, nrad=3, layout="oh")
+    return (PipeSpec(nang=nang).core("fluid", shape=core, nrad=3, layout="oh")
             .shell("insulation", outer=outer, nrad=2))
 
 
 class TestMultiLayer:
-    A = staticmethod(lambda: _insulated(CircleShape(0.1, 6), CircleShape(0.13, 6)))
-    B = staticmethod(lambda: _insulated(RectShape(0.14, 0.07, 6, 6), RectShape(0.17, 0.1, 6, 6)))
+    A = staticmethod(lambda: _insulated(CircleShape(0.1, nang=6), CircleShape(0.13, nang=6)))
+    B = staticmethod(lambda: _insulated(RectShape(0.14, 0.07, nang_w=6, nang_h=6), RectShape(0.17, 0.1, nang_w=6, nang_h=6)))
 
     def test_cell_count(self):
         asm = _asm(self.A(), self.B(), n_layers=5)
@@ -167,7 +167,7 @@ class TestMultiLayer:
         """Each outline is its own node blend; a shell's corners blend the
         end rings' corners, so the corner lines turn with the core's."""
         a, b = self.A(), self.B()
-        st = Transition(b, 0.3, 4).station(a, 0.25)
+        st = Transition(b, length=0.3, n_layers=4).station(a, 0.25)
         assert st.layer_names == ["fluid", "insulation"]
         core, shell = st.outlines
         assert isinstance(core, BlendShape) and isinstance(shell, BlendShape)
@@ -179,7 +179,7 @@ class TestMultiLayer:
 
     def test_station_ends_are_the_end_outlines(self):
         a, b = self.A(), self.B()
-        t = Transition(b, 0.3, 4)
+        t = Transition(b, length=0.3, n_layers=4)
         s = np.linspace(0, 1, 7)
         for u, spec in ((0.0, a), (1.0, b)):
             shell = t.station(a, u).outlines[1]
@@ -190,20 +190,20 @@ class TestMultiLayer:
                     spec.outlines[1].side(c[k], c[(k + 1) % 4], s), atol=1e-15)
 
     def test_counts_name_the_layer(self):
-        b = _insulated(RectShape(0.14, 0.07, 4, 4), RectShape(0.17, 0.1, 4, 4), nang=4)
+        b = _insulated(RectShape(0.14, 0.07, nang_w=4, nang_h=4), RectShape(0.17, 0.1, nang_w=4, nang_h=4), nang=4)
         with pytest.raises(AssemblyError, match="nang"):
             _asm(self.A(), b).validate()
 
     def test_shell_shape_alone_may_change(self):
         """Circle core in a square shell → circle core in a circle shell."""
-        a = _insulated(CircleShape(0.1, 6), RectShape(0.13, 0.13, 6, 6))
+        a = _insulated(CircleShape(0.1, nang=6), RectShape(0.13, 0.13, nang_w=6, nang_h=6))
         _asm(a, self.A()).validate()
 
     def test_crossing_station_rejected_before_gmsh(self, monkeypatch):
         """Measured (task 0046): blending nested ends kept every station
         nested, so the check is a safety net; a crossing station stands in
         for one here."""
-        crossing = _insulated(CircleShape(0.1, 6), RectShape(0.3, 0.09, 6, 6))
+        crossing = _insulated(CircleShape(0.1, nang=6), RectShape(0.3, 0.09, nang_w=6, nang_h=6))
         real = Transition.station
         monkeypatch.setattr(Transition, "station", lambda self, spec, u: (
             crossing if u == 0.5 else real(self, spec, u)))

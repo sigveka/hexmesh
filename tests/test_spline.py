@@ -23,7 +23,7 @@ from hexmesh.core.spec import PipeSpec
 
 
 def _spec(shell=False):
-    spec = PipeSpec(nang=4).core("fluid", CircleShape(radius=0.05, nang=4), nrad=3)
+    spec = PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=0.05, nang=4), nrad=3)
     return spec.shell("wall", dR=0.01, nrad=2) if shell else spec
 
 
@@ -52,7 +52,7 @@ class TestSpline:
 
 class TestStations:
     def test_station_count_and_ends(self):
-        f = SplinePipe(S_BEND, n_layers=10)
+        f = SplinePipe(points=S_BEND, n_layers=10)
         out = f.ports(A, _spec())[0][0]
         frames = f.path(A, out, _spec()).frames
         assert len(frames) == 11
@@ -60,13 +60,13 @@ class TestStations:
         np.testing.assert_allclose(frames[-1].position, S_BEND[-1], atol=1e-12)
 
     def test_straight_pipe_no_rotation(self):
-        f = SplinePipe(((0, 0, 0), (0.5, 0, 0), (1, 0, 0)), n_layers=5)
+        f = SplinePipe(points=((0, 0, 0), (0.5, 0, 0), (1, 0, 0)), n_layers=5)
         for fr in f.path(A, f.ports(A, _spec())[0][0], _spec()).frames:
             np.testing.assert_allclose(fr.normal, A.normal, atol=1e-12)
             np.testing.assert_allclose(fr.up, A.up, atol=1e-12)
 
     def test_frames_orthonormal(self):
-        f = SplinePipe(CURVE_3D, n_layers=12)
+        f = SplinePipe(points=CURVE_3D, n_layers=12)
         for fr in f.path(A, f.ports(A, _spec())[0][0], _spec()).frames:
             for v in (fr.normal, fr.up):
                 assert np.linalg.norm(v) == pytest.approx(1.0, abs=1e-12)
@@ -83,7 +83,7 @@ class TestStations:
             assert abs(np.dot(w, a.normal + b.normal)) < 1e-4
 
     def test_outlet_follows_end_tangent(self):
-        f = SplinePipe(S_BEND, n_layers=10, end_tangent=(0, 1, 0))
+        f = SplinePipe(points=S_BEND, n_layers=10, end_tangent=(0, 1, 0))
         out = f.ports(A, _spec())[0][0]
         np.testing.assert_allclose(out.normal, [0, 1, 0], atol=1e-12)
 
@@ -91,27 +91,27 @@ class TestStations:
 class TestValidation:
     def test_first_point_must_be_inlet(self):
         with pytest.raises(ValueError, match="not the inlet position"):
-            SplinePipe(((0.1, 0, 0), (1, 0, 0)), n_layers=3).ports(A, _spec())
+            SplinePipe(points=((0.1, 0, 0), (1, 0, 0)), n_layers=3).ports(A, _spec())
 
     @pytest.mark.parametrize("points", [((0, 0, 0),), ((0, 0, 0), (0, 0, 0))],
                              ids=["single", "coincident"])
     def test_invalid_points(self, points):
         with pytest.raises(ValueError, match="at least two|coincide"):
-            SplinePipe(points, n_layers=3).ports(A, _spec())
+            SplinePipe(points=points, n_layers=3).ports(A, _spec())
 
     def test_zero_layers(self):
         with pytest.raises(ValueError, match="n_layers"):
-            SplinePipe(S_BEND, n_layers=0).ports(A, _spec())
+            SplinePipe(points=S_BEND, n_layers=0).ports(A, _spec())
 
     def test_too_tight(self):
         asm = Assembly(_spec(), lc=0.05)
-        asm.add(SplinePipe(((0, 0, 0), (0.05, 0.05, 0), (0, 0.1, 0)), n_layers=20))
+        asm.add(SplinePipe(points=((0, 0, 0), (0.05, 0.05, 0), (0, 0.1, 0)), n_layers=20))
         with pytest.raises(AssemblyError, match="tighter than"):
             asm.validate()
 
     def test_too_few_stations(self):
         asm = Assembly(_spec(), lc=0.05)
-        asm.add(SplinePipe(S_BEND, n_layers=10, end_tangent=(-1, 0.2, 0)))
+        asm.add(SplinePipe(points=S_BEND, n_layers=10, end_tangent=(-1, 0.2, 0)))
         with pytest.raises(AssemblyError, match="use more axial layers|tighter than"):
             asm.validate()
 
@@ -124,7 +124,7 @@ class TestMesh:
         asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1], lc=0.05)
         asm.add(Straight(0.1, n_layers=2))
         start = asm.interfaces[-1].frame.position
-        asm.add(SplinePipe(tuple(tuple(np.add(p, start)) for p in points), n_layers=16))
+        asm.add(SplinePipe(points=tuple(tuple(np.add(p, start)) for p in points), n_layers=16))
         asm.add(Straight(0.1, n_layers=2))
         asm.validate()
         predicted = asm.cell_count()
@@ -136,7 +136,7 @@ class TestMesh:
         counts = []
         for n in (8, 16):
             asm = Assembly(_spec(), lc=0.05)
-            asm.add(SplinePipe(S_BEND, n_layers=n))
+            asm.add(SplinePipe(points=S_BEND, n_layers=n))
             asm.validate()
             counts.append(asm.cell_count())
         assert counts[1] == 2 * counts[0]
@@ -149,7 +149,7 @@ CORNER = [(0, 0, 0), (0.2, 0, 0), (0.3, 0, 0), (0.3, 0.1, 0), (0.3, 0.4, 0)]
 
 def _tight(points, end_tangent=None):
     asm = Assembly(_spec(), direction=[1, 0, 0], up=[0, 0, 1])
-    asm.add(SplinePipe(points, n_layers=60, end_tangent=end_tangent))
+    asm.add(SplinePipe(points=points, n_layers=60, end_tangent=end_tangent))
     with pytest.raises(AssemblyError) as e:
         asm.validate()
     return e.value
@@ -171,7 +171,7 @@ def test_a_tight_spline_names_its_place_and_point():
 
 def test_moving_the_named_point_fixes_it():
     asm = Assembly(_spec(), direction=[1, 0, 0], up=[0, 0, 1])
-    asm.add(SplinePipe(CORNER[:2] + [(0.27, 0.03, 0)] + CORNER[3:], n_layers=60))
+    asm.add(SplinePipe(points=CORNER[:2] + [(0.27, 0.03, 0)] + CORNER[3:], n_layers=60))
     asm.validate()
 
 
@@ -183,7 +183,7 @@ def test_an_end_tangent_that_causes_it_is_named():
     assert e.where["field"] == "end_tangent" and "index" not in e.where
     assert e.hint.startswith("turn end_tangent toward the last segment's direction")
     asm = Assembly(_spec(), direction=[1, 0, 0], up=[0, 0, 1])
-    asm.add(SplinePipe(points, n_layers=60))                  # left out, as the hint says
+    asm.add(SplinePipe(points=points, n_layers=60))                  # left out, as the hint says
     asm.validate()
 
 

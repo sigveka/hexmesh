@@ -16,6 +16,38 @@ There is no 0.7.0.
 `hexmesh.interchange.build` are private (the functions of those names
 are unchanged); `hexmesh.io.readers` is removed.  Meshes are unchanged.
 
+**Calls that stay readable after 1.0** (task 0164, decision 0053).
+- **Breaking: keyword-only arguments.**  A public callable keeps at most
+  two positional arguments, the ones a reader understands without their
+  name; the rest are keyword-only.  `Straight(length, *, …)`,
+  `Bend(radius, angle, *, …)`, `MiterBend(radius, angle, *, …)`,
+  `Elbow(angle, schedule, *, …)`, `Reducer(outlet, *, length, …)`,
+  `Transition(outlet, *, length, …)`; `Tee`, `Wye`, `Switch`, `Closure`
+  and `SplinePipe` take keywords only.  `PipeSpec(*, …)`,
+  `.core(name, *, …)`, `.shell(name, *, …)`, `CircleShape(radius, *, …)`,
+  `RectShape(half_w, half_h, *, nang_w, nang_h)`; `Assembly(spec, *, …)`,
+  `add(source, fitting, *, …)`, `close(source, target, fitting, *, …)`,
+  `write(path, *, dim, …)`, `check_quality(quality_name, *, …)`;
+  `Drum(name, *, …)`, `Nozzle(name, *, spec, location)`, `OnHead`,
+  `OnShell`; `read_pcf(path, *, …)`, `read_bathymetry(surface_path,
+  route, *, …)`, `build(model, spec, *, selection, …)`; the interchange
+  parts after their id; `Study(path, *, …)` and the study functions.
+  `Reducer(outlet, 0.2)` becomes `Reducer(outlet, length=0.2)`.  A test
+  keeps every public callable to two, apart from a listed few (the
+  fitting protocol's methods, `Frame`, results users only read).
+- **Breaking: `PipeSpec` is copy-on-write.**  `core()` and `shell()`
+  return a new spec and leave the one they were called on unchanged, so
+  a spec is safe to share: `ins = base.shell("insulation", …)` no longer
+  insulates `base` too.  Code that called `spec.shell(…)` without keeping
+  the result must write `spec = spec.shell(…)`.
+- **Named outlets.**  `add` returns a named tuple for a fitting with
+  several outlets: `TeeOutlets(run, branch)`, `WyeOutlets(left, right)`.
+  It unpacks as before; `ports.branch` reads by name.  **Breaking:** the
+  tee's run port is called `run`, not `main`, in `add(…, names={…})`.
+- **Limits** (README *Stability*): a limit's value and level may change
+  in 1.x as measurements justify; tightening one is noted under
+  *Behaviour*.
+
 **Fixed: writing an assembly twice** (task 0163).
 - A second `write` or `write_openfoam` in the same session failed on a
   tee ("Surface 1 is transfinite but has 8 corners"): `mesh()` meshed

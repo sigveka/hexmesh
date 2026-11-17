@@ -50,7 +50,7 @@ from __future__ import annotations
 
 import math
 import re
-from dataclasses import dataclass, field
+from dataclasses import KW_ONLY, dataclass, field
 
 import numpy as np
 
@@ -81,6 +81,7 @@ class OnShell:
     """
 
     axial:      float = param("length", "nozzle axis from the first tangent plane")
+    _: KW_ONLY
     angle:      float = param("deg", "about the drum axis, from the drum's up")
     projection: float = param("length", "drum axis to the nozzle face", exclusiveMinimum=0)
 
@@ -98,6 +99,7 @@ class OnHead:
     """
 
     head:       str = param("-", "the head the nozzle is on", enum=["first", "second"])
+    _: KW_ONLY
     offset:     float = param("length", "nozzle axis from the drum axis", minimum=0)
     angle:      float = param("deg",
                               "about the drum axis, from the drum's up (ignored if centred)")
@@ -110,6 +112,7 @@ class Nozzle:
     """A named nozzle with the cross-section of the pipe it connects to."""
 
     name:     str = param("-", "nozzle name, unique on its drum")
+    _: KW_ONLY
     spec:     PipeSpec = param("-", "cross-section of the pipe it connects to")
     location: OnShell | OnHead = param("-", "where on the drum: on the shell or on a head")
 
@@ -124,6 +127,7 @@ class Drum:
     """
 
     name:      str = param("-", "drum name: letters, digits and _ (part of patch names)")
+    _: KW_ONLY
     diameter:  float = param("length", "inside diameter", exclusiveMinimum=0)
     length:    float = param("length", "tangent-to-tangent length", exclusiveMinimum=0)
     position:  tuple = param("length", "centre of the first tangent plane",
@@ -469,7 +473,7 @@ class Drum:
             kind = l.pop("type")
             return OnShell(**l) if kind == "shell" else OnHead(**l)
         d = dict(d)
-        nozzles = tuple(Nozzle(n["name"], PipeSpec.from_dict(n["spec"]), loc(n["location"]))
+        nozzles = tuple(Nozzle(n["name"], spec=PipeSpec.from_dict(n["spec"]), location=loc(n["location"]))
                         for n in d.pop("nozzles", []))
         for k in ("position", "axis", "up"):
             d[k] = tuple(d[k])

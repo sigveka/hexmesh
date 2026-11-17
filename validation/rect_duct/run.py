@@ -181,12 +181,12 @@ def assembly(ratio: float, k: int = 1, layout: str = "h") -> Assembly:
     if layout in ("h", "hg"):
         nw, nh = control_cells(ratio)
         grading = {"first_cell": HG_FIRST_CELL} if layout == "hg" else {}
-        spec = PipeSpec(nang_w=nw, nang_h=nh).core("fluid", RectShape(a, b, nw, nh), layout="h",
+        spec = PipeSpec(nang_w=nw, nang_h=nh).core("fluid", shape=RectShape(a, b, nang_w=nw, nang_h=nh), layout="h",
                                                    **grading)
     else:
         nh = BASE["nang_h"]
         nw = int(round(nh * ratio))           # cells roughly square in the core
-        spec = PipeSpec(nang=nh).core("fluid", RectShape(a, b, nw, nh), nrad=BASE["nrad"],
+        spec = PipeSpec(nang=nh).core("fluid", shape=RectShape(a, b, nang_w=nw, nang_h=nh), nrad=BASE["nrad"],
                                       layout="oh")
     asm = Assembly(spec, position=[0, 0, 0], direction=[1, 0, 0], up=[0, 0, 1])
     lengths = (X_A, X_M - X_A, X_B - X_M, LENGTH - X_B)

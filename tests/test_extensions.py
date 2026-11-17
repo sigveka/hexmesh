@@ -31,7 +31,7 @@ def _straight():
 def _tee(names=("main", "branch")):
     asm = Assembly(_one(), up=[0, 0, 1], lc=0.1)
     asm.add(Straight(0.2, n_layers=2))
-    main, branch = asm.add(Tee(0.2, 0.25, 0.05), names=names)
+    main, branch = asm.add(Tee(run_length=0.2, branch_length=0.25, branch_radius=0.05), names=names)
     asm.add(main, Straight(0.2, n_layers=2))
     asm.add(branch, Straight(0.2, n_layers=2))
     return asm
@@ -57,7 +57,7 @@ def test_cells_per_diameter():
 def test_downstream_diameter_is_the_outlets_own():
     """After a reducer, the downstream run is in the outlet's diameters."""
     asm = Assembly(_one(), lc=0.1)
-    asm.add(Reducer(_one(0.05), 0.15, n_layers=3))
+    asm.add(Reducer(_one(0.05), length=0.15, n_layers=3))
     asm.extend_open_ends(upstream=0, downstream=10)
     assert asm.edges[-1].fitting.length == pytest.approx(10 * 0.1)
     assert len(asm.edges) == 2                      # upstream 0 skips the inlet

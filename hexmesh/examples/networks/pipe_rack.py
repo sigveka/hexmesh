@@ -35,7 +35,7 @@ def build() -> Assembly:
     # Spline jog: shift the line sideways and down while keeping its heading.
     frame = asm.add(Straight(0.3)).frame
     p, t, side = frame.position, frame.normal, frame.right
-    asm.add(SplinePipe([p, p + 0.5 * t + 0.15 * side - 0.1 * frame.up,
+    asm.add(SplinePipe(points=[p, p + 0.5 * t + 0.15 * side - 0.1 * frame.up,
                         p + 1.0 * t + 0.3 * side - 0.2 * frame.up], end_tangent=t))
 
     asm.add(Reducer(pipe(0.05), length=0.2))

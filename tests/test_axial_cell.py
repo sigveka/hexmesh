@@ -59,9 +59,9 @@ def _added(ac, fitting, spec=None):
     (MiterBend(radius=0.3, angle=90, n_cuts=1, n_layers=None), 0.1, 0.3),   # one end leg
     (MiterBend(radius=0.4, angle=90, n_cuts=3, n_layers=None), 0.05,
      0.4 * math.tan(math.radians(15))),
-    (Reducer(_pipe(0.06), 0.2), 0.05, 0.2),
+    (Reducer(_pipe(0.06), length=0.2), 0.05, 0.2),
     (Transition(PipeSpec(nang_w=4, nang_h=4).core("fluid", half_w=0.1, half_h=0.06,
-                                                  nrad=3, layout="oh"), 0.3), 0.04, 0.3),
+                                                  nrad=3, layout="oh"), length=0.3), 0.04, 0.3),
 ], ids=["Straight", "Straight-exact", "Bend", "Bend-negative", "Elbow",
         "MiterBend", "MiterBend-3cuts", "Reducer", "Transition"])
 def test_resolved_count(fitting, ac, length):
@@ -71,10 +71,10 @@ def test_resolved_count(fitting, ac, length):
 
 def test_spline_count_from_arc_length():
     pts = ((0, 0, 0), (0.5, 0.05, 0), (1.0, 0.1, 0.05))
-    _, f = _added(0.05, SplinePipe(pts))
+    _, f = _added(0.05, SplinePipe(points=pts))
     from hexmesh.assembly.fittings import _arc_length
     from hexmesh.assembly.interface import Frame
-    L = _arc_length(SplinePipe(pts, 1)._curve(Frame.from_vectors(None, [1, 0, 0], [0, 0, 1])))
+    L = _arc_length(SplinePipe(points=pts, n_layers=1)._curve(Frame.from_vectors(None, [1, 0, 0], [0, 0, 1])))
     assert L > 1.0
     assert f.n_layers == math.ceil(L / 0.05 - 1e-9)
 
@@ -82,25 +82,25 @@ def test_spline_count_from_arc_length():
 def test_spline_floor_is_the_chord_turn_limit():
     """A sharp spline with a coarse cell gets enough layers to validate."""
     pts = ((0, 0, 0), (1.0, 0, 0), (1.0, 1.0, 0), (0, 1.0, 0))
-    a, f = _added(10.0, SplinePipe(pts))
+    a, f = _added(10.0, SplinePipe(points=pts))
     assert f.n_layers > 1
     turns = a.edges[0].fitting.path(a.interfaces[0].frame, a.interfaces[1].frame,
                                     a.inlet.spec).turns()
     assert max(turns) <= MAX_CHORD_TURN
     with pytest.raises(AssemblyError, match="use more axial layers"):
         b = _asm(10.0)
-        b.add(SplinePipe(pts, f.n_layers - 1))
+        b.add(SplinePipe(points=pts, n_layers=f.n_layers - 1))
         b.validate()
 
 
 def test_profiled_reducer_floor_is_the_chord_tolerance():
     spec = PipeSpec(nang=6).core("fluid", radius=0.1, nrad=3)
     outlet = PipeSpec(nang=6).core("fluid", radius=0.1, nrad=3)
-    a, f = _added(1.0, Reducer(outlet, 0.4, profile=("cosine", 0.25)), spec)
+    a, f = _added(1.0, Reducer(outlet, length=0.4, profile=("cosine", 0.25)), spec)
     assert f.n_layers > 1
     with pytest.raises(AssemblyError, match=f"use n_layers >= {f.n_layers}"):
         b = _asm(1.0, spec)
-        b.add(Reducer(outlet, 0.4, f.n_layers - 1, profile=("cosine", 0.25)))
+        b.add(Reducer(outlet, length=0.4, n_layers=f.n_layers - 1, profile=("cosine", 0.25)))
         b.validate()
 
 
@@ -186,7 +186,7 @@ def test_resolved_network_meshes_as_predicted():
     a = Assembly(_pipe(), direction=[1, 0, 0], up=[0, 0, 1], lc=0.1, axial_cell=0.05)
     a.add(Straight(0.3))
     a.add(Bend(radius=0.3, angle=90, toward=(0, 1, 0)))
-    a.add(Reducer(_pipe(0.07), 0.15))
+    a.add(Reducer(_pipe(0.07), length=0.15))
     a.add(Straight(0.2))
     predicted = a.cell_count()
     with Session("ac"):

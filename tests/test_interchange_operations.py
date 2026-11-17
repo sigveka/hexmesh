@@ -31,7 +31,7 @@ from hexmesh.core.spec import PipeSpec
 
 
 def _spec(bore=0.1):
-    return PipeSpec(nang=4).core("fluid", CircleShape(radius=(bore or 0.1) / 2, nang=4), nrad=2)
+    return PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=(bore or 0.1) / 2, nang=4), nrad=2)
 
 
 def _by_bore(bore):
@@ -144,7 +144,7 @@ def test_cut_at_the_valve_builds_two_sides_and_joining_restores_the_line(tmp_pat
     upstream = m.select(from_port=_at(m, "0", 0))
     downstream = m.select(from_port=_at(m, "4", 1))
     assert set(upstream) == {"0", "1"} and set(downstream) == {"2", "3", "4"}
-    sides = [ix.build(m, _spec(), sel, axial_cell=0.1) for sel in (upstream, downstream)]
+    sides = [ix.build(m, _spec(), selection=sel, axial_cell=0.1) for sel in (upstream, downstream)]
     assert m.report["selection"] == {"parts": ["2", "3", "4"],
                                      "how": {"from_port": _at(m, "4", 1), "up_to": []}}
     names = [sorted(i.name for i in a.open_interfaces()) for a in sides]
@@ -176,7 +176,7 @@ def test_a_selection_up_to_builds_only_the_parts_before_it(tmp_path):
     m, _ = _model(tmp_path)
     sel = m.select(from_port=_at(m, "0", 0), up_to=["3"])        # up to the elbow, included
     assert set(sel) == {"0", "1", "2", "3"}
-    asm = ix.build(m, _spec(), sel, axial_cell=0.1)
+    asm = ix.build(m, _spec(), selection=sel, axial_cell=0.1)
     assert [e.label for e in asm.edges] == ["PIPE_1", "VALVE_1", "PIPE_2", "ELBOW_1"]
     assert sorted(i.name for i in asm.open_interfaces()) == ["L_1_end1", f"L_1_{_at(m, '3', 1)}"]
     by_port = m.select(from_port=_at(m, "0", 0), up_to=[_at(m, "2", 0)])  # not crossed

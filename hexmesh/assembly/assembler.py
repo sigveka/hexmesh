@@ -75,7 +75,7 @@ class Assembly:
     def __init__(
         self,
         spec:       PipeSpec,
-        position=None,
+        *, position=None,
         direction=None,
         up=None,
         lc:         float | None = None,
@@ -122,7 +122,7 @@ class Assembly:
         self._tail = self.inlet
 
     @classmethod
-    def from_nozzle(cls, drum, nozzle: str, lc: float | None = None,
+    def from_nozzle(cls, drum, nozzle: str, *, lc: float | None = None,
                     axial_cell: float | None = None) -> "Assembly":
         """Start a network at a drum nozzle (decision 0002).
 
@@ -143,18 +143,19 @@ class Assembly:
     # 1–2. Intent and placement (pure Python)
     # ------------------------------------------------------------------
 
-    def add(self, source, fitting=None, names: Iterable[str] | dict | None = None,
+    def add(self, source, fitting=None, *, names: Iterable[str] | dict | None = None,
             label: str | None = None, origin: dict | None = None):
         """Append a fitting.
 
         ``add(fitting)`` continues from the tail; ``add(interface, fitting)``
-        branches from a given interface.  Returns the outlet Interface (or a
-        list for multi-outlet fittings, in ``fitting.port_names`` order).
-        After a multi-outlet fitting the tail continues on its first port
-        (a tee's ``main``, a wye's ``left``).
+        branches from a given interface.  Returns the outlet Interface, or
+        for a multi-outlet fitting a named tuple in ``fitting.port_names``
+        order (``TeeOutlets(run, branch)``, ``WyeOutlets(left, right)``;
+        decision 0053).  After a multi-outlet fitting the tail continues on
+        its first port (a tee's ``run``, a wye's ``left``).
 
         *names* names the outlet interfaces: a list in port order, or a dict
-        keyed by port name (``{"branch": "tap1"}``; ``Tee``: ``main``,
+        keyed by port name (``{"branch": "tap1"}``; ``Tee``: ``run``,
         ``branch``; ``Wye``: ``left``, ``right``; one-outlet fittings:
         ``outlet``).  *label* names the fitting itself (its wall patch with
         ``walls_by_fitting``; default ``<Type><index>``).  *origin*: where
@@ -169,7 +170,7 @@ class Assembly:
         """
         return _graph.add(self, source, fitting, names, label, origin)
 
-    def close(self, source: Interface, target: Interface, fitting,
+    def close(self, source: Interface, target: Interface, fitting, *,
               label: str | None = None, origin: dict | None = None) -> None:
         """Join two existing open interfaces with *fitting* (DESIGN.md §8).
 
@@ -182,7 +183,7 @@ class Assembly:
         """
         return _graph.close(self, source, target, fitting, label, origin)
 
-    def prepend(self, fitting: Straight, label: str | None = None,
+    def prepend(self, fitting: Straight, *, label: str | None = None,
                 origin: dict | None = None) -> Interface:
         """Place *fitting* upstream of the inlet; return the new inlet.
 
@@ -195,7 +196,7 @@ class Assembly:
         return _graph.prepend(self, fitting, label, origin)
 
     def extend_open_ends(self, upstream: float = 5.0, downstream: float = 10.0,
-                         cells_per_diameter: float = 4.0) -> None:
+                         *, cells_per_diameter: float = 4.0) -> None:
         """Add straight runs at the inlet and at every open outlet.
 
         Lengths are in diameters of the end's core (the flow passage; the
@@ -417,7 +418,7 @@ class Assembly:
         # kept on the class: called or patched from outside (task 0136)
         return _realise._project_walls(self)
 
-    def write(self, path: str, dim: int = 3, *, order: int = 1, incomplete: bool = False,
+    def write(self, path: str, *, dim: int = 3, order: int = 1, incomplete: bool = False,
               walls_by_fitting: bool = False, provenance: bool = True,
               scale: float = 1.0) -> None:
         """Mesh and write *path* in the format its extension names.  A
@@ -488,7 +489,7 @@ class Assembly:
         return {k: list(v) for k, v in self._fitting_volumes.items()}
 
     def check_quality(self, quality_name: str = "minSICN",
-                      threshold: float | None = None,
+                      *, threshold: float | None = None,
                       by: str = "material") -> QualityReport:
         """Quality report of the generated mesh.
 

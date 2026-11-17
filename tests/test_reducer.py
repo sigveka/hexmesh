@@ -18,7 +18,7 @@ from hexmesh.core.spec import PipeSpec
 
 def _spec(radius=0.1, dR=0.02, nrad=3, nang=4, rot=0.0, name="wall"):
     return (PipeSpec(nang=nang, rot=rot)
-            .core("fluid", CircleShape(radius=radius, nang=nang), nrad=nrad)
+            .core("fluid", shape=CircleShape(radius=radius, nang=nang), nrad=nrad)
             .shell(name, dR=dR, nrad=2))
 
 
@@ -26,7 +26,7 @@ def _spec(radius=0.1, dR=0.02, nrad=3, nang=4, rot=0.0, name="wall"):
 def test_wall_nodes_on_cone(gmsh_session, r_out):
     a, b, L = _spec(), _spec(r_out, 0.015), 0.2
     asm = Assembly(a, direction=[1, 0, 0], up=[0, 0, 1], lc=0.05)
-    asm.add(Reducer(b, L, n_layers=4))
+    asm.add(Reducer(b, length=L, n_layers=4))
     asm.mesh()
     R0, R1 = outer_radius(a), outer_radius(b)
     nodes = []
@@ -43,11 +43,11 @@ def test_wall_nodes_on_cone(gmsh_session, r_out):
     (_spec(0.06, nang=6), "nang"),
     (_spec(0.06, rot=0.1), "rot"),
     (_spec(0.06, name="steel"), "shells"),
-    (PipeSpec(nang=4).core("fluid", CircleShape(radius=0.06, nang=4), nrad=3), "shells"),
+    (PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=0.06, nang=4), nrad=3), "shells"),
 ])
 def test_topology_change_rejected_before_gmsh(outlet, field):
     asm = Assembly(_spec(), lc=0.05)
-    asm.add(Reducer(outlet, 0.2, n_layers=3))
+    asm.add(Reducer(outlet, length=0.2, n_layers=3))
     with pytest.raises(AssemblyError, match=f"differs from the inlet in {field}"):
         asm.validate()
     assert not gmsh.isInitialized()
@@ -55,7 +55,7 @@ def test_topology_change_rejected_before_gmsh(outlet, field):
 
 def test_outlet_port_carries_outlet_spec():
     asm = Assembly(_spec(), lc=0.05)
-    out = asm.add(Reducer(_spec(0.06, 0.015), 0.2, n_layers=3))
+    out = asm.add(Reducer(_spec(0.06, 0.015), length=0.2, n_layers=3))
     nxt = asm.add(Straight(0.1, n_layers=2))
     asm.validate()
     assert outer_radius(out.spec) == pytest.approx(0.075)
@@ -77,7 +77,7 @@ def test_wall_resolved_reducer(gmsh_session):
     assert a._core_mprg != b._core_mprg                       # really a grading change
     asm = Assembly(a, direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Straight(0.2, n_layers=4))
-    asm.add(Reducer(b, 0.2, n_layers=6))
+    asm.add(Reducer(b, length=0.2, n_layers=6))
     asm.add(Straight(0.2, n_layers=4))
     asm.validate()
     asm.mesh()
@@ -95,7 +95,7 @@ def test_grading_interpolated_per_station(u_grading):
     from hexmesh.assembly.interface import Frame
     a = PipeSpec(nang=4).core("fluid", radius=0.1, nrad=3, mprg=1.0).shell("wall", dR=0.02, nrad=2, mprg=1.3)
     b = PipeSpec(nang=4).core("fluid", radius=0.06, nrad=3, mprg=1.5).shell("wall", dR=0.02, nrad=2, mprg=0.8)
-    red = Reducer(b, 0.2, n_layers=5, axial_grading=u_grading)
+    red = Reducer(b, length=0.2, n_layers=5, axial_grading=u_grading)
     fa = Frame.from_vectors([0, 0, 0], [1, 0, 0], [0, 0, 1])
     fb = red.ports(fa, a)[0][0]
     path = red.path(fa, fb, a)
@@ -111,10 +111,10 @@ def test_grading_interpolated_per_station(u_grading):
 def test_grading_change_rejects_mbmp():
     """Angular grading stays a class-2 count/grading change without a bridge."""
     a = _spec()
-    b = (PipeSpec(nang=4, mbmp=0.6).core("fluid", CircleShape(radius=0.06, nang=4), nrad=3)
+    b = (PipeSpec(nang=4, mbmp=0.6).core("fluid", shape=CircleShape(radius=0.06, nang=4), nrad=3)
          .shell("wall", dR=0.02, nrad=2))
     asm = Assembly(a, lc=0.05)
-    asm.add(Reducer(b, 0.2, n_layers=3))
+    asm.add(Reducer(b, length=0.2, n_layers=3))
     with pytest.raises(AssemblyError, match=r"mbmp.*switch class 2 beyond radial grading"):
         asm.validate()
 
@@ -137,7 +137,7 @@ def _core(radius=0.1, nang=6):
 def _profiled(profile, outlet=None, length=0.4, n=40, spec=None, **kw):
     spec = spec or _core()
     asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1])
-    asm.add(Reducer(outlet or spec, length, n, profile=profile, **kw))
+    asm.add(Reducer(outlet or spec, length=length, n_layers=n, profile=profile, **kw))
     return asm
 
 

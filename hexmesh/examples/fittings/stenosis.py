@@ -42,7 +42,7 @@ def build(s0: float = 0.25, length_d: float = 2.0) -> Assembly:
     length = length_d * D
     asm = Assembly(PIPE, direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Straight(UPSTREAM * D - length / 2, n_layers=N_UP), label="upstream")
-    asm.add(Reducer(PIPE, length, n_layers=N_STENOSIS, profile=("cosine", s0)),
+    asm.add(Reducer(PIPE, length=length, n_layers=N_STENOSIS, profile=("cosine", s0)),
             label="stenosis")
     asm.add(Straight(DOWNSTREAM * D - length / 2, n_layers=N_DOWN,
                      axial_grading=1.03), label="downstream", names=["outlet"])

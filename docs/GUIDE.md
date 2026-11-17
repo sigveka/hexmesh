@@ -168,8 +168,9 @@ asm = Assembly(pipe, direction=[1, 0, 0], up=[0, 0, 1])
 # add(fitting) continues from the tail
 asm.add(Straight(0.4, n_layers=8))
 
-# multi-outlet fittings return one interface per outlet; toward= points
-# the branch in an absolute direction (here sideways, +y)
+# multi-outlet fittings return a named tuple of their outlets, which
+# unpacks (or read ports.run, ports.branch); toward= points the branch in
+# an absolute direction (here sideways, +y)
 main, branch = asm.add(Tee(run_length=0.2, branch_length=0.25, branch_radius=0.06,
                            toward=(0, 1, 0)))
 
@@ -177,7 +178,7 @@ main, branch = asm.add(Tee(run_length=0.2, branch_length=0.25, branch_radius=0.0
 bend = asm.add(main, Bend(radius=0.3, angle=90, n_layers=12, toward=(0, -1, 0)))
 
 # names= names the outlets (a list, or a dict by port name: a tee has
-# "main" and "branch"); open ends become patches such as "fluid_main_end"
+# "run" and "branch"); open ends become patches such as "fluid_main_end"
 asm.add(bend, Straight(0.3, n_layers=6), names=["main_end"])
 asm.add(branch, Straight(0.3, n_layers=6), names={"outlet": "branch_end"})
 
@@ -332,7 +333,7 @@ from the centreline.  Take a 0.2 × 0.1 m duct tapped on its wide face,
 so b = 0.05 m:
 
 ```python
-duct = PipeSpec(nang_w=8, nang_h=8).core("air", RectShape(0.1, 0.05, 8, 8),
+duct = PipeSpec(nang_w=8, nang_h=8).core("air", shape=RectShape(0.1, 0.05, nang_w=8, nang_h=8),
                                           nrad=3, layout="oh")
 asm = Assembly(duct, direction=[1, 0, 0], up=[0, 0, 1])
 asm.add(Straight(0.5, n_layers=10))
@@ -360,7 +361,7 @@ count per arc, `arcs=[a, b, a, b]`, meets a duct with `nang_w = a` and
 arcs, `b` along its sides.
 
 ```python
-pipe = PipeSpec().core("air", CircleShape(0.06, arcs=[8, 4, 8, 4]), nrad=3)
+pipe = PipeSpec().core("air", shape=CircleShape(0.06, arcs=[8, 4, 8, 4]), nrad=3)
 duct = PipeSpec(nang_w=8, nang_h=4).core("air", half_w=0.1, half_h=0.05)
 asm = Assembly(pipe, direction=[1, 0, 0], up=[0, 0, 1])
 asm.add(Straight(0.3, n_layers=6))
@@ -648,8 +649,8 @@ Declare the drum and its nozzles once, and the nozzle poses follow:
 from hexmesh import Drum, Nozzle, OnShell, OnHead
 
 drum = Drum("D101", diameter=2.0, length=6.0, axis=[1, 0, 0], up=[0, 0, 1],
-            nozzles=[Nozzle("N1", pipe, OnShell(axial=1.5, angle=0, projection=1.4)),
-                     Nozzle("N2", pipe, OnHead("second", offset=0.0, angle=0, projection=0.8))])
+            nozzles=[Nozzle("N1", spec=pipe, location=OnShell(axial=1.5, angle=0, projection=1.4)),
+                     Nozzle("N2", spec=pipe, location=OnHead("second", offset=0.0, angle=0, projection=0.8))])
 asm = Assembly.from_nozzle(drum, "N1")   # inlet patch fluid_D101_N1
 asm.add(Straight(0.5, n_layers=10))
 ```

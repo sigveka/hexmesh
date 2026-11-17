@@ -62,7 +62,7 @@ PROBE_SPECS = {
                     .shell("wall", dR=0.005 * s, nrad=1)),
     "circle_in_rect": ("circle", "oh", "a circle in a rectangle",
                        lambda s: PipeSpec(nang=4).core("fluid", radius=0.05 * s, nrad=2)
-                       .shell("box", nrad=2, outer=RectShape(0.07 * s, 0.07 * s, 4, 4))),
+                       .shell("box", nrad=2, outer=RectShape(0.07 * s, 0.07 * s, nang_w=4, nang_h=4))),
     "circle_n_outer_8": ("circle", "oh", "single layer, n_outer = 8",
                          lambda s: PipeSpec(nang=8, n_outer=8)
                          .core("fluid", radius=0.05 * s, nrad=2)),
@@ -96,15 +96,15 @@ PROBES = {
     "Bend": lambda k, mk: Bend(0.3, 90.0, n_layers=4),
     "MiterBend": lambda k, mk: MiterBend(0.3, 90.0),
     "Elbow": lambda k, mk: Elbow(90.0),
-    "Reducer": lambda k, mk: Reducer(mk(0.8), 0.2, n_layers=2),
-    "Transition": lambda k, mk: Transition(_other_shape(k), 0.2, n_layers=2),
-    "SplinePipe": lambda k, mk: SplinePipe(((0.1, 0.0, 0.0), (0.6, 0.0, 0.0), (1.1, 0.1, 0.0),
+    "Reducer": lambda k, mk: Reducer(mk(0.8), length=0.2, n_layers=2),
+    "Transition": lambda k, mk: Transition(_other_shape(k), length=0.2, n_layers=2),
+    "SplinePipe": lambda k, mk: SplinePipe(points=((0.1, 0.0, 0.0), (0.6, 0.0, 0.0), (1.1, 0.1, 0.0),
                                             (1.6, 0.3, 0.0)), n_layers=8),
     "Tee": lambda k, mk: (Tee(branch_length=0.15, branch_radius=0.02)
                           if PROBE_SPECS[k][0] == "circle" else
-                          Tee(branch_length=0.15, branch=RectShape(0.02, 0.02, 4, 4))),
-    "Wye": lambda k, mk: Wye(60.0, 0.3, 0.3),
-    "Switch": lambda k, mk: Switch(0.2, n_layers=2, outlet=_switched(k)),
+                          Tee(branch_length=0.15, branch=RectShape(0.02, 0.02, nang_w=4, nang_h=4))),
+    "Wye": lambda k, mk: Wye(angle=60.0, run_length=0.3, branch_length=0.3),
+    "Switch": lambda k, mk: Switch(length=0.2, n_layers=2, outlet=_switched(k)),
 }
 # Fittings a lone probe can't build, and why.
 UNPROBED = {"Closure": "joins two existing interfaces of a loop (Assembly.close); "

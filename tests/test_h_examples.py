@@ -27,7 +27,7 @@ from hexmesh.quality_hex import hex_vertices, min_scaled_jacobians
 
 
 def _h(half_w, half_h, n, **kw):
-    return PipeSpec(nang_w=n, nang_h=n).core("air", RectShape(half_w, half_h, n, n),
+    return PipeSpec(nang_w=n, nang_h=n).core("air", shape=RectShape(half_w, half_h, nang_w=n, nang_h=n),
                                              layout="h", **kw)
 
 
@@ -39,7 +39,7 @@ def _supply(monkeypatch, **kw):
     monkeypatch.setattr(hvac_supply, "DUCT", _h(0.25, 0.125, n, **kw))
     monkeypatch.setattr(hvac_supply, "TERMINAL", term)
     monkeypatch.setattr(hvac_supply, "Transition", lambda outlet, length, n_layers: (
-        Reducer(outlet, length, n_layers=n_layers) if outlet is term
+        Reducer(outlet, length=length, n_layers=n_layers) if outlet is term
         else Transition(outlet, length=length, n_layers=n_layers)))
     return hvac_supply.build()
 
@@ -53,7 +53,7 @@ def _branched(monkeypatch, **kw):
 def _lagged(monkeypatch, **kw):
     n = lagged_duct.NANG
     monkeypatch.setattr(lagged_duct, "duct", lambda half_w, half_h: (
-        PipeSpec(nang=n).core("air", RectShape(half_w, half_h, n, n), layout="h", **kw)
+        PipeSpec(nang=n).core("air", shape=RectShape(half_w, half_h, nang_w=n, nang_h=n), layout="h", **kw)
         .shell("steel", dR=0.002, nrad=2).shell("lagging", dR=0.03, nrad=3)))
     return lagged_duct.build()
 

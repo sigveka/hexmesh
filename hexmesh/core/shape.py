@@ -91,7 +91,7 @@ round shape's radius is its ``max_extent``.
 from __future__ import annotations
 import functools
 import math
-from dataclasses import dataclass
+from dataclasses import KW_ONLY, KW_ONLY, dataclass
 from typing import Protocol, runtime_checkable
 
 import numpy as np
@@ -150,6 +150,7 @@ class CircleShape:
     """
 
     radius: float = param("length", "radius of the circle", exclusiveMinimum=0)
+    _: KW_ONLY
     nang:   int | None = param("cells", "divisions per quadrant arc, shared by every layer; "
                                "leave out when arcs is given", default=None, minimum=1)
     arcs:   tuple[int, ...] | None = param(
@@ -304,6 +305,7 @@ class RectShape:
                           exclusiveMinimum=0)
     half_h: float = param("length", "half-height, along the second in-plane axis",
                           exclusiveMinimum=0)
+    _: KW_ONLY
     nang_w: int = param("cells", "divisions along each width edge, shared by every layer",
                         minimum=1)
     nang_h: int = param("cells", "divisions along each height edge, shared by every layer",
@@ -392,15 +394,15 @@ class RectShape:
         return np.abs(np.maximum(np.abs(u) - self.half_w, np.abs(v) - self.half_h))
 
     def grown(self, dR: float) -> "RectShape":
-        return RectShape(self.half_w + dR, self.half_h + dR, self.nang_w, self.nang_h)
+        return RectShape(self.half_w + dR, self.half_h + dR, nang_w=self.nang_w, nang_h=self.nang_h)
 
     def scaled(self, f: float) -> "RectShape":
-        return RectShape(self.half_w * f, self.half_h * f, self.nang_w, self.nang_h)
+        return RectShape(self.half_w * f, self.half_h * f, nang_w=self.nang_w, nang_h=self.nang_h)
 
     def lerp(self, other: "RectShape", u: float) -> "RectShape":
         return RectShape(self.half_w + (other.half_w - self.half_w) * u,
                          self.half_h + (other.half_h - self.half_h) * u,
-                         self.nang_w, self.nang_h)
+                         nang_w=self.nang_w, nang_h=self.nang_h)
 
     def to_dict(self) -> dict:
         return {"type": "rect", "half_w": self.half_w, "half_h": self.half_h,

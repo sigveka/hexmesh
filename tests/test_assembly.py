@@ -25,7 +25,7 @@ from hexmesh.quality_hex import evaluate_hex_quality
 
 
 def _one_layer():
-    return PipeSpec(nang=4).core("fluid", CircleShape(radius=0.1, nang=4), nrad=3)
+    return PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=0.1, nang=4), nrad=3)
 
 
 def _two_layer():
@@ -94,7 +94,7 @@ class TestTopologyWithoutGmsh:
             asm.add(Straight(0.6, n_layers=3))
             asm.add(Bend(radius=0.3, angle=90, n_layers=4, roll=90))
         tail = asm.interfaces[-1]
-        tail.spec = PipeSpec(nang=6).core("fluid", CircleShape(radius=0.1, nang=6), nrad=3)
+        tail.spec = PipeSpec(nang=6).core("fluid", shape=CircleShape(radius=0.1, nang=6), nrad=3)
         asm.close(tail, asm.inlet, Closure(n_layers=8))
         # caught by the switch-class check (task 0019), which names the field
         with pytest.raises(AssemblyError, match=r"nang \(4 vs 6\).*class 2"):
@@ -105,7 +105,7 @@ class TestTopologyWithoutGmsh:
         type: the exact A4 check rejects it."""
         asm = Assembly(_one_layer(), up=[0, 0, 1])
         out = asm.add(Straight(0.6, n_layers=3))
-        out.spec = PipeSpec(nang=4).core("fluid", CircleShape(radius=0.12, nang=4), nrad=3)
+        out.spec = PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=0.12, nang=4), nrad=3)
         asm.add(Straight(0.3, n_layers=2))
         with pytest.raises(AssemblyError, match="port type"):
             asm.validate()
@@ -287,7 +287,7 @@ class TestLoopClosure:
         asm = _chain([60, 0])
         asm.add(Straight(0.6, n_layers=3))
         tail = _tail(asm)
-        _, twist = Closure(12).stations(tail.frame, asm.inlet.frame, math.pi / 2)
+        _, twist = Closure(n_layers=12).stations(tail.frame, asm.inlet.frame, math.pi / 2)
         assert abs(math.degrees(twist)) > 10
         asm.close(tail, asm.inlet, Closure(n_layers=12))
         _full_check(asm)
@@ -297,7 +297,7 @@ class TestLoopClosure:
         asm = _chain([60, 0])
         asm.add(Straight(0.6, n_layers=3))
         a, b = _tail(asm).frame, asm.inlet.frame
-        frames, _ = Closure(12).stations(a, b, math.pi / 2)
+        frames, _ = Closure(n_layers=12).stations(a, b, math.pi / 2)
         assert len(frames) == 13
         for f in frames:
             assert abs(np.dot(f.normal, f.up)) < 1e-12

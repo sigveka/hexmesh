@@ -168,9 +168,9 @@ class TestRejections:
     @pytest.mark.parametrize("fitting, message", [
         (Elbow(90), "use Bend"),
         # sizes may change (decision 0026), shapes may not
-        (Reducer(_circle(), 0.2, n_layers=2), "Transition"),
-        (Tee(0.2, 0.2, 0.03), "needs branch=RectShape"),   # a duct tap takes branch= (task 0070)
-        (Wye(60, 0.3, 0.5), "circular cores only"),
+        (Reducer(_circle(), length=0.2, n_layers=2), "Transition"),
+        (Tee(run_length=0.2, branch_length=0.2, branch_radius=0.03), "needs branch=RectShape"),   # a duct tap takes branch= (task 0070)
+        (Wye(angle=60, run_length=0.3, branch_length=0.5), "circular cores only"),
     ])
     def test_unsupported_fittings(self, fitting, message):
         asm = Assembly(_duct(), direction=[1, 0, 0], up=[0, 0, 1])

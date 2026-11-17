@@ -44,7 +44,7 @@ from typing import Sequence
 
 def write_openfoam_case(
     path:        str | Path,
-    regions:     Sequence[str],
+    *, regions:     Sequence[str],
     solver:      str = "chtMultiRegionFoam",
     end_time:    float = 1.0,
     delta_t:     float = 0.01,

@@ -1177,3 +1177,68 @@ def test_planted_export_clash(tmp_path):
                                                          "__all__ = ['schema', 'dumps']\n",
                             "hexmesh/agent/schema.py": "", "hexmesh/agent/_s.py": ""})
     assert export_clashes(root) == ["hexmesh/agent: schema"]
+
+
+# --- keyword-only arguments (decision 0053 rule 1, task 0164) ------------------
+
+#: callables that keep more than two positional arguments besides ``self``,
+#: and why (task 0164's exception table, for the design session's review)
+_PROTOCOL = "the fitting protocol: the assembler calls it positionally, a fitting implements it"
+_READ_ONLY = "a result users read and never build"
+POSITIONAL_EXCEPTIONS: dict[str, str] = {
+    "Assembly.close": "decision 0053: (source, target, fitting), as before",
+    "Frame": "a frame is its position, normal and up, in that order everywhere",
+    "Frame.from_vectors": "as Frame",
+    **{f"{f}.{m}": _PROTOCOL
+       for f, ms in {"Straight": ("path", "layers_ok"),
+                     "Bend": ("path", "layers_ok", "centreline_length"),
+                     "MiterBend": ("path", "centreline_length"),
+                     "Elbow": ("path", "layers_ok", "centreline_length"),
+                     "Reducer": ("path", "layers_ok"),
+                     "Transition": ("path", "fill"),
+                     "SplinePipe": ("path", "layers_ok", "centreline_length", "tight_spot"),
+                     "Closure": ("path", "layers_ok", "centreline_length", "stations"),
+                     "Tee": ("resolve", "fill"), "Wye": ("resolve", "fill"),
+                     "Switch": ("resolve", "fill")}.items() for m in ms},
+    **{c: _READ_ONLY for c in ("CrossSection", "QualityReport", "RegionQuality",
+                               "HexVolumeQuality", "NetworkSpec")},
+}
+
+
+def over_positional(inventory: dict, limit: int = 2) -> dict[str, list[str]]:
+    """Public callables in the API inventory (``docs/api-1.0.json``) with more
+    than *limit* positional parameters besides ``self``/``cls``."""
+    def positional(sig):
+        return [p["name"] for p in sig
+                if p["kind"] in ("positional_only", "positional_or_keyword")
+                and p["name"] not in ("self", "cls")]
+    out = {}
+    for names in inventory["python"].values():
+        for name, entry in names.items():
+            sigs = []
+            if "signature" in entry:
+                sigs.append((name, entry["signature"]))
+            for member, m in entry.get("members", {}).items():
+                if "signature" in m and (member == "__init__" or not member.startswith("_")):
+                    sigs.append((name if member == "__init__" else f"{name}.{member}",
+                                 m["signature"]))
+            for qual, sig in sigs:
+                if len(positional(sig)) > limit:
+                    out[qual] = positional(sig)
+    return out
+
+
+def test_no_public_callable_takes_more_than_two_positional_arguments():
+    """Decision 0053 rule 1: the obvious first one or two, then ``*``."""
+    inventory = json.loads((ROOT / "docs/api-1.0.json").read_text(encoding="utf-8"))
+    over = over_positional(inventory)
+    assert sorted(set(over) - set(POSITIONAL_EXCEPTIONS)) == []
+    assert sorted(set(POSITIONAL_EXCEPTIONS) - set(over)) == [], "exceptions no longer needed"
+
+
+def test_planted_positional_callable():
+    sig = [{"kind": "positional_or_keyword", "name": n} for n in ("self", "a", "b", "c")]
+    inventory = {"python": {"m": {"F": {"kind": "class",
+                                        "members": {"go": {"signature": sig},
+                                                    "_hidden": {"signature": sig}}}}}}
+    assert over_positional(inventory) == {"F.go": ["a", "b", "c"]}

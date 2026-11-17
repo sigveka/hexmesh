@@ -69,7 +69,7 @@ import json
 import math
 import re
 import sys
-from dataclasses import dataclass, field
+from dataclasses import KW_ONLY, dataclass, field
 from pathlib import Path
 
 from ..errors import HexmeshError
@@ -94,6 +94,7 @@ class StudyTypeError(StudyError, TypeError):
 @dataclass
 class Study:
     path:       Path
+    _: KW_ONLY
     template:   dict
     parameters: dict = field(default_factory=dict)
     sampling:   dict | None = None

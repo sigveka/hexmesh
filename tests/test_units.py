@@ -66,7 +66,7 @@ def _wye(s):
     pipe = PipeSpec(nang=6).core("fluid", radius=0.1 * s, nrad=4).shell("steel", dR=0.01 * s, nrad=2)
     asm = Assembly(pipe, direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Straight(0.3 * s, n_layers=4))
-    left, right = asm.add(Wye(60, run_length=0.3 * s, branch_length=0.5 * s))
+    left, right = asm.add(Wye(angle=60, run_length=0.3 * s, branch_length=0.5 * s))
     asm.add(left, Straight(0.2 * s, n_layers=3), names=["left"])
     asm.add(right, Straight(0.2 * s, n_layers=3), names=["right"])
     return asm

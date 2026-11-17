@@ -106,7 +106,10 @@ def add(asm, source, fitting=None, names: Iterable[str] | dict | None = None,
 
     if update_tail:
         asm._tail = outlets[0]
-    return outlets[0] if len(outlets) == 1 else outlets
+    if len(outlets) == 1:
+        return outlets[0]
+    kind = getattr(fitting, "Outlets", None)        # a named tuple (decision 0053)
+    return kind(*outlets) if kind is not None else tuple(outlets)
 
 
 def close(asm, source: Interface, target: Interface, fitting,

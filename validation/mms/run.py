@@ -120,7 +120,7 @@ def miter():
 def spline():
     a = _asm(_pipe())
     a.add(Straight(2 * R, n_layers=2))
-    a.add(SplinePipe([(2 * R, 0, 0), (6 * R, 2 * R, 1.5 * R), (10 * R, 1 * R, 4 * R)],
+    a.add(SplinePipe(points=[(2 * R, 0, 0), (6 * R, 2 * R, 1.5 * R), (10 * R, 1 * R, 4 * R)],
                      n_layers=16))
     return a, [1]
 
@@ -172,7 +172,7 @@ def stack_change():
 def _wye(angle, shells):
     a = _asm(_pipe(shells=shells))
     a.add(Straight(2 * R, n_layers=2))
-    left, right = a.add(Wye(angle, run_length=1.5 * R, branch_length=4 * R))
+    left, right = a.add(Wye(angle=angle, run_length=1.5 * R, branch_length=4 * R))
     a.add(left, Straight(2 * R, n_layers=2))
     a.add(right, Straight(2 * R, n_layers=2))
     return a, [1]
@@ -208,11 +208,11 @@ def duct_tap(branch):
 
 
 def duct_tap_rect():
-    return duct_tap(RectShape(0.8 * R, 0.6 * R, 8, 8))
+    return duct_tap(RectShape(0.8 * R, 0.6 * R, nang_w=8, nang_h=8))
 
 
 def duct_tap_round():
-    return duct_tap(CircleShape(0.6 * R, 8))
+    return duct_tap(CircleShape(0.6 * R, nang=8))
 
 
 def duct():

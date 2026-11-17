@@ -99,5 +99,5 @@ def rect_shell_pipe():
         PipeSpec(nang=4)
         .core("fluid",  shape=CircleShape(radius=0.08, nang=4), nrad=3)
         .shell("wall",  dR=0.02, nrad=2)
-        .shell("shell", outer=RectShape(0.15, 0.15, 4, 4), nrad=2)
+        .shell("shell", outer=RectShape(0.15, 0.15, nang_w=4, nang_h=4), nrad=2)
     )

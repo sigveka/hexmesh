@@ -86,13 +86,13 @@ def test_tee_union():
 # ---------------------------------------------------------------------------
 
 def _spec(nang=4, nrad=3):
-    return PipeSpec(nang=nang).core("fluid", CircleShape(radius=R, nang=nang), nrad=nrad)
+    return PipeSpec(nang=nang).core("fluid", shape=CircleShape(radius=R, nang=nang), nrad=nrad)
 
 
 def _wye(angle=60, nang=4):
     asm = Assembly(_spec(nang), direction=[1, 0, 0], up=[0, 0, 1], lc=0.05)
     asm.add(Straight(0.2, n_layers=2))
-    a, b = asm.add(Wye(angle, run_length=0.4, branch_length=0.7), names=["a", "b"])
+    a, b = asm.add(Wye(angle=angle, run_length=0.4, branch_length=0.7), names=["a", "b"])
     asm.add(a, Straight(0.2, n_layers=2))
     asm.add(b, Straight(0.2, n_layers=2))
     return asm

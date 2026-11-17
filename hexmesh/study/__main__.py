@@ -40,7 +40,7 @@ def main(argv=None) -> int:
         if args.command == "run":
             if args.jobs is not None and args.jobs < 1:
                 ap.error("--jobs must be >= 1")
-            rows = run(study, args.stage, args.jobs, args.keep_going, log=print,
+            rows = run(study, args.stage, jobs=args.jobs, keep_going=args.keep_going, log=print,
                        force=args.force)
             print(f"manifest: {study.output / 'study.csv'} ({len(rows)} variants)")
         elif args.command == "status":

@@ -67,8 +67,10 @@ from .blocks import (
     ArcAbout, BlockLayout, LayoutError, Polyline, Spline, bind_face,
     corner_shift, face_patches, face_vertices,
 )
-from .interface import (Frame, check_port_frames, junction_roll, junction_toward, port_type,
-                        rolled)
+from typing import NamedTuple
+
+from .interface import (Frame, Interface, check_port_frames, junction_roll, junction_toward,
+                        port_type, rolled)
 from .junction_quality import WYE_BLOCKS, WYE_HINT, _layout_key, nonorth_tiers, predicted_angle
 from .projection import Tube, TubeUnion
 from .signature import check_port_pairs
@@ -172,7 +174,14 @@ _COUNTS = ("n_run", "n_branch", "n_split")
 _SENTINELS = {"n_run": 10007, "n_branch": 10009, "n_split": 10037}
 
 
-@dataclass(frozen=True)
+class WyeOutlets(NamedTuple):
+    """What ``Assembly.add`` returns for a :class:`Wye` (decision 0053):
+    unpacks as ``left, right = asm.add(Wye(…))``, or reads by name."""
+    left: Interface
+    right: Interface
+
+
+@dataclass(frozen=True, kw_only=True)
 class Wye:
     """Symmetric Y-junction: one inlet, two daughters with the inlet's spec.
 
@@ -212,11 +221,13 @@ class Wye:
 
     Ports are ``left`` and ``right``; ``right`` turns toward the (rolled)
     inlet's ``right``.  Outlet frames keep the (rolled) inlet's ``up``.
-    ``add(…, names={"left": …, "right": …})``.
+    ``add(…, names={"left": …, "right": …})``; ``add`` returns them as a
+    :class:`WyeOutlets`.
     """
 
     strategies = frozenset({0})   # both port pairs: inlet → each daughter
     port_names = ("left", "right")
+    Outlets = WyeOutlets
     toward_offset = 90.0    # the roll of toward's direction from the junction's up
     #: why ``Assembly.mesh(order=2)`` rejects it (task 0076): measured on
     #: the example, the high-order hexes at the creases invert, more with

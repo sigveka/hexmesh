@@ -32,7 +32,7 @@ def build() -> Assembly:
                            names=["main", "branch"])
     asm.add(branch, Straight(0.3, n_layers=4), names=["branch_end"])
     run = asm.add(main, Straight(0.3, n_layers=4))
-    left, right = asm.add(run, Wye(30, run_length=0.4, branch_length=0.7))
+    left, right = asm.add(run, Wye(angle=30, run_length=0.4, branch_length=0.7))
     asm.add(left, Straight(0.4, n_layers=6), names=["left_end"])
     asm.add(right, Straight(0.4, n_layers=6), names=["right_end"])
     return asm

@@ -30,7 +30,7 @@ its ``Path`` and inherits ``validate`` / ``fill`` from ``Sweep``.
 from __future__ import annotations
 import math
 import warnings
-from dataclasses import dataclass, replace
+from dataclasses import KW_ONLY, dataclass, replace
 
 import numpy as np
 
@@ -126,6 +126,7 @@ class Straight(Sweep):
     handles_arcs = True              # a circle's unequal arcs (task 0147)
 
     length:   float = param("length", "axial length", exclusiveMinimum=0)
+    _: KW_ONLY
     n_layers: int | None = param(
         "cells", "axial layers; None resolves from the assembly's axial_cell", default=None,
         minimum=1)
@@ -349,6 +350,7 @@ class Bend(_Toward, Sweep):
     angle:    float = param(
         "deg", "turn angle; nonzero (below RADIANS_WARNING_BELOW it is probably radians)",
         exclusiveMinimum=-360, exclusiveMaximum=360, limit="RADIANS_WARNING_BELOW")
+    _: KW_ONLY
     n_layers: int | None = param(
         "cells", "axial layers; None resolves from the assembly's axial_cell", default=None,
         minimum=1)
@@ -469,6 +471,7 @@ class MiterBend(_Toward, Sweep):
     angle:    float = param(
         "deg", "turn angle; nonzero (below RADIANS_WARNING_BELOW it is probably radians)",
         exclusiveMinimum=-360, exclusiveMaximum=360, limit="RADIANS_WARNING_BELOW")
+    _: KW_ONLY
     n_cuts:   int = param(
         "1", "number of cuts (welds); each turns angle / n_cuts", default=1, minimum=1,
         limit=("MIN_MITER_CUT", "MAX_MITER_CUT"))
@@ -488,7 +491,7 @@ class MiterBend(_Toward, Sweep):
 
     @property
     def _arc(self) -> Bend:
-        return Bend(self.radius, self.angle, 1, self.roll)
+        return Bend(self.radius, self.angle, n_layers=1, roll=self.roll)
 
     @property
     def cut_angle(self) -> float:
@@ -599,6 +602,7 @@ class Elbow(_Toward, Sweep):
     schedule: str = param(
         "-", "centreline radius: long 1.5 D, short 1 D (ASME B16.9)", default="long",
         enum=["long", "short"])
+    _: KW_ONLY
     n_layers: int | None = param(
         "cells", "axial layers; None resolves from the assembly's axial_cell", default=8,
         minimum=1)
@@ -624,8 +628,8 @@ class Elbow(_Toward, Sweep):
         return self.FACTORS[self.schedule] * 2 * outer_radius(spec)
 
     def bend(self, spec: PipeSpec) -> Bend:
-        return Bend(self.radius(spec), self.angle, self.n_layers, self.roll,
-                    self.axial_grading)
+        return Bend(self.radius(spec), self.angle, n_layers=self.n_layers, roll=self.roll,
+                    axial_grading=self.axial_grading)
 
     def ports(self, inlet: Frame, spec: PipeSpec) -> list[tuple[Frame, PipeSpec]]:
         return self.bend(spec).ports(inlet, spec)
@@ -686,9 +690,9 @@ def _with_layers(spec: PipeSpec, layers: list, mprgs: list[float],
     out = PipeSpec(nang=spec.nang, nang_w=spec.nang_w, nang_h=spec.nang_h,
                    n_outer=spec.n_outer, rot=spec.rot, mbmp=spec.mbmp)
     if spec.layout == "h":            # its shells as an O-H core's (task 0086)
-        out = out.core(name, layers[0], layout="h", wall_bump=wall_bump)
+        out = out.core(name, shape=layers[0], layout="h", wall_bump=wall_bump)
     else:
-        out = out.core(name, layers[0], nrad=spec._core_nrad, mprg=mprgs[0], layout="oh")
+        out = out.core(name, shape=layers[0], nrad=spec._core_nrad, mprg=mprgs[0], layout="oh")
     for sh, x, m in zip(spec.shells, layers[1:], mprgs[1:]):
         if isinstance(x, (int, float)):
             out = out.shell(sh.name, dR=x, nrad=sh.nrad, mprg=m)
@@ -758,6 +762,7 @@ class Reducer(_AxialOutlet):
     handles_arcs = True              # a circle's unequal arcs (task 0147)
 
     outlet:   PipeSpec = param("-", "outlet spec: the inlet's but for sizes and radial gradings")
+    _: KW_ONLY
     length:   float = param("length", "axial length", exclusiveMinimum=0)
     n_layers: int | None = param(
         "cells", "axial layers; None resolves from the assembly's axial_cell", default=None,
@@ -918,6 +923,7 @@ class Transition(_AxialOutlet):
     handles_arcs = True              # a circle's unequal arcs (task 0147)
 
     outlet:   PipeSpec = param("-", "outlet spec: the inlet's but for each layer's outline")
+    _: KW_ONLY
     length:   float = param("length", "axial length", exclusiveMinimum=0)
     n_layers: int | None = param(
         "cells", "axial layers; None resolves from the assembly's axial_cell", default=None,
@@ -1008,9 +1014,9 @@ class Transition(_AxialOutlet):
                                 "layout only use Switch",
                                 code="transition_same_rectangle", hint="use Switch")
         blend = self._blend_spec(spec)
-        Transition(blend, self.length, self.n_layers, self.axial_grading).check(o_spec) \
-            if end == "outlet" else Transition(o_spec, self.length, self.n_layers,
-                                               self.axial_grading).check(blend)
+        Transition(blend, length=self.length, n_layers=self.n_layers, axial_grading=self.axial_grading).check(o_spec) \
+            if end == "outlet" else Transition(o_spec, length=self.length, n_layers=self.n_layers,
+                                               axial_grading=self.axial_grading).check(blend)
         if self.n_layers is not None:
             self._split(spec)                 # raises when the switch has no room
 
@@ -1024,7 +1030,7 @@ class Transition(_AxialOutlet):
             raise AssemblyError(_BOTH_H, code="transition_both_h", hint="use Reducer")
         sh = h_spec.core_shape
         out = PipeSpec(nang_w=sh.nang_w, nang_h=sh.nang_h, mbmp=o_spec.mbmp,
-                       rot=o_spec.rot).core(o_spec.layer_names[0], sh,
+                       rot=o_spec.rot).core(o_spec.layer_names[0], shape=sh,
                                             nrad=o_spec._core_nrad, mprg=o_spec._core_mprg,
                                             layout="oh")
         for s in h_spec.shells:
@@ -1062,11 +1068,11 @@ class Transition(_AxialOutlet):
         lb = self.length - ls
         if end == "outlet":
             mid = Frame(a.position + lb * a.normal, a.normal, a.up)
-            return [(Transition(blend, lb, self.n_layers - m, self.axial_grading), (a, mid), spec),
-                    (Switch(ls, n_layers=m, outlet=self.outlet), (mid, b), blend)]
+            return [(Transition(blend, length=lb, n_layers=self.n_layers - m, axial_grading=self.axial_grading), (a, mid), spec),
+                    (Switch(length=ls, n_layers=m, outlet=self.outlet), (mid, b), blend)]
         mid = Frame(a.position + ls * a.normal, a.normal, a.up)
-        return [(Switch(ls, n_layers=m, outlet=blend), (a, mid), spec),
-                (Transition(self.outlet, lb, self.n_layers - m, self.axial_grading),
+        return [(Switch(length=ls, n_layers=m, outlet=blend), (a, mid), spec),
+                (Transition(self.outlet, length=lb, n_layers=self.n_layers - m, axial_grading=self.axial_grading),
                  (mid, b), blend)]
 
     def validate(self, frames: list[Frame], spec: PipeSpec) -> list[str] | None:
@@ -1132,7 +1138,7 @@ class Transition(_AxialOutlet):
         oa, ob = spec.outlines, b.outlines
         name, shape = spec._core
         out = PipeSpec(rot=spec.rot, mbmp=spec.mbmp, n_outer=spec.n_outer).core(
-            name, BlendShape(shape, b.core_shape, u),
+            name, shape=BlendShape(shape, b.core_shape, u),
             nrad=spec._core_nrad, mprg=spec._core_mprg)
         for i, sh in enumerate(spec.shells, start=1):
             blend = BlendShape(oa[i], ob[i], u, _points(ca[i]), _points(cb[i]))
@@ -1302,7 +1308,7 @@ def _cubic_spline(points: np.ndarray, d0: np.ndarray, d1: np.ndarray | None = No
 # Spline pipe
 # ---------------------------------------------------------------------------
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class SplinePipe(Sweep):
     """Pipe along a cubic spline through *points* (first point = inlet).
 
@@ -1431,7 +1437,7 @@ class SplinePipe(Sweep):
 # Closure
 # ---------------------------------------------------------------------------
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class Closure(Sweep):
     """Smooth run between two *existing* interfaces — closes loops.
 

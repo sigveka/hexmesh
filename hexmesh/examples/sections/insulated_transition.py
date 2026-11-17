@@ -35,14 +35,14 @@ NANG = 6
 
 def pipe() -> PipeSpec:
     return (PipeSpec(nang=NANG)
-            .core("air", CircleShape(0.1, NANG), nrad=4)
+            .core("air", shape=CircleShape(0.1, nang=NANG), nrad=4)
             .shell("steel", dR=0.003, nrad=2)
             .shell("insulation", dR=0.04, nrad=3))
 
 
 def duct(insulated: bool = True) -> PipeSpec:
     spec = (PipeSpec(nang=NANG)
-            .core("air", RectShape(0.15, 0.075, NANG, NANG), mprg=1.2)
+            .core("air", shape=RectShape(0.15, 0.075, nang_w=NANG, nang_h=NANG), mprg=1.2)
             .shell("steel", dR=0.003, nrad=2))
     return spec.shell("insulation", dR=0.04, nrad=3) if insulated else spec
 

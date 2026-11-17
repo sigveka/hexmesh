@@ -35,7 +35,7 @@ _HEX_EDGES = [(0, 1), (1, 2), (2, 3), (3, 0), (4, 5), (5, 6), (6, 7), (7, 4),
 
 
 def _one(radius=0.1):
-    return PipeSpec(nang=4).core("fluid", CircleShape(radius=radius, nang=4), nrad=3)
+    return PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=radius, nang=4), nrad=3)
 
 
 def _two(radius=0.1):
@@ -133,7 +133,7 @@ def _tee(ratio):
     def build():
         asm = Assembly(_one(), direction=[1, 0, 0], up=[0, 0, 1], lc=0.1)
         asm.add(Straight(0.2, n_layers=3))
-        main, branch = asm.add(Tee(0.2, 0.25, ratio * 0.1))
+        main, branch = asm.add(Tee(run_length=0.2, branch_length=0.25, branch_radius=ratio * 0.1))
         asm.add(main, Straight(0.2, n_layers=3))
         asm.add(branch, Straight(0.2, n_layers=3))
         return asm
@@ -141,19 +141,19 @@ def _tee(ratio):
 
 
 VARIANTS = {
-    "bend-radius-2R-3R":   (_sbs(_two(), Bend(2 * R_OUT, 90, 6)),
-                            _sbs(_two(), Bend(3 * R_OUT, 90, 6))),
-    "bend-angle-45-90":    (_sbs(_two(), Bend(0.3, 45, 6)),
-                            _sbs(_two(), Bend(0.3, 90, 6))),
-    "bend-mirrored":       (_sbs(_two(), Bend(0.3, 90, 6)),
-                            _sbs(_two(), Bend(0.3, -90, 6))),
-    "bend-roll-0-30":      (_sbs(_two(), Bend(0.3, 90, 6)),
-                            _sbs(_two(), Bend(0.3, 90, 6, roll=30))),
+    "bend-radius-2R-3R":   (_sbs(_two(), Bend(2 * R_OUT, 90, n_layers=6)),
+                            _sbs(_two(), Bend(3 * R_OUT, 90, n_layers=6))),
+    "bend-angle-45-90":    (_sbs(_two(), Bend(0.3, 45, n_layers=6)),
+                            _sbs(_two(), Bend(0.3, 90, n_layers=6))),
+    "bend-mirrored":       (_sbs(_two(), Bend(0.3, 90, n_layers=6)),
+                            _sbs(_two(), Bend(0.3, -90, n_layers=6))),
+    "bend-roll-0-30":      (_sbs(_two(), Bend(0.3, 90, n_layers=6)),
+                            _sbs(_two(), Bend(0.3, 90, n_layers=6, roll=30))),
     "tee-ratio-0.4-0.6":   (_tee(0.4), _tee(0.6)),
-    "straight-L-2L":       (_sbs(_two(), Straight(0.3, 4)),
-                            _sbs(_two(), Straight(0.6, 4))),
-    "reducer-outlet":      (_sbs(_two(), Reducer(_two(0.06), 0.2, 4)),
-                            _sbs(_two(), Reducer(_two(0.08), 0.3, 4))),
+    "straight-L-2L":       (_sbs(_two(), Straight(0.3, n_layers=4)),
+                            _sbs(_two(), Straight(0.6, n_layers=4))),
+    "reducer-outlet":      (_sbs(_two(), Reducer(_two(0.06), length=0.2, n_layers=4)),
+                            _sbs(_two(), Reducer(_two(0.08), length=0.3, n_layers=4))),
 }
 
 # Mirror images: same node tags, hex vertex order reversed by handedness.
@@ -214,8 +214,8 @@ def test_mirrored_variant_reverses_vertex_order_only(snapshots, name):
 # ---------------------------------------------------------------------------
 
 def test_density_change_detected(snapshots):
-    a = _snapshot(_sbs(_two(), Bend(0.3, 90, 6)))
-    b = _snapshot(_sbs(_two(), Bend(0.3, 90, 7)))
+    a = _snapshot(_sbs(_two(), Bend(0.3, 90, n_layers=6)))
+    b = _snapshot(_sbs(_two(), Bend(0.3, 90, n_layers=7)))
     assert _isomorphic(a, b) is not True
 
 

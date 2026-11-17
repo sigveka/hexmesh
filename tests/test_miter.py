@@ -18,7 +18,7 @@ from hexmesh.core.spec import PipeSpec
 
 
 def _spec(shell=True):
-    spec = PipeSpec(nang=4).core("fluid", CircleShape(radius=0.1, nang=4), nrad=3)
+    spec = PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=0.1, nang=4), nrad=3)
     return spec.shell("wall", dR=0.02, nrad=2) if shell else spec
 
 
@@ -41,7 +41,7 @@ class TestGeometry:
     def test_ports_match_smooth_bend(self):
         spec = _spec()
         for m in (MiterBend(0.3, 90), MiterBend(0.3, -60, n_cuts=3, roll=30)):
-            bend = Bend(m.radius, m.angle, 4, m.roll)
+            bend = Bend(m.radius, m.angle, n_layers=4, roll=m.roll)
             (a, _), = m.ports(A, spec)
             (b, _), = bend.ports(A, spec)
             np.testing.assert_allclose(a.position, b.position, atol=1e-12)
@@ -122,7 +122,7 @@ class TestElbow:
         e = Elbow(90, schedule)
         assert e.radius(spec) == pytest.approx(factor * 2 * outer_radius(spec))
         (a, _), = e.ports(A, spec)
-        (b, _), = Bend(e.radius(spec), 90, 8).ports(A, spec)
+        (b, _), = Bend(e.radius(spec), 90, n_layers=8).ports(A, spec)
         np.testing.assert_allclose(a.position, b.position, atol=1e-12)
 
     def test_unknown_schedule(self):

@@ -58,7 +58,7 @@ GMSH output to errors.
 
 ## Assembly
 
-### `Assembly(spec, position=None, direction=None, up=None, lc=None, inlet_name="inlet", axial_cell=None)`
+### `Assembly(spec, *, position=None, direction=None, up=None, lc=None, inlet_name="inlet", axial_cell=None)`
 
 An interface-first pipe network ([DESIGN.md](DESIGN.md) §5).
 
@@ -74,19 +74,22 @@ An interface-first pipe network ([DESIGN.md](DESIGN.md) §5).
 
 | Method | Does |
 |---|---|
-| `add(fitting, names=None, label=None, origin=None)` | Attach *fitting* to the tail and move the tail to its first outlet (a tee's `main`, a wye's `left`). Returns the outlet `Interface`, or a list in port order for multi-outlet fittings. *names* names the outlet interfaces; *label* names the fitting (letters, digits, `_`; unique) |
-| `add(interface, fitting, names=None, label=None, origin=None)` | Attach *fitting* to *interface*; the tail does not move. Use the returned outlet to continue that line |
-| `close(source, target, fitting, label=None, origin=None)` | Join two existing open interfaces. *source* must be an outlet and *target* an inlet, so flow runs source → target. Use `Closure` for any gap, or a `Straight` / `Bend` that fits exactly |
-| `prepend(straight, label=None, origin=None)` | Place a `Straight` upstream of the inlet and make its start the new `inlet`; the inlet name moves with it. Returns the new inlet |
-| `extend_open_ends(upstream=5.0, downstream=10.0, cells_per_diameter=4.0)` | Straight runs before the inlet and after every open outlet, in diameters of each end's core (hydraulic diameters for a duct); 0 skips a side. Each run gets `round(diameters × cells_per_diameter)` axial cells. Patch names are unchanged. Ends marked `equipment` are skipped. Call before building |
+| `add(fitting, *, names=None, label=None, origin=None)` | Attach *fitting* to the tail and move the tail to its first outlet (a tee's `run`, a wye's `left`). Returns the outlet `Interface`, or a list in port order for multi-outlet fittings. *names* names the outlet interfaces; *label* names the fitting (letters, digits, `_`; unique) |
+| `add(interface, fitting, *, names=None, label=None, origin=None)` | Attach *fitting* to *interface*; the tail does not move. Use the returned outlet to continue that line |
+| `close(source, target, fitting, *, label=None, origin=None)` | Join two existing open interfaces. *source* must be an outlet and *target* an inlet, so flow runs source → target. Use `Closure` for any gap, or a `Straight` / `Bend` that fits exactly |
+| `prepend(straight, *, label=None, origin=None)` | Place a `Straight` upstream of the inlet and make its start the new `inlet`; the inlet name moves with it. Returns the new inlet |
+| `extend_open_ends(upstream=5.0, downstream=10.0, *, cells_per_diameter=4.0)` | Straight runs before the inlet and after every open outlet, in diameters of each end's core (hydraulic diameters for a duct); 0 skips a side. Each run gets `round(diameters × cells_per_diameter)` axial cells. Patch names are unchanged. Ends marked `equipment` are skipped. Call before building |
 | `interfaces`, `edges` | All interfaces and fitting edges, in creation order |
 | `inlet` | The inlet interface |
 | `open_interfaces()` | Interfaces touched by one fitting only: the network boundary |
 
 `names` is a list with one name per outlet, in port order, or a dict keyed
 by port name, which may name only some: `names={"branch": "tap1"}`. Port
-names are `fitting.port_names`: `Tee` `main`, `branch`; `Wye` `left`,
-`right`; every one-outlet fitting `outlet`. An unknown key is an
+names are `fitting.port_names`: `Tee` `run`, `branch`; `Wye` `left`,
+`right`; every one-outlet fitting `outlet`. A multi-outlet fitting's `add`
+returns them as a named tuple, `TeeOutlets(run, branch)` or
+`WyeOutlets(left, right)`: it unpacks as before, and `ports.branch` reads
+by name. An unknown key is an
 `AssemblyError` listing the valid ones. A named open end becomes the patch
 `<layer>_<name>`.
 
@@ -118,10 +121,10 @@ in degrees. The thresholds are data, in `hexmesh.assembly.limits`.
 | Method | Does |
 |---|---|
 | `mesh(dim=3, *, order=1, incomplete=False, walls_by_fitting=False)` | Build faces, fill all fittings, write physical groups, and mesh. Between the surface and volume mesh, junction wall nodes are projected onto their analytic walls (decision 0029); `projection_report` holds each fitting's largest move, absolute and in local wall radii, and its cells' min corner scaled Jacobian. A move beyond `limits.WALL_PROJECTION_WARN_MOVE` (1) wall radii warns; a folded cell (corner SJ ≤ 0) in a projected fitting or its neighbours raises `AssemblyError`, naming the fitting. An OCC or GMSH error inside a fitting's fill also becomes an `AssemblyError` naming the fitting and quoting the original message. Projected nodes keep stale parametric coordinates, so leave GMSH's mesh optimisers off. Walls are `{layer}_wall`, after the layer outermost where they are, plus `{layer}_end` for the end faces of a terminated layer. With `walls_by_fitting`, each is split per fitting, `{group}_{name}`; *name* is the fitting's label or `<Type><index>` (`Bend3`). *order* 2 (task 0076) raises the checked linear mesh to second order: Hex27, or Hex20 with *incomplete*.  High-order nodes on projected walls are projected too, and a bend's high-order nodes between stations are placed exactly on its arcs (gmsh leaves interior axial edges straight, which folds thin shells in tight bends).  gmsh's high-order optimisers are never run.  A hex whose Jacobian determinant is ≤ 0 at one of its nodes or Gauss4 points raises `AssemblyError` (`second_order_inverted`), naming the fitting.  A `Wye` is rejected before meshing (`second_order_unsupported`): its hexes at the creases invert.  On an `n_outer = 8` `Transition` the mid-face nodes differ from the 4-corner mesh's by up to 4e-4 R (both lie on an approximate OCC filling; task 0088).  `mesh_order` records the order; `cell_count()` is unchanged (cells, not nodes).  Once per session (task 0163): `mesh()` again with the same `dim`, `order` and `incomplete` does nothing, so writing an assembly again (another format, another `scale`) is cheap, and a different `walls_by_fitting` rewrites only the physical groups; other options raise `AssemblyError` (`remesh_with_other_options`): build it again in a new `Session`.  Second order is verified with FEniCSx (task 0077, [RESEARCH §7.15](docs/RESEARCH.md)) on straights, bends and tees, Hex27; not for wyes and equal tees (rejected), second-order OpenFOAM output, or flow |
-| `write(path, dim=3, *, order=1, incomplete=False, walls_by_fitting=False, provenance=True, scale=1.0)` | `mesh()`, then `gmsh.write(path)`; the format follows the extension.  *scale* multiplies the written nodes, once (gmsh's `Mesh.ScalingFactor`); the model keeps its size, and the recipe block's write line adds `scale=…`; not positive and finite: `AssemblyError` (`value_not_positive`).  A `.msh` carries the recipe block (see below) unless `provenance=False`, which writes exactly gmsh's file.  *order*, *incomplete*: as for `mesh()`; `.msh` 2.2 and 4.1 both carry Hex27 and the physical groups, and the recipe block's write line adds `order=2 incomplete=…` |
+| `write(path, *, dim=3, order=1, incomplete=False, walls_by_fitting=False, provenance=True, scale=1.0)` | `mesh()`, then `gmsh.write(path)`; the format follows the extension.  *scale* multiplies the written nodes, once (gmsh's `Mesh.ScalingFactor`); the model keeps its size, and the recipe block's write line adds `scale=…`; not positive and finite: `AssemblyError` (`value_not_positive`).  A `.msh` carries the recipe block (see below) unless `provenance=False`, which writes exactly gmsh's file.  *order*, *incomplete*: as for `mesh()`; `.msh` 2.2 and 4.1 both carry Hex27 and the physical groups, and the recipe block's write line adds `order=2 incomplete=…` |
 | `write_openfoam(path, *, interfaces=False, walls_by_fitting=False, provenance=True, order=1, scale=1.0)` | `mesh()`, then write a `.msh` for `gmshToFoam` (*scale* as for `write`): MSH 2.2 ASCII, without the material-interface groups unless `interfaces=True` (the split rebuilds them as `mappedWall`; kept, they become faceZones); the GMSH options and groups are restored afterwards.  Also writes the role manifest `<stem>.roles.json`.  The recipe block as for `write`; `gmshToFoam` skips it.  *order* other than 1 raises `AssemblyError` (`openfoam_needs_order_1`): `gmshToFoam` reads first-order elements only |
 | `group_roles()` | Physical-group name → role (`volume`, `open_end`, `wall`, `interface`), from the graph, as last written by `mesh()` |
-| `check_quality(quality_name="minSICN", threshold=None, by="material")` | `QualityReport` per material, or per fitting with `by="fitting"` (see Quality) |
+| `check_quality(quality_name="minSICN", *, threshold=None, by="material")` | `QualityReport` per material, or per fitting with `by="fitting"` (see Quality) |
 | `fitting_volumes()` | Volume tags per fitting (edge index → tags) |
 | `build_faces()`, `fill(order=None)` | The individual steps; `fill` takes any order of edge indices (rule A6) |
 | `patch_name(interface)` | Patch name of an open interface |
@@ -186,7 +189,7 @@ normalises the vectors and makes `up` orthogonal to `normal`.
 Pure Python: a drum gives nozzle poses and builds no geometry
 (decision 0002).
 
-### `Drum(name, diameter, length, position=(0,0,0), axis=(1,0,0), up=(0,0,1), head="ellipsoidal_2_1", crown_radius=None, knuckle_radius=None, nozzles=())`
+### `Drum(name, *, diameter, length, position=(0,0,0), axis=(1,0,0), up=(0,0,1), head="ellipsoidal_2_1", crown_radius=None, knuckle_radius=None, nozzles=())`
 
 - **Dimensions:**
   - `diameter` is the inside diameter;
@@ -213,7 +216,7 @@ Pure Python: a drum gives nozzle poses and builds no geometry
 - `head_height(rho)`: the head profile.  `to_dict()` / `Drum.from_dict(d)`
   serialise the drum.
 
-### `Nozzle(name, spec, location)`
+### `Nozzle(name, *, spec, location)`
 
 `location` is one of:
 - `OnShell(axial, angle, projection)`: a radial nozzle on the shell.
@@ -222,7 +225,7 @@ Pure Python: a drum gives nozzle poses and builds no geometry
   `"second"` head, parallel to the axis.  `projection` is measured from
   the tangent plane to the face.
 
-### `Assembly.from_nozzle(drum, nozzle, lc=None)`
+### `Assembly.from_nozzle(drum, nozzle, *, lc=None)`
 
 Starts a network at the nozzle face.  The drum is validated first, and
 the inlet is named `"{drum.name}_{nozzle}"` (patch `fluid_D101_N1`).
@@ -234,7 +237,7 @@ the inlet of a fitting (task 0010, question for design).
 
 ## Cross-section specification
 
-### `PipeSpec(nang=None, nang_w=None, nang_h=None, mbmp=1.0, rot=0.0, n_outer=4)`
+### `PipeSpec(*, nang=None, nang_w=None, nang_h=None, mbmp=1.0, rot=0.0, n_outer=4)`
 
 A builder for a concentric layer stack.
 
@@ -246,10 +249,10 @@ A builder for a concentric layer stack.
 | `rot` | rotation of the O-H corners, in degrees; for a rectangle, of the whole rectangle |
 | `n_outer` | structural corners: 4, or 8, the 4-corner face cut along its middle grid lines (the same mesh; sweeps only, see below) |
 
-#### `.core(name, radius=..., nrad=..., mprg=1.0, first_cell=None)`
+#### `.core(name, *, radius=..., nrad=..., mprg=1.0, first_cell=None)`
 
-The circular core. A `CircleShape(radius, nang)` can be passed as the second
-argument instead of `radius=`; so can a circle with per-arc counts,
+The circular core. A `CircleShape(radius, nang=…)` can be passed as `shape=`
+instead of `radius=`; so can a circle with per-arc counts,
 `CircleShape(radius, arcs=[a, b, a, b])` (below). `nrad` is the cells from the inner square to
 the circle, and `mprg` the radial progression (above 1 refines toward the
 inner side).  `nrad` is **one per network**, per layer: a connected
@@ -275,15 +278,15 @@ wall cell is the nested first cell, not `first_cell / k`.  Pass
 `first_cell=` again on a refined spec to pin the wall cell at that level
 instead.
 
-#### `.shell(name, dR=None, nrad, mprg=1.0, *, outer=None, first_cell=None)`
+#### `.shell(name, *, dR=None, nrad, mprg=1.0, outer=None, first_cell=None)`
 
 A layer on top of the previous one, from that layer's outline to its own
 (decision 0026). Give exactly one of:
 
 - `dR`: the previous outline grown by `dR` (a circle's radius + `dR`; a
   rectangle's `half_w` and `half_h` + `dR`, sharp corners kept);
-- `outer`: a new outline, `CircleShape(radius, nang)` or
-  `RectShape(half_w, half_h, nang_w, nang_h)`.
+- `outer`: a new outline, `CircleShape(radius, nang=…)` or
+  `RectShape(half_w, half_h, nang_w=…, nang_h=…)`.
 
 So a circle can sit in a rectangle, a rectangle in a circle, and a
 rectangle in a rectangle, in any order and number of layers:
@@ -293,11 +296,11 @@ from hexmesh.core.shape import CircleShape, RectShape
 
 # cable in a square filler in a round sheath
 (PipeSpec(nang=4).core("copper", radius=0.01, nrad=3)
- .shell("filler", outer=RectShape(0.016, 0.016, 4, 4), nrad=2)
- .shell("sheath", outer=CircleShape(0.028, 4), nrad=2))
+ .shell("filler", outer=RectShape(0.016, 0.016, nang_w=4, nang_h=4), nrad=2)
+ .shell("sheath", outer=CircleShape(0.028, nang=4), nrad=2))
 
 # a duct with a wall and lagging (an H core, walls graded)
-(PipeSpec(nang=4).core("air", RectShape(0.1, 0.05, 4, 4), mprg=1.2)
+(PipeSpec(nang=4).core("air", shape=RectShape(0.1, 0.05, nang_w=4, nang_h=4), mprg=1.2)
  .shell("wall", dR=0.002, nrad=2).shell("lagging", dR=0.03, nrad=3))
 ```
 
@@ -346,8 +349,8 @@ as a list.
 from hexmesh.core.shape import CircleShape, RectShape
 
 # a round pipe into a 2:1 duct: 8 cells along the long sides, 4 along the short
-pipe = PipeSpec().core("air", CircleShape(0.05, arcs=[8, 4, 8, 4]), nrad=3)
-duct = PipeSpec(nang_w=8, nang_h=4).core("air", RectShape(0.08, 0.04, 8, 4), nrad=3,
+pipe = PipeSpec().core("air", shape=CircleShape(0.05, arcs=[8, 4, 8, 4]), nrad=3)
+duct = PipeSpec(nang_w=8, nang_h=4).core("air", shape=RectShape(0.08, 0.04, nang_w=8, nang_h=4), nrad=3,
                                           layout="oh")
 ```
 - **Containment.** Each outline lies inside the next all round, by at
@@ -367,7 +370,7 @@ duct = PipeSpec(nang_w=8, nang_h=4).core("air", RectShape(0.08, 0.04, 8, 4), nra
 `.square_shell()` is gone: use `.shell(name, outer=RectShape(...))`.
 Spec files that contain one still load, as that ring.
 
-#### `.core(name, half_w=..., half_h=..., first_cell=None, mprg=None)` — rectangular duct
+#### `.core(name, *, half_w=..., half_h=..., first_cell=None, mprg=None)` — rectangular duct
 
 A rectangular core of width `2·half_w` along the frame's `right` and height
 `2·half_h` along `up` (needs `PipeSpec(nang_w=…, nang_h=…)`, or a
@@ -400,7 +403,7 @@ Circles stay O-H.
 - **Cells.** H: `nang_w·nang_h` per section. O-H:
   `nang_w·nang_h + 2·(nang_w + nang_h)·nrad`.
 
-#### `.core(name, half_w=..., half_h=..., nrad=..., mprg=1.0, layout="oh")` — O-H duct
+#### `.core(name, *, half_w=..., half_h=..., nrad=..., mprg=1.0, layout="oh")` — O-H duct
 
 The rectangle with the circle's five-patch O-H layout: a centre
 rectangle and a ring of uniform thickness, `0.4·min(half_w, half_h)`, so
@@ -408,7 +411,7 @@ every corner radial runs at 45° to the walls. `nrad` is the cells across
 the ring. `first_cell` is not supported (`TypeError`). The default
 before 0.4.0; it stays for comparison and for saved descriptions.
 
-#### `.core(name, half_w=..., half_h=..., layout="h", first_cell=None, mprg=None, wall_bump=None)` — H duct
+#### `.core(name, *, half_w=..., half_h=..., layout="h", first_cell=None, mprg=None, wall_bump=None)` — H duct
 
 The rectangle as one Cartesian patch of `nang_w × nang_h` cells
 (decision 0036; tasks 0084, 0087): the default, so `layout="h"` is
@@ -552,7 +555,7 @@ fitting, the field and the class, for example:
 > count, which no fitting makes: a network has one nang and one nrad per
 > layer; Reducer changes radial grading (mprg) only
 
-### `Straight(length, n_layers=None, axial_grading=1.0, stack_changes=(), twist=0.0)`
+### `Straight(length, *, n_layers=None, axial_grading=1.0, stack_changes=(), twist=0.0)`
 
 A straight run with `n_layers` axial cells.
 
@@ -590,7 +593,7 @@ layouts), grading and `stack_changes`. `twist=0` meshes exactly as before.
   the fewest layers that roll at most `STRAIGHT_TWIST_WARN` each (task
   0129).  A straight with too few layers names the `n_layers` it needs.
 
-### `Bend(radius, angle, n_layers=None, roll=0.0, axial_grading=1.0, toward=None)`
+### `Bend(radius, angle, *, n_layers=None, roll=0.0, axial_grading=1.0, toward=None)`
 
 A circular-arc bend with centreline `radius` and `angle` in (0°, 360°). It
 places one station per axial layer, joined by exact arcs. `roll` rotates the
@@ -605,12 +608,12 @@ least 1° from the inlet axis (`limits.TOWARD_MIN_ANGLE`), and needs a
 positive `angle`; giving both `roll` and `toward` is an error. The same
 holds for `Elbow` and `MiterBend`.
 
-### `Elbow(angle=90.0, schedule="long", n_layers=8, roll=0.0, axial_grading=1.0, toward=None)`
+### `Elbow(angle=90.0, schedule="long", *, n_layers=8, roll=0.0, axial_grading=1.0, toward=None)`
 
 A `Bend` whose radius follows the pipe: 1.5 D for `"long"` and 1 D for
 `"short"` (ASME B16.9), where D is the outer diameter of the inlet spec.
 
-### `MiterBend(radius, angle, n_cuts=1, n_layers=2, roll=0.0, toward=None)`
+### `MiterBend(radius, angle, *, n_cuts=1, n_layers=2, roll=0.0, toward=None)`
 
 A segmented bend: straight pieces joined at `n_cuts` planar cuts.
 
@@ -624,7 +627,7 @@ A segmented bend: straight pieces joined at `n_cuts` planar cuts.
 - **Measured quality.** min SICN equals the straight-pipe value up to a 60°
   cut, and is about 0.18 at a single 90° cut.
 
-### `Reducer(outlet, length, n_layers=None, axial_grading=1.0, profile=None, chord_tol=1e-3)`
+### `Reducer(outlet, *, length, n_layers=None, axial_grading=1.0, profile=None, chord_tol=1e-3)`
 
 A concentric cone from the inlet spec to `outlet`; a larger outlet makes it an
 expander. **It may change sizes and radial grading** (radii, half-widths,
@@ -672,7 +675,7 @@ tolerance.  Each layer adds a full cross-section of cells, so a fine
 profile is cheap compared with refining `nang` (doubling `nang` and `nrad`
 quadruples the cells per layer).
 
-### `Transition(outlet, length, n_layers=None, axial_grading=1.0)`
+### `Transition(outlet, *, length, n_layers=None, axial_grading=1.0)`
 
 A straight transition that changes outline shapes: a circle to a
 rectangle (either way), or a rectangle to one of another size or aspect
@@ -708,7 +711,7 @@ rectangle (either way), or a rectangle to one of another size or aspect
   `ValueError` names the `n_layers` needed. The same rectangle at both
   ends is a `Switch`; H at both ends is a `Reducer`.
 
-### `Switch(length, n_layers=None, outlet=None)`
+### `Switch(*, length, n_layers=None, outlet=None)`
 
 Changes a rectangular duct between the O-H and H sections (decision
 0036, task 0085): switch class 1, a pillow (DESIGN A4), in either
@@ -752,7 +755,7 @@ direction. The rectangle, counts, `mbmp`, `rot` and name stay.
 - **Cells.** `nang_w·nang_h·(n_layers + nrad) + 2·(nang_w + nang_h)·nrad·n_layers`,
   and per shell `2·(nang_w + nang_h)·nrad_shell·n_layers`.
 
-### `SplinePipe(points, n_layers=None, end_tangent=None, axial_grading=1.0)`
+### `SplinePipe(*, points, n_layers=None, end_tangent=None, axial_grading=1.0)`
 
 A pipe along a cubic spline through `points`, parametrised by chord length.
 
@@ -773,13 +776,13 @@ A pipe along a cubic spline through `points`, parametrised by chord length.
   (`where = {"field": "end_tangent"}`) when the same points with a free
   end bend wider than the radius there (task 0129).
 
-### `Tee(run_length=None, branch_length, branch_radius, n_run=3, n_branch=3, n_turn=2, roll=0.0, toward=None, angle=90.0, offset=0.0, branch=None, face=None, margin=None, dome=None, sheet=None, n_wall=None, branch_first_cell=None, branch_mprg=None, branch_shells=None)`
+### `Tee(*, run_length=None, branch_length, branch_radius, n_run=3, n_branch=3, n_turn=2, roll=0.0, toward=None, angle=90.0, offset=0.0, branch=None, face=None, margin=None, dome=None, sheet=None, n_wall=None, branch_first_cell=None, branch_mprg=None, branch_shells=None)`
 
 A centred side-branch tee, perpendicular or a lateral (`angle`), built as
 a block layout.
 
-- **Ports.** `port_names = ("main", "branch")`; it returns `[main, branch]`.
-  The main outlet is `2·run_length` downstream of the inlet and keeps the
+- **Ports.** `port_names = ("run", "branch")`; `add` returns
+  `TeeOutlets(run, branch)`.  The run outlet is `2·run_length` downstream of the inlet and keeps the
   inlet's `up`. The branch leaves along the inlet's `up` rolled by `roll`
   about the main axis (0: `up`; 90: `right`) and ends `branch_length` from
   the main axis, measured along the branch axis.
@@ -919,8 +922,8 @@ a block layout.
   `mesh(order=2)` rejects it (`second_order_unsupported`), as it does the
   wye.
 - **Duct taps** (decision 0033, task 0070). On a rectangular main the tee
-  is a duct tap: `branch=RectShape(half_w, half_h, nang_w, nang_h)` or
-  `branch=CircleShape(radius, nang)` (`branch_radius` is the pipe
+  is a duct tap: `branch=RectShape(half_w, half_h, nang_w=…, nang_h=…)` or
+  `branch=CircleShape(radius, nang=…)` (`branch_radius` is the pipe
   shorthand; on a pipe, `branch=CircleShape` is the same as it).
   - **Face and side.** `face="wide"` (default) or `"narrow"`; `roll` 0 puts
     the tap on the +`up` face (wide face of a duct wider than deep) or the
@@ -998,7 +1001,7 @@ a block layout.
   - **Limits.** Single-layer ducts, `rot = 0`, `n_outer = 4`;
     `branch_length` beyond the face.
 
-### `Wye(angle, run_length, branch_length, n_run=None, n_branch=None, n_split=None, roll=0.0, toward=None)`
+### `Wye(*, angle, run_length, branch_length, n_run=None, n_branch=None, n_split=None, roll=0.0, toward=None)`
 
 A symmetric Y-junction, built as a block layout around a hub (prototype,
 decision 0017).
@@ -1059,7 +1062,7 @@ decision 0017).
   back corners. The numbers are in task 0030; projection leaves them
   within 0.04 (task 0051).
 
-### `Closure(n_layers=None, tension=1.0, axial_grading=1.0)`
+### `Closure(*, n_layers=None, tension=1.0, axial_grading=1.0)`
 
 For `close()` only. It runs a cubic Hermite centreline between two existing
 interfaces, leaving and arriving along their normals. The roll mismatch is
@@ -1073,7 +1076,7 @@ than the outer radius, or turns more than 30° per layer.
 
 ## Quality
 
-### `Assembly.check_quality(quality_name="minSICN", threshold=None, by="material")`
+### `Assembly.check_quality(quality_name="minSICN", *, threshold=None, by="material")`
 
 **Metric.** `quality_name` is either a GMSH element quality (`"minSICN"`,
 `"minSIGE"`, `"gamma"`, …) or a hex metric from `hexmesh.quality_hex.METRICS`:
@@ -1233,7 +1236,7 @@ The importers live in `hexmesh.interchange.importers` (task 0066), and
 `hexmesh.interchange` exports `read_pcf` and `read_bathymetry`.
 `hexmesh.io.readers`, deprecated in 0.7, is removed (task 0150).
 
-### `pcf.read_pcf(path, unit_scale=None, ignore_types=None, joint_max=1.6e-3, snap_tolerance=0.11 * inch) -> NetworkSpec`
+### `pcf.read_pcf(path, *, unit_scale=None, ignore_types=None, joint_max=1.6e-3, snap_tolerance=0.11 * inch) -> NetworkSpec`
 
 Parses an Isogen PCF file, following the *PCF Reference Guide*
 (`docs/integrations/pcf.md`).  `path` may be a list of files, read into
@@ -1399,7 +1402,7 @@ to the piece it sits at.  `report["pieces"]` holds each piece's report.
 Unsupported components anywhere in the file (crosses, angled inline
 components) raise before any piece is built.
 
-### `bathymetry.read_bathymetry(surface_path, route, burial_depth=0.0, surface_format="xyz", route_format=None, unit_scale=1.0, max_segment_length=None) -> interchange.NetworkModel`
+### `bathymetry.read_bathymetry(surface_path, route, *, burial_depth=0.0, surface_format="xyz", route_format=None, unit_scale=1.0, max_segment_length=None) -> interchange.NetworkModel`
 
 Projects a 2-D route onto a seabed surface (XYZ, GeoTIFF or NetCDF): a
 model holding one `Polyline` (`PIPE`; segments `PIPE_1`, `PIPE_2`, …)
@@ -1501,7 +1504,7 @@ m.join("p14", "p15")                 # ix.build(m, pipe) is the original line ag
   same point bypass (a zero-length weld) is `model_cut_bypassed` at
   build; `cut_at` separates them all.
 
-### `build(model, spec, selection=None, *, axial_cell=None, kinks="error", tol=None, lc=None, inlet=None, insulation=False, insulation_nrad=2) -> Assembly`
+### `build(model, spec, *, selection=None, axial_cell=None, kinks="error", tol=None, lc=None, inlet=None, insulation=False, insulation_nrad=2) -> Assembly`
 
 What `NetworkSpec.to_assembly` documents above, for any model: the parts
 are joined into a graph where their ports meet within `tol`, which must be

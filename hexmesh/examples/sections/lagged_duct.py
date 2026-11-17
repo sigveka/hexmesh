@@ -35,7 +35,7 @@ NANG = 6
 
 def duct(half_w: float, half_h: float) -> PipeSpec:
     return (PipeSpec(nang=NANG)
-            .core("air", RectShape(half_w, half_h, NANG, NANG), mprg=1.2)
+            .core("air", shape=RectShape(half_w, half_h, nang_w=NANG, nang_h=NANG), mprg=1.2)
             .shell("steel", dR=0.002, nrad=2)
             .shell("lagging", dR=0.03, nrad=3))
 

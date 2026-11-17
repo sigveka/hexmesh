@@ -23,7 +23,7 @@ from tests.test_blocks import BlockStraight, _mesh_nodes
 
 def _spec(mprg=1.0, shell_mprg=None, mbmp=1.0):
     spec = (PipeSpec(nang=4, mbmp=mbmp)
-            .core("fluid", CircleShape(radius=0.1, nang=4), nrad=5, mprg=mprg))
+            .core("fluid", shape=CircleShape(radius=0.1, nang=4), nrad=5, mprg=mprg))
     if shell_mprg is not None:
         spec = spec.shell("wall", dR=0.03, nrad=4, mprg=shell_mprg)
     return spec

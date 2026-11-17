@@ -64,7 +64,7 @@ def last_stage(study: Study) -> str:
     return "run" if study.run else "case" if study.case else "mesh"
 
 
-def run(study: Study, stage: str | None = None, jobs: int | None = None,
+def run(study: Study, stage: str | None = None, *, jobs: int | None = None,
         keep_going: bool = False, log=None, force: bool = False) -> list[dict]:
     """Run the stages up to *stage* (default: the study's last); write the
     manifest; return the rows.
@@ -89,16 +89,16 @@ def run(study: Study, stage: str | None = None, jobs: int | None = None,
     failed = any(r["status"] == "preflight_failed" for r in rows)
     later = STAGES.index(stage)
     if later >= 1 and (keep_going or not failed):
-        done = mesh(study, rows, jobs)
+        done = mesh(study, rows, jobs=jobs)
         say(f"mesh: {len(done)} meshed, {len(rows) - len(done)} skipped or failed preflight")
     else:
         load_results(study, rows)
     if later >= 2 and (keep_going or not failed):
-        done = case_stage(study, rows, jobs)
+        done = case_stage(study, rows, jobs=jobs)
         say(f"case: {len(done)} made")
     if later >= 3 and (keep_going or not failed):
         try:
-            done = run_stage(study, rows, jobs, force)
+            done = run_stage(study, rows, jobs=jobs, force=force)
         except StudyError:
             write_manifest(study, rows)
             raise

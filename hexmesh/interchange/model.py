@@ -32,7 +32,7 @@ Build an ``Assembly`` with ``hexmesh.interchange.build`` (or the
 from __future__ import annotations
 
 import itertools
-from dataclasses import dataclass, field
+from dataclasses import KW_ONLY, dataclass, field
 from typing import Callable
 
 import numpy as np
@@ -51,7 +51,7 @@ TOL_FLOOR = 0.11 * inch
 # Sections and provenance
 # ---------------------------------------------------------------------------
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class Section:
     """A cross-section: a circle (nominal size and/or actual diameter) or a
     rectangle (width × height), metres.  ``bore`` is the nominal size, the
@@ -74,6 +74,7 @@ class Provenance:
     record (type and id) and line, and a source GUID where one exists."""
 
     source: str = ""
+    _: KW_ONLY
     format: str = ""
     record: str = ""                   # record type, e.g. "TEE"
     record_id: str = ""                # e.g. the component index in the file
@@ -106,7 +107,7 @@ OPERATIONS: dict[str, Callable] = {}
 IMPORTERS: dict[str, Callable] = {}
 
 
-def describe(part: "Part", at=None, name: str | None = None) -> str:
+def describe(part: "Part", *, at=None, name: str | None = None) -> str:
     """The part as messages name it: by its importer's formatter, or
     ``part <id> (<type> <name> at <point>)``.  Not
     ``hexmesh.agent.describe``, which summarises a whole assembly or model
@@ -135,6 +136,7 @@ class Port:
     boundary (task 0066); None: ``<network>_<port id>``."""
 
     id:         str
+    _: KW_ONLY
     position:   np.ndarray | None
     direction:  np.ndarray | None = None
     flow:       str | None = None
@@ -156,6 +158,7 @@ class Part:
     importer read it, but hexmesh can't build it), or None."""
 
     id:         str
+    _: KW_ONLY
     ports:      list[str]
     name:       str = ""
     type:       str = ""
@@ -166,17 +169,17 @@ class Part:
     reject:     str | None = None
 
 
-@dataclass(eq=False)
+@dataclass(eq=False, kw_only=True)
 class Straight(Part):
     """A straight run between its two ports."""
 
 
-@dataclass(eq=False)
+@dataclass(eq=False, kw_only=True)
 class InlineEquipment(Part):
     """A valve, flange, instrument, …: meshed as a straight run."""
 
 
-@dataclass(eq=False)
+@dataclass(eq=False, kw_only=True)
 class Bend(Part):
     """A bend between its two ports.  ``corner``: where the tangent legs
     meet (PCF's CENTRE-POINT).  ``stated_angle`` (degrees) and
@@ -190,19 +193,19 @@ class Bend(Part):
     stated_names:  dict = field(default_factory=dict)
 
 
-@dataclass(eq=False)
+@dataclass(eq=False, kw_only=True)
 class Reducer(Part):
     """A change of size between its two ports (their sections)."""
 
     eccentric: bool = False
 
 
-@dataclass(eq=False)
+@dataclass(eq=False, kw_only=True)
 class Transition(Reducer):
     """A change of shape (circle ↔ rectangle) between its two ports."""
 
 
-@dataclass(eq=False)
+@dataclass(eq=False, kw_only=True)
 class Junction(Part):
     """Three or more legs meeting at ``centre``.  ``form``:
 
@@ -221,12 +224,12 @@ class Junction(Part):
     offset: bool = False
 
 
-@dataclass(eq=False)
+@dataclass(eq=False, kw_only=True)
 class Joint(Part):
     """A weld, gasket, coupling or gap: absorbed into the adjacent run."""
 
 
-@dataclass(eq=False)
+@dataclass(eq=False, kw_only=True)
 class Terminal(Part):
     """An open end attached to equipment: one port, carrying the tag
     (``Port.equipment``), and the patch name in ``name``.  The builder
@@ -237,7 +240,7 @@ class Terminal(Part):
     check_point: np.ndarray | None = None
 
 
-@dataclass(eq=False)
+@dataclass(eq=False, kw_only=True)
 class Polyline(Part):
     """A route through its ports in order (bathymetry routes, centrelines):
     built as straights between consecutive ports, joined by splines where
@@ -256,6 +259,7 @@ class Connection:
 
     a:        str
     b:        str
+    _: KW_ONLY
     origin:   str = "inferred"
     distance: float = 0.0
     provenance: Provenance | None = None
@@ -291,6 +295,7 @@ class Network:
     ``insulation_thickness``: metres, for its insulated parts."""
 
     name:  str
+    _: KW_ONLY
     parts: set = field(default_factory=set)
     kind:  str = "network"
     insulation_thickness: float | None = None
@@ -301,7 +306,7 @@ class Network:
 # The model
 # ---------------------------------------------------------------------------
 
-@dataclass(eq=False)
+@dataclass(eq=False, kw_only=True)
 class NetworkModel:
     """Ports, parts (in source order), connections and networks.
 
@@ -334,7 +339,7 @@ class NetworkModel:
     def add_port(self, position, **kw) -> Port:
         """A new port with a fresh id (``p<n>``), or ``id=`` given."""
         pid = kw.pop("id", None) or self._fresh("p", self.ports)
-        port = Port(pid, None if position is None else np.asarray(position, dtype=float), **kw)
+        port = Port(pid, position=None if position is None else np.asarray(position, dtype=float), **kw)
         if pid in self.ports:
             from ..assembly import AssemblyError
             raise AssemblyError(f"port id {pid!r} is already used",
@@ -357,7 +362,7 @@ class NetworkModel:
             from ..assembly import AssemblyError
             raise AssemblyError(f"part id {pid!r} is already used",
                                 code="model_id_duplicate", where={"field": "id"}, value=pid)
-        part = cls(pid, [p.id for p in ports], **kw)
+        part = cls(pid, ports=[p.id for p in ports], **kw)
         if not part.type:
             part.type = cls.__name__.upper()
         if not part.name:
@@ -395,7 +400,7 @@ class NetworkModel:
         records it in ``model.report["selection"]``.
 
         >>> side = model.select(from_port="p0", up_to=["7"])   # up to the valve
-        >>> asm = build(model, spec, side)
+        >>> asm = build(model, spec, selection=side)
         """
         return OPERATIONS["select"](self, parts, network, from_port, up_to)
 

@@ -172,7 +172,7 @@ def test_toward_at_37_degrees_twists_the_straight_before():
 def test_toward_on_a_wye_twists_the_straight_before():
     asm = _asm()
     asm.add(Straight(0.4, n_layers=4))
-    left, right = asm.add(Wye(60, 0.3, 0.3, toward=_toward(100)))
+    left, right = asm.add(Wye(angle=60, run_length=0.3, branch_length=0.3, toward=_toward(100)))
     assert asm.edges[0].fitting.twist == pytest.approx(10, abs=1e-9)
     assert asm.edges[1].fitting.roll % 90 == 0
 

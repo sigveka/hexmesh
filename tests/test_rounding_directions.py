@@ -43,7 +43,7 @@ def test_a_tee_at_each_ring_direction(a):
 @pytest.mark.parametrize("a", ANGLES)
 def test_a_wye_at_each_ring_direction(a):
     asm = Assembly(SPEC(), direction=_ring_direction(a), up=[0, -1, 0])
-    asm.add(Wye(60, run_length=0.08, branch_length=0.08))
+    asm.add(Wye(angle=60, run_length=0.08, branch_length=0.08))
     _meshed(asm)
 
 

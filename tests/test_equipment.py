@@ -26,12 +26,12 @@ def _spec(r=0.1):
 
 def _horizontal(*nozzles, **kw):
     """D = 2, tangent length 6, along +x from the origin, up +z."""
-    return Drum("D101", 2.0, 6.0, nozzles=nozzles, **kw)
+    return Drum("D101", diameter=2.0, length=6.0, nozzles=nozzles, **kw)
 
 
 def _vertical(*nozzles, **kw):
     """D = 3, tangent length 8, from (1, 2, 3) up +z, angles from +x."""
-    return Drum("V201", 3.0, 8.0, position=(1, 2, 3), axis=(0, 0, 1), up=(1, 0, 0),
+    return Drum("V201", diameter=3.0, length=8.0, position=(1, 2, 3), axis=(0, 0, 1), up=(1, 0, 0),
                 nozzles=nozzles, **kw)
 
 
@@ -46,40 +46,40 @@ def _close(f, position, normal, up):
 
 class TestHorizontalDrum:
     def test_top_shell_nozzle(self):
-        d = _horizontal(Nozzle("N1", _spec(), OnShell(axial=1.5, angle=0, projection=1.4)))
+        d = _horizontal(Nozzle("N1", spec=_spec(), location=OnShell(axial=1.5, angle=0, projection=1.4)))
         _close(d.frame("N1"), [1.5, 0, 1.4], [0, 0, 1], [1, 0, 0])
 
     def test_side_shell_nozzle(self):
         # +90° about +x from +z is -y (right-handed: x × z = -y)
-        d = _horizontal(Nozzle("N2", _spec(), OnShell(4.0, 90, 1.25)))
+        d = _horizontal(Nozzle("N2", spec=_spec(), location=OnShell(4.0, angle=90, projection=1.25)))
         _close(d.frame("N2"), [4.0, -1.25, 0], [0, -1, 0], [1, 0, 0])
 
     def test_oblique_shell_nozzle(self):
-        d = _horizontal(Nozzle("N3", _spec(), OnShell(3.0, 225, 1.5)))
+        d = _horizontal(Nozzle("N3", spec=_spec(), location=OnShell(3.0, angle=225, projection=1.5)))
         _close(d.frame("N3"), [3.0, 1.5 * S2, -1.5 * S2], [0, S2, -S2], [1, 0, 0])
 
     def test_head_nozzles(self):
-        d = _horizontal(Nozzle("H1", _spec(), OnHead("first", 0.0, 0, 0.8)),
-                        Nozzle("H2", _spec(), OnHead("second", 0.5, 180, 0.6)))
+        d = _horizontal(Nozzle("H1", spec=_spec(), location=OnHead("first", offset=0.0, angle=0, projection=0.8)),
+                        Nozzle("H2", spec=_spec(), location=OnHead("second", offset=0.5, angle=180, projection=0.6)))
         _close(d.frame("H1"), [-0.8, 0, 0], [-1, 0, 0], [0, 0, 1])     # centred: drum up
         _close(d.frame("H2"), [6.6, 0, -0.5], [1, 0, 0], [0, 0, -1])   # radial direction
 
 
 class TestVerticalDrum:
     def test_shell_nozzle(self):
-        d = _vertical(Nozzle("N1", _spec(), OnShell(2.0, 90, 2.0)))
+        d = _vertical(Nozzle("N1", spec=_spec(), location=OnShell(2.0, angle=90, projection=2.0)))
         # +90° about +z from +x is +y
         _close(d.frame("N1"), [1, 4, 5], [0, 1, 0], [0, 0, 1])
 
     def test_top_and_bottom_head(self):
-        d = _vertical(Nozzle("T", _spec(), OnHead("second", 0.6, 0, 1.0)),
-                      Nozzle("B", _spec(), OnHead("first", 0.0, 0, 1.2)))
+        d = _vertical(Nozzle("T", spec=_spec(), location=OnHead("second", offset=0.6, angle=0, projection=1.0)),
+                      Nozzle("B", spec=_spec(), location=OnHead("first", offset=0.0, angle=0, projection=1.2)))
         _close(d.frame("T"), [1.6, 2, 12], [0, 0, 1], [1, 0, 0])
         _close(d.frame("B"), [1, 2, 1.8], [0, 0, -1], [1, 0, 0])
 
     @pytest.mark.parametrize("angle", [0, 37, 90, 151, 270, 333])
     def test_shell_face_at_projection_from_axis(self, angle):
-        d = _vertical(Nozzle("N", _spec(), OnShell(3.3, angle, 1.9)))
+        d = _vertical(Nozzle("N", spec=_spec(), location=OnShell(3.3, angle=angle, projection=1.9)))
         f = d.frame("N")
         rel = f.position - np.array([1, 2, 3])
         radial = rel - np.dot(rel, [0, 0, 1]) * np.array([0, 0, 1])
@@ -89,8 +89,8 @@ class TestVerticalDrum:
 
 
 def test_up_made_perpendicular_to_axis():
-    d = Drum("D", 2.0, 4.0, axis=(0, 0, 2), up=(1, 0, 1),
-             nozzles=[Nozzle("N", _spec(), OnShell(1.0, 0, 1.5))])
+    d = Drum("D", diameter=2.0, length=4.0, axis=(0, 0, 2), up=(1, 0, 1),
+             nozzles=[Nozzle("N", spec=_spec(), location=OnShell(1.0, angle=0, projection=1.5))])
     _close(d.frame("N"), [1.5, 0, 1.0], [1, 0, 0], [0, 0, 1])
 
 
@@ -105,13 +105,13 @@ def test_up_made_perpendicular_to_axis():
      2.0 - math.sqrt(1.8 ** 2 - 0.8 ** 2)),
 ])
 def test_head_depth_and_edge(head, kw, depth):
-    d = Drum("D", 2.0, 4.0, head=head, **kw)
+    d = Drum("D", diameter=2.0, length=4.0, head=head, **kw)
     assert d.head_height(0.0) == pytest.approx(depth, abs=1e-12)
     assert d.head_height(1.0) == pytest.approx(0.0, abs=1e-6)
 
 
 def test_torispherical_junction_is_smooth():
-    d = Drum("D", 2.0, 4.0, head="torispherical", crown_radius=2.0, knuckle_radius=0.2)
+    d = Drum("D", diameter=2.0, length=4.0, head="torispherical", crown_radius=2.0, knuckle_radius=0.2)
     j, e = d.crown_limit, 1e-6
     assert d.head_height(j - 1e-12) == pytest.approx(d.head_height(j + 1e-12), abs=1e-9)
     slope_in = (d.head_height(j) - d.head_height(j - e)) / e
@@ -121,9 +121,9 @@ def test_torispherical_junction_is_smooth():
 
 def test_torispherical_needs_both_radii():
     with pytest.raises(EquipmentError, match="no default"):
-        Drum("D", 2.0, 4.0, head="torispherical", crown_radius=2.0)
+        Drum("D", diameter=2.0, length=4.0, head="torispherical", crown_radius=2.0)
     with pytest.raises(EquipmentError, match="knuckle_radius < D/2 < crown_radius"):
-        Drum("D", 2.0, 4.0, head="torispherical", crown_radius=0.9, knuckle_radius=0.2)
+        Drum("D", diameter=2.0, length=4.0, head="torispherical", crown_radius=0.9, knuckle_radius=0.2)
 
 
 # ---------------------------------------------------------------------------
@@ -131,21 +131,21 @@ def test_torispherical_needs_both_radii():
 # ---------------------------------------------------------------------------
 
 def test_valid_drum_passes():
-    _horizontal(Nozzle("N1", _spec(), OnShell(1.0, 0, 1.2)),
-                Nozzle("N2", _spec(), OnShell(1.0, 180, 1.2)),
-                Nozzle("N3", _spec(), OnShell(1.25, 0, 1.2)),   # 0.25 apart > 0.2: clear
-                Nozzle("H1", _spec(), OnHead("first", 0.0, 0, 0.6)),
-                Nozzle("H2", _spec(), OnHead("first", 0.5, 90, 0.5))).validate()
+    _horizontal(Nozzle("N1", spec=_spec(), location=OnShell(1.0, angle=0, projection=1.2)),
+                Nozzle("N2", spec=_spec(), location=OnShell(1.0, angle=180, projection=1.2)),
+                Nozzle("N3", spec=_spec(), location=OnShell(1.25, angle=0, projection=1.2)),   # 0.25 apart > 0.2: clear
+                Nozzle("H1", spec=_spec(), location=OnHead("first", offset=0.0, angle=0, projection=0.6)),
+                Nozzle("H2", spec=_spec(), location=OnHead("first", offset=0.5, angle=90, projection=0.5))).validate()
 
 
 @pytest.mark.parametrize("nozzle, message", [
-    (Nozzle("N1", _spec(), OnShell(2.0, 0, 1.0)), "N1: projection"),        # face on the shell
-    (Nozzle("N1", _spec(), OnShell(2.0, 0, 0.9)), "N1: projection"),        # inside
-    (Nozzle("N1", _spec(1.0), OnShell(2.0, 0, 2.0)), "N1: outer radius"),   # oversized
-    (Nozzle("N1", _spec(), OnShell(0.05, 0, 1.5)), "N1: footprint"),        # over a tangent line
-    (Nozzle("H1", _spec(), OnHead("first", 0.0, 0, 0.5)), "H1: projection"),  # at crown height
-    (Nozzle("H1", _spec(), OnHead("first", 0.95, 0, 1.0)), "H1: footprint"),  # off the head
-    (Nozzle("H1", _spec(), OnHead("third", 0.0, 0, 1.0)), "H1: head must be"),
+    (Nozzle("N1", spec=_spec(), location=OnShell(2.0, angle=0, projection=1.0)), "N1: projection"),        # face on the shell
+    (Nozzle("N1", spec=_spec(), location=OnShell(2.0, angle=0, projection=0.9)), "N1: projection"),        # inside
+    (Nozzle("N1", spec=_spec(1.0), location=OnShell(2.0, angle=0, projection=2.0)), "N1: outer radius"),   # oversized
+    (Nozzle("N1", spec=_spec(), location=OnShell(0.05, angle=0, projection=1.5)), "N1: footprint"),        # over a tangent line
+    (Nozzle("H1", spec=_spec(), location=OnHead("first", offset=0.0, angle=0, projection=0.5)), "H1: projection"),  # at crown height
+    (Nozzle("H1", spec=_spec(), location=OnHead("first", offset=0.95, angle=0, projection=1.0)), "H1: footprint"),  # off the head
+    (Nozzle("H1", spec=_spec(), location=OnHead("third", offset=0.0, angle=0, projection=1.0)), "H1: head must be"),
 ])
 def test_invalid_nozzle_named(nozzle, message):
     with pytest.raises(EquipmentError, match=f"drum D101, nozzle {message}"):
@@ -154,7 +154,7 @@ def test_invalid_nozzle_named(nozzle, message):
 
 def test_head_face_checked_over_the_whole_footprint():
     """An off-centre face clears the head at its centre but not at its inner edge."""
-    d = _horizontal(Nozzle("H1", _spec(0.2), OnHead("first", 0.5, 0, 0.45)))
+    d = _horizontal(Nozzle("H1", spec=_spec(0.2), location=OnHead("first", offset=0.5, angle=0, projection=0.45)))
     assert d.head_height(0.5) < 0.45 < d.head_height(0.3)
     with pytest.raises(EquipmentError, match="H1: projection"):
         d.validate()
@@ -162,37 +162,37 @@ def test_head_face_checked_over_the_whole_footprint():
 
 def test_torispherical_nozzle_must_stay_in_the_crown():
     kw = dict(head="torispherical", crown_radius=2.0, knuckle_radius=0.2)
-    _horizontal(Nozzle("H1", _spec(), OnHead("second", 0.75, 0, 0.6)), **kw).validate()
+    _horizontal(Nozzle("H1", spec=_spec(), location=OnHead("second", offset=0.75, angle=0, projection=0.6)), **kw).validate()
     with pytest.raises(EquipmentError, match="leaves the crown region"):
-        _horizontal(Nozzle("H1", _spec(), OnHead("second", 0.82, 0, 0.6)), **kw).validate()
+        _horizontal(Nozzle("H1", spec=_spec(), location=OnHead("second", offset=0.82, angle=0, projection=0.6)), **kw).validate()
 
 
 @pytest.mark.parametrize("a, b", [
-    (OnShell(2.0, 0, 1.5), OnShell(2.15, 0, 1.5)),       # axial neighbours
-    (OnShell(2.0, 0, 1.5), OnShell(2.0, 10, 1.5)),       # around the shell
-    (OnShell(2.0, 355, 1.5), OnShell(2.0, 5, 1.5)),      # across 0°
-    (OnShell(2.0, 0, 1.5), OnShell(2.0, 0, 1.8)),        # same spot
+    (OnShell(2.0, angle=0, projection=1.5), OnShell(2.15, angle=0, projection=1.5)),       # axial neighbours
+    (OnShell(2.0, angle=0, projection=1.5), OnShell(2.0, angle=10, projection=1.5)),       # around the shell
+    (OnShell(2.0, angle=355, projection=1.5), OnShell(2.0, angle=5, projection=1.5)),      # across 0°
+    (OnShell(2.0, angle=0, projection=1.5), OnShell(2.0, angle=0, projection=1.8)),        # same spot
 ])
 def test_overlapping_shell_nozzles(a, b):
     with pytest.raises(EquipmentError, match="nozzles N1 and N2 overlap"):
-        _horizontal(Nozzle("N1", _spec(), a), Nozzle("N2", _spec(), b)).validate()
+        _horizontal(Nozzle("N1", spec=_spec(), location=a), Nozzle("N2", spec=_spec(), location=b)).validate()
 
 
 def test_overlapping_head_nozzles():
     with pytest.raises(EquipmentError, match="nozzles H1 and H2 overlap"):
-        _horizontal(Nozzle("H1", _spec(), OnHead("first", 0.0, 0, 0.8)),
-                    Nozzle("H2", _spec(), OnHead("first", 0.15, 0, 0.8))).validate()
+        _horizontal(Nozzle("H1", spec=_spec(), location=OnHead("first", offset=0.0, angle=0, projection=0.8)),
+                    Nozzle("H2", spec=_spec(), location=OnHead("first", offset=0.15, angle=0, projection=0.8))).validate()
     # the same spot on the other head is fine
-    _horizontal(Nozzle("H1", _spec(), OnHead("first", 0.0, 0, 0.8)),
-                Nozzle("H2", _spec(), OnHead("second", 0.0, 0, 0.8))).validate()
+    _horizontal(Nozzle("H1", spec=_spec(), location=OnHead("first", offset=0.0, angle=0, projection=0.8)),
+                Nozzle("H2", spec=_spec(), location=OnHead("second", offset=0.0, angle=0, projection=0.8))).validate()
 
 
 def test_names_checked():
     with pytest.raises(EquipmentError, match="duplicate nozzle names"):
-        _horizontal(Nozzle("N1", _spec(), OnShell(1, 0, 1.5)),
-                    Nozzle("N1", _spec(), OnShell(4, 0, 1.5)))
+        _horizontal(Nozzle("N1", spec=_spec(), location=OnShell(1, angle=0, projection=1.5)),
+                    Nozzle("N1", spec=_spec(), location=OnShell(4, angle=0, projection=1.5)))
     with pytest.raises(EquipmentError, match="letters, digits"):
-        Drum("D-101", 2.0, 6.0)
+        Drum("D-101", diameter=2.0, length=6.0)
     with pytest.raises(EquipmentError, match="has no nozzle"):
         _horizontal().frame("N9")
 
@@ -202,7 +202,7 @@ def test_names_checked():
 # ---------------------------------------------------------------------------
 
 def _from_top_nozzle():
-    drum = _horizontal(Nozzle("N1", _spec(), OnShell(1.5, 0, 1.4)))
+    drum = _horizontal(Nozzle("N1", spec=_spec(), location=OnShell(1.5, angle=0, projection=1.4)))
     asm = Assembly.from_nozzle(drum, "N1", lc=0.05)
     asm.add(Straight(0.4, n_layers=3))
     asm.add(Bend(0.3, 90, n_layers=4))
@@ -218,7 +218,7 @@ def test_from_nozzle_pose_and_name():
 
 
 def test_from_nozzle_validates_the_drum():
-    drum = _horizontal(Nozzle("N1", _spec(), OnShell(1.5, 0, 0.9)))
+    drum = _horizontal(Nozzle("N1", spec=_spec(), location=OnShell(1.5, angle=0, projection=0.9)))
     with pytest.raises(EquipmentError, match="N1: projection"):
         Assembly.from_nozzle(drum, "N1")
 

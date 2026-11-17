@@ -14,7 +14,7 @@ from hexmesh.core.spec import PipeSpec
 
 
 def _spec(nang=4, nrad=3, shells=()):
-    s = PipeSpec(nang=nang).core("fluid", CircleShape(radius=0.1, nang=nang), nrad=nrad)
+    s = PipeSpec(nang=nang).core("fluid", shape=CircleShape(radius=0.1, nang=nang), nrad=nrad)
     for i, n in enumerate(shells):
         s = s.shell(f"s{i}", dR=0.02, nrad=n)
     return s
@@ -41,7 +41,7 @@ def test_density_scales_cubically():
 
 def test_counts_without_gmsh():
     asm = Assembly(_spec(), direction=[1, 0, 0], up=[0, 0, 1])
-    asm.add(Tee(0.2, 0.25, 0.05), names=["m", "b"])
+    asm.add(Tee(run_length=0.2, branch_length=0.25, branch_radius=0.05), names=["m", "b"])
     assert asm.cell_counts() == {0: 912}
     assert not gmsh.isInitialized()
 

@@ -219,7 +219,7 @@ def gates(row: dict) -> dict:
 def control(shell: bool, angle=60):
     """Today's symmetric wye (60°: the task's control), r = R."""
     from hexmesh.assembly import Wye
-    return junction_assembly(Wye(angle, run_length=RUN, branch_length=BRANCH),
+    return junction_assembly(Wye(angle=angle, run_length=RUN, branch_length=BRANCH),
                              spec(shell=shell), ["left", "right"])
 
 

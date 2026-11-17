@@ -151,11 +151,11 @@ def test_schema_ranges_are_enforced():
         PipeSpec(nang=4, mbmp=0)
     assert info.value.code == "value_not_positive"
     spec = PipeSpec(nang=4).core("f", radius=0.05, nrad=3)
-    for loc, field_ in ((OnShell(1.0, 0.0, 0.0), "projection"),
-                        (OnHead("first", -0.1, 0.0, 1.0), "offset"),
-                        (OnHead("first", 0.0, 0.0, -1.0), "projection")):
+    for loc, field_ in ((OnShell(1.0, angle=0.0, projection=0.0), "projection"),
+                        (OnHead("first", offset=-0.1, angle=0.0, projection=1.0), "offset"),
+                        (OnHead("first", offset=0.0, angle=0.0, projection=-1.0), "projection")):
         with pytest.raises(EquipmentError, match=f"nozzle N1 {field_} must be") as info:
-            Drum("D1", diameter=1.0, length=2.0, nozzles=(Nozzle("N1", spec, loc),))
+            Drum("D1", diameter=1.0, length=2.0, nozzles=(Nozzle("N1", spec=spec, location=loc),))
         assert info.value.code == "size_not_positive"
         assert info.value.where == {"part": "D1", "nozzle": "N1", "field": field_}
 

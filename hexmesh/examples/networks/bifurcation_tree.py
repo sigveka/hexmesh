@@ -27,7 +27,7 @@ PIPE = PipeSpec(nang=6).core("fluid", radius=0.05, nrad=3)
 def _split(asm, at, angle, branch):
     """Wye at *at*, each daughter bent back parallel to the wye's inlet;
     returns the two bend outlets."""
-    left, right = asm.add(at, Wye(angle, run_length=0.15, branch_length=branch,
+    left, right = asm.add(at, Wye(angle=angle, run_length=0.15, branch_length=branch,
                                   n_run=3, n_branch=4, n_split=4))
     return [asm.add(port, Bend(radius=0.12, angle=angle / 2, n_layers=4, roll=roll))
             for port, roll in ((left, 90), (right, -90))]

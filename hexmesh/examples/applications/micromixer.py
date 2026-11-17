@@ -73,7 +73,7 @@ N = 8  # cells per side of every section
 INLET = PipeSpec(nang_w=N, nang_h=N).core("fluid", half_w=INLET_W / 2, half_h=DEPTH / 2)
 #: The mixing channel's section, as the tap leaves the main's face:
 #: across the face it is the duct's depth, along the main its width.
-MIXING = RectShape(DEPTH / 2, MIX_W / 2, N, N)
+MIXING = RectShape(DEPTH / 2, MIX_W / 2, nang_w=N, nang_h=N)
 
 
 def build() -> Assembly:

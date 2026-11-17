@@ -535,7 +535,7 @@ def build_ring(
     if getattr(inner, "corner_angles", None):
         angles = list(inner.corner_angles)
     else:
-        angles = [d + rot for d in oh.core_directions(CircleShape(1.0, 4), n)]
+        angles = [d + rot for d in oh.core_directions(CircleShape(1.0, nang=4), n)]
     corners, angles_out = oh.ring_corners(outer, angles, rot)
     corners = [oh.rotated(p, rot) for p in corners]
 

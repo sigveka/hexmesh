@@ -39,7 +39,7 @@ UNITS-CO-ORDS MM
 
 
 def _spec(bore=0.1):
-    return PipeSpec(nang=4).core("fluid", CircleShape(radius=bore / 2, nang=4), nrad=3)
+    return PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=bore / 2, nang=4), nrad=3)
 
 
 def _read(tmp_path, text):

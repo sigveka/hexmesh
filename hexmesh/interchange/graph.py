@@ -226,7 +226,7 @@ def _describe(c: _Comp, label: str) -> str:
     at = c.centre if c.kind in ("seton", "ypiece", "tee", "wye") else c.start
     if c.part is None:
         return f"{c.type or c.kind} {label} at {np.round(at, 4)}"
-    return describe(c.part, at, label)
+    return describe(c.part, at=at, name=label)
 
 
 def _cut_index(model: NetworkModel) -> dict:

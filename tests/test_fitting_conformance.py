@@ -56,7 +56,7 @@ from hexmesh.core.spec import PipeSpec
 # ---------------------------------------------------------------------------
 
 def _one(radius=0.1):
-    return PipeSpec(nang=4).core("fluid", CircleShape(radius=radius, nang=4), nrad=3)
+    return PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=radius, nang=4), nrad=3)
 
 
 def _two(radius=0.1, dR=0.025):
@@ -98,18 +98,18 @@ def _square():
 def _in_rect(half_w=0.25, half_h=0.125):
     """Circular pipe in a rectangular block (decision 0026): skewed corner
     lines when the block is not square."""
-    return _one().shell("block", outer=RectShape(half_w, half_h, 4, 4), nrad=3)
+    return _one().shell("block", outer=RectShape(half_w, half_h, nang_w=4, nang_h=4), nrad=3)
 
 
 def _rect_in_circle():
     """2:1 duct in a circular casing: the casing's arcs are unequal."""
-    return PipeSpec(nang=4).core("fluid", RectShape(0.1, 0.05, 4, 4), nrad=3, layout="oh").shell(
-        "casing", outer=CircleShape(0.16, 4), nrad=3)
+    return PipeSpec(nang=4).core("fluid", shape=RectShape(0.1, 0.05, nang_w=4, nang_h=4), nrad=3, layout="oh").shell(
+        "casing", outer=CircleShape(0.16, nang=4), nrad=3)
 
 
 def _rect3(half_w=0.1, half_h=0.05, lagging=True):
     """A duct with a wall and lagging, each grown by dR."""
-    spec = (PipeSpec(nang=4).core("fluid", RectShape(half_w, half_h, 4, 4), nrad=3, layout="oh")
+    spec = (PipeSpec(nang=4).core("fluid", shape=RectShape(half_w, half_h, nang_w=4, nang_h=4), nrad=3, layout="oh")
             .shell("wall", dR=0.01, nrad=2))
     return spec.shell("lagging", dR=0.03, nrad=2) if lagging else spec
 
@@ -117,15 +117,15 @@ def _rect3(half_w=0.1, half_h=0.05, lagging=True):
 def _rect_in_circle_h(first_cell=None):
     """``_rect_in_circle`` with an H core (task 0086): the casing's corner
     lines start at the core's corners."""
-    return PipeSpec(nang=4).core("fluid", RectShape(0.1, 0.05, 4, 4), layout="h",
+    return PipeSpec(nang=4).core("fluid", shape=RectShape(0.1, 0.05, nang_w=4, nang_h=4), layout="h",
                                  first_cell=first_cell).shell(
-        "casing", outer=CircleShape(0.16, 4), nrad=3)
+        "casing", outer=CircleShape(0.16, nang=4), nrad=3)
 
 
 def _rect3_h(half_w=0.1, half_h=0.05, lagging=True, first_cell=None):
     """``_rect3`` with an H core (task 0086), graded to the walls by
     *first_cell*; the shells' sides follow the core's grading."""
-    spec = (PipeSpec(nang=4).core("fluid", RectShape(half_w, half_h, 4, 4), layout="h",
+    spec = (PipeSpec(nang=4).core("fluid", shape=RectShape(half_w, half_h, nang_w=4, nang_h=4), layout="h",
                                   first_cell=first_cell)
             .shell("wall", dR=0.01, nrad=2))
     return spec.shell("lagging", dR=0.03, nrad=2) if lagging else spec
@@ -133,8 +133,8 @@ def _rect3_h(half_w=0.1, half_h=0.05, lagging=True, first_cell=None):
 
 def _cyl_box_cyl():
     """Circle, square, circle: a cable in a square filler in a sheath."""
-    return (_one(0.05).shell("filler", outer=RectShape(0.08, 0.08, 4, 4), nrad=2)
-            .shell("sheath", outer=CircleShape(0.14, 4), nrad=2))
+    return (_one(0.05).shell("filler", outer=RectShape(0.08, 0.08, nang_w=4, nang_h=4), nrad=2)
+            .shell("sheath", outer=CircleShape(0.14, nang=4), nrad=2))
 
 
 def _between(spec, fitting, **kw):
@@ -178,7 +178,7 @@ def _spline(spec, points, **kw):
     """Straight → SplinePipe (points relative to its inlet) → Straight."""
     asm = Assembly(spec, direction=[0, 1, 0], up=[0, 0, 1], lc=0.1)
     start = asm.add(Straight(0.2, n_layers=2)).frame.position
-    asm.add(SplinePipe(tuple(tuple(start + p) for p in points), n_layers=20, **kw))
+    asm.add(SplinePipe(points=tuple(tuple(start + p) for p in points), n_layers=20, **kw))
     asm.add(Straight(0.2, n_layers=2))
     return asm
 
@@ -210,16 +210,16 @@ def _duct_tap(branch, aspect=2, face="wide", roll=0, direction=(1, 0, 0), layout
     B = 0.05
     n = 4
     if layout == "h":
-        spec = PipeSpec(nang_w=n, nang_h=n).core("fluid", RectShape(aspect * B, B, n, n),
+        spec = PipeSpec(nang_w=n, nang_h=n).core("fluid", shape=RectShape(aspect * B, B, nang_w=n, nang_h=n),
                                                  layout="h", first_cell=first_cell)
     else:
         spec = _duct(half_w=aspect * B, half_h=B, nang_w=n, nang_h=n, name="fluid", nrad=3)
     a = aspect * B if face == "wide" else B
     if branch == "full":
         along_up = face == "wide" or aspect == 1      # the tap on an up/down face
-        shape = RectShape(a, 0.6 * a, n, n) if along_up else RectShape(0.6 * a, a, n, n)
+        shape = RectShape(a, 0.6 * a, nang_w=n, nang_h=n) if along_up else RectShape(0.6 * a, a, nang_w=n, nang_h=n)
     elif branch == "rect":
-        shape = RectShape(0.6 * a, 0.6 * a, n, n)
+        shape = RectShape(0.6 * a, 0.6 * a, nang_w=n, nang_h=n)
     else:
         shape = CircleShape(radius=0.6 * a, nang=n)
     asm = Assembly(spec, direction=list(direction), up=[0, 0, 1], lc=0.1)
@@ -235,7 +235,7 @@ def _wye(angle, direction=(0, 1, 0), spec=None):
     """Straight → Wye → Straight on both outlets."""
     asm = Assembly(spec or _one(), direction=list(direction), up=[0, 0, 1], lc=0.1)
     asm.add(Straight(0.2, n_layers=2))
-    left, right = asm.add(Wye(angle, run_length=0.25, branch_length=0.4),
+    left, right = asm.add(Wye(angle=angle, run_length=0.25, branch_length=0.4),
                           names=["left", "right"])
     asm.add(left, Straight(0.2, n_layers=2))
     asm.add(right, Straight(0.2, n_layers=2))
@@ -310,9 +310,9 @@ CASES = {
     "miter-3cut-2layer":   lambda: _between(_two(), MiterBend(0.3, 90, n_cuts=3)),
     "miter-rolled":        lambda: _between(_two(), MiterBend(0.3, -60, n_cuts=2, roll=30)),
     "elbow-short":         lambda: _between(_two(), Elbow(90, "short", n_layers=4, roll=45)),
-    "reducer":             lambda: _between(_one(), Reducer(_one(0.06), 0.15, n_layers=3)),
-    "expander":            lambda: _between(_one(0.06), Reducer(_one(), 0.15, n_layers=3)),
-    "reducer-2layer":      lambda: _between(_two(), Reducer(_two(0.07, 0.015), 0.2, n_layers=4)),
+    "reducer":             lambda: _between(_one(), Reducer(_one(0.06), length=0.15, n_layers=3)),
+    "expander":            lambda: _between(_one(0.06), Reducer(_one(), length=0.15, n_layers=3)),
+    "reducer-2layer":      lambda: _between(_two(), Reducer(_two(0.07, 0.015), length=0.2, n_layers=4)),
     "spline-s-bend":       lambda: _spline(_one(), ((0, 0, 0), (0.1, 0.4, 0), (0.4, 0.8, 0),
                                                     (0.5, 1.2, 0))),
     "spline-3d-2layer":    lambda: _spline(_two(), ((0, 0, 0), (0.1, 0.4, 0.1), (0.4, 0.7, 0.4),
@@ -320,7 +320,7 @@ CASES = {
     # axial grading (docs/tasks/0001): curve progression or station spacing
     "straight-graded-2layer": lambda: _between(_two(), Straight(0.3, n_layers=4, axial_grading=1.3)),
     "bend-graded-2layer":  lambda: _between(_two(), Bend(0.3, 90, n_layers=6, axial_grading=0.8)),
-    "reducer-graded":      lambda: _between(_one(), Reducer(_one(0.06), 0.15, n_layers=4,
+    "reducer-graded":      lambda: _between(_one(), Reducer(_one(0.06), length=0.15, n_layers=4,
                                                             axial_grading=1.2)),
     "closure-graded":      lambda: _ring(_one(), [90, 90, 90], Closure(n_layers=8, axial_grading=1.15)),
     # layer termination (decision 0006): insulation stops and restarts
@@ -343,14 +343,14 @@ CASES = {
     "square-bend-rolled":  lambda: _between(_square(), Bend(0.3, -60, n_layers=4, roll=45)),
     "square-rolled-90":    lambda: _rolled_outlet(_square(), Straight(0.3, n_layers=3), 90),
     # profiled reducers (task 0031): stations on R(s), chords within tolerance
-    "profile-cosine":      lambda: _between(_one(), Reducer(_one(), 0.4, n_layers=40,
+    "profile-cosine":      lambda: _between(_one(), Reducer(_one(), length=0.4, n_layers=40,
                                                             profile=("cosine", 0.25))),
-    "profile-cosine-bulge": lambda: _between(_one(), Reducer(_one(), 0.4, n_layers=50,
+    "profile-cosine-bulge": lambda: _between(_one(), Reducer(_one(), length=0.4, n_layers=50,
                                                              profile=("cosine", -0.5))),
-    "profile-venturi":     lambda: _between(_one(), Reducer(_one(), 0.8, n_layers=12,
+    "profile-venturi":     lambda: _between(_one(), Reducer(_one(), length=0.8, n_layers=12,
                                                             profile=("venturi", 0.5, 15))),
     "profile-table-2layer": lambda: _between(_two(), Reducer(
-        _two(0.06, 0.015), 0.4, n_layers=16, axial_grading=1.1,
+        _two(0.06, 0.015), length=0.4, n_layers=16, axial_grading=1.1,
         profile=((0, 1), (0.3, 0.8), (0.6, 0.7), (1, 0.6)))),
     # layer outlines (decision 0026, task 0045); the stacks × straight,
     # easy-way and hard-way bend are added below the dict
@@ -358,30 +358,30 @@ CASES = {
                                                                   roll=45)),
     "outline-lagging-gap":  lambda: _between(_rect3(), Straight(
         0.6, n_layers=6, stack_changes=((2, _rect3(lagging=False)), (4, _rect3())))),
-    "outline-reducer":      lambda: _between(_rect3(), Reducer(_rect3(0.08, 0.04), 0.2,
+    "outline-reducer":      lambda: _between(_rect3(), Reducer(_rect3(0.08, 0.04), length=0.2,
                                                                n_layers=3)),
     "outline-miter":        lambda: _between(_in_rect(), MiterBend(0.5, 90, n_cuts=2)),
     # shells around an H core (task 0086)
     "outline-lagging-gap-h": lambda: _between(_rect3_h(first_cell=0.008), Straight(
         0.6, n_layers=6, stack_changes=((2, _rect3_h(lagging=False, first_cell=0.008)),
                                         (4, _rect3_h(first_cell=0.008))))),
-    "outline-reducer-h":    lambda: _between(_rect3_h(), Reducer(_rect3_h(0.08, 0.04), 0.2,
+    "outline-reducer-h":    lambda: _between(_rect3_h(), Reducer(_rect3_h(0.08, 0.04), length=0.2,
                                                                  n_layers=3)),
     "outline-miter-h":      lambda: _between(_rect_in_circle_h(), MiterBend(0.5, 90, n_cuts=2)),
     # transitions (task 0029): equal counts per side, so class 0
-    "transition-circle-square": lambda: _between(_one(), Transition(_flat(0.09, 0.09), 0.3, 4)),
-    "transition-circle-2to1": lambda: _between(_one(), Transition(_flat(), 0.3, 4)),
-    "transition-2to1-circle": lambda: _between(_flat(), Transition(_one(), 0.3, 4)),
-    "transition-2to1-1to1": lambda: _between(_flat(), Transition(_flat(0.1, 0.1), 0.2, 3,
+    "transition-circle-square": lambda: _between(_one(), Transition(_flat(0.09, 0.09), length=0.3, n_layers=4)),
+    "transition-circle-2to1": lambda: _between(_one(), Transition(_flat(), length=0.3, n_layers=4)),
+    "transition-2to1-circle": lambda: _between(_flat(), Transition(_one(), length=0.3, n_layers=4)),
+    "transition-2to1-1to1": lambda: _between(_flat(), Transition(_flat(0.1, 0.1), length=0.2, n_layers=3,
                                                                 axial_grading=1.2)),
     # multi-layer transitions (task 0046): every outline blends
     "transition-2layer-circle-rect": lambda: _between(_two(), Transition(
-        _rect3(0.14, 0.07, lagging=False), 0.3, 4)),
+        _rect3(0.14, 0.07, lagging=False), length=0.3, n_layers=4)),
     "transition-square-shell-circle": lambda: _between(_in_rect(0.15, 0.15), Transition(
-        _one().shell("block", dR=0.08, nrad=3), 0.3, 4)),
+        _one().shell("block", dR=0.08, nrad=3), length=0.3, n_layers=4)),
     "transition-3layer-circle-2to1": lambda: _between(_three(), Transition(
-        PipeSpec(nang=4).core("fluid", RectShape(0.15, 0.075, 4, 4), nrad=3, layout="oh")
-        .shell("wall", dR=0.025, nrad=2).shell("insulation", dR=0.03, nrad=2), 0.4, 6,
+        PipeSpec(nang=4).core("fluid", shape=RectShape(0.15, 0.075, nang_w=4, nang_h=4), nrad=3, layout="oh")
+        .shell("wall", dR=0.025, nrad=2).shell("insulation", dR=0.03, nrad=2), length=0.4, n_layers=6,
         axial_grading=1.1)),
 }
 
@@ -431,11 +431,11 @@ CASES.update({
     "h-2-closure":       lambda: _ring(_hduct(), [60, 0, 120], Closure(n_layers=12)),
     "h-2-spline":        lambda: _spline(_hduct(first_cell=0.003), ((0, 0, 0), (0.1, 0.4, 0),
                                                                    (0.4, 0.8, 0), (0.5, 1.2, 0))),
-    "h-2-reducer":       lambda: _between(_hduct(), Reducer(_hduct(0.07, 0.035), 0.2,
+    "h-2-reducer":       lambda: _between(_hduct(), Reducer(_hduct(0.07, 0.035), length=0.2,
                                                             n_layers=3)),
     "h-2-reducer-graded": lambda: _between(_hduct(first_cell=0.003), Reducer(
-        _hduct(0.07, 0.035, first_cell=0.003), 0.2, n_layers=4, axial_grading=1.2)),
-    "h-2-profile-cosine": lambda: _between(_hduct(), Reducer(_hduct(), 0.4, n_layers=40,
+        _hduct(0.07, 0.035, first_cell=0.003), length=0.2, n_layers=4, axial_grading=1.2)),
+    "h-2-profile-cosine": lambda: _between(_hduct(), Reducer(_hduct(), length=0.4, n_layers=40,
                                                              profile=("cosine", 0.25))),
 })
 
@@ -444,7 +444,7 @@ def _switch_oblique():
     """O-H → H on an oblique axis (the frame's right and up both off-axis)."""
     asm = Assembly(_duct(0.1, 0.05, 8, 4), direction=[1, 1, 0.2], up=[0, 0, 1], lc=0.1)
     asm.add(Straight(0.2, n_layers=2))
-    asm.add(Switch(0.1, n_layers=3))
+    asm.add(Switch(length=0.1, n_layers=3))
     asm.add(Straight(0.2, n_layers=2))
     return asm
 
@@ -452,15 +452,15 @@ def _switch_oblique():
 # The O-H ↔ H switch (task 0085), both ways: a/b 1, 2, 4; nrad 1–3; the H
 # end uniform or graded to the walls
 CASES.update({
-    "switch-2-oh-h":        lambda: _between(_duct(0.1, 0.05, 8, 4), Switch(0.1, n_layers=3)),
-    "switch-2-h-oh":        lambda: _between(_hduct(), Switch(0.1, n_layers=3,
+    "switch-2-oh-h":        lambda: _between(_duct(0.1, 0.05, 8, 4), Switch(length=0.1, n_layers=3)),
+    "switch-2-h-oh":        lambda: _between(_hduct(), Switch(length=0.1, n_layers=3,
                                                               outlet=_duct(0.1, 0.05, 8, 4))),
     "switch-1-oh-h-graded": lambda: _between(_duct(0.06, 0.06, 6, 6, nrad=3), Switch(
-        0.08, n_layers=3, outlet=_hduct(0.06, 0.06, 6, 6, first_cell=0.003))),
+        length=0.08, n_layers=3, outlet=_hduct(0.06, 0.06, 6, 6, first_cell=0.003))),
     "switch-4-h-oh-graded": lambda: _between(H_DUCTS["4-graded"](), Switch(   # Q2's rule
-        0.16, n_layers=4, outlet=_duct(0.2, 0.05, 16, 4, nrad=1))),
+        length=0.16, n_layers=4, outlet=_duct(0.2, 0.05, 16, 4, nrad=1))),
     "switch-2-oh-h-ratio":  lambda: _between(_duct(0.1, 0.05, 8, 4, nrad=3), Switch(
-        0.1, n_layers=3, outlet=_hduct(mprg=1.3))),
+        length=0.1, n_layers=3, outlet=_hduct(mprg=1.3))),
     "switch-2-oblique":     _switch_oblique,
 })
 
@@ -472,7 +472,7 @@ def _rstack(layout="h", shells=1, outer=False, half_w=0.1, half_h=0.05):
     spec = PipeSpec(nang_w=8, nang_h=4).core("air", half_w=half_w, half_h=half_h,
                                              layout=layout, **core)
     if outer:
-        return spec.shell("wall", outer=RectShape(half_w + 0.02, half_h + 0.03, 8, 4), nrad=2)
+        return spec.shell("wall", outer=RectShape(half_w + 0.02, half_h + 0.03, nang_w=8, nang_h=4), nrad=2)
     for k in range(shells):
         spec = spec.shell(("wall", "lagging")[k], dR=(0.01, 0.03)[k], nrad=2)
     return spec
@@ -489,17 +489,17 @@ CASES.update({
     "bend-rect-untied-2shell-oh":     lambda: _between(_rstack("oh", 2), Bend(0.4, 90, n_layers=6)),
     "miter-rect-untied-shell-oh":     lambda: _between(_rstack("oh"), MiterBend(0.4, 90, n_cuts=2)),
     "reducer-rect-untied-shell-oh":   lambda: _between(_rstack("oh"), Reducer(
-        _rstack("oh", half_w=0.07, half_h=0.04), 0.2, n_layers=3)),
+        _rstack("oh", half_w=0.07, half_h=0.04), length=0.2, n_layers=3)),
     "transition-rect-untied-shell-oh": lambda: _between(_rstack("oh"), Transition(
-        _rstack("oh", half_w=0.08, half_h=0.06), 0.2, 3)),
+        _rstack("oh", half_w=0.08, half_h=0.06), length=0.2, n_layers=3)),
     "switch-rect-untied-shell":       lambda: _between(_rstack("oh"), Switch(
-        0.1, n_layers=3, outlet=_rstack("h"))),
+        length=0.1, n_layers=3, outlet=_rstack("h"))),
 })
 
 
 def _hflat(half_w=0.14, half_h=0.07, **kw):
     """An H duct with ``_one()``'s counts and name: a transition's H partner."""
-    return PipeSpec(nang_w=4, nang_h=4).core("fluid", RectShape(half_w, half_h, 4, 4),
+    return PipeSpec(nang_w=4, nang_h=4).core("fluid", shape=RectShape(half_w, half_h, nang_w=4, nang_h=4),
                                              layout="h", **kw)
 
 
@@ -507,25 +507,25 @@ def _hflat(half_w=0.14, half_h=0.07, **kw):
 # rectangle, and a switch embedded at the H end; a/b 1 and 2, both ways
 CASES.update({
     "transition-circle-hsquare":    lambda: _between(_one(), Transition(_hflat(0.09, 0.09),
-                                                                        0.3, 6)),
+                                                                        length=0.3, n_layers=6)),
     "transition-hsquare-circle":    lambda: _between(_hflat(0.09, 0.09), Transition(_one(),
-                                                                                0.3, 6)),
+                                                                                length=0.3, n_layers=6)),
     "transition-circle-h2to1-graded": lambda: _between(_one(), Transition(
-        _hflat(first_cell=0.01), 0.3, 6)),
-    "transition-h2to1-circle":      lambda: _between(_hflat(), Transition(_one(), 0.3, 6)),
+        _hflat(first_cell=0.01), length=0.3, n_layers=6)),
+    "transition-h2to1-circle":      lambda: _between(_hflat(), Transition(_one(), length=0.3, n_layers=6)),
 })
 
 
 # Inside shells (task 0086): the shells run straight through the switch
 CASES.update({
-    "switch-lagged-oh-h":     lambda: _between(_rect3(), Switch(0.1, n_layers=3,
+    "switch-lagged-oh-h":     lambda: _between(_rect3(), Switch(length=0.1, n_layers=3,
                                                                 outlet=_rect3_h())),
     "switch-in-circle-h-oh":  lambda: _between(_rect_in_circle_h(), Switch(
-        0.1, n_layers=3, outlet=_rect_in_circle())),
+        length=0.1, n_layers=3, outlet=_rect_in_circle())),
     "transition-2layer-circle-h2to1": lambda: _between(_two(), Transition(
-        _rect3_h(0.14, 0.07, lagging=False), 0.3, 6)),
+        _rect3_h(0.14, 0.07, lagging=False), length=0.3, n_layers=6)),
     "transition-h2to1-2layer-circle": lambda: _between(_rect3_h(0.14, 0.07, lagging=False),
-                                                       Transition(_two(), 0.3, 6)),
+                                                       Transition(_two(), length=0.3, n_layers=6)),
 })
 
 
@@ -549,9 +549,9 @@ CASES.update({
     "n8-miter-rolled":      lambda: _between(_n8(_two()), MiterBend(0.3, -60, n_cuts=2, roll=30)),
     "n8-elbow-short":       lambda: _between(_n8(_two()), Elbow(90, "short", n_layers=4,
                                                                roll=45)),
-    "n8-reducer-2layer":    lambda: _between(_n8(_two()), Reducer(_n8(_two(0.07, 0.015)), 0.2,
+    "n8-reducer-2layer":    lambda: _between(_n8(_two()), Reducer(_n8(_two(0.07, 0.015)), length=0.2,
                                                                    n_layers=4)),
-    "n8-profile-cosine":    lambda: _between(_n8(_one()), Reducer(_n8(_one()), 0.4, n_layers=40,
+    "n8-profile-cosine":    lambda: _between(_n8(_one()), Reducer(_n8(_one()), length=0.4, n_layers=40,
                                                                    profile=("cosine", 0.25))),
     "n8-spline-3d-2layer":  lambda: _spline(_n8(_two()), ((0, 0, 0), (0.1, 0.4, 0.1),
                                                          (0.4, 0.7, 0.4), (0.5, 0.9, 0.9)),
@@ -562,9 +562,9 @@ CASES.update({
     "n8-duct-closure":      lambda: _ring(_n8(_duct()), [60, 0, 120], Closure(n_layers=12)),
     "n8-outline-c-r-c":     lambda: _between(_n8(_cyl_box_cyl()), Bend(0.5, -60, n_layers=4,
                                                                        roll=45)),
-    "n8-transition-circle-2to1": lambda: _between(_n8(_one()), Transition(_n8(_flat()), 0.3, 4)),
+    "n8-transition-circle-2to1": lambda: _between(_n8(_one()), Transition(_n8(_flat()), length=0.3, n_layers=4)),
     "n8-transition-2layer-circle-rect": lambda: _between(_n8(_two()), Transition(
-        _n8(_rect3(0.14, 0.07, lagging=False)), 0.3, 4)),
+        _n8(_rect3(0.14, 0.07, lagging=False)), length=0.3, n_layers=4)),
 })
 
 

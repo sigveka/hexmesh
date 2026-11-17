@@ -68,7 +68,7 @@ class MaterialGraph:
         self,
         a:     str,
         b:     str,
-        label: str | None = None,
+        *, label: str | None = None,
     ) -> "MaterialGraph":
         """Register a conformal interface between materials *a* and *b*.
 

@@ -400,7 +400,7 @@ class TestBuildAnnulus:
         c = _cursor_xz()
         rect_cs = build_oh_rect(
             cx=0., cy=0., cz=0.,
-            shape=RectShape(0.1, 0.05, 3, 2),
+            shape=RectShape(0.1, 0.05, nang_w=3, nang_h=2),
             h_axis=c.right, v_axis=c.up,
             lc=0.1, nrad=3,
         )
@@ -508,7 +508,7 @@ class TestBuildRing:
 
     def test_circle_in_square(self, gmsh_session):
         inner = self._core(gmsh_session)
-        sq = build_ring(inner, RectShape(0.18, 0.18, 4, 4), lc=0.1, nrad=2)
+        sq = build_ring(inner, RectShape(0.18, 0.18, nang_w=4, nang_h=4), lc=0.1, nrad=2)
         assert len(sq.surfaces) == 4
         assert sq.boundary_type is BoundaryType.SQUARE
         assert sq.inner_points == inner.outer_points
@@ -520,7 +520,7 @@ class TestBuildRing:
         """A circle in a 2:1 rectangle: skewed corner lines, ending at the
         rectangle's corners; the recorded corner angles are theirs."""
         inner = self._core(gmsh_session)
-        r = build_ring(inner, RectShape(0.3, 0.15, 4, 4), lc=0.1, nrad=2)
+        r = build_ring(inner, RectShape(0.3, 0.15, nang_w=4, nang_h=4), lc=0.1, nrad=2)
         np.testing.assert_allclose(_boundary_xy(r), [[0.3, 0.15], [-0.3, 0.15],
                                                      [-0.3, -0.15], [0.3, -0.15]], atol=1e-12)
         assert r.corner_angles[0] == pytest.approx(math.atan2(0.15, 0.3))
@@ -528,8 +528,8 @@ class TestBuildRing:
     def test_rectangle_in_circle(self, gmsh_session):
         """A 2:1 rectangle in a circle: corner lines run radially, so the
         circle's arcs are unequal; the outer sides are arcs."""
-        inner = self._core(gmsh_session, RectShape(0.1, 0.05, 4, 4))
-        r = build_ring(inner, CircleShape(0.2, 4), lc=0.1, nrad=2)
+        inner = self._core(gmsh_session, RectShape(0.1, 0.05, nang_w=4, nang_h=4))
+        r = build_ring(inner, CircleShape(0.2, nang=4), lc=0.1, nrad=2)
         assert r.boundary_type is BoundaryType.CIRCULAR
         xy = _boundary_xy(r)
         np.testing.assert_allclose(np.hypot(*xy.T), 0.2, atol=1e-12)
@@ -539,6 +539,6 @@ class TestBuildRing:
         inner = self._core(gmsh_session)
         ann = build_annulus(inner=inner, dR=0.02, lc=0.1, nrad=2)
         assert ann.shape.radius == pytest.approx(0.12)
-        sq = build_annulus(inner=build_ring(ann, RectShape(0.2, 0.2, 4, 4), lc=0.1, nrad=2),
+        sq = build_annulus(inner=build_ring(ann, RectShape(0.2, 0.2, nang_w=4, nang_h=4), lc=0.1, nrad=2),
                            dR=0.01, lc=0.1, nrad=2)
         np.testing.assert_allclose(np.abs(_boundary_xy(sq)), 0.21, atol=1e-12)

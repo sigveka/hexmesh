@@ -19,7 +19,7 @@ from hexmesh.core.spec import PipeSpec
 
 
 def _pipe():
-    return PipeSpec(nang=4).core("fluid", CircleShape(radius=0.1, nang=4), nrad=3)
+    return PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=0.1, nang=4), nrad=3)
 
 
 def _run():

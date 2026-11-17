@@ -36,7 +36,7 @@ def build() -> Assembly:
                              stack_changes=((1, pipe(0.06, insulated=False)),)),
             names=["tap"])
     header = asm.add(main, Straight(0.4, n_layers=6))
-    left, right = asm.add(header, Wye(60, run_length=0.15, branch_length=0.4))
+    left, right = asm.add(header, Wye(angle=60, run_length=0.15, branch_length=0.4))
     asm.add(left, Straight(0.3, n_layers=4), names=["left"])
     asm.add(right, Straight(0.3, n_layers=4), names=["right"])
     return asm

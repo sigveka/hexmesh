@@ -80,15 +80,15 @@ def section(pairing: str, aspect: float, gap: float, nang: int) -> PipeSpec:
     spec = PipeSpec(nang=nang)
     if pairing == "circle-in-rect":
         hh = SIZE * (1 + gap)                       # thinnest: top and bottom
-        return spec.core("core", CircleShape(SIZE, nang), nrad=NRAD).shell(
-            "ring", outer=RectShape(aspect * hh, hh, nang, nang), nrad=NRAD)
+        return spec.core("core", shape=CircleShape(SIZE, nang=nang), nrad=NRAD).shell(
+            "ring", outer=RectShape(aspect * hh, hh, nang_w=nang, nang_h=nang), nrad=NRAD)
     if pairing == "rect-in-circle":
         hh = SIZE / math.hypot(aspect, 1)           # half-diagonal = SIZE
-        return spec.core("core", RectShape(aspect * hh, hh, nang, nang), nrad=NRAD,
+        return spec.core("core", shape=RectShape(aspect * hh, hh, nang_w=nang, nang_h=nang), nrad=NRAD,
                          layout="oh").shell(
-            "ring", outer=CircleShape(SIZE * (1 + gap), nang), nrad=NRAD)
+            "ring", outer=CircleShape(SIZE * (1 + gap), nang=nang), nrad=NRAD)
     if pairing == "rect-in-rect":
-        return spec.core("core", RectShape(aspect * SIZE, SIZE, nang, nang), nrad=NRAD,
+        return spec.core("core", shape=RectShape(aspect * SIZE, SIZE, nang_w=nang, nang_h=nang), nrad=NRAD,
                          layout="oh").shell(
             "ring", dR=gap * SIZE, nrad=NRAD)
     raise ValueError(pairing)

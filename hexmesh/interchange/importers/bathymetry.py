@@ -55,7 +55,7 @@ from ..operations import import_entry
 def read_bathymetry(
     surface_path:   str | Path,
     route:          str | Path | np.ndarray | Sequence,
-    burial_depth:   float = 0.0,
+    *, burial_depth:   float = 0.0,
     surface_format: str = "xyz",
     route_format:   str | None = None,
     unit_scale:     float = 1.0,

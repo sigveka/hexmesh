@@ -103,7 +103,9 @@ from .blocks import (
 )
 from .cube import CubeTee
 from .duct_tap import TapTemplate
-from .interface import (Frame, check_port_frames, junction_roll, junction_toward, lean,
+from typing import NamedTuple
+
+from .interface import (Frame, Interface, check_port_frames, junction_roll, junction_toward, lean,
                         outer_radius, rolled)
 from .junction_quality import (CUBE_HINT, TAP_HINT, TEE_BLOCKS, TEE_HINT, nonorth_tiers,
                                predicted_angle)
@@ -141,13 +143,13 @@ def branch_spec(spec: PipeSpec, radius: float, mprg: float | None = None,
     if mprg is None and first_cell is None:
         mprg = spec._core_mprg
     out = (PipeSpec(nang=spec.nang, n_outer=spec.n_outer, rot=spec.rot, mbmp=spec.mbmp)
-           .core(name, CircleShape(radius=radius, nang=shape.nang),
+           .core(name, shape=CircleShape(radius=radius, nang=shape.nang),
                  nrad=spec._core_nrad, mprg=mprg, first_cell=first_cell))
     T = thicknesses(spec)
     for sh, t0, t1 in zip(spec.shells, T, T[1:]):
         # the given dR, exactly: t1 - t0 differs in the last bits, and a
         # stack change on the branch compares outlines exactly (task 0155)
-        out.shell(sh.name, dR=t1 - t0 if sh.dR is None else sh.dR, nrad=sh.nrad, mprg=sh.mprg)
+        out = out.shell(sh.name, dR=t1 - t0 if sh.dR is None else sh.dR, nrad=sh.nrad, mprg=sh.mprg)
     return out
 
 
@@ -222,7 +224,14 @@ def turning_height(R: float, r: float, T: float, angle: float = 90.0) -> float:
     return (R + T + 0.5 * (r + T) + (r + T) * ca) / sa
 
 
-@dataclass(frozen=True)
+class TeeOutlets(NamedTuple):
+    """What ``Assembly.add`` returns for a :class:`Tee` (decision 0053):
+    unpacks as ``run, branch = asm.add(Tee(…))``, or reads by name."""
+    run: Interface
+    branch: Interface
+
+
+@dataclass(frozen=True, kw_only=True)
 class Tee:
     """Perpendicular side-branch tee.
 
@@ -301,8 +310,9 @@ class Tee:
         them the branch copies the main's ``mprg``, so its wall cell
         scales with r/R.  Not on an equal tee or a duct tap.
 
-    Ports are ``main`` (the run outlet, keeping the inlet's ``up``) and
-    ``branch``: ``add(…, names={"main": …, "branch": …})``.
+    Ports are ``run`` (the run outlet, keeping the inlet's ``up``) and
+    ``branch``: ``add(…, names={"run": …, "branch": …})``; ``add`` returns
+    them as a :class:`TeeOutlets`.
     """
 
     # per port pair, main in → main out and → branch: class 1 (a pillow) for
@@ -310,7 +320,8 @@ class Tee:
     # also class 2, grading only: its own core grading (task 0131)
     strategies = (frozenset({0, 1}), frozenset({0, 1, 2}))
     pillows = True
-    port_names = ("main", "branch")
+    port_names = ("run", "branch")
+    Outlets = TeeOutlets
     toward_offset = 0.0     # the roll of toward's direction from the junction's up
 
     run_length:    float | None = param(
@@ -441,23 +452,23 @@ class Tee:
             run = (max(tip_reach(R + T, r + T, tee.angle, tee._hy())) if r < R
                    else r + T) + 0.5 * R
             if r < R:              # else check() rejects it, naming the radius
-                need = tee.shortest_run(inlet, spec, PREDICTED_SJ_WARN)
+                need = tee.shortest_run(inlet, spec, tier=PREDICTED_SJ_WARN)
                 if need is None:   # laterals below ~57°: at least pass the floor
-                    need = tee.shortest_run(inlet, spec, PREDICTED_SJ_MIN)
+                    need = tee.shortest_run(inlet, spec, tier=PREDICTED_SJ_MIN)
                 run = max(run, need or 0.0)
             tee = replace(tee, run_length=run)
         return tee
 
     # -- predicted quality (task 0052) ----------------------------------
 
-    def predicted_sj(self, inlet: Frame, spec: PipeSpec, run_length: float | None = None) -> float:
+    def predicted_sj(self, inlet: Frame, spec: PipeSpec, *, run_length: float | None = None) -> float:
         """Min corner scaled Jacobian of the block layout, with
         *run_length* if given (pure)."""
         tee = self if run_length is None else replace(self, run_length=run_length)
         frames = [inlet] + [f for f, _ in tee.ports(inlet, spec)]
         return float(tee.layout(frames, spec).corner_jacobians().min())
 
-    def shortest_run(self, inlet: Frame, spec: PipeSpec, tier: float) -> float | None:
+    def shortest_run(self, inlet: Frame, spec: PipeSpec, *, tier: float) -> float | None:
         """Shortest ``run_length`` (to 1e-3 R, rounded up) whose predicted
         corner scaled Jacobian reaches *tier*; ``None`` if no length does:
         the branch ratio limits the junction core.  Bisection on the pure
@@ -465,18 +476,18 @@ class Tee:
         (R, T), r = main_radii(spec), self.branch_radius
         lo = max(tip_reach(R + T, r + T, self.angle, self._hy()))
         hi = lo + 2 * R
-        if self.predicted_sj(inlet, spec, hi) < tier:
+        if self.predicted_sj(inlet, spec, run_length=hi) < tier:
             return None
         q = 1e-3 * R
         while hi - lo > q:
             mid = 0.5 * (lo + hi)
-            if self.predicted_sj(inlet, spec, mid) >= tier:
+            if self.predicted_sj(inlet, spec, run_length=mid) >= tier:
                 hi = mid
             else:
                 lo = mid
         return round(math.ceil(hi / q - 1e-9) * q, 12)
 
-    def smallest_ratio(self, inlet: Frame, spec: PipeSpec, tier: float) -> float | None:
+    def smallest_ratio(self, inlet: Frame, spec: PipeSpec, *, tier: float) -> float | None:
         """Smallest branch ratio r/R (to 1e-3, rounded up) whose predicted
         corner SJ reaches *tier* at this angle and a long run; ``None`` if
         none up to ``TEE_MAX_RATIO`` does.  The SJ rises with r/R."""
@@ -511,13 +522,13 @@ class Tee:
                            (PREDICTED_SJ_WARN, "PREDICTED_SJ_WARN")):
             if sj >= tier:
                 continue
-            need = self.shortest_run(inlet, spec, tier)
+            need = self.shortest_run(inlet, spec, tier=tier)
             if need is None:
                 hint = (f"no run length reaches it: the branch ratio r/R "
                         f"{self.branch_radius / circle_radius(spec.core_shape):.3g} limits the "
                         f"junction core")
                 if self.angle != 90:
-                    q = self.smallest_ratio(inlet, spec, tier)
+                    q = self.smallest_ratio(inlet, spec, tier=tier)
                     hint += (f" at angle {self.angle:g}°; " + (
                         f"r/R {q:.3g} or more reaches it there, or a larger angle"
                         if q is not None else

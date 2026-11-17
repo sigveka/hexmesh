@@ -21,7 +21,7 @@ Quick start
 
     pipe = (
         PipeSpec(nang=4)
-        .core("fluid",      CircleShape(radius=0.1, nang=4), nrad=4)
+        .core("fluid",      shape=CircleShape(radius=0.1, nang=4), nrad=4)
         .shell("pipe_wall", dR=0.01, nrad=2)
     )
 
@@ -41,7 +41,8 @@ design rules are in ``DESIGN.md``.
 
 from .assembly import (
     Assembly, AssemblyError, Bend, Closure, Elbow, Frame, Interface,
-    MiterBend, Reducer, SplinePipe, Straight, Switch, Tee, Transition, Wye,
+    MiterBend, Reducer, SplinePipe, Straight, Switch, Tee, TeeOutlets, Transition, Wye,
+    WyeOutlets,
     Drum, Nozzle, OnShell, OnHead, EquipmentError,
 )
 from .assembly.quality import QualityReport, RegionQuality
@@ -54,7 +55,7 @@ from .session import Session
 __all__ = [
     "Assembly", "AssemblyError", "Frame", "Interface",
     "Straight", "Bend", "Elbow", "MiterBend", "Reducer", "Transition", "SplinePipe",
-    "Closure", "Tee", "Wye", "Switch",
+    "Closure", "Tee", "TeeOutlets", "Wye", "WyeOutlets", "Switch",
     "Drum", "Nozzle", "OnShell", "OnHead", "EquipmentError",
     "HexmeshError", "HexmeshWarning", "HexmeshNotice",
     "PipeSpec", "CircleShape",

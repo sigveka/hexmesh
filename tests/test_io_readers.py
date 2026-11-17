@@ -34,7 +34,7 @@ from hexmesh.interchange.importers.pcf import INCH, read_pcf
 
 
 def _spec(radius=0.1):
-    return (PipeSpec(nang=4).core("fluid", CircleShape(radius=radius, nang=4), nrad=3)
+    return (PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=radius, nang=4), nrad=3)
             .shell("wall", dR=0.01, nrad=2))
 
 
@@ -522,7 +522,7 @@ def test_spool_set_on_meshes_on_single_layer_spec(tmp_path):
     couplings are still absorbed, and the branch lands on BRANCH1-POINT."""
     from hexmesh.assembly import Tee
     net = _read_spool(tmp_path, SPOOL)
-    single = PipeSpec(nang=4).core("fluid", CircleShape(radius=0.05, nang=4), nrad=3)
+    single = PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=0.05, nang=4), nrad=3)
     asm = net.to_assembly(single)
     tee, = [e for e in asm.edges if isinstance(e.fitting, Tee)]
     # the Tee's default run (task 0054): r + T + 0.5 R, here 0.0125 + 0.025

@@ -393,7 +393,7 @@ class NetworkSpec:
 
 def read_pcf(
     path:          str | Path | list,
-    unit_scale:    float | None = None,
+    *, unit_scale:    float | None = None,
     ignore_types:  set[str] | None = None,
     joint_max:     float = JOINT_MAX,
     snap_tolerance: float = TOL_FLOOR,
@@ -439,7 +439,7 @@ def read_pcf(
         if not path:
             raise ReaderError("read_pcf: empty list of files",
                               code="pcf_no_files", where={"field": "path"})
-        parts = [read_pcf(p, unit_scale, ignore_types, joint_max, snap_tolerance) for p in path]
+        parts = [read_pcf(p, unit_scale=unit_scale, ignore_types=ignore_types, joint_max=joint_max, snap_tolerance=snap_tolerance) for p in path]
         net = NetworkSpec(source=", ".join(n.source for n in parts),
                           header=dict(parts[0].header), coord_scale=parts[0].coord_scale)
         ignored = net.report["ignored"] = {}

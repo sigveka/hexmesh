@@ -41,7 +41,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def _spec():
-    return (PipeSpec(nang=4).core("fluid", CircleShape(radius=0.1, nang=4), nrad=3)
+    return (PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=0.1, nang=4), nrad=3)
             .shell("wall", dR=0.01, nrad=2))
 
 
@@ -123,7 +123,7 @@ def test_spec_error():
 
 def test_assembly_error_names_the_fitting(gmsh_session):
     asm = Assembly(_spec())
-    asm.add(Straight(0.5, 4), label="first")
+    asm.add(Straight(0.5, n_layers=4), label="first")
     asm.add(Bend(0.3, 400, n_layers=6), label="wide")
     with pytest.raises(AssemblyError) as info:
         asm.validate()
@@ -132,7 +132,7 @@ def test_assembly_error_names_the_fitting(gmsh_session):
         "where": {"field": "angle", "fitting": 1, "label": "wide"}, "value": 400,
         "limit": {"min_exclusive": 0, "max_exclusive": 360}, "hint": None}
     with pytest.raises(AssemblyError) as info:
-        asm.add(Straight(0.5, 4), label="first")
+        asm.add(Straight(0.5, n_layers=4), label="first")
     assert info.value.code == "label_duplicate"
 
 
@@ -147,7 +147,7 @@ def test_layout_error():
     """An inverted block is a LayoutError; a layout that breaks its own
     rules is a bug (task 0111)."""
     from tests.test_blocks import A, B, BlockStraight, _one
-    lay = BlockStraight(0.3, 3).layout(A, B, _one())
+    lay = BlockStraight(0.3, n_layers=3).layout(A, B, _one())
     ids, m = lay.blocks[1]
     lay.blocks[1] = ((ids[1], ids[0], *ids[2:]), m)
     with pytest.raises(LayoutError) as info:
@@ -170,7 +170,7 @@ def test_study_error(tmp_path):
 
 def _nozzle(name, location, radius=0.05):
     from hexmesh.assembly.equipment import Nozzle
-    return Nozzle(name, PipeSpec(nang=8).core("fluid", radius=radius, nrad=2), location)
+    return Nozzle(name, spec=PipeSpec(nang=8).core("fluid", radius=radius, nrad=2), location=location)
 
 
 def _drum(**kw):
@@ -184,12 +184,12 @@ def _drum(**kw):
     (lambda: _drum(head="torispherical", crown_radius=0.4, knuckle_radius=0.2),
      "drum_head_args_invalid", "crown_radius above 0.5"),
     (lambda: _drum(axis=(0, 0, 1), up=(0, 0, 2)), "drum_up_parallel", "up=(1, 0, 0)"),
-    (lambda: _drum(nozzles=[_nozzle("N1", OnShell(0.02, 0, 0.8))]).validate(),
+    (lambda: _drum(nozzles=[_nozzle("N1", OnShell(0.02, angle=0, projection=0.8))]).validate(),
      "nozzle_footprint_outside", "axial between 0.05 and 1.95"),
-    (lambda: _drum(nozzles=[_nozzle("N1", OnHead("first", 0.48, 0, 0.5))]).validate(),
+    (lambda: _drum(nozzles=[_nozzle("N1", OnHead("first", offset=0.48, angle=0, projection=0.5))]).validate(),
      "nozzle_footprint_outside", "offset at most 0.45"),
-    (lambda: _drum(nozzles=[_nozzle("A", OnShell(1, 0, 0.8)),
-                            _nozzle("B", OnShell(1.05, 0, 0.8))]).validate(),
+    (lambda: _drum(nozzles=[_nozzle("A", OnShell(1, angle=0, projection=0.8)),
+                            _nozzle("B", OnShell(1.05, angle=0, projection=0.8))]).validate(),
      "nozzle_footprints_overlap", "axial positions at least 0.1 apart (now 0.05)"),
 ])
 def test_equipment_hints(make, code, hint):

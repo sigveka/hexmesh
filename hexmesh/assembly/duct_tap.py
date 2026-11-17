@@ -219,9 +219,9 @@ class DuctTap:
             out = PipeSpec(nang=sh.nang_w)
         else:
             hw, hh = (self.across, self.along) if on_U else (self.along, self.across)
-            shape = RectShape(hw, hh, sh.nang_w, sh.nang_h)
+            shape = RectShape(hw, hh, nang_w=sh.nang_w, nang_h=sh.nang_h)
             out = PipeSpec(nang_w=sh.nang_w, nang_h=sh.nang_h)
-        return frame, out.core(spec.layer_names[0], shape, nrad=spec._core_nrad, layout="oh",
+        return frame, out.core(spec.layer_names[0], shape=shape, nrad=spec._core_nrad, layout="oh",
                                mprg=spec._core_mprg)
 
     def ports(self, inlet: Frame, spec: PipeSpec):
@@ -916,7 +916,7 @@ class TapTemplate:
         sh = bspec.core_shape
         wall = spec.wall_grading
         return PipeSpec(nang_w=sh.nang_w, nang_h=sh.nang_h, mbmp=bspec.mbmp,
-                        rot=bspec.rot).core(bspec.layer_names[0], sh, layout="h",
+                        rot=bspec.rot).core(bspec.layer_names[0], shape=sh, layout="h",
                                             wall_bump=None if wall is None else wall[1])
 
     def _parts(self, frames: list[Frame], spec: PipeSpec):
@@ -935,11 +935,11 @@ class TapTemplate:
         # the legs' layers are the run's and the branch's counts, so they
         # refine with them (intent.refined_dict)
         n_run, n_br = self.tee.n_run, self.tee.n_branch
-        parts = [(Switch(lm, n_layers=n_run, outlet=s_oh), [A, A1], spec),
+        parts = [(Switch(length=lm, n_layers=n_run, outlet=s_oh), [A, A1], spec),
                  (inner, [A1, B1, E1], s_oh),
-                 (Switch(lm, n_layers=n_run, outlet=spec), [B1, B], s_oh)]
+                 (Switch(length=lm, n_layers=n_run, outlet=spec), [B1, B], s_oh)]
         if lb:
-            parts.append((Switch(lb, n_layers=n_br, outlet=self._h_branch(b_oh, spec)),
+            parts.append((Switch(length=lb, n_layers=n_br, outlet=self._h_branch(b_oh, spec)),
                           [E1, E], b_oh))
         return parts
 

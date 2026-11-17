@@ -51,7 +51,7 @@ def _asm(tee, spec=None, n=4):
 
 
 def _rect(q, n=4):
-    return RectShape(q, q, n, n)
+    return RectShape(q, q, nang_w=n, nang_h=n)
 
 
 def _tee(branch, **kw):
@@ -104,16 +104,16 @@ def test_roll_picks_the_side():
 
 
 @pytest.mark.parametrize("make, message", [
-    (lambda: _tee(RectShape(A, 0.05 * A, 4, 4)), "below PREDICTED_SJ_MIN.*full-width.*longer tap"),
-    (lambda: _tee(RectShape(A, 0.4 * A, 4, 4), margin=1.0), "full-width tap has no margin"),
-    (lambda: _tee(RectShape(A, 0.4 * A, 4, 4), branch_length=0.06), "turning station"),
-    (lambda: _tee(RectShape(A, 0.4 * A, 4, 4), run_length=0.04), "half-length along the main"),
+    (lambda: _tee(RectShape(A, 0.05 * A, nang_w=4, nang_h=4)), "below PREDICTED_SJ_MIN.*full-width.*longer tap"),
+    (lambda: _tee(RectShape(A, 0.4 * A, nang_w=4, nang_h=4), margin=1.0), "full-width tap has no margin"),
+    (lambda: _tee(RectShape(A, 0.4 * A, nang_w=4, nang_h=4), branch_length=0.06), "turning station"),
+    (lambda: _tee(RectShape(A, 0.4 * A, nang_w=4, nang_h=4), run_length=0.04), "half-length along the main"),
     (lambda: _tee(_rect(0.96 * A)), "exceeds DUCT_TAP_MAX_RATIO.*full-width tap"),
     (lambda: _tee(CircleShape(radius=0.96 * A, nang=4)), "exceeds DUCT_TAP_MAX_RATIO"),
     (lambda: _tee(_rect(0.5 * A), roll=90), "roll is 0 or 180"),
     (lambda: _tee(_rect(0.5 * A), toward=(0, 1, 0)), "toward= is for pipe tees"),
     (lambda: _tee(_rect(0.5 * A), face="top"), "face must be"),
-    (lambda: _tee(RectShape(0.5 * A, 0.5 * A, 4, 2)), "must be the main's"),
+    (lambda: _tee(RectShape(0.5 * A, 0.5 * A, nang_w=4, nang_h=2)), "must be the main's"),
     (lambda: Tee(branch_length=0.3, branch_radius=0.05), "needs branch=RectShape"),
     (lambda: _tee(_rect(0.5 * A), run_length=0.06), "run_length must exceed"),
 ])
@@ -200,7 +200,7 @@ def test_full_width_dispatch_and_quality_by_length():
     for run in (None, 0.2, 0.4):
         for n in (4, 8):
             spec = _spec(n=n)
-            tee = _tee(RectShape(A, 0.6 * A, n, n), run_length=run).resolve(inlet, spec)
+            tee = _tee(RectShape(A, 0.6 * A, nang_w=n, nang_h=n), run_length=run).resolve(inlet, spec)
             tap = TapTemplate(tee).tap(inlet, spec)
             assert isinstance(tap, FullWidthTap)
             assert None not in (tee.run_length,) and tee.margin is None
@@ -210,7 +210,7 @@ def test_full_width_dispatch_and_quality_by_length():
 
 
 def test_full_width_short_tap_warns():
-    asm = _asm(_tee(RectShape(A, 0.3 * B, 4, 4)))
+    asm = _asm(_tee(RectShape(A, 0.3 * B, nang_w=4, nang_h=4)))
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         asm.validate()
@@ -223,7 +223,7 @@ def test_full_width_short_tap_warns():
 # ---------------------------------------------------------------------------
 
 def _hspec(aspect=2, n=8, **kw):
-    return PipeSpec(nang_w=n, nang_h=n).core("fluid", RectShape(aspect * B, B, n, n),
+    return PipeSpec(nang_w=n, nang_h=n).core("fluid", shape=RectShape(aspect * B, B, nang_w=n, nang_h=n),
                                              layout="h", **kw)
 
 
@@ -350,7 +350,7 @@ def test_shoe_default_run_length_reaches_the_stretched_hole():
     k = math.sqrt(2)                       # 1/sin 45°; the hole's centre is B cot 45° = B
     e, *_ = _shoe(_rect(0.3 * A), 45)
     assert e.fitting.run_length == pytest.approx(0.3 * A * k + B + 4 * t, rel=1e-12)
-    e, *_ = _shoe(RectShape(A, 0.3 * A, 4, 4), 45)          # full-width
+    e, *_ = _shoe(RectShape(A, 0.3 * A, nang_w=4, nang_h=4), 45)          # full-width
     assert e.fitting.run_length == pytest.approx(0.3 * A * k + B + FULL_WIDTH_RUN * B,
                                                  rel=1e-12)
 
@@ -358,9 +358,9 @@ def test_shoe_default_run_length_reaches_the_stretched_hole():
 @pytest.mark.parametrize("branch, field, code", [
     (_rect(0.3 * A), "branch_length", "branch_length_too_short"),
     (CircleShape(radius=0.3 * A, nang=4), "branch_length", "branch_length_too_short"),
-    (RectShape(A, 0.3 * A, 4, 4), "branch_length", "branch_length_too_short"),
+    (RectShape(A, 0.3 * A, nang_w=4, nang_h=4), "branch_length", "branch_length_too_short"),
     (_rect(0.3 * A), "run_length", "run_length_too_short"),
-    (RectShape(A, 0.3 * A, 4, 4), "run_length", "run_length_too_short"),
+    (RectShape(A, 0.3 * A, nang_w=4, nang_h=4), "run_length", "run_length_too_short"),
 ])
 def test_shoe_room_checks_measure_the_acute_end(branch, field, code):
     """The hole's acute end sets the room: along the branch axis (b + p
@@ -384,7 +384,7 @@ def test_shoe_angle_out_of_range(angle):
 
 
 def test_shoe_quality_tiers_name_a_larger_angle():
-    asm = _asm(_tee(RectShape(A, 0.3 * A, 4, 4), angle=30))
+    asm = _asm(_tee(RectShape(A, 0.3 * A, nang_w=4, nang_h=4), angle=30))
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         asm.validate()

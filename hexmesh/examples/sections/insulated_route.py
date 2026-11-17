@@ -32,7 +32,7 @@ def build() -> Assembly:
 
     frame = asm.add(Straight(0.3, n_layers=4)).frame
     p, t = frame.position, frame.normal
-    asm.add(SplinePipe([p, p + 0.4 * t + 0.2 * frame.up, p + 0.9 * t + 0.3 * frame.up],
+    asm.add(SplinePipe(points=[p, p + 0.4 * t + 0.2 * frame.up, p + 0.9 * t + 0.3 * frame.up],
                        n_layers=10, end_tangent=t))
 
     asm.add(Elbow(90, schedule="short", n_layers=8, roll=180))   # turn down

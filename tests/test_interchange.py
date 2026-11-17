@@ -34,7 +34,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def _spec(bore=0.1):
-    return PipeSpec(nang=4).core("fluid", CircleShape(radius=bore / 2, nang=4), nrad=3)
+    return PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=bore / 2, nang=4), nrad=3)
 
 
 def _line(model=None, system="L-1"):
@@ -215,5 +215,5 @@ def test_pcf_importer_fills_the_model(tmp_path):
     assert elbow.stated_angle == pytest.approx(90) and np.allclose(elbow.corner, [1.15, 0, 0])
     assert m.ports[term.ports[0]].equipment == {"tag": "V-1", "nozzle": "N2"}
     assert elbow.provenance.format == "pcf" and elbow.provenance.record == "ELBOW"
-    assert ix.describe(elbow, elbow.corner).startswith("component 1 (ELBOW ELBOW_1 at")
+    assert ix.describe(elbow, at=elbow.corner).startswith("component 1 (ELBOW ELBOW_1 at")
     assert net.to_assembly(_spec()).to_dict() == ix.build(m, _spec()).to_dict()

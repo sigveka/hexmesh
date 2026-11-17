@@ -37,10 +37,11 @@ BundleSpec
 """
 
 from __future__ import annotations
+import copy
 import math
 import re
 import warnings
-from dataclasses import dataclass, field
+from dataclasses import KW_ONLY, dataclass, field
 from typing import TYPE_CHECKING
 
 from ..errors import SpecError, SpecTypeError, SpecUsageError
@@ -123,6 +124,7 @@ class LayerSpec:
     """
 
     name: str
+    _: KW_ONLY
     dR:   float | None
     nrad: int
     mprg: float = 1.0
@@ -193,7 +195,7 @@ class PipeSpec:
         bar = (
             PipeSpec(nang=4)
             .core("copper", radius=0.01, nrad=4)
-            .shell("insulation", outer=RectShape(0.02, 0.02, 4, 4), nrad=3)
+            .shell("insulation", outer=RectShape(0.02, 0.02, nang_w=4, nang_h=4), nrad=3)
         )
     """
 
@@ -214,7 +216,7 @@ class PipeSpec:
 
     def __init__(
         self,
-        nang:    int | None = None,
+        *, nang:    int | None = None,
         nang_w:  int | None = None,
         nang_h:  int | None = None,
         mbmp:    float = 1.0,
@@ -251,8 +253,14 @@ class PipeSpec:
                     limit={"multiple_of": divisor}, hint=_nang_hint(nang, divisor))
 
     # ------------------------------------------------------------------
-    # Builder methods
+    # Builder methods: each returns a new spec and leaves its own
+    # unchanged (copy-on-write, decision 0053), so a spec is safe to share
     # ------------------------------------------------------------------
+
+    def _copy(self) -> "PipeSpec":
+        out = copy.copy(self)
+        out._shells = list(self._shells)
+        return out
 
     #: :meth:`core`'s arguments (task 0095).  ``name``, ``shape``,
     #: ``layout``, ``nrad``, ``mprg`` and ``wall_bump`` are saved; the
@@ -279,10 +287,9 @@ class PipeSpec:
     def core(
         self,
         name:   str,
-        shape:  Shape | None = None,
+        *, shape:  Shape | None = None,
         nrad:   int = 0,
         mprg:   float | None = None,
-        *,
         radius: float | None = None,
         half_w: float | None = None,
         half_h: float | None = None,
@@ -356,6 +363,7 @@ class PipeSpec:
             ``mprg``: a k× refinement keeps them, so its nodes nest.
             ``first_cell=`` and ``mprg=`` resolve to it.
         """
+        self = self._copy()                  # copy-on-write (decision 0053)
         if self._core is not None:
             raise SpecUsageError("PipeSpec.core() may only be called once.", code="spec_core_twice",
                                  hint="add further layers with .shell(); start a new PipeSpec "
@@ -508,10 +516,9 @@ class PipeSpec:
     def shell(
         self,
         name: str,
-        dR:   float | None = None,
+        *, dR:   float | None = None,
         nrad: int | None = None,
         mprg: float | None = None,
-        *,
         outer: Shape | None = None,
         first_cell: float | None = None,
     ) -> "PipeSpec":
@@ -551,6 +558,7 @@ class PipeSpec:
             line between corresponding points of the two outlines.
             Mutually exclusive with ``mprg``.
         """
+        self = self._copy()                  # copy-on-write (decision 0053)
         if self._core is None:
             raise SpecUsageError("Call PipeSpec.core() before .shell().",
                                  code="spec_shell_before_core",
@@ -604,7 +612,7 @@ class PipeSpec:
             mprgs = [self._core_mprg] + [sh.mprg for sh in self.shells]
         out = (PipeSpec(nang=self.nang, nang_w=self.nang_w, nang_h=self.nang_h,
                         n_outer=self.n_outer, rot=self.rot, mbmp=self.mbmp)
-               .core(name, shape.resized(radii[0]),
+               .core(name, shape=shape.resized(radii[0]),
                      nrad=self._core_nrad, mprg=mprgs[0]))
         for sh, dR, m in zip(self.shells, radii[1:], mprgs[1:]):
             out = out.shell(sh.name, dR=dR, nrad=sh.nrad, mprg=m)
@@ -886,12 +894,12 @@ class PipeSpec:
         if layout == "h":
             wb = core.get("wall_bump")
             # an H ratio saved as mprg (e0e88dc) resolves to wall_bump here
-            spec.core(core["name"], shape, layout="h",
-                      wall_bump=None if wb is None else tuple(wb),
-                      mprg=None if wb is not None else core.get("mprg", 1.0))
+            spec = spec.core(core["name"], shape=shape, layout="h",
+                             wall_bump=None if wb is None else tuple(wb),
+                             mprg=None if wb is not None else core.get("mprg", 1.0))
         else:
-            spec.core(core["name"], shape, nrad=core["nrad"], mprg=core.get("mprg", 1.0),
-                      layout="oh")
+            spec = spec.core(core["name"], shape=shape, nrad=core["nrad"],
+                             mprg=core.get("mprg", 1.0), layout="oh")
         for sh in d.get("shells", []):
             sh = dict(sh)
             kind = sh.pop("type")
@@ -905,7 +913,7 @@ class PipeSpec:
                                 code="shell_type_unknown", value=kind)
             if "outer" in sh:
                 sh["outer"] = shape_from_dict(sh["outer"])
-            spec.shell(**sh)
+            spec = spec.shell(**sh)
         return spec
 
     def __repr__(self) -> str:
@@ -937,6 +945,7 @@ class BundleSpec:
     """
 
     pipe:       PipeSpec
+    _: KW_ONLY
     nx:         int
     ny:         int
     shell_name: str = "shell"
