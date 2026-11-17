@@ -69,6 +69,24 @@ surfaces platform-independent.
 
 ## Agent notes
 
+- **Step 1, the cause confirmed (2026-11-17, scipy 1.11.4, numpy 1.26.4,
+  Linux).**  The example's survey is a 161 × 53 grid at 5 m; every one of
+  its 8320 cells has four co-circular corners.  Qhull's Delaunay cut
+  4149 of them along one diagonal and 4171 along the other: no rule, so
+  rounding decides.  At the route's 73 points (after
+  `max_segment_length=10`), the two consistent splits differ by up to
+  3.7e-3 in z, at 46 points by more than 1e-9; Qhull's own choice is
+  3.3e-3 from one and 3.7e-3 from the other.  macOS's differences in CI
+  run 44148935916 (z up to about 2.5e-3, values in ninths and
+  eighteenths of the file's millimetres, as a linear interpolation of
+  3-decimal heights gives) fit.
+- **Step 4's test is written, not committed:** the 35 examples' built
+  descriptions compared with `examples_current.json` through
+  `_same`, in `test_intent.py`; 35 pass on Linux in 6 s.  Held back so
+  the push of the range up to 9de140b stays green while 0167 goes first
+  (the design session's order).  It goes in as its own commit, pushed
+  alone, for the before-the-fix run.
+
 ## Questions for design
 
 ## Outcome
