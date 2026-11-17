@@ -92,14 +92,14 @@ without rebuilding geometry:
 
 **Density** is resolution only, and can be scaled without changing
 topology:
-- `nang`: divisions per 90° arc, shared by every layer (a circle with
+- `n_arc`: divisions per 90° arc, shared by every layer (a circle with
   `arcs` gives each arc its own);
-- `nrad`: cells across each radial layer;
+- `n_radial`: cells across each radial layer;
 - `n_layers`: axial cells, per fitting.
 
 **Per-arc counts** (`CircleShape(radius, arcs=[a, b, a, b])`, decision
 0041, task 0147).  Today the layouts mesh only opposite-equal arcs, on
-`n_outer = 4`.  Such a circle sets `nang_w = a` and `nang_h = b`, as a
+`n_outer = 4`.  Such a circle sets `n_width = a` and `n_height = b`, as a
 rectangle does, and its signature is that of an O-H rectangle with the
 same counts and layers (an H rectangle differs in core kind; a
 `Transition` embeds the switch).
@@ -119,7 +119,7 @@ radii only.  Topology and density must match.
 | 8         | 45°             | yes, except at junctions: the same face cut along its grid lines |
 | 12 and up | ≤ 30°           | no: `check_supported` rejects it |
 
-- **Constraint:** `nang % (n_outer // 4) == 0`, so each outer arc gets a
+- **Constraint:** `n_arc % (n_outer // 4) == 0`, so each outer arc gets a
   whole number of divisions.  `n_outer` is a multiple of 4.  Both are
   enforced in `PipeSpec`.
 - **`n_outer = 8` is a sub-partition** (decision 0005, task 0088): the

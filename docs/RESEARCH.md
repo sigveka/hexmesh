@@ -191,7 +191,7 @@ quadric–quadric intersections is in [`miller_1987`].
   in the topology layer.  The split angles depend only on $r/R$, so they
   can be computed before GMSH.  The split happens inside the tee
   template (DESIGN §7).  The template still needs a fixed rule assigning
-  divisions to each sub-arc from the global `nang` (DESIGN A5); that rule
+  divisions to each sub-arc from the global `n_arc` (DESIGN A5); that rule
   is not defined yet.
 - **Laterals and offsets** move both tips: tip angle around the main axis
   is $\arcsin(h/R)$, and the tip positions along $x$ become asymmetric
@@ -347,7 +347,7 @@ $$
     side, so exact creases there would need more splitting.  Measured
     in task 0118:
 
-    | case (`nang` 8) | cube: min SJ meshed (pred.) | cube: crease chord % R | hub (0116) |
+    | case (`n_arc` 8) | cube: min SJ meshed (pred.) | cube: crease chord % R | hub (0116) |
     |---|---|---|---|
     | equal tee 0°/90° | 0.577 (0.577), 0 inverted, non-orth. 45° | 3.7 (4.1 shelled) | SJ 0.058 |
     | equal lateral 0°/45° | 0.134 (0.223), 0 inverted | 2.2 / 2.9 | folds (28) |
@@ -359,7 +359,7 @@ $$
       the 60° wyes leave the inlet and one daughter 30° off square and
       fold in the centre hex and the inlet port's ring.
     - The tee's crease error sits where the crease crosses the ±y sides
-      (as predicted) and falls at first order with `nang` (2.0 % at 16,
+      (as predicted) and falls at first order with `n_arc` (2.0 % at 16,
       1.4 % at 24; about 33 for 1 %).
     - The station's distance from the cube matters more than the centre
       hex's size.  The paper's small-angle step (their Fig. 9) wasn't
@@ -375,7 +375,7 @@ $$
       B3 is an opt-in candidate for `Wye` (task 0124).
     - **Built (task 0122), the equal tee at 90°:** meshed min SJ 0.511 /
       0.399 / 0.330 / 0.305 and crease chord 3.7 / 2.0 / 1.1 / 0.7 % R at
-      `nang` 8 / 16 / 32 / 48; the station's distance doesn't matter from
+      `n_arc` 8 / 16 / 32 / 48; the station's distance doesn't matter from
       0.25 to 4 outer radii.  The meshed quality falls with refinement
       because projection's move (up to 0.18 R, from the flat wall-side
       faces) is fixed by the geometry.  Equal laterals degrade faster
@@ -388,7 +388,7 @@ $$
       face's edge, is sheared, not crushed.  Carrying the move into the
       internal faces (every weight tried, even negative) only lowers the
       min SJ.  The layout's own limit at the wall (block corners 0.665,
-      along wall edges 0.707) is far above the meshed 0.305 at `nang`
+      along wall edges 0.707) is far above the meshed 0.305 at `n_arc`
       48, so the geometric angle doesn't explain it either.  Open: the
       projected wall grid's obliquity at the edges (unmeasured).
 - [`verma_and_fischer_etal_2005`]: a bifurcation split into three
@@ -402,22 +402,22 @@ With node projection (decision 0029) every wye wall node is on the
 canal surface to 1e-15 R.  The remaining error is the chord across the
 crease, where faces cut across it:
 
-| `nang` | wye 60° | wye 90° |
+| `n_arc` | wye 60° | wye 90° |
 |---|---|---|
 | 4 | 2.9 % R | 3.2 % R |
 | 8 | 0.95 % R | 0.88 % R |
 | 16 | 0.26 % R | 0.24 % R |
 | 32 | 0.07 % R | 0.06 % R |
 
-- **Second order in `nang`, and under decision 0029's 1 % threshold at
-  `nang` 8**, so no layout change for now.  The crease would be exact
+- **Second order in `n_arc`, and under decision 0029's 1 % threshold at
+  `n_arc` 8**, so no layout change for now.  The crease would be exact
   only on block edges (the separation half-planes of §4.4).  Revisit if
   a wye validation case is sensitive at the crotch.
 - **Nearest-point projection folds the crotch:** the filled face is a
   sharper V than the wall.  A smoothed-normal projector (`TubeUnion`)
   avoids it.
 - **The knee:** the hub's spherical cap was resolved by `n_run` only,
-  with chords of 8–10 % R at any `nang` (task 0056).
+  with chords of 8–10 % R at any `n_arc` (task 0056).
 
 ### 4.4 What this means for Stage 6 (Y-junction redesign)
 
@@ -689,7 +689,7 @@ i.e. 0.05 D at the throat, in one plane.
         design answer).
  `simpleFoam` / SIMPLEC plateau and
     leave the converged state.  Transient `pimpleFoam` reaches steady
-    in 10–20 time units.  The coarsest hexmesh level (`nang` 6,
+    in 10–20 time units.  The coarsest hexmesh level (`n_arc` 6,
     15 k cells) has no steady axisymmetric state: the jet drifts off
     axis, a resolution artefact.  The medium level (123 k cells) gives
     reattachment 11.12 D (+0.9 %).
@@ -741,7 +741,7 @@ only the ring follow $R(x)$.
 
 Measured 2026-10-26: hexmesh `82147f4`, gmsh 4.12.1, OpenFOAM v1912.
 D = 0.02 m, Re = 100, 30 D long, Δp measured from 15 D to 25 D.  Three
-levels: `nang` 6/12/24, `nrad` 3/6/12, 48/96/192 axial cells (5 184 /
+levels: `n_arc` 6/12/24, `n_radial` 3/6/12, 48/96/192 axial cells (5 184 /
 41 472 / 331 776 cells).  Full tables: `validation/poiseuille/RESULTS.md`.
 
 **Finding 1: plate-filled straight walls are not exact.**
@@ -751,7 +751,7 @@ levels: `nang` 6/12/24, `nrad` 3/6/12, 48/96/192 axial cells (5 184 /
   - Single-layer pipe: up to **1.08 % of R** inside the circle.
   - Two-layer pipe, 16 layers (design session check): −0.15 % to
     +0.69 % of R, on the outer wall and on the fluid/steel interface
-    alike, the same at `nang` 6 and 24.
+    alike, the same at `n_arc` 6 and 24.
 - The sagged cross-section's area predicts the measured Δp within 0.1 %
   (Δp ∝ 1/A² at fixed Q).
 - Ruled side surfaces (`addBSplineFilling(type="Stretch")`) put the
@@ -767,7 +767,7 @@ opposite sign.**  Diagnostic run, ruled walls patched in:
 | medium | +0.207 % | 0.285 % | 0.285 % | +0.286 % | −0.079 % |
 | fine | +0.104 % | 0.071 % | 0.071 % | +0.071 % | +0.033 % |
 
-- The mesh's cross-section is the inscribed $N$-gon, $N = 4\,$`nang`, with
+- The mesh's cross-section is the inscribed $N$-gon, $N = 4\,$`n_arc`, with
   area deficit $1 - \frac{N}{2\pi}\sin\frac{2\pi}{N} \approx
   \frac{(2\pi/N)^2}{6}$.  The measured inlet-flow deficit (uniform
   inlet U) equals it to four digits.  Every finite-volume mesh with flat
@@ -847,7 +847,7 @@ focus.
 Measured 2026-10-27: hexmesh `d71d0d8`, gmsh 4.12.1, OpenFOAM v1912.
 Steady conduction with uniform generation, $T = T_w + q'''(R^2 -
 r^2)/4k$; the same Poisson problem as Poiseuille, without p–U coupling.
-Two series (uniform, wall-graded), `nang`/`nrad` 6/3 → 48/24.  Full
+Two series (uniform, wall-graded), `n_arc`/`n_radial` 6/3 → 48/24.  Full
 tables: `validation/heated_rod/RESULTS.md`.
 
 | Series | L2 order per refinement | ΔT₀ order | extrapolated ΔT₀ − exact | GCI fine |
@@ -876,7 +876,7 @@ self-similar core square: decision 0022 (proposed).
 ### 7.7 Build time (task 0036)
 
 Measured 2026-10-27 on an idle machine (`benchmarks/build_time.py`,
-serpentine of `Straight` + `Bend(180)` pairs, `nang` 4, one layer).
+serpentine of `Straight` + `Bend(180)` pairs, `n_arc` 4, one layer).
 
 | volumes | cells | `synchronize` calls before → after | total s before → after | speed-up |
 |---|---|---|---|---|
@@ -1137,7 +1137,7 @@ closed vertical tube; `interFoam`).
 Measured 2026-11-02 (design session): hexmesh `8b0dc98` plus the
 uncommitted task 0071 driver, gmsh 4.12.1, OpenFOAM v2406 (Docker).
 Fully developed laminar flow, Re 100 on D_h, exact inlet profile;
-`nang_h` 6 · k, `nang_w` = `nang_h` · a/b, `nrad` 3 · k, k = 1, 2, 4.
+`n_height` 6 · k, `n_width` = `n_height` · a/b, `n_radial` 3 · k, k = 1, 2, 4.
 
 **OpenFOAM, the O-H section (signed f·Re error against Shah & London):**
 
@@ -1225,9 +1225,9 @@ kinks, not 45° diagonals).
 
 **The O-H face is a pillowed Cartesian face.**  Pillowing an nx × ny
 grid along its whole boundary inserts one ring of cells with a diagonal
-edge at each corner: exactly the 5-patch O-H face with `nang_w` = nx,
-`nang_h` = ny, `nrad` = 1.  So H ↔ O-H is a class-1 change (§9.6): the
-O-H face has `nrad` closed chords (the ring) on top of the H face's
+edge at each corner: exactly the 5-patch O-H face with `n_width` = nx,
+`n_height` = ny, `n_radial` = 1.  So H ↔ O-H is a class-1 change (§9.6): the
+O-H face has `n_radial` closed chords (the ring) on top of the H face's
 open ones.  In 3-D the ring's tube sheets end in the switch fitting,
 capped (a cup open toward the O-H side) or turned out to the wall.
 
@@ -1248,7 +1248,7 @@ design session, 2026-11-04; decision 0036 amendment).
 - What remains:
   - **capped:** the outer ring stays the wall layer to the H port and
     closes as a cup through a frustum end block;
-  - **hybrid** (`nrad` ≥ 2): inner sheets cross the outer one and end
+  - **hybrid** (`n_radial` ≥ 2): inner sheets cross the outer one and end
     crosswise on the wall, which is valid; the outer sheet is capped.
 - Corollary: any fitting that changes which sheet lies along a flat wall
   needs irregular wall edges.  The O-H ↔ H change can sit only at a
@@ -1259,15 +1259,15 @@ design session, 2026-11-04; decision 0036 amendment).
 - **Construction: 6 blocks.**
   - A core: the O-H face's centre rectangle, extruded to a level C at
     L − t, where t is the ring thickness.
-  - A cap: a frustum from C to the whole H face, `nrad` cells along the
-    axis.  All `nrad` ring sheets close in it: its axial cell layers are
+  - A cap: a frustum from C to the whole H face, `n_radial` cells along the
+    axis.  All `n_radial` ring sheets close in it: its axial cell layers are
     the sheets.
   - Four side blocks: the ring patches, running along the wall to the H
     port and closed by the slants from C.
-  - Cells: `nw·nh·(n + nrad) + 2(nw + nh)·nrad·n`.
+  - Cells: `nw·nh·(n + n_radial) + 2(nw + nh)·n_radial·n`.
 - **Quality depends on the slant alone.**  Three slants meet at each
   corner of C, as at a cube O-grid's corner.  At 45° the corner's min SJ
-  is 1/√3 = 0.577, whatever a/b, `nrad` or the length.
+  is 1/√3 = 0.577, whatever a/b, `n_radial` or the length.
 
   | d / t (cap depth / ring thickness) | slant | min SJ | max non-orth |
   |---|---|---|---|
@@ -1278,13 +1278,13 @@ design session, 2026-11-04; decision 0036 amendment).
   | 2 | 26.6° | 0.408 | 60.4–63.2° |
   | 3 | 18.4° | 0.302 | 69.4–70.7° |
 
-  (a/b 2, `nrad` 3, graded ring and H end.)  Over a/b 1 / 2 / 4 and
-  `nrad` 1 / 3 / 6 at d = t, min SJ is 0.577 everywhere and max non-orth
-  is 39–52°.  Max skewness is 0.84–2.50 and grows with `nrad` and a
+  (a/b 2, `n_radial` 3, graded ring and H end.)  Over a/b 1 / 2 / 4 and
+  `n_radial` 1 / 3 / 6 at d = t, min SJ is 0.577 everywhere and max non-orth
+  is 39–52°.  Max skewness is 0.84–2.50 and grows with `n_radial` and a
   graded ring.
 - **Length rule:** `L ≥ 1.25 t` (`limits.SWITCH_MIN_LENGTH`): the cap is
   d = t plus a short core.  The rule scales with the ring thickness, not
-  with `nrad` or a/b.  From 1.25 t to 5 t the quality doesn't change.
+  with `n_radial` or a/b.  From 1.25 t to 5 t the quality doesn't change.
   Skewness grows 1.64 → 2.18 as the core's cells lengthen.
   - **Correction (task 0086, Question 2, 2026-11-05): this holds only
     for a uniform H face.**  0085's graded rows were all at L = 3t, which
@@ -1300,7 +1300,7 @@ design session, 2026-11-04; decision 0036 amendment).
     | min SJ | 0.122 | 0.231 | 0.387 | 0.523 | 0.563 |
 
     Non-orthogonality reaches 79–81° at the short lengths.  The layer
-    count and the ring's `mprg` don't matter.
+    count and the ring's `radial_grading` don't matter.
   - By shear, over a/b 1 and 2, n 8 and 16, first cell 0.001–0.004:
     - Δ/L ≤ 0.4 gives min SJ ≥ 0.50;
     - 0.5–0.8 gives 0.23–0.52;
@@ -1309,7 +1309,7 @@ design session, 2026-11-04; decision 0036 amendment).
     tier fired.  A graded `Switch` could mesh at SJ ~0.1 with no
     warning (since `07c38de`).
   - **The widened measurements** (task 0086, 450 meshed switches):
-    - a/b 1, 2 and 4; n 8–24; first cell down to h/200; `nrad` 2–9 and
+    - a/b 1, 2 and 4; n 8–24; first cell down to h/200; `n_radial` 2–9 and
       6; L/t 1.25–16.
     - The side shear alone does not hold min SJ ≥ 0.5.  Where 1.25 t
       sets the length, the core block is only 0.25 t long and carries
@@ -1333,15 +1333,15 @@ design session, 2026-11-04; decision 0036 amendment).
     - Over the sweep, the SJ check fired at 0.039–0.085 (1.25 t, h/100).
     - **Non-orthogonality is the switch's own** (plain H gives 0°,
       pillowed O-H 44°).  It rises with the wall grading, the switch
-      length and the ring's `nrad`.  At a/b 4, n 8, first cell h/200:
+      length and the ring's `n_radial`.  At a/b 4, n 8, first cell h/200:
 
-      | `nrad` | at 12 t (shortest) | at 20 t |
+      | `n_radial` | at 12 t (shortest) | at 20 t |
       |---|---|---|
       | 3 (derived) | < 70° | 76.2° |
       | 6 | 74.2° | 79.5° |
 
       So lengthening a switch doesn't lower it.  Past 80° the error
-      points to a gentler H-face grading or a smaller `nrad` instead
+      points to a gentler H-face grading or a smaller `n_radial` instead
       (`mesh()`, `d5e503f`).
 - **Graded H end:** the grading change goes in the core, so that C
   already carries the H side grading.  Min SJ is then 0.547–0.577.  In
@@ -1353,7 +1353,7 @@ design session, 2026-11-04; decision 0036 amendment).
 - **`Transition` to an H rectangle** embeds a `Switch` at its
   rectangular end: min SJ 0.577 and non-orth 46.7° at a/b 1 and 2.
 - **Flow check** (v2406, simpleFoam, laminar Re 100, a/b 2).
-  - Setup: 10 D_h of O-H (`nang_w` 24, `nang_h` 12, `nrad` 6), then a
+  - Setup: 10 D_h of O-H (`n_width` 24, `n_height` 12, `n_radial` 6), then a
     switch of 0.3 D_h, then 14 D_h of H; 47 376 cells.
   - f·Re matches each mesh's plain run.  O-H: 62.627 against 62.627.
     H: 61.122 against 61.082 (exact 62.192).
@@ -1495,7 +1495,7 @@ OpenFOAM v2406, k-ω SST, against McKeon et al. (2005)
   (`docs/integrations/openfoam.md`).  Spalding's law is the validated
   set.
 - **A trap:** with R − r as the wall distance, the wall-resolved u⁺
-  reads wrong by about a viscous unit at nang 12, because the wall is
+  reads wrong by about a viscous unit at n_arc 12, because the wall is
   faceted.  Use the distance to the faceted wall.
 - **Cost:** 2 h 50 min for the set on 4 MPI processes; Re_τ 550 at k = 4
   (184k cells) took 15 400 SIMPLE steps.
@@ -1568,7 +1568,7 @@ The fittings below the straight's order, and why (the design checks):
 
 Task 0077 (done 2026-11-11): Poisson with a manufactured solution,
 dolfinx (container), on hexmesh's `mesh(order=2)` Hex27 and on the same
-meshes' Hex8, straight, bend and tee, `nang` 6, 12, 24 (864 to 138 240
+meshes' Hex8, straight, bend and tee, `n_arc` 6, 12, 24 (864 to 138 240
 cells).  L2 order of the error, k 1→2 and 2→4:
 
 | case | data | Q2 on Hex27 | Q2 on Hex8 | Q1 on Hex8 |
@@ -1605,7 +1605,7 @@ cells).  L2 order of the error, k 1→2 and 2→4:
 | Sweep frames (`Closure`, Spline pipe) | Replace the rotation-method transport with double reflection | §1 |
 | `MiterBend` | Ellipse joint face internal to the fitting; decide oblique stations in `Sweep` vs. own template | §2.3 |
 | Tee and lateral | Replace the perpendicular saddle with general $s(\varphi)$ (angle $\alpha$, offset $h$) | §3.1 |
-| Tee side corners | Split main-pipe outer arc at $\pm\arcsin(r/R)$ inside the template; define the `nang` sub-arc rule | §3.2 |
+| Tee side corners | Split main-pipe outer arc at $\pm\arcsin(r/R)$ inside the template; define the `n_arc` sub-arc rule | §3.2 |
 | Y-junction (Stage 6) | Separation half-planes / butterfly as internal block faces; Hermite anchor edges | §4.4 |
 | `n_outer` choice | Test whether `n_outer = 4` + π/4 interface roll suffices at the wye | §4.4 |
 | Quality gates | Report min scaled Jacobian and NES next to SICN; set limits per fitting | §4.2, §4.4, §7.1 |
@@ -1646,7 +1646,7 @@ Two consequences matter for hexmesh:
 
 ### 9.2 `n_outer` as a sub-partition (no mesh change)
 
-With `nang` even, the `n_outer = 4` face already has grid lines through
+With `n_arc` even, the `n_outer = 4` face already has grid lines through
 0°/90°/180°/270°: the middle line of each ring patch, and the two centre
 lines of the core.  Cutting along them gives 8 ring patches and a 2×2
 core, with **the same twist planes**, so the same node connectivity.
@@ -1673,7 +1673,7 @@ sides), meshed in 2-D.  Candidate: the same face cut along the 0°/90°/
 straight line, counts and grading as the full patches imply.  Nodes
 matched by position, then element→node sets compared.
 
-| `nang` / `nrad` / `mprg` | nodes, quads | connectivity | max shift, core | max shift, ring |
+| `n_arc` / `n_radial` / `radial_grading` | nodes, quads | connectivity | max shift, core | max shift, ring |
 |---|---|---|---|---|
 | 4 / 2 / 1.0 | 57, 48 (both) | identical | 4.2e-3 R | — |
 | 8 / 4 / 1.2 | 209, 192 | identical | 4.2e-3 R | 2e-15 R |
@@ -1693,8 +1693,8 @@ matched by position, then element→node sets compared.
   c = `OH_RATIO`·R/√2, side midpoint x_m), the isoline is
   y(s) = ρ sin(θ₀ s) + s (x_m − c), s ∈ [−1, 1].
   A uniform straight cut misses it by up to 0.0043 R (s ≈ 0.57).  That
-  is a fixed absolute offset: 2 % of the local spacing at `nang` 4,
-  10 % at `nang` 24.
+  is a fixed absolute offset: 2 % of the local spacing at `n_arc` 4,
+  10 % at `n_arc` 24.
 - **Placing the cut nodes exactly is enough** (for a Coons patch; not
   for gmsh's fill: see *Built* below).  A Coons patch restricted
   to a sub-rectangle is the Coons patch of that sub-rectangle (the
@@ -1715,11 +1715,11 @@ known before GMSH from the boundary nodes, for any O-H shape.
   partition's nodes after `generate(1)` (cut lines), `generate(2)`
   (sub-patch interiors) and `setOrder(2)`, and records them as
   `corrections[...]["sub_partition"]`.  Largest move: 2e-4 m on R
-  0.05 m (4e-3 R, 0.04–0.14 local edge lengths); 0.026 R with `mbmp` 1.3
+  0.05 m (4e-3 R, 0.04–0.14 local edge lengths); 0.026 R with `arc_bump` 1.3
   (gmsh meshes the halves uniformly, then they take the full sides'
   nodes).  `docs/integrations/gmsh.md` has the fill convention.
 - **Same mesh:** connectivity identical and nodes ≤ 2.7e-15 R in 2-D
-  (circle, 2:1 rectangle, `nang` 8 and 24, graded, bumped, a miter
+  (circle, 2:1 rectangle, `n_arc` 8 and 24, graded, bumped, a miter
   station, a blend station) and ≤ 4e-15 R in one-layer 3-D slabs (bend,
   miter, rectangle bend, reducer, transition, spline).
 - **Multi-layer `Straight`:** identical connectivity, 1.4e-7 R apart.
@@ -1773,7 +1773,7 @@ smoothing.
 - **Axial count** (`n_layers`) is already per fitting (A5).  Axial twist
   planes are cross-sections, and they can end at any slab.  No
   transition is needed.
-- **Angular count (`nang`)** and **radial count (`nrad`)** form sheet
+- **Angular count (`n_arc`)** and **radial count (`n_radial`)** form sheet
   families that run along the whole pipe:
   - angular sheets cross the core and end on the wall at both sides;
   - radial sheets are the concentric O-rings.
@@ -1857,7 +1857,7 @@ these against the PDF.  Smoothing is part of the method throughout.
   over only part of a sweep must end somewhere.  If it ends on the
   **outermost wall** (a true boundary), or closes on itself, the fitting's
   port faces are unchanged.  A fitting could then add resolution inside
-  itself, e.g. near a tee or bend exit, while A5's global `nang`/`nrad`
+  itself, e.g. near a tee or bend exit, while A5's global `n_arc`/`n_radial`
   stays intact at every interface.  In a multi-layer (CHT) pipe the sheet
   must cross *all* layers out to the outermost wall.  Ending on the
   fluid/wall interface would make that interface non-conformal.
@@ -1909,7 +1909,7 @@ face mesh.  The question is only about fittings.
   for hexmesh: every shell layer of a pipe (wall, insulation) is a
   **solid torus** (annulus × length), not a ball, so Erickson's
   condition, not Mitchell's, is the right check per layer.  For hexmesh's
-  annuli the loop around the pipe has 4·`nang` quads, which is even.
+  annuli the loop around the pipe has 4·`n_arc` quads, which is even.
 - **Small cases** [`verhetsel_and_pellerin_etal_2019`,
   `verhetsel_2024`]: computer search for minimal fills.
   - All 54,943 even quadrangulations of the sphere with up to 20 quads
@@ -1984,7 +1984,7 @@ view of §9.1 and the operations above):
 |---|---|---|---|
 | 0 | identical (only geometry or block boundaries differ) | sweep; every sheet continues | Reducer; circle ↔ rectangle (0009); `n_outer` sub-partition (0005) |
 | 1 | differ by closed loops | insert or remove a capped sheet (pillow / sheet inflation) | O-H face ↔ single-patch square; layer termination (0006, sheets end on the end-annulus wall) |
-| 2 | same pattern, different counts | sheets start inside by turning back: refinement templates, fixed ratios | `nang`/`nrad` density breaks (0003) |
+| 2 | same pattern, different counts | sheets start inside by turning back: refinement templates, fixed ratios | `n_arc`/`n_radial` density breaks (0003) |
 | 3 | no acceptable conformal fill | declared non-conformal joint | equipment, 0003 option C |
 
 **For hexmesh.**
@@ -1995,7 +1995,7 @@ view of §9.1 and the operations above):
   replace "port types must match exactly" with a check that explains
   *what* is missing.
 - **Existence is never the blocker** for pipe sections: even counts hold
-  by construction (4·`nang` around, `nang`² core).  The blockers are
+  by construction (4·`n_arc` around, `n_arc`² core).  The blockers are
   template availability and cell quality without smoothing.
 - **Machine-searched templates** (Verhetsel) are a route to class 1/2
   transition templates with known minimal hex counts.  Geometric quality
@@ -2010,7 +2010,7 @@ view of §9.1 and the operations above):
     side and the angular direction is free.  This is the case Pitzalis's
     local solver handles poorly, so don't reuse their solver for it;
   - across the section, the cluster's sides are each layer's radial span
-    and the core's sides, so **`nrad` (per refined layer) and `nang` must
+    and the core's sides, so **`n_radial` (per refined layer) and `n_arc` must
     be even** on the coarse side;
   - along the pipe, the refined zone must be an even number of coarse
     cells long, or reach the network boundary.
@@ -2364,14 +2364,14 @@ coupled capabilities, each with high cohesion.
      `(1 − ratio) · min(half_w, half_h)` is written twice, in
      `oh_rect.py` and `blocks.py`;
    - `assembly/corners.py`, `assembly/signature.py` (`"oh_core"`),
-     `core/spec.py` (`n_outer`, the `nang` constraint).
+     `core/spec.py` (`n_outer`, the `n_arc` constraint).
 
    A new section type (decision 0036's H face, decision 0035's
    multi-core sections) touches all nine.
 
 2. **Shape behaviour is switched on type, not owned by the shape.**
    About 108 shape-specific sites in 17 modules (`isinstance` on
-   shapes, `shape.radius` / `half_w` / `nang_w` reach-ins); 89 of them
+   shapes, `shape.radius` / `half_w` / `n_width` reach-ins); 89 of them
    outside the shape and face builders.  Most: `interchange/build.py`
    25, `assembly/tee.py` 15, `core/spec.py` 13, `assembly/wye.py` 8,
    `io/readers/pcf.py` 6, `assembly/interface.py` 6.  Questions a shape
@@ -2547,15 +2547,15 @@ rect-duct series on OpenFOAM, waits for task 0090.
   - A graded H face predicts scaled Jacobian 1 and non-orthogonality 0.
 - **Refinement of a graded H core** (0084's Question 1):
   - The grading is stored as per-side `Bump` coefficients
-    (`wall_bump`), which `first_cell=` and an explicit `mprg` resolve to
+    (`wall_bump`), which `first_cell=` and an explicit `radial_grading` resolve to
     at `core()` time.
   - Refining keeps the coefficients, so the series nests to 1e-12.
-  - O-H's one-sided `mprg ** (1/k)` already nested: the design session
+  - O-H's one-sided `radial_grading ** (1/k)` already nested: the design session
     measured it at gmsh's ~1e-9 node floor (gmsh 4.12.1, Progression 1.3
     and 0.85, k = 2 and 4).  Only H's two-sided ratio did not.
 - **The wall-span table** (0083's Question 1) stores the O-H ratio, not
   a fraction of R.  A fraction of R would have changed the last bit of
-  `first_cell`'s `mprg` for 86 % of radii.
+  `first_cell`'s `radial_grading` for 86 % of radii.
 - **The known remainder:** `assembly` still branches on the layout in
   two places, the slab connection and the face grading.  They move
   behind `SectionLayout` when a third layout or decision 0035's
@@ -2698,8 +2698,8 @@ non-uniform boundary value on one patch (OpenFOAM: a coded or tabulated
 node-placement step (task 0088), and junctions take only 4.
 
 **What does matter for the shield's mesh:**
-- **Through the thickness:** `nrad` per layer, with the ablator graded
-  toward the heated surface (`mprg`), since the steep gradients are in
+- **Through the thickness:** `n_radial` per layer, with the ablator graded
+  toward the heated surface (`radial_grading`), since the steep gradients are in
   the first millimetres of char.  This is the resolution an ablation
   or conduction study needs, and it is independent of the face layout.
 - **The core's size on the cap:** the O-H core square sits over the

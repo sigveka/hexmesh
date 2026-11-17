@@ -181,3 +181,12 @@ them.
 
 **Future expansions:** 0021 gains its profile type; 0035 its section
 kind; 0019 and 0030 their build call.  None is constrained.
+
+**Note (2026-11-17): the renames in the design documents.**  Task 0166
+renamed the code (6f73e1a).  The design session renamed the same names in
+DESIGN.md (16), docs/RESEARCH.md (72, measurements included: same
+parameters, new names) and CLAUDE.md (5), under rule 5 above.  This
+is wording only; no rule changes.  Decision records and task files keep
+the old names: they are history, read with this table.  Task 0165
+keeps the existing table profile as a third kind, `Profile.table(points)`
+(the design session, 2026-11-17).

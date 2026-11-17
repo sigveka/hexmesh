@@ -63,7 +63,7 @@ claim on all three.
 4. **Fail before meshing.** Every check that can be made without GMSH is
    made without GMSH.
 5. **Topology and density are separate.** Topology (`n_outer`, `rot`,
-   layer stack) fixes where interfaces land.  Density (`nang`, `nrad`,
+   layer stack) fixes where interfaces land.  Density (`n_arc`, `n_radial`,
    `n_layers`, grading) only sets resolution and can be scaled freely.
 6. **gmsh meshes; hexmesh corrects, and says so.** gmsh creates every
    element of a default build.  hexmesh may move nodes onto the exact
@@ -160,7 +160,7 @@ An interface type consists of:
 - section layout of the core (`oh`, or `h` for rectangular cores)
 - layer stack (material names and order)
 - `n_outer` and `rot`
-- `nang` (or `nang_w`, `nang_h`) and per-layer `nrad`
+- `n_arc` (or `n_width`, `n_height`) and per-layer `n_radial`
 
 Every port that touches an interface must match its type exactly.
 Between a fitting's own ports, the **mesh signatures** may differ only in
@@ -180,7 +180,7 @@ one layout, and the signature's symmetry period is the combinatorial one
 circle ↔ rectangle transition with equal counts is class 0
 ([decision 0009](docs/decisions/0009-rectangular-sections-and-transitions.md)).
 The layout is topology: a rectangular O-H face is a pillowed H face, so
-O-H ↔ H on a rectangle with equal `nang_w`, `nang_h` is class 1
+O-H ↔ H on a rectangle with equal `n_width`, `n_height` is class 1
 ([decision 0036](docs/decisions/0036-cartesian-rectangular-section.md)).
 
 So type changes (diameter, layer stack, boundary kind) still happen
@@ -191,7 +191,7 @@ the end annulus becomes a wall
 
 ### Rule A5 — Density is solved globally; axial resolution is local
 
-`nang` and `nrad` must agree across every connected interface and are
+`n_arc` and `n_radial` must agree across every connected interface and are
 resolved over the whole network before realisation.  `n_layers` and axial
 grading belong to the individual fitting.  `Network.refinement` scales
 all of them uniformly.
@@ -448,7 +448,7 @@ Each turn face runs from a saddle arc to the branch core and bisects the
 270° re-entrant corner, so every block stays a proper hex.  The saddle
 corners are the branch OH's diagonal corners, at ±r/√2 along both the
 main axis and the transverse direction.  They become the corners of the
-junction's internal stations, so every arc keeps `nang` divisions and no
+junction's internal stations, so every arc keeps `n_arc` divisions and no
 sub-arc rule is needed.  All three ports keep the standard OH pattern.
 
 Tried and rejected: hole-on-wall layouts, where the branch's 5 patches
@@ -506,16 +506,16 @@ the inlet's spec.
 
 The crease where branch and main meet lies on cube edges only on the
 main's two sides; beside the branch it crosses the wall sides' faces,
-so its chord error is first order in `nang` (3.7 % R at 8, 1.1 % at
+so its chord error is first order in `n_arc` (3.7 % R at 8, 1.1 % at
 32), stated rather than gated (decision 0043).  The wall sides' flat
 faces sit up to 0.18 R inside the curved wall, and projection moves
-their nodes that far at any `nang`, so the meshed quality falls with
-refinement (min scaled Jacobian 0.511 at `nang` 8, 0.305 at 48, 0.293
+their nodes that far at any `n_arc`, so the meshed quality falls with
+refinement (min scaled Jacobian 0.511 at `n_arc` 8, 0.305 at 48, 0.293
 at 64; above `EQUAL_TEE_NANG_CLEAN` = 48 `validate()` warns before
 meshing, and nothing finer than 64 is measured; task 0127).
 
 **Range.**  Square and centred only (`EQUAL_LATERAL_ANGLE_MIN` = 90°):
-equal laterals build at `nang` 8 but degrade as `nang` rises and fail
+equal laterals build at `n_arc` 8 but degrade as `n_arc` rises and fail
 checkMesh's skewness from 60° down.  First order only: second-order
 hexes invert near the projected wall, as the wye's do, and `mesh(order=2)`
 rejects them before meshing.  Measurements: task 0122.
