@@ -416,11 +416,13 @@ CODES: dict[str, str] = {
     "prepend_at_equipment_end": "prepend at an equipment end",
     "prepend_needs_straight": "prepend of a fitting other than a Straight",
     "profile_chords_too_coarse": "a profiled reducer's wall chords too far from its profile",
+    "profile_fields_invalid": "a profile kind given fields it doesn't take",
     "profile_parameter_out_of_range": "a profile parameter outside its range",
     "profile_radii_mismatch": "a profile's end radii differ from the inlet's or outlet's",
     "profile_stations_too_few": "too few stations to resolve a profile's corners",
     "profile_table_invalid": "a profile table that is not a valid list of (s, r) pairs",
     "profile_too_short": "a profiled reducer too short for its profile",
+    "profile_type_invalid": "Reducer(profile=) given something other than a Profile",
     "profile_unknown": "an unknown profile",
     "quality_mode_unknown": "an unknown aggregation mode for a hex quality metric",
     "reader_format_invalid": "a file whose contents a reader can't use",
@@ -447,6 +449,7 @@ CODES: dict[str, str] = {
     "second_order_inverted": "second-order hexes with a Jacobian determinant <= 0",
     "second_order_unsupported":
         "order=2 on a fitting that can't be raised to second order (the wye)",
+    "section_kind_unsupported": "a saved section kind other than concentric (decision 0035)",
     "section_not_supported": "a section (layout, n_outer) the assembly does not support",
     "section_predicted_sj_below_minimum":
         "a section's predicted scaled Jacobian below PREDICTED_SJ_MIN",

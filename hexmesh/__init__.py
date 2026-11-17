@@ -41,7 +41,7 @@ design rules are in ``DESIGN.md``.
 
 from .assembly import (
     Assembly, AssemblyError, Bend, Closure, Elbow, Frame, Interface,
-    MiterBend, Reducer, SplinePipe, Straight, Switch, Tee, TeeOutlets, Transition, Wye,
+    MiterBend, Profile, Reducer, SplinePipe, Straight, Switch, Tee, TeeOutlets, Transition, Wye,
     WyeOutlets,
     Drum, Nozzle, OnShell, OnHead, EquipmentError,
 )
@@ -54,7 +54,7 @@ from .session import Session
 
 __all__ = [
     "Assembly", "AssemblyError", "Frame", "Interface",
-    "Straight", "Bend", "Elbow", "MiterBend", "Reducer", "Transition", "SplinePipe",
+    "Straight", "Bend", "Elbow", "MiterBend", "Reducer", "Profile", "Transition", "SplinePipe",
     "Closure", "Tee", "TeeOutlets", "Wye", "WyeOutlets", "Switch",
     "Drum", "Nozzle", "OnShell", "OnHead", "EquipmentError",
     "HexmeshError", "HexmeshWarning", "HexmeshNotice",

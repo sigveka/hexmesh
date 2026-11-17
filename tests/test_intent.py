@@ -201,7 +201,7 @@ def test_version_2_example_loads_as_today(name, gmsh_session):
     loaded = Assembly.from_dict(old).to_dict()
     today = importlib.import_module("hexmesh.examples." + name).build().to_dict()
     assert _same(loaded, today) == []
-    assert loaded["version"] == intent.VERSION == 3
+    assert loaded["version"] == intent.VERSION
 
 
 def test_version_2_names_are_renamed_as_name_parts():
@@ -209,3 +209,54 @@ def test_version_2_names_are_renamed_as_name_parts():
                                "lc": 0.1, "n_layers": 5, "inner": {"mbmp": 1.0}})
     assert d == {"n_width": 8, "n_height": 4, "branch_radial_grading": 1.2, "n_radial": 3,
                  "n_layers": 5, "inner": {"arc_bump": 1.0}}
+
+
+# --- version 3 → 4: profiles as objects, a section kind (decision 0053, task 0165) -------
+
+def _profiled_description(profile):
+    from hexmesh import Profile, Reducer          # noqa: F401  (the profile's type)
+    spec = PipeSpec(n_arc=8).core("fluid", radius=0.1, n_radial=3)
+    asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1])
+    asm.add(Straight(0.2, n_layers=2))
+    asm.add(Reducer(spec, length=2.0, n_layers=80, profile=profile))
+    return asm.to_dict()
+
+
+def _as_version_3(d, old_profile):
+    old = json.loads(json.dumps(d))
+    old["version"] = 3
+    old["edges"][1]["fitting"]["profile"] = old_profile
+    for spec in (old["inlet"]["spec"], old["edges"][1]["fitting"]["outlet"]):
+        del spec["kind"]
+    return old
+
+
+@pytest.mark.parametrize("make, old", [
+    (lambda P: P.cosine(0.25), ["cosine", 0.25]),
+    (lambda P: P.venturi(0.5, 10.0), ["venturi", 0.5, 10.0]),
+    (lambda P: P.table([(0, 1), (0.5, 0.8), (1, 1)]), [[0, 1], [0.5, 0.8], [1, 1]]),
+], ids=["cosine", "venturi", "table"])
+def test_version_3_profile_tuple_loads_as_its_profile(make, old):
+    from hexmesh import Profile
+    today = _profiled_description(make(Profile))
+    assert today["edges"][1]["fitting"]["profile"]["kind"] == make(Profile).kind
+    loaded = Assembly.from_dict(_as_version_3(today, old))
+    assert loaded.edges[1].fitting.profile == make(Profile)
+    assert loaded.to_dict() == today
+
+
+def test_every_spec_saves_its_kind_and_a_missing_kind_is_concentric():
+    d = _profiled_description(None)
+    assert d["inlet"]["spec"]["kind"] == PipeSpec.KIND == "concentric"
+    bare = json.loads(json.dumps(d))
+    del bare["inlet"]["spec"]["kind"]
+    assert Assembly.from_dict(bare).to_dict() == d
+
+
+def test_another_section_kind_is_a_coded_error():
+    d = _profiled_description(None)
+    d["inlet"]["spec"]["kind"] = "pipe_in_pipe"
+    with pytest.raises(Exception, match="decision 0035") as e:
+        Assembly.from_dict(d)
+    assert e.value.code == "section_kind_unsupported"
+    assert e.value.where == {"field": "kind"} and e.value.limit == ["concentric"]

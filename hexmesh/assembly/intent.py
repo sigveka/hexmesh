@@ -39,7 +39,8 @@ override.
 Lengths are in the user's unit and are stored unconverted.  Angles are in
 degrees.  :func:`upgrade` converts older versions: version 1 stored
 ``PipeSpec.rot`` in radians (decision 0024); version 2 used the names from
-before decision 0053.
+before decision 0053; version 3 saved a profile as a tuple
+(``["cosine", s0]``).  A spec without ``kind`` is concentric.
 
 Input-only fitting fields (``toward``) are resolved by ``Assembly.add()``
 and never saved.
@@ -63,6 +64,7 @@ from .fittings import (
     Bend, Closure, Elbow, MiterBend, Reducer, SplinePipe, Straight, Transition,
 )
 from .interface import Frame
+from .profile import Profile
 from .switch import Switch
 from .tee import Tee
 from .wye import Wye
@@ -71,7 +73,8 @@ if TYPE_CHECKING:
     from .assembler import Assembly
 
 FORMAT = "hexmesh.assembly"
-VERSION = 3          # 3: the 1.0 names, no lc (2: PipeSpec.rot in degrees; 1: radians)
+VERSION = 4          # 4: profiles as objects, a section kind; 3: the 1.0 names, no lc;
+                     # 2: PipeSpec.rot in degrees (1: radians)
 
 # Version 2's field names → version 3's (decision 0053, task 0166), as the
 # parts of a name they are: ``branch_mprg`` → ``branch_radial_grading``.
@@ -133,7 +136,7 @@ def fitting_to_dict(fitting) -> dict:
         v = getattr(fitting, f.name)
         if f.metadata.get("input") and v is None:
             continue
-        d[f.name] = v.to_dict() if isinstance(v, PipeSpec) else _plain(v)
+        d[f.name] = v.to_dict() if isinstance(v, (PipeSpec, Profile)) else _plain(v)
     return d
 
 
@@ -152,7 +155,12 @@ def fitting_from_dict(d: dict):
         if f.name not in d:
             continue
         v = d.pop(f.name)
-        kw[f.name] = PipeSpec.from_dict(v) if f.type == "PipeSpec" else _tuples(v)
+        if f.type == "PipeSpec":
+            kw[f.name] = PipeSpec.from_dict(v)
+        elif "Profile" in f.type and v is not None:
+            kw[f.name] = Profile.from_dict(v)
+        else:
+            kw[f.name] = _tuples(v)
     if d:
         raise AssemblyError(f"{name}: unknown fields {sorted(d)}",
                             code="fitting_fields_unknown", where={"label": name}, value=sorted(d))
@@ -224,6 +232,29 @@ def _rename_fields(v):
     return v
 
 
+def _profile_object(v):
+    """A version-3 profile (``["cosine", s0]``, ``["venturi", beta,
+    divergent]`` or a table of pairs) as its version-4 object."""
+    if not isinstance(v, list):
+        return v
+    if v and isinstance(v[0], str):
+        kind, *args = v
+        names = {"cosine": ("s0",), "venturi": ("beta", "divergent")}.get(kind, ())
+        return {"kind": kind, **dict(zip(names, args))}
+    return {"kind": "table", "points": v}
+
+
+def _profiles_to_objects(d: dict) -> dict:
+    """*d* with every saved fitting's ``profile`` as an object (version 3 → 4)."""
+    edges = []
+    for e in d.get("edges", []):
+        f = e.get("fitting", {})
+        if "profile" in f:
+            e = {**e, "fitting": {**f, "profile": _profile_object(f["profile"])}}
+        edges.append(e)
+    return {**d, "edges": edges}
+
+
 def upgrade(d: dict) -> dict:
     """A saved description at the current :data:`VERSION`."""
     if d.get("format") != FORMAT:
@@ -233,7 +264,9 @@ def upgrade(d: dict) -> dict:
     if d.get("version") == 1:
         d = {**_rot_to_degrees(d), "version": 2}
     if d.get("version") == 2:
-        d = {**_rename_fields(d), "version": VERSION}
+        d = {**_rename_fields(d), "version": 3}
+    if d.get("version") == 3:
+        d = {**_profiles_to_objects(d), "version": VERSION}
     if d.get("version") != VERSION:
         raise AssemblyError(f"unsupported {FORMAT} version {d.get('version')!r}",
                             code="description_version_unsupported", where={"field": "version"},

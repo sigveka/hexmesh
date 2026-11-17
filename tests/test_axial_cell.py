@@ -28,7 +28,7 @@ import pytest
 
 from hexmesh import Session
 from hexmesh.assembly import (
-    Assembly, AssemblyError, Bend, Closure, Elbow, MiterBend, Reducer, SplinePipe,
+    Assembly, AssemblyError, Bend, Closure, Elbow, MiterBend, Profile, Reducer, SplinePipe,
     Straight, Transition,
 )
 from hexmesh.assembly.sweep import MAX_CHORD_TURN
@@ -96,11 +96,11 @@ def test_spline_floor_is_the_chord_turn_limit():
 def test_profiled_reducer_floor_is_the_chord_tolerance():
     spec = PipeSpec(n_arc=6).core("fluid", radius=0.1, n_radial=3)
     outlet = PipeSpec(n_arc=6).core("fluid", radius=0.1, n_radial=3)
-    a, f = _added(1.0, Reducer(outlet, length=0.4, profile=("cosine", 0.25)), spec)
+    a, f = _added(1.0, Reducer(outlet, length=0.4, profile=Profile.cosine(0.25)), spec)
     assert f.n_layers > 1
     with pytest.raises(AssemblyError, match=f"use n_layers >= {f.n_layers}"):
         b = _asm(1.0, spec)
-        b.add(Reducer(outlet, length=0.4, n_layers=f.n_layers - 1, profile=("cosine", 0.25)))
+        b.add(Reducer(outlet, length=0.4, n_layers=f.n_layers - 1, profile=Profile.cosine(0.25)))
         b.validate()
 
 

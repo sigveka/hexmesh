@@ -100,6 +100,10 @@ def _wall_progression(radial_grading: float | None, thickness: float, n_radial: 
     return 1.0 / progression_for_first_cell(thickness, n_radial, first_cell)
 
 
+#: the saved section kind (decision 0053): a core with layers around it.
+#: Decision 0035 stage B adds others (pipe-in-pipe, multi-core).
+SECTION_KIND = "concentric"
+
 @dataclass(frozen=True)
 class LayerSpec:
     """One shell layer in a pipe cross-section stack.
@@ -198,6 +202,9 @@ class PipeSpec:
             .shell("insulation", outer=RectShape(0.02, 0.02, n_width=4, n_height=4), n_radial=3)
         )
     """
+
+    #: the section kind it saves (decision 0053; decision 0035 stage B adds others)
+    KIND = SECTION_KIND
 
     #: the constructor's arguments (task 0095): saved as they are
     PARAMS = {
@@ -873,6 +880,7 @@ class PipeSpec:
                                "outer": sh.outer.to_dict(),
                                "n_radial": sh.n_radial, "radial_grading": sh.radial_grading})
         return {
+            "kind": SECTION_KIND,
             "n_arc": self._n_arc, "n_width": self._n_width, "n_height": self._n_height,
             "arc_bump": self._arc_bump, "rot": self._rot, "n_outer": self._n_outer,
             "core": {"name": name, "shape": shape_d, "layout": self._layout,
@@ -885,6 +893,13 @@ class PipeSpec:
     @classmethod
     def from_dict(cls, d: dict) -> "PipeSpec":
         """Rebuild a spec from :meth:`to_dict` output."""
+        kind = d.get("kind", SECTION_KIND)      # saved before decision 0053: concentric
+        if kind != SECTION_KIND:
+            raise SpecError(f"section kind {kind!r} is not supported; hexmesh meshes "
+                            f"{SECTION_KIND!r} sections (layers around one core).  Other kinds "
+                            f"come with decision 0035 stage B",
+                            code="section_kind_unsupported", where={"field": "kind"},
+                            value=kind, limit=[SECTION_KIND])
         spec = cls(n_arc=d.get("n_arc"), n_width=d.get("n_width"), n_height=d.get("n_height"),
                    arc_bump=d.get("arc_bump", 1.0), rot=d.get("rot", 0.0),
                    n_outer=d.get("n_outer", 4))

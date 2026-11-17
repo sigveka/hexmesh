@@ -43,7 +43,7 @@ from .interface import (Frame, check_outlines, half_extent, outer_radius, roll_m
                         rolled, rotate, toward_roll)
 from . import limits
 from .limits import RADIANS_WARNING_BELOW
-from .profile import CHORD_TOL, Profile
+from .profile import CHORD_TOL, Profile, RadiusProfile, hint_for
 from .sweep import MAX_CHORD_TURN, Arc, FillResult, Path, Sweep, _check_n_layers
 
 # No __all__: hexmesh and hexmesh.assembly are the promised paths to the
@@ -747,10 +747,10 @@ class Reducer(_AxialOutlet):
     ``first_cell``) can change diameter (decision 0016).
     *axial_grading* spaces the stations as for ``Straight``.
 
-    *profile* replaces the cone by a radius profile (decision 0008;
-    ``assembly.profile``): ``("cosine", s0)`` (a constriction for s0 > 0,
-    a bulge for s0 < 0), ``("venturi", beta,
-    divergent)`` or a table of ``(s, R/R_in)`` pairs.  Every radius of the
+    *profile* replaces the cone by a radius profile (decision 0008), a
+    :class:`Profile`: ``Profile.cosine(s0)`` (a constriction for s0 > 0, a
+    bulge for s0 < 0), ``Profile.venturi(beta, divergent)`` or
+    ``Profile.table([(s, R/R_in), …])``.  Every radius of the
     stack scales by the profile's ratio, so the outlet must be the inlet
     scaled by ``r(1)``.  Stations lie exactly on R(s); between them the wall
     is a straight chord, and ``validate`` rejects a chord more than
@@ -770,15 +770,25 @@ class Reducer(_AxialOutlet):
     axial_grading: float = param(
         "1", "ratio of consecutive axial cell lengths, inlet → outlet (1 = uniform)", default=1.0,
         exclusiveMinimum=0)
-    profile:  tuple | None = param(
+    profile:  Profile | None = param(
         "-",
-        'radius profile instead of a cone: ["cosine", s0], ["venturi", beta, divergent] or [[s, '
-        'R/R_in], …]',
+        "radius profile instead of a cone: Profile.cosine(s0), Profile.venturi(beta, divergent) "
+        "or Profile.table([(s, R/R_in), …])",
         default=None,
         limit=("COSINE_S0_MIN", "COSINE_S0_MAX", "VENTURI_DIVERGENT_MIN", "VENTURI_DIVERGENT_MAX"))
     chord_tol: float = param(
         "1", "largest wall-chord gap from the profile, in inlet radii", default=CHORD_TOL,
         minimum=0)
+
+    def __post_init__(self) -> None:
+        if self.profile is not None and not isinstance(self.profile, Profile):
+            hint = hint_for(self.profile)
+            raise AssemblyTypeError(
+                f"Reducer profile must be a Profile, got {self.profile!r}"
+                + (f"; write {hint}" if hint else ""),
+                code="profile_type_invalid", where={"field": "profile"},
+                hint=hint or "Profile.cosine(s0), Profile.venturi(beta, divergent) or "
+                             "Profile.table(points)")
 
     def layers_ok(self, n, inlet, spec, outlet=None) -> bool:
         if self.profile is None:
@@ -818,8 +828,8 @@ class Reducer(_AxialOutlet):
         if self.profile is not None:
             self._check_profile(spec)
 
-    def _profile(self, spec: PipeSpec) -> Profile:
-        return Profile(self.profile, self.length, spec.core_shape.max_extent)
+    def _profile(self, spec: PipeSpec) -> RadiusProfile:
+        return RadiusProfile(self.profile, self.length, spec.core_shape.max_extent)
 
     def _check_profile(self, spec: PipeSpec) -> None:
         prof = self._profile(spec)

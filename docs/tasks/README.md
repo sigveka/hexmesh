@@ -160,7 +160,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0161](0161-ci-runs-once-preflight-without-clock.md) | CI runs once per commit; the preflight test without a wall-clock limit | in progress | 0052 |
 | [0163](0163-write-twice-in-one-session.md) | Writing an assembly twice in one session (the second `mesh()` re-meshes and fails) | done | 0042 |
 | [0164](0164-api-hardening-before-freeze.md) | Keyword-only arguments, copy-on-write `PipeSpec`, named outlets from `add` (before the 0.8.0 tag) | done | 0053 |
-| [0165](0165-profile-type-and-section-kind.md) | A public `Profile` for reducers; a section kind in the description (before the 0.8.0 tag) | ready (after 0166) | 0053 |
+| [0165](0165-profile-type-and-section-kind.md) | A public `Profile` for reducers; a section kind in the description (before the 0.8.0 tag) | done | 0053 |
 | [0166](0166-rename-jargon-arguments.md) | Rename the mesh-jargon names (`nang` → `n_arc`, `nrad` → `n_radial`, `mprg` → `radial_grading`, …; `lc` removed) | done | 0053 |
 | [0167](0167-build-without-session.md) | Meshing without managing `Session`: a spike, then the API | ready (after 0165) | 0053 |
 | [0168](0168-volunteer-card-junction-loss.md) | A volunteer card for the junction-flow benchmark (one level per point) | ready (after 0162's level-3 point) | 0044 |

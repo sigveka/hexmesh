@@ -68,6 +68,22 @@ are unchanged); `hexmesh.io.readers` is removed.  Meshes are unchanged.
   fields are renamed and `lc` is dropped (a test loads every example as
   0.6 saved it).
 
+**Profiles as values; a section kind** (task 0165, decision 0053).
+- **Breaking: `Reducer(profile=…)` takes a `Profile`**, exported from
+  `hexmesh`: `Profile.cosine(s0)`, `Profile.venturi(beta, divergent=15)`
+  and `Profile.table([(s, r), …])`.  The tuple forms (`("cosine", s0)`,
+  `("venturi", beta, divergent)` and the bare list of pairs) are gone: a
+  tuple is a `profile_type_invalid` error whose hint gives the call.  The
+  constructors check the parameters, with the codes the tuples had, plus
+  `profile_fields_invalid` for a kind given the wrong fields.  A profile
+  saves as `{"kind": "cosine", "s0": 0.25}`.
+- Every saved `PipeSpec` carries `"kind": "concentric"` (`PipeSpec.KIND`).
+  A spec without one loads as concentric; any other kind is a
+  `section_kind_unsupported` error, until decision 0035 stage B adds
+  pipe-in-pipe and multi-core sections.
+- Saved descriptions are version 4.  Version 3 files load: their profile
+  tuples become objects.
+
 **Fixed: writing an assembly twice** (task 0163).
 - A second `write` or `write_openfoam` in the same session failed on a
   tee ("Surface 1 is transfinite but has 8 corners"): `mesh()` meshed

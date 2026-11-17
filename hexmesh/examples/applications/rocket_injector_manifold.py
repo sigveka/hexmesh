@@ -64,7 +64,7 @@ import math
 
 import numpy as np
 
-from hexmesh import Assembly, Bend, PipeSpec, Reducer, Straight, Tee
+from hexmesh import Assembly, Bend, PipeSpec, Profile, Reducer, Straight, Tee
 from hexmesh.units import mm
 
 # Huzel and Huang, NASA SP-125, p. 286: liquid oxygen, 79.4 ft/s.
@@ -123,7 +123,7 @@ def build() -> Assembly:
     end = asm.add(end, Bend(radius=0.08, angle=90, toward=(0, 0, 1), n_layers=8))
     end = asm.add(end, Straight(0.15, n_layers=6))
     end = asm.add(end, Reducer(insulated, length=0.3, n_layers=30,
-                               profile=("venturi", VENTURI_BETA, VENTURI_DIVERGENT)))
+                               profile=Profile.venturi(VENTURI_BETA, VENTURI_DIVERGENT)))
     asm.add(end, Straight(0.2, n_layers=6), names=["lox_inlet"])
     return asm
 

@@ -493,11 +493,13 @@
   "prepend_at_equipment_end",
   "prepend_needs_straight",
   "profile_chords_too_coarse",
+  "profile_fields_invalid",
   "profile_parameter_out_of_range",
   "profile_radii_mismatch",
   "profile_stations_too_few",
   "profile_table_invalid",
   "profile_too_short",
+  "profile_type_invalid",
   "profile_unknown",
   "quality_mode_unknown",
   "reader_format_invalid",
@@ -519,6 +521,7 @@
   "sampling_invalid",
   "second_order_inverted",
   "second_order_unsupported",
+  "section_kind_unsupported",
   "section_nonorth_above_maximum",
   "section_not_supported",
   "section_predicted_sj_below_minimum",
@@ -2944,6 +2947,81 @@
         },
         "kind": "positional_or_keyword",
         "name": "radial_gradings"
+       }
+      ]
+     }
+    }
+   },
+   "Profile": {
+    "bases": [],
+    "kind": "class",
+    "members": {
+     "__init__": {
+      "kind": "method",
+      "signature": [
+       {
+        "kind": "positional_or_keyword",
+        "name": "self"
+       },
+       {
+        "kind": "positional_or_keyword",
+        "name": "kind"
+       },
+       {
+        "kind": "var_keyword",
+        "name": "fields"
+       }
+      ]
+     },
+     "cosine": {
+      "kind": "classmethod",
+      "signature": [
+       {
+        "kind": "positional_or_keyword",
+        "name": "s0"
+       }
+      ]
+     },
+     "from_dict": {
+      "kind": "classmethod",
+      "signature": [
+       {
+        "kind": "positional_or_keyword",
+        "name": "d"
+       }
+      ]
+     },
+     "table": {
+      "kind": "classmethod",
+      "signature": [
+       {
+        "kind": "positional_or_keyword",
+        "name": "points"
+       }
+      ]
+     },
+     "to_dict": {
+      "kind": "method",
+      "signature": [
+       {
+        "kind": "positional_or_keyword",
+        "name": "self"
+       }
+      ]
+     },
+     "venturi": {
+      "kind": "classmethod",
+      "signature": [
+       {
+        "kind": "positional_or_keyword",
+        "name": "beta"
+       },
+       {
+        "default": {
+         "value": 15.0
+        },
+        "kind": "positional_or_keyword",
+        "name": "divergent"
        }
       ]
      }
@@ -6368,6 +6446,81 @@
      }
     }
    },
+   "Profile": {
+    "bases": [],
+    "kind": "class",
+    "members": {
+     "__init__": {
+      "kind": "method",
+      "signature": [
+       {
+        "kind": "positional_or_keyword",
+        "name": "self"
+       },
+       {
+        "kind": "positional_or_keyword",
+        "name": "kind"
+       },
+       {
+        "kind": "var_keyword",
+        "name": "fields"
+       }
+      ]
+     },
+     "cosine": {
+      "kind": "classmethod",
+      "signature": [
+       {
+        "kind": "positional_or_keyword",
+        "name": "s0"
+       }
+      ]
+     },
+     "from_dict": {
+      "kind": "classmethod",
+      "signature": [
+       {
+        "kind": "positional_or_keyword",
+        "name": "d"
+       }
+      ]
+     },
+     "table": {
+      "kind": "classmethod",
+      "signature": [
+       {
+        "kind": "positional_or_keyword",
+        "name": "points"
+       }
+      ]
+     },
+     "to_dict": {
+      "kind": "method",
+      "signature": [
+       {
+        "kind": "positional_or_keyword",
+        "name": "self"
+       }
+      ]
+     },
+     "venturi": {
+      "kind": "classmethod",
+      "signature": [
+       {
+        "kind": "positional_or_keyword",
+        "name": "beta"
+       },
+       {
+        "default": {
+         "value": 15.0
+        },
+        "kind": "positional_or_keyword",
+        "name": "divergent"
+       }
+      ]
+     }
+    }
+   },
    "Reducer": {
     "bases": [
      "hexmesh.assembly.fittings._AxialOutlet"
@@ -8895,11 +9048,13 @@
      "prepend_at_equipment_end",
      "prepend_needs_straight",
      "profile_chords_too_coarse",
+     "profile_fields_invalid",
      "profile_parameter_out_of_range",
      "profile_radii_mismatch",
      "profile_stations_too_few",
      "profile_table_invalid",
      "profile_too_short",
+     "profile_type_invalid",
      "profile_unknown",
      "quality_mode_unknown",
      "reader_format_invalid",
@@ -8921,6 +9076,7 @@
      "sampling_invalid",
      "second_order_inverted",
      "second_order_unsupported",
+     "section_kind_unsupported",
      "section_nonorth_above_maximum",
      "section_not_supported",
      "section_predicted_sj_below_minimum",
@@ -12003,7 +12159,7 @@
   "$defs": {
    "Assembly": {
     "additionalProperties": false,
-    "description": "Intent layer serialisation (DESIGN.md §3, docs/tasks/0006).\n\nAn assembly is saved as the record of how it was built, not as geometry:\n\n* ``inlet``: pose (``position``, ``normal``, ``up``) and spec of the first interface (index 0), and ``nozzle`` (drum and nozzle name) for a network started with ``Assembly.from_nozzle``; the drum then sets the pose; * ``edges``: in creation order, each a fitting (``type`` + dataclass fields) with ``source`` (the interface index it was added from), ``close`` (the ``[source, target]`` interfaces it joins), or ``prepend: true`` (placed upstream of the inlet), and its ``label`` if set; * ``names``: interface index → name, for every named interface; * ``equipment``: indices of the interfaces marked as equipment ends (omitted when none); * ``tail``: the interface index ``add(fitting)`` continues from; * ``axial_cell`` if set. Every saved fitting holds its resolved ``n_layers``, so ``axial_cell`` only matters for fittings added after loading.\n\nReplaying the edges recreates the interfaces in the same order, so interface indices are stable. Outlet frames follow from the fittings; only a frame set by hand after ``add()`` is stored, under ``frames``, as an override.\n\nLengths are in the user's unit and are stored unconverted. Angles are in degrees. :func:`upgrade` converts older versions: version 1 stored ``PipeSpec.rot`` in radians (decision 0024); version 2 used the names from before decision 0053.\n\nInput-only fitting fields (``toward``) are resolved by ``Assembly.add()`` and never saved.",
+    "description": "Intent layer serialisation (DESIGN.md §3, docs/tasks/0006).\n\nAn assembly is saved as the record of how it was built, not as geometry:\n\n* ``inlet``: pose (``position``, ``normal``, ``up``) and spec of the first interface (index 0), and ``nozzle`` (drum and nozzle name) for a network started with ``Assembly.from_nozzle``; the drum then sets the pose; * ``edges``: in creation order, each a fitting (``type`` + dataclass fields) with ``source`` (the interface index it was added from), ``close`` (the ``[source, target]`` interfaces it joins), or ``prepend: true`` (placed upstream of the inlet), and its ``label`` if set; * ``names``: interface index → name, for every named interface; * ``equipment``: indices of the interfaces marked as equipment ends (omitted when none); * ``tail``: the interface index ``add(fitting)`` continues from; * ``axial_cell`` if set. Every saved fitting holds its resolved ``n_layers``, so ``axial_cell`` only matters for fittings added after loading.\n\nReplaying the edges recreates the interfaces in the same order, so interface indices are stable. Outlet frames follow from the fittings; only a frame set by hand after ``add()`` is stored, under ``frames``, as an override.\n\nLengths are in the user's unit and are stored unconverted. Angles are in degrees. :func:`upgrade` converts older versions: version 1 stored ``PipeSpec.rot`` in radians (decision 0024); version 2 used the names from before decision 0053; version 3 saved a profile as a tuple (``[\"cosine\", s0]``). A spec without ``kind`` is concentric.\n\nInput-only fitting fields (``toward``) are resolved by ``Assembly.add()`` and never saved.",
     "properties": {
      "axial_cell": {
       "description": "axial cell size that n_layers=None resolves from",
@@ -12051,7 +12207,7 @@
       "description": "the interface the next add continues from"
      },
      "version": {
-      "const": 3,
+      "const": 4,
       "description": "the description's version; older ones load through intent.upgrade()"
      }
     },
@@ -12883,6 +13039,10 @@
      "core": {
       "$ref": "#/$defs/Core"
      },
+     "kind": {
+      "const": "concentric",
+      "description": "the section kind (decision 0053); missing loads as concentric, and decision 0035 stage B adds others"
+     },
      "n_arc": {
       "anyOf": [
        {
@@ -12947,6 +13107,98 @@
     "title": "PipeSpec",
     "type": "object"
    },
+   "Profile": {
+    "oneOf": [
+     {
+      "additionalProperties": false,
+      "description": "A smooth constriction (*s0* > 0) or bulge (*s0* < 0): ``r = 1 − 2·s0`` at the middle, 1 at both ends; ``COSINE_S0_MIN <= s0 < COSINE_S0_MAX``.",
+      "properties": {
+       "kind": {
+        "const": "cosine"
+       },
+       "s0": {
+        "exclusiveMaximum": 0.5,
+        "minimum": -1.0,
+        "type": "number",
+        "x-limit": [
+         "COSINE_S0_MIN",
+         "COSINE_S0_MAX"
+        ]
+       }
+      },
+      "required": [
+       "kind",
+       "s0"
+      ],
+      "title": "Profile.cosine",
+      "type": "object"
+     },
+     {
+      "additionalProperties": false,
+      "description": "An ISO 5167-4 Venturi tube: a 21° convergent to ``beta`` · D, a throat one throat diameter long, and a *divergent* cone (7°–15° included) back to D.",
+      "properties": {
+       "beta": {
+        "exclusiveMaximum": 1,
+        "exclusiveMinimum": 0,
+        "type": "number"
+       },
+       "divergent": {
+        "maximum": 15.0,
+        "minimum": 7.0,
+        "type": "number",
+        "x-limit": [
+         "VENTURI_DIVERGENT_MIN",
+         "VENTURI_DIVERGENT_MAX"
+        ],
+        "x-unit": "degree"
+       },
+       "kind": {
+        "const": "venturi"
+       }
+      },
+      "required": [
+       "kind",
+       "beta",
+       "divergent"
+      ],
+      "title": "Profile.venturi",
+      "type": "object"
+     },
+     {
+      "additionalProperties": false,
+      "description": "``(s, r)`` pairs, s from 0 to 1, joined by a monotone cubic.",
+      "properties": {
+       "kind": {
+        "const": "table"
+       },
+       "points": {
+        "items": {
+         "items": false,
+         "maxItems": 2,
+         "minItems": 2,
+         "prefixItems": [
+          {
+           "type": "number"
+          },
+          {
+           "type": "number"
+          }
+         ],
+         "type": "array"
+        },
+        "minItems": 2,
+        "type": "array"
+       }
+      },
+      "required": [
+       "kind",
+       "points"
+      ],
+      "title": "Profile.table",
+      "type": "object"
+     }
+    ]
+   },
    "RectShape": {
     "additionalProperties": false,
     "description": "Rectangular cross-section specification.",
@@ -12991,7 +13243,7 @@
    },
    "Reducer": {
     "additionalProperties": false,
-    "description": "Concentric reducer (or expander): a straight cone between two radii.\n\n*outlet* is the outlet spec. It must equal the inlet spec in everything except its sizes (every layer's outline: radii, half-widths) and radial gradings (``radial_grading`` per layer): the same layers, outline shapes, ``n_radial``, counts, ``arc_bump``, ``n_outer`` and ``rot``, so that every axial edge joins matching nodes (rule A4; decision 0026). A larger outlet makes it an expander. A rectangle's sides stay planar (the station outlines interpolate linearly), so a duct reducer is exact too. ``Reducer`` changes sizes; ``Transition`` changes shapes.\n\nEvery axial layer is a station whose radii interpolate linearly, and corresponding corners are joined by straight lines, which are generators of the cone; wall nodes therefore lie exactly on the cone. Radial gradings interpolate geometrically at the same fractions (``radial_grading_in^(1-u) · radial_grading_out^u``), so a wall-resolved pipe (absolute ``first_cell``) can change diameter (decision 0016). *axial_grading* spaces the stations as for ``Straight``.\n\n*profile* replaces the cone by a radius profile (decision 0008; ``assembly.profile``): ``(\"cosine\", s0)`` (a constriction for s0 > 0, a bulge for s0 < 0), ``(\"venturi\", beta, divergent)`` or a table of ``(s, R/R_in)`` pairs. Every radius of the stack scales by the profile's ratio, so the outlet must be the inlet scaled by ``r(1)``. Stations lie exactly on R(s); between them the wall is a straight chord, and ``validate`` rejects a chord more than *chord_tol* · R_in from the profile, naming the layers needed.",
+    "description": "Concentric reducer (or expander): a straight cone between two radii.\n\n*outlet* is the outlet spec. It must equal the inlet spec in everything except its sizes (every layer's outline: radii, half-widths) and radial gradings (``radial_grading`` per layer): the same layers, outline shapes, ``n_radial``, counts, ``arc_bump``, ``n_outer`` and ``rot``, so that every axial edge joins matching nodes (rule A4; decision 0026). A larger outlet makes it an expander. A rectangle's sides stay planar (the station outlines interpolate linearly), so a duct reducer is exact too. ``Reducer`` changes sizes; ``Transition`` changes shapes.\n\nEvery axial layer is a station whose radii interpolate linearly, and corresponding corners are joined by straight lines, which are generators of the cone; wall nodes therefore lie exactly on the cone. Radial gradings interpolate geometrically at the same fractions (``radial_grading_in^(1-u) · radial_grading_out^u``), so a wall-resolved pipe (absolute ``first_cell``) can change diameter (decision 0016). *axial_grading* spaces the stations as for ``Straight``.\n\n*profile* replaces the cone by a radius profile (decision 0008), a :class:`Profile`: ``Profile.cosine(s0)`` (a constriction for s0 > 0, a bulge for s0 < 0), ``Profile.venturi(beta, divergent)`` or ``Profile.table([(s, R/R_in), …])``. Every radius of the stack scales by the profile's ratio, so the outlet must be the inlet scaled by ``r(1)``. Stations lie exactly on R(s); between them the wall is a straight chord, and ``validate`` rejects a chord more than *chord_tol* · R_in from the profile, naming the layers needed.",
     "properties": {
      "axial_grading": {
       "default": 1.0,
@@ -13035,64 +13287,14 @@
      "profile": {
       "anyOf": [
        {
-        "anyOf": [
-         {
-          "items": false,
-          "maxItems": 2,
-          "minItems": 2,
-          "prefixItems": [
-           {
-            "const": "cosine"
-           },
-           {
-            "type": "number"
-           }
-          ],
-          "type": "array"
-         },
-         {
-          "items": false,
-          "maxItems": 3,
-          "minItems": 2,
-          "prefixItems": [
-           {
-            "const": "venturi"
-           },
-           {
-            "type": "number"
-           },
-           {
-            "type": "number"
-           }
-          ],
-          "type": "array"
-         },
-         {
-          "items": {
-           "items": false,
-           "maxItems": 2,
-           "minItems": 2,
-           "prefixItems": [
-            {
-             "type": "number"
-            },
-            {
-             "type": "number"
-            }
-           ],
-           "type": "array"
-          },
-          "minItems": 2,
-          "type": "array"
-         }
-        ]
+        "$ref": "#/$defs/Profile"
        },
        {
         "type": "null"
        }
       ],
       "default": null,
-      "description": "radius profile instead of a cone: [\"cosine\", s0], [\"venturi\", beta, divergent] or [[s, R/R_in], …]",
+      "description": "radius profile instead of a cone: Profile.cosine(s0), Profile.venturi(beta, divergent) or Profile.table([(s, R/R_in), …])",
       "x-limit": [
        "COSINE_S0_MIN",
        "COSINE_S0_MAX",
@@ -13831,10 +14033,10 @@
     "type": "object"
    }
   },
-  "$id": "urn:hexmesh:hexmesh.assembly:3",
+  "$id": "urn:hexmesh:hexmesh.assembly:4",
   "$ref": "#/$defs/Assembly",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "hexmesh.assembly description, version 3",
+  "title": "hexmesh.assembly description, version 4",
   "x-limits": {
    "CORRECTION_MIN_MOVE": {
     "doc": "smallest move, in local wall radii, a correction record counts",
@@ -14110,6 +14312,6 @@
     "value": 0.65
    }
   },
-  "x-version": 3
+  "x-version": 4
  }
 }

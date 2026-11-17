@@ -65,7 +65,7 @@ ROOT = HERE.parents[1]
 import sys                                                     # noqa: E402
 sys.path.insert(0, str(ROOT))
 
-from hexmesh import Assembly, PipeSpec, Reducer, Session, Straight   # noqa: E402
+from hexmesh import Assembly, PipeSpec, Profile, Reducer, Session, Straight   # noqa: E402
 from hexmesh.study import openfoam as of                       # noqa: E402
 
 
@@ -133,7 +133,7 @@ def assembly(k: int = 1) -> Assembly:
     asm = Assembly(spec, position=[X_IN, 0, 0], direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Straight(up, n_layers=BASE["up"],
                      axial_grading=1 / growth(h, up, BASE["up"])))
-    asm.add(Reducer(spec, length=L_STEN, n_layers=BASE["sten"], profile=("cosine", S0)))
+    asm.add(Reducer(spec, length=L_STEN, n_layers=BASE["sten"], profile=Profile.cosine(S0)))
     asm.add(Straight(near, n_layers=BASE["near"],
                      axial_grading=growth(h, near, BASE["near"])))
     asm.add(Straight(X_OUT - X_SPLIT, n_layers=BASE["far"]))

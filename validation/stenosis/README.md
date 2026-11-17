@@ -25,7 +25,7 @@ against the DNS's 11.03 D, centreline within 0.93 % of the DNS peak.
 | Domain | 3 D upstream and 16 D downstream of the throat (paper p. 5) |
 | Fluid | Re = 500 on D and the mean inlet velocity Ū = 1, so ν = 1/500 |
 | Boundary conditions | inlet `fixedValue` U, parabolic u = 2Ū(1 − r²/R²) per face, scaled to the discrete flow rate (paper eq. 2.3); p `zeroGradient`.  Outlet p = 0, U `zeroGradient`; wall `noSlip` |
-| Mesh | straight 2 D (16 layers, graded toward the constriction), `Reducer` with `profile=("cosine", 0.25)` (36 layers), straight 12 D (80 layers, graded from the constriction's spacing), straight 3 D (10 layers) |
+| Mesh | straight 2 D (16 layers, graded toward the constriction), `Reducer` with `profile=Profile.cosine(0.25)` (36 layers), straight 12 D (80 layers, graded from the constriction's spacing), straight 3 D (10 layers) |
 | Levels | `Assembly.refined(k)`, k = 2 / 3 / 4: `n_arc` 12 / 18 / 24, `n_radial` 6 / 9 / 12, 284 / 426 / 568 axial layers.  k = 1 (`coarse`) has no steady axisymmetric state and is only for the pipeline test |
 | Solver | `pimpleFoam` from rest, laminar, Euler, Co 0.8, 2 pressure correctors; the Poiseuille case's schemes (`Gauss limitedLinearV 1`) and solvers, no relaxation.  It runs in chunks of 5 time units until the centreline and both reattachment measures change by less than 0.1 % over one chunk.  `simpleFoam` doesn't converge on this case: its iteration is unstable around the steady state (`docs/integrations/openfoam.md`) |
 

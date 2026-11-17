@@ -340,6 +340,7 @@
       "type": "circle"
      }
     },
+    "kind": "concentric",
     "n_arc": 4,
     "n_height": null,
     "n_outer": 4,
@@ -365,6 +366,7 @@
       "type": "circle"
      }
     },
+    "kind": "concentric",
     "n_arc": 4,
     "n_height": null,
     "n_outer": 4,
@@ -404,6 +406,7 @@
       "type": "circle"
      }
     },
+    "kind": "concentric",
     "n_arc": 8,
     "n_height": null,
     "n_outer": 8,
@@ -429,6 +432,7 @@
       "type": "circle"
      }
     },
+    "kind": "concentric",
     "n_arc": 4,
     "n_height": null,
     "n_outer": 4,
@@ -464,6 +468,7 @@
       "type": "rect"
      }
     },
+    "kind": "concentric",
     "n_arc": null,
     "n_height": 4,
     "n_outer": 4,
@@ -491,6 +496,7 @@
       "type": "rect"
      }
     },
+    "kind": "concentric",
     "n_arc": null,
     "n_height": 4,
     "n_outer": 4,
@@ -518,6 +524,7 @@
       "type": "rect"
      }
     },
+    "kind": "concentric",
     "n_arc": null,
     "n_height": 4,
     "n_outer": 4,

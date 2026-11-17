@@ -148,7 +148,7 @@ python3 -m hexmesh.examples.fittings.reducer_network
 
 <p><img src="img/stenosis.png" width="68%" alt="stenosis"> <img src="img/stenosis_section.png" width="29%" alt="stenosis, inlet section"></p>
 
-A profiled `Reducer` with `profile=("cosine", s0)` narrows the pipe to
+A profiled `Reducer` with `profile=Profile.cosine(s0)` narrows the pipe to
 a throat of radius `(1 − 2·s0)·R` and widens it back over `length`.
 The defaults are the benchmark: `s0 = 0.25` (75 % area reduction),
 `length = 2 D`, 3 D of pipe upstream and 16 D downstream of the throat.

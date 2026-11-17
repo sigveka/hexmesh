@@ -62,7 +62,7 @@ ROOT = HERE.parents[1]
 sys.path.insert(0, str(ROOT))
 
 import gmsh                                                    # noqa: E402
-from hexmesh import (Assembly, Bend, CircleShape, MiterBend, PipeSpec, Reducer,   # noqa: E402
+from hexmesh import (Assembly, Bend, CircleShape, MiterBend, PipeSpec, Profile, Reducer,  # noqa: E402
                      Session, SplinePipe, Straight, Tee, Transition, Wye)
 from hexmesh.core.shape import RectShape                       # noqa: E402
 from hexmesh.study import openfoam as of                       # noqa: E402
@@ -131,7 +131,7 @@ def reducer(s0=0.4):
     # a cosine constriction to (1 - 2 s0) of the radius, back to the inlet's.
     # The exact field is defined everywhere, so the chords' distance from the
     # true profile doesn't enter the error: chord_tol is relaxed
-    a.add(Reducer(_pipe(), length=4 * R, n_layers=8, profile=("cosine", s0), chord_tol=0.05))
+    a.add(Reducer(_pipe(), length=4 * R, n_layers=8, profile=Profile.cosine(s0), chord_tol=0.05))
     a.add(Straight(2 * R, n_layers=2))
     return a, [1]
 

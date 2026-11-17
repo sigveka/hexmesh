@@ -123,11 +123,13 @@ def test_grading_change_rejects_arc_bump():
 # Profiles (decision 0008, task 0031)
 # ---------------------------------------------------------------------------
 
-from hexmesh.assembly.profile import Profile   # noqa: E402
+from hexmesh import Profile                              # noqa: E402
+from hexmesh.assembly.profile import RadiusProfile      # noqa: E402
 
-COSINE = ("cosine", 0.25)
-VENTURI = ("venturi", 0.5, 15)
-TABLE = ((0, 1), (0.3, 0.8), (0.6, 0.7), (1, 0.6))
+COSINE = Profile.cosine(0.25)
+VENTURI = Profile.venturi(0.5, 15)
+POINTS = ((0, 1), (0.3, 0.8), (0.6, 0.7), (1, 0.6))
+TABLE = Profile.table(POINTS)
 
 
 def _core(radius=0.1, n_arc=6):
@@ -152,13 +154,13 @@ def test_station_wall_nodes_on_profile(gmsh_session, profile, outlet, length, n)
     asm.mesh()
     x = np.vstack([gmsh.model.mesh.getNodes(2, t, includeBoundary=True)[1].reshape(-1, 3)
                    for t in asm._fill.walls])
-    prof = Profile(profile, length, 0.1)
+    prof = RadiusProfile(profile, length, 0.1)
     r = np.hypot(x[:, 1], x[:, 2])
     np.testing.assert_allclose(r, 0.1 * prof(x[:, 0] / length), rtol=0, atol=1e-9 * 0.1)
 
 
 def test_cosine_shape():
-    prof = Profile(COSINE, 0.4, 0.1)
+    prof = RadiusProfile(COSINE, 0.4, 0.1)
     np.testing.assert_allclose(prof([0, 0.5, 1]), [1, 0.5, 1], atol=1e-15)
 
 
@@ -166,24 +168,24 @@ def test_cosine_shape():
 def test_bulge_wall_nodes_on_profile(gmsh_session, s0):
     """s0 ≤ 0 (task 0055): a bulge to (1 − 2·s0)·R, or a plain pipe; every
     wall node at a station is on R(s), as for a constriction."""
-    profile = ("cosine", s0)
+    profile = Profile.cosine(s0)
     asm = _profiled(profile, n=72)
     asm.mesh()
     x = np.vstack([gmsh.model.mesh.getNodes(2, t, includeBoundary=True)[1].reshape(-1, 3)
                    for t in asm._fill.walls])
-    prof = Profile(profile, 0.4, 0.1)
+    prof = RadiusProfile(profile, 0.4, 0.1)
     r = np.hypot(x[:, 1], x[:, 2])
     np.testing.assert_allclose(r, 0.1 * prof(x[:, 0] / 0.4), rtol=0, atol=1e-9 * 0.1)
     assert r.max() == pytest.approx(0.1 * (1 - 2 * s0), rel=1e-9)
 
 
 def test_bulge_shape_and_layers():
-    np.testing.assert_allclose(Profile(("cosine", -0.5), 0.4, 0.1)([0, 0.25, 0.5, 1]),
+    np.testing.assert_allclose(RadiusProfile(Profile.cosine(-0.5), 0.4, 0.1)([0, 0.25, 0.5, 1]),
                                [1, 1.5, 2, 1], atol=1e-15)
     with pytest.raises(AssemblyError, match=r"use n_layers >= 50"):
-        _profiled(("cosine", -0.5), n=40).validate()
-    _profiled(("cosine", -0.5), n=50).validate()
-    _profiled(("cosine", 0.0), n=1).validate()        # a plain pipe: one layer will do
+        _profiled(Profile.cosine(-0.5), n=40).validate()
+    _profiled(Profile.cosine(-0.5), n=50).validate()
+    _profiled(Profile.cosine(0.0), n=1).validate()        # a plain pipe: one layer will do
 
 
 def test_too_coarse_names_layers():
@@ -195,7 +197,7 @@ def test_too_coarse_names_layers():
 
 
 def test_venturi_corners_on_stations():
-    prof = Profile(VENTURI, 0.8, 0.1)
+    prof = RadiusProfile(VENTURI, 0.8, 0.1)
     u = prof.stations(np.linspace(0, 1, 13))
     for kink in prof.kinks:
         assert np.isclose(u, kink, atol=1e-15).any()
@@ -206,27 +208,68 @@ def test_venturi_corners_on_stations():
 
 def test_table_is_monotone_between_points():
     """PCHIP: no overshoot past the data on a monotone run."""
-    prof = Profile(TABLE, 0.4, 0.1)
+    prof = RadiusProfile(TABLE, 0.4, 0.1)
     r = prof(np.linspace(0, 1, 2001))
     assert np.all(np.diff(r) <= 1e-15)
-    np.testing.assert_allclose(prof([s for s, _ in TABLE]), [v for _, v in TABLE], atol=1e-15)
+    np.testing.assert_allclose(prof([s for s, _ in POINTS]), [v for _, v in POINTS], atol=1e-15)
 
 
 @pytest.mark.parametrize("kw, message", [
     (dict(profile=COSINE, outlet=_core(0.06)), "the outlet spec has"),
     (dict(profile=TABLE), "the outlet spec has"),
-    (dict(profile=((0, 0.9), (1, 1))), "the inlet spec has"),
+    (dict(profile=Profile.table([(0, 0.9), (1, 1)])), "the inlet spec has"),
     (dict(profile=VENTURI, length=0.5), r"needs length >= 0\.7"),
-    (dict(profile=("venturi", 0.5, 20)), "7°–15°"),
-    (dict(profile=("cosine", 0.5)), r"s0 must be in \[-1, 0\.5\), got 0\.5: -1 is a bulge "
-                                    r"to 3·R \(COSINE_S0_MIN\), 0\.5 a throat of zero radius"),
-    (dict(profile=("cosine", -1.01)), r"s0 must be in \[-1, 0\.5\), got -1\.01"),
-    (dict(profile=("parabola", 1)), "unknown profile"),
-    (dict(profile=((0, 1), (0.5, 1), (0.4, 1), (1, 1))), "increase from 0 to 1"),
 ])
 def test_profile_rejected(kw, message):
     with pytest.raises(AssemblyError, match=message):
         _profiled(**kw).validate()
+
+
+@pytest.mark.parametrize("make, code, message", [
+    (lambda: Profile.venturi(0.5, 20), "profile_parameter_out_of_range", "7°–15°"),
+    (lambda: Profile.venturi(1.0), "profile_parameter_out_of_range", r"beta must be in \(0, 1\)"),
+    (lambda: Profile.cosine(0.5), "profile_parameter_out_of_range",
+     r"s0 must be in \[-1, 0\.5\), got 0\.5: -1 is a bulge to 3·R \(COSINE_S0_MIN\), 0\.5 a "
+     r"throat of zero radius"),
+    (lambda: Profile.cosine(-1.01), "profile_parameter_out_of_range",
+     r"s0 must be in \[-1, 0\.5\), got -1\.01"),
+    (lambda: Profile("parabola", a=1), "profile_unknown", "unknown profile kind 'parabola'"),
+    (lambda: Profile("cosine", beta=0.5), "profile_fields_invalid", "a cosine profile takes s0"),
+    (lambda: Profile.table([(0, 1), (0.5, 1), (0.4, 1), (1, 1)]), "profile_table_invalid",
+     "increase from 0 to 1"),
+    (lambda: Profile.table([(0, 1)]), "profile_table_invalid", "at least two"),
+], ids=["divergent", "beta", "s0_max", "s0_min", "kind", "fields", "table_order", "table_short"])
+def test_profile_constructors_check_parameters(make, code, message):
+    """Decision 0053: the checks the tuples had, now at construction."""
+    with pytest.raises(AssemblyError, match=message) as e:
+        make()
+    assert e.value.code == code
+
+
+@pytest.mark.parametrize("old, hint", [
+    (("cosine", 0.25), "profile=Profile.cosine(0.25)"),
+    (("venturi", 0.5, 15), "profile=Profile.venturi(0.5, 15)"),
+    (((0, 1), (1, 0.6)), "profile=Profile.table([(s, r), …])"),
+])
+def test_a_tuple_profile_is_a_coded_error_with_the_call(old, hint):
+    with pytest.raises(AssemblyError, match="must be a Profile") as e:
+        Reducer(_core(), length=0.4, profile=old)
+    assert e.value.code == "profile_type_invalid" and e.value.hint == hint
+    assert isinstance(e.value, TypeError)
+
+
+def test_profile_is_a_value():
+    assert Profile.cosine(0.25) == Profile.cosine(0.25) != Profile.cosine(0.3)
+    assert len({Profile.cosine(0.25), Profile.cosine(0.25), VENTURI}) == 2
+    assert (COSINE.kind, COSINE.s0) == ("cosine", 0.25)
+    assert (VENTURI.beta, VENTURI.divergent) == (0.5, 15.0)
+    assert Profile.venturi(0.5).divergent == 15.0
+    assert repr(COSINE) == "Profile.cosine(s0=0.25)"
+    with pytest.raises(AttributeError):
+        COSINE.s0 = 0.3
+    for p in (COSINE, VENTURI, TABLE):
+        assert Profile.from_dict(p.to_dict()) == p
+    assert TABLE.to_dict() == {"kind": "table", "points": [list(map(float, q)) for q in POINTS]}
 
 
 def test_profile_scales_every_layer(gmsh_session):
@@ -236,7 +279,7 @@ def test_profile_scales_every_layer(gmsh_session):
     asm.mesh()
     e = asm.edges[0]
     path = e.fitting.path(*[p.frame for p in e.ports], spec)
-    prof = Profile(TABLE, 0.4, 0.1)
+    prof = RadiusProfile(TABLE, 0.4, 0.1)
     for k, f in enumerate(path.frames):
         s = path.spec_at(k, spec)
         ratio = float(prof(f.position[0] / 0.4))
@@ -253,8 +296,7 @@ def test_profile_save_load(tmp_path, profile, outlet, length, n):
     asm.save(path)
     again = Assembly.load(path)
     assert again.to_dict() == asm.to_dict()
-    assert again.edges[0].fitting.profile == tuple(map(
-        lambda v: tuple(v) if isinstance(v, (tuple, list)) else v, profile))
+    assert again.edges[0].fitting.profile == profile
     assert again.cell_count() == asm.cell_count()
 
 

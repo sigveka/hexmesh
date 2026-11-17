@@ -38,7 +38,7 @@ import inspect
 import json
 import re
 
-from hexmesh import Drum, Nozzle, OnHead, OnShell, PipeSpec
+from hexmesh import Drum, Nozzle, OnHead, OnShell, PipeSpec, Profile
 from hexmesh.assembly import intent, limits
 from hexmesh.core.params import RANGES
 from hexmesh.core.shape import SHAPES
@@ -65,14 +65,7 @@ _VALUES = {
     "stack_changes": {"type": "array", "items": {
         "type": "array", "prefixItems": [{"type": "integer"}, {"$ref": "#/$defs/PipeSpec"}],
         "minItems": 2, "maxItems": 2, "items": False}},
-    "profile": {"anyOf": [
-        {"type": "array", "prefixItems": [{"const": "cosine"}, _NUMBER],
-         "minItems": 2, "maxItems": 2, "items": False},
-        {"type": "array", "prefixItems": [{"const": "venturi"}, _NUMBER, _NUMBER],
-         "minItems": 2, "maxItems": 3, "items": False},
-        {"type": "array", "minItems": 2, "items": {
-            "type": "array", "prefixItems": [_NUMBER, _NUMBER], "minItems": 2,
-            "maxItems": 2, "items": False}}]},
+    "profile": {"$ref": "#/$defs/Profile"},
     "nozzles": {"type": "array", "items": {"$ref": "#/$defs/Nozzle"}},
     "wall_bump": {"type": "array", "prefixItems": [_NUMBER, _NUMBER], "minItems": 2,
                   "maxItems": 2, "items": False},
@@ -198,6 +191,10 @@ def _spec_defs() -> dict:
                   required=("core", "shells"), nullable=("n_arc", "n_width", "n_height"),
                   title="PipeSpec", description=_summary(PipeSpec), docs=init,
                   extra=None)
+    spec["properties"]["kind"] = {
+        "const": PipeSpec.KIND,
+        "description": "the section kind (decision 0053); missing loads as concentric, and "
+                       "decision 0035 stage B adds others"}
     spec["properties"]["core"] = {"$ref": "#/$defs/Core"}
     spec["properties"]["shells"] = {"type": "array", "items": {"$ref": "#/$defs/Shell"}}
     core_d = _table(PipeSpec.CORE_PARAMS, ("name", "shape", "layout", "n_radial", "radial_grading",
@@ -222,8 +219,33 @@ def _spec_defs() -> dict:
             "Shape": {"oneOf": [{"$ref": f"#/$defs/{n}"} for n in sorted(shapes)]}}
 
 
+def _profile_def() -> dict:
+    """``Reducer.profile``: one object per kind, as ``Profile.to_dict`` saves it."""
+    def kind(name, props, required, doc):
+        return {"type": "object", "title": f"Profile.{name}", "description": doc,
+                "properties": {"kind": {"const": name}, **props},
+                "required": ["kind", *required], "additionalProperties": False}
+    pair = {"type": "array", "prefixItems": [_NUMBER, _NUMBER], "minItems": 2, "maxItems": 2,
+            "items": False}
+    return {"oneOf": [
+        kind("cosine", {"s0": {**_NUMBER, "minimum": limits.COSINE_S0_MIN,
+                               "exclusiveMaximum": limits.COSINE_S0_MAX,
+                               "x-limit": ["COSINE_S0_MIN", "COSINE_S0_MAX"]}}, ["s0"],
+             _summary(Profile.cosine)),
+        kind("venturi", {"beta": {**_NUMBER, "exclusiveMinimum": 0, "exclusiveMaximum": 1},
+                         "divergent": {**_NUMBER, "minimum": limits.VENTURI_DIVERGENT_MIN,
+                                       "maximum": limits.VENTURI_DIVERGENT_MAX,
+                                       "x-unit": "degree",
+                                       "x-limit": ["VENTURI_DIVERGENT_MIN",
+                                                   "VENTURI_DIVERGENT_MAX"]}},
+             ["beta", "divergent"], _summary(Profile.venturi)),
+        kind("table", {"points": {"type": "array", "items": pair, "minItems": 2}}, ["points"],
+             _summary(Profile.table))]}
+
+
 def _fitting_defs() -> dict:
     defs = {n: _dataclass(c, tag=("type", n)) for n, c in intent.FITTING_TYPES.items()}
+    defs["Profile"] = _profile_def()
     defs["Fitting"] = {"oneOf": [{"$ref": f"#/$defs/{n}"} for n in sorted(intent.FITTING_TYPES)]}
     return defs
 

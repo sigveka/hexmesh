@@ -4,7 +4,7 @@ geometry of Varghese et al. (RESEARCH §7.3).
 
     python3 -m hexmesh.examples.fittings.stenosis # writes stenosis.msh
 
-A profiled ``Reducer`` with ``profile=("cosine", s0)`` narrows the pipe to
+A profiled ``Reducer`` with ``profile=Profile.cosine(s0)`` narrows the pipe to
 a throat of radius ``(1 − 2·s0)·R`` and widens it back over ``length``.
 The defaults are the benchmark: ``s0 = 0.25`` (75 % area reduction),
 ``length = 2 D``, 3 D of pipe upstream and 16 D downstream of the throat.
@@ -28,7 +28,7 @@ wall is its own patch (``fluid_wall_stenosis``), e.g. for wall shear
 stress.  Open ends: ``fluid_inlet``, ``fluid_outlet``.
 """
 
-from hexmesh import Assembly, PipeSpec, Reducer, Straight
+from hexmesh import Assembly, PipeSpec, Profile, Reducer, Straight
 
 D = 0.02                                  # pipe diameter
 UPSTREAM, DOWNSTREAM = 3.0, 16.0          # diameters from the throat
@@ -42,7 +42,7 @@ def build(s0: float = 0.25, length_d: float = 2.0) -> Assembly:
     length = length_d * D
     asm = Assembly(PIPE, direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Straight(UPSTREAM * D - length / 2, n_layers=N_UP), label="upstream")
-    asm.add(Reducer(PIPE, length=length, n_layers=N_STENOSIS, profile=("cosine", s0)),
+    asm.add(Reducer(PIPE, length=length, n_layers=N_STENOSIS, profile=Profile.cosine(s0)),
             label="stenosis")
     asm.add(Straight(DOWNSTREAM * D - length / 2, n_layers=N_DOWN,
                      axial_grading=1.03), label="downstream", names=["outlet"])

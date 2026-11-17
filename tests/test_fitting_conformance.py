@@ -43,8 +43,8 @@ import numpy as np
 import pytest
 
 from hexmesh.assembly import (
-    Assembly, Bend, Closure, Elbow, MiterBend, Reducer, SplinePipe, Straight, Switch, Tee,
-    Transition, Wye,
+    Assembly, Bend, Closure, Elbow, MiterBend, Profile, Reducer, SplinePipe, Straight, Switch,
+    Tee, Transition, Wye,
 )
 from hexmesh.assembly.duct_tap import TapTemplate
 from hexmesh.core.shape import CircleShape, RectShape
@@ -344,14 +344,14 @@ CASES = {
     "square-rolled-90":    lambda: _rolled_outlet(_square(), Straight(0.3, n_layers=3), 90),
     # profiled reducers (task 0031): stations on R(s), chords within tolerance
     "profile-cosine":      lambda: _between(_one(), Reducer(_one(), length=0.4, n_layers=40,
-                                                            profile=("cosine", 0.25))),
+                                                            profile=Profile.cosine(0.25))),
     "profile-cosine-bulge": lambda: _between(_one(), Reducer(_one(), length=0.4, n_layers=50,
-                                                             profile=("cosine", -0.5))),
+                                                             profile=Profile.cosine(-0.5))),
     "profile-venturi":     lambda: _between(_one(), Reducer(_one(), length=0.8, n_layers=12,
-                                                            profile=("venturi", 0.5, 15))),
+                                                            profile=Profile.venturi(0.5, 15))),
     "profile-table-2layer": lambda: _between(_two(), Reducer(
         _two(0.06, 0.015), length=0.4, n_layers=16, axial_grading=1.1,
-        profile=((0, 1), (0.3, 0.8), (0.6, 0.7), (1, 0.6)))),
+        profile=Profile.table([(0, 1), (0.3, 0.8), (0.6, 0.7), (1, 0.6)]))),
     # layer outlines (decision 0026, task 0045); the stacks × straight,
     # easy-way and hard-way bend are added below the dict
     "outline-c-r-c-rolled": lambda: _between(_cyl_box_cyl(), Bend(0.5, -60, n_layers=4,
@@ -436,7 +436,7 @@ CASES.update({
     "h-2-reducer-graded": lambda: _between(_hduct(first_cell=0.003), Reducer(
         _hduct(0.07, 0.035, first_cell=0.003), length=0.2, n_layers=4, axial_grading=1.2)),
     "h-2-profile-cosine": lambda: _between(_hduct(), Reducer(_hduct(), length=0.4, n_layers=40,
-                                                             profile=("cosine", 0.25))),
+                                                             profile=Profile.cosine(0.25))),
 })
 
 
@@ -552,7 +552,7 @@ CASES.update({
     "n8-reducer-2layer":    lambda: _between(_n8(_two()), Reducer(_n8(_two(0.07, 0.015)), length=0.2,
                                                                    n_layers=4)),
     "n8-profile-cosine":    lambda: _between(_n8(_one()), Reducer(_n8(_one()), length=0.4, n_layers=40,
-                                                                   profile=("cosine", 0.25))),
+                                                                   profile=Profile.cosine(0.25))),
     "n8-spline-3d-2layer":  lambda: _spline(_n8(_two()), ((0, 0, 0), (0.1, 0.4, 0.1),
                                                          (0.4, 0.7, 0.4), (0.5, 0.9, 0.9)),
                                             end_tangent=(0, 0, 1)),

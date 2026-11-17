@@ -265,12 +265,12 @@ def test_rot_is_degrees():
 
 def test_version_1_file_converts_rot():
     d = _rot_run(_pipe(rot=45)).to_dict()
-    assert d["version"] == 3 and d["inlet"]["spec"]["rot"] == 45.0
+    assert d["version"] == 4 and d["inlet"]["spec"]["rot"] == 45.0
     v1 = dict(d, version=1, inlet=dict(d["inlet"], spec=dict(d["inlet"]["spec"],
                                                              rot=math.pi / 4)))
     loaded = Assembly.from_dict(v1)
     assert loaded.inlet.spec.rot == pytest.approx(45.0, abs=1e-12)
-    assert loaded.to_dict()["version"] == 3
+    assert loaded.to_dict()["version"] == 4
     np.testing.assert_allclose(_nodes(loaded), _nodes(_rot_run(_pipe(rot=45))),
                                atol=1e-12, rtol=0)
 
