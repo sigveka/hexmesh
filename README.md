@@ -297,29 +297,150 @@ More in [Why hexmesh?](docs/WHY.md).
 
 ## Install
 
+Three setups.  Pick by what you want to do: each one says what you get,
+and how to check that it works.
+
+| You want to | Setup | What you need |
+|---|---|---|
+| mesh pipe networks, write OpenFOAM cases, run studies | [Use hexmesh](#use-hexmesh) | Python, `pip` |
+| run the validation cases, or volunteer a run | [Validate or volunteer](#validate-or-volunteer) | a **clone of the repository**, OpenFOAM (Docker is enough) |
+| change hexmesh itself | [Develop](#develop) | a clone, the test tools |
+
+Python ≥ 3.11 and gmsh ≥ 4.12 for all three.  `pip` brings gmsh, numpy
+and scipy.  An existing gmsh installation (e.g. from your system's
+package manager) is used as is.  Tested with gmsh 4.12.1 (the reference
+the gallery and validation cases use) and with the version `pip install`
+gives (4.15.2 on 2026-11-11).
+
+The commands below are written for Linux and macOS (`python3`).  **On
+Windows (PowerShell)**, write `python` (or `py`) for `python3`, and
+activate a venv with `.\.venv\Scripts\Activate.ps1` in place of
+`source .venv/bin/activate`.
+
+### Use hexmesh
+
 ```bash
+python3 -m venv .venv && source .venv/bin/activate
 pip install https://github.com/sigveka/hexmesh/releases/download/v0.8.0/hexmesh-0.8.0-py3-none-any.whl
                               # this release's wheel: no git needed
-pip install "hexmesh @ git+https://github.com/sigveka/hexmesh@v0.8.0"   # this release, from git
-pip install -e .              # from a checkout; brings gmsh, numpy, scipy
-pip install -e ".[dev]"       # + pytest, for the test suite
+pip install "hexmesh @ git+https://github.com/sigveka/hexmesh@v0.8.0"   # or: this release, from git
 pip install hexmesh           # once it is on PyPI (not yet)
 ```
 
-Python ≥ 3.11, gmsh ≥ 4.12.  Tested with gmsh 4.12.1 (the reference
-the gallery and validation cases use) and with the version `pip install`
-gives (4.15.2 on 2026-11-11).  An existing gmsh installation (e.g. from
-your system's package manager) is used as is.  Extras: `[bathymetry]`
-(GeoTIFF / NetCDF surfaces and shapefile routes), `[gallery]` (the
-gallery images), `[study]` (`psutil`, so studies can see other runs on
-any system).  OpenFOAM is only needed to run the cases; hexmesh writes
-them without it.
+**You get** the `hexmesh` package: the assembly API, the writers
+(`.msh` for gmsh and OpenFOAM), the importers (PCF, bathymetry),
+`hexmesh.study` for parameter studies, and the 35 gallery examples as
+`hexmesh.examples`.  Two commands come with it: `hexmesh` (the agent
+tools: `schema`, `validate`, `estimate`, `build`, …) and
+`hexmesh-study`.
+
+**You don't get** the validation cases, the volunteer tool, the tests
+or the docs: they live in the repository, not in the package (see the
+next setup).  Neither do you get OpenFOAM.  hexmesh writes OpenFOAM's input
+without it.  To *run* a case or a study's solves, install OpenFOAM
+yourself (Docker is enough; [validation/README.md](validation/README.md#what-you-need)).
+
+**Check it works**, from any folder:
+
+```bash
+hexmesh --version
+python3 -m hexmesh.examples.fittings.equal_tee
+```
+
+The second command meshes an equal tee in a few seconds, writes
+`equal_tee.msh` (about 1 MB) in the current folder and prints:
+
+```text
+equal_tee.msh: 8000 cells (predicted 8000), min SICN 0.167
+  groups: fluid, fluid_branch_end, fluid_inlet, fluid_main_end, fluid_wall
+```
+
+**Optional extras**, added in brackets (`pip install "hexmesh[study] @ …"`,
+or `pip install -e ".[study]"` from a clone):
+
+| Extra | Adds | For |
+|---|---|---|
+| `[bathymetry]` | rasterio, xarray, fiona, shapely | GeoTIFF and NetCDF seabed surfaces, shapefile routes |
+| `[study]` | psutil | studies that see other runs on any system |
+| `[preview]` | matplotlib | `hexmesh preview` images |
+| `[gallery]` | vtk, Pillow, jsonschema | building the gallery's images (from a clone) |
+
+### Validate or volunteer
+
+The validation cases, and `validation.volunteer` for
+[volunteer runs](validation/VOLUNTEERS.md), are **not in the
+package**.  They are 12 MB of case drivers, reference data and results
+in the repository's `validation/` folder.  A volunteer's mesh is also
+checked against the exact code of a tagged release.  So this setup needs
+a clone, and every `validation` command runs **from the clone's top
+folder**.  After a plain `pip install`, `python3 -m validation…` fails
+with `ModuleNotFoundError: No module named 'validation'`.
+
+```bash
+git clone https://github.com/sigveka/hexmesh && cd hexmesh
+#   to volunteer: git clone --branch <tag> …, the tag the case's card names
+#   (python3 -m validation.volunteer list prints the whole line)
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e .              # hexmesh from this clone, with gmsh, numpy, scipy
+```
+
+**You get** everything in [Use hexmesh](#use-hexmesh), from the clone,
+plus the cases' drivers (`validation/<case>/run.py`), the tools
+(`python3 -m validation.tools.recheck`, `…plots`) and the volunteer
+command (`python3 -m validation.volunteer`).  **You also need
+OpenFOAM v2406.**  The easiest way is
+[Docker](https://docs.docker.com/get-started/get-docker/): the image
+downloads itself on the first run (about 1.5 GB).  Apptainer and an
+installed OpenFOAM work too ([validation/README.md](validation/README.md#what-you-need)).
+
+**Check it works**, from the clone's top folder:
+
+```bash
+python3 -m validation.volunteer list      # the volunteer cases: no OpenFOAM needed
+python3 validation/poiseuille/run.py --levels coarse --no-trend \
+    --openfoam docker:opencfd/openfoam-default:2406 --json check.json
+```
+
+The first command lists each volunteer case, with what it costs and the
+`prepare` command to copy.  The second meshes and solves the coarsest
+Poiseuille pipe with OpenFOAM in Docker: about 15 s once the image is
+downloaded.  It prints a table whose `e(Δp), circle` column is about
++0.45 %.  `--json check.json` keeps the stored results untouched.
+Delete `check.json` afterwards.
+
+**Windows:**
+- The volunteer's `job.sh` needs bash.  Run the same step with
+  `python -m validation.volunteer run run\` in its place.
+- Set a runner for every case with `$env:HEXMESH_OPENFOAM = "docker:opencfd/openfoam-default:2406"`
+  (PowerShell's form of `export HEXMESH_OPENFOAM=…`).
+- **Known issue (2026-11-17):** on native Windows, `prepare` fails with
+  `FileNotFoundError` when it first starts OpenFOAM in Docker.  It is
+  being investigated (task 0170).  Until it's fixed, use WSL 2: turn on
+  Docker Desktop's *WSL integration* (Settings → Resources), so that
+  `docker` works inside WSL, and follow the Linux commands there.
+
+### Develop
+
+```bash
+git clone https://github.com/sigveka/hexmesh && cd hexmesh
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"       # + pytest, pytest-xdist, jsonschema, matplotlib
+python3 -m pytest -q          # the fast suite, in parallel: a few minutes
+```
+
+**You get** the previous setup plus the test tools.  The suite's
+opt-in parts (`-m slow`: the wheel built and installed into a fresh
+venv; `-m openfoam`: cases with an installed OpenFOAM), the pre-commit
+hook, the docs site and the rules for a pull request are in
+[CONTRIBUTING.md](CONTRIBUTING.md).
+
+### Platforms
 
 | | Linux | macOS | Windows |
 |---|---|---|---|
 | meshing | yes | yes | yes |
-| studies and validation, OpenFOAM in Docker | yes | yes | yes (Docker Desktop) |
-| studies and validation, native OpenFOAM | yes | — | WSL only |
+| studies and validation, OpenFOAM in Docker | yes | yes | WSL 2 (native: the known issue above) |
+| studies and validation, installed OpenFOAM | yes | — | WSL only |
 
 ### Stability
 

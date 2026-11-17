@@ -68,6 +68,17 @@ before they show a validation command, and they must work on Windows.
 
 ## Agent notes
 
+- **Step 2 done by the design session (2026-11-17, the user's request):**
+  README *Install* has three subsections (*Use hexmesh*, *Validate or
+  volunteer*, *Develop*), each with what you get, what you don't, and a
+  check command, plus *Platforms*.  Both checks were run on Linux:
+  `python3 -m hexmesh.examples.fittings.equal_tee` (about 7 s) and the
+  coarse Poiseuille level in Docker with `--json check.json` (15 s,
+  e(Δp) circle +0.451 %).  It also names the Windows `prepare` crash as a
+  known issue, with WSL 2 as the way round.  Update that paragraph when
+  the crash is fixed.  Steps 3–6 remain.  Step 5's text test can use
+  the README's validation subsection as its first case.
+
 ## Questions for design
 
 ## Outcome
