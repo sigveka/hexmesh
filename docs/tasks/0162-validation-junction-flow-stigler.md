@@ -247,6 +247,48 @@ intersections (decision 0045).
     - Disk: about 4-5 GB for k = 3's 13 kept writes (18 GB free).  The
       work folder is deleted once the numbers are stored.
 
+- **2026-11-17, k = 2 and the k–ε comparison (Div a, q = 0.6):**
+  - The convergence run's driver was stopped twice for low memory
+    (Claude Code's background-job reaper, not the run).  `run.py` is now
+    split into `prepare_point` and `collect_point` (972d9cb), so a solved
+    case can be collected afterwards.  k = 2 was collected that way: the
+    solver reached 8000 steps, the piped log ends at 7440, so
+    `converged` is unknown.
+  - 14 GB free before k = 3; a k = 3 case is about 5 GB.
+
+    | k, model | cells | ξ_PG (fit) | ξ_MGb (fit) | slope / McKeon a, b, c |
+    |---|---|---|---|---|
+    | 1, SST | 65 792 | 0.724 ± 0.008 (0.672) | 0.461 ± 0.004 | |
+    | 2, SST | 526 336 | 0.672 ± 0.010 (0.616) | 0.469 ± 0.008 (0.449) | 1.14, 1.09, 1.30 |
+    | 2, realizable k–ε | 526 336 | 0.667 ± 0.00001 (0.575) | 0.472 (0.432) | 1.22, 1.50, 1.45 |
+
+  - **k–ε is steady:** over the last 2400 steps its coefficients move by
+    about 10⁻⁵ (SST oscillates by about 0.01).  `converged` is false
+    only because the residuals stay above the tolerance.  It agrees with
+    SST within SST's spread: the turbulence model doesn't put ξ_PG high.
+  - **Fixed method vs fit, checked (the design session's point b):**
+    the difference is exactly the excess slope carried back over the
+    stations' mean distance (14 D).  At SST k = 2: a's centre pressure
+    moves by −0.018, b's by +0.002 and c's by +0.015, so relative to a
+    Δp_b = 0.020 and Δp_c = 0.033, and Δξ_PG = −2 (0.4 · 0.020 + 0.6 ·
+    0.033) = −0.056, the computed 0.672 − 0.616.  The k = 1 estimate of
+    "about 0.04 at most" was low for two reasons.  It took branch a at
+    10 %, where the fit over the stations sees 13–14 %.  And c's excess
+    grew from about 25 % at k = 1 to 30 % at k = 2.  a counts twice,
+    because every pressure is taken relative to it.  With k–ε the slopes
+    are 22–50 % above McKeon's, and the difference is 0.092.
+  - **What the paper's CFD does** (§3, after eq. 14): the friction
+    gradients Δp₁ "were measured before the measurement of the
+    T-junction" for the experiment; "in case of numerical solution they
+    are evaluated from the numerical solution".  So the paper's CFD
+    carries its pressures with the model's own gradient, as our fit
+    variant does.  The experiment uses its measured gradient; McKeon
+    stands in for that.  §5: branches 25 D from the junction's border,
+    velocity inlet and "outflow" outlets, about 2.3 M hex cells (worst
+    skewness 0.51), realizable k–ε with non-equilibrium wall functions,
+    solved unsteady; no Re given.
+  - SST k = 3 started 11:46, alone.
+
 ## Questions for design
 
 - **Q1 (2026-11-15, coding session). hexmesh can't mesh the 45° equal
