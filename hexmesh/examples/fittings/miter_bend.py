@@ -10,9 +10,9 @@ pieces meet, so wall nodes on a cut lie on both pipes.
 
 from hexmesh import Assembly, MiterBend, PipeSpec, Straight
 
-PIPE = (PipeSpec(nang=6)
-        .core("fluid", radius=0.1, nrad=5)
-        .shell("pipe_wall", dR=0.01, nrad=2))
+PIPE = (PipeSpec(n_arc=6)
+        .core("fluid", radius=0.1, n_radial=5)
+        .shell("pipe_wall", dR=0.01, n_radial=2))
 
 
 def build() -> Assembly:

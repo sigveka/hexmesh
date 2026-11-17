@@ -49,10 +49,10 @@ def test_one_source_for_unit_constants():
 
 def _readme(s):
     """The README's first example, every length × *s*."""
-    pipe = (PipeSpec(nang=6)
-            .core("fluid", radius=0.1 * s, nrad=5, first_cell=0.01 * s)
-            .shell("steel", dR=0.008 * s, nrad=2)
-            .shell("insulation", dR=0.04 * s, nrad=3))
+    pipe = (PipeSpec(n_arc=6)
+            .core("fluid", radius=0.1 * s, n_radial=5, first_cell=0.01 * s)
+            .shell("steel", dR=0.008 * s, n_radial=2)
+            .shell("insulation", dR=0.04 * s, n_radial=3))
     asm = Assembly(pipe, direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Straight(0.5 * s, n_layers=8))
     main, branch = asm.add(Tee(branch_length=0.3 * s, branch_radius=0.06 * s))
@@ -63,7 +63,7 @@ def _readme(s):
 
 
 def _wye(s):
-    pipe = PipeSpec(nang=6).core("fluid", radius=0.1 * s, nrad=4).shell("steel", dR=0.01 * s, nrad=2)
+    pipe = PipeSpec(n_arc=6).core("fluid", radius=0.1 * s, n_radial=4).shell("steel", dR=0.01 * s, n_radial=2)
     asm = Assembly(pipe, direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Straight(0.3 * s, n_layers=4))
     left, right = asm.add(Wye(angle=60, run_length=0.3 * s, branch_length=0.5 * s))

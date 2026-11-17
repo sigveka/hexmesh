@@ -21,8 +21,8 @@ and an insulation shell, solids only, against the exact solution.
     → checkMesh per region → chtMultiRegionSimpleFoam → Python post-processing
 
 Two variants: the outer surface held at T₃ (``fixed``), and convection to
-T∞ (``convection``).  Three levels, ``nang`` 6 / 12 / 24 with every
-``nrad`` scaled (``Assembly.refined``; the axial count stays at 2: the
+T∞ (``convection``).  Three levels, ``n_arc`` 6 / 12 / 24 with every
+``n_radial`` scaled (``Assembly.refined``; the axial count stays at 2: the
 problem is axially uniform).  Usage::
 
     python3 validation/layered_conduction/run.py [--levels 1 2 4]
@@ -100,13 +100,13 @@ def exact(variant: str) -> dict:
 
 
 # --- mesh --------------------------------------------------------------------
-BASE = dict(nang=6, rod=3, steel=2, insulation=3, n_layers=2)
+BASE = dict(n_arc=6, rod=3, steel=2, insulation=3, n_layers=2)
 
 
 def assembly(k: int) -> Assembly:
-    spec = (PipeSpec(nang=BASE["nang"]).core("rod", radius=R1, nrad=BASE["rod"])
-            .shell("steel", dR=R2 - R1, nrad=BASE["steel"])
-            .shell("insulation", dR=R3 - R2, nrad=BASE["insulation"]))
+    spec = (PipeSpec(n_arc=BASE["n_arc"]).core("rod", radius=R1, n_radial=BASE["rod"])
+            .shell("steel", dR=R2 - R1, n_radial=BASE["steel"])
+            .shell("insulation", dR=R3 - R2, n_radial=BASE["insulation"]))
     asm = Assembly(spec, position=[0, 0, 0], direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Straight(LENGTH, n_layers=BASE["n_layers"]), names=["outlet"])
     d = intent.refined_dict(asm.to_dict(), k)
@@ -118,7 +118,7 @@ def assembly(k: int) -> Assembly:
 def meshes():
     """(label, caption, build) per mesh shown in README.md
     (``docs/gallery/build.py --validation``)."""
-    return [(f"k{k}", f"k = {k}: nang {BASE['nang'] * k}, nrad "
+    return [(f"k{k}", f"k = {k}: n_arc {BASE['n_arc'] * k}, n_radial "
                       f"{BASE['rod'] * k} / {BASE['steel'] * k} / {BASE['insulation'] * k}",
              lambda k=k: assembly(k)) for k in (1, 2, 4)]
 
@@ -354,7 +354,7 @@ def run_level(variant: str, k: int, work: Path, end_time: int) -> dict:
     history = residual_history(solve)
     first = next((t for t, r in history if r < TOL), None)
     out = {
-        "variant": variant, "k": k, "nang": BASE["nang"] * k, "cells": cells,
+        "variant": variant, "k": k, "n_arc": BASE["n_arc"] * k, "cells": cells,
         "cells_foam": sum(c["cells_foam"] for c in checks.values()),
         "mesh_ok": all(c["mesh_ok"] for c in checks.values()), "checks": checks,
         "retyped": retyped, "min_scaled_jacobian": sj,

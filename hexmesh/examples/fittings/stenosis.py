@@ -34,7 +34,7 @@ D = 0.02                                  # pipe diameter
 UPSTREAM, DOWNSTREAM = 3.0, 16.0          # diameters from the throat
 N_UP, N_STENOSIS, N_DOWN = 10, 71, 48     # fixed counts: aligned variants
 
-PIPE = PipeSpec(nang=6).core("fluid", radius=D / 2, nrad=6, first_cell=D / 40)
+PIPE = PipeSpec(n_arc=6).core("fluid", radius=D / 2, n_radial=6, first_cell=D / 40)
 
 
 def build(s0: float = 0.25, length_d: float = 2.0) -> Assembly:

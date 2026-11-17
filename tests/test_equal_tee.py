@@ -23,7 +23,7 @@ import pytest
 from hexmesh import Session
 from hexmesh.assembly import Assembly, AssemblyError, Straight, Tee
 from hexmesh.assembly import cube
-from hexmesh.assembly.limits import (EQUAL_LATERAL_ANGLE_MIN, EQUAL_TEE_NANG_CLEAN, EQUAL_TEE_RTOL,
+from hexmesh.assembly.limits import (EQUAL_LATERAL_ANGLE_MIN, EQUAL_TEE_N_ARC_CLEAN, EQUAL_TEE_RTOL,
                                     PREDICTED_SJ_WARN)
 from hexmesh.errors import HexmeshWarning
 from hexmesh.assembly.signature import classify, signature
@@ -33,13 +33,13 @@ from hexmesh.quality_hex import min_scaled_jacobians
 R = 0.1
 
 
-def _spec(shell=False, nang=8):
-    s = PipeSpec(nang=nang).core("fluid", radius=R, nrad=3)
-    return s.shell("steel", dR=0.1 * R, nrad=2) if shell else s
+def _spec(shell=False, n_arc=8):
+    s = PipeSpec(n_arc=n_arc).core("fluid", radius=R, n_radial=3)
+    return s.shell("steel", dR=0.1 * R, n_radial=2) if shell else s
 
 
-def _asm(shell=False, nang=8, **kw):
-    asm = Assembly(_spec(shell, nang), direction=[1, 0, 0], up=[0, 0, 1], lc=0.05)
+def _asm(shell=False, n_arc=8, **kw):
+    asm = Assembly(_spec(shell, n_arc), direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Straight(0.2, n_layers=2))
     kw.setdefault("branch_length", 0.7)
     main, branch = asm.add(Tee(branch_radius=R, **kw), names=["main", "branch"])
@@ -100,7 +100,7 @@ def test_rejected_before_gmsh_with_a_code(kw, code, field):
 @pytest.mark.parametrize("angle", [89.0, 60.0, 45.0])
 def test_an_equal_lateral_is_rejected_naming_the_reduced_branch(angle):
     """Square only (``EQUAL_LATERAL_ANGLE_MIN``): an equal lateral's
-    quality falls as nang rises (task 0122)."""
+    quality falls as n_arc rises (task 0122)."""
     with pytest.raises(AssemblyError) as e:
         _asm(angle=angle)[0].validate()
     assert e.value.code == "equal_lateral_angle_below_min"
@@ -116,26 +116,26 @@ def test_second_order_is_rejected_before_meshing():
         assert not gmsh.model.mesh.getNodes()[0].size
 
 
-@pytest.mark.parametrize("nang, told", [
-    (64, "measured 0.293 at nang 64"),
-    (56, "measured 0.293 at nang 64"),
-    (96, "unmeasured above nang 64"),
+@pytest.mark.parametrize("n_arc, told", [
+    (64, "measured 0.293 at n_arc 64"),
+    (56, "measured 0.293 at n_arc 64"),
+    (96, "unmeasured above n_arc 64"),
 ])
-def test_above_the_clean_nang_validate_warns_before_gmsh(nang, told):
-    """Task 0127: the measured fall with nang, which the predicted SJ
+def test_above_the_clean_n_arc_validate_warns_before_gmsh(n_arc, told):
+    """Task 0127: the measured fall with n_arc, which the predicted SJ
     doesn't see, warns in ``validate()``, coded."""
-    asm, _, _ = _asm(nang=nang)
+    asm, _, _ = _asm(n_arc=n_arc)
     with pytest.warns(HexmeshWarning) as rec:
         asm.validate()
     msgs = [str(w.message) for w in rec if w.message.code == "fitting_quality_warning"
-            and "nang" in str(w.message)]
+            and "n_arc" in str(w.message)]
     assert len(msgs) == 1 and told in msgs[0]
-    assert f"nang <= EQUAL_TEE_NANG_CLEAN ({EQUAL_TEE_NANG_CLEAN})" in msgs[0]
+    assert f"n_arc <= EQUAL_TEE_N_ARC_CLEAN ({EQUAL_TEE_N_ARC_CLEAN})" in msgs[0]
     assert not gmsh.isInitialized()
 
 
-def test_at_the_clean_nang_validate_is_silent():
-    asm, _, _ = _asm(nang=EQUAL_TEE_NANG_CLEAN, shell=True)
+def test_at_the_clean_n_arc_validate_is_silent():
+    asm, _, _ = _asm(n_arc=EQUAL_TEE_N_ARC_CLEAN, shell=True)
     asm.validate()
     assert not asm.warnings
 
@@ -165,7 +165,7 @@ def test_at_90_degrees_the_cube_is_square_to_every_pipe():
 
 @pytest.mark.parametrize("shell", [False, True])
 def test_the_equal_tee_meshes_at_90_degrees(shell):
-    """The task's acceptance at nang 8: corner SJ ≥ ``PREDICTED_SJ_WARN``,
+    """The task's acceptance at n_arc 8: corner SJ ≥ ``PREDICTED_SJ_WARN``,
     nothing inverted, the cell count exact, walls projected."""
     asm, main, branch = _asm(shell=shell)
     asm.add(main, Straight(0.2, n_layers=2))

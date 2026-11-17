@@ -181,14 +181,14 @@ def _rich(values, h) -> dict | None:
 
 def _h(levels) -> list[float]:
     """Relative cell size h/h₁ = 1/k of each level, from its refinement
-    factor (``k`` or ``factor``), else its ``nang`` against the coarsest.
+    factor (``k`` or ``factor``), else its ``n_arc`` against the coarsest.
     Not N^(−1/3): cases that don't refine axially (layered_conduction)
     have 4×, not 8×, the cells per halving."""
     ks = [lv.get("k") or lv.get("factor") for lv in levels]
     if all(ks):
         return [1 / k for k in ks]
-    base = min(lv["nang"] for lv in levels)
-    return [base / lv["nang"] for lv in levels]
+    base = min(lv["n_arc"] for lv in levels)
+    return [base / lv["n_arc"] for lv in levels]
 
 
 def _status(rich: dict | None, n: int) -> str:
@@ -712,8 +712,8 @@ def helical_pipe(data, out):
                        "err": _col(lv, "f_err_ito")})
     convergence(ax[0, 0], series, ylabel="|f − Ito| (% of Ito)", slopes=False,
                 band=(0.05, "gate: within 5 % of Ito"))
-    return [_finish(fig, "helical_pipe", "In progress: nang 24 not yet run.  Gate: f within "
-                    "5 % of Ito's correlation at nang 16.  No reference slopes: a correlation "
+    return [_finish(fig, "helical_pipe", "In progress: n_arc 24 not yet run.  Gate: f within "
+                    "5 % of Ito's correlation at n_arc 16.  No reference slopes: a correlation "
                     "is not an exact solution.", out / "figure.png"),
             "The friction factor's difference from Ito's correlation per level."]
 

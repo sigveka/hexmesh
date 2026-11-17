@@ -19,15 +19,15 @@ channels, each returning to a round outlet.
 Each daughter of the 60° wye bends back parallel to the supply, then a
 ``Transition`` flattens it into a 3:1 channel (0.12 × 0.04), the kind of
 passage that cools a plate or a mould.  After the channel a second
-``Transition`` rounds it off again.  The circle's ``nang`` equals the
-channel's ``nang_w`` and ``nang_h``, so every transition is a plain sweep.
+``Transition`` rounds it off again.  The circle's ``n_arc`` equals the
+channel's ``n_width`` and ``n_height``, so every transition is a plain sweep.
 Outlets: ``fluid_left_out``, ``fluid_right_out``.
 """
 
 from hexmesh import Assembly, Bend, PipeSpec, Straight, Transition, Wye
 
-PIPE = PipeSpec(nang=6).core("fluid", radius=0.03, nrad=3)
-CHANNEL = PipeSpec(nang_w=6, nang_h=6).core("fluid", half_w=0.06, half_h=0.02, mprg=1.2)
+PIPE = PipeSpec(n_arc=6).core("fluid", radius=0.03, n_radial=3)
+CHANNEL = PipeSpec(n_width=6, n_height=6).core("fluid", half_w=0.06, half_h=0.02, radial_grading=1.2)
 
 
 def build() -> Assembly:

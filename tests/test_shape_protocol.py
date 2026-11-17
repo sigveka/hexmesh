@@ -28,24 +28,24 @@ R2 = math.sqrt(2)
 #: name → (shape, known answers); a blend of two squares (or two circles)
 #: at u = 0.5 is the square (circle) halfway between
 CASES = {
-    "circle": (CircleShape(0.05, nang=4), dict(
+    "circle": (CircleShape(0.05, n_arc=4), dict(
         is_round=True, is_station=False, hydraulic_diameter=0.1, label="circle",
-        angular_counts={"nang": 4}, max_extent=0.05, counts=(4, 4),
+        angular_counts={"n_arc": 4}, max_extent=0.05, counts=(4, 4),
         corner0=(0.05 / R2, 0.05 / R2), side_count1=4, extent=(0.05, 0.05),
         period=math.pi / 2)),
-    "square": (RectShape(0.06, 0.06, nang_w=4, nang_h=4), dict(
+    "square": (RectShape(0.06, 0.06, n_width=4, n_height=4), dict(
         is_round=False, is_station=False, hydraulic_diameter=0.12, label="1:1 rectangle",
-        angular_counts={"nang_w": 4, "nang_h": 4}, max_extent=0.06 * R2, counts=(4, 4),
+        angular_counts={"n_width": 4, "n_height": 4}, max_extent=0.06 * R2, counts=(4, 4),
         corner0=(0.06, 0.06), side_count1=4, extent=(0.06, 0.06),
         period=math.pi / 2)),
-    "rect-2": (RectShape(0.10, 0.05, nang_w=6, nang_h=3), dict(
+    "rect-2": (RectShape(0.10, 0.05, n_width=6, n_height=3), dict(
         is_round=False, is_station=False, hydraulic_diameter=0.4 / 3, label="2:1 rectangle",
-        angular_counts={"nang_w": 6, "nang_h": 3}, max_extent=math.hypot(0.1, 0.05),
+        angular_counts={"n_width": 6, "n_height": 3}, max_extent=math.hypot(0.1, 0.05),
         counts=(6, 3), corner0=(0.10, 0.05), side_count1=3, extent=(0.10, 0.05),
         period=math.pi)),
-    "blend-squares": (BlendShape(RectShape(0.1, 0.1, nang_w=4, nang_h=4), RectShape(0.2, 0.2, nang_w=4, nang_h=4), 0.5), dict(
+    "blend-squares": (BlendShape(RectShape(0.1, 0.1, n_width=4, n_height=4), RectShape(0.2, 0.2, n_width=4, n_height=4), 0.5), dict(
         is_round=False, is_station=True, hydraulic_diameter=0.3, label="blended station",
-        angular_counts={"nang_w": 4, "nang_h": 4}, max_extent=0.2 * R2, counts=(4, 4),
+        angular_counts={"n_width": 4, "n_height": 4}, max_extent=0.2 * R2, counts=(4, 4),
         corner0=(0.15, 0.15), side_count1=4, extent=(0.15, 0.15),
         period=math.pi / 2)),
 }
@@ -70,10 +70,10 @@ def test_shape_answers_the_protocol(name):
 def test_blended_circle_hydraulic_diameter_from_its_samples():
     """A blend's 4A/P comes from its sampled outline: a circle halfway from
     r = 0.1 to 0.2 is read within the sampling error (1024 points)."""
-    b = BlendShape(CircleShape(0.1, nang=4), CircleShape(0.2, nang=4), 0.5)
+    b = BlendShape(CircleShape(0.1, n_arc=4), CircleShape(0.2, n_arc=4), 0.5)
     assert b.hydraulic_diameter == pytest.approx(0.3, rel=1e-5)
 
 
 def test_a_round_shapes_radius_is_its_max_extent():
     """Round-only fittings (wye, interchange) read the radius this way."""
-    assert CircleShape(0.037, nang=4).max_extent == 0.037
+    assert CircleShape(0.037, n_arc=4).max_extent == 0.037

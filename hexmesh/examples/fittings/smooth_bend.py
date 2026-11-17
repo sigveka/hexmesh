@@ -9,9 +9,9 @@ circular arcs, so every wall node lies on the torus.
 
 from hexmesh import Assembly, Bend, PipeSpec, Straight
 
-PIPE = (PipeSpec(nang=6)
-        .core("fluid", radius=0.1, nrad=5)
-        .shell("pipe_wall", dR=0.01, nrad=2))
+PIPE = (PipeSpec(n_arc=6)
+        .core("fluid", radius=0.1, n_radial=5)
+        .shell("pipe_wall", dR=0.01, n_radial=2))
 
 
 def build() -> Assembly:

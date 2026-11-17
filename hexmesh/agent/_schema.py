@@ -186,29 +186,29 @@ def _table(table: dict, keys, *, required=(), nullable=(), extra=None, title: st
 
 
 #: value types of the PipeSpec tables' saved keys
-_ANNOTATIONS = {"nang": "int", "nang_w": "int", "nang_h": "int", "mbmp": "float",
+_ANNOTATIONS = {"n_arc": "int", "n_width": "int", "n_height": "int", "arc_bump": "float",
                 "rot": "float", "n_outer": "int", "name": "str", "shape": "Shape",
-                "nrad": "int", "mprg": "float", "layout": "str", "dR": "float",
+                "n_radial": "int", "radial_grading": "float", "layout": "str", "dR": "float",
                 "outer": "Shape"}
 
 
 def _spec_defs() -> dict:
     init, core, shell = (_doc_entries(m) for m in (PipeSpec, PipeSpec.core, PipeSpec.shell))
-    spec = _table(PipeSpec.PARAMS, ("nang", "nang_w", "nang_h", "mbmp", "rot", "n_outer"),
-                  required=("core", "shells"), nullable=("nang", "nang_w", "nang_h"),
+    spec = _table(PipeSpec.PARAMS, ("n_arc", "n_width", "n_height", "arc_bump", "rot", "n_outer"),
+                  required=("core", "shells"), nullable=("n_arc", "n_width", "n_height"),
                   title="PipeSpec", description=_summary(PipeSpec), docs=init,
                   extra=None)
     spec["properties"]["core"] = {"$ref": "#/$defs/Core"}
     spec["properties"]["shells"] = {"type": "array", "items": {"$ref": "#/$defs/Shell"}}
-    core_d = _table(PipeSpec.CORE_PARAMS, ("name", "shape", "layout", "nrad", "mprg",
+    core_d = _table(PipeSpec.CORE_PARAMS, ("name", "shape", "layout", "n_radial", "radial_grading",
                                           "wall_bump"),
-                    required=("name", "shape", "nrad"), nullable=("mprg",), docs=core,
+                    required=("name", "shape", "n_radial"), nullable=("radial_grading",), docs=core,
                     title="Core", description=_summary(PipeSpec.core))
     shell_props = {"type": {"enum": ["shell", "square_shell"],
                             "description": "the layer kind; square_shell is the form saved "
                                            "before decision 0026, read as a rect outer"}}
-    shell_d = _table(PipeSpec.SHELL_PARAMS, ("name", "dR", "nrad", "mprg", "outer"),
-                     required=("type", "name", "nrad"), nullable=("dR", "mprg"), docs=shell,
+    shell_d = _table(PipeSpec.SHELL_PARAMS, ("name", "dR", "n_radial", "radial_grading", "outer"),
+                     required=("type", "name", "n_radial"), nullable=("dR", "radial_grading"), docs=shell,
                      extra=shell_props, title="Shell", description=_summary(PipeSpec.shell))
     # square_shell (before decision 0026) saved its rectangle flat
     for k in ("half_w", "half_h"):
@@ -286,8 +286,6 @@ def _assembly_defs() -> dict:
                      "description": "the interface the next add continues from"},
             "equipment": {"type": "array", "items": index,
                           "description": "interfaces that are equipment faces"},
-            "lc": {"type": "number", "exclusiveMinimum": 0, "x-unit": "length",
-                   "description": "characteristic length for GMSH"},
             "axial_cell": {"type": "number", "exclusiveMinimum": 0, "x-unit": "length",
                            "description": "axial cell size that n_layers=None resolves from"}},
         "required": ["format", "version", "inlet", "edges"], "additionalProperties": False}

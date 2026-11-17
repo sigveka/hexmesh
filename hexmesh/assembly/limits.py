@@ -108,14 +108,14 @@ PREDICTED_SJ_MIN = _limit(
 #: Pipe tees (decision 0031 amendment, task 0060): the largest branch ratio
 #: r/R.  Above it the saddle's curved sides pull the meshed corner SJ below
 #: the straight-edge prediction: at r/R 0.95 by at most 0.025, at 0.97 by
-#: 0.07 and at 0.99 by 0.27 (nang 8, 90°: 0.30 against 0.57 predicted).
+#: 0.07 and at 0.99 by 0.27 (n_arc 8, 90°: 0.30 against 0.57 predicted).
 TEE_MAX_RATIO = _limit(
     "TEE_MAX_RATIO", 0.95, "1", "error",
     "largest branch radius of a pipe tee, over the main radius")
 
 #: Offset tees (task 0061, proposed to design): the largest offset over the
 #: branch radius, |h|/r.  Past h = r the branch's footprint leaves the main's
-#: top line and OCC's face fills turn erratic: at nang 8, 90°, cases fail
+#: top line and OCC's face fills turn erratic: at n_arc 8, 90°, cases fail
 #: from h/r 1.38 (folded wall projection, failed fills, a plane face whose
 #: edge OCC rebuilds without end points), with meshed cases between them.
 #: Every one of 90 cases with h ≤ r (r/R 0.25–0.85 at 90°, 0.55–0.8 at
@@ -132,24 +132,24 @@ EQUAL_TEE_RTOL = _limit(
     "relative tolerance within which a branch radius equals the main's (an equal tee)")
 
 #: Equal tees (task 0122; design's answer, 2026-11-10): square only.  The
-#: junction cube builds equal laterals at nang 8 down to 40°, but their
-#: meshed SJ falls as nang rises (60°: 0.304, 0.108, then 0.031 at nang
-#: 24) and from 60° down they fail checkMesh's skewness at nang 8 (60°:
-#: 4.6; 45°: 6.2).  The square tee holds: 0.511 at nang 8, 0.305 at 48.
+#: junction cube builds equal laterals at n_arc 8 down to 40°, but their
+#: meshed SJ falls as n_arc rises (60°: 0.304, 0.108, then 0.031 at n_arc
+#: 24) and from 60° down they fail checkMesh's skewness at n_arc 8 (60°:
+#: 4.6; 45°: 6.2).  The square tee holds: 0.511 at n_arc 8, 0.305 at 48.
 EQUAL_LATERAL_ANGLE_MIN = _limit(
     "EQUAL_LATERAL_ANGLE_MIN", 90.0, "deg", "error",
     "smallest angle of an equal tee (branch as wide as the main): square only")
 
 #: Equal tees, measured (task 0127; validation/tools/equal_tee.json,
-#: rows "refinement", "short_stations_and_nang48" and "fine_nang"): the
-#: square tee's meshed min SJ falls with nang, single and shelled alike
-#: (0.511, 0.399, 0.353, 0.330, 0.305, 0.293 at nang 8, 16, 24, 32, 48,
-#: 64).  The largest measured nang with SJ >= 0.3; above it validate()
-#: warns.  None measured falls below 0.1, so there is no maximum; nang 96
+#: rows "refinement", "short_stations_and_n_arc48" and "fine_n_arc"): the
+#: square tee's meshed min SJ falls with n_arc, single and shelled alike
+#: (0.511, 0.399, 0.353, 0.330, 0.305, 0.293 at n_arc 8, 16, 24, 32, 48,
+#: 64).  The largest measured n_arc with SJ >= 0.3; above it validate()
+#: warns.  None measured falls below 0.1, so there is no maximum; n_arc 96
 #: needs ~16 GB to mesh and wasn't measured.
-EQUAL_TEE_NANG_CLEAN = _limit(
-    "EQUAL_TEE_NANG_CLEAN", 48, "1", "warn",
-    "largest nang at which an equal tee measured meshed SJ >= 0.3")
+EQUAL_TEE_N_ARC_CLEAN = _limit(
+    "EQUAL_TEE_N_ARC_CLEAN", 48, "1", "warn",
+    "largest n_arc at which an equal tee measured meshed SJ >= 0.3")
 
 #: Duct taps (decision 0033, task 0070): the largest across ratio q/a of a
 #: tap inside the face (q its reach across, a the face's half-width).  The
@@ -167,7 +167,7 @@ DUCT_TAP_NARROW_ASPECT_WARN = _limit(
 
 #: Shortest ``Switch`` (task 0085), in ring thicknesses t: the cap is one
 #: t deep, and the core block between the O-H port and the cap must have a
-#: length.  Measured from 1.25 t to 6 t (a/b 1–4, nrad 1–6): min corner SJ
+#: length.  Measured from 1.25 t to 6 t (a/b 1–4, n_radial 1–6): min corner SJ
 #: 1/√3 throughout, max non-orthogonality ≤ 54° (task 0085's table).
 SWITCH_MIN_LENGTH = _limit(
     "SWITCH_MIN_LENGTH", 1.25, "t", "error",
@@ -182,7 +182,7 @@ SWITCH_MAX_SHEAR = _limit(
 #: And ``L ≥ t + Δ_max / SWITCH_MAX_CORE_SHEAR``: the core block (L − t
 #: long) carries the same change of grading (task 0086, Q4).  With both,
 #: every measured case meshes at min SJ ≥ 0.501 (450 runs: a/b 1–4,
-#: n 8–24, first cell to h/200, nrad derived to 9, L/t 1.25–16).
+#: n 8–24, first cell to h/200, n_radial derived to 9, L/t 1.25–16).
 SWITCH_MAX_CORE_SHEAR = _limit(
     "SWITCH_MAX_CORE_SHEAR", 1.0, "1", "error",
     "largest core-block shear of a switch to a graded H face (wall shift / core length)")
@@ -218,7 +218,7 @@ WYE_N_SPLIT_MAX = _limit(
 
 #: Total shell thickness through a wye (task 0053): T ≤ R ·
 #: min(WYE_SHELL_TAN_FACTOR · tan(angle/2), WYE_SHELL_MAX), R the core
-#: radius.  Measured limits (any nang): 0.19 / 0.28 / 0.40 / 0.59 / 0.84 R
+#: radius.  Measured limits (any n_arc): 0.19 / 0.28 / 0.40 / 0.59 / 0.84 R
 #: at 30° / 45° / 60° / 90° / 120°, i.e. 0.69 tan(angle/2) below 90°.
 #: Past them the daughters' shells fold where they meet, OCC fails
 #: building the crotch (90°), or a hub shell block inverts (120°).  The

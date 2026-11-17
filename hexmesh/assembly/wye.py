@@ -201,7 +201,7 @@ class Wye:
         A count left ``None`` (the default) is resolved when the wye is
         added: the fewest layers that keep every edge it divides, the hub
         cap's arcs included, no longer than the angular cell at the wall,
-        (π/2)·R / ``nang``, or ``axial_cell`` if the assembly sets a
+        (π/2)·R / ``n_arc``, or ``axial_cell`` if the assembly sets a
         shorter one (task 0056).  A resolved ``n_split`` is capped at
         ``limits.WYE_N_SPLIT_MAX`` (6): the turning blocks' cells degrade
         as it grows, and fold at 120° from about 20 layers, so the knee
@@ -275,7 +275,7 @@ class Wye:
         probe.check(spec)
         frames = [inlet] + [f for f, _ in probe.ports(inlet, spec)]
         lengths = probe.layout(frames, spec).edge_lengths().values()
-        h = 0.5 * math.pi * spec.core_shape.max_extent / spec.nang
+        h = 0.5 * math.pi * spec.core_shape.max_extent / spec.n_arc
         if axial_cell is not None:
             h = min(h, axial_cell)
         counts = {n: max(1, math.ceil(max(L for L, d in lengths if d == _SENTINELS[n]) / h - 1e-9))
@@ -635,7 +635,7 @@ class Wye:
         """Exact hex count of the block layout (pure; DESIGN P4)."""
         return self.layout(frames, spec).cell_count()
 
-    def fill(self, faces, frames, spec, lc):
+    def fill(self, faces, frames, spec):
         lay = self.layout(frames, spec)
         shift = corner_shift(rolled(frames[0], self.roll), frames[0], spec)
         for prefix, face in zip("ALR", faces):

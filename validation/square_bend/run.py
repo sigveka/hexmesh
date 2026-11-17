@@ -92,7 +92,7 @@ GCI_STATIONS = ("theta=60", "theta=77.5")
 
 
 def _spec() -> PipeSpec:
-    return PipeSpec(nang_w=N, nang_h=N).core("fluid", half_w=H, half_h=H, layout="h",
+    return PipeSpec(n_width=N, n_height=N).core("fluid", half_w=H, half_h=H, layout="h",
                                              first_cell=FIRST_CELL)
 
 

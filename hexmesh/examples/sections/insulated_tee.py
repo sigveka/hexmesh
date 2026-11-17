@@ -21,10 +21,10 @@ at any run: the junction core's quality is set by the branch ratio
 
 from hexmesh import Assembly, Bend, PipeSpec, Straight, Tee
 
-PIPE = (PipeSpec(nang=6)
-        .core("fluid", radius=0.1, nrad=5, first_cell=0.01)
-        .shell("steel", dR=0.008, nrad=2)
-        .shell("insulation", dR=0.04, nrad=3))
+PIPE = (PipeSpec(n_arc=6)
+        .core("fluid", radius=0.1, n_radial=5, first_cell=0.01)
+        .shell("steel", dR=0.008, n_radial=2)
+        .shell("insulation", dR=0.04, n_radial=3))
 
 
 def build() -> Assembly:

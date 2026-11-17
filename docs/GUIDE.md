@@ -64,9 +64,9 @@ from hexmesh import Assembly, Bend, PipeSpec, Session, Straight
 
 # 1. Cross-section: fluid core + pipe wall
 pipe = (
-    PipeSpec(nang=6)
-    .core("fluid", radius=0.1, nrad=5)
-    .shell("pipe_wall", dR=0.01, nrad=2)
+    PipeSpec(n_arc=6)
+    .core("fluid", radius=0.1, n_radial=5)
+    .shell("pipe_wall", dR=0.01, n_radial=2)
 )
 
 # 2. Assembly: inlet at the origin, flowing along +x
@@ -116,7 +116,7 @@ ellipse where the two pipes meet. Tee and wye wall nodes are projected onto
 the analytic wall after surface meshing
 ([decision 0029](decisions/0029-wall-exactness-by-node-projection.md));
 the OCC surfaces underneath stay approximate, and the faces between the nodes
-are chords: at the wye's crotch crease about 1 % of the radius at `nang` 8
+are chords: at the wye's crotch crease about 1 % of the radius at `n_arc` 8
 ([task 0051](tasks/0051-exact-junction-walls.md)). There is one known
 exception: the interior wall nodes of a multi-layer `Straight` lie on a filled
 surface, up to 0.7 % of the radius off. This is an open follow-up
@@ -152,7 +152,7 @@ OpenFOAM output, or flow.
 | `Bend(radius, angle, n_layers, roll=0, axial_grading=1, stack_changes=(), toward=None)` | Circular-arc bend. `roll` (degrees) turns the bend plane about the pipe axis; 0 bends toward `up`. Or `toward=(x, y, z)`: the absolute direction to turn toward |
 | `Elbow(angle=90, schedule="long", n_layers=8, roll=0, axial_grading=1, toward=None)` | Butt-weld elbow: a `Bend` with radius 1.5 D (`"long"`) or 1 D (`"short"`), D = outer diameter |
 | `MiterBend(radius, angle, n_cuts=1, n_layers=2, roll=0, toward=None)` | Segmented bend of straight pieces. Same ports as `Bend(radius, angle)`; each cut turns ≤ 90° |
-| `Reducer(outlet, length, n_layers, axial_grading=1)` | Concentric cone to another radius (reducer or expander). Radii and radial grading (`mprg`, `first_cell`) may change; `nang`, `nrad` and the layer stack may not |
+| `Reducer(outlet, length, n_layers, axial_grading=1)` | Concentric cone to another radius (reducer or expander). Radii and radial grading (`radial_grading`, `first_cell`) may change; `n_arc`, `n_radial` and the layer stack may not |
 | `Transition(outlet, length, n_layers, axial_grading=1)` | Circle ↔ rectangle, or rectangle ↔ rectangle, in every layer; equal counts per side |
 | `Switch(length, n_layers=None, outlet=None)` | A duct's O-H section ↔ its H (Cartesian) section, either way; the rectangle stays |
 | `SplinePipe(points, n_layers, end_tangent=None, axial_grading=1)` | Pipe along a cubic spline; `points[0]` is the inlet position |
@@ -208,7 +208,7 @@ the branch, so its chord error falls only as fast as the cells shrink.
 Measured on a 0.1 m pipe, single layer (shelled: the same scaled
 Jacobian, within 0.4 % R of crease and 2° of non-orthogonality):
 
-| `nang` | min scaled Jacobian | max non-orthogonality | crease miss |
+| `n_arc` | min scaled Jacobian | max non-orthogonality | crease miss |
 |---|---|---|---|
 | 8 | 0.511 | 46° | 3.7 % R |
 | 16 | 0.399 | 47° | 2.0 % R |
@@ -216,10 +216,10 @@ Jacobian, within 0.4 % R of crease and 2° of non-orthogonality):
 | 48 | 0.305 | 58° | 0.7 % R |
 | 64 | 0.293 | 66° | 0.5 % R |
 
-The quality falls as `nang` rises (projection moves the side blocks'
+The quality falls as `n_arc` rises (projection moves the side blocks'
 wall nodes up to 0.18 R whatever the cell size): it stays above the 0.3
-warning tier to `nang` 48 (`limits.EQUAL_TEE_NANG_CLEAN`), and above
-that `validate()` warns before meshing.  Nothing finer than `nang` 64
+warning tier to `n_arc` 48 (`limits.EQUAL_TEE_N_ARC_CLEAN`), and above
+that `validate()` warns before meshing.  Nothing finer than `n_arc` 64
 has been measured (it needs about 5 GB of memory there).  Equal laterals aren't built yet; a branch
 radius up to `TEE_MAX_RATIO` (0.95) R leans at any angle the tee allows.
 
@@ -232,8 +232,8 @@ constant from `hexmesh.units` (`m`, `cm`, `mm`, `um`, `inch`, `ft`):
 
 ```python
 from hexmesh.units import cm, inch
-PipeSpec(nang=8).core("blood", radius=1.325 * cm, nrad=6)
-PipeSpec(nang=6).core("fluid", radius=2 * inch, nrad=4)
+PipeSpec(n_arc=8).core("blood", radius=1.325 * cm, n_radial=6)
+PipeSpec(n_arc=6).core("fluid", radius=2 * inch, n_radial=4)
 ```
 
 Don't work in a unit of your own (millimetres written as metres):
@@ -247,29 +247,29 @@ move junction nodes by up to 0.6 % (task 0139).
 from hexmesh import PipeSpec
 
 # Bare pipe (fluid only)
-PipeSpec(nang=6).core("fluid", radius=0.05, nrad=4)
+PipeSpec(n_arc=6).core("fluid", radius=0.05, n_radial=4)
 
 # Fluid + pipe wall
-PipeSpec(nang=6).core("fluid", radius=0.05, nrad=4).shell("pipe_wall", dR=0.005, nrad=2)
+PipeSpec(n_arc=6).core("fluid", radius=0.05, n_radial=4).shell("pipe_wall", dR=0.005, n_radial=2)
 
 # Fluid + wall + insulation, refined toward the wall
-(PipeSpec(nang=6)
- .core("fluid", radius=0.05, nrad=4)
- .shell("steel", dR=0.005, nrad=2)
- .shell("insulation", dR=0.03, nrad=4, mprg=1.2))
+(PipeSpec(n_arc=6)
+ .core("fluid", radius=0.05, n_radial=4)
+ .shell("steel", dR=0.005, n_radial=2)
+ .shell("insulation", dR=0.03, n_radial=4, radial_grading=1.2))
 ```
 
-- `nang` sets the cells along each 90° arc of the cross-section. It is shared by
+- `n_arc` sets the cells along each 90° arc of the cross-section. It is shared by
   every layer.
-- `nrad` sets the cells across each layer.
-- `mprg` is the radial progression. Values above 1 refine toward the inner side
+- `n_radial` sets the cells across each layer.
+- `radial_grading` is the radial progression. Values above 1 refine toward the inner side
   of the layer.
-- `PipeSpec(mbmp=...)` sets an angular bump.
+- `PipeSpec(arc_bump=...)` sets an angular bump.
 - `first_cell=` sets the radial height of the cell at a layer's outer wall,
-  in place of `mprg`:
+  in place of `radial_grading`:
 
   ```python
-  PipeSpec(nang=6).core("fluid", radius=0.05, nrad=12, first_cell=2e-4)
+  PipeSpec(n_arc=6).core("fluid", radius=0.05, n_radial=12, first_cell=2e-4)
   ```
 
   This is a geometric height, not y⁺, which also depends on the flow.
@@ -308,16 +308,16 @@ hexmesh sets on these faces (`sub_partition`).
 ```python
 # 2:1 duct, 0.2 wide (along the frame's right) by 0.1 high (along up),
 # walls graded to a first cell of 1 mm
-PipeSpec(nang_w=16, nang_h=8).core("air", half_w=0.1, half_h=0.05, first_cell=0.001)
+PipeSpec(n_width=16, n_height=8).core("air", half_w=0.1, half_h=0.05, first_cell=0.001)
 ```
 
 **Since 0.4.0 a duct is one Cartesian patch (the H face) by default**:
-`nang_w` cells along the width and `nang_h` along the height, graded
-toward the walls by `first_cell=` or `mprg=` (the second cell from a wall
+`n_width` cells along the width and `n_height` along the height, graded
+toward the walls by `first_cell=` or `radial_grading=` (the second cell from a wall
 over the first).  The O-H face converges badly on a rectangle, and a
 Cartesian grid of the same cells converges at second order
 ([RESEARCH §7.11](RESEARCH.md)).  For the O-H face (a centre rectangle and
-a ring of uniform thickness), pass `layout="oh"` with `nrad=`; `nrad=`
+a ring of uniform thickness), pass `layout="oh"` with `n_radial=`; `n_radial=`
 alone is an error that names both fixes.  Descriptions saved before 0.4.0
 still load as O-H.
 
@@ -333,11 +333,11 @@ from the centreline.  Take a 0.2 × 0.1 m duct tapped on its wide face,
 so b = 0.05 m:
 
 ```python
-duct = PipeSpec(nang_w=8, nang_h=8).core("air", shape=RectShape(0.1, 0.05, nang_w=8, nang_h=8),
-                                          nrad=3, layout="oh")
+duct = PipeSpec(n_width=8, n_height=8).core("air", shape=RectShape(0.1, 0.05, n_width=8, n_height=8),
+                                          n_radial=3, layout="oh")
 asm = Assembly(duct, direction=[1, 0, 0], up=[0, 0, 1])
 asm.add(Straight(0.5, n_layers=10))
-main, branch = asm.add(Tee(branch=CircleShape(radius=0.03, nang=8), angle=45,
+main, branch = asm.add(Tee(branch=CircleShape(radius=0.03, n_arc=8), angle=45,
                            branch_length=0.2))
 ```
 
@@ -350,19 +350,19 @@ outline, so a duct can carry a wall and lagging, and a pipe can sit in a
 rectangular block (`.shell(name, outer=RectShape(...))`, API.md); a stack
 with a rectangle has the same count on every side.
 `Transition` joins a duct to a circular pipe, or to a duct of another size,
-when the counts per side match: a circle's `nang` equals the duct's
-`nang_w` and `nang_h`.  It changes every layer of a stack together, so an
+when the counts per side match: a circle's `n_arc` equals the duct's
+`n_width` and `n_height`.  It changes every layer of a stack together, so an
 insulated pipe can become an insulated duct.  A transition may also end
 on an H duct (the default); it then embeds a `Switch`.  Between an O-H and an H duct of the same size, put a `Switch`.
 
 **A round pipe into a duct with unequal counts.**  A circle given one
-count per arc, `arcs=[a, b, a, b]`, meets a duct with `nang_w = a` and
-`nang_h = b` (task 0147): `a` cells along the circle's top and bottom
+count per arc, `arcs=[a, b, a, b]`, meets a duct with `n_width = a` and
+`n_height = b` (task 0147): `a` cells along the circle's top and bottom
 arcs, `b` along its sides.
 
 ```python
-pipe = PipeSpec().core("air", shape=CircleShape(0.06, arcs=[8, 4, 8, 4]), nrad=3)
-duct = PipeSpec(nang_w=8, nang_h=4).core("air", half_w=0.1, half_h=0.05)
+pipe = PipeSpec().core("air", shape=CircleShape(0.06, arcs=[8, 4, 8, 4]), n_radial=3)
+duct = PipeSpec(n_width=8, n_height=4).core("air", half_w=0.1, half_h=0.05)
 asm = Assembly(pipe, direction=[1, 0, 0], up=[0, 0, 1])
 asm.add(Straight(0.3, n_layers=6))
 asm.add(Transition(duct, length=0.3, n_layers=6))     # ends on the H duct
@@ -387,12 +387,12 @@ so loops close modulo 180°.
 
 | Parameter | Controls | Set on |
 |---|---|---|
-| `nang` | cells per 90° arc (around the pipe) | `PipeSpec` |
-| `nrad` | cells across each layer | `.core()` / `.shell()` |
+| `n_arc` | cells per 90° arc (around the pipe) | `PipeSpec` |
+| `n_radial` | cells across each layer | `.core()` / `.shell()` |
 | `n_layers` | cells along the axis, per fitting | each fitting, or from `Assembly(axial_cell=…)` |
 
 The mesh is structured, so its size is known exactly before meshing. A
-cross-section has `nang² + 4·nang·Σnrad` cells, multiplied by each fitting's
+cross-section has `n_arc² + 4·n_arc·Σn_radial` cells, multiplied by each fitting's
 axial layers:
 
 ```python
@@ -403,17 +403,17 @@ asm.cell_counts()                   # per fitting
 
 ### One density per network
 
-`nang` and each layer's `nrad` are fixed for a whole connected network.
+`n_arc` and each layer's `n_radial` are fixed for a whole connected network.
 Every interface joins two faces with the same nodes, so a tee's branch, a
 reducer's outlet and every fitting downstream carry the inlet's counts.
-What can differ is **radial grading**: a `Reducer` may change `mprg` or
+What can differ is **radial grading**: a `Reducer` may change `radial_grading` or
 `first_cell` along its length, which is how a smaller pipe gets its own
-wall cell.  (For rectangular ducts, `nang_w` and `nang_h` play the role
-of `nang`.)
+wall cell.  (For rectangular ducts, `n_width` and `n_height` play the role
+of `n_arc`.)
 
-The cost is cell size around the pipe.  A ring of `nang` cells per 90°
-on a pipe of radius R has cells about π R / (2 · nang) wide at the wall.
-At `nang` 8:
+The cost is cell size around the pipe.  A ring of `n_arc` cells per 90°
+on a pipe of radius R has cells about π R / (2 · n_arc) wide at the wall.
+At `n_arc` 8:
 
 | Pipe | Radius | Cell width around the wall |
 |---|---|---|
@@ -422,30 +422,30 @@ At `nang` 8:
 
 The header's cells are 6× wider around than the branch's, and the ratio
 is always the ratio of the radii.  What to do:
-- **choose `nang` for the smallest pipe that matters**, and accept finer
-  cells than needed around the large ones (cells grow as `nang²` in the
+- **choose `n_arc` for the smallest pipe that matters**, and accept finer
+  cells than needed around the large ones (cells grow as `n_arc²` in the
   core);
 - **grade the walls** (`first_cell=`, and a grading-only `Reducer` after a
   branch) to set each pipe's wall cell;
 - **mesh a much larger vessel separately** and couple it to the network
   in the solver (OpenFOAM's AMI, for example).
 
-hexmesh doesn't change `nang` or `nrad` inside a network: a `Reducer`
+hexmesh doesn't change `n_arc` or `n_radial` inside a network: a `Reducer`
 whose outlet asks for other counts is rejected, with this section as its
 hint.  Decision 0003 keeps density changes as a later, additive feature.
 
 **A branch with its own wall cell.**  A tee's branch copies the main's
-`nrad` and grading, so its wall cell scales with r/R: a `first_cell` set
+`n_radial` and grading, so its wall cell scales with r/R: a `first_cell` set
 on the main is about halved on a branch at r/R 0.5.  To give the branch
 its own, add a grading-only `Reducer` right after it: the same radius,
 the branch's spec with its own `first_cell`.
 
 ```python
-main = PipeSpec(nang=8).core("fluid", radius=0.05, nrad=10, first_cell=5e-4)
+main = PipeSpec(n_arc=8).core("fluid", radius=0.05, n_radial=10, first_cell=5e-4)
 asm = Assembly(main, direction=[1, 0, 0], up=[0, 0, 1])
 asm.add(Straight(0.3, n_layers=6))
 run, branch = asm.add(Tee(branch_length=0.1, branch_radius=0.025))
-small = PipeSpec(nang=8).core("fluid", radius=0.025, nrad=10, first_cell=5e-4)
+small = PipeSpec(n_arc=8).core("fluid", radius=0.025, n_radial=10, first_cell=5e-4)
 out = asm.add(branch, Reducer(small, length=0.1, n_layers=4))   # same radius: grading only
 asm.add(out, Straight(0.3, n_layers=6))
 asm.add(run, Straight(0.3, n_layers=6))
@@ -493,12 +493,12 @@ asm.add(Straight(1.0, n_layers=20, axial_grading=1.1))   # first cell at the inl
 asm.add(Bend(radius=0.3, angle=90, n_layers=12, axial_grading=0.9))
 ```
 
-> **Refinement is cubic.** Doubling `nang`, every `nrad` and every `n_layers`
+> **Refinement is cubic.** Doubling `n_arc`, every `n_radial` and every `n_layers`
 > doubles the nodes in each direction, which gives **8× the cells** in 3-D. If
 > you come from unstructured meshing, expect this rather than a linear increase.
 
 **Convergence studies.** `asm.refined(k)` returns a copy at k× the
-resolution in every direction: `nang`, every `nrad` and every axial count
+resolution in every direction: `n_arc`, every `n_radial` and every axial count
 × k, and every grading ratio replaced by its k-th root, so each coarse cell
 splits into k cells of the same growth. It has **k³× the cells**, and the
 original is unchanged.
@@ -537,9 +537,9 @@ flange or a support.  `stack_changes` lists `(i, spec)` pairs: from axial
 cell `i` on, the stack is `spec`.
 
 ```python
-bare = PipeSpec(nang=4).core("fluid", radius=0.1, nrad=3).shell("pipe_wall", dR=0.01, nrad=2)
-insulated = PipeSpec(nang=4).core("fluid", radius=0.1, nrad=3) \
-    .shell("pipe_wall", dR=0.01, nrad=2).shell("insulation", dR=0.03, nrad=2)
+bare = PipeSpec(n_arc=4).core("fluid", radius=0.1, n_radial=3).shell("pipe_wall", dR=0.01, n_radial=2)
+insulated = PipeSpec(n_arc=4).core("fluid", radius=0.1, n_radial=3) \
+    .shell("pipe_wall", dR=0.01, n_radial=2).shell("insulation", dR=0.03, n_radial=2)
 
 asm = Assembly(insulated)
 asm.add(Straight(1.0, n_layers=10, stack_changes=((3, bare), (7, insulated))))
@@ -547,7 +547,7 @@ asm.add(Straight(1.0, n_layers=10, stack_changes=((3, bare), (7, insulated))))
 
 Cells 3–6 are bare.  The rules:
 - only outermost layers may stop or start;
-- the remaining layers keep their names, radii, `nrad` and grading (to
+- the remaining layers keep their names, radii, `n_radial` and grading (to
   change those, use a `Reducer`);
 - changes sit inside the fitting (`0 < i < n_layers`), never at a port.
 
@@ -964,7 +964,7 @@ Regenerate it with `python3 docs/gallery/build.py` (needs `vtk`).
 
 ## Current limitations
 
-- **One density per network:** `nang` and every layer's `nrad` are the
+- **One density per network:** `n_arc` and every layer's `n_radial` are the
   same in every pipe of a connected network; only radial grading may
   change ([One density per network](#one-density-per-network)).
 - **Metres, and not quite scale-free:** hexmesh gives its own geometry
@@ -988,14 +988,14 @@ Regenerate it with `python3 docs/gallery/build.py` (needs `vtk`).
   spec, coplanar and symmetric, angle 30°–120°. Quality is measured, not
   yet bounded: min scaled Jacobian about 0.1 (decision 0017). The wall
   nodes are exact, but the faces between them miss the wall by about 2 %
-  of R at `nang` 8 at the inlet/daughter crease (60°–120°) and 2–3 % at
-  the crotch of wyes under 45°, both first order in `nang`; a layout with
+  of R at `n_arc` 8 at the inlet/daughter crease (60°–120°) and 2–3 % at
+  the crotch of wyes under 45°, both first order in `n_arc`; a layout with
   the creases on block edges is planned (decision 0029, task 0056).
-  Default wyes are reliable to about `nrad` 6; at 120° with `nrad` 12
+  Default wyes are reliable to about `n_radial` 6; at 120° with `n_radial` 12
   only `n_split` 3 is safe.  Every wye warns of a predicted
   non-orthogonality of 72–82° at the crotch (task 0104).  `refined(k)` of a wye may fold beyond
   k = 2, and `mesh()` says so, naming the wye.  The wall error at the
-  knee (3–6 % of R) doesn't converge with `nang`, so grid studies over
+  knee (3–6 % of R) doesn't converge with `n_arc`, so grid studies over
   wyes stop at k = 2.
 - **Rectangular ducts and outlines:** no elbow for ducts.  A duct tee
   (`Tee(branch=…)` on a duct) takes a rectangular or round tap inside the
@@ -1010,7 +1010,7 @@ Regenerate it with `python3 docs/gallery/build.py` (needs `vtk`).
   tap costs about 1.6–2.3× the cells of a plain run of the same length.
   A stack with a rectangle and a circle needs equal counts per side, and
   so does a circle ↔ rectangle `Transition`: a circle carries one count.
-  A stack of rectangles keeps the core's `nang_w` × `nang_h`.
+  A stack of rectangles keeps the core's `n_width` × `n_height`.
 - **Layer changes:** insulation can't start or stop inside a fitting yet
   (decision 0006).
 - **OpenFOAM version:** buoyant and CHT solvers need v2406 or later on

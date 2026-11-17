@@ -38,9 +38,9 @@ SAMPLE = Path(__file__).with_name("pcf_line.pcf")
 
 def pipe(bore: float) -> PipeSpec:
     """The section for a nominal *bore* in metres (the file's sizes)."""
-    return (PipeSpec(nang=8)
-            .core("fluid", radius=bore / 2, nrad=4)
-            .shell("steel", dR=0.004, nrad=2))
+    return (PipeSpec(n_arc=8)
+            .core("fluid", radius=bore / 2, n_radial=4)
+            .shell("steel", dR=0.004, n_radial=2))
 
 
 def build() -> Assembly:

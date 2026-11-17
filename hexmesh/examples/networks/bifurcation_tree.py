@@ -21,7 +21,7 @@ single-layer, equal daughters, 30°–120°.)
 
 from hexmesh import Assembly, Bend, PipeSpec, Straight, Wye
 
-PIPE = PipeSpec(nang=6).core("fluid", radius=0.05, nrad=3)
+PIPE = PipeSpec(n_arc=6).core("fluid", radius=0.05, n_radial=3)
 
 
 def _split(asm, at, angle, branch):

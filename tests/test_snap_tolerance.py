@@ -16,7 +16,7 @@ TUBE = 4 * mm                 # a lab rig's tubing: bore 4 mm
 
 
 def _spec(bore=TUBE):
-    return PipeSpec(nang=4).core("fluid", radius=bore / 2, nrad=3)
+    return PipeSpec(n_arc=4).core("fluid", radius=bore / 2, n_radial=3)
 
 
 def _tubes(gap=2 * mm, snap=None):

@@ -230,9 +230,9 @@ CLAIMS = {
     "the straights' axial aspect, after": r"axial aspect \d+ → " + N + ",",
     "the cells with stretched straights": r"axial aspect \d+ → \d+, " + N + " cells",
     "the accuracy it fell back to": r"then fell back to (\w+):",
-    "nang": r"`nang` " + N,
-    "nrad": r"`nrad` " + N,
-    "the cells advised": r"`nrad` \d+, " + N + " cells",
+    "n_arc": r"`n_arc` " + N,
+    "n_radial": r"`n_radial` " + N,
+    "the cells advised": r"`n_radial` \d+, " + N + " cells",
 }
 
 
@@ -312,8 +312,8 @@ def _session(tmp: Path) -> dict:
             "the straights' axial aspect, after": int(aspect[2]),
             "the cells with stretched straights": steps[0]["cells_after"],
             "the accuracy it fell back to": advice["totals"]["accuracy"],
-            "nang": advice["density"]["nang"],
-            "nrad": advice["density"]["nrad"],
+            "n_arc": advice["density"]["n_arc"],
+            "n_radial": advice["density"]["n_radial"],
             "the cells advised": advice["totals"]["cells"],
         },
         "fell_from": fallback and fallback[1],

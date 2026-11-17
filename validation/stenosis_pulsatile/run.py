@@ -147,7 +147,7 @@ def meshes():
     """(label, caption, build) per mesh shown in README.md
     (``docs/gallery/build.py --validation``): the steady case's."""
     b = sten.BASE
-    return [(name, f"{name}: nang {b['nang'] * k}, nrad {b['nrad'] * k}, "
+    return [(name, f"{name}: n_arc {b['n_arc'] * k}, n_radial {b['n_radial'] * k}, "
                    f"{sum(b[n] for n in ('up', 'sten', 'near', 'far')) * k} axial layers",
              lambda k=k: sten.assembly(k))
             for name, k in ((n, LEVELS[n]) for n in DEFAULT_LEVELS)]

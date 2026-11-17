@@ -45,38 +45,38 @@ SUPPORT = Path(__file__).with_name("support.json")
 
 PROBE_SPECS = {
     "circle": ("circle", "oh", "single layer",
-               lambda s: PipeSpec(nang=4).core("fluid", radius=0.05 * s, nrad=2)),
+               lambda s: PipeSpec(n_arc=4).core("fluid", radius=0.05 * s, n_radial=2)),
     "circle_shells": ("circle", "oh", "circular shells",
-                      lambda s: PipeSpec(nang=4).core("fluid", radius=0.05 * s, nrad=2)
-                      .shell("wall", dR=0.005 * s, nrad=1)),
+                      lambda s: PipeSpec(n_arc=4).core("fluid", radius=0.05 * s, n_radial=2)
+                      .shell("wall", dR=0.005 * s, n_radial=1)),
     "rect_h": ("rect", "h", "single layer",
-               lambda s: PipeSpec(nang_w=4, nang_h=4).core("fluid", half_w=0.05 * s,
+               lambda s: PipeSpec(n_width=4, n_height=4).core("fluid", half_w=0.05 * s,
                                                            half_h=0.03 * s)),
     "rect_oh": ("rect", "oh", "single layer",
-                lambda s: PipeSpec(nang_w=4, nang_h=4).core("fluid", half_w=0.05 * s,
-                                                            half_h=0.03 * s, nrad=2,
+                lambda s: PipeSpec(n_width=4, n_height=4).core("fluid", half_w=0.05 * s,
+                                                            half_h=0.03 * s, n_radial=2,
                                                             layout="oh")),
     "rect_shells": ("rect", "h", "rectangular shells",
-                    lambda s: PipeSpec(nang_w=4, nang_h=4).core("fluid", half_w=0.05 * s,
+                    lambda s: PipeSpec(n_width=4, n_height=4).core("fluid", half_w=0.05 * s,
                                                                 half_h=0.03 * s)
-                    .shell("wall", dR=0.005 * s, nrad=1)),
+                    .shell("wall", dR=0.005 * s, n_radial=1)),
     "circle_in_rect": ("circle", "oh", "a circle in a rectangle",
-                       lambda s: PipeSpec(nang=4).core("fluid", radius=0.05 * s, nrad=2)
-                       .shell("box", nrad=2, outer=RectShape(0.07 * s, 0.07 * s, nang_w=4, nang_h=4))),
+                       lambda s: PipeSpec(n_arc=4).core("fluid", radius=0.05 * s, n_radial=2)
+                       .shell("box", n_radial=2, outer=RectShape(0.07 * s, 0.07 * s, n_width=4, n_height=4))),
     "circle_n_outer_8": ("circle", "oh", "single layer, n_outer = 8",
-                         lambda s: PipeSpec(nang=8, n_outer=8)
-                         .core("fluid", radius=0.05 * s, nrad=2)),
+                         lambda s: PipeSpec(n_arc=8, n_outer=8)
+                         .core("fluid", radius=0.05 * s, n_radial=2)),
 }
 
 
 def _other_shape(key: str) -> PipeSpec:
     """A Transition's outlet: a rectangle from a circle, a circle from a rectangle."""
     if key == "circle_n_outer_8":           # an O-H rectangle of the inlet's topology
-        return PipeSpec(nang_w=8, nang_h=8, n_outer=8).core(
-            "fluid", half_w=0.04, half_h=0.04, nrad=2, layout="oh")
+        return PipeSpec(n_width=8, n_height=8, n_outer=8).core(
+            "fluid", half_w=0.04, half_h=0.04, n_radial=2, layout="oh")
     if PROBE_SPECS[key][0] == "circle":
-        return PipeSpec(nang_w=4, nang_h=4).core("fluid", half_w=0.04, half_h=0.04)
-    return PipeSpec(nang=4).core("fluid", radius=0.05, nrad=2)
+        return PipeSpec(n_width=4, n_height=4).core("fluid", half_w=0.04, half_h=0.04)
+    return PipeSpec(n_arc=4).core("fluid", radius=0.05, n_radial=2)
 
 
 def _switched(key: str) -> PipeSpec | None:
@@ -86,7 +86,7 @@ def _switched(key: str) -> PipeSpec | None:
         return None
     out = PROBE_SPECS["rect_oh"][3](1.0)
     for sh in PROBE_SPECS[key][3](1.0).shells:
-        out = out.shell(sh.name, dR=sh.dR, nrad=sh.nrad, mprg=sh.mprg, outer=sh.outer)
+        out = out.shell(sh.name, dR=sh.dR, n_radial=sh.n_radial, radial_grading=sh.radial_grading, outer=sh.outer)
     return out
 
 
@@ -102,7 +102,7 @@ PROBES = {
                                             (1.6, 0.3, 0.0)), n_layers=8),
     "Tee": lambda k, mk: (Tee(branch_length=0.15, branch_radius=0.02)
                           if PROBE_SPECS[k][0] == "circle" else
-                          Tee(branch_length=0.15, branch=RectShape(0.02, 0.02, nang_w=4, nang_h=4))),
+                          Tee(branch_length=0.15, branch=RectShape(0.02, 0.02, n_width=4, n_height=4))),
     "Wye": lambda k, mk: Wye(angle=60.0, run_length=0.3, branch_length=0.3),
     "Switch": lambda k, mk: Switch(length=0.2, n_layers=2, outlet=_switched(k)),
 }

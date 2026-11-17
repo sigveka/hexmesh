@@ -87,6 +87,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import unicodedata
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -973,6 +974,18 @@ def readme_block(text: str, name: str, body: str) -> str:
     return text[:a] + "\n" + body.strip("\n") + "\n" + text[b:]
 
 
+#: BibTeX accent commands → combining characters (``{\\v{S}}`` → Š)
+_ACCENTS = {"v": "\u030c", "'": "\u0301", '"': "\u0308", "`": "\u0300", "^": "\u0302",
+            "~": "\u0303", "c": "\u0327", "r": "\u030a", "H": "\u030b"}
+
+
+def _unlatex(s: str) -> str:
+    """*s* with BibTeX accents as Unicode letters and braces dropped."""
+    s = re.sub(r"\\([v'\"`^~crH])\s*\{?(\w)\}?",
+               lambda m: unicodedata.normalize("NFC", m.group(2) + _ACCENTS[m.group(1)]), s)
+    return s.replace("{", "").replace("}", "")
+
+
 def cite(key: str) -> str | None:
     """"Varghese et al. 2007" for a docs/references.bib key, or None."""
     m = re.search(r"@\w+\{" + re.escape(key) + r",(.*?)\n\}", BIB.read_text(encoding="utf-8"),
@@ -983,7 +996,7 @@ def cite(key: str) -> str | None:
     year = re.search(r"^\s*year\s*=\s*\{?(\d{4})", m.group(1), re.M)
     if not author or not year:
         return None
-    last = [a.split(",")[0].strip().strip("{}") for a in author.group(1).split(" and ")]
+    last = [_unlatex(a.split(",")[0]).strip() for a in author.group(1).split(" and ")]
     who = last[0] if len(last) == 1 else (f"{last[0]} and {last[1]}" if len(last) == 2
                                          else f"{last[0]} et al.")
     return f"{who} {year.group(1)}"

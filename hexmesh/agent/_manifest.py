@@ -86,7 +86,7 @@ CONVENTIONS = [
     "Angles are in degrees (PipeSpec.rot, bend and wye angles, roll).",
     "Doubling every density parameter gives 8x the cells in 3-D, not 2x.",
     "Topology (n_outer, rot, layout, the layer stack) fixes where interfaces land and can't "
-    "change without rebuilding; density (nang, nrad, n_layers) is resolution only.",
+    "change without rebuilding; density (n_arc, n_radial, n_layers) is resolution only.",
     "Cell counts are exact before meshing (estimate; Assembly.cell_count).",
     "Convergence orders come from the refinement factor k of the directions that refine, "
     "never from the cell count (docs/RESEARCH.md §7.12).",

@@ -85,12 +85,12 @@ def test_tee_union():
 # In the assembly
 # ---------------------------------------------------------------------------
 
-def _spec(nang=4, nrad=3):
-    return PipeSpec(nang=nang).core("fluid", shape=CircleShape(radius=R, nang=nang), nrad=nrad)
+def _spec(n_arc=4, n_radial=3):
+    return PipeSpec(n_arc=n_arc).core("fluid", shape=CircleShape(radius=R, n_arc=n_arc), n_radial=n_radial)
 
 
-def _wye(angle=60, nang=4):
-    asm = Assembly(_spec(nang), direction=[1, 0, 0], up=[0, 0, 1], lc=0.05)
+def _wye(angle=60, n_arc=4):
+    asm = Assembly(_spec(n_arc), direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Straight(0.2, n_layers=2))
     a, b = asm.add(Wye(angle=angle, run_length=0.4, branch_length=0.7), names=["a", "b"])
     asm.add(a, Straight(0.2, n_layers=2))
@@ -98,14 +98,14 @@ def _wye(angle=60, nang=4):
     return asm
 
 
-@pytest.mark.parametrize("angle, nang", [(30, 8), (30, 16), (40, 16), (45, 16), (60, 8),
+@pytest.mark.parametrize("angle, n_arc", [(30, 8), (30, 16), (40, 16), (45, 16), (60, 8),
                                          (60, 16), (90, 16)])
-def test_wye_projected_without_folds(gmsh_session, angle, nang):
-    """The 60° wye's crotch folded under nearest-point projection at nang 8,
+def test_wye_projected_without_folds(gmsh_session, angle, n_arc):
+    """The 60° wye's crotch folded under nearest-point projection at n_arc 8,
     and 30–50° wyes with a narrow smoothing (task 0051); along the smoothed
     direction none do, and none warns (task 0056)."""
     import warnings
-    asm = _wye(angle, nang)
+    asm = _wye(angle, n_arc)
     with warnings.catch_warnings():
         warnings.simplefilter("error")
         # 30°: the narrow-wye quality warning (task 0053) is expected

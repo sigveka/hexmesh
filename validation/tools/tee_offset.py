@@ -14,7 +14,7 @@
 Task 0061: the offset tee, measured (decision 0031, stage 2).
 
 Each case is ``Straight → Tee(offset=h) → Straight`` on both outlets, at
-``nang`` 8, single layer, with the run and branch lengths resolved as a
+``n_arc`` 8, single layer, with the run and branch lengths resolved as a
 user gets them (``run_length=None``; the branch the turning station's
 distance + R).  Over h/R ∈ {0, 0.2, 0.4, 0.6}, r/R ∈ {0.3, 0.5, 0.6}
 with |h| + r < R, at α 90° and 45°, it reports (r/R 0.6 added: at 45° the
@@ -51,7 +51,7 @@ ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "validation" / "tools" / "tee_offset.json"
 
 R = 0.1
-NANG = 8
+N_ARC = 8
 RATIOS = (0.3, 0.5, 0.6)
 OFFSETS = (0.0, 0.2, 0.4, 0.6)
 ANGLES = (90.0, 45.0)
@@ -61,8 +61,8 @@ def assembly(ratio: float, h: float, angle: float):
     from hexmesh.assembly import Assembly, Straight, Tee
     from hexmesh.assembly.tee import turning_height
     from hexmesh.core.spec import PipeSpec
-    spec = PipeSpec(nang=NANG).core("fluid", radius=R, nrad=3)
-    asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1], lc=0.05)
+    spec = PipeSpec(n_arc=N_ARC).core("fluid", radius=R, n_radial=3)
+    asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Straight(0.2, n_layers=4))
     tee = Tee(branch_radius=ratio * R, offset=h * R, angle=angle,
               branch_length=turning_height(R, ratio * R, 0.0, angle) + R)

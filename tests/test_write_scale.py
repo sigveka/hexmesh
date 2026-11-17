@@ -27,7 +27,7 @@ from hexmesh.study.openfoam import msh_hexes
 
 def _tee():
     """The README's tee, without its shells and bend."""
-    asm = Assembly(PipeSpec(nang=6).core("fluid", radius=0.1, nrad=5, first_cell=0.01),
+    asm = Assembly(PipeSpec(n_arc=6).core("fluid", radius=0.1, n_radial=5, first_cell=0.01),
                    direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Straight(0.5, n_layers=4))
     main, branch = asm.add(Tee(branch_length=0.3, branch_radius=0.06))

@@ -21,12 +21,12 @@ from hexmesh.core.spec import PipeSpec
 R = 0.1
 
 
-def _spec(nang=4, nrad=3, **kw):
-    return PipeSpec(nang=nang, **kw).core("fluid", shape=CircleShape(radius=R, nang=nang), nrad=nrad)
+def _spec(n_arc=4, n_radial=3, **kw):
+    return PipeSpec(n_arc=n_arc, **kw).core("fluid", shape=CircleShape(radius=R, n_arc=n_arc), n_radial=n_radial)
 
 
 def _wye_asm(angle=60, spec=None, run=0.3, branch=0.5, direction=(1, 0, 0), **kw):
-    asm = Assembly(spec or _spec(), direction=list(direction), up=[0, 0, 1], lc=0.05)
+    asm = Assembly(spec or _spec(), direction=list(direction), up=[0, 0, 1])
     left, right = asm.add(Wye(angle=angle, run_length=run, branch_length=branch, **kw),
                           names=["left", "right"])
     return asm, left, right
@@ -62,10 +62,10 @@ class TestTopology:
 
     @pytest.mark.parametrize("angle", [30, 60, 120])
     def test_resolved_counts_follow_the_angular_cell(self, angle):
-        """Unset counts resolve from the arcs (task 0056): doubling nang
+        """Unset counts resolve from the arcs (task 0056): doubling n_arc
         about doubles n_run and n_branch; n_split stays at the cap."""
-        coarse, fine = (_wye_asm(angle, spec=_spec(nang))[0].edges[0].fitting
-                        for nang in (8, 16))
+        coarse, fine = (_wye_asm(angle, spec=_spec(n_arc))[0].edges[0].fitting
+                        for n_arc in (8, 16))
         for name in ("n_run", "n_branch"):
             assert abs(getattr(fine, name) - 2 * getattr(coarse, name)) <= 1, name
         assert coarse.n_split == fine.n_split == limits.WYE_N_SPLIT_MAX
@@ -79,19 +79,19 @@ class TestTopology:
     @pytest.mark.parametrize("n_split, k, expected",
                              [(2, 2, 4), (3, 4, 6), (6, 2, 6), (9, 2, 9)])
     def test_refined_holds_n_split_at_the_cap(self, n_split, k, expected):
-        """A 120° wye at nang 16 folds at n_split 12 (task 0056): refined
+        """A 120° wye at n_arc 16 folds at n_split 12 (task 0056): refined
         scales n_split only up to the cap, and never below its own value."""
         asm, _, _ = _wye_asm(60, n_run=2, n_branch=3, n_split=n_split)
         wye = asm.refined(k).edges[0].fitting
         assert (wye.n_run, wye.n_branch, wye.n_split) == (2 * k, 3 * k, expected)
 
-    @pytest.mark.parametrize("nang, nrad, n_run, n_branch, n_split",
+    @pytest.mark.parametrize("n_arc, n_radial, n_run, n_branch, n_split",
                              [(4, 3, 3, 3, 3), (6, 2, 2, 5, 4), (5, 4, 1, 1, 2)])
-    def test_cell_count_closed_form(self, nang, nrad, n_run, n_branch, n_split):
-        asm, _, _ = _wye_asm(60, spec=_spec(nang, nrad), n_run=n_run, n_branch=n_branch,
+    def test_cell_count_closed_form(self, n_arc, n_radial, n_run, n_branch, n_split):
+        asm, _, _ = _wye_asm(60, spec=_spec(n_arc, n_radial), n_run=n_run, n_branch=n_branch,
                              n_split=n_split)
-        face = nang**2 + 4 * nang * nrad
-        expected = ((n_run + 2 * n_branch) * face + nang**3 + 3 * nang**2 * nrad
+        face = n_arc**2 + 4 * n_arc * n_radial
+        expected = ((n_run + 2 * n_branch) * face + n_arc**3 + 3 * n_arc**2 * n_radial
                     + 2 * n_split * face)
         assert asm.cell_count() == expected
         assert not gmsh.isInitialized()
@@ -111,7 +111,7 @@ class TestTopology:
         assert not gmsh.isInitialized()
 
     @pytest.mark.parametrize("spec, message", [
-        (_spec().shell("box", outer=RectShape(0.15, 0.15, nang_w=4, nang_h=4), nrad=2),
+        (_spec().shell("box", outer=RectShape(0.15, 0.15, n_width=4, n_height=4), n_radial=2),
          "circular only.*0026"),
         (_spec(rot=0.2), "rot = 0"),
     ])
@@ -127,8 +127,8 @@ class TestTopology:
     def test_shell_thickness_limit(self, angle, inside, outside):
         """Task 0053: total shell thickness ≤ R·min(0.65 tan(angle/2), 0.55),
         checked before GMSH, the error naming angle, thickness and limit."""
-        two = lambda t: _spec().shell("wall", dR=t / 2 * R, nrad=1).shell(
-            "insulation", dR=t / 2 * R, nrad=1)
+        two = lambda t: _spec().shell("wall", dR=t / 2 * R, n_radial=1).shell(
+            "insulation", dR=t / 2 * R, n_radial=1)
         asm, _, _ = _wye_asm(angle, spec=two(inside), run=0.4, branch=0.7)
         asm.validate()
         with pytest.raises(AssemblyError, match=rf"Wye at {angle}°: total shell "
@@ -139,7 +139,7 @@ class TestTopology:
 
     def test_shell_min_angle(self):
         """Shelled wyes start at WYE_SHELL_MIN_ANGLE (40°); single-layer at 30°."""
-        thin = _spec().shell("wall", dR=0.04 * R, nrad=1)
+        thin = _spec().shell("wall", dR=0.04 * R, n_radial=1)
         asm, _, _ = _wye_asm(40, spec=thin, run=0.4, branch=0.7)
         asm.validate()
         with pytest.raises(AssemblyError, match="35° with shells .*WYE_SHELL_MIN_ANGLE 40°"):
@@ -196,7 +196,7 @@ def test_thin_wall_shell(gmsh_session, angle):
     """A realistic pipe wall (T/R = 0.04) through the wye (task 0053 step 0):
     wall and shell boundary projected, no fold, the shell's cells no worse
     than the fluid's (min corner SJ 0.16 / 0.12 at 90° / 120°)."""
-    asm, _, _ = _wye_asm(angle, spec=_spec().shell("wall", dR=0.04 * R, nrad=1),
+    asm, _, _ = _wye_asm(angle, spec=_spec().shell("wall", dR=0.04 * R, n_radial=1),
                          run=0.4, branch=0.7)
     asm.mesh()
     assert sum(len(t) for t in gmsh.model.mesh.getElements(3)[1]) == asm.cell_count()
@@ -258,7 +258,7 @@ OPENFOAM_RC = pathlib.Path("/usr/share/openfoam/etc/bashrc")
 def test_openfoam_check_mesh(gmsh_session, tmp_path):
     """gmshToFoam + checkMesh on a 60° wye between straights: Mesh OK."""
     from test_openfoam_output import foam_case
-    asm = Assembly(_spec(nang=6, nrad=3), direction=[1, 0, 0], up=[0, 0, 1], lc=0.05)
+    asm = Assembly(_spec(n_arc=6, n_radial=3), direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Straight(0.3, n_layers=6))
     left, right = asm.add(Wye(angle=60, run_length=0.3, branch_length=0.5, n_run=4,
                               n_branch=4, n_split=4), names=["left", "right"])
@@ -286,7 +286,7 @@ def _fingerprint(lay):
     Each test below changes one input, and checks that the cache misses
     (builds again) and returns what a fresh build gives.  Some inputs leave
     this fingerprint as it was (``branch_length`` at fixed frames, the
-    core's ``mprg``); a miss is required for them all the same."""
+    core's ``radial_grading``); a miss is required for them all the same."""
     return lay.cell_count(), sorted((repr(k), np.asarray(v).tobytes())
                                     for k, v in lay.coords.items())
 
@@ -369,17 +369,17 @@ def test_a_frame_mutated_in_place_misses(cached, port, vector):
 
 
 @pytest.mark.parametrize("spec", [
-    _spec(nang=8), _spec(nrad=4), _spec().shell("steel", dR=0.01, nrad=1),
-    PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=R, nang=4), nrad=3, mprg=0.8),
-    PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=1.1 * R, nang=4), nrad=3)],
-    ids=["nang", "nrad", "shell", "mprg", "radius"])
+    _spec(n_arc=8), _spec(n_radial=4), _spec().shell("steel", dR=0.01, n_radial=1),
+    PipeSpec(n_arc=4).core("fluid", shape=CircleShape(radius=R, n_arc=4), n_radial=3, radial_grading=0.8),
+    PipeSpec(n_arc=4).core("fluid", shape=CircleShape(radius=1.1 * R, n_arc=4), n_radial=3)],
+    ids=["n_arc", "n_radial", "shell", "radial_grading", "radius"])
 def test_a_changed_spec_misses(cached, spec):
     wye, frames, base_spec = _resolved()
     base = _fingerprint(wye.layout(frames, base_spec))
     got = _fingerprint(wye.layout(frames, spec))
     assert cached[0] == 2                                    # missed
     assert got == _fingerprint(wye._layout(frames, spec))
-    if spec.to_dict()["core"]["mprg"] == 1.0:                # mprg grades; no vertex moves
+    if spec.to_dict()["core"]["radial_grading"] == 1.0:                # radial_grading grades; no vertex moves
         assert got != base
 
 

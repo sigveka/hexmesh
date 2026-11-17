@@ -102,7 +102,7 @@ ALLOWED_CYCLES: dict[frozenset, str] = {}
 #: through ``sections.circle_radius``; decision 0051).  Keep it at 0.
 SHAPE_SITES_CAP = 0
 SHAPE_TYPES = {"CircleShape", "RectShape", "BlendShape"}
-SHAPE_FIELDS = {"radius", "half_w", "half_h", "nang_w", "nang_h"}
+SHAPE_FIELDS = {"radius", "half_w", "half_h", "n_width", "n_height"}
 SHAPE_VALUES = {"core_shape", "shape", "branch"}
 
 RULE_ORDER = "DESIGN §3.1, dependency order"
@@ -390,8 +390,8 @@ def shape_sites(root: Path) -> list[str]:
       ``CircleShape``, ``RectShape`` or ``BlendShape`` (alone or in a
       tuple; as a bare name or an attribute), or ``type(x) is T`` /
       ``type(x) == T``;
-    - a read of ``.radius``, ``.half_w``, ``.half_h``, ``.nang_w`` or
-      ``.nang_h`` on an expression ending in ``core_shape``, ``shape`` or
+    - a read of ``.radius``, ``.half_w``, ``.half_h``, ``.n_width`` or
+      ``.n_height`` on an expression ending in ``core_shape``, ``shape`` or
       ``branch`` (a name, an attribute, or a call of one).
 
     One line can hold several sites."""
@@ -911,7 +911,7 @@ def test_planted_cycle_through_a_function(tmp_path):
     ("isinstance(s, CircleShape)\n", 1),
     ("isinstance(s, (shape.RectShape, int))\n", 1),
     ("type(s) is BlendShape\n", 1),
-    ("spec.core_shape.radius + shape.half_w + self.branch.nang_h\n", 3),
+    ("spec.core_shape.radius + shape.half_w + self.branch.n_height\n", 3),
     ("spec.core_shape().half_h\n", 1),
     ("pipe.radius + isinstance(s, Straight)\n", 0),               # not a shape value / type
     ("core_shape.radius = 1\n", 0),                               # a write, not a read
@@ -1089,8 +1089,8 @@ def run_commands(work: Path, *, block: bool = False, plant: str = "") -> dict:
     :data:`_RUN_COMMANDS`)."""
     if not (work / "net.json").exists():
         from hexmesh import Assembly, Bend, PipeSpec, Straight, Tee
-        a = Assembly(PipeSpec(nang=4).core("fluid", radius=0.05, nrad=3)
-                     .shell("steel", dR=0.005, nrad=1), direction=[1, 0, 0], up=[0, 0, 1])
+        a = Assembly(PipeSpec(n_arc=4).core("fluid", radius=0.05, n_radial=3)
+                     .shell("steel", dR=0.005, n_radial=1), direction=[1, 0, 0], up=[0, 0, 1])
         a.add(Straight(0.3, n_layers=3))
         main, branch = a.add(Tee(branch_length=0.2, branch_radius=0.03), names=["main", "branch"])
         a.add(main, Bend(0.2, 90, n_layers=4))
@@ -1234,6 +1234,33 @@ def test_no_public_callable_takes_more_than_two_positional_arguments():
     over = over_positional(inventory)
     assert sorted(set(over) - set(POSITIONAL_EXCEPTIONS)) == []
     assert sorted(set(POSITIONAL_EXCEPTIONS) - set(over)) == [], "exceptions no longer needed"
+
+
+#: the names decision 0053 retired (task 0166), as parts of a name
+RETIRED = re.compile(r"(?<![A-Za-z])(nang_w|nang_h|nang|nrad|mprg|mbmp)s?(?![a-z])")
+
+
+def retired_names(text: str) -> list[str]:
+    """The retired names in *text*, each once."""
+    return sorted(set(m.group(1) for m in RETIRED.finditer(text)))
+
+
+def test_no_retired_name_in_the_public_api():
+    """Decision 0053 item 5: the inventory (names, signatures, public
+    docstrings) and the error codes use the 1.0 names only, and no public
+    callable takes ``lc``."""
+    text = (ROOT / "docs/api-1.0.json").read_text(encoding="utf-8")
+    assert retired_names(text) == []
+    assert '"name": "lc"' not in text
+    codes = re.findall(r'^    "([a-z_0-9]+)":', (ROOT / "hexmesh/errors.py").read_text(encoding="utf-8"),
+                       re.M)
+    assert len(codes) > 300 and retired_names(" ".join(codes)) == []
+
+
+def test_retired_names_are_found_as_name_parts():
+    assert retired_names("PipeSpec(nang=8) branch_mprg nrads nang_w=4 mbmp") == [
+        "mbmp", "mprg", "nang", "nang_w", "nrad"]
+    assert retired_names("n_arc n_radial radial_grading arc_bump Nangle orangutan") == []
 
 
 def test_planted_positional_callable():

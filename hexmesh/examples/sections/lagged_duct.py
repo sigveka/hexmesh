@@ -24,20 +24,20 @@ only.  A change of shape is a ``Transition``
 (``sections.insulated_transition``).
 
 Rules: in a stack of rectangles every outline takes the core's counts,
-here 6 × 6.  They may differ (``nang_w ≠ nang_h``, decision 0041).
+here 6 × 6.  They may differ (``n_width ≠ n_height``, decision 0041).
 """
 
 from hexmesh import Assembly, Bend, PipeSpec, Reducer, Straight
 from hexmesh.core.shape import RectShape
 
-NANG = 6
+N_ARC = 6
 
 
 def duct(half_w: float, half_h: float) -> PipeSpec:
-    return (PipeSpec(nang=NANG)
-            .core("air", shape=RectShape(half_w, half_h, nang_w=NANG, nang_h=NANG), mprg=1.2)
-            .shell("steel", dR=0.002, nrad=2)
-            .shell("lagging", dR=0.03, nrad=3))
+    return (PipeSpec(n_arc=N_ARC)
+            .core("air", shape=RectShape(half_w, half_h, n_width=N_ARC, n_height=N_ARC), radial_grading=1.2)
+            .shell("steel", dR=0.002, n_radial=2)
+            .shell("lagging", dR=0.03, n_radial=3))
 
 
 def build() -> Assembly:

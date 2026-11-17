@@ -15,7 +15,7 @@ from hexmesh import Assembly, Elbow, MiterBend, PipeSpec, Reducer, Straight, Tee
 
 
 def pipe(radius: float) -> PipeSpec:
-    return PipeSpec(nang=6).core("water", radius=radius, nrad=5)
+    return PipeSpec(n_arc=6).core("water", radius=radius, n_radial=5)
 
 
 def build() -> Assembly:

@@ -13,26 +13,26 @@ from hexmesh.core.shape import CircleShape
 from hexmesh.core.spec import PipeSpec
 
 
-def _spec(nang=4, nrad=3, shells=()):
-    s = PipeSpec(nang=nang).core("fluid", shape=CircleShape(radius=0.1, nang=nang), nrad=nrad)
+def _spec(n_arc=4, n_radial=3, shells=()):
+    s = PipeSpec(n_arc=n_arc).core("fluid", shape=CircleShape(radius=0.1, n_arc=n_arc), n_radial=n_radial)
     for i, n in enumerate(shells):
-        s = s.shell(f"s{i}", dR=0.02, nrad=n)
+        s = s.shell(f"s{i}", dR=0.02, n_radial=n)
     return s
 
 
-@pytest.mark.parametrize("nang, nrad, shells, expected", [
+@pytest.mark.parametrize("n_arc, n_radial, shells, expected", [
     (4, 3, (), 4 * 4 + 4 * 4 * 3),
     (6, 4, (2,), 6 * 6 + 4 * 6 * (4 + 2)),
     (8, 5, (2, 3), 8 * 8 + 4 * 8 * (5 + 2 + 3)),
 ])
-def test_section_cells(nang, nrad, shells, expected):
-    assert section_cells(_spec(nang, nrad, shells)) == expected
+def test_section_cells(n_arc, n_radial, shells, expected):
+    assert section_cells(_spec(n_arc, n_radial, shells)) == expected
 
 
 def test_density_scales_cubically():
     """refinement ×2 in every direction ⇒ 8× cells (CLAUDE.md)."""
     def count(f):
-        asm = Assembly(_spec(nang=4 * f, nrad=3 * f), lc=0.1)
+        asm = Assembly(_spec(n_arc=4 * f, n_radial=3 * f))
         asm.add(Straight(0.3, n_layers=3 * f))
         asm.add(Bend(0.3, 90, n_layers=4 * f))
         return asm.cell_count()

@@ -157,7 +157,7 @@ def bump_for_ratio(n_cells: int, ratio: float) -> float:
                         limit={"min": 3})
     if ratio <= 0:
         raise SpecError(f"wall growth ratio must be positive, got {ratio!r}",
-                        code="value_not_positive", where={"field": "mprg"}, value=ratio,
+                        code="value_not_positive", where={"field": "radial_grading"}, value=ratio,
                         limit={"min_exclusive": 0})
     if math.isclose(ratio, 1.0, rel_tol=1e-15):
         return 1.0

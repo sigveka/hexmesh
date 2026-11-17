@@ -17,7 +17,7 @@ GMSH is a process-level singleton; each test that touches the geo/mesh kernel
 must run in its own initialize/finalize session.  The ``gmsh_session`` fixture
 handles that lifecycle automatically.
 
-Pipe-spec fixtures use the smallest practical nang (4) and nrad (3) to keep
+Pipe-spec fixtures use the smallest practical n_arc (4) and n_radial (3) to keep
 meshing fast while still exercising all code paths.
 """
 
@@ -67,8 +67,8 @@ def gmsh_session():
 def circle_pipe():
     """Single-layer circular pipe (fluid only)."""
     return (
-        PipeSpec(nang=4)
-        .core("fluid", shape=CircleShape(radius=0.1, nang=4), nrad=3)
+        PipeSpec(n_arc=4)
+        .core("fluid", shape=CircleShape(radius=0.1, n_arc=4), n_radial=3)
     )
 
 
@@ -76,9 +76,9 @@ def circle_pipe():
 def two_layer_pipe():
     """Two-layer circular pipe (fluid + wall)."""
     return (
-        PipeSpec(nang=4)
-        .core("fluid",    shape=CircleShape(radius=0.1, nang=4), nrad=3)
-        .shell("wall",    dR=0.025, nrad=2)
+        PipeSpec(n_arc=4)
+        .core("fluid",    shape=CircleShape(radius=0.1, n_arc=4), n_radial=3)
+        .shell("wall",    dR=0.025, n_radial=2)
     )
 
 
@@ -86,9 +86,9 @@ def two_layer_pipe():
 def rect_pipe():
     """Single-layer rectangular (duct) pipe."""
     return (
-        PipeSpec(nang_w=3, nang_h=2)
-        .core("air", shape=RectShape(half_w=0.08, half_h=0.05, nang_w=3, nang_h=2),
-              nrad=3, layout="oh")
+        PipeSpec(n_width=3, n_height=2)
+        .core("air", shape=RectShape(half_w=0.08, half_h=0.05, n_width=3, n_height=2),
+              n_radial=3, layout="oh")
     )
 
 
@@ -96,8 +96,8 @@ def rect_pipe():
 def rect_shell_pipe():
     """Circular core + circular shell + square outer shell (bundle cell)."""
     return (
-        PipeSpec(nang=4)
-        .core("fluid",  shape=CircleShape(radius=0.08, nang=4), nrad=3)
-        .shell("wall",  dR=0.02, nrad=2)
-        .shell("shell", outer=RectShape(0.15, 0.15, nang_w=4, nang_h=4), nrad=2)
+        PipeSpec(n_arc=4)
+        .core("fluid",  shape=CircleShape(radius=0.08, n_arc=4), n_radial=3)
+        .shell("wall",  dR=0.02, n_radial=2)
+        .shell("shell", outer=RectShape(0.15, 0.15, n_width=4, n_height=4), n_radial=2)
     )

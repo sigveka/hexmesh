@@ -50,7 +50,7 @@ def _walls():
 
 
 def _spec(k):
-    return PipeSpec(nang=4 * k).core("f", radius=R, nrad=2 * k)
+    return PipeSpec(n_arc=4 * k).core("f", radius=R, n_radial=2 * k)
 
 
 def _straight(k):

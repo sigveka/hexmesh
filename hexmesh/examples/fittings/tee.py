@@ -13,7 +13,7 @@ through the junction too: decision 0028.)
 
 from hexmesh import Assembly, Bend, PipeSpec, Straight, Tee
 
-PIPE = PipeSpec(nang=6).core("fluid", radius=0.1, nrad=5)
+PIPE = PipeSpec(n_arc=6).core("fluid", radius=0.1, n_radial=5)
 
 
 def build() -> Assembly:

@@ -17,12 +17,12 @@ from hexmesh.core.spec import PipeSpec
 R = 0.1
 
 
-def _spec(nang=4, nrad=3):
-    return PipeSpec(nang=nang).core("fluid", shape=CircleShape(radius=R, nang=nang), nrad=nrad)
+def _spec(n_arc=4, n_radial=3):
+    return PipeSpec(n_arc=n_arc).core("fluid", shape=CircleShape(radius=R, n_arc=n_arc), n_radial=n_radial)
 
 
 def _tee_asm(ratio=0.5, spec=None, **kw):
-    asm = Assembly(spec or _spec(), direction=[1, 0, 0], up=[0, 0, 1], lc=0.05)
+    asm = Assembly(spec or _spec(), direction=[1, 0, 0], up=[0, 0, 1])
     tee = Tee(run_length=kw.pop("run", 2 * R), branch_length=kw.pop("branch", 2.5 * R),
               branch_radius=ratio * R, **kw)
     main, branch = asm.add(tee, names=["main", "branch"])
@@ -63,7 +63,7 @@ class TestTopology:
         (dict(branch=0.17), r"turning station's height 0\.185"),
     ])
     def test_shells_need_room(self, kw, message):
-        spec = _spec().shell("steel", dR=0.01, nrad=2).shell("insulation", dR=0.03, nrad=2)
+        spec = _spec().shell("steel", dR=0.01, n_radial=2).shell("insulation", dR=0.03, n_radial=2)
         for s in (_spec(), spec):
             asm, _, _ = _tee_asm(0.5, spec=s, **kw)
             if s is spec:
@@ -74,7 +74,7 @@ class TestTopology:
         assert not gmsh.isInitialized()
 
     def test_rectangular_shell_rejected(self):
-        spec = _spec().shell("box", outer=RectShape(0.15, 0.15, nang_w=4, nang_h=4), nrad=2)
+        spec = _spec().shell("box", outer=RectShape(0.15, 0.15, n_width=4, n_height=4), n_radial=2)
         # the branch spec needs circular shells, so it fails in add()
         with pytest.raises((AssemblyError, ValueError), match="circular only.*0026"):
             asm, _, _ = _tee_asm(0.5, spec=spec)
@@ -98,10 +98,10 @@ def test_all_hex_valid_mesh(gmsh_session, ratio):
 # Exact wall faces (task 0051)
 # ---------------------------------------------------------------------------
 
-def _tee_wall_deviation(nang, ratio):
+def _tee_wall_deviation(n_arc, ratio):
     """Largest distance of the tee's wall nodes from its cylinders (× R)."""
     from test_fitting_conformance import wall_deviations
-    asm = Assembly(_spec(nang), direction=[0, 1, 0], up=[0, 0, 1], lc=0.1)
+    asm = Assembly(_spec(n_arc), direction=[0, 1, 0], up=[0, 0, 1])
     asm.add(Straight(0.2, n_layers=2))
     main, branch = asm.add(Tee(run_length=2 * R, branch_length=2.5 * R,
                                branch_radius=ratio * R), names=["main", "branch"])
@@ -136,10 +136,10 @@ def test_tee_wall_check_catches_filled_faces(gmsh_session, monkeypatch):
 # Shells through the junction (task 0052)
 # ---------------------------------------------------------------------------
 
-def _layered_tee(ratio=0.5, nang=4):
-    spec = (_spec(nang).shell("steel", dR=0.01, nrad=2)
-            .shell("insulation", dR=0.03, nrad=2))
-    asm = Assembly(spec, direction=[0, 1, 0], up=[0, 0, 1], lc=0.1)
+def _layered_tee(ratio=0.5, n_arc=4):
+    spec = (_spec(n_arc).shell("steel", dR=0.01, n_radial=2)
+            .shell("insulation", dR=0.03, n_radial=2))
+    asm = Assembly(spec, direction=[0, 1, 0], up=[0, 0, 1])
     asm.add(Straight(0.2, n_layers=2))
     main, branch = asm.add(Tee(run_length=2 * R, branch_length=3 * R,
                                branch_radius=ratio * R), names=["main", "branch"])
@@ -150,11 +150,11 @@ def _layered_tee(ratio=0.5, nang=4):
 
 def test_branch_spec_copies_shells():
     from hexmesh.assembly.tee import branch_spec
-    spec = _spec().shell("steel", dR=0.01, nrad=2, mprg=1.2).shell("insulation", dR=0.03, nrad=3)
+    spec = _spec().shell("steel", dR=0.01, n_radial=2, radial_grading=1.2).shell("insulation", dR=0.03, n_radial=3)
     b = branch_spec(spec, 0.05)
     assert b.layer_names == spec.layer_names
     assert [o.radius for o in b.outlines] == pytest.approx([0.05, 0.06, 0.09])
-    assert [(s.nrad, s.mprg) for s in b.shells] == [(2, 1.2), (3, 1.0)]
+    assert [(s.n_radial, s.radial_grading) for s in b.shells] == [(2, 1.2), (3, 1.0)]
 
 
 def test_branch_keeps_the_given_dR_so_a_stack_change_matches(gmsh_session):
@@ -162,15 +162,15 @@ def test_branch_keeps_the_given_dR_so_a_stack_change_matches(gmsh_session):
     can start on the branch line (task 0155: dR rebuilt from the outline
     radii was 0.0015000000000000013, and the stack change was rejected)."""
     from hexmesh.assembly.tee import branch_spec
-    main = (PipeSpec(nang=8).core("lox", radius=0.0149, nrad=4)
-            .shell("steel", dR=0.0015, nrad=2))
+    main = (PipeSpec(n_arc=8).core("lox", radius=0.0149, n_radial=4)
+            .shell("steel", dR=0.0015, n_radial=2))
     assert branch_spec(main, 0.01215).shells[0].dR == 0.0015
     asm = Assembly(main, direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Straight(0.05, n_layers=2))
     run, branch = asm.add(Tee(branch_radius=0.01215, branch_length=0.05))
     asm.add(run, Straight(0.05, n_layers=2))
-    insulated = (PipeSpec(nang=8).core("lox", radius=0.01215, nrad=4)
-                 .shell("steel", dR=0.0015, nrad=2).shell("insulation", dR=0.02, nrad=2))
+    insulated = (PipeSpec(n_arc=8).core("lox", radius=0.01215, n_radial=4)
+                 .shell("steel", dR=0.0015, n_radial=2).shell("insulation", dR=0.02, n_radial=2))
     asm.add(branch, Straight(0.12, n_layers=8, stack_changes=((2, insulated),)))
     asm.mesh()
     _, _, nodes = gmsh.model.mesh.getElements(3)
@@ -219,8 +219,8 @@ def test_interfaces_continuous_through_tee(gmsh_session, ratio):
 # ---------------------------------------------------------------------------
 
 def _shelled_tee(ratio, T, run):
-    spec = _spec() if T == 0 else _spec().shell("steel", dR=T, nrad=2)
-    asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1], lc=0.05)
+    spec = _spec() if T == 0 else _spec().shell("steel", dR=T, n_radial=2)
+    asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Tee(run_length=run, branch_length=0.5, branch_radius=ratio * R), names=["main", "branch"])
     return asm
 
@@ -315,7 +315,7 @@ def test_lateral_branch_port_on_the_analytic_axis():
     """The branch outlet leans by α from the run's downstream direction, in
     the branch plane, also in an oblique assembly; its up is in that plane."""
     direction = np.array([1.0, 1.0, 0.2]) / np.linalg.norm([1.0, 1.0, 0.2])
-    asm = Assembly(_spec(), direction=list(direction), up=[0, 0, 1], lc=0.05)
+    asm = Assembly(_spec(), direction=list(direction), up=[0, 0, 1])
     asm.add(Straight(0.2, n_layers=2))
     tee = Tee(run_length=0.3, branch_length=0.5, branch_radius=0.9 * R, angle=45)
     main, branch = asm.add(tee, names=["main", "branch"])
@@ -372,11 +372,11 @@ def test_branch_ratio_cut_off(ratio, code, hint):
 
 
 def test_duct_tap_rejects_an_offset():
-    spec = PipeSpec(nang=4).core("air", shape=RectShape(half_w=0.1, half_h=0.05, nang_w=4, nang_h=2))
-    asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1], lc=0.05)
+    spec = PipeSpec(n_arc=4).core("air", shape=RectShape(half_w=0.1, half_h=0.05, n_width=4, n_height=2))
+    asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1])
     with pytest.raises(AssemblyError) as e:
-        asm.add(Tee(branch_length=0.2, branch=RectShape(half_w=0.02, half_h=0.02, nang_w=4,
-                                                        nang_h=2), offset=0.01))
+        asm.add(Tee(branch_length=0.2, branch=RectShape(half_w=0.02, half_h=0.02, n_width=4,
+                                                        n_height=2), offset=0.01))
     assert e.value.code == "offset_on_duct_tap"
 
 
@@ -444,9 +444,9 @@ def test_circle_radius_is_the_one_read_and_rejects_a_rectangle():
     (task 0151); anything else is a coded SpecError."""
     from hexmesh.errors import SpecError
     from hexmesh.sections import circle_radius
-    assert circle_radius(CircleShape(radius=0.1, nang=4)) == 0.1
+    assert circle_radius(CircleShape(radius=0.1, n_arc=4)) == 0.1
     with pytest.raises(SpecError) as e:
-        circle_radius(RectShape(half_w=0.1, half_h=0.05, nang_w=4, nang_h=4))
+        circle_radius(RectShape(half_w=0.1, half_h=0.05, n_width=4, n_height=4))
     assert e.value.code == "shape_not_circular"
 
 
@@ -462,7 +462,7 @@ def test_branch_shells_is_reserved():
     assert e.value.code == "branch_shells_reserved"
     assert schema()["$defs"]["Tee"]["properties"]["branch_shells"]["type"] == "null"
     # unset, it stays out of the saved description
-    asm = Assembly(PipeSpec(nang=6).core("fluid", radius=0.1, nrad=5))
+    asm = Assembly(PipeSpec(n_arc=6).core("fluid", radius=0.1, n_radial=5))
     asm.add(Straight(0.5, n_layers=4))
     asm.add(Tee(branch_length=0.3, branch_radius=0.06))
     assert "branch_shells" not in str(asm.to_dict())

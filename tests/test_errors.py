@@ -41,8 +41,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def _spec():
-    return (PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=0.1, nang=4), nrad=3)
-            .shell("wall", dR=0.01, nrad=2))
+    return (PipeSpec(n_arc=4).core("fluid", shape=CircleShape(radius=0.1, n_arc=4), n_radial=3)
+            .shell("wall", dR=0.01, n_radial=2))
 
 
 # --- the classes -----------------------------------------------------------------
@@ -117,7 +117,7 @@ def test_spec_error():
         PipeSpec(n_outer=6)
     assert info.value.code == "n_outer_invalid"
     with pytest.raises(SpecError) as info:
-        CircleShape(radius=-1, nang=4)
+        CircleShape(radius=-1, n_arc=4)
     assert info.value.code == "size_not_positive" and info.value.where == {"field": "radius"}
 
 
@@ -170,7 +170,7 @@ def test_study_error(tmp_path):
 
 def _nozzle(name, location, radius=0.05):
     from hexmesh.assembly.equipment import Nozzle
-    return Nozzle(name, spec=PipeSpec(nang=8).core("fluid", radius=radius, nrad=2), location=location)
+    return Nozzle(name, spec=PipeSpec(n_arc=8).core("fluid", radius=radius, n_radial=2), location=location)
 
 
 def _drum(**kw):

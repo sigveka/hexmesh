@@ -14,7 +14,7 @@
 Switch: the O-H ↔ H change on a rectangular duct (decision 0036 items 5–6,
 task 0085; DESIGN A4 class 1, ``ends="pillow"``).
 
-A rectangular O-H face is an H face with ``nrad`` ring layers pillowed in
+A rectangular O-H face is an H face with ``n_radial`` ring layers pillowed in
 (RESEARCH §7.11).  The switch ends those ring sheets: each closes as a cup
 across the duct, open toward the O-H port (the capped construction; task
 0085 step 1 measured it).
@@ -23,12 +23,12 @@ Blocks, along the axis from the O-H port (O) to the H port (H), length L
 and ring thickness t (``sections.oh.ring_thickness``):
 
 * core: O's inner rectangle → level C at L − t (the same rectangle);
-* cap: C → H's whole face (a frustum, ``nrad`` cells along the axis);
+* cap: C → H's whole face (a frustum, ``n_radial`` cells along the axis);
 * four side blocks: O's ring patches → the wall from O to H, closed by the
   slants C → H.
 
 The three slants meet at 45° at each corner of C, a cube O-grid's corner:
-min corner scaled Jacobian 1/√3 at any aspect ratio, ``nrad`` and length,
+min corner scaled Jacobian 1/√3 at any aspect ratio, ``n_radial`` and length,
 with a uniform H face.
 
 **A graded H face** (task 0086, design answer to Q2).  The side blocks'
@@ -44,8 +44,8 @@ The H face's side grading (``wall_bump``) starts at C, so the core block
 carries the change from O's uniform sides (``BlockLayout.edge``'s
 ``own_grading``); in the cap it costs about 0.15 of min SJ (task 0085).
 
-Counts: the cap and core share the H face's ``nang_w`` × ``nang_h``; the
-side blocks have ``nrad`` across, ``n_layers`` along.
+Counts: the cap and core share the H face's ``n_width`` × ``n_height``; the
+side blocks have ``n_radial`` across, ``n_layers`` along.
 
 Shells (task 0086): both faces' first shell starts at the rectangle's
 corners (O-H level 1, H level 0), so each shell's four ring blocks run
@@ -73,12 +73,12 @@ from .signature import check_port_pairs
 def wall_shift(o_spec: PipeSpec, h_spec: PipeSpec) -> float:
     """Δ_max (pure): the largest distance between a side node of the O-H
     face and the same node of the H face, over every layer's sides (the
-    O-H sides at ``mbmp``, the H sides at the wall grading)."""
+    O-H sides at ``arc_bump``, the H sides at the wall grading)."""
     corners = h_spec.corners()
     out = 0.0
     for k in range(4):
         n = h_spec.core_shape.side_count(k, 4)
-        fo, fh = bump(n, o_spec.mbmp), h.side_fractions(h_spec, k)
+        fo, fh = bump(n, o_spec.arc_bump), h.side_fractions(h_spec, k)
         for o, c in zip(h_spec.outlines, corners):
             a, b = c[k], c[(k + 1) % 4]
             d = o.side(a, b, fo) - o.side(a, b, fh)
@@ -136,7 +136,7 @@ class Switch:
         The outlet spec: the same rectangle and counts, the other layout.
         From an O-H inlet the default is the H face, ungraded; give it to
         grade the H walls (``first_cell=``, ``wall_bump=``).  From an H
-        inlet it is required (it carries ``nrad`` and the ring's ``mprg``).
+        inlet it is required (it carries ``n_radial`` and the ring's ``radial_grading``).
     """
 
     strategies = frozenset({1})   # class 1, a pillow: O-H ↔ H (DESIGN A4)
@@ -173,13 +173,13 @@ class Switch:
         self._check_rectangle("inlet", spec)       # before reading its counts (task 0106)
         if spec.layout != "oh":
             raise AssemblyError("Switch from an H inlet needs outlet= (the O-H spec, "
-                                "with its nrad)",
+                                "with its n_radial)",
                                 code="switch_needs_outlet", where={"field": "outlet"})
         sh = spec.core_shape
-        out = PipeSpec(nang_w=sh.nang_w, nang_h=sh.nang_h, mbmp=spec.mbmp,
+        out = PipeSpec(n_width=sh.n_width, n_height=sh.n_height, arc_bump=spec.arc_bump,
                        rot=spec.rot).core(spec.layer_names[0], shape=sh, layout="h")
         for s in spec.shells:
-            out = out.shell(s.name, dR=s.dR, nrad=s.nrad, mprg=s.mprg, outer=s.outer)
+            out = out.shell(s.name, dR=s.dR, n_radial=s.n_radial, radial_grading=s.radial_grading, outer=s.outer)
         return out
 
     @staticmethod
@@ -225,11 +225,11 @@ class Switch:
                                 "must be the inlet's (use Reducer or Transition to change them)",
                                 code="switch_changes_rectangle", where={"field": "outlet"},
                                 hint="use Reducer or Transition")
-        shells = lambda s: [(x.name, x.nrad, x.mprg, o.to_dict())
+        shells = lambda s: [(x.name, x.n_radial, x.radial_grading, o.to_dict())
                             for x, o in zip(s.shells, s.outlines[1:])]
         if shells(spec) != shells(out):
             raise AssemblyError("Switch keeps the shells: the outlet's shells (names, outlines, "
-                                "nrad, mprg) must be the inlet's",
+                                "n_radial, radial_grading) must be the inlet's",
                                 code="switch_changes_shells", where={"field": "outlet"})
         s_oh, s_h = self._ends(spec, out)
         need, _, _ = min_length(s_oh, s_h)
@@ -238,7 +238,7 @@ class Switch:
                                 f"{length_rule(s_oh, s_h)}",
                                 code="switch_too_short", where={"field": "length"},
                                 value=self.length, limit={"min": float(need)})
-        check_port_pairs(self, [spec, out])     # counts, mbmp, name: class 1 only
+        check_port_pairs(self, [spec, out])     # counts, arc_bump, name: class 1 only
 
     def ports(self, inlet: Frame, spec: PipeSpec) -> list[tuple[Frame, PipeSpec]]:
         out = Frame(inlet.position + self.length * inlet.normal, inlet.normal, inlet.up)
@@ -337,7 +337,7 @@ class Switch:
         d = self.wall_shift(spec)
         return min(sj, shear_sj(d / self.length)) if d else sj
 
-    def fill(self, faces, frames, spec, lc):
+    def fill(self, faces, frames, spec):
         lay = self.layout(frames, spec)
         prefixes = ("O", "H") if spec.layout == "oh" else ("H", "O")
         for prefix, face in zip(prefixes, faces):

@@ -4,7 +4,7 @@ What hexmesh's meshes look like and how good their cells are, on three pages.  E
 
 - **[Features](gallery/FEATURES.md):** the building blocks, by family (7 families, 25 examples): bends, reducers, junctions, sections, layers, grading, and how networks are built.
 - **[Applications](gallery/APPLICATIONS.md):** 10 networks closer to a real model, and which fittings they use.
-- **[Validation](gallery/VALIDATION.md):** 13 cases solved and compared with a reference, judged by grid convergence.
+- **[Validation](gallery/VALIDATION.md):** 14 cases solved and compared with a reference, judged by grid convergence.
 
 ## Features
 
@@ -35,7 +35,7 @@ What hexmesh's meshes look like and how good their cells are, on three pages.  E
 
 ## Validation
 
-Cases by status: ● 12 accepted, ◐ 1 in progress.  [The Validation page](gallery/VALIDATION.md) has each case and the coverage matrix (which features each case exercises).
+Cases by status: ● 12 accepted, ◐ 2 in progress.  [The Validation page](gallery/VALIDATION.md) has each case and the coverage matrix (which features each case exercises).
 
 ## Reading the numbers
 

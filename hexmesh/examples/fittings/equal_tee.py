@@ -10,13 +10,13 @@ three sides, whose outer face is projected onto the wall.
 ``run_length`` is left out, so the tee resolves the length the cube
 needs.  (Limits: circular layers, square and centred, first order only.
 The crease where branch and main meet crosses the cube's faces beside
-the branch, so its chord error falls as ``nang`` rises: 3.7 % of the
-radius at ``nang`` 8.)
+the branch, so its chord error falls as ``n_arc`` rises: 3.7 % of the
+radius at ``n_arc`` 8.)
 """
 
 from hexmesh import Assembly, PipeSpec, Straight, Tee
 
-PIPE = PipeSpec(nang=8).core("fluid", radius=0.1, nrad=4)
+PIPE = PipeSpec(n_arc=8).core("fluid", radius=0.1, n_radial=4)
 
 
 def build() -> Assembly:

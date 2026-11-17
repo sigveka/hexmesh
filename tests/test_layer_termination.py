@@ -10,17 +10,17 @@ from hexmesh.assembly import Assembly, AssemblyError, Bend, Straight
 from hexmesh.core.spec import PipeSpec
 
 
-def _bare(nrad=2, mprg=None, dR=0.01, r=0.1):
-    return (PipeSpec(nang=4).core("fluid", radius=r, nrad=3)
-            .shell("pipe_wall", dR=dR, nrad=nrad, mprg=mprg))
+def _bare(n_radial=2, radial_grading=None, dR=0.01, r=0.1):
+    return (PipeSpec(n_arc=4).core("fluid", radius=r, n_radial=3)
+            .shell("pipe_wall", dR=dR, n_radial=n_radial, radial_grading=radial_grading))
 
 
 def _ins(**kw):
-    return _bare(**kw).shell("insulation", dR=0.03, nrad=2)
+    return _bare(**kw).shell("insulation", dR=0.03, n_radial=2)
 
 
 def _gap(fitting=None):
-    asm = Assembly(_ins(), lc=0.05)
+    asm = Assembly(_ins())
     asm.add(Straight(0.2, n_layers=2))
     asm.add(fitting or Straight(1.0, n_layers=10,
                                 stack_changes=((3, _bare()), (7, _ins()))))
@@ -34,12 +34,12 @@ def _gap(fitting=None):
 
 @pytest.mark.parametrize("change, match", [
     # a middle layer cannot stop
-    (PipeSpec(nang=4).core("fluid", radius=0.1, nrad=3).shell("insulation", dR=0.03, nrad=2),
+    (PipeSpec(n_arc=4).core("fluid", radius=0.1, n_radial=3).shell("insulation", dR=0.03, n_radial=2),
      r"Straight: stack change at cell 3: only outermost layers may stop or start; "
      r"`pipe_wall` is not outermost"),
-    (_bare(nrad=4), r"Straight: stack change at cell 3: the remaining layers must match "
-                    r"\(shell `pipe_wall` nrad \(2 vs 4\)\); use a Reducer"),
-    (_bare(mprg=1.2), r"remaining layers must match \(shell `pipe_wall` mprg \(1.0 vs 1.2\)\)"),
+    (_bare(n_radial=4), r"Straight: stack change at cell 3: the remaining layers must match "
+                    r"\(shell `pipe_wall` n_radial \(2 vs 4\)\); use a Reducer"),
+    (_bare(radial_grading=1.2), r"remaining layers must match \(shell `pipe_wall` radial_grading \(1.0 vs 1.2\)\)"),
     (_bare(dR=0.02), r"remaining layers must match \(`pipe_wall` radius 0.01 vs 0.02\)"),
     (_bare(r=0.12), r"remaining layers must match \(`fluid` radius 0.1 vs 0.12\)"),
     (_ins(), r"keeps the layers"),
@@ -59,7 +59,7 @@ def test_changes_inside_the_fitting_only(cells):
 
 
 def test_ports_and_cell_count_follow_the_stack():
-    asm = Assembly(_ins(), lc=0.05)
+    asm = Assembly(_ins())
     out = asm.add(Bend(0.5, 90, n_layers=8, stack_changes=((5, _bare()),)))
     assert out.spec.layer_names == ["fluid", "pipe_wall"]
     # 5 cells of 3 layers + 3 cells of 2: 4×4 core + 4·4·(3+2[+2]) per section
@@ -121,7 +121,7 @@ def test_end_walls_by_fitting():
 @pytest.mark.usefixtures("gmsh_session")
 def test_uniform_stack_unchanged():
     """No stack changes: one slab, one wall group, as before."""
-    asm = Assembly(_ins(), lc=0.05)
+    asm = Assembly(_ins())
     asm.add(Straight(1.0, n_layers=10))
     path = asm.edges[0].fitting.path(*[p.frame for p in asm.edges[0].ports], _ins())
     assert path.layers == [10] and path.fill is None

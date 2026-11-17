@@ -13,7 +13,7 @@ placed and validated in pure Python first, then filled in any order
 
 from hexmesh import Assembly, Elbow, PipeSpec, Straight, Tee
 
-PIPE = PipeSpec(nang=6).core("water", radius=0.1, nrad=5)
+PIPE = PipeSpec(n_arc=6).core("water", radius=0.1, n_radial=5)
 
 
 def build() -> Assembly:

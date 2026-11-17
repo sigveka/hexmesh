@@ -32,7 +32,7 @@ Point temperatures and the L2 error per region, both at second order.
 
 Exact: T₀ = 812.2579 K, T(r₁) = 811.0079 K, T(r₂) = 810.8256 K, T₃ = 300.0000 K; total rise T₀ − 300 K = 512.2579 K.
 
-| nang | cells | Mesh OK (3 regions) | mappedWall pairs equal | converged at | energy balance (max) | e(T₀) | e(T(r₁)) | e(T(r₂)) | e(T₃) | L2 rod | L2 steel | L2 insulation |
+| n_arc | cells | Mesh OK (3 regions) | mappedWall pairs equal | converged at | energy balance (max) | e(T₀) | e(T(r₁)) | e(T(r₂)) | e(T₃) | L2 rod | L2 steel | L2 insulation |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | 6 | 456 | yes | yes | 47076 of 60000 | 5.1e-12 | -0.9501% | -0.9468% | -0.9462% | +0.0000% | 9.50e-03 | 9.48e-03 | 2.84e-02 |
 | 12 | 1824 | yes | yes | 91960 of 120000 | 1.8e-12 | -0.2362% | -0.2351% | -0.2349% | +0.0000% | 2.36e-03 | 2.35e-03 | 7.13e-03 |
@@ -51,7 +51,7 @@ L2 observed orders (log₂ of successive ratios): rod 2.01, 2.00; steel 2.01, 2.
 
 Exact: T₀ = 937.2579 K, T(r₁) = 936.0079 K, T(r₂) = 935.8256 K, T₃ = 425.0000 K; total rise T₀ − 300 K = 637.2579 K.
 
-| nang | cells | Mesh OK (3 regions) | mappedWall pairs equal | converged at | energy balance (max) | e(T₀) | e(T(r₁)) | e(T(r₂)) | e(T₃) | L2 rod | L2 steel | L2 insulation |
+| n_arc | cells | Mesh OK (3 regions) | mappedWall pairs equal | converged at | energy balance (max) | e(T₀) | e(T(r₁)) | e(T(r₂)) | e(T₃) | L2 rod | L2 steel | L2 insulation |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | 6 | 456 | yes | yes | 58605 of 60000 | 1.2e-09 | -0.9316% | -0.9289% | -0.9284% | -0.1678% | 9.31e-03 | 9.30e-03 | 2.45e-02 |
 | 12 | 1824 | yes | yes | 114474 of 120000 | 8.4e-10 | -0.2319% | -0.2310% | -0.2308% | -0.0420% | 2.32e-03 | 2.31e-03 | 6.15e-03 |

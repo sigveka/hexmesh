@@ -86,7 +86,7 @@ T0 = PHASES[0] * PERIOD                     # start time: the first phase
 SAMPLES = 48                                # field writes per period (phases on them)
 
 # --- refinement: every density parameter doubles per level (8× cells) ------
-BASE = dict(nang=8, nrad=4, mprg=0.85, n_layers=(16, 4, 4, 16), steps=240)
+BASE = dict(n_arc=8, n_radial=4, radial_grading=0.85, n_layers=(16, 4, 4, 16), steps=240)
 LEVELS = {"k1": 1, "k2": 2, "k4": 4}
 MAX_PERIODS = 8
 PERIODIC_TOL = 1e-3             # phase values change by less, period to period
@@ -113,8 +113,8 @@ DPDX_AMPLITUDE = OMEGA * U_C * A
 
 
 def assembly(factor: int) -> Assembly:
-    spec = PipeSpec(nang=BASE["nang"] * factor).core(
-        "fluid", radius=R, nrad=BASE["nrad"] * factor, mprg=BASE["mprg"] ** (1 / factor))
+    spec = PipeSpec(n_arc=BASE["n_arc"] * factor).core(
+        "fluid", radius=R, n_radial=BASE["n_radial"] * factor, radial_grading=BASE["radial_grading"] ** (1 / factor))
     asm = Assembly(spec, position=[0, 0, 0], direction=[1, 0, 0], up=[0, 0, 1])
     # interfaces on the measurement planes, so p and U are sampled on mesh faces
     edges = (X_A, X_M - X_A, X_B - X_M, LENGTH - X_B)
@@ -126,7 +126,7 @@ def assembly(factor: int) -> Assembly:
 def meshes():
     """(label, caption, build) per mesh shown in README.md
     (``docs/gallery/build.py --validation``)."""
-    return [(name, f"{name}: nang {BASE['nang'] * f}, nrad {BASE['nrad'] * f}, "
+    return [(name, f"{name}: n_arc {BASE['n_arc'] * f}, n_radial {BASE['n_radial'] * f}, "
                    f"{sum(BASE['n_layers']) * f} axial layers",
              lambda f=f: assembly(f)) for name, f in LEVELS.items()]
 

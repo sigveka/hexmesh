@@ -23,8 +23,8 @@ from hexmesh.core.spec import PipeSpec
 
 
 def _spec(shell=False):
-    spec = PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=0.05, nang=4), nrad=3)
-    return spec.shell("wall", dR=0.01, nrad=2) if shell else spec
+    spec = PipeSpec(n_arc=4).core("fluid", shape=CircleShape(radius=0.05, n_arc=4), n_radial=3)
+    return spec.shell("wall", dR=0.01, n_radial=2) if shell else spec
 
 
 A = Frame.from_vectors([0, 0, 0], [1, 0, 0], [0, 0, 1])
@@ -104,13 +104,13 @@ class TestValidation:
             SplinePipe(points=S_BEND, n_layers=0).ports(A, _spec())
 
     def test_too_tight(self):
-        asm = Assembly(_spec(), lc=0.05)
+        asm = Assembly(_spec())
         asm.add(SplinePipe(points=((0, 0, 0), (0.05, 0.05, 0), (0, 0.1, 0)), n_layers=20))
         with pytest.raises(AssemblyError, match="tighter than"):
             asm.validate()
 
     def test_too_few_stations(self):
-        asm = Assembly(_spec(), lc=0.05)
+        asm = Assembly(_spec())
         asm.add(SplinePipe(points=S_BEND, n_layers=10, end_tangent=(-1, 0.2, 0)))
         with pytest.raises(AssemblyError, match="use more axial layers|tighter than"):
             asm.validate()
@@ -121,7 +121,7 @@ class TestMesh:
     @pytest.mark.parametrize("shell", [False, True], ids=["1layer", "2layer"])
     def test_chained_and_meshed(self, gmsh_session, points, shell):
         spec = _spec(shell)
-        asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1], lc=0.05)
+        asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1])
         asm.add(Straight(0.1, n_layers=2))
         start = asm.interfaces[-1].frame.position
         asm.add(SplinePipe(points=tuple(tuple(np.add(p, start)) for p in points), n_layers=16))
@@ -135,7 +135,7 @@ class TestMesh:
     def test_cells_scale_with_layers(self):
         counts = []
         for n in (8, 16):
-            asm = Assembly(_spec(), lc=0.05)
+            asm = Assembly(_spec())
             asm.add(SplinePipe(points=S_BEND, n_layers=n))
             asm.validate()
             counts.append(asm.cell_count())

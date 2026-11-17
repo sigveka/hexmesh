@@ -48,8 +48,8 @@ def test_signatures_differ_in_density_only(case):
     for a, b in zip(asm.interfaces, fine.interfaces):
         c = classify(signature(a.spec), signature(b.spec))
         assert int(c) == 2, (a.index, c)
-        # fields are named per layer ("core nrad", "shell `wall` mprg")
-        assert {d.field.split()[-1] for d in c.differences} <= {"nang", "nang_w", "nang_h", "nrad", "mprg"}, c
+        # fields are named per layer ("core n_radial", "shell `wall` radial_grading")
+        assert {d.field.split()[-1] for d in c.differences} <= {"n_arc", "n_width", "n_height", "n_radial", "radial_grading"}, c
 
 
 @pytest.mark.parametrize("case", sorted(set(kit.CASES) - SLOW))
@@ -79,14 +79,14 @@ def test_numpy_integer_accepted():
 # --- graded spacing: every coarse node is a node of refined(k) ---------------
 
 def _graded():
-    spec = (PipeSpec(nang=4).core("fluid", radius=0.1, nrad=4, first_cell=0.005)
-            .shell("wall", dR=0.02, nrad=3, first_cell=0.002))
+    spec = (PipeSpec(n_arc=4).core("fluid", radius=0.1, n_radial=4, first_cell=0.005)
+            .shell("wall", dR=0.02, n_radial=3, first_cell=0.002))
     asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Straight(0.3, n_layers=5, axial_grading=1.3))
     # a reducer may change radii only, so its outlet keeps the inlet's grading
-    outlet = (PipeSpec(nang=4).core("fluid", radius=0.07, nrad=4,
-                                    mprg=spec.to_dict()["core"]["mprg"])
-              .shell("wall", dR=0.02, nrad=3, mprg=spec.to_dict()["shells"][0]["mprg"]))
+    outlet = (PipeSpec(n_arc=4).core("fluid", radius=0.07, n_radial=4,
+                                    radial_grading=spec.to_dict()["core"]["radial_grading"])
+              .shell("wall", dR=0.02, n_radial=3, radial_grading=spec.to_dict()["shells"][0]["radial_grading"]))
     asm.add(Reducer(outlet, length=0.2, n_layers=4, axial_grading=0.8))
     return asm
 
@@ -108,7 +108,7 @@ def _nodes(asm):
 
 @pytest.mark.parametrize("k", [2, 3])
 def test_coarse_nodes_nest_in_refined(k):
-    """Each coarse cell is split into k: radial (first_cell, mprg) and axial
+    """Each coarse cell is split into k: radial (first_cell, radial_grading) and axial
     (axial_grading) progressions nest, uniform ones to rounding.
 
     Tolerance 1e-8 R, not the task's 1e-12 R: gmsh places "Progression"
@@ -133,9 +133,9 @@ def test_uniform_nodes_nest_exactly():
 
 
 def test_first_cell_shrinks():
-    """first_cell is stored as the resolved mprg, so the refined first cell
+    """first_cell is stored as the resolved radial_grading, so the refined first cell
     is smaller (documented)."""
     asm = _graded()
     spec = asm.inlet.spec
     fine = asm.refined(2).inlet.spec
-    assert fine.to_dict()["core"]["mprg"] == pytest.approx(spec.to_dict()["core"]["mprg"] ** 0.5)
+    assert fine.to_dict()["core"]["radial_grading"] == pytest.approx(spec.to_dict()["core"]["radial_grading"] ** 0.5)

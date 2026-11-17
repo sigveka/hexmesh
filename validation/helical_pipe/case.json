@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "title": "Laminar flow in a helical pipe (the SIET coil)",
-  "headline": "f within 0.3 % of Ito at nang 24 (Re 1800, 2400), converging; Re 3000's nang 24 to run",
+  "headline": "f within 0.3 % of Ito at n_arc 24 (Re 1800, 2400), converging; Re 3000's n_arc 24 to run",
   "category": "V3",
   "references": [
     {
@@ -39,7 +39,7 @@
       "limit": "within 5 % of Ito (1959)"
     },
     {
-      "quantity": "mesh convergence of $f$ at each Re (nang 12, 16, 24)",
+      "quantity": "mesh convergence of $f$ at each Re (n_arc 12, 16, 24)",
       "limit": "Richardson status converging; GCI reported"
     },
     {

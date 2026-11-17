@@ -116,7 +116,7 @@ def circle_radius(shape) -> float:
     return shape.radius
 
 
-def build_face(spec, position, h_axis, v_axis, lc: float,
+def build_face(spec, position, h_axis, v_axis,
                stretch: tuple | None = None) -> LayeredCrossSection:
     """Build *spec*'s whole face in GMSH: the core, then a ring per shell.
 
@@ -125,17 +125,17 @@ def build_face(spec, position, h_axis, v_axis, lc: float,
     direction ``b`` (miter cut faces).
     """
     if spec.layout == "h":
-        cs = h.build_h_rect(spec, position, h_axis, v_axis, lc, stretch)
+        cs = h.build_h_rect(spec, position, h_axis, v_axis, stretch)
         layers = [(spec.layer_names[0], cs)]
         if spec.shells:     # rings on the core's corners (task 0086); a centre for arcs
-            center = add_point(*(float(c) for c in position), lc)
+            center = add_point(*(float(c) for c in position))
             rot = math.radians(spec.rot)
             cs.corner_angles = [rot + float(np.arctan2(p[1], p[0]))
                                 for p in (spec.core_shape.corner(k) for k in range(4))]
             grading = [h.side_grading(spec, k) for k in range(4)]
             for shell, outline in zip(spec.shells, spec.outlines[1:]):
-                cs = build_ring(inner=cs, outer=outline, lc=lc, nrad=shell.nrad,
-                                mprg=shell.mprg, rot=rot, stretch=stretch, center=center,
+                cs = build_ring(inner=cs, outer=outline, n_radial=shell.n_radial,
+                                radial_grading=shell.radial_grading, rot=rot, stretch=stretch, center=center,
                                 side_grading=grading)
                 layers.append((shell.name, cs))
         return LayeredCrossSection(layers)
@@ -151,16 +151,16 @@ def build_face(spec, position, h_axis, v_axis, lc: float,
         builder = build_oh_circle
     cs: CrossSection = builder(
         cx=cx, cy=cy, cz=cz,
-        shape=core_shape, h_axis=h_axis, v_axis=v_axis, lc=lc,
-        nrad=spec._core_nrad, mprg=spec._core_mprg,
-        mbmp=spec.mbmp, rot=math.radians(spec.rot),
+        shape=core_shape, h_axis=h_axis, v_axis=v_axis,
+        n_radial=spec._core_n_radial, radial_grading=spec._core_radial_grading,
+        arc_bump=spec.arc_bump, rot=math.radians(spec.rot),
         **({'stretch': stretch} if stretch is not None else {}),
     )
     layers = [(core_name, cs)]
     for shell, outline in zip(spec.shells, spec.outlines[1:]):
         cs = build_ring(
-            inner=cs, outer=outline, lc=lc,
-            nrad=shell.nrad, mprg=shell.mprg, mbmp=spec.mbmp, rot=math.radians(spec.rot),
+            inner=cs, outer=outline,
+            n_radial=shell.n_radial, radial_grading=shell.radial_grading, arc_bump=spec.arc_bump, rot=math.radians(spec.rot),
             stretch=stretch,
         )
         layers.append((shell.name, cs))

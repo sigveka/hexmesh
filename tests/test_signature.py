@@ -11,11 +11,11 @@ from hexmesh.assembly.signature import classify, signature
 from hexmesh.core.spec import PipeSpec
 
 
-def _spec(r=0.1, nang=4, nrad=3, layers=(("wall", 0.02, 2),), mprg=None, rot=0.0, names=None):
+def _spec(r=0.1, n_arc=4, n_radial=3, layers=(("wall", 0.02, 2),), radial_grading=None, rot=0.0, names=None):
     names = names or ["fluid"] + [l[0] for l in layers]
-    s = PipeSpec(nang=nang, rot=rot).core(names[0], radius=r, nrad=nrad, mprg=mprg)
+    s = PipeSpec(n_arc=n_arc, rot=rot).core(names[0], radius=r, n_radial=n_radial, radial_grading=radial_grading)
     for name, (_, dR, n) in zip(names[1:], layers):
-        s = s.shell(name, dR=dR, nrad=n)
+        s = s.shell(name, dR=dR, n_radial=n)
     return s
 
 
@@ -36,8 +36,8 @@ class TestSignature:
 
     def test_contents(self):
         sig = signature(_spec())
-        assert (sig.n_outer, sig.period, sig.nang_w, sig.nang_h) == (4, 90.0, 4, 4)
-        assert [(l.name, l.kind, l.nrad) for l in sig.layers] == [
+        assert (sig.n_outer, sig.period, sig.n_width, sig.n_height) == (4, 90.0, 4, 4)
+        assert [(l.name, l.kind, l.n_radial) for l in sig.layers] == [
             ("fluid", "oh_core", 3), ("wall", "annulus", 2)]
 
 
@@ -56,10 +56,10 @@ class TestClassify:
         assert c.cls == 1 and "only at the outlet" in str(c.differences[0])
 
     @pytest.mark.parametrize("b, field", [
-        (_spec(nang=8), "nang (4 vs 8)"),
-        (_spec(nrad=5), "core nrad (3 vs 5)"),
-        (_spec(layers=(("wall", 0.02, 4),)), "shell `wall` nrad (2 vs 4)"),
-        (_spec(mprg=1.2), "core mprg (1.0 vs 1.2)"),          # grading kept (decision 0016)
+        (_spec(n_arc=8), "n_arc (4 vs 8)"),
+        (_spec(n_radial=5), "core n_radial (3 vs 5)"),
+        (_spec(layers=(("wall", 0.02, 4),)), "shell `wall` n_radial (2 vs 4)"),
+        (_spec(radial_grading=1.2), "core radial_grading (1.0 vs 1.2)"),          # grading kept (decision 0016)
     ])
     def test_counts_or_grading_is_2(self, b, field):
         c = _cls(_spec(), b)
@@ -67,18 +67,18 @@ class TestClassify:
         assert field in [str(d) for d in c.differences]
 
     def test_grading_only_marked(self):
-        """Only per-layer radial mprg differs: class 2, grading_only (0016)."""
-        c = _cls(_spec(), _spec(r=0.06, mprg=1.2))
+        """Only per-layer radial radial_grading differs: class 2, grading_only (0016)."""
+        c = _cls(_spec(), _spec(r=0.06, radial_grading=1.2))
         assert c.cls == 2 and c.grading_only
-        shell = _spec().shell("ins", dR=0.01, nrad=2, mprg=0.8)
-        assert _cls(_spec().shell("ins", dR=0.01, nrad=2), shell).grading_only
+        shell = _spec().shell("ins", dR=0.01, n_radial=2, radial_grading=0.8)
+        assert _cls(_spec().shell("ins", dR=0.01, n_radial=2), shell).grading_only
 
     @pytest.mark.parametrize("b", [
-        PipeSpec(nang=4, mbmp=0.6).core("fluid", radius=0.1, nrad=3).shell("wall", dR=0.02, nrad=2),
-        _spec(nrad=5),
-        _spec(nrad=5, mprg=1.2),
-        _spec(nang=8, mprg=1.2),
-    ], ids=["mbmp", "nrad", "nrad+mprg", "nang+mprg"])
+        PipeSpec(n_arc=4, arc_bump=0.6).core("fluid", radius=0.1, n_radial=3).shell("wall", dR=0.02, n_radial=2),
+        _spec(n_radial=5),
+        _spec(n_radial=5, radial_grading=1.2),
+        _spec(n_arc=8, radial_grading=1.2),
+    ], ids=["arc_bump", "n_radial", "n_radial+radial_grading", "n_arc+radial_grading"])
     def test_grading_only_not_marked(self, b):
         c = _cls(_spec(), b)
         assert c.cls == 2 and not c.grading_only
@@ -96,11 +96,11 @@ class TestClassify:
         assert _cls(_spec(layers=two), _spec(layers=two, names=["fluid", "b", "a"])).cls == 3
 
     def test_termination_with_density_change_is_3(self):
-        assert _cls(_spec(), _spec(nrad=5, layers=())).cls == 3
+        assert _cls(_spec(), _spec(n_radial=5, layers=())).cls == 3
 
     def test_partition_change_is_3(self):
-        a = PipeSpec(nang=4).core("fluid", radius=0.1, nrad=3)
-        b = PipeSpec(nang=4, n_outer=8).core("fluid", radius=0.1, nrad=3)
+        a = PipeSpec(n_arc=4).core("fluid", radius=0.1, n_radial=3)
+        b = PipeSpec(n_arc=4, n_outer=8).core("fluid", radius=0.1, n_radial=3)
         c = _cls(a, b)
         assert c.cls == 3 and {d.field for d in c.differences} == {"n_outer"}   # P = 90° both (0088)
 
@@ -109,10 +109,10 @@ class TestClassify:
 # Rejected before GMSH, naming the difference
 # ---------------------------------------------------------------------------
 
-def test_reducer_changing_nang_rejected():
+def test_reducer_changing_n_arc_rejected():
     asm = Assembly(_spec())
-    asm.add(Reducer(_spec(r=0.06, nang=8), length=0.2, n_layers=3))
-    with pytest.raises(AssemblyError, match=r"nang \(4 vs 8\)\. That is switch class 2") as e:
+    asm.add(Reducer(_spec(r=0.06, n_arc=8), length=0.2, n_layers=3))
+    with pytest.raises(AssemblyError, match=r"n_arc \(4 vs 8\)\. That is switch class 2") as e:
         asm.validate()
     assert not gmsh.isInitialized()
     # One density per network, said plainly, with what to do (task 0132)
@@ -121,23 +121,23 @@ def test_reducer_changing_nang_rejected():
     assert "one density" in e.value.hint and "One density per network" in e.value.hint
 
 
-def test_reducer_changing_nrad_and_grading_rejected():
+def test_reducer_changing_n_radial_and_grading_rejected():
     """Class 2 with a count change is not bridged, even with a grading change."""
     asm = Assembly(_spec())
-    asm.add(Reducer(_spec(r=0.06, nrad=5, mprg=1.2), length=0.2, n_layers=3))
-    with pytest.raises(AssemblyError, match=r"core nrad \(3 vs 5\).*switch class 2 beyond "
-                                            r"radial grading.*radial grading \(mprg\) only") as e:
+    asm.add(Reducer(_spec(r=0.06, n_radial=5, radial_grading=1.2), length=0.2, n_layers=3))
+    with pytest.raises(AssemblyError, match=r"core n_radial \(3 vs 5\).*switch class 2 beyond "
+                                            r"radial grading.*radial grading \(radial_grading\) only") as e:
         asm.validate()
     assert not gmsh.isInitialized()
-    assert "nrad" in e.value.hint and "first_cell" in e.value.hint
+    assert "n_radial" in e.value.hint and "first_cell" in e.value.hint
 
 
 def test_straight_changing_grading_rejected():
     """Only fittings declaring class 2 bridge grading (Straight does not)."""
     asm = Assembly(_spec())
     out = asm.add(Straight(0.3, n_layers=2))
-    out.spec = _spec(mprg=1.2)
-    with pytest.raises(AssemblyError, match=r"core mprg"):
+    out.spec = _spec(radial_grading=1.2)
+    with pytest.raises(AssemblyError, match=r"core radial_grading"):
         asm.validate()
 
 

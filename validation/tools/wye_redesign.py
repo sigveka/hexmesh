@@ -14,7 +14,7 @@
 Task 0116: the wye redesign, measured (decision 0043, measure first).
 
 Each case is a junction between plain ``Straight`` runs, measured at
-``nang`` 8, single layer and with one shell (0.1 R), against the gates
+``n_arc`` 8, single layer and with one shell (0.1 R), against the gates
 fixed in decision 0043:
 - no inverted cells (predicted and meshed);
 - min corner SJ ≥ 0.3 for no warning, ≥ 0.1 to build at all;
@@ -57,8 +57,8 @@ ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "validation" / "tools" / "wye_redesign.json"
 
 R = 0.1                 # inlet radius
-NANG = 8
-NRAD = 3
+N_ARC = 8
+N_RADIAL = 3
 SHELL = 0.1 * R         # one shell's thickness
 BAND = 0.1              # crease band, × R
 RUN, BRANCH, STRAIGHT = 0.4, 0.7, 0.2
@@ -66,14 +66,14 @@ RUN, BRANCH, STRAIGHT = 0.4, 0.7, 0.2
 
 def spec(radius=R, shell=False):
     from hexmesh.core.spec import PipeSpec
-    s = PipeSpec(nang=NANG).core("fluid", radius=radius, nrad=NRAD)
-    return s.shell("steel", dR=SHELL, nrad=2) if shell else s
+    s = PipeSpec(n_arc=N_ARC).core("fluid", radius=radius, n_radial=N_RADIAL)
+    return s.shell("steel", dR=SHELL, n_radial=2) if shell else s
 
 
 def junction_assembly(fitting, inlet_spec, names):
     """Straight → *fitting* → Straight on every outlet."""
     from hexmesh.assembly import Assembly, Straight
-    asm = Assembly(inlet_spec, direction=[1, 0, 0], up=[0, 0, 1], lc=0.05)
+    asm = Assembly(inlet_spec, direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Straight(STRAIGHT, n_layers=4))
     outs = asm.add(fitting, names=names)
     for o in outs:

@@ -75,7 +75,7 @@ class OHCrossSection(CrossSection):
     inner_curves:  list[int] = field(default_factory=list)
     radial_curves: list[int] = field(default_factory=list)
     # Number of transfinite node layers on radial lines.
-    nrad: int = 4
+    n_radial: int = 4
     # Angles (radians) of the outer corner points, in the same order as
     # outer_points.  Stored by face builders so annulus layers can position
     # their outer corners at matching angles without re-deriving them.
@@ -110,32 +110,31 @@ def build_oh_circle(
     shape:  CircleShape,
     h_axis: np.ndarray,
     v_axis: np.ndarray,
-    lc:     float,
-    nrad:   int,
-    mprg:   float = 1.0,
-    mbmp:   float = 1.0,
+    n_radial:   int,
+    radial_grading:   float = 1.0,
+    arc_bump:   float = 1.0,
     rot:    float = 0.0,
     stretch: tuple | None = None,
 ) -> CrossSection:
     """Build a 5-patch O-H circle in GMSH.
 
-    *shape* carries ``radius`` and ``nang`` (divisions per quadrant arc),
+    *shape* carries ``radius`` and ``n_arc`` (divisions per quadrant arc),
     or ``arcs`` (each arc's);
     *h_axis*, *v_axis* are the in-plane unit vectors (``cursor.right``,
-    ``cursor.up``); *nrad* and *mprg* the radial divisions and progression;
-    *mbmp* the arcs' bump.  ``rot = -π/4`` aligns patch boundaries with the
+    ``cursor.up``); *n_radial* and *radial_grading* the radial divisions and progression;
+    *arc_bump* the arcs' bump.  ``rot = -π/4`` aligns patch boundaries with the
     horizontal axis (half-buried pipes).
     """
     xyz = plane(cx, cy, cz, h_axis, v_axis, stretch)
     inner, outer = oh.core_corners(shape, 4, rot)
     centre_uv = [oh.inner_arc_centre(shape.radius, k, rot) for k in range(4)]   # of inner arc k
 
-    center = add_point(cx, cy, cz, lc)
-    o1, o2, o3, o4 = (add_point(*xyz(p), lc) for p in outer)          # NE, NW, SW, SE
-    i1, i2, i3, i4 = (add_point(*xyz(p), lc) for p in inner)
+    center = add_point(cx, cy, cz)
+    o1, o2, o3, o4 = (add_point(*xyz(p)) for p in outer)          # NE, NW, SW, SE
+    i1, i2, i3, i4 = (add_point(*xyz(p)) for p in inner)
     # inner-arc centres, made in the order E, N, W, S (arcs 1, 2, 3, 0)
     s_xyz = {k: xyz(centre_uv[k]) for k in (1, 2, 3, 0)}
-    s_tag = {k: add_point(*s_xyz[k], lc) for k in (1, 2, 3, 0)}
+    s_tag = {k: add_point(*s_xyz[k]) for k in (1, 2, 3, 0)}
 
     def arc(start, centre, end, centre_xyz):
         return add_conic_arc(start, centre, end, centre_xyz, stretch)
@@ -163,12 +162,12 @@ def build_oh_circle(
         [a5, -r4, a6, r3],
         [a7, -r2, a8, r4])]
 
-    set_transfinite_line([r1, r2, r3, r4], nrad, mprg)
+    set_transfinite_line([r1, r2, r3, r4], n_radial, radial_grading)
     if shape.arcs is None:
-        set_transfinite_line_bump([a1, a2, a3, a4, a5, a6, a7, a8], shape.nang, mbmp)
+        set_transfinite_line_bump([a1, a2, a3, a4, a5, a6, a7, a8], shape.n_arc, arc_bump)
     else:                                  # each arc its own count (task 0147)
         for k, pair in enumerate(([a1, a2], [a3, a4], [a5, a6], [a7, a8])):
-            set_transfinite_line_bump(pair, shape.side_count(k, 4), mbmp)
+            set_transfinite_line_bump(pair, shape.side_count(k, 4), arc_bump)
     set_transfinite_surface(surfaces)
     set_recombine_surface(surfaces)
 
@@ -185,8 +184,7 @@ def build_oh_circle(
         inner_points  = [i1, i2, i3, i4],
         inner_curves  = [-a2, -a4, -a6, -a8],   # NE→NW, NW→SW, SW→SE, SE→NE
         radial_curves = [r2, r1, r3, r4],        # NE, NW, SW, SE (inner→outer)
-        nrad          = nrad,
-        lc            = lc,
+        n_radial          = n_radial,
         corner_angles = [a + rot for a in oh.core_directions(shape, 4)],
     )
 
@@ -225,10 +223,9 @@ def build_oh_split(
     shape,
     h_axis: np.ndarray,
     v_axis: np.ndarray,
-    lc:     float,
-    nrad:   int,
-    mprg:   float = 1.0,
-    mbmp:   float = 1.0,
+    n_radial:   int,
+    radial_grading:   float = 1.0,
+    arc_bump:   float = 1.0,
     rot:    float = 0.0,
     stretch: tuple | None = None,
 ) -> CrossSection:
@@ -248,18 +245,18 @@ def build_oh_split(
     counts = [shape.side_count(j, 4) for j in range(4)]
     if any(c % 2 for c in counts):
         raise SpecError(f"n_outer = 8 needs an even number of divisions on every side, got "
-                        f"{counts}", code="nang_not_divisible", where={"field": "nang"},
+                        f"{counts}", code="n_arc_not_divisible", where={"field": "n_arc"},
                         value=counts, limit={"multiple_of": 2})
     xyz = plane(cx, cy, cz, h_axis, v_axis, stretch)
     inner, outer = oh.split_corners(shape, rot)
-    center = add_point(cx, cy, cz, lc)
-    O = [add_point(*xyz(p), lc) for p in outer]
-    I = [add_point(*xyz(p), lc) for p in inner]
+    center = add_point(cx, cy, cz)
+    O = [add_point(*xyz(p)) for p in outer]
+    I = [add_point(*xyz(p)) for p in inner]
     if kind == "arc":
         c_xyz = (cx, cy, cz)
         out_c = [(center, c_xyz)] * 4
         s_xyz = [xyz(oh.inner_arc_centre(shape.radius, j, rot)) for j in range(4)]
-        in_c = [(add_point(*s_xyz[j], lc), s_xyz[j]) for j in range(4)]
+        in_c = [(add_point(*s_xyz[j]), s_xyz[j]) for j in range(4)]
     else:
         out_c = in_c = None
     halves = [(0.0, 0.5), (0.5, 1.0)] * 4
@@ -277,13 +274,13 @@ def build_oh_split(
     surfaces = core + ring
 
     # every node is set by place_partition_nodes; these only fix the counts
-    set_transfinite_line(R, nrad, mprg)
+    set_transfinite_line(R, n_radial, radial_grading)
     for k in range(8):
         set_transfinite_line([Ao[k], Ai[k]], counts[k // 2] // 2)
     for k, c in cut.items():
         set_transfinite_line([c], counts[(k // 2 + 1) % 4] // 2)
     for j in range(4):
-        set_transfinite_line_bump([full_o[j], full_i[j]], counts[j], mbmp)
+        set_transfinite_line_bump([full_o[j], full_i[j]], counts[j], arc_bump)
     set_transfinite_surface(surfaces)
     set_recombine_surface(surfaces)
 
@@ -300,8 +297,7 @@ def build_oh_split(
         inner_points  = I,
         inner_curves  = Ai,
         radial_curves = R,
-        nrad          = nrad,
-        lc            = lc,
+        n_radial          = n_radial,
         corner_angles = [a + rot for a in oh.core_directions(shape, 8)],
         full_outer    = full_o,
         full_inner    = full_i,
@@ -317,25 +313,24 @@ def build_oh_rect(
     shape:  RectShape,
     h_axis: np.ndarray,
     v_axis: np.ndarray,
-    lc:     float,
-    nrad:   int,
-    mprg:   float = 1.0,
-    mbmp:   float = 1.0,
+    n_radial:   int,
+    radial_grading:   float = 1.0,
+    arc_bump:   float = 1.0,
     rot:    float = 0.0,
     stretch: tuple | None = None,
 ) -> CrossSection:
     """Build a 5-patch O-H rectangle in GMSH: the circle's layout with
     lines for arcs, the inner rectangle inset by a uniform ring
     (``sections.oh.ring_thickness``).  *shape* carries ``half_w``,
-    ``half_h``, ``nang_w`` (width sides) and ``nang_h`` (height sides);
+    ``half_h``, ``n_width`` (width sides) and ``n_height`` (height sides);
     the other arguments are ``build_oh_circle``'s.  The stretch is
     affine, so the edges stay straight lines."""
     xyz = plane(cx, cy, cz, h_axis, v_axis, stretch)
     inner, outer = oh.core_corners(shape, 4, rot)
 
-    o1, o2, o3, o4 = (add_point(*xyz(p), lc) for p in outer)          # NE, NW, SW, SE
-    i1, i2, i3, i4 = (add_point(*xyz(p), lc) for p in inner)
-    center = add_point(cx, cy, cz, lc)
+    o1, o2, o3, o4 = (add_point(*xyz(p)) for p in outer)          # NE, NW, SW, SE
+    i1, i2, i3, i4 = (add_point(*xyz(p)) for p in inner)
+    center = add_point(cx, cy, cz)
 
     a1 = add_line(o1, o2)   # NE→NW  top    (width  edge)
     a3 = add_line(o2, o3)   # NW→SW  left   (height edge)
@@ -359,9 +354,9 @@ def build_oh_rect(
         [a5, -r4, a6, r3],
         [a7, -r2, a8, r4])]
 
-    set_transfinite_line_bump([a1, a2, a5, a6], shape.nang_w, mbmp)
-    set_transfinite_line_bump([a3, a4, a7, a8], shape.nang_h, mbmp)
-    set_transfinite_line([r1, r2, r3, r4], nrad, mprg)
+    set_transfinite_line_bump([a1, a2, a5, a6], shape.n_width, arc_bump)
+    set_transfinite_line_bump([a3, a4, a7, a8], shape.n_height, arc_bump)
+    set_transfinite_line([r1, r2, r3, r4], n_radial, radial_grading)
     set_transfinite_surface(surfaces)
     set_recombine_surface(surfaces)
 
@@ -378,8 +373,7 @@ def build_oh_rect(
         inner_points  = [i1, i2, i3, i4],
         inner_curves  = [-a2, -a4, -a6, -a8],   # NE→NW, NW→SW, SW→SE, SE→NE
         radial_curves = [r2, r1, r3, r4],        # NE, NW, SW, SE (inner→outer)
-        nrad          = nrad,
-        lc            = lc,
+        n_radial          = n_radial,
         corner_angles = [a + rot for a in oh.core_directions(shape, 4)],
     )
 
@@ -391,24 +385,23 @@ def build_oh_blend(
     shape,
     h_axis: np.ndarray,
     v_axis: np.ndarray,
-    lc:     float,
-    nrad:   int,
-    mprg:   float = 1.0,
-    mbmp:   float = 1.0,
+    n_radial:   int,
+    radial_grading:   float = 1.0,
+    arc_bump:   float = 1.0,
     rot:    float = 0.0,
     stretch: tuple | None = None,
 ) -> CrossSection:
     """Build a 5-patch O-H face whose curves follow ``shape.outline``: a
     ``Transition`` station (task 0029), whose shape (``core.shape.BlendShape``)
     lies between a circle and a rectangle.  *shape* needs
-    ``outline(k, s, inner)``, ``nang_w`` and ``nang_h``."""
+    ``outline(k, s, inner)``, ``n_width`` and ``n_height``."""
     geo = gmsh.model.occ
     xyz = plane(cx, cy, cz, h_axis, v_axis, stretch)
     inner, outer = oh.core_corners(shape, 4, rot)
 
-    center = add_point(cx, cy, cz, lc)
-    o = [add_point(*xyz(p), lc) for p in outer]
-    i = [add_point(*xyz(p), lc) for p in inner]
+    center = add_point(cx, cy, cz)
+    o = [add_point(*xyz(p)) for p in outer]
+    i = [add_point(*xyz(p)) for p in inner]
     mid = np.linspace(0.0, 1.0, _SAMPLES + 2)[1:-1]
 
     def spline(k, a, b, inner):
@@ -424,9 +417,9 @@ def build_oh_blend(
         j = (k + 1) % 4
         surfaces.append(add_surface(add_line_loop([oc[k], -r[j], -ic[k], r[k]])))
 
-    set_transfinite_line(r, nrad, mprg)
-    set_transfinite_line_bump([oc[0], ic[0], oc[2], ic[2]], shape.nang_w, mbmp)
-    set_transfinite_line_bump([oc[1], ic[1], oc[3], ic[3]], shape.nang_h, mbmp)
+    set_transfinite_line(r, n_radial, radial_grading)
+    set_transfinite_line_bump([oc[0], ic[0], oc[2], ic[2]], shape.n_width, arc_bump)
+    set_transfinite_line_bump([oc[1], ic[1], oc[3], ic[3]], shape.n_height, arc_bump)
     set_transfinite_surface(surfaces)
     set_recombine_surface(surfaces)
 
@@ -443,8 +436,7 @@ def build_oh_blend(
         inner_points  = i,
         inner_curves  = ic,
         radial_curves = r,
-        nrad          = nrad,
-        lc            = lc,
+        n_radial          = n_radial,
         corner_angles = [a + rot for a in oh.core_directions(shape, 4)],
     )
 
@@ -454,10 +446,9 @@ def build_oh_blend(
 def build_annulus(
     inner:  CrossSection,
     dR:     float,
-    lc:     float,
-    nrad:   int,
-    mprg:   float = 1.0,
-    mbmp:   float = 1.0,
+    n_radial:   int,
+    radial_grading:   float = 1.0,
+    arc_bump:   float = 1.0,
     rot:    float = 0.0,
     stretch: tuple | None = None,
 ) -> CrossSection:
@@ -467,7 +458,7 @@ def build_annulus(
     if dR <= 0:
         raise SpecError(f"dR must be positive, got {dR!r}", code="size_not_positive",
                         where={"field": "dR"}, value=dR, limit={"min_exclusive": 0})
-    return build_ring(inner, inner.shape.grown(dR), lc, nrad, mprg, mbmp, rot, stretch)
+    return build_ring(inner, inner.shape.grown(dR), n_radial, radial_grading, arc_bump, rot, stretch)
 
 
 def _ring_sides(outer, corners: list[int], center: int, xyz, rot: float, stretch,
@@ -497,10 +488,9 @@ def _ring_sides(outer, corners: list[int], center: int, xyz, rot: float, stretch
 def build_ring(
     inner:  CrossSection,
     outer,
-    lc:     float,
-    nrad:   int,
-    mprg:   float = 1.0,
-    mbmp:   float = 1.0,
+    n_radial:   int,
+    radial_grading:   float = 1.0,
+    arc_bump:   float = 1.0,
     rot:    float = 0.0,
     stretch: tuple | None = None,
     center: int | None = None,
@@ -511,7 +501,7 @@ def build_ring(
 
     *center* is the centre point when *inner* has none (an H core, task
     0086); *side_grading* ``[(law, coef) or None, …]`` per side k, instead
-    of ``mbmp`` on every side (an H core's wall grading).
+    of ``arc_bump`` on every side (an H core's wall grading).
 
     The inner boundary reuses *inner*'s ``outer_points`` and
     ``outer_curves``: no new entities there, so the interface is conformal
@@ -535,11 +525,11 @@ def build_ring(
     if getattr(inner, "corner_angles", None):
         angles = list(inner.corner_angles)
     else:
-        angles = [d + rot for d in oh.core_directions(CircleShape(1.0, nang=4), n)]
+        angles = [d + rot for d in oh.core_directions(CircleShape(1.0, n_arc=4), n)]
     corners, angles_out = oh.ring_corners(outer, angles, rot)
     corners = [oh.rotated(p, rot) for p in corners]
 
-    O = [add_point(*xyz(corners[k]), lc) for k in range(n)]
+    O = [add_point(*xyz(corners[k])) for k in range(n)]
     R = [add_line(si[k], O[k]) for k in range(n)]
 
     full, full_counts = [], []
@@ -562,12 +552,12 @@ def build_ring(
                 for k in range(n)]
 
     # only the new entities: the inner sides are the previous layer's
-    set_transfinite_line(R, nrad, mprg)
+    set_transfinite_line(R, n_radial, radial_grading)
     if n == 8:      # place_partition_nodes sets the halves' nodes from the full sides'
         for k, a in enumerate(A_out):
             set_transfinite_line([a], full_counts[k // 2] // 2)
         for j, a in enumerate(full):
-            set_transfinite_line_bump([a], full_counts[j], mbmp)
+            set_transfinite_line_bump([a], full_counts[j], arc_bump)
     elif side_grading is not None:
         for k, a in enumerate(A_out):
             set_transfinite_curve(a, outer.side_count(k, n),
@@ -577,7 +567,7 @@ def build_ring(
         for k, a in enumerate(A_out):
             by_count.setdefault(outer.side_count(k, n), []).append(a)
         for count, curves in by_count.items():
-            set_transfinite_line_bump(curves, count, mbmp)
+            set_transfinite_line_bump(curves, count, arc_bump)
     set_transfinite_surface(surfaces)
     set_recombine_surface(surfaces)
 
@@ -595,8 +585,7 @@ def build_ring(
         inner_points  = list(si),
         inner_curves  = list(ia),
         radial_curves = R,
-        nrad          = nrad,
-        lc            = lc,
+        n_radial          = n_radial,
         corner_angles = angles_out,
         full_outer    = full,
         full_counts   = full_counts,

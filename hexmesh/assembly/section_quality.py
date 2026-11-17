@@ -27,10 +27,10 @@ Bends change both by at most about 0.02 in SJ (task 0047's sweep).  So the
 face alone predicts the quality, and ``section_quality`` builds the face's
 quads the way the face builders and GMSH's transfinite meshing do:
 
-* boundary nodes at the side fractions of a ``Bump`` spacing (``mbmp``),
+* boundary nodes at the side fractions of a ``Bump`` spacing (``arc_bump``),
   along each side as its outline draws it (``Shape.side``; the core's O-H
   curves from ``shape.outline``);
-* radial nodes at a ``Progression`` spacing (``mprg``) along straight
+* radial nodes at a ``Progression`` spacing (``radial_grading``) along straight
   corner lines;
 * interior nodes by transfinite interpolation: a ring's patch is the linear
   blend of its two boundaries, exactly (its other two sides are straight);

@@ -70,7 +70,7 @@ class TubeUnion:
     """
 
     # soft-minimum width for :meth:`direction`, × scale; 0.25–1 still fold
-    # wyes of 30–50° at nang 8–16, 2 and 4 don't (task 0051)
+    # wyes of 30–50° at n_arc 8–16, 2 and 4 don't (task 0051)
     SOFT = 2.0
 
     def __init__(self, tubes: list[Tube]) -> None:

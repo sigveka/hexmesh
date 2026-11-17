@@ -10,8 +10,8 @@ import pytest
 from hexmesh import Assembly, PipeSpec, Session, Tee
 from hexmesh.assembly import Bend, Straight, Wye
 
-SPEC = lambda: (PipeSpec(nang=6).core("lox", radius=0.02, nrad=4)
-                .shell("steel", dR=0.003, nrad=2))
+SPEC = lambda: (PipeSpec(n_arc=6).core("lox", radius=0.02, n_radial=4)
+                .shell("steel", dR=0.003, n_radial=2))
 ANGLES = range(0, 360, 45)
 
 

@@ -10,10 +10,10 @@ material interfaces (``interface_fluid_steel``, …) for conjugate heat transfer
 
 from hexmesh import Assembly, Elbow, PipeSpec, Straight
 
-PIPE = (PipeSpec(nang=6)
-        .core("fluid", radius=0.1, nrad=5)
-        .shell("steel", dR=0.008, nrad=2)
-        .shell("insulation", dR=0.05, nrad=4, mprg=1.2))
+PIPE = (PipeSpec(n_arc=6)
+        .core("fluid", radius=0.1, n_radial=5)
+        .shell("steel", dR=0.008, n_radial=2)
+        .shell("insulation", dR=0.05, n_radial=4, radial_grading=1.2))
 
 
 def build() -> Assembly:

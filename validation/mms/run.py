@@ -85,9 +85,9 @@ R = 0.05                  # main radius [m]; lengths are in R
 # --- the cases ---------------------------------------------------------------
 
 def _pipe(radius=R, shells=0):
-    spec = PipeSpec(nang=6).core("body", radius=radius, nrad=3)
+    spec = PipeSpec(n_arc=6).core("body", radius=radius, n_radial=3)
     for i in range(shells):
-        spec = spec.shell(f"shell{i + 1}", dR=0.2 * radius, nrad=2)
+        spec = spec.shell(f"shell{i + 1}", dR=0.2 * radius, n_radial=2)
     return spec
 
 
@@ -139,7 +139,7 @@ def reducer(s0=0.4):
 def transition():
     a = _asm(_pipe())
     a.add(Straight(2 * R, n_layers=2))
-    duct = PipeSpec(nang_w=6, nang_h=6).core("body", half_w=1.2 * R, half_h=0.8 * R)
+    duct = PipeSpec(n_width=6, n_height=6).core("body", half_w=1.2 * R, half_h=0.8 * R)
     a.add(Transition(duct, length=4 * R, n_layers=6))
     a.add(Straight(2 * R, n_layers=2))
     return a, [1]
@@ -195,7 +195,7 @@ def wye90_shell():
 
 
 def _duct(n=8):
-    return PipeSpec(nang_w=n, nang_h=n).core("body", half_w=2 * R, half_h=R)
+    return PipeSpec(n_width=n, n_height=n).core("body", half_w=2 * R, half_h=R)
 
 
 def duct_tap(branch):
@@ -208,15 +208,15 @@ def duct_tap(branch):
 
 
 def duct_tap_rect():
-    return duct_tap(RectShape(0.8 * R, 0.6 * R, nang_w=8, nang_h=8))
+    return duct_tap(RectShape(0.8 * R, 0.6 * R, n_width=8, n_height=8))
 
 
 def duct_tap_round():
-    return duct_tap(CircleShape(0.6 * R, nang=8))
+    return duct_tap(CircleShape(0.6 * R, n_arc=8))
 
 
 def duct():
-    a = _asm(PipeSpec(nang_w=12, nang_h=6).core("body", half_w=2 * R, half_h=R))
+    a = _asm(PipeSpec(n_width=12, n_height=6).core("body", half_w=2 * R, half_h=R))
     a.add(Straight(8 * R, n_layers=8))
     return a, [0]
 

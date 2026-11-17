@@ -407,11 +407,11 @@ def connect_aligned(
     # curves carry their own node counts stored as (tag, n_nodes) pairs in
     # "arc_curves".
     # ------------------------------------------------------------------
-    # Divisions of curve k (corner k → k+1): nang per 90° arc of a circle,
-    # nang_w / nang_h alternating on a rectangle.  The offset maps sides
+    # Divisions of curve k (corner k → k+1): n_arc per 90° arc of a circle,
+    # n_width / n_height alternating on a rectangle.  The offset maps sides
     # onto sides of the same count (a rectangle only turns by P = π).
     counts = side_counts(in_cs)
-    nrad = in_cs.nrad
+    n_radial = in_cs.n_radial
 
     # Deduplicated (tag, n_nodes) pairs for arc and radial curves.
     _arc_seen: set[int] = set()
@@ -430,10 +430,10 @@ def connect_aligned(
         for tags in (oc_in, oc_out, ic_in, ic_out):
             _add_arcs([tags[k]], counts[k] + 1)
 
-    # Radial curves: nrad+1 nodes on both faces so the radial side-
+    # Radial curves: n_radial+1 nodes on both faces so the radial side-
     # surfaces have matching opposing edge counts.
-    _add_arcs(rc_in,  nrad + 1)
-    _add_arcs(rc_out, nrad + 1)
+    _add_arcs(rc_in,  n_radial + 1)
+    _add_arcs(rc_out, n_radial + 1)
     if centre_axial:
         # the cuts, opposite the core's halves; and the 4-corner sides,
         # built for their nodes only (sections.oh_gmsh.build_oh_split)

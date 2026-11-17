@@ -98,8 +98,8 @@ def port_type(spec: PipeSpec) -> tuple:
     """Hashable type key of *spec* (rule A4)."""
     core_name, core_shape = spec._core
     return (
-        spec.n_outer, spec.rot, spec.nang, spec.nang_w, spec.nang_h, spec.mbmp,
-        core_name, repr(core_shape), spec._core_nrad, spec._core_mprg,
+        spec.n_outer, spec.rot, spec.n_arc, spec.n_width, spec.n_height, spec.arc_bump,
+        core_name, repr(core_shape), spec._core_n_radial, spec._core_radial_grading,
         tuple(spec.shells), spec.layout, spec.wall_grading,
     )
 
@@ -264,7 +264,7 @@ class Interface:
         return f"Interface({label}, pos={np.round(self.frame.position, 4)})"
 
 
-def build_face(spec: PipeSpec, frame: Frame, lc: float,
+def build_face(spec: PipeSpec, frame: Frame,
                stretch: tuple | None = None) -> LayeredCrossSection:
     """Build the GMSH face of an interface (realisation layer only).
 
@@ -274,7 +274,7 @@ def build_face(spec: PipeSpec, frame: Frame, lc: float,
     interfaces are never stretched.  The section layout builds it
     (``sections.build_face``).
     """
-    return sections.build_face(spec, frame.position, frame.right, frame.up, lc, stretch)
+    return sections.build_face(spec, frame.position, frame.right, frame.up, stretch)
 
 
 def check_supported(spec: PipeSpec) -> None:
@@ -324,7 +324,7 @@ def check_arcs(fitting, spec: PipeSpec) -> None:
             f"Straight, Bend, Reducer and Transition do",
             code="arcs_unsupported", where={"fitting": name}, value=name,
             limit=["Straight", "Bend", "Reducer", "Transition"],
-            hint="give the circle one count, nang=, at this fitting")
+            hint="give the circle one count, n_arc=, at this fitting")
 
 
 def check_outlines(spec: PipeSpec, samples: int = 720) -> None:

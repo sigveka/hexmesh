@@ -30,8 +30,8 @@ counts) with the cube layout instead of the hub:
   (the paper's port, joined to its cross-section in one step: the
   station is the cross-section).  A side with no pipe keeps its block,
   whose outer face lies on the wall.
-- **Counts.**  Cube and centre-hex edges carry ``nang``; the diagonals
-  (centre-hex corner to cube corner) the ring's ``nrad``; a port's axial
+- **Counts.**  Cube and centre-hex edges carry ``n_arc``; the diagonals
+  (centre-hex corner to cube corner) the ring's ``n_radial``; a port's axial
   edges ``n_split``.
 - **The wall.**  Cube edges and the edges from a cube corner to its
   station are splines through points on the wall (the tube union, as the

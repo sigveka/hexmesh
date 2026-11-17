@@ -13,7 +13,7 @@ diameters of each end; the nozzle end is never extended.
 
 from hexmesh import Assembly, Drum, Elbow, Nozzle, OnShell, PipeSpec, Straight, Tee
 
-PIPE = PipeSpec(nang=6).core("water", radius=0.08, nrad=5)
+PIPE = PipeSpec(n_arc=6).core("water", radius=0.08, n_radial=5)
 
 DRUM = Drum("D101", diameter=2.0, length=6.0, head="ellipsoidal_2_1",
             nozzles=[Nozzle("N1", spec=PIPE, location=OnShell(axial=1.5, angle=0, projection=1.3))])

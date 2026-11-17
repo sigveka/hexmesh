@@ -11,7 +11,7 @@ cell count equals hexmesh's for the same counts.
         "blockmesh_ogrid", "validation/tools/blockmesh_ogrid.py")
     bm = importlib.util.module_from_spec(spec); spec.loader.exec_module(bm)
     xs = bm.stations_from_case(hexmesh_case)   # axial nodes on the axis
-    text = bm.block_mesh_dict(xs, radius=lambda x: 0.01, nang=12, nrad=6)
+    text = bm.block_mesh_dict(xs, radius=lambda x: 0.01, n_arc=12, n_radial=6)
     (case / "system/blockMeshDict").write_text(header + text)
 
 Patches: ``{prefix}inlet``, ``{prefix}outlet`` (type patch) and
@@ -38,11 +38,11 @@ def stations_from_case(case: Path) -> np.ndarray:
     return np.unique(np.round(pts[on_axis, 0], 12))
 
 
-def block_mesh_dict(xs, radius: Callable[[float], float], nang: int, nrad: int,
+def block_mesh_dict(xs, radius: Callable[[float], float], n_arc: int, n_radial: int,
                     ratio: float = 0.6, prefix: str = "fluid_") -> str:
     """The body of a blockMeshDict (no FoamFile header): an O-grid along x
-    through the stations *xs*, wall radius ``radius(x)``, ``nang`` cells per
-    side and ``nrad`` across the ring."""
+    through the stations *xs*, wall radius ``radius(x)``, ``n_arc`` cells per
+    side and ``n_radial`` across the ring."""
     th = [math.radians(45 + 90 * k) for k in range(4)]
     verts, vid = [], {}
     for j, x in enumerate(xs):
@@ -58,11 +58,11 @@ def block_mesh_dict(xs, radius: Callable[[float], float], nang: int, nrad: int,
     blocks, arcs, inlet, outlet, wall = [], [], [], [], []
     for j in range(len(xs) - 1):
         c = [V("S", j, k) for k in range(4)] + [V("S", j + 1, k) for k in range(4)]
-        blocks.append(f"hex ({' '.join(map(str, c))}) ({nang} {nang} 1) simpleGrading (1 1 1)")
+        blocks.append(f"hex ({' '.join(map(str, c))}) ({n_arc} {n_arc} 1) simpleGrading (1 1 1)")
         for k in range(4):
             b = [V("S", j, k), V("W", j, k), V("W", j, k + 1), V("S", j, k + 1)]
             t = [V("S", j + 1, k), V("W", j + 1, k), V("W", j + 1, k + 1), V("S", j + 1, k + 1)]
-            blocks.append(f"hex ({' '.join(map(str, b + t))}) ({nrad} {nang} 1) simpleGrading (1 1 1)")
+            blocks.append(f"hex ({' '.join(map(str, b + t))}) ({n_radial} {n_arc} 1) simpleGrading (1 1 1)")
             wall.append((V("W", j, k), V("W", j, k + 1), V("W", j + 1, k + 1), V("W", j + 1, k)))
     for j, x in enumerate(xs):
         r = float(radius(x))

@@ -38,14 +38,14 @@ B = 0.05
 INLET = Frame(np.zeros(3), np.array([1.0, 0, 0]), np.array([0, 0, 1.0]))
 
 
-def _oh(aspect=2, n=4, nrad=3, **kw):
-    return PipeSpec(nang_w=aspect * n, nang_h=n).core(
-        "air", shape=RectShape(aspect * B, B, nang_w=aspect * n, nang_h=n), nrad=nrad, layout="oh", **kw)
+def _oh(aspect=2, n=4, n_radial=3, **kw):
+    return PipeSpec(n_width=aspect * n, n_height=n).core(
+        "air", shape=RectShape(aspect * B, B, n_width=aspect * n, n_height=n), n_radial=n_radial, layout="oh", **kw)
 
 
 def _h(aspect=2, n=4, **kw):
-    return PipeSpec(nang_w=aspect * n, nang_h=n).core(
-        "air", shape=RectShape(aspect * B, B, nang_w=aspect * n, nang_h=n), layout="h", **kw)
+    return PipeSpec(n_width=aspect * n, n_height=n).core(
+        "air", shape=RectShape(aspect * B, B, n_width=aspect * n, n_height=n), layout="h", **kw)
 
 
 def _asm(first, switch, axial_cell=None):
@@ -89,10 +89,10 @@ def test_switch_bridges_class_1_only():
 
 @pytest.mark.parametrize("make, match", [
     (lambda: (Switch(length=0.1, n_layers=2), _h()), "needs outlet="),
-    (lambda: (Switch(length=0.1, n_layers=2, outlet=_oh(nrad=2)), _oh()), "joins an O-H and an H"),
+    (lambda: (Switch(length=0.1, n_layers=2, outlet=_oh(n_radial=2)), _oh()), "joins an O-H and an H"),
     (lambda: (Switch(length=0.1, n_layers=2, outlet=_h()), _h()), "joins an O-H and an H"),
-    (lambda: (Switch(length=0.1, n_layers=2, outlet=PipeSpec(nang_w=8, nang_h=4).core(
-        "air", shape=RectShape(0.12, B, nang_w=8, nang_h=4), layout="h")), _oh()), "keeps the rectangle"),
+    (lambda: (Switch(length=0.1, n_layers=2, outlet=PipeSpec(n_width=8, n_height=4).core(
+        "air", shape=RectShape(0.12, B, n_width=8, n_height=4), layout="h")), _oh()), "keeps the rectangle"),
     (lambda: (Switch(length=0.02, n_layers=2), _oh()), "ring thicknesses"),
     (lambda: (Switch(length=0.1, n_layers=0), _oh()), "at least 1"),
 ])
@@ -103,7 +103,7 @@ def test_checks(make, match):
 
 
 def _lagged(spec):
-    return spec.shell("lagging", dR=0.01, nrad=2)
+    return spec.shell("lagging", dR=0.01, n_radial=2)
 
 
 def test_shells_run_through():
@@ -120,7 +120,7 @@ def test_shells_run_through():
     with pytest.raises(ValueError, match="keeps the shells"):
         Switch(length=0.1, n_layers=2, outlet=_h(aspect=1)).check(spec)
     with pytest.raises(ValueError, match="keeps the shells"):
-        Switch(length=0.1, n_layers=2, outlet=_h(aspect=1).shell("lagging", dR=0.02, nrad=2)).check(spec)
+        Switch(length=0.1, n_layers=2, outlet=_h(aspect=1).shell("lagging", dR=0.02, n_radial=2)).check(spec)
 
 
 def test_length_rule_is_in_ring_thicknesses():
@@ -136,9 +136,9 @@ def test_length_rule_is_in_ring_thicknesses():
 
 def _graded4():
     """The kit's ``switch-4-h-oh-graded`` pair: a/b 4, first cell 0.004."""
-    return (PipeSpec(nang_w=16, nang_h=4).core("air", shape=RectShape(4 * B, B, nang_w=16, nang_h=4), nrad=1,
+    return (PipeSpec(n_width=16, n_height=4).core("air", shape=RectShape(4 * B, B, n_width=16, n_height=4), n_radial=1,
                                                layout="oh"),
-            PipeSpec(nang_w=16, nang_h=4).core("air", shape=RectShape(4 * B, B, nang_w=16, nang_h=4), layout="h",
+            PipeSpec(n_width=16, n_height=4).core("air", shape=RectShape(4 * B, B, n_width=16, n_height=4), layout="h",
                                                first_cell=0.004))
 
 
@@ -163,8 +163,8 @@ def test_core_term_binds_at_moderate_shift():
     """The core block's term (task 0086, Q4): a shift between a quarter and
     two thirds of t, where 1.25 t and Δ/0.4 would both leave the core
     block too short (measured: min SJ 0.481 at 1.25 t, a/b 1, n 24)."""
-    s_oh = PipeSpec(nang_w=24, nang_h=24).core("air", shape=RectShape(B, B, nang_w=24, nang_h=24), nrad=6, layout="oh")
-    s_h = PipeSpec(nang_w=24, nang_h=24).core("air", shape=RectShape(B, B, nang_w=24, nang_h=24), layout="h",
+    s_oh = PipeSpec(n_width=24, n_height=24).core("air", shape=RectShape(B, B, n_width=24, n_height=24), n_radial=6, layout="oh")
+    s_h = PipeSpec(n_width=24, n_height=24).core("air", shape=RectShape(B, B, n_width=24, n_height=24), layout="h",
                                               first_cell=0.002)
     need, t, d = switch.min_length(s_oh, s_h)
     assert d / limits.SWITCH_MAX_SHEAR < limits.SWITCH_MIN_LENGTH * t
@@ -244,9 +244,9 @@ def test_non_orthogonality_of_two_sheared_cells():
 def _steep():
     """a/b 4, n 8, first cell h/200, a ring of 6: 74.2° at the shortest
     length, rising with it (79.5° at 20 t; task 0086's table)."""
-    s_h = PipeSpec(nang_w=32, nang_h=8).core("air", shape=RectShape(4 * B, B, nang_w=32, nang_h=8), layout="h",
+    s_h = PipeSpec(n_width=32, n_height=8).core("air", shape=RectShape(4 * B, B, n_width=32, n_height=8), layout="h",
                                              first_cell=B / 200)
-    return h.pillowed(s_h, nrad=6), s_h
+    return h.pillowed(s_h, n_radial=6), s_h
 
 
 def test_meshed_non_orthogonality_tiers(monkeypatch):
@@ -280,20 +280,20 @@ def test_transition_sizes_its_switch_by_the_shear_rule():
 # Counts and predicted quality (pure)
 # ---------------------------------------------------------------------------
 
-@pytest.mark.parametrize("aspect, nrad, n", [(1, 1, 2), (2, 3, 3), (4, 6, 5)])
-def test_cell_count_is_exact_before_gmsh(aspect, nrad, n):
-    spec = _oh(aspect, 4, nrad)
+@pytest.mark.parametrize("aspect, n_radial, n", [(1, 1, 2), (2, 3, 3), (4, 6, 5)])
+def test_cell_count_is_exact_before_gmsh(aspect, n_radial, n):
+    spec = _oh(aspect, 4, n_radial)
     sw = Switch(length=0.1, n_layers=n)
     nw, nh = 4 * aspect, 4
-    want = nw * nh * (n + nrad) + 2 * (nw + nh) * nrad * n
+    want = nw * nh * (n + n_radial) + 2 * (nw + nh) * n_radial * n
     assert sw.cell_count(_frames(sw, spec), spec) == want
 
 
 @pytest.mark.parametrize("aspect", [1, 2, 4])
-@pytest.mark.parametrize("nrad", [1, 3, 6])
-def test_predicted_sj_is_a_cube_corner(aspect, nrad):
-    """The cap's three 45° slants: 1/√3 at any aspect ratio and nrad."""
-    spec = _oh(aspect, 4, nrad)
+@pytest.mark.parametrize("n_radial", [1, 3, 6])
+def test_predicted_sj_is_a_cube_corner(aspect, n_radial):
+    """The cap's three 45° slants: 1/√3 at any aspect ratio and n_radial."""
+    spec = _oh(aspect, 4, n_radial)
     for sw in (Switch(length=0.1, n_layers=3), Switch(length=0.3, n_layers=3)):
         assert sw.predicted_sj(_frames(sw, spec), spec) == pytest.approx(1 / math.sqrt(3))
 
@@ -349,12 +349,12 @@ def test_graded_h_end_keeps_its_own_grid():
 # Transition with an H rectangular end
 # ---------------------------------------------------------------------------
 
-def _circle(n=4, nrad=3):
-    return PipeSpec(nang=n).core("air", shape=CircleShape(radius=0.1, nang=n), nrad=nrad)
+def _circle(n=4, n_radial=3):
+    return PipeSpec(n_arc=n).core("air", shape=CircleShape(radius=0.1, n_arc=n), n_radial=n_radial)
 
 
 def _hrect(half_w=0.14, half_h=0.07, n=4, **kw):
-    return PipeSpec(nang_w=n, nang_h=n).core("air", shape=RectShape(half_w, half_h, nang_w=n, nang_h=n),
+    return PipeSpec(n_width=n, n_height=n).core("air", shape=RectShape(half_w, half_h, n_width=n, n_height=n),
                                              layout="h", **kw)
 
 
@@ -375,8 +375,8 @@ def test_transition_to_h_embeds_a_switch():
 
 @pytest.mark.parametrize("make, match, exc", [
     (lambda: (Transition(_hrect(0.1, 0.1), length=0.3, n_layers=6), _hrect()), "both ends", ValueError),
-    (lambda: (Transition(_hrect(), length=0.3, n_layers=6), PipeSpec(nang=4).core(
-        "air", shape=RectShape(0.14, 0.07, nang_w=4, nang_h=4), nrad=3, layout="oh")), "use Switch", ValueError),
+    (lambda: (Transition(_hrect(), length=0.3, n_layers=6), PipeSpec(n_arc=4).core(
+        "air", shape=RectShape(0.14, 0.07, n_width=4, n_height=4), n_radial=3, layout="oh")), "use Switch", ValueError),
     (lambda: (Transition(_hrect(), length=0.05, n_layers=2), _circle()), "n_layers >=", ValueError),
     (lambda: (Transition(_hrect(n=6), length=0.3, n_layers=6), _circle()), "equal counts", ValueError),
 ])
@@ -389,8 +389,8 @@ def test_transition_h_end_checks(make, match, exc):
 def test_transition_to_h_with_shells():
     """Task 0086: the blend's H-end face carries the shells, which the
     switch keeps."""
-    tr = Transition(_hrect().shell("wall", dR=0.01, nrad=2), length=0.3, n_layers=6)
-    spec = _circle().shell("wall", dR=0.01, nrad=2)
+    tr = Transition(_hrect().shell("wall", dR=0.01, n_radial=2), length=0.3, n_layers=6)
+    spec = _circle().shell("wall", dR=0.01, n_radial=2)
     tr.check(spec)
     assert tr._blend_spec(spec).layer_names == ["air", "wall"]
 
@@ -398,9 +398,9 @@ def test_transition_to_h_with_shells():
 def test_transition_still_rejects_layer_termination():
     """Class 1 is declared for the H end's pillow; a layer that ends is not
     a transition's."""
-    two = _circle().shell("wall", dR=0.01, nrad=2)
+    two = _circle().shell("wall", dR=0.01, n_radial=2)
     with pytest.raises(ValueError, match="present only at the inlet.*keeps the layers"):
-        Transition(PipeSpec(nang=4).core("air", shape=RectShape(0.14, 0.07, nang_w=4, nang_h=4), nrad=3, layout="oh"),
+        Transition(PipeSpec(n_arc=4).core("air", shape=RectShape(0.14, 0.07, n_width=4, n_height=4), n_radial=3, layout="oh"),
                    length=0.3, n_layers=4).check(two)
 
 

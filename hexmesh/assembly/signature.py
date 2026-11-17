@@ -19,11 +19,11 @@ name, the layout kind and the chord-family counts, plus the section-level
 counts and symmetry.  Geometry is left out: radii, shape dimensions and
 ``rot``.  Shape is geometry too (decision 0009): a circular and a
 rectangular O-H core share the ``oh_core`` layout, the counts are per side
-(``nang_w``, ``nang_h``; a circle has both equal to ``nang``), and the
+(``n_width``, ``n_height``; a circle has both equal to ``n_arc``), and the
 period is the combinatorial one, from the counts: 90° when they are equal,
 180° when not (roll handling uses the geometric ``PipeSpec.period``).  ``rot`` rotates the whole face rigidly, with the same entities
 and nodes (task 0019), so it is placement, not connectivity.  Grading
-(``mprg``, ``mbmp``) is kept: an interface has one node set (decision
+(``radial_grading``, ``arc_bump``) is kept: an interface has one node set (decision
 0016).
 
 ``classify(a, b)`` sorts a pair of signatures into a switch class:
@@ -36,8 +36,8 @@ and nodes (task 0019), so it is placement, not connectivity.  Grading
   face, decision 0036; ``ends="pillow"``).  Bridging a pillow needs a
   fitting that declares ``pillows = True`` (``Switch``, task 0085);
 * **2**: same layers and layouts, different counts or grading.  When
-  the only differences are per-layer radial ``mprg`` (all counts and
-  ``mbmp`` equal), it is marked ``grading_only`` (decision 0016);
+  the only differences are per-layer radial ``radial_grading`` (all counts and
+  ``arc_bump`` equal), it is marked ``grading_only`` (decision 0016);
 * **3**: anything else.
 
 A fitting declares the classes it can bridge in ``strategies``: one
@@ -63,13 +63,13 @@ from ..errors import InternalError
 BRIDGES = {
     1: "layer termination (task 0018)",
     2: "a change of cell count, which no fitting makes: a network has one "
-       "nang and one nrad per layer",
+       "n_arc and one n_radial per layer",
     3: "a change of section topology, which no fitting makes",
 }
 
 #: The hint for a count difference (task 0132).
-DENSITY_HINT = ("keep nang and each layer's nrad (and mbmp) as the inlet's: hexmesh "
-                "meshes a network at one density; radial grading (mprg, first_cell) may "
+DENSITY_HINT = ("keep n_arc and each layer's n_radial (and arc_bump) as the inlet's: hexmesh "
+                "meshes a network at one density; radial grading (radial_grading, first_cell) may "
                 "change along a Reducer (GUIDE, 'One density per network')")
 #: The hint for a class-3 difference.
 TOPOLOGY_HINT = ("keep the inlet's layer stack, n_outer and layout across this fitting; "
@@ -81,17 +81,17 @@ TOPOLOGY_HINT = ("keep the inlet's layer stack, n_outer and layout across this f
 class LayerSig:
     name:  str
     kind:  str      # sections.oh.CORE_KIND | RING_KIND | sections.h.CORE_KIND
-    nrad:  int
-    mprg:  object   # radial mprg; an H core's wall grading (PipeSpec.wall_grading)
+    n_radial:  int
+    radial_grading:  object   # radial radial_grading; an H core's wall grading (PipeSpec.wall_grading)
 
 
 @dataclass(frozen=True)
 class Signature:
     n_outer: int
     period:  float  # combinatorial symmetry period, degrees (decisions 0009, 0010)
-    nang_w:  int    # divisions per side: width (corner 0 → 1) …
-    nang_h:  int    # … and height (corner 1 → 2); equal on a circle
-    mbmp:    float
+    n_width:  int    # divisions per side: width (corner 0 → 1) …
+    n_height:  int    # … and height (corner 1 → 2); equal on a circle
+    arc_bump:    float
     layers:  tuple[LayerSig, ...]
 
 
@@ -111,7 +111,7 @@ class SwitchClass:
     cls:         int
     differences: tuple[Difference, ...] = ()
     ends:        str | None = None   # class 1: "wall" (termination) or "pillow" (O-H ↔ H)
-    grading_only: bool = False       # class 2: only radial mprg differs (decision 0016)
+    grading_only: bool = False       # class 2: only radial radial_grading differs (decision 0016)
 
     def __int__(self) -> int:
         return self.cls
@@ -123,16 +123,16 @@ def signature(spec: PipeSpec) -> Signature:
     if spec.layout == "h":
         layers = [LayerSig(name, h.CORE_KIND, 0, spec.wall_grading)]
     else:
-        layers = [LayerSig(name, oh.CORE_KIND, spec._core_nrad, spec._core_mprg)]
+        layers = [LayerSig(name, oh.CORE_KIND, spec._core_n_radial, spec._core_radial_grading)]
     for sh in spec.shells:
         if not isinstance(sh, LayerSpec):
             raise InternalError(f"no signature for a {type(sh).__name__} layer")
-        layers.append(LayerSig(sh.name, oh.RING_KIND, sh.nrad, sh.mprg))
+        layers.append(LayerSig(sh.name, oh.RING_KIND, sh.n_radial, sh.radial_grading))
     m = spec.n_outer // 4       # the 4-corner face's counts (task 0088)
     c = spec.side_counts
     cw, ch = c[0] * m, c[m] * m
     period = 90.0 if cw == ch else 180.0
-    return Signature(spec.n_outer, period, cw, ch, spec.mbmp, tuple(layers))
+    return Signature(spec.n_outer, period, cw, ch, spec.arc_bump, tuple(layers))
 
 
 def classify(a: Signature, b: Signature) -> SwitchClass:
@@ -150,7 +150,7 @@ def classify(a: Signature, b: Signature) -> SwitchClass:
     # a pillowed H face, so they differ by a closed ring (decision 0036)
     kinds = {la[0].kind, lb[0].kind}
     if (kinds == {oh.CORE_KIND, h.CORE_KIND} and la[0].name == lb[0].name
-            and la[1:] == lb[1:] and (a.nang_w, a.nang_h, a.mbmp) == (b.nang_w, b.nang_h, b.mbmp)):
+            and la[1:] == lb[1:] and (a.n_width, a.n_height, a.arc_bump) == (b.n_width, b.n_height, b.arc_bump)):
         return SwitchClass(1, (Difference("core", la[0].kind, lb[0].kind,
                                           f"core layout: {la[0].kind} vs {lb[0].kind}"),),
                            ends="pillow")
@@ -174,24 +174,24 @@ def classify(a: Signature, b: Signature) -> SwitchClass:
             return SwitchClass(3, tuple(counts) + (extra,))
         return SwitchClass(1, (extra,), ends="wall")
     return SwitchClass(2, tuple(counts),
-                       grading_only=all(d.field.endswith(" mprg") for d in counts))
+                       grading_only=all(d.field.endswith(" radial_grading") for d in counts))
 
 
 def _count_differences(a: Signature, b: Signature, common: int) -> list[Difference]:
     out = []
-    if a.nang_w == a.nang_h and b.nang_w == b.nang_h:
-        fields = ("mbmp",)           # one count per side on both: say ``nang``
-        if a.nang_w != b.nang_w:
-            out.append(Difference("nang", a.nang_w, b.nang_w))
+    if a.n_width == a.n_height and b.n_width == b.n_height:
+        fields = ("arc_bump",)           # one count per side on both: say ``n_arc``
+        if a.n_width != b.n_width:
+            out.append(Difference("n_arc", a.n_width, b.n_width))
     else:
-        fields = ("nang_w", "nang_h", "mbmp")
+        fields = ("n_width", "n_height", "arc_bump")
     for f in fields:
         if getattr(a, f) != getattr(b, f):
             out.append(Difference(f, getattr(a, f), getattr(b, f)))
     for i in range(common):
         x, y = a.layers[i], b.layers[i]
         where = "core" if i == 0 else f"shell `{x.name}`"
-        for f in ("nrad", "mprg"):
+        for f in ("n_radial", "radial_grading"):
             if getattr(x, f) != getattr(y, f):
                 out.append(Difference(f"{where} {f}", getattr(x, f), getattr(y, f)))
     return out
@@ -229,8 +229,8 @@ def check_port_pairs(fitting, specs: list[PipeSpec]) -> None:
         if c.cls == 2 and 2 in allowed and not c.grading_only:
             raise AssemblyError(
                 f"{name}: {port} spec differs from the inlet in {what}. That is "
-                f"switch class 2 beyond radial grading (counts or mbmp): "
-                f"{BRIDGES[2]}; {name} changes radial grading (mprg) only",
+                f"switch class 2 beyond radial grading (counts or arc_bump): "
+                f"{BRIDGES[2]}; {name} changes radial grading (radial_grading) only",
                 code="switch_class_not_declared", where={"field": port}, value=int(c.cls),
                 hint=DENSITY_HINT)
         if c.cls == 1 and c.ends == "pillow" and not getattr(fitting, "pillows", False):

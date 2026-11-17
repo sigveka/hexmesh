@@ -36,7 +36,7 @@ from hexmesh.core.spec import PipeSpec
 
 
 def _pipe(r=0.1):
-    return PipeSpec(nang=4).core("fluid", radius=r, nrad=3)
+    return PipeSpec(n_arc=4).core("fluid", radius=r, n_radial=3)
 
 
 def _asm(ac, spec=None):
@@ -60,8 +60,8 @@ def _added(ac, fitting, spec=None):
     (MiterBend(radius=0.4, angle=90, n_cuts=3, n_layers=None), 0.05,
      0.4 * math.tan(math.radians(15))),
     (Reducer(_pipe(0.06), length=0.2), 0.05, 0.2),
-    (Transition(PipeSpec(nang_w=4, nang_h=4).core("fluid", half_w=0.1, half_h=0.06,
-                                                  nrad=3, layout="oh"), length=0.3), 0.04, 0.3),
+    (Transition(PipeSpec(n_width=4, n_height=4).core("fluid", half_w=0.1, half_h=0.06,
+                                                  n_radial=3, layout="oh"), length=0.3), 0.04, 0.3),
 ], ids=["Straight", "Straight-exact", "Bend", "Bend-negative", "Elbow",
         "MiterBend", "MiterBend-3cuts", "Reducer", "Transition"])
 def test_resolved_count(fitting, ac, length):
@@ -94,8 +94,8 @@ def test_spline_floor_is_the_chord_turn_limit():
 
 
 def test_profiled_reducer_floor_is_the_chord_tolerance():
-    spec = PipeSpec(nang=6).core("fluid", radius=0.1, nrad=3)
-    outlet = PipeSpec(nang=6).core("fluid", radius=0.1, nrad=3)
+    spec = PipeSpec(n_arc=6).core("fluid", radius=0.1, n_radial=3)
+    outlet = PipeSpec(n_arc=6).core("fluid", radius=0.1, n_radial=3)
     a, f = _added(1.0, Reducer(outlet, length=0.4, profile=("cosine", 0.25)), spec)
     assert f.n_layers > 1
     with pytest.raises(AssemblyError, match=f"use n_layers >= {f.n_layers}"):
@@ -116,7 +116,7 @@ def test_coarse_bend_gets_its_floor_and_validates(fitting, floor):
 
 
 def test_closure_resolved_at_close():
-    a = Assembly(_pipe(), up=[0, 0, 1], lc=0.1, axial_cell=0.1)
+    a = Assembly(_pipe(), up=[0, 0, 1], axial_cell=0.1)
     for _ in range(3):
         a.add(Straight(0.6))
         a.add(Bend(radius=0.3, angle=90, n_layers=4))
@@ -183,7 +183,7 @@ def test_unresolved_count_rejected_outside_assembly():
 
 
 def test_resolved_network_meshes_as_predicted():
-    a = Assembly(_pipe(), direction=[1, 0, 0], up=[0, 0, 1], lc=0.1, axial_cell=0.05)
+    a = Assembly(_pipe(), direction=[1, 0, 0], up=[0, 0, 1], axial_cell=0.05)
     a.add(Straight(0.3))
     a.add(Bend(radius=0.3, angle=90, toward=(0, 1, 0)))
     a.add(Reducer(_pipe(0.07), length=0.15))

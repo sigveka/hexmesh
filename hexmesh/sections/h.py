@@ -14,7 +14,7 @@
 The H section layout (decision 0036; task 0084): one Cartesian patch.
 
 A rectangular core meshed as a single transfinite patch of
-``nang_w`` × ``nang_h`` cells, graded toward the walls by a two-sided
+``n_width`` × ``n_height`` cells, graded toward the walls by a two-sided
 ``Bump`` on every side (``core.grading``; gmsh's two-sided law,
 ``docs/integrations/gmsh.md``).  It has one level, the core's boundary,
 whose corners are the rectangle's corners NE, NW, SW, SE (DESIGN §6.1's
@@ -63,15 +63,15 @@ def corner0_angle(spec) -> float:
 
 
 def side_counts(shape, n_outer: int = 4) -> tuple[int, ...]:
-    """Divisions of side *k*: ``nang_w``, ``nang_h``, ``nang_w``, ``nang_h``."""
+    """Divisions of side *k*: ``n_width``, ``n_height``, ``n_width``, ``n_height``."""
     return tuple(shape.side_count(k, 4) for k in range(4))
 
 
 def side_grading(spec, k: int) -> tuple | None:
     """``("Bump", coef)`` of side *k* (corner k → k + 1), from the spec's
     wall grading (``PipeSpec.wall_grading``), or ``None`` if uniform.
-    The coefficients are per side (``wall_bump``, the sides of ``nang_w``
-    then ``nang_h``); ``first_cell=`` and ``mprg=`` resolve to them."""
+    The coefficients are per side (``wall_bump``, the sides of ``n_width``
+    then ``n_height``); ``first_cell=`` and ``radial_grading=`` resolve to them."""
     wall = spec.wall_grading
     if wall is None:
         return None
@@ -93,7 +93,7 @@ def levels(spec) -> list[oh.Level]:
                                  side_grading(spec, k)))
             if lvl:
                 sh = spec.shells[lvl - 1]
-                edges.append(oh.Edge((lvl - 1, k), (lvl, k), sh.nrad, ("Progression", sh.mprg)))
+                edges.append(oh.Edge((lvl - 1, k), (lvl, k), sh.n_radial, ("Progression", sh.radial_grading)))
         out.append(oh.Level(tuple(oh.rotated(p, rot) for p in pts), tuple(edges)))
     return out
 
@@ -111,7 +111,7 @@ def patches(spec) -> list[tuple[str, tuple[tuple[int, int], ...]]]:
 
 
 def node_grid(spec) -> np.ndarray:
-    """The patch's nodes, ``(nang_w + 1, nang_h + 1, 2)``, unrotated: a
+    """The patch's nodes, ``(n_width + 1, n_height + 1, 2)``, unrotated: a
     tensor grid, each side's nodes at its wall grading's fractions (what
     the transfinite patch gives on a rectangle)."""
     shape = spec.core_shape
@@ -140,7 +140,7 @@ def node_grids(spec) -> list[tuple[int, np.ndarray]]:
     s = [side_fractions(spec, k) for k in range(4)]
     prev = [spec.core_shape.side(corners[0][k], corners[0][(k + 1) % 4], s[k]) for k in range(4)]
     for i, (sh, o) in enumerate(zip(spec.shells, spec.outlines[1:]), start=1):
-        t = oh.progression(sh.nrad, sh.mprg)
+        t = oh.progression(sh.n_radial, sh.radial_grading)
         c = corners[i]
         cur = [o.side(c[k], c[(k + 1) % 4], s[k]) for k in range(4)]
         out += [(i, oh._ring(prev[k], cur[k], t)) for k in range(4)]
@@ -149,10 +149,10 @@ def node_grids(spec) -> list[tuple[int, np.ndarray]]:
 
 
 def section_cells(spec) -> int:
-    """Quads in the section: ``nang_w · nang_h``, and per shell its ring,
-    ``2 (nang_w + nang_h) · nrad``."""
+    """Quads in the section: ``n_width · n_height``, and per shell its ring,
+    ``2 (n_width + n_height) · n_radial``."""
     c = side_counts(spec.core_shape)
-    return c[0] * c[1] + sum(c) * sum(sh.nrad for sh in spec.shells)
+    return c[0] * c[1] + sum(c) * sum(sh.n_radial for sh in spec.shells)
 
 
 # ---------------------------------------------------------------------------
@@ -162,7 +162,7 @@ def section_cells(spec) -> int:
 def wall_distances(spec) -> tuple[np.ndarray, float]:
     """(node distances from the wall, half-extent) along the H face's
     smaller side: its nodes at the wall grading's fractions, from one wall
-    to the middle and on.  On a square the ``nang_h`` side."""
+    to the middle and on.  On a square the ``n_height`` side."""
     shape = spec.core_shape
     k = 0 if shape.half_w < shape.half_h else 1
     half = shape.half_w if k == 0 else shape.half_h
@@ -171,36 +171,36 @@ def wall_distances(spec) -> tuple[np.ndarray, float]:
     return 2 * half * (bump(n, g[1]) if g else np.arange(n + 1) / n), half
 
 
-def pillow_ring(spec, nrad: int | None = None) -> tuple[int, float]:
-    """(nrad, mprg) of the O-H ring an H face pillows into: nrad (unless
+def pillow_ring(spec, n_radial: int | None = None) -> tuple[int, float]:
+    """(n_radial, radial_grading) of the O-H ring an H face pillows into: n_radial (unless
     given) is the number of H cells within one ring thickness t of the
     wall on the smaller side (a cell counts when its midpoint is within
-    t; at least 1), and ``mprg`` puts the ring's wall cell at the H face's
-    wall cell.  A spec's ``mprg`` grows from the inner square to the wall,
+    t; at least 1), and ``radial_grading`` puts the ring's wall cell at the H face's
+    wall cell.  A spec's ``radial_grading`` grows from the inner square to the wall,
     so it is the inverse of the progression grown from the wall."""
     d, _ = wall_distances(spec)
     shape = spec.core_shape
     t = oh.ring_thickness(shape.half_w, shape.half_h)
     mids = 0.5 * (d[:-1] + d[1:])
-    if nrad is None:
-        nrad = max(1, int(np.count_nonzero(mids <= t * (1 + 1e-12))))
-    if nrad == 1:
+    if n_radial is None:
+        n_radial = max(1, int(np.count_nonzero(mids <= t * (1 + 1e-12))))
+    if n_radial == 1:
         return 1, 1.0
-    return nrad, 1.0 / progression_for_first_cell(t, nrad, float(d[1] - d[0]))
+    return n_radial, 1.0 / progression_for_first_cell(t, n_radial, float(d[1] - d[0]))
 
 
-def pillowed(spec, nrad: int | None = None, mprg: float | None = None):
+def pillowed(spec, n_radial: int | None = None, radial_grading: float | None = None):
     """The O-H spec of the H spec's rectangle: the same name, counts,
-    ``mbmp`` and ``rot``, with *nrad* and *mprg* (``pillow_ring``'s when
+    ``arc_bump`` and ``rot``, with *n_radial* and *radial_grading* (``pillow_ring``'s when
     not given).  What a junction's own O-H blocks and its embedded switch
     legs use on an H port (decision 0036 item 5)."""
     from ..core.spec import PipeSpec
-    if nrad is None or mprg is None:
-        nrad, dm = pillow_ring(spec, nrad)
-        mprg = dm if mprg is None else mprg
+    if n_radial is None or radial_grading is None:
+        n_radial, dm = pillow_ring(spec, n_radial)
+        radial_grading = dm if radial_grading is None else radial_grading
     shape = spec.core_shape
-    return PipeSpec(nang_w=shape.nang_w, nang_h=shape.nang_h, mbmp=spec.mbmp,
-                    rot=spec.rot).core(spec.layer_names[0], shape=shape, nrad=nrad, mprg=mprg,
+    return PipeSpec(n_width=shape.n_width, n_height=shape.n_height, arc_bump=spec.arc_bump,
+                    rot=spec.rot).core(spec.layer_names[0], shape=shape, n_radial=n_radial, radial_grading=radial_grading,
                                        layout="oh")
 
 
@@ -208,7 +208,7 @@ def pillowed(spec, nrad: int | None = None, mprg: float | None = None):
 # The GMSH face
 # ---------------------------------------------------------------------------
 
-def build_h_rect(spec, position, h_axis, v_axis, lc: float,
+def build_h_rect(spec, position, h_axis, v_axis,
                  stretch: tuple | None = None) -> CrossSection:
     """Build *spec*'s H face in GMSH: four corners, four lines and one
     transfinite patch, centred at *position* in the plane of *h_axis* and
@@ -220,7 +220,7 @@ def build_h_rect(spec, position, h_axis, v_axis, lc: float,
     cx, cy, cz = (float(c) for c in position)
     xyz = plane(cx, cy, cz, h_axis, v_axis, stretch)
     lvl = levels(spec)[0]
-    P = [add_point(*xyz(p), lc) for p in lvl.corners]                  # NE, NW, SW, SE
+    P = [add_point(*xyz(p)) for p in lvl.corners]                  # NE, NW, SW, SE
     C = [add_line(P[k], P[(k + 1) % 4]) for k in range(4)]              # corner k → k + 1
     surface = add_surface(add_line_loop(C))
 
@@ -238,6 +238,5 @@ def build_h_rect(spec, position, h_axis, v_axis, lc: float,
         h_axis        = np.asarray(h_axis, dtype=float),
         v_axis        = np.asarray(v_axis, dtype=float),
         cx=cx, cy=cy, cz=cz,
-        lc            = lc,
         layout        = "h",
     )

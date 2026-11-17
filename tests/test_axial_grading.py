@@ -27,11 +27,11 @@ from tests.test_blocks import A, B, BlockStraight
 
 
 def _one(radius=0.1):
-    return PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=radius, nang=4), nrad=3)
+    return PipeSpec(n_arc=4).core("fluid", shape=CircleShape(radius=radius, n_arc=4), n_radial=3)
 
 
 def _two():
-    return _one().shell("wall", dR=0.025, nrad=2)
+    return _one().shell("wall", dR=0.025, n_radial=2)
 
 
 def _ratios(positions):
@@ -44,7 +44,7 @@ def _ratios(positions):
 
 def _mesh(fitting, spec, direction=(1, 0, 0), up=(0, 0, 1)):
     """Hex node coordinates of a single meshed *fitting*."""
-    asm = Assembly(spec, direction=direction, up=up, lc=0.1)
+    asm = Assembly(spec, direction=direction, up=up)
     asm.add(fitting)
     asm.mesh()
     return asm, kit._hex_nodes()
@@ -148,7 +148,7 @@ class TestMeshedSpacing:
         def nodes(fit):
             kit._session()
             try:
-                asm = Assembly(_two(), lc=0.1)
+                asm = Assembly(_two())
                 asm.add(fit)
                 asm.mesh()
                 c = kit._hex_nodes()

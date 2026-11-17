@@ -28,6 +28,7 @@ import pytest
 from hexmesh.core.shape import RectShape
 
 from hexmesh.assembly import Assembly, AssemblyError, Bend, Straight
+from hexmesh.assembly import intent
 from hexmesh.assembly.intent import FITTING_TYPES, fitting_from_dict
 from hexmesh.core.spec import PipeSpec
 
@@ -92,7 +93,7 @@ def test_hand_set_frame_stored_as_override():
 
 def test_editing_a_parameter_moves_downstream():
     """The file is intent, not geometry: downstream poses follow an edit."""
-    spec = PipeSpec(nang=4).core("fluid", radius=0.1, nrad=3)
+    spec = PipeSpec(n_arc=4).core("fluid", radius=0.1, n_radial=3)
     a = Assembly(spec)
     a.add(Bend(0.3, 90, n_layers=4))
     a.add(Straight(0.5, n_layers=2))
@@ -104,12 +105,12 @@ def test_editing_a_parameter_moves_downstream():
 
 
 def test_spec_round_trip_keeps_resolved_grading():
-    spec = (PipeSpec(nang=6).core("fluid", radius=0.1, nrad=4, first_cell=0.002)
-            .shell("wall", dR=0.02, nrad=3, first_cell=1e-3)
-            .shell("box", outer=RectShape(0.2, 0.2, nang_w=6, nang_h=6), nrad=2))
+    spec = (PipeSpec(n_arc=6).core("fluid", radius=0.1, n_radial=4, first_cell=0.002)
+            .shell("wall", dR=0.02, n_radial=3, first_cell=1e-3)
+            .shell("box", outer=RectShape(0.2, 0.2, n_width=6, n_height=6), n_radial=2))
     again = PipeSpec.from_dict(json.loads(json.dumps(spec.to_dict())))
     assert again.to_dict() == spec.to_dict()
-    assert again._core_mprg == spec._core_mprg
+    assert again._core_radial_grading == spec._core_radial_grading
     assert again.shells == spec.shells
 
 
@@ -144,7 +145,7 @@ def test_version_1_loads_as_its_version_2_equivalent():
     old, new = Assembly.from_dict(v1), Assembly.from_dict(v2)
     assert old.inlet.spec.rot == pytest.approx(30.0, abs=1e-12)    # migrated, not misread
     a, b = old.to_dict(), new.to_dict()
-    assert a["version"] == b["version"] == 2
+    assert a["version"] == b["version"] == intent.VERSION
     a["inlet"]["spec"]["rot"] = b["inlet"]["spec"]["rot"]          # radians round-off only
     assert a == b
     assert old.cell_count() == new.cell_count() == 288
@@ -162,3 +163,28 @@ def test_an_unknown_version_fails_naming_it(version):
     assert e.value.code == "description_version_unsupported"
     assert e.value.value == version and e.value.where == {"field": "version"}
     assert repr(version) in str(e.value)
+
+
+# --- version 2 → 3: the 1.0 names (decision 0053, task 0166) ------------------------
+
+V2_EXAMPLES = Path(__file__).parent / "data" / "examples_v2.json"
+
+
+@pytest.mark.parametrize("name", sorted(json.loads(V2_EXAMPLES.read_text(encoding="utf-8"))))
+def test_version_2_example_loads_as_today(name, gmsh_session):
+    """Every example's description as 0.7 saved it (``nang``, ``nrad``,
+    ``mprg``, …) loads as the description the example builds today."""
+    import importlib
+    old = json.loads(V2_EXAMPLES.read_text(encoding="utf-8"))[name]
+    assert old["version"] == 2
+    loaded = Assembly.from_dict(old).to_dict()
+    today = importlib.import_module("hexmesh.examples." + name).build().to_dict()
+    assert loaded == today
+    assert loaded["version"] == intent.VERSION == 3
+
+
+def test_version_2_names_are_renamed_as_name_parts():
+    d = intent._rename_fields({"nang_w": 8, "nang_h": 4, "branch_mprg": 1.2, "nrad": 3,
+                               "lc": 0.1, "n_layers": 5, "inner": {"mbmp": 1.0}})
+    assert d == {"n_width": 8, "n_height": 4, "branch_radial_grading": 1.2, "n_radial": 3,
+                 "n_layers": 5, "inner": {"arc_bump": 1.0}}

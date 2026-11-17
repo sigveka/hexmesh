@@ -35,8 +35,8 @@ WATER = {"density": 998.0, "viscosity": 1.00e-3}       # [white_2011, table A.1]
 AIR = {"density": 1.205, "viscosity": 1.80e-5}         # [white_2011, table A.2]
 
 
-def _pipe(radius, length=0.6, nang=6, nrad=3):
-    a = Assembly(PipeSpec(nang=nang).core("fluid", radius=radius, nrad=nrad))
+def _pipe(radius, length=0.6, n_arc=6, n_radial=3):
+    a = Assembly(PipeSpec(n_arc=n_arc).core("fluid", radius=radius, n_radial=n_radial))
     a.add(Straight(length, n_layers=4))
     return a
 
@@ -55,19 +55,19 @@ def _cal(shape, cls, aspect="2"):
 def test_laminar_poiseuille_water_re_100():
     """D 0.02 m, U = Re ν / D: Re 100, laminar, the medium class's cells
     along a diameter (calibration.json, circle), the calibrated uniform
-    ring: first cell = the mid-arc span / nrad."""
+    ring: first cell = the mid-arc span / n_radial."""
     nu = WATER["viscosity"] / WATER["density"]
     u = 100 * nu / 0.02
     r = advise(_pipe(0.01), {"fluid": "water", "flow": {"velocity": u}})
     s, = r["sections"]
     assert s["re"] == pytest.approx(100, rel=1e-9) and s["regime"] == "laminar"
     n = _cal("circle", "medium")["n"]                   # 21.98 cells along D
-    nang = math.ceil(n / 2)
-    nang += nang % 2                                    # even: 12
-    assert (r["density"]["nang"], r["density"]["nrad"]) == (nang, nang // 2) == (12, 6)
-    assert r["density"]["mprg"] == 1.0
+    n_arc = math.ceil(n / 2)
+    n_arc += n_arc % 2                                    # even: 12
+    assert (r["density"]["n_arc"], r["density"]["n_radial"]) == (n_arc, n_arc // 2) == (12, 6)
+    assert r["density"]["radial_grading"] == 1.0
     assert s["first_cell"] == pytest.approx(core_wall_span(0.01) / 6, rel=1e-12)
-    # axial: length / (aspect 6 × core cell D / (nang + 2 nrad))
+    # axial: length / (aspect 6 × core cell D / (n_arc + 2 n_radial))
     h = 0.02 / (12 + 12)
     assert r["fittings"][0]["counts"] == {"n_layers": math.ceil(0.6 / (6 * h))}
     assert r["calibration"]["circle"]["validated"] is True
@@ -88,9 +88,9 @@ def test_turbulent_smooth_pipe_air_re_5e4():
     assert s["regime"] == "turbulent" and s["re"] == pytest.approx(5e4, rel=1e-9)
     assert s["first_cell"] == pytest.approx(y1, rel=0.02)
     assert s["y_plus"] == pytest.approx(1, rel=0.02)
-    q = 1 / r["density"]["mprg"]
+    q = 1 / r["density"]["radial_grading"]
     assert q <= limits.MAX_WALL_GROWTH + 1e-12
-    assert first_cell_height(core_wall_span(0.025), r["density"]["nrad"], q) == \
+    assert first_cell_height(core_wall_span(0.025), r["density"]["n_radial"], q) == \
         pytest.approx(s["first_cell"], rel=1e-12)
     assert r["calibration"]["circle"]["validated"] is True     # the core's counts...
     assert "advice_not_validated" in {n["code"] for n in r["notes"]}   # ...not the wall
@@ -105,8 +105,8 @@ def test_haaland_above_blasius_range():
 
 def test_two_to_one_duct():
     """a/b 2, half-sides 0.02 × 0.01: D_h = 4ab/(a+b) = 0.02667; the a/b 2
-    medium class's cells across D_h; square cells, so nang_w = 2 nang_h."""
-    a = Assembly(PipeSpec(nang_w=8, nang_h=4).core("fluid", half_w=0.02, half_h=0.01))
+    medium class's cells across D_h; square cells, so n_width = 2 n_height."""
+    a = Assembly(PipeSpec(n_width=8, n_height=4).core("fluid", half_w=0.02, half_h=0.01))
     a.add(Straight(0.5, n_layers=4))
     nu = WATER["viscosity"] / WATER["density"]
     d_h = 4 * 0.02 * 0.01 / 0.03
@@ -114,18 +114,18 @@ def test_two_to_one_duct():
     s, = r["sections"]
     assert s["d_h"] == pytest.approx(d_h) and s["re"] == pytest.approx(200)
     n_short = math.ceil(_cal("rect", "medium", "2")["n"] * 0.02 / d_h)
-    assert (r["density"]["nang_w"], r["density"]["nang_h"]) == (2 * n_short, n_short) == (60, 30)
+    assert (r["density"]["n_width"], r["density"]["n_height"]) == (2 * n_short, n_short) == (60, 30)
     assert s["first_cell"] == pytest.approx(0.02 / 30)
     assert r["calibration"]["rect a/b 2"]["case"] == "rect_duct"
 
 
 def test_aspect_between_measured_takes_the_worse_neighbour():
-    a = Assembly(PipeSpec(nang_w=8, nang_h=4).core("fluid", half_w=0.03, half_h=0.01))
+    a = Assembly(PipeSpec(n_width=8, n_height=4).core("fluid", half_w=0.03, half_h=0.01))
     a.add(Straight(0.5, n_layers=4))
     r = advise(a, {"fluid": "water", "flow": {"velocity": 0.001}})
     c, = r["calibration"].values()
     assert c["series"] == "a/b 4" and c["n"] == _cal("rect", "medium", "4")["n"]
-    wide = Assembly(PipeSpec(nang_w=8, nang_h=4).core("fluid", half_w=0.06, half_h=0.01))
+    wide = Assembly(PipeSpec(n_width=8, n_height=4).core("fluid", half_w=0.06, half_h=0.01))
     wide.add(Straight(0.5, n_layers=4))
     c, = advise(wide, {"fluid": "water", "flow": {"velocity": 0.001}})["calibration"].values()
     assert c["validated"] is False and "past the largest measured" in c["basis"]
@@ -184,12 +184,12 @@ def test_every_report_states_the_scope_and_the_8x_rule():
 
 def test_a_stack_of_rectangles_keeps_unequal_counts():
     """A shelled duct isn't tied (task 0101, decision 0041 option B): the
-    lagged duct keeps nang_w ≠ nang_h, and the advice validates."""
+    lagged duct keeps n_width ≠ n_height, and the advice validates."""
     r = advise(_example("sections.lagged_duct"),
                {"fluid": "water", "flow": {"velocity": 0.002}})
     d = r["density"]
-    assert d["nang"] is None and d["nang_w"] == 2 * d["nang_h"]
-    assert not any("needs nang = nang_w = nang_h" in x for x in r["density_reasons"])
+    assert d["n_arc"] is None and d["n_width"] == 2 * d["n_height"]
+    assert not any("needs n_arc = n_width = n_height" in x for x in r["density_reasons"])
     assert r["validation"]["error"] is None
 
 
@@ -199,7 +199,7 @@ def test_a_circle_meeting_a_rectangle_names_what_ties_it():
     r = advise(_example("sections.duct_transition"),
                {"fluid": "water", "flow": {"velocity": 0.002}})
     d = r["density"]
-    assert d["nang"] == d["nang_w"] == d["nang_h"]
+    assert d["n_arc"] == d["n_width"] == d["n_height"]
     assert any(x.startswith("Transition1 (a Transition) joins a circle to a rectangle")
                for x in r["density_reasons"])
 
@@ -261,9 +261,9 @@ def test_apply_keeps_what_it_does_not_set():
     asm = _example("sections.insulated_pipe")
     r = advise(asm, {"fluid": "water", "flow": {"velocity": 0.005}})
     d = apply(asm.to_dict(), r["table"])
-    shells = [(s["name"], s["nrad"]) for s in d["inlet"]["spec"]["shells"]]
-    assert shells == [(s["name"], s["nrad"]) for s in asm.to_dict()["inlet"]["spec"]["shells"]]
-    assert d["inlet"]["spec"]["nang"] == r["density"]["nang"]
+    shells = [(s["name"], s["n_radial"]) for s in d["inlet"]["spec"]["shells"]]
+    assert shells == [(s["name"], s["n_radial"]) for s in asm.to_dict()["inlet"]["spec"]["shells"]]
+    assert d["inlet"]["spec"]["n_arc"] == r["density"]["n_arc"]
 
 
 # --- the round trip: advise → apply → build → mesh ----------------------------------
@@ -409,7 +409,7 @@ def test_cli_reads_pcf_with_a_spec(monkeypatch, tmp_path):
     from hexmesh.interchange import read_pcf
     pcf = tmp_path / "line.pcf"
     pcf.write_text(PCF_LINE, encoding="utf-8")
-    spec = PipeSpec(nang=4).core("fluid", radius=0.05, nrad=2)
+    spec = PipeSpec(n_arc=4).core("fluid", radius=0.05, n_radial=2)
     one = tmp_path / "spec.json"
     one.write_text(json.dumps(spec.to_dict()), encoding="utf-8")
     sizes = tmp_path / "sizes.json"
@@ -469,8 +469,8 @@ def test_calibration_is_read_as_utf8():
 
 
 def test_growth_solver_matches_the_spec():
-    """``first_cell=`` on a spec and the advisor's mprg agree."""
+    """``first_cell=`` on a spec and the advisor's radial_grading agree."""
     y = 1e-4
     q = progression_for_first_cell(core_wall_span(0.025), 10, y)
-    spec = PipeSpec(nang=12).core("fluid", radius=0.025, nrad=10, first_cell=y)
-    assert spec.to_dict()["core"]["mprg"] == pytest.approx(1 / q)
+    spec = PipeSpec(n_arc=12).core("fluid", radius=0.025, n_radial=10, first_cell=y)
+    assert spec.to_dict()["core"]["radial_grading"] == pytest.approx(1 / q)

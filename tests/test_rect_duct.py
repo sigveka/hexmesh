@@ -14,7 +14,7 @@
 Rectangular cores in the assembly (decisions 0009, 0010; task 0028).
 Meshing and wall exactness are covered by the kit's duct cases
 (tests/test_fitting_conformance.py); these tests cover the rules.  The
-duct is the default H face (0.4.0, task 0087); ``nrad=`` gives O-H.
+duct is the default H face (0.4.0, task 0087); ``n_radial=`` gives O-H.
 """
 
 import math
@@ -32,14 +32,14 @@ from hexmesh.assembly.signature import classify, signature
 from hexmesh.core.spec import PipeSpec
 
 
-def _duct(half_w=0.1, half_h=0.05, nang_w=4, nang_h=2, nrad=None, **kw):
-    oh = {} if nrad is None else {"nrad": nrad, "layout": "oh"}
-    return PipeSpec(nang_w=nang_w, nang_h=nang_h, **kw).core(
+def _duct(half_w=0.1, half_h=0.05, n_width=4, n_height=2, n_radial=None, **kw):
+    oh = {} if n_radial is None else {"n_radial": n_radial, "layout": "oh"}
+    return PipeSpec(n_width=n_width, n_height=n_height, **kw).core(
         "air", half_w=half_w, half_h=half_h, **oh)
 
 
-def _circle(nang=4, nrad=2):
-    return PipeSpec(nang=nang).core("air", radius=0.1, nrad=nrad)
+def _circle(n_arc=4, n_radial=2):
+    return PipeSpec(n_arc=n_arc).core("air", radius=0.1, n_radial=n_radial)
 
 
 def _square():
@@ -103,15 +103,15 @@ class TestSignature:
         """Shape is geometry (decision 0009): an O-H square with the
         circle's counts has its signature.  The default H square differs
         in layout, which a Switch bridges (class 1)."""
-        assert signature(_duct(0.07, 0.07, 3, 3, nrad=2)) == signature(_circle(3))
+        assert signature(_duct(0.07, 0.07, 3, 3, n_radial=2)) == signature(_circle(3))
         assert int(classify(signature(_circle(3)), signature(_square()))) == 1
 
     def test_duct_contents(self):
         sig = signature(_duct())
-        assert (sig.n_outer, sig.period, sig.nang_w, sig.nang_h) == (4, 180.0, 4, 2)
-        assert [(l.name, l.kind, l.nrad) for l in sig.layers] == [("air", "h_core", 0)]
-        oh = signature(_duct(nrad=2))
-        assert [(l.name, l.kind, l.nrad) for l in oh.layers] == [("air", "oh_core", 2)]
+        assert (sig.n_outer, sig.period, sig.n_width, sig.n_height) == (4, 180.0, 4, 2)
+        assert [(l.name, l.kind, l.n_radial) for l in sig.layers] == [("air", "h_core", 0)]
+        oh = signature(_duct(n_radial=2))
+        assert [(l.name, l.kind, l.n_radial) for l in oh.layers] == [("air", "oh_core", 2)]
 
     def test_circle_to_flat_duct_is_class_3(self):
         """Unequal counts change the combinatorial period: no sweep bridges it."""
@@ -119,16 +119,16 @@ class TestSignature:
         assert int(c) == 3 and {d.field for d in c.differences} == {"period"}
 
     def test_duct_density_change_is_class_2(self):
-        c = classify(signature(_duct()), signature(_duct(nang_w=8, nang_h=4)))
+        c = classify(signature(_duct()), signature(_duct(n_width=8, n_height=4)))
         assert int(c) == 2
-        assert {d.field for d in c.differences} == {"nang_w", "nang_h"}
+        assert {d.field for d in c.differences} == {"n_width", "n_height"}
 
 
 class TestSizes:
-    @pytest.mark.parametrize("nrad, per_layer", [(None, 4 * 2),                 # H
+    @pytest.mark.parametrize("n_radial, per_layer", [(None, 4 * 2),                 # H
                                                  (3, 4 * 2 + 2 * (4 + 2) * 3)])  # O-H
-    def test_cell_count_closed_form(self, nrad, per_layer):
-        asm = Assembly(_duct(nrad=nrad), direction=[1, 0, 0], up=[0, 0, 1])
+    def test_cell_count_closed_form(self, n_radial, per_layer):
+        asm = Assembly(_duct(n_radial=n_radial), direction=[1, 0, 0], up=[0, 0, 1])
         asm.add(Straight(0.3, n_layers=5))
         assert asm.cell_count() == 5 * per_layer
 
@@ -183,16 +183,16 @@ class TestRejections:
     def test_first_cell(self):
         """first_cell= grades an H duct's walls; an O-H rectangle's ring
         has no first_cell= (circles only)."""
-        assert _duct(nang_w=8, nang_h=4).layout == "h"
-        PipeSpec(nang_w=8, nang_h=4).core("air", half_w=0.1, half_h=0.05, first_cell=0.002)
+        assert _duct(n_width=8, n_height=4).layout == "h"
+        PipeSpec(n_width=8, n_height=4).core("air", half_w=0.1, half_h=0.05, first_cell=0.002)
         with pytest.raises(TypeError, match="circular cores only"):
-            PipeSpec(nang_w=4, nang_h=2).core("air", half_w=0.1, half_h=0.05, nrad=3,
+            PipeSpec(n_width=4, n_height=2).core("air", half_w=0.1, half_h=0.05, n_radial=3,
                                                layout="oh", first_cell=0.001)
 
     def test_shells_keep_the_cores_counts(self):
         """Shells around a rectangle (decision 0026) keep its 4 × 2 counts
         (decision 0041, option B)."""
-        spec = _duct().shell("wall", dR=0.01, nrad=2)
+        spec = _duct().shell("wall", dR=0.01, n_radial=2)
         assert [o.counts for o in spec.outlines] == [(4, 2), (4, 2)]
 
 

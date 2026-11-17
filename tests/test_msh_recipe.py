@@ -38,7 +38,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def _pipe():
-    spec = PipeSpec(nang=4).core("fluid", radius=0.01, nrad=2).shell("steel", dR=0.002, nrad=1)
+    spec = PipeSpec(n_arc=4).core("fluid", radius=0.01, n_radial=2).shell("steel", dR=0.002, n_radial=1)
     asm = Assembly(spec, position=[0, 0, 0], direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Straight(0.05, n_layers=2))
     asm.add(Bend(0.04, 90, n_layers=4))
@@ -249,7 +249,7 @@ class _Unregistered(Straight):
 
 
 def test_unserialisable_assembly_still_writes(gmsh_session, tmp_path, recwarn):
-    asm = Assembly(PipeSpec(nang=4).core("fluid", radius=0.01, nrad=1),
+    asm = Assembly(PipeSpec(n_arc=4).core("fluid", radius=0.01, n_radial=1),
                    position=[0, 0, 0], direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(_Unregistered(0.05, n_layers=2))
     p = tmp_path / "pipe.msh"

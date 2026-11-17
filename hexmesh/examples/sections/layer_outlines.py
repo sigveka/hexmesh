@@ -12,7 +12,7 @@ layer goes through the bends as a separate volume, with conformal
 ``interface_*`` groups between them.
 
 Rules: a stack with a circle and a rectangle has one count on every
-side (``nang`` equals each rectangle's ``nang_w`` and ``nang_h``), and each
+side (``n_arc`` equals each rectangle's ``n_width`` and ``n_height``), and each
 outline lies inside the next all round.  Quality falls as the rectangles flatten;
 task 0047 measured it.
 """
@@ -20,12 +20,12 @@ task 0047 measured it.
 from hexmesh import Assembly, Bend, PipeSpec, Straight
 from hexmesh.core.shape import CircleShape, RectShape
 
-NANG = 6
+N_ARC = 6
 
-CABLE = (PipeSpec(nang=NANG)
-         .core("copper", radius=0.01, nrad=4)
-         .shell("filler", outer=RectShape(0.015, 0.015, nang_w=NANG, nang_h=NANG), nrad=3)
-         .shell("sheath", outer=CircleShape(0.026, nang=NANG), nrad=3))
+CABLE = (PipeSpec(n_arc=N_ARC)
+         .core("copper", radius=0.01, n_radial=4)
+         .shell("filler", outer=RectShape(0.015, 0.015, n_width=N_ARC, n_height=N_ARC), n_radial=3)
+         .shell("sheath", outer=CircleShape(0.026, n_arc=N_ARC), n_radial=3))
 
 
 def build() -> Assembly:

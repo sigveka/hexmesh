@@ -73,9 +73,9 @@ def station_fractions(n: int, ratio: float = 1.0) -> np.ndarray:
 def face_grading(face: LayeredCrossSection, spec: PipeSpec) -> dict[int, tuple[str, float]]:
     """Grading of the curves of an OH *face* built from *spec*.
 
-    Radial curves carry the layer's ``mprg`` from the inner to the outer
+    Radial curves carry the layer's ``radial_grading`` from the inner to the outer
     end (the face-builder convention, ``core.spec.LayerSpec``); angular
-    arcs carry ``mbmp`` as a bump.  Orientation comes from endpoint tags
+    arcs carry ``arc_bump`` as a bump.  Orientation comes from endpoint tags
     (``canonical_geom`` signs radials inner → outer), never from distance.
     An H face's sides carry its wall grading, a symmetric ``Bump``
     (``sections.h.side_grading``).
@@ -86,25 +86,25 @@ def face_grading(face: LayeredCrossSection, spec: PipeSpec) -> dict[int, tuple[s
         for i, (_, cs) in enumerate(face.layers):
             g = canonical_geom(cs)
             out.update((abs(c), s) for c, s in zip(g['oc'], side) if s)
-            mprg = spec.shells[i - 1].mprg if i else 1.0
-            if mprg != 1.0:
+            radial_grading = spec.shells[i - 1].radial_grading if i else 1.0
+            if radial_grading != 1.0:
                 for c in g['rc']:
-                    out[abs(c)] = ("Progression", mprg if c > 0 else 1.0 / mprg)
+                    out[abs(c)] = ("Progression", radial_grading if c > 0 else 1.0 / radial_grading)
         return out
-    mprgs = [spec._core_mprg] + [getattr(sh, "mprg", 1.0) for sh in spec.shells]
+    radial_gradings = [spec._core_radial_grading] + [getattr(sh, "radial_grading", 1.0) for sh in spec.shells]
     out: dict[int, tuple[str, float]] = {}
-    for (_, cs), mprg in zip(face.layers, mprgs):
+    for (_, cs), radial_grading in zip(face.layers, radial_gradings):
         g = canonical_geom(cs)
-        if spec.mbmp != 1.0:
+        if spec.arc_bump != 1.0:
             # a partitioned face: the bump is on its 4-corner sides; their
             # nodes are copied onto the halves (task 0088)
             sides = (cs.full_outer + cs.full_inner if getattr(cs, "full_outer", None)
                      else g['oc'] + g['ic'])
             for c in sides:
-                out[abs(c)] = ("Bump", spec.mbmp)
-        if mprg != 1.0:
+                out[abs(c)] = ("Bump", spec.arc_bump)
+        if radial_grading != 1.0:
             for c in g['rc']:
-                out[abs(c)] = ("Progression", mprg if c > 0 else 1.0 / mprg)
+                out[abs(c)] = ("Progression", radial_grading if c > 0 else 1.0 / radial_grading)
     return out
 
 
@@ -394,11 +394,11 @@ def _axial_mesh(curve: int, n_layers: int, ratio: float,
 
 
 def sweep_fill(path: Path, faces: list[LayeredCrossSection],
-               spec: PipeSpec, lc: float) -> FillResult:
+               spec: PipeSpec) -> FillResult:
     """Build internal station faces along *path* and fill every slab."""
     stations = [faces[0]]
     for k, fr in enumerate(path.frames[1:-1], start=1):
-        stations.append(build_face(path.spec_at(k, spec), fr, lc, path.stretch_at(k)))
+        stations.append(build_face(path.spec_at(k, spec), fr, path.stretch_at(k)))
     stations.append(faces[1])
 
     axial_curve = path.axial.builder() if path.axial is not None else None
@@ -588,7 +588,7 @@ class Sweep:
 
         Changes sit at cell boundaries inside the fitting (never at a
         port), and each one adds or removes whole outermost layers while
-        every remaining layer keeps its name, radius, ``nrad`` and grading.
+        every remaining layer keeps its name, radius, ``n_radial`` and grading.
         """
         name = type(self).__name__
         idx = [i for i, _ in self.stack_changes]
@@ -629,8 +629,8 @@ class Sweep:
 
 
     def fill(self, faces: list[LayeredCrossSection], frames: list[Frame],
-             spec: PipeSpec, lc: float) -> FillResult:
-        return sweep_fill(self.path(frames[0], frames[1], spec), faces, spec, lc)
+             spec: PipeSpec) -> FillResult:
+        return sweep_fill(self.path(frames[0], frames[1], spec), faces, spec)
 
 
 def _layer_difference(spec_a: PipeSpec, spec_b: PipeSpec, i: int) -> str | None:

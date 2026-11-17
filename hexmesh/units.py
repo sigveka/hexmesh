@@ -16,7 +16,7 @@ hexmesh takes every length in metres.  Multiply a number in another unit
 by its constant here to get metres::
 
     from hexmesh.units import mm
-    pipe = PipeSpec(nang=8).core("blood", radius=13.25 * mm, nrad=6)
+    pipe = PipeSpec(n_arc=8).core("blood", radius=13.25 * mm, n_radial=6)
 
 They are plain numbers, not quantity types: nothing checks or converts a
 length, and an output is in metres.  Not re-exported from ``hexmesh``.

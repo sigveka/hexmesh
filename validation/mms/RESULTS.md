@@ -58,7 +58,7 @@ than 0.3 below the straight's last order (1.60).
 ## Readings
 
 - **The straight reproduces the heated rod (task 0033).**  At the same
-  levels (nang 6, 12, 24) the rod's L2 orders are 1.77 and 1.57; here they
+  levels (n_arc 6, 12, 24) the rod's L2 orders are 1.77 and 1.57; here they
   are 1.93 and 1.60.  In both, the order falls with refinement and the
   max error sits in boundary cells.
 - **Smooth sweeps converge like the straight.**  The bend, the spline,
@@ -69,7 +69,7 @@ than 0.3 below the straight's last order (1.60).
   split region gets no finer across its turning layers, and its error
   stalls: the max error doesn't fall at all.  The order is therefore the
   cap's, not the scheme's.  **Per case (design answer to Q3):** in
-  wye60, wye90, wye60_shell and wye90_shell, `nang` and the axial counts
+  wye60, wye90, wye60_shell and wye90_shell, `n_arc` and the axial counts
   are refined and the split region is not, so their error in the split
   region is not verified.
 - **The tees, the transition and the reducer converge at about first
@@ -174,12 +174,12 @@ The reducer's stations are evenly spaced at every k (neighbour ratio
 - The round tap's whole-mesh aspect of 22–26 is in its branch straight
   (edge ratio 15.3 at every k), not in the tap.
 - **What sets the tap's counts:**
-  - across and deep: the main duct's `nang_w` and `nang_h` (8 and 8);
+  - across and deep: the main duct's `n_width` and `n_height` (8 and 8);
   - the O-grid's radial count: `n_wall`, from `DuctTap.wall_cells`.  It
     is a ceiling that makes cells about as long as the branch's along
     the main: 8 (rect) and 13 (round) at k = 1, scaled by `refined`;
   - axially: the Tee's `n_run` and `n_branch` (defaults);
-  - the main's `nrad`.
+  - the main's `n_radial`.
 - Refinement doesn't stretch the tap's cells, so by design's rule the
   stall at k ≥ 3 isn't a refinement defect of the fitting.  A stopgap
   for users is in `docs/integrations/openfoam.md`.

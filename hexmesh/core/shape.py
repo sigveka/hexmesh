@@ -17,13 +17,13 @@ A Shape carries the *geometric* parameters of a cross-section boundary and
 the *mesh* parameters that must be consistent across the entire layer stack.
 
 CircleShape
-    Circular boundary.  One angular division count (nang) shared by all
+    Circular boundary.  One angular division count (n_arc) shared by all
     quadrant arcs.
 
 RectShape
-    Rectangular boundary with independent width (nang_w) and height (nang_h)
+    Rectangular boundary with independent width (n_width) and height (n_height)
     division counts.  The special case half_w == half_h,
-    nang_w == nang_h reduces to a square.
+    n_width == n_height reduces to a square.
 
 The union type Shape is used wherever a cross-section builder accepts either.
 
@@ -79,8 +79,8 @@ Circles and rectangles also have the ring and offset methods above
                          outline a spec can be given;
 ``hydraulic_diameter``   4A / P of the area inside it;
 ``angular_counts``       the ``PipeSpec`` density parameters it sets, by
-                         name (``{"nang": …}`` or ``{"nang_w": …,
-                         "nang_h": …}``);
+                         name (``{"n_arc": …}`` or ``{"n_width": …,
+                         "n_height": …}``);
 ``label``                a short description for messages (``"circle"``,
                          ``"2:1 rectangle"``);
 plus ``side_curve``, ``max_extent``, ``counts``, ``corner``,
@@ -137,24 +137,24 @@ class CircleShape:
     ----------
     radius : float
         Outer radius of the circle.
-    nang : int
+    n_arc : int
         Number of mesh divisions per quadrant arc.  Must be identical for
         every layer in the same pipe stack (conformality requirement).
     arcs : sequence of 4 int, optional
         Divisions of each quadrant arc, corner *k* → *k* + 1 (NE→NW
-        first), instead of *nang* (decision 0041, task 0147).  Saved as a
-        list.  Four equal counts are the same circle as ``nang``.  The
+        first), instead of *n_arc* (decision 0041, task 0147).  Saved as a
+        list.  Four equal counts are the same circle as ``n_arc``.  The
         O-H and H layouts mesh opposite arcs equal only, ``(a, b, a, b)``,
-        which is what meets a rectangle with ``nang_w = a``,
-        ``nang_h = b``; ``PipeSpec`` rejects other patterns.
+        which is what meets a rectangle with ``n_width = a``,
+        ``n_height = b``; ``PipeSpec`` rejects other patterns.
     """
 
     radius: float = param("length", "radius of the circle", exclusiveMinimum=0)
     _: KW_ONLY
-    nang:   int | None = param("cells", "divisions per quadrant arc, shared by every layer; "
+    n_arc:   int | None = param("cells", "divisions per quadrant arc, shared by every layer; "
                                "leave out when arcs is given", default=None, minimum=1)
     arcs:   tuple[int, ...] | None = param(
-        "cells", "divisions of each quadrant arc, NE→NW first, instead of nang", default=None)
+        "cells", "divisions of each quadrant arc, NE→NW first, instead of n_arc", default=None)
 
     def __post_init__(self) -> None:
         if self.radius <= 0:
@@ -164,25 +164,25 @@ class CircleShape:
         if self.arcs is not None:
             self._set_arcs()
             return
-        if self.nang is None:
-            raise SpecError("a CircleShape needs nang (one count per quadrant arc) or arcs",
-                            code="nang_missing", where={"field": "nang"},
-                            hint="give nang=, e.g. CircleShape(0.05, nang=8)")
-        if self.nang < 1:
-            raise SpecError(f"nang must be >= 1, got {self.nang}",
-                            code="count_below_minimum", where={"field": "nang"}, value=self.nang,
+        if self.n_arc is None:
+            raise SpecError("a CircleShape needs n_arc (one count per quadrant arc) or arcs",
+                            code="n_arc_missing", where={"field": "n_arc"},
+                            hint="give n_arc=, e.g. CircleShape(0.05, n_arc=8)")
+        if self.n_arc < 1:
+            raise SpecError(f"n_arc must be >= 1, got {self.n_arc}",
+                            code="count_below_minimum", where={"field": "n_arc"}, value=self.n_arc,
                             limit={"min": 1})
 
     def __repr__(self) -> str:          # as before task 0147 when there are no arcs
         if self.arcs is None:
-            return f"CircleShape(radius={self.radius!r}, nang={self.nang!r})"
+            return f"CircleShape(radius={self.radius!r}, n_arc={self.n_arc!r})"
         return f"CircleShape(radius={self.radius!r}, arcs={self.arcs!r})"
 
     def _set_arcs(self) -> None:
-        if self.nang is not None:
-            raise SpecError("give a CircleShape nang or arcs, not both",
-                            code="arcs_with_nang", where={"field": "arcs"}, value=self.nang,
-                            hint="leave out nang: arcs carries every arc's count")
+        if self.n_arc is not None:
+            raise SpecError("give a CircleShape n_arc or arcs, not both",
+                            code="arcs_with_n_arc", where={"field": "arcs"}, value=self.n_arc,
+                            hint="leave out n_arc: arcs carries every arc's count")
         arcs = tuple(self.arcs)
         if len(arcs) != 4 or not all(isinstance(n, int) and not isinstance(n, bool)
                                      for n in arcs):
@@ -193,8 +193,8 @@ class CircleShape:
             raise SpecError(f"every arc count must be >= 1, got {list(arcs)}",
                             code="count_below_minimum", where={"field": "arcs"},
                             value=list(arcs), limit={"min": 1})
-        if len(set(arcs)) == 1:         # uniform: the same circle as nang
-            object.__setattr__(self, "nang", arcs[0])
+        if len(set(arcs)) == 1:         # uniform: the same circle as n_arc
+            object.__setattr__(self, "n_arc", arcs[0])
             object.__setattr__(self, "arcs", None)
         else:
             object.__setattr__(self, "arcs", arcs)
@@ -202,7 +202,7 @@ class CircleShape:
     @property
     def side_counts(self) -> tuple[int, int, int, int]:
         """Divisions of each quadrant arc, corner *k* → *k* + 1."""
-        return self.arcs if self.arcs is not None else (self.nang,) * 4
+        return self.arcs if self.arcs is not None else (self.n_arc,) * 4
 
     @property
     def max_extent(self) -> float:
@@ -222,8 +222,8 @@ class CircleShape:
     @property
     def angular_counts(self) -> dict[str, int]:
         if self.arcs is not None:       # opposite arcs equal, or PipeSpec rejects it
-            return {"nang_w": self.arcs[0], "nang_h": self.arcs[1]}
-        return {"nang": self.nang}
+            return {"n_width": self.arcs[0], "n_height": self.arcs[1]}
+        return {"n_arc": self.n_arc}
 
     # -- outline protocol (decision 0026) ---------------------------------
 
@@ -268,7 +268,7 @@ class CircleShape:
 
     def resized(self, radius: float) -> "CircleShape":
         """This circle's counts at *radius*."""
-        return CircleShape(radius=radius, nang=self.nang, arcs=self.arcs)
+        return CircleShape(radius=radius, n_arc=self.n_arc, arcs=self.arcs)
 
     def grown(self, dR: float) -> "CircleShape":
         return self.resized(self.radius + dR)
@@ -282,7 +282,7 @@ class CircleShape:
     def to_dict(self) -> dict:
         if self.arcs is not None:
             return {"type": "circle", "radius": self.radius, "arcs": list(self.arcs)}
-        return {"type": "circle", "radius": self.radius, "nang": self.nang}
+        return {"type": "circle", "radius": self.radius, "n_arc": self.n_arc}
 
 
 @dataclass(frozen=True)
@@ -295,9 +295,9 @@ class RectShape:
         Half-width  (first  in-plane axis: X for XY/XZ planes, Y for YZ).
     half_h : float
         Half-height (second in-plane axis: Y for XY, Z for XZ/YZ planes).
-    nang_w : int
+    n_width : int
         Mesh divisions along each width  edge.  Shared across all layers.
-    nang_h : int
+    n_height : int
         Mesh divisions along each height edge.  Shared across all layers.
     """
 
@@ -306,9 +306,9 @@ class RectShape:
     half_h: float = param("length", "half-height, along the second in-plane axis",
                           exclusiveMinimum=0)
     _: KW_ONLY
-    nang_w: int = param("cells", "divisions along each width edge, shared by every layer",
+    n_width: int = param("cells", "divisions along each width edge, shared by every layer",
                         minimum=1)
-    nang_h: int = param("cells", "divisions along each height edge, shared by every layer",
+    n_height: int = param("cells", "divisions along each height edge, shared by every layer",
                         minimum=1)
 
     def __post_init__(self) -> None:
@@ -320,14 +320,14 @@ class RectShape:
             raise SpecError(f"half_h must be positive, got {self.half_h}",
                             code="size_not_positive", where={"field": "half_h"}, value=self.half_h,
                             limit={"min_exclusive": 0})
-        if self.nang_w < 1:
-            raise SpecError(f"nang_w must be >= 1, got {self.nang_w}",
-                            code="count_below_minimum", where={"field": "nang_w"},
-                            value=self.nang_w, limit={"min": 1})
-        if self.nang_h < 1:
-            raise SpecError(f"nang_h must be >= 1, got {self.nang_h}",
-                            code="count_below_minimum", where={"field": "nang_h"},
-                            value=self.nang_h, limit={"min": 1})
+        if self.n_width < 1:
+            raise SpecError(f"n_width must be >= 1, got {self.n_width}",
+                            code="count_below_minimum", where={"field": "n_width"},
+                            value=self.n_width, limit={"min": 1})
+        if self.n_height < 1:
+            raise SpecError(f"n_height must be >= 1, got {self.n_height}",
+                            code="count_below_minimum", where={"field": "n_height"},
+                            value=self.n_height, limit={"min": 1})
 
     @property
     def max_extent(self) -> float:
@@ -336,8 +336,8 @@ class RectShape:
 
     @property
     def is_square(self) -> bool:
-        """True when half_w == half_h and nang_w == nang_h."""
-        return self.half_w == self.half_h and self.nang_w == self.nang_h
+        """True when half_w == half_h and n_width == n_height."""
+        return self.half_w == self.half_h and self.n_width == self.n_height
 
     # -- shape protocol (task 0083) ---------------------------------------
 
@@ -350,7 +350,7 @@ class RectShape:
 
     @property
     def angular_counts(self) -> dict[str, int]:
-        return {"nang_w": self.nang_w, "nang_h": self.nang_h}
+        return {"n_width": self.n_width, "n_height": self.n_height}
 
     @property
     def label(self) -> str:
@@ -363,7 +363,7 @@ class RectShape:
 
     @property
     def counts(self) -> tuple[int, int]:
-        return (self.nang_w, self.nang_h)
+        return (self.n_width, self.n_height)
 
     def corner(self, k: int) -> np.ndarray:
         su, sv = ((1, 1), (-1, 1), (-1, -1), (1, -1))[k % 4]
@@ -382,7 +382,7 @@ class RectShape:
 
     def side_count(self, k: int, n_corners: int) -> int:
         m = n_corners // 4          # curve k is a piece of side k // m (task 0088)
-        return (self.nang_w if (k // m) % 2 == 0 else self.nang_h) // m
+        return (self.n_width if (k // m) % 2 == 0 else self.n_height) // m
 
     def extent(self, angle):
         return self.half_w * np.abs(np.cos(angle)) + self.half_h * np.abs(np.sin(angle))
@@ -394,19 +394,19 @@ class RectShape:
         return np.abs(np.maximum(np.abs(u) - self.half_w, np.abs(v) - self.half_h))
 
     def grown(self, dR: float) -> "RectShape":
-        return RectShape(self.half_w + dR, self.half_h + dR, nang_w=self.nang_w, nang_h=self.nang_h)
+        return RectShape(self.half_w + dR, self.half_h + dR, n_width=self.n_width, n_height=self.n_height)
 
     def scaled(self, f: float) -> "RectShape":
-        return RectShape(self.half_w * f, self.half_h * f, nang_w=self.nang_w, nang_h=self.nang_h)
+        return RectShape(self.half_w * f, self.half_h * f, n_width=self.n_width, n_height=self.n_height)
 
     def lerp(self, other: "RectShape", u: float) -> "RectShape":
         return RectShape(self.half_w + (other.half_w - self.half_w) * u,
                          self.half_h + (other.half_h - self.half_h) * u,
-                         nang_w=self.nang_w, nang_h=self.nang_h)
+                         n_width=self.n_width, n_height=self.n_height)
 
     def to_dict(self) -> dict:
         return {"type": "rect", "half_w": self.half_w, "half_h": self.half_h,
-                "nang_w": self.nang_w, "nang_h": self.nang_h}
+                "n_width": self.n_width, "n_height": self.n_height}
 
 
 #: ``to_dict()`` type tag → outline class.
@@ -535,11 +535,11 @@ class BlendShape:
     side_curve = "spline"
 
     @property
-    def nang_w(self) -> int:
+    def n_width(self) -> int:
         return self.inlet.counts[0]
 
     @property
-    def nang_h(self) -> int:
+    def n_height(self) -> int:
         return self.inlet.counts[1]
 
     @property
@@ -550,7 +550,7 @@ class BlendShape:
     def is_square(self) -> bool:
         def sq(s):
             return isinstance(s, CircleShape) or s.half_w == s.half_h
-        return sq(self.inlet) and sq(self.outlet) and self.nang_w == self.nang_h
+        return sq(self.inlet) and sq(self.outlet) and self.n_width == self.n_height
 
     # -- shape protocol (task 0083) ---------------------------------------
 
@@ -568,13 +568,13 @@ class BlendShape:
 
     @property
     def angular_counts(self) -> dict[str, int]:
-        return {"nang_w": self.nang_w, "nang_h": self.nang_h}
+        return {"n_width": self.n_width, "n_height": self.n_height}
 
     # -- outline protocol, as far as a station needs it -------------------
 
     @property
     def counts(self) -> tuple[int, int]:
-        return (self.nang_w, self.nang_h)
+        return (self.n_width, self.n_height)
 
     def period(self, n_corners: int) -> float:
         return math.pi / 2 if self.is_square else math.pi
@@ -599,7 +599,7 @@ class BlendShape:
 
     def side_count(self, k: int, n_corners: int) -> int:
         m = n_corners // 4          # curve k is a piece of side k // m (task 0088)
-        return (self.nang_w if (k // m) % 2 == 0 else self.nang_h) // m
+        return (self.n_width if (k // m) % 2 == 0 else self.n_height) // m
 
     def corners_from(self, directions) -> list[np.ndarray]:
         """The blended corners; a station's corner lines join the blended

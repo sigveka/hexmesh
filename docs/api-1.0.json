@@ -308,7 +308,7 @@
   "arc_counts_not_opposite",
   "arcs_invalid",
   "arcs_unsupported",
-  "arcs_with_nang",
+  "arcs_with_n_arc",
   "argument_missing",
   "assembly_already_built",
   "assembly_empty",
@@ -433,11 +433,12 @@
   "model_undo_empty",
   "msh_format_invalid",
   "msh_has_no_recipe",
+  "n_arc_missing",
+  "n_arc_not_divisible",
   "n_layers_unresolvable",
   "n_layers_unresolved",
   "n_outer_invalid",
-  "nang_missing",
-  "nang_not_divisible",
+  "n_radial_on_h_core",
   "network_disconnected",
   "network_empty",
   "network_loop",
@@ -456,7 +457,6 @@
   "nozzle_projection_too_short",
   "nozzle_too_large",
   "nozzle_unknown",
-  "nrad_on_h_core",
   "offset_on_duct_tap",
   "openfoam_boundary_unparsable",
   "openfoam_command_failed",
@@ -534,7 +534,7 @@
   "shape_not_circular",
   "shape_not_serialisable",
   "shape_type_unknown",
-  "shell_nrad_missing",
+  "shell_n_radial_missing",
   "shell_outline_args",
   "shell_type_unknown",
   "size_not_positive",
@@ -735,13 +735,6 @@
         },
         "kind": "keyword_only",
         "name": "up"
-       },
-       {
-        "default": {
-         "value": null
-        },
-        "kind": "keyword_only",
-        "name": "lc"
        },
        {
         "default": {
@@ -1001,13 +994,6 @@
          "value": null
         },
         "kind": "keyword_only",
-        "name": "lc"
-       },
-       {
-        "default": {
-         "value": null
-        },
-        "kind": "keyword_only",
         "name": "axial_cell"
        }
       ]
@@ -1022,10 +1008,6 @@
       ]
      },
      "interfaces": {
-      "kind": "property",
-      "settable": false
-     },
-     "lc": {
       "kind": "property",
       "settable": false
      },
@@ -1504,7 +1486,7 @@
          "value": null
         },
         "kind": "keyword_only",
-        "name": "nang"
+        "name": "n_arc"
        },
        {
         "default": {
@@ -2687,28 +2669,28 @@
          "value": null
         },
         "kind": "keyword_only",
-        "name": "nang"
+        "name": "n_arc"
        },
        {
         "default": {
          "value": null
         },
         "kind": "keyword_only",
-        "name": "nang_w"
+        "name": "n_width"
        },
        {
         "default": {
          "value": null
         },
         "kind": "keyword_only",
-        "name": "nang_h"
+        "name": "n_height"
        },
        {
         "default": {
          "value": 1.0
         },
         "kind": "keyword_only",
-        "name": "mbmp"
+        "name": "arc_bump"
        },
        {
         "default": {
@@ -2725,6 +2707,10 @@
         "name": "n_outer"
        }
       ]
+     },
+     "arc_bump": {
+      "kind": "property",
+      "settable": false
      },
      "core": {
       "kind": "method",
@@ -2749,14 +2735,14 @@
          "value": 0
         },
         "kind": "keyword_only",
-        "name": "nrad"
+        "name": "n_radial"
        },
        {
         "default": {
          "value": null
         },
         "kind": "keyword_only",
-        "name": "mprg"
+        "name": "radial_grading"
        },
        {
         "default": {
@@ -2836,7 +2822,11 @@
       "kind": "property",
       "settable": false
      },
-     "mbmp": {
+     "n_arc": {
+      "kind": "property",
+      "settable": false
+     },
+     "n_height": {
       "kind": "property",
       "settable": false
      },
@@ -2844,15 +2834,7 @@
       "kind": "property",
       "settable": false
      },
-     "nang": {
-      "kind": "property",
-      "settable": false
-     },
-     "nang_h": {
-      "kind": "property",
-      "settable": false
-     },
-     "nang_w": {
+     "n_width": {
       "kind": "property",
       "settable": false
      },
@@ -2899,14 +2881,14 @@
          "value": null
         },
         "kind": "keyword_only",
-        "name": "nrad"
+        "name": "n_radial"
        },
        {
         "default": {
          "value": null
         },
         "kind": "keyword_only",
-        "name": "mprg"
+        "name": "radial_grading"
        },
        {
         "default": {
@@ -2961,7 +2943,7 @@
          "value": null
         },
         "kind": "positional_or_keyword",
-        "name": "mprgs"
+        "name": "radial_gradings"
        }
       ]
      }
@@ -3685,10 +3667,6 @@
        {
         "kind": "positional_or_keyword",
         "name": "spec"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "lc"
        }
       ]
      },
@@ -3956,14 +3934,14 @@
          "value": null
         },
         "kind": "keyword_only",
-        "name": "nrad"
+        "name": "n_radial"
        },
        {
         "default": {
          "value": null
         },
         "kind": "keyword_only",
-        "name": "mprg"
+        "name": "radial_grading"
        },
        {
         "default": {
@@ -3977,7 +3955,7 @@
          "value": null
         },
         "kind": "keyword_only",
-        "name": "branch_mprg"
+        "name": "branch_radial_grading"
        },
        {
         "default": {
@@ -4036,10 +4014,6 @@
        {
         "kind": "positional_or_keyword",
         "name": "spec"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "lc"
        }
       ]
      },
@@ -4350,10 +4324,6 @@
        {
         "kind": "positional_or_keyword",
         "name": "spec"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "lc"
        }
       ]
      },
@@ -4548,10 +4518,6 @@
        {
         "kind": "positional_or_keyword",
         "name": "spec"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "lc"
        }
       ]
      },
@@ -4800,13 +4766,6 @@
         },
         "kind": "keyword_only",
         "name": "up"
-       },
-       {
-        "default": {
-         "value": null
-        },
-        "kind": "keyword_only",
-        "name": "lc"
        },
        {
         "default": {
@@ -5066,13 +5025,6 @@
          "value": null
         },
         "kind": "keyword_only",
-        "name": "lc"
-       },
-       {
-        "default": {
-         "value": null
-        },
-        "kind": "keyword_only",
         "name": "axial_cell"
        }
       ]
@@ -5087,10 +5039,6 @@
       ]
      },
      "interfaces": {
-      "kind": "property",
-      "settable": false
-     },
-     "lc": {
       "kind": "property",
       "settable": false
      },
@@ -6958,10 +6906,6 @@
        {
         "kind": "positional_or_keyword",
         "name": "spec"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "lc"
        }
       ]
      },
@@ -7229,14 +7173,14 @@
          "value": null
         },
         "kind": "keyword_only",
-        "name": "nrad"
+        "name": "n_radial"
        },
        {
         "default": {
          "value": null
         },
         "kind": "keyword_only",
-        "name": "mprg"
+        "name": "radial_grading"
        },
        {
         "default": {
@@ -7250,7 +7194,7 @@
          "value": null
         },
         "kind": "keyword_only",
-        "name": "branch_mprg"
+        "name": "branch_radial_grading"
        },
        {
         "default": {
@@ -7309,10 +7253,6 @@
        {
         "kind": "positional_or_keyword",
         "name": "spec"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "lc"
        }
       ]
      },
@@ -7623,10 +7563,6 @@
        {
         "kind": "positional_or_keyword",
         "name": "spec"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "lc"
        }
       ]
      },
@@ -7821,10 +7757,6 @@
        {
         "kind": "positional_or_keyword",
         "name": "spec"
-       },
-       {
-        "kind": "positional_or_keyword",
-        "name": "lc"
        }
       ]
      },
@@ -8046,7 +7978,7 @@
          "value": null
         },
         "kind": "keyword_only",
-        "name": "nang"
+        "name": "n_arc"
        },
        {
         "default": {
@@ -8167,13 +8099,6 @@
        },
        {
         "default": {
-         "value": 0.1
-        },
-        "kind": "positional_or_keyword",
-        "name": "lc"
-       },
-       {
-        "default": {
          "value": 0
         },
         "kind": "positional_or_keyword",
@@ -8222,14 +8147,14 @@
        },
        {
         "kind": "keyword_only",
-        "name": "nrad"
+        "name": "n_radial"
        },
        {
         "default": {
          "value": 1.0
         },
         "kind": "keyword_only",
-        "name": "mprg"
+        "name": "radial_grading"
        },
        {
         "default": {
@@ -8361,28 +8286,28 @@
          "value": null
         },
         "kind": "keyword_only",
-        "name": "nang"
+        "name": "n_arc"
        },
        {
         "default": {
          "value": null
         },
         "kind": "keyword_only",
-        "name": "nang_w"
+        "name": "n_width"
        },
        {
         "default": {
          "value": null
         },
         "kind": "keyword_only",
-        "name": "nang_h"
+        "name": "n_height"
        },
        {
         "default": {
          "value": 1.0
         },
         "kind": "keyword_only",
-        "name": "mbmp"
+        "name": "arc_bump"
        },
        {
         "default": {
@@ -8399,6 +8324,10 @@
         "name": "n_outer"
        }
       ]
+     },
+     "arc_bump": {
+      "kind": "property",
+      "settable": false
      },
      "core": {
       "kind": "method",
@@ -8423,14 +8352,14 @@
          "value": 0
         },
         "kind": "keyword_only",
-        "name": "nrad"
+        "name": "n_radial"
        },
        {
         "default": {
          "value": null
         },
         "kind": "keyword_only",
-        "name": "mprg"
+        "name": "radial_grading"
        },
        {
         "default": {
@@ -8510,7 +8439,11 @@
       "kind": "property",
       "settable": false
      },
-     "mbmp": {
+     "n_arc": {
+      "kind": "property",
+      "settable": false
+     },
+     "n_height": {
       "kind": "property",
       "settable": false
      },
@@ -8518,15 +8451,7 @@
       "kind": "property",
       "settable": false
      },
-     "nang": {
-      "kind": "property",
-      "settable": false
-     },
-     "nang_h": {
-      "kind": "property",
-      "settable": false
-     },
-     "nang_w": {
+     "n_width": {
       "kind": "property",
       "settable": false
      },
@@ -8573,14 +8498,14 @@
          "value": null
         },
         "kind": "keyword_only",
-        "name": "nrad"
+        "name": "n_radial"
        },
        {
         "default": {
          "value": null
         },
         "kind": "keyword_only",
-        "name": "mprg"
+        "name": "radial_grading"
        },
        {
         "default": {
@@ -8635,7 +8560,7 @@
          "value": null
         },
         "kind": "positional_or_keyword",
-        "name": "mprgs"
+        "name": "radial_gradings"
        }
       ]
      }
@@ -8662,11 +8587,11 @@
        },
        {
         "kind": "keyword_only",
-        "name": "nang_w"
+        "name": "n_width"
        },
        {
         "kind": "keyword_only",
-        "name": "nang_h"
+        "name": "n_height"
        }
       ]
      },
@@ -8785,7 +8710,7 @@
      "arc_counts_not_opposite",
      "arcs_invalid",
      "arcs_unsupported",
-     "arcs_with_nang",
+     "arcs_with_n_arc",
      "argument_missing",
      "assembly_already_built",
      "assembly_empty",
@@ -8910,11 +8835,12 @@
      "model_undo_empty",
      "msh_format_invalid",
      "msh_has_no_recipe",
+     "n_arc_missing",
+     "n_arc_not_divisible",
      "n_layers_unresolvable",
      "n_layers_unresolved",
      "n_outer_invalid",
-     "nang_missing",
-     "nang_not_divisible",
+     "n_radial_on_h_core",
      "network_disconnected",
      "network_empty",
      "network_loop",
@@ -8933,7 +8859,6 @@
      "nozzle_projection_too_short",
      "nozzle_too_large",
      "nozzle_unknown",
-     "nrad_on_h_core",
      "offset_on_duct_tap",
      "openfoam_boundary_unparsable",
      "openfoam_command_failed",
@@ -9011,7 +8936,7 @@
      "shape_not_circular",
      "shape_not_serialisable",
      "shape_type_unknown",
-     "shell_nrad_missing",
+     "shell_n_radial_missing",
      "shell_outline_args",
      "shell_type_unknown",
      "size_not_positive",
@@ -10285,13 +10210,6 @@
        },
        {
         "default": {
-         "value": null
-        },
-        "kind": "keyword_only",
-        "name": "lc"
-       },
-       {
-        "default": {
          "value": false
         },
         "kind": "keyword_only",
@@ -10302,7 +10220,7 @@
          "value": 2
         },
         "kind": "keyword_only",
-        "name": "insulation_nrad"
+        "name": "insulation_n_radial"
        }
       ]
      },
@@ -10343,13 +10261,6 @@
          "value": null
         },
         "kind": "keyword_only",
-        "name": "lc"
-       },
-       {
-        "default": {
-         "value": null
-        },
-        "kind": "keyword_only",
         "name": "inlet"
        },
        {
@@ -10364,7 +10275,7 @@
          "value": 2
         },
         "kind": "keyword_only",
-        "name": "insulation_nrad"
+        "name": "insulation_n_radial"
        }
       ]
      },
@@ -11115,13 +11026,6 @@
        "value": null
       },
       "kind": "keyword_only",
-      "name": "lc"
-     },
-     {
-      "default": {
-       "value": null
-      },
-      "kind": "keyword_only",
       "name": "inlet"
      },
      {
@@ -11136,7 +11040,7 @@
        "value": 2
       },
       "kind": "keyword_only",
-      "name": "insulation_nrad"
+      "name": "insulation_n_radial"
      }
     ]
    },
@@ -11174,13 +11078,6 @@
      },
      {
       "default": {
-       "value": null
-      },
-      "kind": "keyword_only",
-      "name": "lc"
-     },
-     {
-      "default": {
        "value": false
       },
       "kind": "keyword_only",
@@ -11191,7 +11088,7 @@
        "value": 2
       },
       "kind": "keyword_only",
-      "name": "insulation_nrad"
+      "name": "insulation_n_radial"
      }
     ]
    },
@@ -11442,13 +11339,6 @@
        },
        {
         "default": {
-         "value": null
-        },
-        "kind": "keyword_only",
-        "name": "lc"
-       },
-       {
-        "default": {
          "value": false
         },
         "kind": "keyword_only",
@@ -11459,7 +11349,7 @@
          "value": 2
         },
         "kind": "keyword_only",
-        "name": "insulation_nrad"
+        "name": "insulation_n_radial"
        }
       ]
      },
@@ -11500,13 +11390,6 @@
          "value": null
         },
         "kind": "keyword_only",
-        "name": "lc"
-       },
-       {
-        "default": {
-         "value": null
-        },
-        "kind": "keyword_only",
         "name": "inlet"
        },
        {
@@ -11521,7 +11404,7 @@
          "value": 2
         },
         "kind": "keyword_only",
-        "name": "insulation_nrad"
+        "name": "insulation_n_radial"
        }
       ]
      },
@@ -12120,7 +12003,7 @@
   "$defs": {
    "Assembly": {
     "additionalProperties": false,
-    "description": "Intent layer serialisation (DESIGN.md §3, docs/tasks/0006).\n\nAn assembly is saved as the record of how it was built, not as geometry:\n\n* ``inlet``: pose (``position``, ``normal``, ``up``) and spec of the first interface (index 0), and ``nozzle`` (drum and nozzle name) for a network started with ``Assembly.from_nozzle``; the drum then sets the pose; * ``edges``: in creation order, each a fitting (``type`` + dataclass fields) with ``source`` (the interface index it was added from), ``close`` (the ``[source, target]`` interfaces it joins), or ``prepend: true`` (placed upstream of the inlet), and its ``label`` if set; * ``names``: interface index → name, for every named interface; * ``equipment``: indices of the interfaces marked as equipment ends (omitted when none); * ``tail``: the interface index ``add(fitting)`` continues from; * ``lc`` and ``axial_cell`` if set. Every saved fitting holds its resolved ``n_layers``, so ``axial_cell`` only matters for fittings added after loading.\n\nReplaying the edges recreates the interfaces in the same order, so interface indices are stable. Outlet frames follow from the fittings; only a frame set by hand after ``add()`` is stored, under ``frames``, as an override.\n\nLengths are in the user's unit and are stored unconverted. Angles are in degrees. Version 1 stored ``PipeSpec.rot`` in radians; :func:`from_dict` converts it (decision 0024).\n\nInput-only fitting fields (``toward``) are resolved by ``Assembly.add()`` and never saved.",
+    "description": "Intent layer serialisation (DESIGN.md §3, docs/tasks/0006).\n\nAn assembly is saved as the record of how it was built, not as geometry:\n\n* ``inlet``: pose (``position``, ``normal``, ``up``) and spec of the first interface (index 0), and ``nozzle`` (drum and nozzle name) for a network started with ``Assembly.from_nozzle``; the drum then sets the pose; * ``edges``: in creation order, each a fitting (``type`` + dataclass fields) with ``source`` (the interface index it was added from), ``close`` (the ``[source, target]`` interfaces it joins), or ``prepend: true`` (placed upstream of the inlet), and its ``label`` if set; * ``names``: interface index → name, for every named interface; * ``equipment``: indices of the interfaces marked as equipment ends (omitted when none); * ``tail``: the interface index ``add(fitting)`` continues from; * ``axial_cell`` if set. Every saved fitting holds its resolved ``n_layers``, so ``axial_cell`` only matters for fittings added after loading.\n\nReplaying the edges recreates the interfaces in the same order, so interface indices are stable. Outlet frames follow from the fittings; only a frame set by hand after ``add()`` is stored, under ``frames``, as an override.\n\nLengths are in the user's unit and are stored unconverted. Angles are in degrees. :func:`upgrade` converts older versions: version 1 stored ``PipeSpec.rot`` in radians (decision 0024); version 2 used the names from before decision 0053.\n\nInput-only fitting fields (``toward``) are resolved by ``Assembly.add()`` and never saved.",
     "properties": {
      "axial_cell": {
       "description": "axial cell size that n_layers=None resolves from",
@@ -12148,12 +12031,6 @@
      "inlet": {
       "$ref": "#/$defs/Inlet"
      },
-     "lc": {
-      "description": "characteristic length for GMSH",
-      "exclusiveMinimum": 0,
-      "type": "number",
-      "x-unit": "length"
-     },
      "names": {
       "additionalProperties": {
        "type": "string"
@@ -12174,7 +12051,7 @@
       "description": "the interface the next add continues from"
      },
      "version": {
-      "const": 2,
+      "const": 3,
       "description": "the description's version; older ones load through intent.upgrade()"
      }
     },
@@ -12297,10 +12174,10 @@
        }
       ],
       "default": null,
-      "description": "divisions of each quadrant arc, NE→NW first, instead of nang.\n\nDivisions of each quadrant arc, corner *k* → *k* + 1 (NE→NW first), instead of *nang* (decision 0041, task 0147). Saved as a list. Four equal counts are the same circle as ``nang``. The O-H and H layouts mesh opposite arcs equal only, ``(a, b, a, b)``, which is what meets a rectangle with ``nang_w = a``, ``nang_h = b``; ``PipeSpec`` rejects other patterns.",
+      "description": "divisions of each quadrant arc, NE→NW first, instead of n_arc.\n\nDivisions of each quadrant arc, corner *k* → *k* + 1 (NE→NW first), instead of *n_arc* (decision 0041, task 0147). Saved as a list. Four equal counts are the same circle as ``n_arc``. The O-H and H layouts mesh opposite arcs equal only, ``(a, b, a, b)``, which is what meets a rectangle with ``n_width = a``, ``n_height = b``; ``PipeSpec`` rejects other patterns.",
       "x-unit": "cells"
      },
-     "nang": {
+     "n_arc": {
       "anyOf": [
        {
         "type": "integer"
@@ -12376,10 +12253,10 @@
    },
    "Core": {
     "additionalProperties": false,
-    "description": "Set the innermost (core) layer.\n\nThe shape can be specified either by passing a ``shape`` object directly, or by passing geometry keyword arguments so that the shape is built automatically from the PipeSpec-level division counts:\n\n- Circular core: pass ``radius=<float>`` — requires ``PipeSpec(nang=…)`` - Rectangular core: pass ``half_w=<float>, half_h=<float>`` — requires ``PipeSpec(nang_w=…, nang_h=…)``\n\nBoth forms are equivalent::\n\n# explicit shape (old form — still valid): PipeSpec(nang=5).core(\"fluid\", shape=CircleShape(0.3, nang=5), nrad=4)\n\n# shorthand (no repeated nang): PipeSpec(nang=5).core(\"fluid\", radius=0.3, nrad=4)",
+    "description": "Set the innermost (core) layer.\n\nThe shape can be specified either by passing a ``shape`` object directly, or by passing geometry keyword arguments so that the shape is built automatically from the PipeSpec-level division counts:\n\n- Circular core: pass ``radius=<float>`` — requires ``PipeSpec(n_arc=…)`` - Rectangular core: pass ``half_w=<float>, half_h=<float>`` — requires ``PipeSpec(n_width=…, n_height=…)``\n\nBoth forms are equivalent::\n\n# explicit shape (old form — still valid): PipeSpec(n_arc=5).core(\"fluid\", shape=CircleShape(0.3, n_arc=5), n_radial=4)\n\n# shorthand (no repeated n_arc): PipeSpec(n_arc=5).core(\"fluid\", radius=0.3, n_radial=4)",
     "properties": {
      "layout": {
-      "description": "section layout (decision 0036).\n\nThe section layout (decision 0036): ``\"h\"``, one Cartesian patch, the default for a rectangular core (since 0.4.0, task 0087); or ``\"oh\"``, the 5-patch O-H face, the default for a circle and the opt-in for a rectangle. An H core has no ring, so no ``nrad``; ``mprg`` is then the wall growth ratio, the second cell from each wall over the first (> 1 refines toward the walls), and ``first_cell`` its end cell. Both resolve here to ``wall_bump``.",
+      "description": "section layout (decision 0036).\n\nThe section layout (decision 0036): ``\"h\"``, one Cartesian patch, the default for a rectangular core (since 0.4.0, task 0087); or ``\"oh\"``, the 5-patch O-H face, the default for a circle and the opt-in for a rectangle. An H core has no ring, so no ``n_radial``; ``radial_grading`` is then the wall growth ratio, the second cell from each wall over the first (> 1 refines toward the walls), and ``first_cell`` its end cell. Both resolve here to ``wall_bump``.",
       "enum": [
        "h",
        "oh"
@@ -12387,7 +12264,18 @@
       "type": "string",
       "x-unit": "-"
      },
-     "mprg": {
+     "n_radial": {
+      "description": "O-H radial cells, inner square to wall (0 on an H core).\n\nRadial mesh layers (from inner square to outer boundary).",
+      "minimum": 0,
+      "type": "integer",
+      "x-unit": "cells"
+     },
+     "name": {
+      "description": "material label of the core.\n\nMaterial label for the core region.",
+      "type": "string",
+      "x-unit": "-"
+     },
+     "radial_grading": {
       "anyOf": [
        {
         "type": "number"
@@ -12400,24 +12288,13 @@
       "exclusiveMinimum": 0,
       "x-unit": "1"
      },
-     "name": {
-      "description": "material label of the core.\n\nMaterial label for the core region.",
-      "type": "string",
-      "x-unit": "-"
-     },
-     "nrad": {
-      "description": "O-H radial cells, inner square to wall (0 on an H core).\n\nRadial mesh layers (from inner square to outer boundary).",
-      "minimum": 0,
-      "type": "integer",
-      "x-unit": "cells"
-     },
      "shape": {
       "$ref": "#/$defs/Shape",
       "description": "the core outline: a circle or a rectangle.\n\n``CircleShape`` or ``RectShape`` describing the core outer boundary. Mutually exclusive with ``radius`` / ``half_w`` / ``half_h``.",
       "x-unit": "-"
      },
      "wall_bump": {
-      "description": "an H core's Bump coefficients (c_w, c_h); < 1 refines toward the walls.\n\nAn H core's ``Bump`` coefficients, ``(c_w, c_h)``: the sides of ``nang_w`` and of ``nang_h`` divisions (< 1 refines toward both walls; gmsh's two-sided law). What ``first_cell=`` resolves to, and what ``to_dict`` stores, as O-H stores ``mprg``: a k× refinement keeps them, so its nodes nest. ``first_cell=`` and ``mprg=`` resolve to it.",
+      "description": "an H core's Bump coefficients (c_w, c_h); < 1 refines toward the walls.\n\nAn H core's ``Bump`` coefficients, ``(c_w, c_h)``: the sides of ``n_width`` and of ``n_height`` divisions (< 1 refines toward both walls; gmsh's two-sided law). What ``first_cell=`` resolves to, and what ``to_dict`` stores, as O-H stores ``radial_grading``: a k× refinement keeps them, so its nodes nest. ``first_cell=`` and ``radial_grading=`` resolve to it.",
       "exclusiveMinimum": 0,
       "items": false,
       "maxItems": 2,
@@ -12437,7 +12314,7 @@
     "required": [
      "name",
      "shape",
-     "nrad"
+     "n_radial"
     ],
     "title": "Core",
     "type": "object"
@@ -12997,22 +12874,16 @@
     "additionalProperties": false,
     "description": "Builder for a concentric-layer pipe cross-section.",
     "properties": {
-     "core": {
-      "$ref": "#/$defs/Core"
-     },
-     "mbmp": {
+     "arc_bump": {
       "description": "angular bump factor of the transfinite arcs (1 = uniform).\n\nAngular bump factor for Transfinite Line. Default 1.0 (uniform).",
       "exclusiveMinimum": 0,
       "type": "number",
       "x-unit": "1"
      },
-     "n_outer": {
-      "description": "outer structural corners: a positive multiple of 4",
-      "minimum": 4,
-      "type": "integer",
-      "x-unit": "1"
+     "core": {
+      "$ref": "#/$defs/Core"
      },
-     "nang": {
+     "n_arc": {
       "anyOf": [
        {
         "type": "integer"
@@ -13025,7 +12896,7 @@
       "minimum": 1,
       "x-unit": "cells"
      },
-     "nang_h": {
+     "n_height": {
       "anyOf": [
        {
         "type": "integer"
@@ -13038,7 +12909,13 @@
       "minimum": 1,
       "x-unit": "cells"
      },
-     "nang_w": {
+     "n_outer": {
+      "description": "outer structural corners: a positive multiple of 4",
+      "minimum": 4,
+      "type": "integer",
+      "x-unit": "1"
+     },
+     "n_width": {
       "anyOf": [
        {
         "type": "integer"
@@ -13086,13 +12963,13 @@
       "type": "number",
       "x-unit": "length"
      },
-     "nang_h": {
+     "n_height": {
       "description": "divisions along each height edge, shared by every layer.\n\nMesh divisions along each height edge. Shared across all layers.",
       "minimum": 1,
       "type": "integer",
       "x-unit": "cells"
      },
-     "nang_w": {
+     "n_width": {
       "description": "divisions along each width edge, shared by every layer.\n\nMesh divisions along each width edge. Shared across all layers.",
       "minimum": 1,
       "type": "integer",
@@ -13106,15 +12983,15 @@
      "type",
      "half_w",
      "half_h",
-     "nang_w",
-     "nang_h"
+     "n_width",
+     "n_height"
     ],
     "title": "RectShape",
     "type": "object"
    },
    "Reducer": {
     "additionalProperties": false,
-    "description": "Concentric reducer (or expander): a straight cone between two radii.\n\n*outlet* is the outlet spec. It must equal the inlet spec in everything except its sizes (every layer's outline: radii, half-widths) and radial gradings (``mprg`` per layer): the same layers, outline shapes, ``nrad``, counts, ``mbmp``, ``n_outer`` and ``rot``, so that every axial edge joins matching nodes (rule A4; decision 0026). A larger outlet makes it an expander. A rectangle's sides stay planar (the station outlines interpolate linearly), so a duct reducer is exact too. ``Reducer`` changes sizes; ``Transition`` changes shapes.\n\nEvery axial layer is a station whose radii interpolate linearly, and corresponding corners are joined by straight lines, which are generators of the cone; wall nodes therefore lie exactly on the cone. Radial gradings interpolate geometrically at the same fractions (``mprg_in^(1-u) · mprg_out^u``), so a wall-resolved pipe (absolute ``first_cell``) can change diameter (decision 0016). *axial_grading* spaces the stations as for ``Straight``.\n\n*profile* replaces the cone by a radius profile (decision 0008; ``assembly.profile``): ``(\"cosine\", s0)`` (a constriction for s0 > 0, a bulge for s0 < 0), ``(\"venturi\", beta, divergent)`` or a table of ``(s, R/R_in)`` pairs. Every radius of the stack scales by the profile's ratio, so the outlet must be the inlet scaled by ``r(1)``. Stations lie exactly on R(s); between them the wall is a straight chord, and ``validate`` rejects a chord more than *chord_tol* · R_in from the profile, naming the layers needed.",
+    "description": "Concentric reducer (or expander): a straight cone between two radii.\n\n*outlet* is the outlet spec. It must equal the inlet spec in everything except its sizes (every layer's outline: radii, half-widths) and radial gradings (``radial_grading`` per layer): the same layers, outline shapes, ``n_radial``, counts, ``arc_bump``, ``n_outer`` and ``rot``, so that every axial edge joins matching nodes (rule A4; decision 0026). A larger outlet makes it an expander. A rectangle's sides stay planar (the station outlines interpolate linearly), so a duct reducer is exact too. ``Reducer`` changes sizes; ``Transition`` changes shapes.\n\nEvery axial layer is a station whose radii interpolate linearly, and corresponding corners are joined by straight lines, which are generators of the cone; wall nodes therefore lie exactly on the cone. Radial gradings interpolate geometrically at the same fractions (``radial_grading_in^(1-u) · radial_grading_out^u``), so a wall-resolved pipe (absolute ``first_cell``) can change diameter (decision 0016). *axial_grading* spaces the stations as for ``Straight``.\n\n*profile* replaces the cone by a radius profile (decision 0008; ``assembly.profile``): ``(\"cosine\", s0)`` (a constriction for s0 > 0, a bulge for s0 < 0), ``(\"venturi\", beta, divergent)`` or a table of ``(s, R/R_in)`` pairs. Every radius of the stack scales by the profile's ratio, so the outlet must be the inlet scaled by ``r(1)``. Stations lie exactly on R(s); between them the wall is a straight chord, and ``validate`` rejects a chord more than *chord_tol* · R_in from the profile, naming the layers needed.",
     "properties": {
      "axial_grading": {
       "default": 1.0,
@@ -13248,7 +13125,7 @@
    },
    "Shell": {
     "additionalProperties": false,
-    "description": "Add a shell: the region between the previous outline and this layer's (decision 0026).\n\nGive exactly one of *dR* (the previous outline grown by *dR*) and *outer* (a new outline, ``CircleShape`` or ``RectShape``). In a stack of rectangles every outline takes the core's ``(nang_w, nang_h)``, which may differ (decision 0041, option B). A stack with a rectangle and a circle has equal counts on every side of every outline (``nang = nang_w = nang_h``): a circle carries one count. Any stack with a rectangle has ``n_outer`` 4 or 8 (8 cuts the 4-corner face, task 0088). Checked here. That each outline lies inside the next is checked by the assembly's validation.",
+    "description": "Add a shell: the region between the previous outline and this layer's (decision 0026).\n\nGive exactly one of *dR* (the previous outline grown by *dR*) and *outer* (a new outline, ``CircleShape`` or ``RectShape``). In a stack of rectangles every outline takes the core's ``(n_width, n_height)``, which may differ (decision 0041, option B). A stack with a rectangle and a circle has equal counts on every side of every outline (``n_arc = n_width = n_height``): a circle carries one count. Any stack with a rectangle has ``n_outer`` 4 or 8 (8 cuts the 4-corner face, task 0088). Checked here. That each outline lies inside the next is checked by the assembly's validation.",
     "oneOf": [
      {
       "required": [
@@ -13299,7 +13176,28 @@
       "type": "number",
       "x-unit": "length"
      },
-     "mprg": {
+     "n_radial": {
+      "description": "radial cells across the shell.\n\nRadial mesh divisions across the layer.",
+      "minimum": 1,
+      "type": "integer",
+      "x-unit": "cells"
+     },
+     "name": {
+      "description": "material label of the shell.\n\nMaterial label.",
+      "type": "string",
+      "x-unit": "-"
+     },
+     "outer": {
+      "$ref": "#/$defs/Shape",
+      "description": "the shell's outline, instead of dR.\n\nThis layer's outline.",
+      "x-limit": [
+       "OUTLINE_MIN_GAP",
+       "OUTLINE_NONORTH_WARN",
+       "OUTLINE_NONORTH_MAX"
+      ],
+      "x-unit": "-"
+     },
+     "radial_grading": {
       "anyOf": [
        {
         "type": "number"
@@ -13312,27 +13210,6 @@
       "exclusiveMinimum": 0,
       "x-unit": "1"
      },
-     "name": {
-      "description": "material label of the shell.\n\nMaterial label.",
-      "type": "string",
-      "x-unit": "-"
-     },
-     "nrad": {
-      "description": "radial cells across the shell.\n\nRadial mesh divisions across the layer.",
-      "minimum": 1,
-      "type": "integer",
-      "x-unit": "cells"
-     },
-     "outer": {
-      "$ref": "#/$defs/Shape",
-      "description": "the shell's outline, instead of dR.\n\nThis layer's outline.",
-      "x-limit": [
-       "OUTLINE_MIN_GAP",
-       "OUTLINE_NONORTH_WARN",
-       "OUTLINE_NONORTH_MAX"
-      ],
-      "x-unit": "-"
-     },
      "type": {
       "description": "the layer kind; square_shell is the form saved before decision 0026, read as a rect outer",
       "enum": [
@@ -13344,7 +13221,7 @@
     "required": [
      "type",
      "name",
-     "nrad"
+     "n_radial"
     ],
     "title": "Shell",
     "type": "object"
@@ -13514,7 +13391,7 @@
        }
       ],
       "default": null,
-      "description": "outlet spec: the same rectangle and counts, the other layout.\n\nThe outlet spec: the same rectangle and counts, the other layout. From an O-H inlet the default is the H face, ungraded; give it to grade the H walls (``first_cell=``, ``wall_bump=``). From an H inlet it is required (it carries ``nrad`` and the ring's ``mprg``).\n\nAn input: left out of the description while unset.",
+      "description": "outlet spec: the same rectangle and counts, the other layout.\n\nThe outlet spec: the same rectangle and counts, the other layout. From an O-H inlet the default is the H face, ungraded; give it to grade the H walls (``first_cell=``, ``wall_bump=``). From an H inlet it is required (it carries ``n_radial`` and the ring's ``radial_grading``).\n\nAn input: left out of the description while unset.",
       "x-unit": "-"
      },
      "type": {
@@ -13564,7 +13441,7 @@
        }
       ],
       "default": null,
-      "description": "pipe tees: the branch port's core wall cell; resolves to branch_mprg when added.\n\nPipe tees: the branch port's own core grading (task 0131; decision 0028), as ``PipeSpec.core``'s ``first_cell`` (resolved to ``branch_mprg`` when the tee is added) or ``mprg``; at most one. The turning station keeps the main's grading, and the branch run's cells blend to the port's over its ``n_branch`` layers. Without them the branch copies the main's ``mprg``, so its wall cell scales with r/R. Not on an equal tee or a duct tap.\n\nAn input: left out of the description while unset.",
+      "description": "pipe tees: the branch port's core wall cell; resolves to branch_radial_grading when added.\n\nPipe tees: the branch port's own core grading (task 0131; decision 0028), as ``PipeSpec.core``'s ``first_cell`` (resolved to ``branch_radial_grading`` when the tee is added) or ``radial_grading``; at most one. The turning station keeps the main's grading, and the branch run's cells blend to the port's over its ``n_branch`` layers. Without them the branch copies the main's ``radial_grading``, so its wall cell scales with r/R. Not on an equal tee or a duct tap.\n\nAn input: left out of the description while unset.",
       "exclusiveMinimum": 0,
       "x-unit": "length"
      },
@@ -13582,7 +13459,7 @@
       "exclusiveMinimum": 0,
       "x-unit": "length"
      },
-     "branch_mprg": {
+     "branch_radial_grading": {
       "anyOf": [
        {
         "type": "number"
@@ -13592,7 +13469,7 @@
        }
       ],
       "default": null,
-      "description": "pipe tees: the branch port's core radial growth (None: the main's).\n\nPipe tees: the branch port's own core grading (task 0131; decision 0028), as ``PipeSpec.core``'s ``first_cell`` (resolved to ``branch_mprg`` when the tee is added) or ``mprg``; at most one. The turning station keeps the main's grading, and the branch run's cells blend to the port's over its ``n_branch`` layers. Without them the branch copies the main's ``mprg``, so its wall cell scales with r/R. Not on an equal tee or a duct tap.\n\nAn input: left out of the description while unset.",
+      "description": "pipe tees: the branch port's core radial growth (None: the main's).\n\nPipe tees: the branch port's own core grading (task 0131; decision 0028), as ``PipeSpec.core``'s ``first_cell`` (resolved to ``branch_radial_grading`` when the tee is added) or ``radial_grading``; at most one. The turning station keeps the main's grading, and the branch run's cells blend to the port's over its ``n_branch`` layers. Without them the branch copies the main's ``radial_grading``, so its wall cell scales with r/R. Not on an equal tee or a duct tap.\n\nAn input: left out of the description while unset.",
       "exclusiveMinimum": 0,
       "x-unit": "1"
      },
@@ -13660,25 +13537,25 @@
       "description": "duct taps: layout tunable (DuctTap); resolved when added.\n\nDuct taps: layout tunables (``duct_tap.DuctTap``), resolved when the tee is added to the best predicted quality; give them to override.\n\nAn input: left out of the description while unset.",
       "x-unit": "1"
      },
-     "mprg": {
+     "n_branch": {
+      "default": 3,
+      "description": "axial layers of the branch run.\n\nAxial layers of the approach/departure runs and of the branch run.",
+      "minimum": 1,
+      "type": "integer",
+      "x-unit": "cells"
+     },
+     "n_radial": {
       "anyOf": [
        {
-        "type": "number"
+        "type": "integer"
        },
        {
         "type": "null"
        }
       ],
       "default": null,
-      "description": "duct taps on an H main: radial growth of the O-H ring; derived when added.\n\nDuct taps on an H main (task 0086): the radial cells and growth of the O-H ring inside the junction and its switch legs. Derived when the tee is added (``sections.h.pillow_ring``: the H cells within a ring thickness of the wall, and the H face's wall cell) and stored; give them to override. An O-H main's ring is its own: not allowed there.\n\nAn input: left out of the description while unset.",
-      "exclusiveMinimum": 0,
-      "x-unit": "1"
-     },
-     "n_branch": {
-      "default": 3,
-      "description": "axial layers of the branch run.\n\nAxial layers of the approach/departure runs and of the branch run.",
+      "description": "duct taps on an H main: radial cells of the O-H ring; derived when added.\n\nDuct taps on an H main (task 0086): the radial cells and growth of the O-H ring inside the junction and its switch legs. Derived when the tee is added (``sections.h.pillow_ring``: the H cells within a ring thickness of the wall, and the H face's wall cell) and stored; give them to override. An O-H main's ring is its own: not allowed there.\n\nAn input: left out of the description while unset.",
       "minimum": 1,
-      "type": "integer",
       "x-unit": "cells"
      },
      "n_run": {
@@ -13709,25 +13586,25 @@
       "minimum": 1,
       "x-unit": "cells"
      },
-     "nrad": {
+     "offset": {
+      "default": 0.0,
+      "description": "pipe tees: branch axis from the main axis, along the main's right after the roll (an offset or tangential tap).\n\nPipe tees: the distance h of the branch axis from the main axis, along the main's ``right`` after the roll (task 0061): 0 is a centred tee, |h| + r → R a tangential tap. The axis passes through the point h off the T-point; ``branch_length`` is measured along it from there. |h| + r < R.",
+      "type": "number",
+      "x-unit": "length"
+     },
+     "radial_grading": {
       "anyOf": [
        {
-        "type": "integer"
+        "type": "number"
        },
        {
         "type": "null"
        }
       ],
       "default": null,
-      "description": "duct taps on an H main: radial cells of the O-H ring; derived when added.\n\nDuct taps on an H main (task 0086): the radial cells and growth of the O-H ring inside the junction and its switch legs. Derived when the tee is added (``sections.h.pillow_ring``: the H cells within a ring thickness of the wall, and the H face's wall cell) and stored; give them to override. An O-H main's ring is its own: not allowed there.\n\nAn input: left out of the description while unset.",
-      "minimum": 1,
-      "x-unit": "cells"
-     },
-     "offset": {
-      "default": 0.0,
-      "description": "pipe tees: branch axis from the main axis, along the main's right after the roll (an offset or tangential tap).\n\nPipe tees: the distance h of the branch axis from the main axis, along the main's ``right`` after the roll (task 0061): 0 is a centred tee, |h| + r → R a tangential tap. The axis passes through the point h off the T-point; ``branch_length`` is measured along it from there. |h| + r < R.",
-      "type": "number",
-      "x-unit": "length"
+      "description": "duct taps on an H main: radial growth of the O-H ring; derived when added.\n\nDuct taps on an H main (task 0086): the radial cells and growth of the O-H ring inside the junction and its switch legs. Derived when the tee is added (``sections.h.pillow_ring``: the H cells within a ring thickness of the wall, and the H face's wall cell) and stored; give them to override. An O-H main's ring is its own: not allowed there.\n\nAn input: left out of the description while unset.",
+      "exclusiveMinimum": 0,
+      "x-unit": "1"
      },
      "roll": {
       "default": 0.0,
@@ -13789,7 +13666,7 @@
    },
    "Transition": {
     "additionalProperties": false,
-    "description": "Straight transition that changes outline shapes: a circle to a rectangle, or a rectangle to another (decision 0009, option B; task 0029), in every layer of a stack (decision 0026, task 0046).\n\n*outlet* is the outlet spec. The two are equal in everything but each layer's outline (shape and size): the same layers (names, order, ``nrad``, grading), equal counts per side throughout (a circle's ``nang`` equals a rectangle's ``nang_w`` and ``nang_h``), ``mbmp`` and ``rot``. So the two faces have equal signatures (switch class 0) and every axial edge joins matching nodes. A change of sizes only, every outline keeping its shape, is a ``Reducer``; a stack of circles at both ends always is.\n\nEvery axial layer is a station whose outlines each blend the two end outlines, point by point at equal arc-length fractions (``core.shape.BlendShape``); a shell's corner lines blend with them, so every layer changes together and the rings stay nested (checked at every station and between them). Wall nodes lie exactly on the station curves; the end stations are the exact end outlines. *axial_grading* spaces the stations as for ``Straight``.\n\n**An H rectangular end** (decision 0036 item 5, task 0085): one end may be an H face (``layout=\"h\"``) with the other end's counts per side. The transition stays a class-0 blend to the O-H face of that rectangle (the other end's ``nrad`` and ``mprg``), and a ``Switch`` takes the slabs at the H end: the fewest of the ``n_layers`` that give it its shortest length (``switch.min_length``) at equal shares of the length. Shells (task 0086): the blend's H-end face carries the H end's shells, which the switch keeps.",
+    "description": "Straight transition that changes outline shapes: a circle to a rectangle, or a rectangle to another (decision 0009, option B; task 0029), in every layer of a stack (decision 0026, task 0046).\n\n*outlet* is the outlet spec. The two are equal in everything but each layer's outline (shape and size): the same layers (names, order, ``n_radial``, grading), equal counts per side throughout (a circle's ``n_arc`` equals a rectangle's ``n_width`` and ``n_height``), ``arc_bump`` and ``rot``. So the two faces have equal signatures (switch class 0) and every axial edge joins matching nodes. A change of sizes only, every outline keeping its shape, is a ``Reducer``; a stack of circles at both ends always is.\n\nEvery axial layer is a station whose outlines each blend the two end outlines, point by point at equal arc-length fractions (``core.shape.BlendShape``); a shell's corner lines blend with them, so every layer changes together and the rings stay nested (checked at every station and between them). Wall nodes lie exactly on the station curves; the end stations are the exact end outlines. *axial_grading* spaces the stations as for ``Straight``.\n\n**An H rectangular end** (decision 0036 item 5, task 0085): one end may be an H face (``layout=\"h\"``) with the other end's counts per side. The transition stays a class-0 blend to the O-H face of that rectangle (the other end's ``n_radial`` and ``radial_grading``), and a ``Switch`` takes the slabs at the H end: the fewest of the ``n_layers`` that give it its shortest length (``switch.min_length``) at equal shares of the length. Shells (task 0086): the blend's H-end face carries the H end's shells, which the switch keeps.",
     "properties": {
      "axial_grading": {
       "default": 1.0,
@@ -13909,7 +13786,7 @@
        }
       ],
       "default": null,
-      "description": "layers of each daughter's turning block; None resolves when added.\n\nLayers of each daughter's turning block (hub → daughter station). A count left ``None`` (the default) is resolved when the wye is added: the fewest layers that keep every edge it divides, the hub cap's arcs included, no longer than the angular cell at the wall, (π/2)·R / ``nang``, or ``axial_cell`` if the assembly sets a shorter one (task 0056). A resolved ``n_split`` is capped at ``limits.WYE_N_SPLIT_MAX`` (6): the turning blocks' cells degrade as it grows, and fold at 120° from about 20 layers, so the knee arcs stay coarser, about 2–3× the angular cell. An explicit count above the cap is allowed; a fold is caught by ``Assembly.mesh()``'s inversion check.",
+      "description": "layers of each daughter's turning block; None resolves when added.\n\nLayers of each daughter's turning block (hub → daughter station). A count left ``None`` (the default) is resolved when the wye is added: the fewest layers that keep every edge it divides, the hub cap's arcs included, no longer than the angular cell at the wall, (π/2)·R / ``n_arc``, or ``axial_cell`` if the assembly sets a shorter one (task 0056). A resolved ``n_split`` is capped at ``limits.WYE_N_SPLIT_MAX`` (6): the turning blocks' cells degrade as it grows, and fold at 120° from about 20 layers, so the knee arcs stay coarser, about 2–3× the angular cell. An explicit count above the cap is allowed; a fold is caught by ``Assembly.mesh()``'s inversion check.",
       "minimum": 1,
       "x-limit": "WYE_N_SPLIT_MAX",
       "x-unit": "cells"
@@ -13954,10 +13831,10 @@
     "type": "object"
    }
   },
-  "$id": "urn:hexmesh:hexmesh.assembly:2",
+  "$id": "urn:hexmesh:hexmesh.assembly:3",
   "$ref": "#/$defs/Assembly",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "hexmesh.assembly description, version 2",
+  "title": "hexmesh.assembly description, version 3",
   "x-limits": {
    "CORRECTION_MIN_MOVE": {
     "doc": "smallest move, in local wall radii, a correction record counts",
@@ -13995,8 +13872,8 @@
     "unit": "deg",
     "value": 90.0
    },
-   "EQUAL_TEE_NANG_CLEAN": {
-    "doc": "largest nang at which an equal tee measured meshed SJ >= 0.3",
+   "EQUAL_TEE_N_ARC_CLEAN": {
+    "doc": "largest n_arc at which an equal tee measured meshed SJ >= 0.3",
     "kind": "warn",
     "unit": "1",
     "value": 48
@@ -14233,6 +14110,6 @@
     "value": 0.65
    }
   },
-  "x-version": 2
+  "x-version": 3
  }
 }

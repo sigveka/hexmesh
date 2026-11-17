@@ -24,7 +24,7 @@ circle, and Poiseuille for the equivalent circle of the meshed
 cross-section (an inscribed polygon).  Richardson extrapolation of the
 three levels gives observed orders, extrapolated values and the fine-level
 GCI [celik_and_ghia_etal_2008].  A checkMesh-only sweep reports how
-non-orthogonality and skewness grow with ``nang``.  Usage::
+non-orthogonality and skewness grow with ``n_arc``.  Usage::
 
     python3 validation/poiseuille/run.py [--levels coarse medium fine]
                                          [--work DIR] [--json FILE] [--no-trend]
@@ -83,13 +83,13 @@ U_MAX_EXACT = 2 * U_MEAN
 PLANES = {"planeA": X_A, "planeB": X_B, "planeM": X_MID}   # face zones (topoSet)
 
 # --- refinement: every density parameter doubles per level (8× cells) -------
-BASE = dict(nang=6, nrad=3, n_layers=(24, 16, 8))     # 15 D, 10 D, 5 D
+BASE = dict(n_arc=6, n_radial=3, n_layers=(24, 16, 8))     # 15 D, 10 D, 5 D
 LEVELS = {"coarse": 1, "medium": 2, "fine": 4}
 
 
 def assembly(factor: int) -> Assembly:
-    spec = PipeSpec(nang=BASE["nang"] * factor).core(
-        "fluid", radius=R, nrad=BASE["nrad"] * factor)
+    spec = PipeSpec(n_arc=BASE["n_arc"] * factor).core(
+        "fluid", radius=R, n_radial=BASE["n_radial"] * factor)
     asm = Assembly(spec, position=[0, 0, 0], direction=[1, 0, 0], up=[0, 0, 1])
     # interfaces at the measurement planes, so p is sampled on mesh faces
     for length, n in zip((X_A, X_B - X_A, LENGTH - X_B), BASE["n_layers"]):
@@ -100,7 +100,7 @@ def assembly(factor: int) -> Assembly:
 def meshes():
     """(label, caption, build) per mesh shown in README.md
     (``docs/gallery/build.py --validation``)."""
-    return [(name, f"{name}: nang {BASE['nang'] * f}, nrad {BASE['nrad'] * f}, "
+    return [(name, f"{name}: n_arc {BASE['n_arc'] * f}, n_radial {BASE['n_radial'] * f}, "
                    f"{sum(BASE['n_layers']) * f} axial layers",
              lambda f=f: assembly(f)) for name, f in LEVELS.items()]
 
@@ -350,28 +350,28 @@ def orders(rows: list[dict], key: str) -> list[float]:
     return [math.log2(a[key] / b[key]) for a, b in zip(rows, rows[1:])]
 
 
-TREND_NANG = (6, 12, 24, 48, 96)
+TREND_N_ARC = (6, 12, 24, 48, 96)
 
 
-def trend_assembly(nang: int) -> Assembly:
-    """:func:`nonorth_trend`'s pipe at *nang*."""
-    spec = PipeSpec(nang=nang).core("fluid", radius=R, nrad=nang // 2)
+def trend_assembly(n_arc: int) -> Assembly:
+    """:func:`nonorth_trend`'s pipe at *n_arc*."""
+    spec = PipeSpec(n_arc=n_arc).core("fluid", radius=R, n_radial=n_arc // 2)
     asm = Assembly(spec, position=[0, 0, 0], direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Straight(2 * D, n_layers=4))
     return asm
 
 
-def nonorth_trend(work: Path, nangs=TREND_NANG, keep_work: bool = False) -> list[dict]:
+def nonorth_trend(work: Path, n_arcs=TREND_N_ARC, keep_work: bool = False) -> list[dict]:
     """checkMesh only, on a 2 D pipe with this case's cross-section
-    (``nrad`` = ``nang`` / 2) and 4 axial layers."""
+    (``n_radial`` = ``n_arc`` / 2) and 4 axial layers."""
     rows = []
-    for nang in nangs:
-        case = work / f"trend-{nang}"
+    for n_arc in n_arcs:
+        case = work / f"trend-{n_arc}"
         if case.exists():
             shutil.rmtree(case)
         case.mkdir(parents=True)
-        with Session(f"poiseuille-trend-{nang}"):
-            asm = trend_assembly(nang)
+        with Session(f"poiseuille-trend-{n_arc}"):
+            asm = trend_assembly(n_arc)
             cells = asm.cell_count()
             msh = case / "pipe.msh"
             asm.write_openfoam(msh)
@@ -381,12 +381,12 @@ def nonorth_trend(work: Path, nangs=TREND_NANG, keep_work: bool = False) -> list
         foam(f"gmshToFoam{keep} {msh.name}", case, "log.gmshToFoam")
         check = foam("checkMesh", case, "log.checkMesh")
         rows.append({
-            "nang": nang, "nrad": nang // 2, "cells": cells, "mesh_ok": "Mesh OK." in check,
+            "n_arc": n_arc, "n_radial": n_arc // 2, "cells": cells, "mesh_ok": "Mesh OK." in check,
             "max_non_orthogonality": float(
                 re.search(r"non-orthogonality Max: ([\d.e+-]+)", check).group(1)),
             "max_skewness": float(re.search(r"Max skewness = ([\d.e+-]+)", check).group(1)),
         })
-        print(f"[trend] nang {nang}: {rows[-1]}", flush=True)
+        print(f"[trend] n_arc {n_arc}: {rows[-1]}", flush=True)
         if not keep_work:
             stored.remove_work(case)
     return rows
@@ -441,10 +441,10 @@ def richardson_table(rich: dict) -> str:
 
 
 def trend_table(trend: list[dict]) -> str:
-    lines = ["| nang | nrad | cells | Mesh OK | max non-orth. (°) | max skewness |",
+    lines = ["| n_arc | n_radial | cells | Mesh OK | max non-orth. (°) | max skewness |",
              "|---|---|---|---|---|---|"]
     for t in trend:
-        lines.append(f"| {t['nang']} | {t['nrad']} | {t['cells']} | {t['mesh_ok']} "
+        lines.append(f"| {t['n_arc']} | {t['n_radial']} | {t['cells']} | {t['mesh_ok']} "
                      f"| {t['max_non_orthogonality']:.1f} | {t['max_skewness']:.3f} |")
     return "\n".join(lines)
 

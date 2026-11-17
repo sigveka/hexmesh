@@ -11,40 +11,40 @@
     "max_non_orthogonality": 23.5,
     "max_skewness": 0.422,
     "mesh_ok": true,
-    "nang": 6,
-    "nrad": 3
+    "n_arc": 6,
+    "n_radial": 3
    },
    {
     "cells": 1728,
     "max_non_orthogonality": 33.2,
     "max_skewness": 0.484,
     "mesh_ok": true,
-    "nang": 12,
-    "nrad": 6
+    "n_arc": 12,
+    "n_radial": 6
    },
    {
     "cells": 6912,
     "max_non_orthogonality": 38.9,
     "max_skewness": 0.515,
     "mesh_ok": true,
-    "nang": 24,
-    "nrad": 12
+    "n_arc": 24,
+    "n_radial": 12
    },
    {
     "cells": 27648,
     "max_non_orthogonality": 41.9,
     "max_skewness": 0.53,
     "mesh_ok": true,
-    "nang": 48,
-    "nrad": 24
+    "n_arc": 48,
+    "n_radial": 24
    },
    {
     "cells": 110592,
     "max_non_orthogonality": 43.4,
     "max_skewness": 0.538,
     "mesh_ok": true,
-    "nang": 96,
-    "nrad": 48
+    "n_arc": 96,
+    "n_radial": 48
    }
   ]
  },
@@ -75,11 +75,11 @@
    "max_skewness": 0.422,
    "mesh_ok": true,
    "min_scaled_jacobian": 0.793,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "coarse",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "precision": "rounded from RESULTS.md",
    "u_max": 0.009906548,
    "u_max_err": 0.00934519999999991,
@@ -111,11 +111,11 @@
    "max_skewness": 0.484,
    "mesh_ok": true,
    "min_scaled_jacobian": 0.752,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "medium",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "precision": "rounded from RESULTS.md",
    "u_max": 0.009974559,
    "u_max_err": 0.0025440999999999316,
@@ -147,11 +147,11 @@
    "max_skewness": 0.515,
    "mesh_ok": true,
    "min_scaled_jacobian": 0.73,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "fine",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "precision": "rounded from RESULTS.md",
    "u_max": 0.009992713,
    "u_max_err": 0.0007286999999998185,

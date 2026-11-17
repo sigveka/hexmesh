@@ -62,11 +62,11 @@
     ]
    },
    "min_scaled_jacobian": 0.7933533402912339,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "straight_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "Straight0": {
      "cells": 864,
@@ -139,11 +139,11 @@
     ]
    },
    "min_scaled_jacobian": 0.7518398074789756,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "straight_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "Straight0": {
      "cells": 6912,
@@ -216,11 +216,11 @@
     ]
    },
    "min_scaled_jacobian": 0.7298640702516215,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "straight_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "Straight0": {
      "cells": 55296,
@@ -293,11 +293,11 @@
     ]
    },
    "min_scaled_jacobian": 0.789533127112204,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "bend_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "Bend1": {
      "cells": 864,
@@ -384,11 +384,11 @@
     ]
    },
    "min_scaled_jacobian": 0.7509341835041666,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "bend_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "Bend1": {
      "cells": 6912,
@@ -475,11 +475,11 @@
     ]
    },
    "min_scaled_jacobian": 0.7296442512848157,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "bend_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "Bend1": {
      "cells": 55296,
@@ -566,11 +566,11 @@
     ]
    },
    "min_scaled_jacobian": 0.7661413921052127,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "miter_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "MiterBend1": {
      "cells": 1296,
@@ -657,11 +657,11 @@
     ]
    },
    "min_scaled_jacobian": 0.7260258676208807,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "miter_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "MiterBend1": {
      "cells": 10368,
@@ -748,11 +748,11 @@
     ]
    },
    "min_scaled_jacobian": 0.7047931931017478,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "miter_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "MiterBend1": {
      "cells": 82944,
@@ -839,11 +839,11 @@
     ]
    },
    "min_scaled_jacobian": 0.7908397476700715,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "spline_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "SplinePipe1": {
      "cells": 1728,
@@ -925,11 +925,11 @@
     ]
    },
    "min_scaled_jacobian": 0.751249671782725,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "spline_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "SplinePipe1": {
      "cells": 13824,
@@ -1011,11 +1011,11 @@
     ]
    },
    "min_scaled_jacobian": 0.7297211938536576,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "spline_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "SplinePipe1": {
      "cells": 110592,
@@ -1097,11 +1097,11 @@
     ]
    },
    "min_scaled_jacobian": 0.7512600143587895,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "reducer_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "Reducer1": {
      "cells": 864,
@@ -1188,11 +1188,11 @@
     ]
    },
    "min_scaled_jacobian": 0.7057226311370131,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "reducer_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "Reducer1": {
      "cells": 6912,
@@ -1279,11 +1279,11 @@
     ]
    },
    "min_scaled_jacobian": 0.6834888357284965,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "reducer_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "Reducer1": {
      "cells": 55296,
@@ -1370,11 +1370,11 @@
     ]
    },
    "min_scaled_jacobian": 0.5773502691896228,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "transition_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "Straight0": {
      "cells": 216,
@@ -1461,11 +1461,11 @@
     ]
    },
    "min_scaled_jacobian": 0.5773502691896171,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "transition_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "Straight0": {
      "cells": 1728,
@@ -1552,11 +1552,11 @@
     ]
    },
    "min_scaled_jacobian": 0.5773502691896105,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "transition_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "Straight0": {
      "cells": 13824,
@@ -1643,11 +1643,11 @@
     ]
    },
    "min_scaled_jacobian": 0.2576521280139983,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "tee_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "Straight0": {
      "cells": 216,
@@ -1739,11 +1739,11 @@
     ]
    },
    "min_scaled_jacobian": 0.2576521280139977,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "tee_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "Straight0": {
      "cells": 1728,
@@ -1835,11 +1835,11 @@
     ]
    },
    "min_scaled_jacobian": 0.2576521280139985,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "tee_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "Straight0": {
      "cells": 13824,
@@ -1931,11 +1931,11 @@
     ]
    },
    "min_scaled_jacobian": 0.2576521280139985,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "tee_shells_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "Straight0": {
      "cells": 408,
@@ -2027,11 +2027,11 @@
     ]
    },
    "min_scaled_jacobian": 0.25765212801399767,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "tee_shells_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "Straight0": {
      "cells": 3264,
@@ -2123,11 +2123,11 @@
     ]
    },
    "min_scaled_jacobian": 0.2576521280139985,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "tee_shells_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "Straight0": {
      "cells": 26112,
@@ -2219,11 +2219,11 @@
     ]
    },
    "min_scaled_jacobian": 0.7933533402912339,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "stack_change_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "Straight0": {
      "cells": 1440,
@@ -2298,11 +2298,11 @@
     ]
    },
    "min_scaled_jacobian": 0.7518398074789756,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "stack_change_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "Straight0": {
      "cells": 11520,
@@ -2377,11 +2377,11 @@
     ]
    },
    "min_scaled_jacobian": 0.7298640702516221,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "stack_change_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "Straight0": {
      "cells": 92160,
@@ -2456,11 +2456,11 @@
     ]
    },
    "min_scaled_jacobian": 0.15644391160761778,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "wye60_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "Straight0": {
      "cells": 216,
@@ -2552,11 +2552,11 @@
     ]
    },
    "min_scaled_jacobian": 0.1564436117454242,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "wye60_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "Straight0": {
      "cells": 1728,
@@ -2648,11 +2648,11 @@
     ]
    },
    "min_scaled_jacobian": 0.15644346188959568,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "wye60_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "Straight0": {
      "cells": 13824,
@@ -2744,11 +2744,11 @@
     ]
    },
    "min_scaled_jacobian": 0.16412149273679874,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "wye90_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "Straight0": {
      "cells": 216,
@@ -2840,11 +2840,11 @@
     ]
    },
    "min_scaled_jacobian": 0.16412135454250307,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "wye90_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "Straight0": {
      "cells": 1728,
@@ -2936,11 +2936,11 @@
     ]
    },
    "min_scaled_jacobian": 0.13182221652438592,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "wye90_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "Straight0": {
      "cells": 13824,
@@ -3032,11 +3032,11 @@
     ]
    },
    "min_scaled_jacobian": 0.1564439116076183,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "wye60_shell_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "Straight0": {
      "cells": 312,
@@ -3128,11 +3128,11 @@
     ]
    },
    "min_scaled_jacobian": 0.15644361174542562,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "wye60_shell_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "Straight0": {
      "cells": 2496,
@@ -3224,11 +3224,11 @@
     ]
    },
    "min_scaled_jacobian": 0.15644346188959898,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "wye60_shell_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "Straight0": {
      "cells": 19968,
@@ -3320,11 +3320,11 @@
     ]
    },
    "min_scaled_jacobian": 0.1641214927367985,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "wye90_shell_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "Straight0": {
      "cells": 312,
@@ -3416,11 +3416,11 @@
     ]
    },
    "min_scaled_jacobian": 0.16412135454250223,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "wye90_shell_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "Straight0": {
      "cells": 2496,
@@ -3512,11 +3512,11 @@
     ]
    },
    "min_scaled_jacobian": 0.13182221652439305,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "wye90_shell_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "Straight0": {
      "cells": 19968,
@@ -3608,11 +3608,11 @@
     ]
    },
    "min_scaled_jacobian": 0.4237856365378029,
+   "n_arc": null,
+   "n_height": 8,
+   "n_radial": 0,
+   "n_width": 8,
    "name": "duct_tap_rect_k1",
-   "nang": null,
-   "nang_h": 8,
-   "nang_w": 8,
-   "nrad": 0,
    "per_fitting": {
     "Straight0": {
      "cells": 128,
@@ -3704,11 +3704,11 @@
     ]
    },
    "min_scaled_jacobian": 0.42378563653780255,
+   "n_arc": null,
+   "n_height": 16,
+   "n_radial": 0,
+   "n_width": 16,
    "name": "duct_tap_rect_k2",
-   "nang": null,
-   "nang_h": 16,
-   "nang_w": 16,
-   "nrad": 0,
    "per_fitting": {
     "Straight0": {
      "cells": 1024,
@@ -3800,11 +3800,11 @@
     ]
    },
    "min_scaled_jacobian": 0.42378563653779977,
+   "n_arc": null,
+   "n_height": 32,
+   "n_radial": 0,
+   "n_width": 32,
    "name": "duct_tap_rect_k4",
-   "nang": null,
-   "nang_h": 32,
-   "nang_w": 32,
-   "nrad": 0,
    "per_fitting": {
     "Straight0": {
      "cells": 8192,
@@ -3896,11 +3896,11 @@
     ]
    },
    "min_scaled_jacobian": 0.432526043050062,
+   "n_arc": null,
+   "n_height": 8,
+   "n_radial": 0,
+   "n_width": 8,
    "name": "duct_tap_round_k1",
-   "nang": null,
-   "nang_h": 8,
-   "nang_w": 8,
-   "nrad": 0,
    "per_fitting": {
     "Straight0": {
      "cells": 128,
@@ -3992,11 +3992,11 @@
     ]
    },
    "min_scaled_jacobian": 0.43252604305005726,
+   "n_arc": null,
+   "n_height": 16,
+   "n_radial": 0,
+   "n_width": 16,
    "name": "duct_tap_round_k2",
-   "nang": null,
-   "nang_h": 16,
-   "nang_w": 16,
-   "nrad": 0,
    "per_fitting": {
     "Straight0": {
      "cells": 1024,
@@ -4088,11 +4088,11 @@
     ]
    },
    "min_scaled_jacobian": 0.43252604305005465,
+   "n_arc": null,
+   "n_height": 32,
+   "n_radial": 0,
+   "n_width": 32,
    "name": "duct_tap_round_k4",
-   "nang": null,
-   "nang_h": 32,
-   "nang_w": 32,
-   "nrad": 0,
    "per_fitting": {
     "Straight0": {
      "cells": 8192,
@@ -4184,11 +4184,11 @@
     ]
    },
    "min_scaled_jacobian": 0.9999999999999973,
+   "n_arc": null,
+   "n_height": 6,
+   "n_radial": 0,
+   "n_width": 12,
    "name": "duct_k1",
-   "nang": null,
-   "nang_h": 6,
-   "nang_w": 12,
-   "nrad": 0,
    "per_fitting": {
     "Straight0": {
      "cells": 576,
@@ -4261,11 +4261,11 @@
     ]
    },
    "min_scaled_jacobian": 0.9999999999999972,
+   "n_arc": null,
+   "n_height": 12,
+   "n_radial": 0,
+   "n_width": 24,
    "name": "duct_k2",
-   "nang": null,
-   "nang_h": 12,
-   "nang_w": 24,
-   "nrad": 0,
    "per_fitting": {
     "Straight0": {
      "cells": 4608,
@@ -4338,11 +4338,11 @@
     ]
    },
    "min_scaled_jacobian": 0.9999999999999971,
+   "n_arc": null,
+   "n_height": 24,
+   "n_radial": 0,
+   "n_width": 48,
    "name": "duct_k4",
-   "nang": null,
-   "nang_h": 24,
-   "nang_w": 48,
-   "nrad": 0,
    "per_fitting": {
     "Straight0": {
      "cells": 36864,
@@ -4415,11 +4415,11 @@
     ]
    },
    "min_scaled_jacobian": 0.42378563653780094,
+   "n_arc": null,
+   "n_height": 24,
+   "n_radial": 0,
+   "n_width": 24,
    "name": "duct_tap_rect_k3",
-   "nang": null,
-   "nang_h": 24,
-   "nang_w": 24,
-   "nrad": 0,
    "per_fitting": {
     "Straight0": {
      "cells": 3456,
@@ -4512,11 +4512,11 @@
     ]
    },
    "min_scaled_jacobian": 0.4237856365378029,
+   "n_arc": null,
+   "n_height": 8,
+   "n_radial": 0,
+   "n_width": 8,
    "name": "duct_tap_rect_lim_k1",
-   "nang": null,
-   "nang_h": 8,
-   "nang_w": 8,
-   "nrad": 0,
    "per_fitting": {
     "Straight0": {
      "cells": 128,
@@ -4609,11 +4609,11 @@
     ]
    },
    "min_scaled_jacobian": 0.42378563653780255,
+   "n_arc": null,
+   "n_height": 16,
+   "n_radial": 0,
+   "n_width": 16,
    "name": "duct_tap_rect_lim_k2",
-   "nang": null,
-   "nang_h": 16,
-   "nang_w": 16,
-   "nrad": 0,
    "per_fitting": {
     "Straight0": {
      "cells": 1024,
@@ -4719,11 +4719,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 7.500000000000016,
    "min_scaled_jacobian": 0.5773502691896228,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "transition_loc_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "Straight0": {
      "cells": 216,
@@ -4825,11 +4825,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 7.500000000000185,
    "min_scaled_jacobian": 0.5773502691896171,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "transition_loc_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "Straight0": {
      "cells": 1728,
@@ -4931,11 +4931,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 7.500000000001098,
    "min_scaled_jacobian": 0.5773502691896105,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "transition_loc_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "Straight0": {
      "cells": 13824,
@@ -5037,11 +5037,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 7.500000000000016,
    "min_scaled_jacobian": 0.5773502691896228,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "transition_lsq_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "Straight0": {
      "cells": 216,
@@ -5148,11 +5148,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 7.500000000000185,
    "min_scaled_jacobian": 0.5773502691896171,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "transition_lsq_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "Straight0": {
      "cells": 1728,
@@ -5259,11 +5259,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 7.500000000001098,
    "min_scaled_jacobian": 0.5773502691896105,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "transition_lsq_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "Straight0": {
      "cells": 13824,
@@ -5370,11 +5370,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 7.500000000000016,
    "min_scaled_jacobian": 0.5773502691896228,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "transition_skew_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "Straight0": {
      "cells": 216,
@@ -5481,11 +5481,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 7.500000000000185,
    "min_scaled_jacobian": 0.5773502691896171,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "transition_skew_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "Straight0": {
      "cells": 1728,
@@ -5592,11 +5592,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 7.500000000001098,
    "min_scaled_jacobian": 0.5773502691896105,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "transition_skew_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "Straight0": {
      "cells": 13824,
@@ -5703,11 +5703,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 15.000000000000098,
    "min_scaled_jacobian": 0.2576521280139983,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "tee_loc_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "Straight0": {
      "cells": 216,
@@ -5814,11 +5814,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 15.000000000000252,
    "min_scaled_jacobian": 0.2576521280139977,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "tee_loc_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "Straight0": {
      "cells": 1728,
@@ -5925,11 +5925,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 15.000000000000734,
    "min_scaled_jacobian": 0.2576521280139985,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "tee_loc_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "Straight0": {
      "cells": 13824,
@@ -6036,11 +6036,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 15.000000000000098,
    "min_scaled_jacobian": 0.2576521280139983,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "tee_lsq_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "Straight0": {
      "cells": 216,
@@ -6152,11 +6152,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 15.000000000000252,
    "min_scaled_jacobian": 0.2576521280139977,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "tee_lsq_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "Straight0": {
      "cells": 1728,
@@ -6268,11 +6268,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 15.000000000000734,
    "min_scaled_jacobian": 0.2576521280139985,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "tee_lsq_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "Straight0": {
      "cells": 13824,
@@ -6384,11 +6384,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 15.000000000000098,
    "min_scaled_jacobian": 0.2576521280139983,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "tee_skew_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "Straight0": {
      "cells": 216,
@@ -6500,11 +6500,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 15.000000000000252,
    "min_scaled_jacobian": 0.2576521280139977,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "tee_skew_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "Straight0": {
      "cells": 1728,
@@ -6616,11 +6616,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 15.000000000000734,
    "min_scaled_jacobian": 0.2576521280139985,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "tee_skew_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "Straight0": {
      "cells": 13824,
@@ -6732,11 +6732,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 15.000000000000098,
    "min_scaled_jacobian": 0.2576521280139985,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "tee_shells_loc_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "Straight0": {
      "cells": 408,
@@ -6843,11 +6843,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 15.000000000000252,
    "min_scaled_jacobian": 0.25765212801399767,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "tee_shells_loc_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "Straight0": {
      "cells": 3264,
@@ -6954,11 +6954,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 15.000000000000734,
    "min_scaled_jacobian": 0.2576521280139985,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "tee_shells_loc_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "Straight0": {
      "cells": 26112,
@@ -7065,11 +7065,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 15.000000000000098,
    "min_scaled_jacobian": 0.2576521280139985,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "tee_shells_lsq_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "Straight0": {
      "cells": 408,
@@ -7181,11 +7181,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 15.000000000000252,
    "min_scaled_jacobian": 0.25765212801399767,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "tee_shells_lsq_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "Straight0": {
      "cells": 3264,
@@ -7297,11 +7297,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 15.000000000000734,
    "min_scaled_jacobian": 0.2576521280139985,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "tee_shells_lsq_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "Straight0": {
      "cells": 26112,
@@ -7413,11 +7413,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 15.000000000000098,
    "min_scaled_jacobian": 0.2576521280139985,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "tee_shells_skew_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "Straight0": {
      "cells": 408,
@@ -7529,11 +7529,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 15.000000000000252,
    "min_scaled_jacobian": 0.25765212801399767,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "tee_shells_skew_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "Straight0": {
      "cells": 3264,
@@ -7645,11 +7645,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 15.000000000000734,
    "min_scaled_jacobian": 0.2576521280139985,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "tee_shells_skew_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "Straight0": {
      "cells": 26112,
@@ -7757,11 +7757,11 @@
    "max_at_block_interface": false,
    "max_edge_ratio": 7.500000000000056,
    "min_scaled_jacobian": 0.7661413921052127,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "miter_loc_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "MiterBend1": {
      "cells": 1296,
@@ -7859,11 +7859,11 @@
    "max_at_block_interface": false,
    "max_edge_ratio": 7.500000000000232,
    "min_scaled_jacobian": 0.7260258676208807,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "miter_loc_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "MiterBend1": {
      "cells": 10368,
@@ -7961,11 +7961,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 7.500000000001135,
    "min_scaled_jacobian": 0.7047931931017478,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "miter_loc_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "MiterBend1": {
      "cells": 82944,
@@ -8063,11 +8063,11 @@
    "max_at_block_interface": false,
    "max_edge_ratio": 7.500000000000056,
    "min_scaled_jacobian": 0.7661413921052127,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "miter_lsq_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "MiterBend1": {
      "cells": 1296,
@@ -8170,11 +8170,11 @@
    "max_at_block_interface": false,
    "max_edge_ratio": 7.500000000000232,
    "min_scaled_jacobian": 0.7260258676208807,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "miter_lsq_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "MiterBend1": {
      "cells": 10368,
@@ -8277,11 +8277,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 7.500000000001135,
    "min_scaled_jacobian": 0.7047931931017478,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "miter_lsq_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "MiterBend1": {
      "cells": 82944,
@@ -8384,11 +8384,11 @@
    "max_at_block_interface": false,
    "max_edge_ratio": 7.500000000000056,
    "min_scaled_jacobian": 0.7661413921052127,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "miter_skew_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "MiterBend1": {
      "cells": 1296,
@@ -8491,11 +8491,11 @@
    "max_at_block_interface": false,
    "max_edge_ratio": 7.500000000000232,
    "min_scaled_jacobian": 0.7260258676208807,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "miter_skew_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "MiterBend1": {
      "cells": 10368,
@@ -8598,11 +8598,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 7.500000000001135,
    "min_scaled_jacobian": 0.7047931931017478,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "miter_skew_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "MiterBend1": {
      "cells": 82944,
@@ -8705,11 +8705,11 @@
    "max_at_block_interface": false,
    "max_edge_ratio": 19.257841220293987,
    "min_scaled_jacobian": 0.7512600143587895,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "reducer_loc_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "Reducer1": {
      "cells": 864,
@@ -8807,11 +8807,11 @@
    "max_at_block_interface": false,
    "max_edge_ratio": 18.88855190356402,
    "min_scaled_jacobian": 0.7057226311370131,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "reducer_loc_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "Reducer1": {
      "cells": 6912,
@@ -8909,11 +8909,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 18.785410286098642,
    "min_scaled_jacobian": 0.6834888357284965,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "reducer_loc_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "Reducer1": {
      "cells": 55296,
@@ -9011,11 +9011,11 @@
    "max_at_block_interface": false,
    "max_edge_ratio": 19.257841220293987,
    "min_scaled_jacobian": 0.7512600143587895,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "reducer_lsq_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "Reducer1": {
      "cells": 864,
@@ -9118,11 +9118,11 @@
    "max_at_block_interface": false,
    "max_edge_ratio": 18.88855190356402,
    "min_scaled_jacobian": 0.7057226311370131,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "reducer_lsq_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "Reducer1": {
      "cells": 6912,
@@ -9225,11 +9225,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 18.785410286098642,
    "min_scaled_jacobian": 0.6834888357284965,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "reducer_lsq_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "Reducer1": {
      "cells": 55296,
@@ -9332,11 +9332,11 @@
    "max_at_block_interface": false,
    "max_edge_ratio": 19.257841220293987,
    "min_scaled_jacobian": 0.7512600143587895,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "reducer_skew_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "Reducer1": {
      "cells": 864,
@@ -9439,11 +9439,11 @@
    "max_at_block_interface": false,
    "max_edge_ratio": 18.88855190356402,
    "min_scaled_jacobian": 0.7057226311370131,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "reducer_skew_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "Reducer1": {
      "cells": 6912,
@@ -9546,11 +9546,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 18.785410286098642,
    "min_scaled_jacobian": 0.6834888357284965,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "reducer_skew_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "Reducer1": {
      "cells": 55296,
@@ -9657,11 +9657,11 @@
    "max_at_block_interface": false,
    "max_edge_ratio": 7.500000000000031,
    "min_scaled_jacobian": 0.7933533402912339,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "straight_lsq_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "Straight0": {
      "cells": 864,
@@ -9754,11 +9754,11 @@
    "max_at_block_interface": false,
    "max_edge_ratio": 7.500000000000192,
    "min_scaled_jacobian": 0.7518398074789756,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "straight_lsq_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "Straight0": {
      "cells": 6912,
@@ -9851,11 +9851,11 @@
    "max_at_block_interface": false,
    "max_edge_ratio": 7.500000000001112,
    "min_scaled_jacobian": 0.7298640702516215,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "straight_lsq_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "Straight0": {
      "cells": 55296,
@@ -9960,11 +9960,11 @@
    "max_at_block_interface": false,
    "max_edge_ratio": 7.500000000000044,
    "min_scaled_jacobian": 0.7926402847656666,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "reducer_s005_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "Reducer1": {
      "cells": 864,
@@ -10082,11 +10082,11 @@
    "max_at_block_interface": false,
    "max_edge_ratio": 7.500000000000203,
    "min_scaled_jacobian": 0.751048307501601,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "reducer_s005_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "Reducer1": {
      "cells": 6912,
@@ -10204,11 +10204,11 @@
    "max_at_block_interface": false,
    "max_edge_ratio": 7.500000000001136,
    "min_scaled_jacobian": 0.7290653563496698,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "reducer_s005_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "Reducer1": {
      "cells": 55296,
@@ -10326,11 +10326,11 @@
    "max_at_block_interface": false,
    "max_edge_ratio": 7.500000000000044,
    "min_scaled_jacobian": 0.7905125990976142,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "reducer_s010_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "Reducer1": {
      "cells": 864,
@@ -10448,11 +10448,11 @@
    "max_at_block_interface": false,
    "max_edge_ratio": 7.500000000000203,
    "min_scaled_jacobian": 0.7486887223938309,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "reducer_s010_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "Reducer1": {
      "cells": 6912,
@@ -10570,11 +10570,11 @@
    "max_at_block_interface": false,
    "max_edge_ratio": 7.500000000001136,
    "min_scaled_jacobian": 0.7266848491903917,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "reducer_s010_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "Reducer1": {
      "cells": 55296,
@@ -10692,11 +10692,11 @@
    "max_at_block_interface": false,
    "max_edge_ratio": 7.500000000000044,
    "min_scaled_jacobian": 0.7821700399373781,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "reducer_s020_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "Reducer1": {
      "cells": 864,
@@ -10814,11 +10814,11 @@
    "max_at_block_interface": false,
    "max_edge_ratio": 7.500000000000203,
    "min_scaled_jacobian": 0.7394679966370327,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "reducer_s020_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "Reducer1": {
      "cells": 6912,
@@ -10936,11 +10936,11 @@
    "max_at_block_interface": false,
    "max_edge_ratio": 7.500000000001136,
    "min_scaled_jacobian": 0.7173907976129439,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "reducer_s020_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "Reducer1": {
      "cells": 55296,
@@ -11058,11 +11058,11 @@
    "max_at_block_interface": false,
    "max_edge_ratio": 19.257841220293987,
    "min_scaled_jacobian": 0.7512600143587895,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "reducer_s040_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "Reducer1": {
      "cells": 864,
@@ -11180,11 +11180,11 @@
    "max_at_block_interface": false,
    "max_edge_ratio": 18.88855190356402,
    "min_scaled_jacobian": 0.7057226311370131,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "reducer_s040_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "Reducer1": {
      "cells": 6912,
@@ -11302,11 +11302,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 18.785410286098642,
    "min_scaled_jacobian": 0.6834888357284965,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "reducer_s040_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "Reducer1": {
      "cells": 55296,
@@ -11424,11 +11424,11 @@
    "max_at_block_interface": false,
    "max_edge_ratio": 7.500000000000044,
    "min_scaled_jacobian": 0.7926402847656666,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "reducer_s005_flux_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "Reducer1": {
      "cells": 864,
@@ -11546,11 +11546,11 @@
    "max_at_block_interface": false,
    "max_edge_ratio": 7.500000000000203,
    "min_scaled_jacobian": 0.751048307501601,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "reducer_s005_flux_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "Reducer1": {
      "cells": 6912,
@@ -11668,11 +11668,11 @@
    "max_at_block_interface": false,
    "max_edge_ratio": 7.500000000001136,
    "min_scaled_jacobian": 0.7290653563496698,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "reducer_s005_flux_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "Reducer1": {
      "cells": 55296,
@@ -11790,11 +11790,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 7.500000000000044,
    "min_scaled_jacobian": 0.7905125990976142,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "reducer_s010_flux_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "Reducer1": {
      "cells": 864,
@@ -11912,11 +11912,11 @@
    "max_at_block_interface": false,
    "max_edge_ratio": 7.500000000000203,
    "min_scaled_jacobian": 0.7486887223938309,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "reducer_s010_flux_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "Reducer1": {
      "cells": 6912,
@@ -12034,11 +12034,11 @@
    "max_at_block_interface": false,
    "max_edge_ratio": 7.500000000001136,
    "min_scaled_jacobian": 0.7266848491903917,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "reducer_s010_flux_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "Reducer1": {
      "cells": 55296,
@@ -12156,11 +12156,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 7.500000000000044,
    "min_scaled_jacobian": 0.7821700399373781,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "reducer_s020_flux_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "Reducer1": {
      "cells": 864,
@@ -12278,11 +12278,11 @@
    "max_at_block_interface": false,
    "max_edge_ratio": 7.500000000000203,
    "min_scaled_jacobian": 0.7394679966370327,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "reducer_s020_flux_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "Reducer1": {
      "cells": 6912,
@@ -12400,11 +12400,11 @@
    "max_at_block_interface": false,
    "max_edge_ratio": 7.500000000001136,
    "min_scaled_jacobian": 0.7173907976129439,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "reducer_s020_flux_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "Reducer1": {
      "cells": 55296,
@@ -12522,11 +12522,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 19.257841220293987,
    "min_scaled_jacobian": 0.7512600143587895,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
    "name": "reducer_s040_flux_k1",
-   "nang": 6,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 3,
    "per_fitting": {
     "Reducer1": {
      "cells": 864,
@@ -12644,11 +12644,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 18.88855190356402,
    "min_scaled_jacobian": 0.7057226311370131,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
    "name": "reducer_s040_flux_k2",
-   "nang": 12,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 6,
    "per_fitting": {
     "Reducer1": {
      "cells": 6912,
@@ -12766,11 +12766,11 @@
    "max_at_block_interface": true,
    "max_edge_ratio": 18.785410286098642,
    "min_scaled_jacobian": 0.6834888357284965,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
    "name": "reducer_s040_flux_k4",
-   "nang": 24,
-   "nang_h": null,
-   "nang_w": null,
-   "nrad": 12,
    "per_fitting": {
     "Reducer1": {
      "cells": 55296,

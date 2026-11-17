@@ -33,8 +33,8 @@ def add_physical_group(dim: int, tags: list[int], name: str) -> int:
     return tag
 
 
-def add_point(x: float, y: float, z: float, lc: float) -> int:
-    return gmsh.model.occ.addPoint(x, y, z, lc)
+def add_point(x: float, y: float, z: float) -> int:
+    return gmsh.model.occ.addPoint(x, y, z)
 
 
 def add_line(start: int, end: int) -> int:

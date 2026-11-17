@@ -41,9 +41,9 @@ Steady laminar flow through four turns of a helical coil (the SIET coil: 12.53 m
 - **hexmesh:** volunteer-helical-2 (clone this tag with git clone --branch, as in the five commands: the mesh check needs the same meshing code as ours)
 - **gmsh:** 4.12.1 (the version pip installs with hexmesh is fine: our test level's mesh check gives the same fingerprint with gmsh 4.12.1 and 4.15.2)
 
-### Level `re3000_n24`: Re 3000 on the finest mesh (nang 24)
+### Level `re3000_n24`: Re 3000 on the finest mesh (n_arc 24)
 
-The run first solves the next-coarser mesh (nang 16, 0.8 million cells) and starts the fine one (2.7 million cells) from its mapped result, which shortens the fine solve.  Both stop when the solver converges (at most 5000 steps); the results are saved every 50 steps.
+The run first solves the next-coarser mesh (n_arc 16, 0.8 million cells) and starts the fine one (2.7 million cells) from its mapped result, which shortens the fine solve.  Both stop when the solver converges (at most 5000 steps); the results are saved every 50 steps.
 
 ```bash
 python3 -m validation.volunteer prepare helical_pipe re3000_n24 --dir run/
@@ -62,7 +62,7 @@ python3 -m validation.volunteer prepare helical_pipe re3000_n24 --dir run/
 
 - the spline's distance from the exact helix (32 points per turn): within 0.1 % of $d$
 - Darcy friction factor $f$, finest level, at Re 1800, 2400 and 3000: within 5 % of Ito (1959)
-- mesh convergence of $f$ at each Re (nang 12, 16, 24): Richardson status converging; GCI reported
+- mesh convergence of $f$ at each Re (n_arc 12, 16, 24): Richardson status converging; GCI reported
 - reported, not gated: the digitised measured points (Fig. 12); f per pair of consecutive turns: reported
 
 **Sent back:** one file, `helical_pipe-<level>.contrib.json`, about 100 kB

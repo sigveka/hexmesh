@@ -77,14 +77,14 @@ def _junction_thickness(ts, what: str) -> float:
     return found[0] if found else 0.0
 
 
-def _dressed(spec, t: float, nrad: int):
+def _dressed(spec, t: float, n_radial: int):
     """*spec* without its ``insulation`` shell, plus one of thickness *t*
     (none if ``t`` is 0)."""
     shells = spec.shells
     if shells and shells[-1].name == INSULATION:
         shells = shells[:-1]
     bare = spec.with_radii([_radius(spec)] + [sh.dR for sh in shells])
-    return bare.shell(INSULATION, dR=t, nrad=nrad) if t > 0 else bare
+    return bare.shell(INSULATION, dR=t, n_radial=n_radial) if t > 0 else bare
 
 
 def _thickness(spec) -> float:
@@ -161,7 +161,7 @@ def _plan_insulation(comps, labels, t_in, to_junction, tol):
             for k in range(n)]
 
 
-def _stack_changes(pattern, length, axial_cell, base, nrad):
+def _stack_changes(pattern, length, axial_cell, base, n_radial):
     """``(n_layers, stack_changes)`` for a straight with per-cell pattern
     ``(first, middle_in, middle_out, last)`` (thickness, m); None if
     uniform."""
@@ -176,6 +176,6 @@ def _stack_changes(pattern, length, axial_cell, base, nrad):
     changes, cur = [], cells[0]
     for i, t in enumerate(cells):
         if i and t != cur:
-            changes.append((i, _dressed(base, t, nrad)))
+            changes.append((i, _dressed(base, t, n_radial)))
             cur = t
     return n, tuple(changes)

@@ -30,21 +30,21 @@ the bare duct runs on.
 from hexmesh import Assembly, Bend, PipeSpec, Straight, Transition
 from hexmesh.core.shape import CircleShape, RectShape
 
-NANG = 6
+N_ARC = 6
 
 
 def pipe() -> PipeSpec:
-    return (PipeSpec(nang=NANG)
-            .core("air", shape=CircleShape(0.1, nang=NANG), nrad=4)
-            .shell("steel", dR=0.003, nrad=2)
-            .shell("insulation", dR=0.04, nrad=3))
+    return (PipeSpec(n_arc=N_ARC)
+            .core("air", shape=CircleShape(0.1, n_arc=N_ARC), n_radial=4)
+            .shell("steel", dR=0.003, n_radial=2)
+            .shell("insulation", dR=0.04, n_radial=3))
 
 
 def duct(insulated: bool = True) -> PipeSpec:
-    spec = (PipeSpec(nang=NANG)
-            .core("air", shape=RectShape(0.15, 0.075, nang_w=NANG, nang_h=NANG), mprg=1.2)
-            .shell("steel", dR=0.003, nrad=2))
-    return spec.shell("insulation", dR=0.04, nrad=3) if insulated else spec
+    spec = (PipeSpec(n_arc=N_ARC)
+            .core("air", shape=RectShape(0.15, 0.075, n_width=N_ARC, n_height=N_ARC), radial_grading=1.2)
+            .shell("steel", dR=0.003, n_radial=2))
+    return spec.shell("insulation", dR=0.04, n_radial=3) if insulated else spec
 
 
 def build() -> Assembly:

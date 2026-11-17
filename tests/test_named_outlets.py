@@ -27,7 +27,7 @@ from hexmesh.agent import describe
 
 
 def _asm():
-    return Assembly(PipeSpec(nang=6).core("fluid", radius=0.1, nrad=4),
+    return Assembly(PipeSpec(n_arc=6).core("fluid", radius=0.1, n_radial=4),
                     direction=[1, 0, 0], up=[0, 0, 1])
 
 

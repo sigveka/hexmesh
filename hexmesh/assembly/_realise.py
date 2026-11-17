@@ -154,7 +154,7 @@ def build_faces(asm) -> None:
     _occ.reset()
     with _occ.building():
         for iface in asm._interfaces:
-            iface.face = build_face(iface.spec, iface.frame, asm.lc)
+            iface.face = build_face(iface.spec, iface.frame)
     gmsh.model.occ.synchronize()
     asm._faces_built = True
 
@@ -179,7 +179,7 @@ def fill(asm, order: Iterable[int] | None = None) -> None:
                 part = edge.fitting.fill(
                     [p.face for p in edge.ports],
                     [p.frame for p in edge.ports],
-                    edge.ports[0].spec, asm.lc,
+                    edge.ports[0].spec,
                 )
         except AssemblyError:
             raise

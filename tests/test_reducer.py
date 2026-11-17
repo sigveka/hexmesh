@@ -16,16 +16,16 @@ from hexmesh.core.shape import CircleShape
 from hexmesh.core.spec import PipeSpec
 
 
-def _spec(radius=0.1, dR=0.02, nrad=3, nang=4, rot=0.0, name="wall"):
-    return (PipeSpec(nang=nang, rot=rot)
-            .core("fluid", shape=CircleShape(radius=radius, nang=nang), nrad=nrad)
-            .shell(name, dR=dR, nrad=2))
+def _spec(radius=0.1, dR=0.02, n_radial=3, n_arc=4, rot=0.0, name="wall"):
+    return (PipeSpec(n_arc=n_arc, rot=rot)
+            .core("fluid", shape=CircleShape(radius=radius, n_arc=n_arc), n_radial=n_radial)
+            .shell(name, dR=dR, n_radial=2))
 
 
 @pytest.mark.parametrize("r_out", [0.06, 0.15], ids=["reducer", "expander"])
 def test_wall_nodes_on_cone(gmsh_session, r_out):
     a, b, L = _spec(), _spec(r_out, 0.015), 0.2
-    asm = Assembly(a, direction=[1, 0, 0], up=[0, 0, 1], lc=0.05)
+    asm = Assembly(a, direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Reducer(b, length=L, n_layers=4))
     asm.mesh()
     R0, R1 = outer_radius(a), outer_radius(b)
@@ -39,14 +39,14 @@ def test_wall_nodes_on_cone(gmsh_session, r_out):
 
 
 @pytest.mark.parametrize("outlet, field", [
-    (_spec(0.06, nrad=4), "core nrad"),
-    (_spec(0.06, nang=6), "nang"),
+    (_spec(0.06, n_radial=4), "core n_radial"),
+    (_spec(0.06, n_arc=6), "n_arc"),
     (_spec(0.06, rot=0.1), "rot"),
     (_spec(0.06, name="steel"), "shells"),
-    (PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=0.06, nang=4), nrad=3), "shells"),
+    (PipeSpec(n_arc=4).core("fluid", shape=CircleShape(radius=0.06, n_arc=4), n_radial=3), "shells"),
 ])
 def test_topology_change_rejected_before_gmsh(outlet, field):
-    asm = Assembly(_spec(), lc=0.05)
+    asm = Assembly(_spec())
     asm.add(Reducer(outlet, length=0.2, n_layers=3))
     with pytest.raises(AssemblyError, match=f"differs from the inlet in {field}"):
         asm.validate()
@@ -54,7 +54,7 @@ def test_topology_change_rejected_before_gmsh(outlet, field):
 
 
 def test_outlet_port_carries_outlet_spec():
-    asm = Assembly(_spec(), lc=0.05)
+    asm = Assembly(_spec())
     out = asm.add(Reducer(_spec(0.06, 0.015), length=0.2, n_layers=3))
     nxt = asm.add(Straight(0.1, n_layers=2))
     asm.validate()
@@ -66,15 +66,15 @@ def test_outlet_port_carries_outlet_spec():
 # --- grading-only changes (decision 0016, task 0027) -------------------------
 
 def _wall_resolved(radius, first_cell=1e-3):
-    """Same absolute first cell at the wall: the solved mprg depends on R."""
-    return (PipeSpec(nang=8).core("fluid", radius=radius, nrad=8, first_cell=first_cell)
-            .shell("wall", dR=0.01, nrad=3))
+    """Same absolute first cell at the wall: the solved radial_grading depends on R."""
+    return (PipeSpec(n_arc=8).core("fluid", radius=radius, n_radial=8, first_cell=first_cell)
+            .shell("wall", dR=0.01, n_radial=3))
 
 
 def test_wall_resolved_reducer(gmsh_session):
-    """The use case: pipe(0.1) → pipe(0.06), same absolute first_cell and nrad."""
+    """The use case: pipe(0.1) → pipe(0.06), same absolute first_cell and n_radial."""
     a, b = _wall_resolved(0.1), _wall_resolved(0.06)
-    assert a._core_mprg != b._core_mprg                       # really a grading change
+    assert a._core_radial_grading != b._core_radial_grading                       # really a grading change
     asm = Assembly(a, direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Straight(0.2, n_layers=4))
     asm.add(Reducer(b, length=0.2, n_layers=6))
@@ -91,10 +91,10 @@ def test_wall_resolved_reducer(gmsh_session):
 
 @pytest.mark.parametrize("u_grading", [1.0, 1.4])
 def test_grading_interpolated_per_station(u_grading):
-    """mprg_k = mprg_in^(1-u) · mprg_out^u at the radii's fractions u."""
+    """radial_grading_k = radial_grading_in^(1-u) · radial_grading_out^u at the radii's fractions u."""
     from hexmesh.assembly.interface import Frame
-    a = PipeSpec(nang=4).core("fluid", radius=0.1, nrad=3, mprg=1.0).shell("wall", dR=0.02, nrad=2, mprg=1.3)
-    b = PipeSpec(nang=4).core("fluid", radius=0.06, nrad=3, mprg=1.5).shell("wall", dR=0.02, nrad=2, mprg=0.8)
+    a = PipeSpec(n_arc=4).core("fluid", radius=0.1, n_radial=3, radial_grading=1.0).shell("wall", dR=0.02, n_radial=2, radial_grading=1.3)
+    b = PipeSpec(n_arc=4).core("fluid", radius=0.06, n_radial=3, radial_grading=1.5).shell("wall", dR=0.02, n_radial=2, radial_grading=0.8)
     red = Reducer(b, length=0.2, n_layers=5, axial_grading=u_grading)
     fa = Frame.from_vectors([0, 0, 0], [1, 0, 0], [0, 0, 1])
     fb = red.ports(fa, a)[0][0]
@@ -103,19 +103,19 @@ def test_grading_interpolated_per_station(u_grading):
     for k in range(6):
         spec = path.spec_at(k, a)
         want = [1.0 ** (1 - u[k]) * 1.5 ** u[k], 1.3 ** (1 - u[k]) * 0.8 ** u[k]]
-        got = [spec._core_mprg, spec.shells[0].mprg]
+        got = [spec._core_radial_grading, spec.shells[0].radial_grading]
         np.testing.assert_allclose(got, want, rtol=1e-14)
         np.testing.assert_allclose(spec.core_shape.radius, 0.1 + (0.06 - 0.1) * u[k], rtol=1e-14)
 
 
-def test_grading_change_rejects_mbmp():
+def test_grading_change_rejects_arc_bump():
     """Angular grading stays a class-2 count/grading change without a bridge."""
     a = _spec()
-    b = (PipeSpec(nang=4, mbmp=0.6).core("fluid", shape=CircleShape(radius=0.06, nang=4), nrad=3)
-         .shell("wall", dR=0.02, nrad=2))
-    asm = Assembly(a, lc=0.05)
+    b = (PipeSpec(n_arc=4, arc_bump=0.6).core("fluid", shape=CircleShape(radius=0.06, n_arc=4), n_radial=3)
+         .shell("wall", dR=0.02, n_radial=2))
+    asm = Assembly(a)
     asm.add(Reducer(b, length=0.2, n_layers=3))
-    with pytest.raises(AssemblyError, match=r"mbmp.*switch class 2 beyond radial grading"):
+    with pytest.raises(AssemblyError, match=r"arc_bump.*switch class 2 beyond radial grading"):
         asm.validate()
 
 
@@ -130,8 +130,8 @@ VENTURI = ("venturi", 0.5, 15)
 TABLE = ((0, 1), (0.3, 0.8), (0.6, 0.7), (1, 0.6))
 
 
-def _core(radius=0.1, nang=6):
-    return PipeSpec(nang=nang).core("fluid", radius=radius, nrad=3)
+def _core(radius=0.1, n_arc=6):
+    return PipeSpec(n_arc=n_arc).core("fluid", radius=radius, n_radial=3)
 
 
 def _profiled(profile, outlet=None, length=0.4, n=40, spec=None, **kw):

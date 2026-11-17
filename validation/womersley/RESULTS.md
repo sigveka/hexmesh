@@ -25,7 +25,7 @@ The pressure-gradient amplitude and phase per level against the exact solution, 
 
 ## Levels
 
-`nang`/`nrad`/axial layers ×k; Δt ∝ 1/k (Co ≈ 0.47 on every level).
+`n_arc`/`n_radial`/axial layers ×k; Δt ∝ 1/k (Co ≈ 0.47 on every level).
 
 | Level | Cells | min SJ | max non-orth. (°) | steps per period | periods to periodic | last change | solver time per period (s) | inlet applied error |
 |---|---|---|---|---|---|---|---|---|
@@ -67,7 +67,7 @@ samples 0.26 and 0.76.
   the worst over all phases goes 2.11 → 0.65 → 0.31 %, orders 1.7 and 1.1,
   and the worst phase moves from 0.42 (k2) to 0.59 (k4).  It is a local
   error, at one location.  Its position isn't recorded and the cause
-  isn't established.  One candidate: the wall grading (`mprg` 0.85^(1/k))
+  isn't established.  One candidate: the wall grading (`radial_grading` 0.85^(1/k))
   changes with the level, so the near-wall cells don't halve exactly.
 
 ## Pressure gradient (planes at 4 D and 6 D)

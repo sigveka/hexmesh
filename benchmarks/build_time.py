@@ -24,7 +24,7 @@ import numpy as np
 
 from hexmesh import Assembly, Bend, PipeSpec, Straight
 
-SPEC = PipeSpec(nang=4).core("fluid", radius=0.05, nrad=3)
+SPEC = PipeSpec(n_arc=4).core("fluid", radius=0.05, n_radial=3)
 
 
 def network(pairs: int) -> Assembly:

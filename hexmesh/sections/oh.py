@@ -344,9 +344,9 @@ def levels(spec) -> list[Level]:
         polar = [(r, ang) for r in radii]
         if n == 8:          # the inner side middles aren't at the inner radius
             polar[0] = None
-    nrads = [spec._core_nrad] + [sh.nrad for sh in spec.shells]
-    mprgs = [spec._core_mprg] + [sh.mprg for sh in spec.shells]
-    bump = ("Bump", spec.mbmp) if spec.mbmp != 1.0 else None
+    n_radials = [spec._core_n_radial] + [sh.n_radial for sh in spec.shells]
+    radial_gradings = [spec._core_radial_grading] + [sh.radial_grading for sh in spec.shells]
+    bump = ("Bump", spec.arc_bump) if spec.arc_bump != 1.0 else None
     # level 0 and the core's boundary share the core's counts; ring sides theirs
     counts = [side_counts(outlines[0], n)] + [side_counts(o, n) for o in outlines]
     out = []
@@ -355,8 +355,8 @@ def levels(spec) -> list[Level]:
         for k in range(n):
             edges.append(Edge((lvl, k), (lvl, (k + 1) % n), counts[lvl][k], bump))
             if lvl:
-                edges.append(Edge((lvl - 1, k), (lvl, k), nrads[lvl - 1],
-                                  ("Progression", mprgs[lvl - 1])))
+                edges.append(Edge((lvl - 1, k), (lvl, k), n_radials[lvl - 1],
+                                  ("Progression", radial_gradings[lvl - 1])))
         if n == 8 and lvl == 0:     # the core cuts: centre → odd inner corners
             for k in range(1, n, 2):
                 edges.append(Edge((0, CENTRE), (0, k), counts[0][(k + 1) % n], None))
@@ -413,7 +413,7 @@ def node_grids(spec) -> list[tuple[int, np.ndarray]]:
     outlines = spec.outlines
     corners = spec.corners()
     core = outlines[0]
-    mb = spec.mbmp
+    mb = spec.arc_bump
     counts = [core.side_count(k, 4) for k in range(4)]
     s = [bump(c, mb) for c in counts]
 
@@ -421,12 +421,12 @@ def node_grids(spec) -> list[tuple[int, np.ndarray]]:
     inner = [outline(core, k, s[k], inner=True) for k in range(4)]
     out = [(0, _coons(bottom=inner[2], top=inner[0][::-1],
                       left=inner[1][::-1], right=inner[3]))]
-    t = progression(spec._core_nrad, spec._core_mprg)
+    t = progression(spec._core_n_radial, spec._core_radial_grading)
     prev = [outline(core, k, s[k]) for k in range(4)]
     out += [(0, _ring(inner[k], prev[k], t)) for k in range(4)]
 
     for i, (sh, o) in enumerate(zip(spec.shells, outlines[1:]), start=1):
-        t = progression(sh.nrad, sh.mprg)
+        t = progression(sh.n_radial, sh.radial_grading)
         c = corners[i]
         cur = [o.side(c[k], c[(k + 1) % 4], s[k]) for k in range(4)]
         out += [(i, _ring(prev[k], cur[k], t)) for k in range(4)]
@@ -438,12 +438,12 @@ def section_cells(spec) -> int:
     """Quads in one O-H cross-section (pure; DESIGN P4).
 
     With ``c = spec.side_counts`` (divisions per outer curve), the core is
-    a ``c[0] × c[1]`` centre patch plus one ring patch of ``c[k] × nrad``
-    per side; every shell adds the same ring again with its own ``nrad``.
-    A circle has ``c[k] = nang // (n_outer // 4)``; a rectangle
-    ``nang_w, nang_h, nang_w, nang_h``.
+    a ``c[0] × c[1]`` centre patch plus one ring patch of ``c[k] × n_radial``
+    per side; every shell adds the same ring again with its own ``n_radial``.
+    A circle has ``c[k] = n_arc // (n_outer // 4)``; a rectangle
+    ``n_width, n_height, n_width, n_height``.
     """
     c = spec.side_counts
     m = partition(spec.n_outer)        # a partitioned face: the same cells (task 0088)
-    nrads = [spec._core_nrad] + [sh.nrad for sh in spec.shells]
-    return m * c[0] * m * c[m] + sum(c) * sum(nrads)
+    n_radials = [spec._core_n_radial] + [sh.n_radial for sh in spec.shells]
+    return m * c[0] * m * c[m] + sum(c) * sum(n_radials)

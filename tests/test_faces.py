@@ -55,9 +55,9 @@ class TestBuildOhCircle:
         c = _cursor_xz()
         cs = build_oh_circle(
             cx=0., cy=0., cz=0.,
-            shape=CircleShape(radius=0.1, nang=4),
+            shape=CircleShape(radius=0.1, n_arc=4),
             h_axis=c.right, v_axis=c.up,
-            lc=0.1, nrad=3,
+            n_radial=3,
         )
         assert len(cs.surfaces) == 5
 
@@ -65,9 +65,9 @@ class TestBuildOhCircle:
         c = _cursor_xz()
         cs = build_oh_circle(
             cx=0., cy=0., cz=0.,
-            shape=CircleShape(radius=0.1, nang=4),
+            shape=CircleShape(radius=0.1, n_arc=4),
             h_axis=c.right, v_axis=c.up,
-            lc=0.1, nrad=3,
+            n_radial=3,
         )
         assert cs.boundary_type is BoundaryType.CIRCULAR
 
@@ -75,9 +75,9 @@ class TestBuildOhCircle:
         c = _cursor_xz()
         cs = build_oh_circle(
             cx=0., cy=0., cz=0.,
-            shape=CircleShape(radius=0.1, nang=4),
+            shape=CircleShape(radius=0.1, n_arc=4),
             h_axis=c.right, v_axis=c.up,
-            lc=0.1, nrad=3,
+            n_radial=3,
         )
         assert len(cs.outer_points) == 4
         assert all(isinstance(t, int) and t > 0 for t in cs.outer_points)
@@ -86,9 +86,9 @@ class TestBuildOhCircle:
         c = _cursor_xz()
         cs = build_oh_circle(
             cx=0., cy=0., cz=0.,
-            shape=CircleShape(radius=0.1, nang=4),
+            shape=CircleShape(radius=0.1, n_arc=4),
             h_axis=c.right, v_axis=c.up,
-            lc=0.1, nrad=3,
+            n_radial=3,
         )
         assert len(cs.outer_curves) == 4
 
@@ -96,9 +96,9 @@ class TestBuildOhCircle:
         c = _cursor_xz()
         cs = build_oh_circle(
             cx=0., cy=0., cz=0.,
-            shape=CircleShape(radius=0.1, nang=4),
+            shape=CircleShape(radius=0.1, n_arc=4),
             h_axis=c.right, v_axis=c.up,
-            lc=0.1, nrad=3,
+            n_radial=3,
         )
         np.testing.assert_allclose(cs.h_axis, c.right, atol=1e-12)
         np.testing.assert_allclose(cs.v_axis, c.up,    atol=1e-12)
@@ -107,9 +107,9 @@ class TestBuildOhCircle:
         c = _cursor_xz()
         cs = build_oh_circle(
             cx=1., cy=2., cz=3.,
-            shape=CircleShape(radius=0.1, nang=4),
+            shape=CircleShape(radius=0.1, n_arc=4),
             h_axis=c.right, v_axis=c.up,
-            lc=0.1, nrad=3,
+            n_radial=3,
         )
         assert cs.cx == pytest.approx(1.)
         assert cs.cy == pytest.approx(2.)
@@ -120,9 +120,9 @@ class TestBuildOhCircle:
         c = _cursor_xz()
         cs = build_oh_circle(
             cx=0., cy=0., cz=0.,
-            shape=CircleShape(radius=0.1, nang=4),
+            shape=CircleShape(radius=0.1, n_arc=4),
             h_axis=c.right, v_axis=c.up,
-            lc=0.1, nrad=3,
+            n_radial=3,
         )
         assert len(cs.inner_points)  == 4
         assert len(cs.inner_curves)  == 4
@@ -133,9 +133,9 @@ class TestBuildOhCircle:
         c = _cursor_xz()
         cs = build_oh_circle(
             cx=0.5, cy=0.0, cz=0.5,
-            shape=CircleShape(radius=0.1, nang=4),
+            shape=CircleShape(radius=0.1, n_arc=4),
             h_axis=c.right, v_axis=c.up,
-            lc=0.1, nrad=3,
+            n_radial=3,
         )
         assert len(cs.surfaces) == 5
 
@@ -148,9 +148,9 @@ class TestBuildOhCircle:
         )
         cs = build_oh_circle(
             cx=0., cy=0., cz=0.,
-            shape=CircleShape(radius=0.1, nang=4),
+            shape=CircleShape(radius=0.1, n_arc=4),
             h_axis=c.right, v_axis=c.up,
-            lc=0.1, nrad=3,
+            n_radial=3,
         )
         np.testing.assert_allclose(cs.h_axis, c.right, atol=1e-12)
         np.testing.assert_allclose(cs.v_axis, c.up,    atol=1e-12)
@@ -168,9 +168,9 @@ class TestBuildOhSplit:
         c = _cursor_xz()
         defaults = dict(
             cx=0., cy=0., cz=0.,
-            shape=CircleShape(radius=0.1, nang=4),
+            shape=CircleShape(radius=0.1, n_arc=4),
             h_axis=c.right, v_axis=c.up,
-            lc=0.1, nrad=3,
+            n_radial=3,
         )
         defaults.update(kwargs)
         return build_oh_split(**defaults)
@@ -236,22 +236,22 @@ class TestBuildOhSplit:
         )
         cs = build_oh_split(
             cx=0., cy=0., cz=0.,
-            shape=CircleShape(radius=0.1, nang=4),
+            shape=CircleShape(radius=0.1, n_arc=4),
             h_axis=c.right, v_axis=c.up,
-            lc=0.1, nrad=3,
+            n_radial=3,
         )
         np.testing.assert_allclose(cs.h_axis, c.right, atol=1e-12)
         np.testing.assert_allclose(cs.v_axis, c.up,    atol=1e-12)
 
-    def test_odd_nang_raises(self, gmsh_session):
+    def test_odd_n_arc_raises(self, gmsh_session):
         """Each side is cut in half: its divisions must be even."""
         with pytest.raises(SpecError) as e:
-            self._build(gmsh_session, shape=CircleShape(radius=0.1, nang=3))
-        assert e.value.code == "nang_not_divisible"
+            self._build(gmsh_session, shape=CircleShape(radius=0.1, n_arc=3))
+        assert e.value.code == "n_arc_not_divisible"
 
-    def test_nang_6_works(self, gmsh_session):
-        """nang=6 (even) is valid."""
-        cs = self._build(gmsh_session, shape=CircleShape(radius=0.1, nang=6))
+    def test_n_arc_6_works(self, gmsh_session):
+        """n_arc=6 (even) is valid."""
+        cs = self._build(gmsh_session, shape=CircleShape(radius=0.1, n_arc=6))
         assert len(cs.surfaces) == 12
 
     def test_rot_offset(self, gmsh_session):
@@ -266,9 +266,9 @@ class TestBuildOhSplit:
         c = _cursor_xz()
         cs = build_oh_circle(
             cx=0., cy=0., cz=0.,
-            shape=CircleShape(radius=0.1, nang=4),
+            shape=CircleShape(radius=0.1, n_arc=4),
             h_axis=c.right, v_axis=c.up,
-            lc=0.1, nrad=3,
+            n_radial=3,
         )
         assert cs.n_outer == 4
 
@@ -282,9 +282,9 @@ class TestBuildOhRect:
         c = _cursor_xz()
         cs = build_oh_rect(
             cx=0., cy=0., cz=0.,
-            shape=RectShape(half_w=0.1, half_h=0.05, nang_w=3, nang_h=2),
+            shape=RectShape(half_w=0.1, half_h=0.05, n_width=3, n_height=2),
             h_axis=c.right, v_axis=c.up,
-            lc=0.1, nrad=3,
+            n_radial=3,
         )
         assert len(cs.surfaces) == 5
 
@@ -292,9 +292,9 @@ class TestBuildOhRect:
         c = _cursor_xz()
         cs = build_oh_rect(
             cx=0., cy=0., cz=0.,
-            shape=RectShape(half_w=0.1, half_h=0.05, nang_w=3, nang_h=2),
+            shape=RectShape(half_w=0.1, half_h=0.05, n_width=3, n_height=2),
             h_axis=c.right, v_axis=c.up,
-            lc=0.1, nrad=3,
+            n_radial=3,
         )
         assert cs.boundary_type is BoundaryType.SQUARE
 
@@ -302,9 +302,9 @@ class TestBuildOhRect:
         c = _cursor_xz()
         cs = build_oh_rect(
             cx=0., cy=0., cz=0.,
-            shape=RectShape(half_w=0.1, half_h=0.05, nang_w=3, nang_h=2),
+            shape=RectShape(half_w=0.1, half_h=0.05, n_width=3, n_height=2),
             h_axis=c.right, v_axis=c.up,
-            lc=0.1, nrad=3,
+            n_radial=3,
         )
         assert len(cs.outer_points) == 4
 
@@ -312,9 +312,9 @@ class TestBuildOhRect:
         c = _cursor_xz()
         cs = build_oh_rect(
             cx=0., cy=0., cz=0.,
-            shape=RectShape(half_w=0.1, half_h=0.05, nang_w=3, nang_h=2),
+            shape=RectShape(half_w=0.1, half_h=0.05, n_width=3, n_height=2),
             h_axis=c.right, v_axis=c.up,
-            lc=0.1, nrad=3,
+            n_radial=3,
         )
         np.testing.assert_allclose(cs.h_axis, c.right, atol=1e-12)
         np.testing.assert_allclose(cs.v_axis, c.up,    atol=1e-12)
@@ -324,9 +324,9 @@ class TestBuildOhRect:
         c = _cursor_xz()
         cs = build_oh_rect(
             cx=0., cy=0., cz=0.,
-            shape=RectShape(half_w=0.1, half_h=0.1, nang_w=3, nang_h=3),
+            shape=RectShape(half_w=0.1, half_h=0.1, n_width=3, n_height=3),
             h_axis=c.right, v_axis=c.up,
-            lc=0.1, nrad=3,
+            n_radial=3,
         )
         assert len(cs.surfaces) == 5
         assert cs.boundary_type is BoundaryType.SQUARE
@@ -341,48 +341,48 @@ class TestBuildAnnulus:
         c = _cursor_xz()
         return build_oh_circle(
             cx=0., cy=0., cz=0.,
-            shape=CircleShape(radius=0.1, nang=4),
+            shape=CircleShape(radius=0.1, n_arc=4),
             h_axis=c.right, v_axis=c.up,
-            lc=0.1, nrad=3,
+            n_radial=3,
         )
 
     def test_returns_four_surfaces(self, gmsh_session):
         inner = self._core(gmsh_session)
-        ann = build_annulus(inner=inner, dR=0.02, lc=0.1, nrad=2)
+        ann = build_annulus(inner=inner, dR=0.02, n_radial=2)
         assert len(ann.surfaces) == 4
 
     def test_boundary_type_circular(self, gmsh_session):
         inner = self._core(gmsh_session)
-        ann = build_annulus(inner=inner, dR=0.02, lc=0.1, nrad=2)
+        ann = build_annulus(inner=inner, dR=0.02, n_radial=2)
         assert ann.boundary_type is BoundaryType.CIRCULAR
 
     def test_four_outer_points(self, gmsh_session):
         inner = self._core(gmsh_session)
-        ann = build_annulus(inner=inner, dR=0.02, lc=0.1, nrad=2)
+        ann = build_annulus(inner=inner, dR=0.02, n_radial=2)
         assert len(ann.outer_points) == 4
 
     def test_conformality_inner_points_reused(self, gmsh_session):
         """Annulus inner_points must equal the core outer_points (same GMSH tags)."""
         inner = self._core(gmsh_session)
-        ann = build_annulus(inner=inner, dR=0.02, lc=0.1, nrad=2)
+        ann = build_annulus(inner=inner, dR=0.02, n_radial=2)
         assert ann.inner_points == inner.outer_points
 
     def test_conformality_inner_curves_reused(self, gmsh_session):
         """Annulus inner_curves must reference the same tags as core outer_curves."""
         inner = self._core(gmsh_session)
-        ann = build_annulus(inner=inner, dR=0.02, lc=0.1, nrad=2)
+        ann = build_annulus(inner=inner, dR=0.02, n_radial=2)
         # Tags should be identical (same GMSH entities, possibly signed)
         assert list(ann.inner_curves) == list(inner.outer_curves)
 
     def test_axes_inherited_from_inner(self, gmsh_session):
         inner = self._core(gmsh_session)
-        ann = build_annulus(inner=inner, dR=0.02, lc=0.1, nrad=2)
+        ann = build_annulus(inner=inner, dR=0.02, n_radial=2)
         np.testing.assert_allclose(ann.h_axis, inner.h_axis, atol=1e-12)
         np.testing.assert_allclose(ann.v_axis, inner.v_axis, atol=1e-12)
 
     def test_outer_radius_increases(self, gmsh_session):
         inner = self._core(gmsh_session)
-        ann = build_annulus(inner=inner, dR=0.025, lc=0.1, nrad=2)
+        ann = build_annulus(inner=inner, dR=0.025, n_radial=2)
         from hexmesh.core.shape import CircleShape
         assert isinstance(ann.shape, CircleShape)
         assert ann.shape.radius == pytest.approx(0.1 + 0.025)
@@ -390,8 +390,8 @@ class TestBuildAnnulus:
     def test_stacking_two_annuli(self, gmsh_session):
         """Three concentric layers all sharing entity tags conformally."""
         inner = self._core(gmsh_session)
-        mid   = build_annulus(inner=inner, dR=0.02, lc=0.1, nrad=2)
-        outer = build_annulus(inner=mid,   dR=0.02, lc=0.1, nrad=2)
+        mid   = build_annulus(inner=inner, dR=0.02, n_radial=2)
+        outer = build_annulus(inner=mid,   dR=0.02, n_radial=2)
         assert outer.inner_points == mid.outer_points
         assert list(outer.inner_curves) == list(mid.outer_curves)
 
@@ -400,11 +400,11 @@ class TestBuildAnnulus:
         c = _cursor_xz()
         rect_cs = build_oh_rect(
             cx=0., cy=0., cz=0.,
-            shape=RectShape(0.1, 0.05, nang_w=3, nang_h=2),
+            shape=RectShape(0.1, 0.05, n_width=3, n_height=2),
             h_axis=c.right, v_axis=c.up,
-            lc=0.1, nrad=3,
+            n_radial=3,
         )
-        ann = build_annulus(inner=rect_cs, dR=0.02, lc=0.1, nrad=2)
+        ann = build_annulus(inner=rect_cs, dR=0.02, n_radial=2)
         assert ann.boundary_type is BoundaryType.SQUARE
         assert (ann.shape.half_w, ann.shape.half_h) == pytest.approx((0.12, 0.07))
 
@@ -420,59 +420,59 @@ class TestBuildAnnulus8:
         c = _cursor_xz()
         return build_oh_split(
             cx=0., cy=0., cz=0.,
-            shape=CircleShape(radius=0.1, nang=4),
+            shape=CircleShape(radius=0.1, n_arc=4),
             h_axis=c.right, v_axis=c.up,
-            lc=0.1, nrad=3,
+            n_radial=3,
         )
 
     def test_returns_eight_surfaces(self, gmsh_session):
         inner = self._core8(gmsh_session)
-        ann = build_annulus(inner=inner, dR=0.02, lc=0.1, nrad=2)
+        ann = build_annulus(inner=inner, dR=0.02, n_radial=2)
         assert len(ann.surfaces) == 8
 
     def test_eight_outer_points(self, gmsh_session):
         inner = self._core8(gmsh_session)
-        ann = build_annulus(inner=inner, dR=0.02, lc=0.1, nrad=2)
+        ann = build_annulus(inner=inner, dR=0.02, n_radial=2)
         assert len(ann.outer_points) == 8
 
     def test_eight_outer_curves(self, gmsh_session):
         inner = self._core8(gmsh_session)
-        ann = build_annulus(inner=inner, dR=0.02, lc=0.1, nrad=2)
+        ann = build_annulus(inner=inner, dR=0.02, n_radial=2)
         assert len(ann.outer_curves) == 8
 
     def test_n_outer_is_8(self, gmsh_session):
         inner = self._core8(gmsh_session)
-        ann = build_annulus(inner=inner, dR=0.02, lc=0.1, nrad=2)
+        ann = build_annulus(inner=inner, dR=0.02, n_radial=2)
         assert ann.n_outer == 8
 
     def test_conformality_inner_points_reused(self, gmsh_session):
         inner = self._core8(gmsh_session)
-        ann = build_annulus(inner=inner, dR=0.02, lc=0.1, nrad=2)
+        ann = build_annulus(inner=inner, dR=0.02, n_radial=2)
         assert ann.inner_points == inner.outer_points
 
     def test_conformality_inner_curves_reused(self, gmsh_session):
         inner = self._core8(gmsh_session)
-        ann = build_annulus(inner=inner, dR=0.02, lc=0.1, nrad=2)
+        ann = build_annulus(inner=inner, dR=0.02, n_radial=2)
         assert list(ann.inner_curves) == list(inner.outer_curves)
 
     def test_corner_angles_propagated(self, gmsh_session):
         """corner_angles flow from core → first annulus → second annulus."""
         inner = self._core8(gmsh_session)
-        mid   = build_annulus(inner=inner, dR=0.02, lc=0.1, nrad=2)
-        outer = build_annulus(inner=mid,   dR=0.02, lc=0.1, nrad=2)
+        mid   = build_annulus(inner=inner, dR=0.02, n_radial=2)
+        outer = build_annulus(inner=mid,   dR=0.02, n_radial=2)
         assert len(outer.corner_angles) == 8
         np.testing.assert_allclose(outer.corner_angles, inner.corner_angles, atol=1e-12)
 
     def test_stacking_two_annuli_8(self, gmsh_session):
         inner = self._core8(gmsh_session)
-        mid   = build_annulus(inner=inner, dR=0.02, lc=0.1, nrad=2)
-        outer = build_annulus(inner=mid,   dR=0.02, lc=0.1, nrad=2)
+        mid   = build_annulus(inner=inner, dR=0.02, n_radial=2)
+        outer = build_annulus(inner=mid,   dR=0.02, n_radial=2)
         assert outer.inner_points == mid.outer_points
         assert list(outer.inner_curves) == list(mid.outer_curves)
 
     def test_outer_radius_increases(self, gmsh_session):
         inner = self._core8(gmsh_session)
-        ann = build_annulus(inner=inner, dR=0.025, lc=0.1, nrad=2)
+        ann = build_annulus(inner=inner, dR=0.025, n_radial=2)
         assert ann.shape.radius == pytest.approx(0.1 + 0.025)
 
     def test_4corner_n_outer_still_4(self, gmsh_session):
@@ -480,11 +480,11 @@ class TestBuildAnnulus8:
         c = _cursor_xz()
         inner = build_oh_circle(
             cx=0., cy=0., cz=0.,
-            shape=CircleShape(radius=0.1, nang=4),
+            shape=CircleShape(radius=0.1, n_arc=4),
             h_axis=c.right, v_axis=c.up,
-            lc=0.1, nrad=3,
+            n_radial=3,
         )
-        ann = build_annulus(inner=inner, dR=0.02, lc=0.1, nrad=2)
+        ann = build_annulus(inner=inner, dR=0.02, n_radial=2)
         assert ann.n_outer == 4
         assert len(ann.surfaces) == 4
 
@@ -501,14 +501,14 @@ def _boundary_xy(cs):
 class TestBuildRing:
     def _core(self, gmsh_session, shape=None):
         c = _cursor_xz()
-        shape = shape or CircleShape(radius=0.1, nang=4)
+        shape = shape or CircleShape(radius=0.1, n_arc=4)
         build = build_oh_circle if isinstance(shape, CircleShape) else build_oh_rect
         return build(cx=0., cy=0., cz=0., shape=shape,
-                     h_axis=c.right, v_axis=c.up, lc=0.1, nrad=3)
+                     h_axis=c.right, v_axis=c.up, n_radial=3)
 
     def test_circle_in_square(self, gmsh_session):
         inner = self._core(gmsh_session)
-        sq = build_ring(inner, RectShape(0.18, 0.18, nang_w=4, nang_h=4), lc=0.1, nrad=2)
+        sq = build_ring(inner, RectShape(0.18, 0.18, n_width=4, n_height=4), n_radial=2)
         assert len(sq.surfaces) == 4
         assert sq.boundary_type is BoundaryType.SQUARE
         assert sq.inner_points == inner.outer_points
@@ -520,7 +520,7 @@ class TestBuildRing:
         """A circle in a 2:1 rectangle: skewed corner lines, ending at the
         rectangle's corners; the recorded corner angles are theirs."""
         inner = self._core(gmsh_session)
-        r = build_ring(inner, RectShape(0.3, 0.15, nang_w=4, nang_h=4), lc=0.1, nrad=2)
+        r = build_ring(inner, RectShape(0.3, 0.15, n_width=4, n_height=4), n_radial=2)
         np.testing.assert_allclose(_boundary_xy(r), [[0.3, 0.15], [-0.3, 0.15],
                                                      [-0.3, -0.15], [0.3, -0.15]], atol=1e-12)
         assert r.corner_angles[0] == pytest.approx(math.atan2(0.15, 0.3))
@@ -528,8 +528,8 @@ class TestBuildRing:
     def test_rectangle_in_circle(self, gmsh_session):
         """A 2:1 rectangle in a circle: corner lines run radially, so the
         circle's arcs are unequal; the outer sides are arcs."""
-        inner = self._core(gmsh_session, RectShape(0.1, 0.05, nang_w=4, nang_h=4))
-        r = build_ring(inner, CircleShape(0.2, nang=4), lc=0.1, nrad=2)
+        inner = self._core(gmsh_session, RectShape(0.1, 0.05, n_width=4, n_height=4))
+        r = build_ring(inner, CircleShape(0.2, n_arc=4), n_radial=2)
         assert r.boundary_type is BoundaryType.CIRCULAR
         xy = _boundary_xy(r)
         np.testing.assert_allclose(np.hypot(*xy.T), 0.2, atol=1e-12)
@@ -537,8 +537,8 @@ class TestBuildRing:
 
     def test_build_annulus_is_a_grown_ring(self, gmsh_session):
         inner = self._core(gmsh_session)
-        ann = build_annulus(inner=inner, dR=0.02, lc=0.1, nrad=2)
+        ann = build_annulus(inner=inner, dR=0.02, n_radial=2)
         assert ann.shape.radius == pytest.approx(0.12)
-        sq = build_annulus(inner=build_ring(ann, RectShape(0.2, 0.2, nang_w=4, nang_h=4), lc=0.1, nrad=2),
-                           dR=0.01, lc=0.1, nrad=2)
+        sq = build_annulus(inner=build_ring(ann, RectShape(0.2, 0.2, n_width=4, n_height=4), n_radial=2),
+                           dR=0.01, n_radial=2)
         np.testing.assert_allclose(np.abs(_boundary_xy(sq)), 0.21, atol=1e-12)

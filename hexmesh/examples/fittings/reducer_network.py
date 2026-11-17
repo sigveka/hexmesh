@@ -11,9 +11,9 @@ from hexmesh import Assembly, Bend, PipeSpec, Reducer, Straight
 
 
 def pipe(radius: float) -> PipeSpec:
-    return (PipeSpec(nang=6)
-            .core("fluid", radius=radius, nrad=5)
-            .shell("pipe_wall", dR=0.01, nrad=2))
+    return (PipeSpec(n_arc=6)
+            .core("fluid", radius=radius, n_radial=5)
+            .shell("pipe_wall", dR=0.01, n_radial=2))
 
 
 def build() -> Assembly:

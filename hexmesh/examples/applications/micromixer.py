@@ -70,10 +70,10 @@ TWIST, L_TWIST, L_OUTLET = 360.0, 2 * mm, 1 * mm
 N = 8  # cells per side of every section
 
 #: The inlet line: a square duct, the main of the T.
-INLET = PipeSpec(nang_w=N, nang_h=N).core("fluid", half_w=INLET_W / 2, half_h=DEPTH / 2)
+INLET = PipeSpec(n_width=N, n_height=N).core("fluid", half_w=INLET_W / 2, half_h=DEPTH / 2)
 #: The mixing channel's section, as the tap leaves the main's face:
 #: across the face it is the duct's depth, along the main its width.
-MIXING = RectShape(DEPTH / 2, MIX_W / 2, nang_w=N, nang_h=N)
+MIXING = RectShape(DEPTH / 2, MIX_W / 2, n_width=N, n_height=N)
 
 
 def build() -> Assembly:

@@ -17,7 +17,7 @@ building, and a square terminal.
     python3 -m hexmesh.examples.applications.hvac_supply # writes hvac_supply.msh
 
 - A ``Transition`` takes the round fan outlet (Ø 0.3) to a 0.5 × 0.25
-  duct.  Counts per side match (``nang`` = ``nang_w`` = ``nang_h``), so the
+  duct.  Counts per side match (``n_arc`` = ``n_width`` = ``n_height``), so the
   two faces have the same mesh connectivity.
 - The duct rises with an easy-way bend (``roll=0``: across the height),
   turns along the ceiling with a two-cut mitred hard-way bend
@@ -26,7 +26,7 @@ building, and a square terminal.
 - A ``Reducer`` (rectangle → rectangle: half_w and half_h change on the
   H face) ends at a 0.3 × 0.3 square terminal, named ``terminal``.
 - The rectangles are H faces (the default since 0.4.0), their walls
-  graded by ``mprg`` (the second cell from each wall over the first).
+  graded by ``radial_grading`` (the second cell from each wall over the first).
 
 Patches: ``air_inlet``, ``air_terminal``, ``air_wall``.
 """
@@ -37,9 +37,9 @@ from hexmesh import (
 
 N = 8      # cells per side, shared by every section so transitions are class 0
 
-FAN = PipeSpec(nang=N).core("air", radius=0.15, nrad=4)
-DUCT = PipeSpec(nang_w=N, nang_h=N).core("air", half_w=0.25, half_h=0.125, mprg=1.2)
-TERMINAL = PipeSpec(nang_w=N, nang_h=N).core("air", half_w=0.15, half_h=0.15, mprg=1.2)
+FAN = PipeSpec(n_arc=N).core("air", radius=0.15, n_radial=4)
+DUCT = PipeSpec(n_width=N, n_height=N).core("air", half_w=0.25, half_h=0.125, radial_grading=1.2)
+TERMINAL = PipeSpec(n_width=N, n_height=N).core("air", half_w=0.15, half_h=0.15, radial_grading=1.2)
 
 
 def build() -> Assembly:

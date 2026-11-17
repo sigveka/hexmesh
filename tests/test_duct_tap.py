@@ -37,12 +37,12 @@ A = 2 * B           # 2:1 duct, the tap on a wide face (half-width A)
 
 
 def _spec(aspect=2, n=4, **kw):
-    return PipeSpec(nang_w=n, nang_h=n, **kw).core("fluid", half_w=aspect * B, half_h=B, nrad=3,
+    return PipeSpec(n_width=n, n_height=n, **kw).core("fluid", half_w=aspect * B, half_h=B, n_radial=3,
                                                    layout="oh")
 
 
 def _asm(tee, spec=None, n=4):
-    asm = Assembly(spec or _spec(n=n), direction=[1, 0, 0], up=[0, 0, 1], lc=0.1)
+    asm = Assembly(spec or _spec(n=n), direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Straight(0.2, n_layers=n))
     main, branch = asm.add(tee)
     asm.add(main, Straight(0.2, n_layers=n))
@@ -51,7 +51,7 @@ def _asm(tee, spec=None, n=4):
 
 
 def _rect(q, n=4):
-    return RectShape(q, q, nang_w=n, nang_h=n)
+    return RectShape(q, q, n_width=n, n_height=n)
 
 
 def _tee(branch, **kw):
@@ -67,7 +67,7 @@ def test_tunables_resolved_and_overridable():
     assert (fixed.margin, fixed.dome, fixed.sheet) == (1.0, 0.35, 0.35)
 
 
-@pytest.mark.parametrize("branch", [_rect(0.6 * A), CircleShape(radius=0.6 * A, nang=4)])
+@pytest.mark.parametrize("branch", [_rect(0.6 * A), CircleShape(radius=0.6 * A, n_arc=4)])
 def test_json_round_trip_and_refinement(branch):
     asm = _asm(_tee(branch))
     d = intent.to_dict(asm)
@@ -75,8 +75,8 @@ def test_json_round_trip_and_refinement(branch):
     assert back.edges[1].fitting == asm.edges[1].fitting      # tunables explicit in the JSON
     assert back.cell_count() == asm.cell_count()
     fine = Assembly.from_dict(intent.refined_dict(d, 2))
-    assert fine.edges[1].fitting.branch.to_dict()["nang_w" if isinstance(branch, RectShape)
-                                                   else "nang"] == 8
+    assert fine.edges[1].fitting.branch.to_dict()["n_width" if isinstance(branch, RectShape)
+                                                   else "n_arc"] == 8
     assert fine.cell_count() == 8 * asm.cell_count()
 
 
@@ -104,16 +104,16 @@ def test_roll_picks_the_side():
 
 
 @pytest.mark.parametrize("make, message", [
-    (lambda: _tee(RectShape(A, 0.05 * A, nang_w=4, nang_h=4)), "below PREDICTED_SJ_MIN.*full-width.*longer tap"),
-    (lambda: _tee(RectShape(A, 0.4 * A, nang_w=4, nang_h=4), margin=1.0), "full-width tap has no margin"),
-    (lambda: _tee(RectShape(A, 0.4 * A, nang_w=4, nang_h=4), branch_length=0.06), "turning station"),
-    (lambda: _tee(RectShape(A, 0.4 * A, nang_w=4, nang_h=4), run_length=0.04), "half-length along the main"),
+    (lambda: _tee(RectShape(A, 0.05 * A, n_width=4, n_height=4)), "below PREDICTED_SJ_MIN.*full-width.*longer tap"),
+    (lambda: _tee(RectShape(A, 0.4 * A, n_width=4, n_height=4), margin=1.0), "full-width tap has no margin"),
+    (lambda: _tee(RectShape(A, 0.4 * A, n_width=4, n_height=4), branch_length=0.06), "turning station"),
+    (lambda: _tee(RectShape(A, 0.4 * A, n_width=4, n_height=4), run_length=0.04), "half-length along the main"),
     (lambda: _tee(_rect(0.96 * A)), "exceeds DUCT_TAP_MAX_RATIO.*full-width tap"),
-    (lambda: _tee(CircleShape(radius=0.96 * A, nang=4)), "exceeds DUCT_TAP_MAX_RATIO"),
+    (lambda: _tee(CircleShape(radius=0.96 * A, n_arc=4)), "exceeds DUCT_TAP_MAX_RATIO"),
     (lambda: _tee(_rect(0.5 * A), roll=90), "roll is 0 or 180"),
     (lambda: _tee(_rect(0.5 * A), toward=(0, 1, 0)), "toward= is for pipe tees"),
     (lambda: _tee(_rect(0.5 * A), face="top"), "face must be"),
-    (lambda: _tee(RectShape(0.5 * A, 0.5 * A, nang_w=4, nang_h=2)), "must be the main's"),
+    (lambda: _tee(RectShape(0.5 * A, 0.5 * A, n_width=4, n_height=2)), "must be the main's"),
     (lambda: Tee(branch_length=0.3, branch_radius=0.05), "needs branch=RectShape"),
     (lambda: _tee(_rect(0.5 * A), run_length=0.06), "run_length must exceed"),
 ])
@@ -123,27 +123,27 @@ def test_rejections(make, message):
 
 
 def test_round_tap_needs_equal_counts():
-    spec = PipeSpec(nang_w=4, nang_h=2).core("fluid", half_w=A, half_h=B, nrad=3, layout="oh")
+    spec = PipeSpec(n_width=4, n_height=2).core("fluid", half_w=A, half_h=B, n_radial=3, layout="oh")
     with pytest.raises((AssemblyError, ValueError), match="equal counts per side"):
-        _asm(_tee(CircleShape(radius=0.5 * A, nang=4)), spec=spec).validate()
+        _asm(_tee(CircleShape(radius=0.5 * A, n_arc=4)), spec=spec).validate()
 
 
 def test_shelled_or_rotated_duct_rejected():
-    shelled = _spec().shell("steel", dR=0.005, nrad=1)
+    shelled = _spec().shell("steel", dR=0.005, n_radial=1)
     with pytest.raises((AssemblyError, ValueError), match="single-layer"):
         _asm(_tee(_rect(0.5 * A)), spec=shelled).validate()
 
 
 def test_duct_fields_on_a_pipe_rejected():
-    pipe = PipeSpec(nang=4).core("fluid", radius=0.1, nrad=3)
+    pipe = PipeSpec(n_arc=4).core("fluid", radius=0.1, n_radial=3)
     with pytest.raises((AssemblyError, ValueError), match="are for a duct tap"):
         _asm(Tee(branch_length=0.3, branch_radius=0.05, face="wide"), spec=pipe).validate()
 
 
 def test_circle_branch_on_a_pipe_is_branch_radius():
-    pipe = PipeSpec(nang=4).core("fluid", radius=0.1, nrad=3)
+    pipe = PipeSpec(n_arc=4).core("fluid", radius=0.1, n_radial=3)
     a = _asm(Tee(branch_length=0.3, branch_radius=0.05), spec=pipe)
-    b = _asm(Tee(branch_length=0.3, branch=CircleShape(radius=0.05, nang=4)), spec=pipe)
+    b = _asm(Tee(branch_length=0.3, branch=CircleShape(radius=0.05, n_arc=4)), spec=pipe)
     assert a.edges[1].fitting == b.edges[1].fitting
 
 
@@ -164,7 +164,7 @@ def test_ratio_limit_is_measured_value():
 def test_round_tap_meshed_sj_rejects_below_the_floor(gmsh_session, monkeypatch):
     """The meshed check (prediction overestimates round taps by ≤ 0.11)
     names the fitting; forced here by raising the floor after validation."""
-    asm = _asm(_tee(CircleShape(radius=0.6 * A, nang=4)))
+    asm = _asm(_tee(CircleShape(radius=0.6 * A, n_arc=4)))
     asm.validate()
     monkeypatch.setattr(limits, "PREDICTED_SJ_MIN", 0.99)
     with pytest.raises(AssemblyError, match="Tee1: meshed corner scaled Jacobian"):
@@ -173,16 +173,16 @@ def test_round_tap_meshed_sj_rejects_below_the_floor(gmsh_session, monkeypatch):
 
 def test_rect_tap_has_no_meshed_check():
     assert not _tee(_rect(0.5 * A)).meshed_sj_check(_spec())
-    assert _tee(CircleShape(radius=0.5 * A, nang=4)).meshed_sj_check(_spec())
+    assert _tee(CircleShape(radius=0.5 * A, n_arc=4)).meshed_sj_check(_spec())
     assert not Tee(branch_length=0.3, branch_radius=0.05).meshed_sj_check(
-        PipeSpec(nang=4).core("fluid", radius=0.1, nrad=3))
+        PipeSpec(n_arc=4).core("fluid", radius=0.1, n_radial=3))
 
 
 
 def test_round_narrow_tap_warns_once(gmsh_session):
     """The predicted warning tier is dropped for round taps; the meshed
     check gives the one warning (task 0057's design note)."""
-    asm = _asm(_tee(CircleShape(radius=0.6 * B, nang=4), face="narrow"))
+    asm = _asm(_tee(CircleShape(radius=0.6 * B, n_arc=4), face="narrow"))
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         asm.mesh()
@@ -193,14 +193,14 @@ def test_round_narrow_tap_warns_once(gmsh_session):
 def test_full_width_dispatch_and_quality_by_length():
     """q = a builds FullWidthTap (task 0057): no tunables, run_length
     resolved, and the predicted SJ set by the tap's length along the main
-    alone: not by run_length, nang or the duct's aspect."""
+    alone: not by run_length, n_arc or the duct's aspect."""
     from hexmesh.assembly.duct_tap import FullWidthTap
     inlet = Frame(np.zeros(3), np.array([1.0, 0, 0]), np.array([0, 0, 1.0]))
     sjs = set()
     for run in (None, 0.2, 0.4):
         for n in (4, 8):
             spec = _spec(n=n)
-            tee = _tee(RectShape(A, 0.6 * A, nang_w=n, nang_h=n), run_length=run).resolve(inlet, spec)
+            tee = _tee(RectShape(A, 0.6 * A, n_width=n, n_height=n), run_length=run).resolve(inlet, spec)
             tap = TapTemplate(tee).tap(inlet, spec)
             assert isinstance(tap, FullWidthTap)
             assert None not in (tee.run_length,) and tee.margin is None
@@ -210,7 +210,7 @@ def test_full_width_dispatch_and_quality_by_length():
 
 
 def test_full_width_short_tap_warns():
-    asm = _asm(_tee(RectShape(A, 0.3 * B, nang_w=4, nang_h=4)))
+    asm = _asm(_tee(RectShape(A, 0.3 * B, n_width=4, n_height=4)))
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         asm.validate()
@@ -223,34 +223,34 @@ def test_full_width_short_tap_warns():
 # ---------------------------------------------------------------------------
 
 def _hspec(aspect=2, n=8, **kw):
-    return PipeSpec(nang_w=n, nang_h=n).core("fluid", shape=RectShape(aspect * B, B, nang_w=n, nang_h=n),
+    return PipeSpec(n_width=n, n_height=n).core("fluid", shape=RectShape(aspect * B, B, n_width=n, n_height=n),
                                              layout="h", **kw)
 
 
-def _wall_cell(nrad, mprg, t):
-    """The ring's cell at the wall: its last, mprg grows inner → wall."""
-    p = progression(nrad, mprg) * t
+def _wall_cell(n_radial, radial_grading, t):
+    """The ring's cell at the wall: its last, radial_grading grows inner → wall."""
+    p = progression(n_radial, radial_grading) * t
     return float(p[-1] - p[-2])
 
 
-@pytest.mark.parametrize("first_cell, nrad", [(None, 2), (0.004, 2), (0.002, 3)])
-def test_derived_ring_matches_the_h_cells(first_cell, nrad):
-    """nrad: the H cells whose midpoint is within t of the wall, on the
+@pytest.mark.parametrize("first_cell, n_radial", [(None, 2), (0.004, 2), (0.002, 3)])
+def test_derived_ring_matches_the_h_cells(first_cell, n_radial):
+    """n_radial: the H cells whose midpoint is within t of the wall, on the
     smaller side, counted here by hand; the ring's wall cell is the H
     face's to 1e-9 (the design answer to Q1)."""
     spec = _hspec(first_cell=first_cell)
     t = oh.ring_thickness(2 * B, B)
     x = 2 * B * h.side_fractions(spec, 1)          # the short side, wall to wall
     mids = 0.5 * (x[:-1] + x[1:])
-    assert int(np.count_nonzero(mids <= t)) == nrad
+    assert int(np.count_nonzero(mids <= t)) == n_radial
     asm = _asm(_tee(_rect(0.6 * A, n=8)), spec=spec, n=8)
     tee = asm.edges[1].fitting
-    assert tee.nrad == nrad
-    assert _wall_cell(tee.nrad, tee.mprg, t) == pytest.approx(x[1] - x[0], abs=1e-9)
+    assert tee.n_radial == n_radial
+    assert _wall_cell(tee.n_radial, tee.radial_grading, t) == pytest.approx(x[1] - x[0], abs=1e-9)
 
 
 def test_h_main_json_and_refinement_nest():
-    """nrad and mprg are stored resolved; refined: nrad × k, mprg^(1/k)
+    """n_radial and radial_grading are stored resolved; refined: n_radial × k, radial_grading^(1/k)
     (each coarse ring cell splits into k of the same growth)."""
     asm = _asm(_tee(_rect(0.6 * A)), spec=_hspec(n=4), n=4)
     tee = asm.edges[1].fitting
@@ -258,24 +258,24 @@ def test_h_main_json_and_refinement_nest():
     back = Assembly.from_dict(d)
     assert back.edges[1].fitting == tee and back.cell_count() == asm.cell_count()
     fine = Assembly.from_dict(intent.refined_dict(d, 2)).edges[1].fitting
-    assert fine.nrad == 2 * tee.nrad and fine.mprg == pytest.approx(tee.mprg ** 0.5)
+    assert fine.n_radial == 2 * tee.n_radial and fine.radial_grading == pytest.approx(tee.radial_grading ** 0.5)
     assert Assembly.from_dict(intent.refined_dict(d, 2)).cell_count() == 8 * asm.cell_count()
 
 
 def test_h_main_override_and_its_rejections():
-    tee = _asm(_tee(_rect(0.6 * A), nrad=3, mprg=0.8), spec=_hspec(n=4), n=4).edges[1].fitting
-    assert (tee.nrad, tee.mprg) == (3, 0.8)
-    for bad, match in (({"nrad": 0}, "nrad must be an integer"),
-                       ({"mprg": -1.0}, "mprg must be positive")):
+    tee = _asm(_tee(_rect(0.6 * A), n_radial=3, radial_grading=0.8), spec=_hspec(n=4), n=4).edges[1].fitting
+    assert (tee.n_radial, tee.radial_grading) == (3, 0.8)
+    for bad, match in (({"n_radial": 0}, "n_radial must be an integer"),
+                       ({"radial_grading": -1.0}, "radial_grading must be positive")):
         with pytest.raises((AssemblyError, ValueError), match=match):
             _asm(_tee(_rect(0.6 * A), **bad), spec=_hspec(n=4), n=4).validate()
     with pytest.raises((AssemblyError, ValueError), match="for a duct tap on an H main"):
-        _asm(_tee(_rect(0.6 * A), nrad=3)).validate()
+        _asm(_tee(_rect(0.6 * A), n_radial=3)).validate()
 
 
 def test_round_tap_on_an_h_main_keeps_an_oh_branch():
     """No branch leg: the round branch port is the inner junction's O-H."""
-    asm = _asm(_tee(CircleShape(radius=0.6 * A, nang=4)), spec=_hspec(n=4), n=4)
+    asm = _asm(_tee(CircleShape(radius=0.6 * A, n_arc=4)), spec=_hspec(n=4), n=4)
     asm.validate()
     tee = asm.edges[1].fitting
     tpl = TapTemplate(tee)
@@ -319,7 +319,7 @@ def _shoe(branch, angle, **kw):
     return e, lay, o, math.cos(a), math.sin(a)
 
 
-@pytest.mark.parametrize("branch", [_rect(0.3 * A), CircleShape(radius=0.3 * A, nang=4)])
+@pytest.mark.parametrize("branch", [_rect(0.3 * A), CircleShape(radius=0.3 * A, n_arc=4)])
 def test_shoe_branch_leans_and_its_hole_is_the_cut_section(branch):
     """The branch axis leans by α through the axis point; each hole corner
     on the face is the branch's O-H corner carried along the axis."""
@@ -336,7 +336,7 @@ def test_shoe_branch_leans_and_its_hole_is_the_cut_section(branch):
 
 def test_round_shoe_hole_is_an_exact_ellipse():
     r = 0.3 * A
-    _, lay, o, ca, sa = _shoe(CircleShape(radius=r, nang=4), 30)
+    _, lay, o, ca, sa = _shoe(CircleShape(radius=r, n_arc=4), 30)
     xc = B * ca / sa
     for i, l0 in enumerate(_LABS):
         x = lay._edge_points(("W", 1, l0), ("W", 1, _LABS[(i + 1) % 4]), 17) - o
@@ -350,17 +350,17 @@ def test_shoe_default_run_length_reaches_the_stretched_hole():
     k = math.sqrt(2)                       # 1/sin 45°; the hole's centre is B cot 45° = B
     e, *_ = _shoe(_rect(0.3 * A), 45)
     assert e.fitting.run_length == pytest.approx(0.3 * A * k + B + 4 * t, rel=1e-12)
-    e, *_ = _shoe(RectShape(A, 0.3 * A, nang_w=4, nang_h=4), 45)          # full-width
+    e, *_ = _shoe(RectShape(A, 0.3 * A, n_width=4, n_height=4), 45)          # full-width
     assert e.fitting.run_length == pytest.approx(0.3 * A * k + B + FULL_WIDTH_RUN * B,
                                                  rel=1e-12)
 
 
 @pytest.mark.parametrize("branch, field, code", [
     (_rect(0.3 * A), "branch_length", "branch_length_too_short"),
-    (CircleShape(radius=0.3 * A, nang=4), "branch_length", "branch_length_too_short"),
-    (RectShape(A, 0.3 * A, nang_w=4, nang_h=4), "branch_length", "branch_length_too_short"),
+    (CircleShape(radius=0.3 * A, n_arc=4), "branch_length", "branch_length_too_short"),
+    (RectShape(A, 0.3 * A, n_width=4, n_height=4), "branch_length", "branch_length_too_short"),
     (_rect(0.3 * A), "run_length", "run_length_too_short"),
-    (RectShape(A, 0.3 * A, nang_w=4, nang_h=4), "run_length", "run_length_too_short"),
+    (RectShape(A, 0.3 * A, n_width=4, n_height=4), "run_length", "run_length_too_short"),
 ])
 def test_shoe_room_checks_measure_the_acute_end(branch, field, code):
     """The hole's acute end sets the room: along the branch axis (b + p
@@ -384,7 +384,7 @@ def test_shoe_angle_out_of_range(angle):
 
 
 def test_shoe_quality_tiers_name_a_larger_angle():
-    asm = _asm(_tee(RectShape(A, 0.3 * A, nang_w=4, nang_h=4), angle=30))
+    asm = _asm(_tee(RectShape(A, 0.3 * A, n_width=4, n_height=4), angle=30))
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         asm.validate()
@@ -394,7 +394,7 @@ def test_shoe_quality_tiers_name_a_larger_angle():
 
 
 def test_shoe_json_round_trip_and_refinement():
-    asm = _asm(_tee(CircleShape(radius=0.6 * A, nang=4), angle=45))
+    asm = _asm(_tee(CircleShape(radius=0.6 * A, n_arc=4), angle=45))
     d = intent.to_dict(asm)
     back = Assembly.from_dict(d)
     assert back.edges[1].fitting == asm.edges[1].fitting and back.edges[1].fitting.angle == 45

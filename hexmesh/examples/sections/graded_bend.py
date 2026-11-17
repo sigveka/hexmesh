@@ -17,7 +17,7 @@ outlet extensions, and one wall patch per fitting.
 
 from hexmesh import Assembly, Bend, PipeSpec, Straight
 
-PIPE = PipeSpec(nang=6).core("fluid", radius=0.05, nrad=6, first_cell=0.003)
+PIPE = PipeSpec(n_arc=6).core("fluid", radius=0.05, n_radial=6, first_cell=0.003)
 
 
 def build() -> Assembly:

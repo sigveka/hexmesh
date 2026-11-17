@@ -16,7 +16,7 @@ Duct transition: a circular pipe into a 2:1 duct, a duct bend, and back.
     python3 -m hexmesh.examples.sections.duct_transition # writes duct_transition.msh
 
 ``Transition`` joins a circle and a rectangle with the same counts per
-side: the circle's ``nang`` equals the duct's ``nang_w`` and ``nang_h``.
+side: the circle's ``n_arc`` equals the duct's ``n_width`` and ``n_height``.
 Then the two faces have the same mesh connectivity (switch class 0), and
 every station between them blends the two outlines.  The open ends
 become ``air_inlet`` and ``air_outlet``.
@@ -26,8 +26,8 @@ become ``air_inlet`` and ``air_outlet``.
 
 from hexmesh import Assembly, Bend, PipeSpec, Straight, Transition
 
-PIPE = PipeSpec(nang=6).core("air", radius=0.1, nrad=3)
-DUCT = PipeSpec(nang_w=6, nang_h=6).core("air", half_w=0.14, half_h=0.07, mprg=1.2)
+PIPE = PipeSpec(n_arc=6).core("air", radius=0.1, n_radial=3)
+DUCT = PipeSpec(n_width=6, n_height=6).core("air", half_w=0.14, half_h=0.07, radial_grading=1.2)
 
 
 def build() -> Assembly:

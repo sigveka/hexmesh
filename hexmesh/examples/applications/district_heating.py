@@ -23,7 +23,7 @@ a model of it is usually for, so the soil is part of the mesh:
 - a **square of near soil** around the casing, finely meshed, where the
   temperature changes fastest;
 - a **rectangle of far soil** around that, to the domain's boundary, its
-  cells growing outward (radial grading, ``mprg``).
+  cells growing outward (radial grading, ``radial_grading``).
 
 Every layer is a region of its own, with an interface to the next, so a
 conjugate heat-transfer case can give each its conductivity.
@@ -65,13 +65,13 @@ L_RUN, BEND_RADIUS = 3.0, 3.0
 
 N = 8  # cells per 90° of every ring, and per side of every rectangle
 
-SPEC = (PipeSpec(nang=N).core("water", radius=STEEL_OD / 2 - STEEL_WALL, nrad=4)
-        .shell("steel", dR=STEEL_WALL, nrad=1)
-        .shell("pur", dR=CASING_OD / 2 - CASING_WALL - STEEL_OD / 2, nrad=3)
-        .shell("casing", dR=CASING_WALL, nrad=1)
-        .shell("near_soil", outer=RectShape(NEAR_SOIL / 2, NEAR_SOIL / 2, nang_w=N, nang_h=N), nrad=4,
-               mprg=1.2)
-        .shell("far_soil", outer=RectShape(FAR_W / 2, FAR_H / 2, nang_w=N, nang_h=N), nrad=5, mprg=1.3))
+SPEC = (PipeSpec(n_arc=N).core("water", radius=STEEL_OD / 2 - STEEL_WALL, n_radial=4)
+        .shell("steel", dR=STEEL_WALL, n_radial=1)
+        .shell("pur", dR=CASING_OD / 2 - CASING_WALL - STEEL_OD / 2, n_radial=3)
+        .shell("casing", dR=CASING_WALL, n_radial=1)
+        .shell("near_soil", outer=RectShape(NEAR_SOIL / 2, NEAR_SOIL / 2, n_width=N, n_height=N), n_radial=4,
+               radial_grading=1.2)
+        .shell("far_soil", outer=RectShape(FAR_W / 2, FAR_H / 2, n_width=N, n_height=N), n_radial=5, radial_grading=1.3))
 
 #: The gallery's colours (``docs/gallery/build.py``).
 GALLERY_COLOURS = {"water": ("#c0392b", "red"), "steel": ("#8e979f", "grey"),

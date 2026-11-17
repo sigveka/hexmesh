@@ -34,8 +34,8 @@ out of range, with no counts (design answer Q2).
 
 **The series** (design answer Q3):
 
-- circle: ``poiseuille`` (Δp and u_max); ``n = nang + 2 nrad``, the cells
-  along a diameter, with the run's ``nrad = nang / 2``;
+- circle: ``poiseuille`` (Δp and u_max); ``n = n_arc + 2 n_radial``, the cells
+  along a diameter, with the run's ``n_radial = n_arc / 2``;
 - rectangle: the uniform H series ``h_ar{1,2,4}`` of ``rect_duct``
   (f·Re and u_c); ``n = n_short · D_h / (2 short half-side)``, the cells
   across D_h, square cells.  The graded ``hg_ar2`` series is a check, not
@@ -176,9 +176,9 @@ def build(root: Path = ROOT) -> dict:
     pois = res.load(root / "validation/poiseuille/results.json")
     q_pipe = {"dp": "dp_err_signed", "u_max": "u_max_err_signed"}
     levels = [{**lv, "k": lv["factor"]} for lv in pois["levels"]]
-    circle = _entry("poiseuille", _series(levels, lambda lv: lv["nang"] + 2 * lv["nrad"], q_pipe),
+    circle = _entry("poiseuille", _series(levels, lambda lv: lv["n_arc"] + 2 * lv["n_radial"], q_pipe),
                     conv, q_pipe)
-    circle.update(metric="cells along a diameter: nang + 2 nrad", nrad_per_nang=0.5)
+    circle.update(metric="cells along a diameter: n_arc + 2 n_radial", n_radial_per_n_arc=0.5)
 
     duct = res.load(root / "validation/rect_duct/results.json")
     q_duct = {"fRe": "fRe_err_signed", "u_c": "u_c_err_signed"}
@@ -186,7 +186,7 @@ def build(root: Path = ROOT) -> dict:
     def n_duct(lv):
         g = duct["extra"]["exact"][str(lv["ratio"])]
         a, b = g["a"], g["b"]
-        short, n_short = (b, lv["nang_h"]) if b <= a else (a, lv["nang_w"])
+        short, n_short = (b, lv["n_height"]) if b <= a else (a, lv["n_width"])
         return n_short * (4 * a * b / (a + b)) / (2 * short)
 
     def series(mesh, ratio):

@@ -57,7 +57,7 @@ Against the DNS's own f, lowre_550 at k = 4 is +1.22 % and lowre_1000 is
 
 ## Convergence (lowre_550; k = 1, 2, 4)
 
-`refined(k)`: nang and nrad are ×k, the radial growth is its k-th root,
+`refined(k)`: n_arc and n_radial are ×k, the radial growth is its k-th root,
 and the axial layers are ×k (irrelevant to an axially uniform flow).
 
 | quantity | k = 1 | k = 2 | k = 4 | status | order | extrapolated | GCI (fine) |
@@ -98,5 +98,5 @@ only the nut wall function changes.
 | 37 700 | −7.08 % | −6.53 % | −2.04 % |
 | 10⁵ | −7.22 % | −7.29 % | −3.27 % |
 
-U_c/U_b is 6.4–7.6 % low with all three.  Neither nang 12–48 nor nrad
+U_c/U_b is 6.4–7.6 % low with all three.  Neither n_arc 12–48 nor n_radial
 3–12 changed wf_550's f by more than 0.3 % (trials, task Agent notes).

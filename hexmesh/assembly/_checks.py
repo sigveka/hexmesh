@@ -177,7 +177,7 @@ def _check_meshed_nonorth(asm, e, angle: float) -> None:
     # a junction names its own (task 0104)
     f, spec = e.fitting, e.ports[0].spec
     hint = (f.meshed_nonorth_hint(spec) if hasattr(f, "meshed_nonorth_hint")
-            else "a gentler wall grading of the H face, or a smaller ring nrad")
+            else "a gentler wall grading of the H face, or a smaller ring n_radial")
     reject = getattr(f, "meshed_nonorth_reject", True)
     if angle > limits.OUTLINE_NONORTH_MAX and reject:
         raise AssemblyError(

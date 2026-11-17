@@ -77,7 +77,7 @@ centimetres here):
   diameter in a ``Reducer`` each: a stand-in for a fork with unequal
   daughters.
 
-**Quality** (``nang`` 8): the three arch tees warn (predicted min SJ
+**Quality** (``n_arc`` 8): the three arch tees warn (predicted min SJ
 0.20, 0.14 and 0.15: small branch ratios, r/R 0.37–0.56), the left
 common carotid's turn block also on non-orthogonality (70.6°), and the
 wye on its crotch's non-orthogonality (79°), as every wye does.  No cell
@@ -107,7 +107,7 @@ BIFURCATION_ANGLE = 45.0
 L_DESCENDING, L_ABDOMINAL, L_ILIAC = 20 * CM, 13 * CM, 5 * CM
 BRANCH_EXTENSION = 4  # branch diameters
 
-NANG = 8
+N_ARC = 8
 GAP = D_ARCH / 2  # curved arch kept between two branches' tees
 #: The arch's width and height are scaled up by this factor so the
 #: branches' straight tees fit on it (not from a source; see the docstring).
@@ -120,7 +120,7 @@ PLACED: dict[str, float] = {}
 
 def pipe(diameter: float) -> PipeSpec:
     """The lumen at *diameter*: one fluid layer, the same counts everywhere."""
-    return PipeSpec(nang=NANG).core("fluid", radius=diameter / 2, nrad=4)
+    return PipeSpec(n_arc=N_ARC).core("fluid", radius=diameter / 2, n_radial=4)
 
 
 def _arch(n: int = 400):

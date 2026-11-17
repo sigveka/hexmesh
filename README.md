@@ -52,10 +52,10 @@ each with its mesh, its cell quality and the code that made it.
 ```python
 from hexmesh import Assembly, Bend, PipeSpec, Session, Straight, Tee
 
-pipe = (PipeSpec(nang=6)
-        .core("fluid", radius=0.1, nrad=5, first_cell=0.01)
-        .shell("steel", dR=0.008, nrad=2)
-        .shell("insulation", dR=0.04, nrad=3))
+pipe = (PipeSpec(n_arc=6)
+        .core("fluid", radius=0.1, n_radial=5, first_cell=0.01)
+        .shell("steel", dR=0.008, n_radial=2)
+        .shell("insulation", dR=0.04, n_radial=3))
 
 with Session("insulated_tee"):
     asm = Assembly(pipe, direction=[1, 0, 0], up=[0, 0, 1])
@@ -81,13 +81,13 @@ What it gives (the gallery's `hexmesh.examples.sections.insulated_tee`):
 Doubling every density parameter doubles the nodes in each direction:
 **8× the cells**, as for any structured 3-D mesh.
 
-**One density per network.**  `nang` (cells around) and each layer's
-`nrad` (cells across) are the same in every pipe of a connected network:
+**One density per network.**  `n_arc` (cells around) and each layer's
+`n_radial` (cells across) are the same in every pipe of a connected network:
 a tee's branch, a reducer's outlet and every fitting downstream share
-them.  Radial *grading* can differ (`first_cell`, `mprg`).  So cells
+them.  Radial *grading* can differ (`first_cell`, `radial_grading`).  So cells
 around a pipe are as wide as its radius makes them: in a network whose
 radii span 10×, the large pipes' cells are 10× wider around than the
-small ones'.  Choose `nang` for the smallest pipe that matters, grade the
+small ones'.  Choose `n_arc` for the smallest pipe that matters, grade the
 walls with `first_cell`, or mesh a much larger vessel separately and
 couple it in the solver.  hexmesh has no density change inside a network
 ([GUIDE](docs/GUIDE.md#one-density-per-network)).
@@ -106,9 +106,9 @@ from hexmesh.examples.applications.pcf_line import SAMPLE   # a line shipped wit
 from hexmesh.interchange import read_pcf
 
 def pipe(bore):              # bore: each line's nominal size from the file, in metres
-    return (PipeSpec(nang=8)
-            .core("fluid", radius=bore / 2, nrad=4)   # use your schedule's inside radius
-            .shell("steel", dR=0.004, nrad=2))
+    return (PipeSpec(n_arc=8)
+            .core("fluid", radius=bore / 2, n_radial=4)   # use your schedule's inside radius
+            .shell("steel", dR=0.004, n_radial=2))
 
 asm = read_pcf(SAMPLE).to_assembly(pipe, insulation=True)  # insulated where the file says
 print(asm.cell_count())                                    # 35712
@@ -177,7 +177,7 @@ refines it:
 >
 > **Agent:** `hexmesh advise` says fine accuracy needs 641 680 cells. To
 > fit the budget it first stretched the straights' cells (axial aspect 6
-> → 12, 536 432 cells), then fell back to medium: `nang` 12, `nrad` 6,
+> → 12, 536 432 cells), then fell back to medium: `n_arc` 12, `n_radial` 6,
 > 72 048 cells. It also notes that it was calibrated on developed flow in
 > straight runs, so the junctions may be less accurate. `hexmesh apply`
 > writes the counts in, `validate` passes again, and `hexmesh build`
@@ -232,7 +232,7 @@ tees).
 
 **Rectangular ducts** are one Cartesian patch with graded walls by
 default since 0.4.0, because the O-H face converges badly on a rectangle
-([RESEARCH §7.11](docs/RESEARCH.md)).  `layout="oh"` with `nrad=` keeps
+([RESEARCH §7.11](docs/RESEARCH.md)).  `layout="oh"` with `n_radial=` keeps
 the O-H face ([CHANGELOG](CHANGELOG.md)).
 
 **Not yet:**
@@ -267,8 +267,9 @@ convergence against gates set in advance.
 | Fully developed turbulent pipe flow, k-ω SST | simulation (V2), El Khoury et al. 2013 | f within 2.5 % of McKeon et al. at three Re; within 3.3 % with wall functions | ✅ accepted |
 | Pulsatile flow through the cosine constriction (Varghese et al., Part 2) | DNS (V2), Varghese et al. 2007 | throat peak at peak flow −1.3 % from the DNS; the five flow features of its §3.1 as in the DNS | ✅ accepted |
 | Laminar flow in a 90° square-duct bend, Re 790 | experiment (V3), Taylor et al. 1981 | peak velocity at the measured position at six stations; peak U/V_c converging (GCI ≤ 0.05 %) | ✅ accepted |
-| Laminar flow in a helical pipe (the SIET coil) | experiment (V3), De Amicis et al. 2014 | f within 0.3 % of Ito at nang 24 (Re 1800, 2400), converging; Re 3000's nang 24 to run | 🔄 in progress |
-| Turbulent flow in a 90° bend (Sudo et al. 1998); a Taylor bubble rising in stagnant liquid (VOF) | experiment (V3) | | 📋 planned |
+| Laminar flow in a helical pipe (the SIET coil) | experiment (V3), De Amicis et al. 2014 | f within 0.3 % of Ito at n_arc 24 (Re 1800, 2400), converging; Re 3000's n_arc 24 to run | 🔄 in progress |
+| Equal-diameter 90° tee: loss coefficients, k-ω SST | experiment (V3), Štigler et al. 2014 |  | 🔄 in progress |
+| Turbulent flow in a 90° bend (PTB LDA; Sudo et al. 1998 the ideal); a Taylor bubble rising in stagnant liquid (VOF) | experiment (V3) | | 📋 planned |
 <!-- readme:validation:end -->
 
 Categories, the coverage matrix (which features are validated and which

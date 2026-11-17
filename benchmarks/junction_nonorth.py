@@ -26,7 +26,7 @@ definition ``checkMesh`` and the meshed check use.  Cases:
 * ``kit``: every junction of the conformance kit
   (``tests/test_fitting_conformance.py``): tees, laterals, duct taps on
   O-H and H mains, wyes;
-* ``sweep``: task 0060's tee sweep, angle × r/R × 0 / 2 shells × nang 4 /
+* ``sweep``: task 0060's tee sweep, angle × r/R × 0 / 2 shells × n_arc 4 /
   8, with 35° in place of 30° (which doesn't mesh).  A case the Tee
   rejects (predicted SJ below the floor) is recorded as rejected.
 
@@ -92,11 +92,11 @@ def kit_cases() -> dict:
 def sweep_cases() -> dict:
     from test_fitting_conformance import _tee
 
-    def spec(nang, shells):
-        s = PipeSpec(nang=nang).core("fluid", radius=0.1, nrad=3)
-        return s.shell("wall", dR=0.025, nrad=2).shell("insulation", dR=0.03, nrad=2) \
+    def spec(n_arc, shells):
+        s = PipeSpec(n_arc=n_arc).core("fluid", radius=0.1, n_radial=3)
+        return s.shell("wall", dR=0.025, n_radial=2).shell("insulation", dR=0.03, n_radial=2) \
             if shells else s
-    return {f"tee-{a}-{q}-{sh}sh-nang{n}":
+    return {f"tee-{a}-{q}-{sh}sh-n_arc{n}":
             (lambda a=a, q=q, sh=sh, n=n: _tee(q, spec=spec(n, sh), angle=a))
             for a in ANGLES for q in RATIOS for sh in (0, 2) for n in (4, 8)}
 

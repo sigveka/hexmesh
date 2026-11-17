@@ -389,7 +389,7 @@
   "cells": 3984,
   "predict_ms": 266.4
  },
- "tee-90-0.3-0sh-nang4": {
+ "tee-90-0.3-0sh-n_arc4": {
   "group": "sweep",
   "predicted": 72.59,
   "meshed": 72.52,
@@ -399,7 +399,7 @@
   "cells": 912,
   "predict_ms": 44.5
  },
- "tee-90-0.3-0sh-nang8": {
+ "tee-90-0.3-0sh-n_arc8": {
   "group": "sweep",
   "predicted": 73.67,
   "meshed": 73.66,
@@ -409,7 +409,7 @@
   "cells": 2848,
   "predict_ms": 113.7
  },
- "tee-90-0.3-2sh-nang4": {
+ "tee-90-0.3-2sh-n_arc4": {
   "group": "sweep",
   "predicted": 72.58,
   "meshed": 72.75,
@@ -419,7 +419,7 @@
   "cells": 1808,
   "predict_ms": 113.1
  },
- "tee-90-0.3-2sh-nang8": {
+ "tee-90-0.3-2sh-n_arc8": {
   "group": "sweep",
   "predicted": 73.66,
   "meshed": 73.78,
@@ -429,7 +429,7 @@
   "cells": 5024,
   "predict_ms": 224.8
  },
- "tee-90-0.6-0sh-nang4": {
+ "tee-90-0.6-0sh-n_arc4": {
   "group": "sweep",
   "predicted": 56.03,
   "meshed": 56.03,
@@ -439,7 +439,7 @@
   "cells": 912,
   "predict_ms": 48.1
  },
- "tee-90-0.6-0sh-nang8": {
+ "tee-90-0.6-0sh-n_arc8": {
   "group": "sweep",
   "predicted": 57.38,
   "meshed": 57.46,
@@ -449,7 +449,7 @@
   "cells": 2848,
   "predict_ms": 113.1
  },
- "tee-90-0.6-2sh-nang4": {
+ "tee-90-0.6-2sh-n_arc4": {
   "group": "sweep",
   "predicted": 56.01,
   "meshed": 56.36,
@@ -459,7 +459,7 @@
   "cells": 1808,
   "predict_ms": 113.9
  },
- "tee-90-0.6-2sh-nang8": {
+ "tee-90-0.6-2sh-n_arc8": {
   "group": "sweep",
   "predicted": 59.2,
   "meshed": 59.73,
@@ -469,7 +469,7 @@
   "cells": 5024,
   "predict_ms": 231.4
  },
- "tee-90-0.9-0sh-nang4": {
+ "tee-90-0.9-0sh-n_arc4": {
   "group": "sweep",
   "predicted": 40.72,
   "meshed": 40.85,
@@ -479,7 +479,7 @@
   "cells": 912,
   "predict_ms": 49.9
  },
- "tee-90-0.9-0sh-nang8": {
+ "tee-90-0.9-0sh-n_arc8": {
   "group": "sweep",
   "predicted": 45.6,
   "meshed": 43.2,
@@ -489,7 +489,7 @@
   "cells": 2848,
   "predict_ms": 109.3
  },
- "tee-90-0.9-2sh-nang4": {
+ "tee-90-0.9-2sh-n_arc4": {
   "group": "sweep",
   "predicted": 57.39,
   "meshed": 42.42,
@@ -499,7 +499,7 @@
   "cells": 1808,
   "predict_ms": 115.4
  },
- "tee-90-0.9-2sh-nang8": {
+ "tee-90-0.9-2sh-n_arc8": {
   "group": "sweep",
   "predicted": 60.03,
   "meshed": 50.87,
@@ -509,7 +509,7 @@
   "cells": 5024,
   "predict_ms": 215.2
  },
- "tee-75-0.3-0sh-nang4": {
+ "tee-75-0.3-0sh-n_arc4": {
   "group": "sweep",
   "predicted": 73.92,
   "meshed": 73.87,
@@ -519,7 +519,7 @@
   "cells": 912,
   "predict_ms": 59.1
  },
- "tee-75-0.3-0sh-nang8": {
+ "tee-75-0.3-0sh-n_arc8": {
   "group": "sweep",
   "predicted": 74.83,
   "meshed": 74.84,
@@ -529,7 +529,7 @@
   "cells": 2848,
   "predict_ms": 109.0
  },
- "tee-75-0.3-2sh-nang4": {
+ "tee-75-0.3-2sh-n_arc4": {
   "group": "sweep",
   "predicted": 73.75,
   "meshed": 73.93,
@@ -539,7 +539,7 @@
   "cells": 1808,
   "predict_ms": 115.3
  },
- "tee-75-0.3-2sh-nang8": {
+ "tee-75-0.3-2sh-n_arc8": {
   "group": "sweep",
   "predicted": 74.68,
   "meshed": 74.81,
@@ -549,7 +549,7 @@
   "cells": 5024,
   "predict_ms": 241.9
  },
- "tee-75-0.6-0sh-nang4": {
+ "tee-75-0.6-0sh-n_arc4": {
   "group": "sweep",
   "predicted": 59.64,
   "meshed": 59.66,
@@ -559,7 +559,7 @@
   "cells": 912,
   "predict_ms": 48.3
  },
- "tee-75-0.6-0sh-nang8": {
+ "tee-75-0.6-0sh-n_arc8": {
   "group": "sweep",
   "predicted": 60.62,
   "meshed": 60.72,
@@ -569,7 +569,7 @@
   "cells": 2848,
   "predict_ms": 113.0
  },
- "tee-75-0.6-2sh-nang4": {
+ "tee-75-0.6-2sh-n_arc4": {
   "group": "sweep",
   "predicted": 59.43,
   "meshed": 59.78,
@@ -579,7 +579,7 @@
   "cells": 1808,
   "predict_ms": 118.4
  },
- "tee-75-0.6-2sh-nang8": {
+ "tee-75-0.6-2sh-n_arc8": {
   "group": "sweep",
   "predicted": 60.89,
   "meshed": 61.37,
@@ -589,7 +589,7 @@
   "cells": 5024,
   "predict_ms": 197.2
  },
- "tee-75-0.9-0sh-nang4": {
+ "tee-75-0.9-0sh-n_arc4": {
   "group": "sweep",
   "predicted": 46.87,
   "meshed": 48.62,
@@ -599,7 +599,7 @@
   "cells": 912,
   "predict_ms": 44.5
  },
- "tee-75-0.9-0sh-nang8": {
+ "tee-75-0.9-0sh-n_arc8": {
   "group": "sweep",
   "predicted": 47.2,
   "meshed": 49.44,
@@ -609,7 +609,7 @@
   "cells": 2848,
   "predict_ms": 102.7
  },
- "tee-75-0.9-2sh-nang4": {
+ "tee-75-0.9-2sh-n_arc4": {
   "group": "sweep",
   "predicted": 46.48,
   "meshed": 47.53,
@@ -619,7 +619,7 @@
   "cells": 1808,
   "predict_ms": 97.3
  },
- "tee-75-0.9-2sh-nang8": {
+ "tee-75-0.9-2sh-n_arc8": {
   "group": "sweep",
   "predicted": 55.67,
   "meshed": 52.92,
@@ -629,7 +629,7 @@
   "cells": 5024,
   "predict_ms": 194.2
  },
- "tee-60-0.3-0sh-nang4": {
+ "tee-60-0.3-0sh-n_arc4": {
   "group": "sweep",
   "predicted": 76.07,
   "meshed": 76.04,
@@ -639,7 +639,7 @@
   "cells": 912,
   "predict_ms": 47.7
  },
- "tee-60-0.3-0sh-nang8": {
+ "tee-60-0.3-0sh-n_arc8": {
   "group": "sweep",
   "predicted": 76.8,
   "meshed": 76.82,
@@ -649,7 +649,7 @@
   "cells": 2848,
   "predict_ms": 116.8
  },
- "tee-60-0.3-2sh-nang4": {
+ "tee-60-0.3-2sh-n_arc4": {
   "group": "sweep",
   "predicted": 75.53,
   "meshed": 75.7,
@@ -659,7 +659,7 @@
   "cells": 1808,
   "predict_ms": 147.3
  },
- "tee-60-0.3-2sh-nang8": {
+ "tee-60-0.3-2sh-n_arc8": {
   "group": "sweep",
   "predicted": 76.29,
   "meshed": 76.42,
@@ -669,7 +669,7 @@
   "cells": 5024,
   "predict_ms": 227.5
  },
- "tee-60-0.6-0sh-nang4": {
+ "tee-60-0.6-0sh-n_arc4": {
   "group": "sweep",
   "predicted": 64.32,
   "meshed": 64.36,
@@ -679,7 +679,7 @@
   "cells": 912,
   "predict_ms": 42.3
  },
- "tee-60-0.6-0sh-nang8": {
+ "tee-60-0.6-0sh-n_arc8": {
   "group": "sweep",
   "predicted": 64.97,
   "meshed": 65.08,
@@ -689,7 +689,7 @@
   "cells": 2848,
   "predict_ms": 124.2
  },
- "tee-60-0.6-2sh-nang4": {
+ "tee-60-0.6-2sh-n_arc4": {
   "group": "sweep",
   "predicted": 63.66,
   "meshed": 63.98,
@@ -699,7 +699,7 @@
   "cells": 1808,
   "predict_ms": 124.1
  },
- "tee-60-0.6-2sh-nang8": {
+ "tee-60-0.6-2sh-n_arc8": {
   "group": "sweep",
   "predicted": 64.39,
   "meshed": 64.66,
@@ -709,7 +709,7 @@
   "cells": 5024,
   "predict_ms": 185.7
  },
- "tee-60-0.9-0sh-nang4": {
+ "tee-60-0.9-0sh-n_arc4": {
   "group": "sweep",
   "predicted": 54.68,
   "meshed": 57.72,
@@ -719,7 +719,7 @@
   "cells": 912,
   "predict_ms": 38.5
  },
- "tee-60-0.9-0sh-nang8": {
+ "tee-60-0.9-0sh-n_arc8": {
   "group": "sweep",
   "predicted": 54.75,
   "meshed": 58.39,
@@ -729,7 +729,7 @@
   "cells": 2848,
   "predict_ms": 101.0
  },
- "tee-60-0.9-2sh-nang4": {
+ "tee-60-0.9-2sh-n_arc4": {
   "group": "sweep",
   "predicted": 54.4,
   "meshed": 56.73,
@@ -739,7 +739,7 @@
   "cells": 1808,
   "predict_ms": 103.1
  },
- "tee-60-0.9-2sh-nang8": {
+ "tee-60-0.9-2sh-n_arc8": {
   "group": "sweep",
   "predicted": 57.67,
   "meshed": 57.25,
@@ -749,23 +749,23 @@
   "cells": 5024,
   "predict_ms": 215.4
  },
- "tee-45-0.3-0sh-nang4": {
+ "tee-45-0.3-0sh-n_arc4": {
   "group": "sweep",
   "rejected": "predicted_sj_below_minimum"
  },
- "tee-45-0.3-0sh-nang8": {
+ "tee-45-0.3-0sh-n_arc8": {
   "group": "sweep",
   "rejected": "predicted_sj_below_minimum"
  },
- "tee-45-0.3-2sh-nang4": {
+ "tee-45-0.3-2sh-n_arc4": {
   "group": "sweep",
   "rejected": "predicted_sj_below_minimum"
  },
- "tee-45-0.3-2sh-nang8": {
+ "tee-45-0.3-2sh-n_arc8": {
   "group": "sweep",
   "rejected": "predicted_sj_below_minimum"
  },
- "tee-45-0.6-0sh-nang4": {
+ "tee-45-0.6-0sh-n_arc4": {
   "group": "sweep",
   "predicted": 70.01,
   "meshed": 70.08,
@@ -775,7 +775,7 @@
   "cells": 912,
   "predict_ms": 55.2
  },
- "tee-45-0.6-0sh-nang8": {
+ "tee-45-0.6-0sh-n_arc8": {
   "group": "sweep",
   "predicted": 70.42,
   "meshed": 70.54,
@@ -785,7 +785,7 @@
   "cells": 2848,
   "predict_ms": 112.8
  },
- "tee-45-0.6-2sh-nang4": {
+ "tee-45-0.6-2sh-n_arc4": {
   "group": "sweep",
   "predicted": 68.95,
   "meshed": 69.22,
@@ -795,7 +795,7 @@
   "cells": 1808,
   "predict_ms": 114.2
  },
- "tee-45-0.6-2sh-nang8": {
+ "tee-45-0.6-2sh-n_arc8": {
   "group": "sweep",
   "predicted": 69.47,
   "meshed": 69.7,
@@ -805,7 +805,7 @@
   "cells": 5024,
   "predict_ms": 206.5
  },
- "tee-45-0.9-0sh-nang4": {
+ "tee-45-0.9-0sh-n_arc4": {
   "group": "sweep",
   "predicted": 63.23,
   "meshed": 66.89,
@@ -815,7 +815,7 @@
   "cells": 912,
   "predict_ms": 45.4
  },
- "tee-45-0.9-0sh-nang8": {
+ "tee-45-0.9-0sh-n_arc8": {
   "group": "sweep",
   "predicted": 64.73,
   "meshed": 67.38,
@@ -825,7 +825,7 @@
   "cells": 2848,
   "predict_ms": 108.6
  },
- "tee-45-0.9-2sh-nang4": {
+ "tee-45-0.9-2sh-n_arc4": {
   "group": "sweep",
   "predicted": 64.39,
   "meshed": 66.04,
@@ -835,7 +835,7 @@
   "cells": 1808,
   "predict_ms": 111.0
  },
- "tee-45-0.9-2sh-nang8": {
+ "tee-45-0.9-2sh-n_arc8": {
   "group": "sweep",
   "predicted": 65.27,
   "meshed": 66.4,
@@ -845,39 +845,39 @@
   "cells": 5024,
   "predict_ms": 216.3
  },
- "tee-35-0.3-0sh-nang4": {
+ "tee-35-0.3-0sh-n_arc4": {
   "group": "sweep",
   "rejected": "predicted_sj_below_minimum"
  },
- "tee-35-0.3-0sh-nang8": {
+ "tee-35-0.3-0sh-n_arc8": {
   "group": "sweep",
   "rejected": "predicted_sj_below_minimum"
  },
- "tee-35-0.3-2sh-nang4": {
+ "tee-35-0.3-2sh-n_arc4": {
   "group": "sweep",
   "rejected": "predicted_sj_below_minimum"
  },
- "tee-35-0.3-2sh-nang8": {
+ "tee-35-0.3-2sh-n_arc8": {
   "group": "sweep",
   "rejected": "predicted_sj_below_minimum"
  },
- "tee-35-0.6-0sh-nang4": {
+ "tee-35-0.6-0sh-n_arc4": {
   "group": "sweep",
   "rejected": "predicted_sj_below_minimum"
  },
- "tee-35-0.6-0sh-nang8": {
+ "tee-35-0.6-0sh-n_arc8": {
   "group": "sweep",
   "rejected": "predicted_sj_below_minimum"
  },
- "tee-35-0.6-2sh-nang4": {
+ "tee-35-0.6-2sh-n_arc4": {
   "group": "sweep",
   "rejected": "predicted_sj_below_minimum"
  },
- "tee-35-0.6-2sh-nang8": {
+ "tee-35-0.6-2sh-n_arc8": {
   "group": "sweep",
   "rejected": "predicted_sj_below_minimum"
  },
- "tee-35-0.9-0sh-nang4": {
+ "tee-35-0.9-0sh-n_arc4": {
   "group": "sweep",
   "predicted": 69.74,
   "meshed": 72.74,
@@ -887,7 +887,7 @@
   "cells": 912,
   "predict_ms": 44.1
  },
- "tee-35-0.9-0sh-nang8": {
+ "tee-35-0.9-0sh-n_arc8": {
   "group": "sweep",
   "predicted": 71.3,
   "meshed": 73.1,
@@ -897,11 +897,11 @@
   "cells": 2848,
   "predict_ms": 107.6
  },
- "tee-35-0.9-2sh-nang4": {
+ "tee-35-0.9-2sh-n_arc4": {
   "group": "sweep",
   "rejected": "branch_length_too_short"
  },
- "tee-35-0.9-2sh-nang8": {
+ "tee-35-0.9-2sh-n_arc8": {
   "group": "sweep",
   "rejected": "branch_length_too_short"
  }

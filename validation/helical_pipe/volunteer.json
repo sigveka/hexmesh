@@ -23,8 +23,8 @@
   },
   "levels": {
     "re3000_n24": {
-      "title": "Re 3000 on the finest mesh (nang 24)",
-      "what": "The run first solves the next-coarser mesh (nang 16, 0.8 million cells) and starts the fine one (2.7 million cells) from its mapped result, which shortens the fine solve.  Both stop when the solver converges (at most 5000 steps); the results are saved every 50 steps.",
+      "title": "Re 3000 on the finest mesh (n_arc 24)",
+      "what": "The run first solves the next-coarser mesh (n_arc 16, 0.8 million cells) and starts the fine one (2.7 million cells) from its mapped result, which shortens the fine solve.  Both stop when the solver converges (at most 5000 steps); the results are saved every 50 steps.",
       "requirements": {
         "cores": {
           "label": "cores (MPI processes)",

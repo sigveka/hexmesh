@@ -46,7 +46,7 @@ def test_stored_counts_match_the_run_script(case):
         elif lv.get("mesh") in ("oh", "h", "hg"):
             asm = run.assembly(lv["ratio"], lv["k"], layout=lv["mesh"])
         else:
-            assert "nang" not in lv                 # the Cartesian control: no hexmesh spec
+            assert "n_arc" not in lv                 # the Cartesian control: no hexmesh spec
             continue
         assert {k: lv[k] for k in stored.COUNTS} == stored.counts(asm), lv["name"]
         assert lv["cells"] == asm.cell_count(), lv["name"]

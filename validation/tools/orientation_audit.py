@@ -58,7 +58,7 @@ def driver(case: str):
 BUILDS = {
     "heated_pipe": lambda d, lv: (d.assembly, (lv["k"],)),
     "heated_rod": lambda d, lv: (d.assembly, (lv["series"], lv["k"])),
-    "helical_pipe": lambda d, lv: (d.assembly, (lv["nang"],)),
+    "helical_pipe": lambda d, lv: (d.assembly, (lv["n_arc"],)),
     "layered_conduction": lambda d, lv: (d.assembly, (lv["k"],)),
     "mms": lambda d, lv: (lambda c, k: d.assembly(c, k)[0], (_mms_mesh(d, lv["case"]), lv["k"])),
     "poiseuille": lambda d, lv: (d.assembly, (lv["factor"],)),
@@ -85,9 +85,9 @@ def side_meshes(drivers: dict, stored: dict) -> list[dict]:
     rows = [{"case": "square_bend", "level": f"inlet_k{inlet}", "cells_stored": None,
              "kept_orientation": False,
              "build": (drivers["square_bend"].inlet_assembly, (inlet,))}]
-    rows += [{"case": "poiseuille", "level": f"trend-{t['nang']}", "cells_stored": t["cells"],
+    rows += [{"case": "poiseuille", "level": f"trend-{t['n_arc']}", "cells_stored": t["cells"],
               "kept_orientation": False,
-              "build": (drivers["poiseuille"].trend_assembly, (t["nang"],))}
+              "build": (drivers["poiseuille"].trend_assembly, (t["n_arc"],))}
              for t in stored["poiseuille"]["extra"]["trend"]]
     return rows
 

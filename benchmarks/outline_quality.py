@@ -16,7 +16,7 @@ Not part of the test suite.
 
     python3 benchmarks/outline_quality.py                      # full sweep
     python3 benchmarks/outline_quality.py --json out.json --md out.md
-    python3 benchmarks/outline_quality.py --aspects 1 4 --gaps 0.3 --nang 4
+    python3 benchmarks/outline_quality.py --aspects 1 4 --gaps 0.3 --n_arc 4
     python3 benchmarks/outline_quality.py --bands            # where the limits start
 
 Three pairings, each a core and one shell:
@@ -73,32 +73,32 @@ from hexmesh.assembly import assembler
 assembler.check_section_quality = lambda spec: []
 
 SIZE = 0.1          # inner outline size (see the module docstring)
-NRAD = 4
+N_RADIAL = 4
 
 
-def section(pairing: str, aspect: float, gap: float, nang: int) -> PipeSpec:
-    spec = PipeSpec(nang=nang)
+def section(pairing: str, aspect: float, gap: float, n_arc: int) -> PipeSpec:
+    spec = PipeSpec(n_arc=n_arc)
     if pairing == "circle-in-rect":
         hh = SIZE * (1 + gap)                       # thinnest: top and bottom
-        return spec.core("core", shape=CircleShape(SIZE, nang=nang), nrad=NRAD).shell(
-            "ring", outer=RectShape(aspect * hh, hh, nang_w=nang, nang_h=nang), nrad=NRAD)
+        return spec.core("core", shape=CircleShape(SIZE, n_arc=n_arc), n_radial=N_RADIAL).shell(
+            "ring", outer=RectShape(aspect * hh, hh, n_width=n_arc, n_height=n_arc), n_radial=N_RADIAL)
     if pairing == "rect-in-circle":
         hh = SIZE / math.hypot(aspect, 1)           # half-diagonal = SIZE
-        return spec.core("core", shape=RectShape(aspect * hh, hh, nang_w=nang, nang_h=nang), nrad=NRAD,
+        return spec.core("core", shape=RectShape(aspect * hh, hh, n_width=n_arc, n_height=n_arc), n_radial=N_RADIAL,
                          layout="oh").shell(
-            "ring", outer=CircleShape(SIZE * (1 + gap), nang=nang), nrad=NRAD)
+            "ring", outer=CircleShape(SIZE * (1 + gap), n_arc=n_arc), n_radial=N_RADIAL)
     if pairing == "rect-in-rect":
-        return spec.core("core", shape=RectShape(aspect * SIZE, SIZE, nang_w=nang, nang_h=nang), nrad=NRAD,
+        return spec.core("core", shape=RectShape(aspect * SIZE, SIZE, n_width=n_arc, n_height=n_arc), n_radial=N_RADIAL,
                          layout="oh").shell(
-            "ring", dR=gap * SIZE, nrad=NRAD)
+            "ring", dR=gap * SIZE, n_radial=N_RADIAL)
     raise ValueError(pairing)
 
 
-def fitting(name: str, spec: PipeSpec, nang: int):
+def fitting(name: str, spec: PipeSpec, n_arc: int):
     e = spec.outlines[-1].max_extent
     if name == "straight":
-        return Straight(2 * e, n_layers=2 * nang)
-    return Bend(3 * e, 90, n_layers=3 * nang, roll=0 if name == "easy" else 90)
+        return Straight(2 * e, n_layers=2 * n_arc)
+    return Bend(3 * e, 90, n_layers=3 * n_arc, roll=0 if name == "easy" else 90)
 
 
 def _hexes():
@@ -221,14 +221,14 @@ def locate(asm: Assembly, spec: PipeSpec, x8: np.ndarray, layer: int) -> str:
     return "long side" if width_side == wide else "short side"
 
 
-def measure(pairing: str, aspect: float, gap: float, nang: int, fit: str) -> dict:
-    spec = section(pairing, aspect, gap, nang)
+def measure(pairing: str, aspect: float, gap: float, n_arc: int, fit: str) -> dict:
+    spec = section(pairing, aspect, gap, n_arc)
     gmsh.initialize()
     gmsh.option.setNumber("General.Verbosity", 0)
     gmsh.model.add("q")
     try:
-        asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1], lc=0.1)
-        asm.add(fitting(fit, spec, nang))
+        asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1])
+        asm.add(fitting(fit, spec, n_arc))
         predicted = asm.cell_count()
         asm.mesh()
         tags, x, vols, nodes = _hexes()
@@ -238,7 +238,7 @@ def measure(pairing: str, aspect: float, gap: float, nang: int, fit: str) -> dic
         angle, owner, neigh = non_orthogonality(x, nodes)
         layer = _layer_of(vols, spec.layer_names)
         worst = int(np.argmin(sj))
-        row = dict(pairing=pairing, aspect=aspect, gap=gap, nang=nang, fitting=fit,
+        row = dict(pairing=pairing, aspect=aspect, gap=gap, n_arc=n_arc, fitting=fit,
                    cells=len(tags), predicted=predicted,
                    min_sj=float(sj.min()), max_non_ortho=float(angle.max()),
                    min_sicn=float(sicn.min()), min_gmsh_sj=float(gmsh_sj.min()),
@@ -253,11 +253,11 @@ def measure(pairing: str, aspect: float, gap: float, nang: int, fit: str) -> dic
         gmsh.finalize()
 
 
-def band(pairing: str, gap: float, nang: int, crosses, hi: float = 50.0) -> float | None:
+def band(pairing: str, gap: float, n_arc: int, crosses, hi: float = 50.0) -> float | None:
     """Smallest w/h (to 0.01) at which ``crosses(LayerQuality)`` holds for
     the ring, from ``section_quality``: quality falls with w/h, so bisect."""
     def bad(a):
-        return crosses(section_quality(section(pairing, a, gap, nang))[1])
+        return crosses(section_quality(section(pairing, a, gap, n_arc))[1])
     if not bad(hi):
         return None
     lo = 1.0
@@ -269,7 +269,7 @@ def band(pairing: str, gap: float, nang: int, crosses, hi: float = 50.0) -> floa
     return hi
 
 
-def bands(pairings, gaps, nangs) -> list[dict]:
+def bands(pairings, gaps, n_arcs) -> list[dict]:
     """Aspect ratios where each limit of ``hexmesh.assembly.limits`` starts."""
     from hexmesh.assembly.limits import (OUTLINE_NONORTH_MAX, OUTLINE_NONORTH_WARN,
                                          PREDICTED_SJ_MIN, PREDICTED_SJ_WARN)
@@ -280,9 +280,9 @@ def bands(pairings, gaps, nangs) -> list[dict]:
         "non-orth reject": lambda q: q.max_non_ortho > OUTLINE_NONORTH_MAX,
     }
     rows = []
-    for pairing, gap, nang in itertools.product(pairings, gaps, nangs):
-        row = dict(pairing=pairing, gap=gap, nang=nang)
-        row.update({k: band(pairing, gap, nang, t) for k, t in tests.items()})
+    for pairing, gap, n_arc in itertools.product(pairings, gaps, n_arcs):
+        row = dict(pairing=pairing, gap=gap, n_arc=n_arc)
+        row.update({k: band(pairing, gap, n_arc, t) for k, t in tests.items()})
         rows.append(row)
     return rows
 
@@ -293,7 +293,7 @@ def main() -> None:
                     default=["circle-in-rect", "rect-in-circle", "rect-in-rect"])
     ap.add_argument("--aspects", nargs="+", type=float, default=[1, 1.5, 2, 3, 4, 6])
     ap.add_argument("--gaps", nargs="+", type=float, default=[0.1, 0.3, 1.0])
-    ap.add_argument("--nang", nargs="+", type=int, default=[4, 8])
+    ap.add_argument("--n_arc", nargs="+", type=int, default=[4, 8])
     ap.add_argument("--fittings", nargs="+", default=["straight", "easy", "hard"])
     ap.add_argument("--bands", action="store_true",
                     help="print the w/h at which each limit starts (no meshing)")
@@ -301,20 +301,20 @@ def main() -> None:
     ap.add_argument("--md")
     args = ap.parse_args()
     if args.bands:
-        print("| pairing | gap | nang | SJ warn | non-orth warn | SJ reject | non-orth reject |")
+        print("| pairing | gap | n_arc | SJ warn | non-orth warn | SJ reject | non-orth reject |")
         print("|---|---|---|---|---|---|---|")
-        for r in bands([p for p in args.pairings if p != "rect-in-rect"], args.gaps, args.nang):
+        for r in bands([p for p in args.pairings if p != "rect-in-rect"], args.gaps, args.n_arc):
             cells = [("—" if r[k] is None else f"{r[k]:.2f}") for k in
                      ("SJ warn", "non-orth warn", "SJ reject", "non-orth reject")]
-            print(f"| {r['pairing']} | {r['gap']:g} | {r['nang']} | " + " | ".join(cells) + " |")
+            print(f"| {r['pairing']} | {r['gap']:g} | {r['n_arc']} | " + " | ".join(cells) + " |")
         return
     rows = []
-    for case in itertools.product(args.pairings, args.aspects, args.gaps, args.nang,
+    for case in itertools.product(args.pairings, args.aspects, args.gaps, args.n_arc,
                                   args.fittings):
         r = measure(*case)
         assert r["cells"] == r["predicted"], r
         rows.append(r)
-        line = (f"{r['pairing']:15s} w/h {r['aspect']:<4g} gap {r['gap']:<4g} nang {r['nang']} "
+        line = (f"{r['pairing']:15s} w/h {r['aspect']:<4g} gap {r['gap']:<4g} n_arc {r['n_arc']} "
                 f"{r['fitting']:8s} SJ {r['min_sj']:.3f}  non-orth {r['max_non_ortho']:5.1f}°  "
                 f"(SICN {r['min_sicn']:.3f}, gmsh minSJ {r['min_gmsh_sj']:.3f})  "
                 f"worst: {r['worst']}")
@@ -328,11 +328,11 @@ def main() -> None:
             json.dump(rows, f, indent=1)
     if args.md:
         with open(args.md, "w") as f:
-            f.write("| pairing | w/h | gap | nang | fitting | min corner SJ | "
+            f.write("| pairing | w/h | gap | n_arc | fitting | min corner SJ | "
                     "max non-orth (°) | min SICN | gmsh minSJ | worst cell |\n"
                     "|---|---|---|---|---|---|---|---|---|---|\n")
             for r in rows:
-                f.write(f"| {r['pairing']} | {r['aspect']:g} | {r['gap']:g} | {r['nang']} | "
+                f.write(f"| {r['pairing']} | {r['aspect']:g} | {r['gap']:g} | {r['n_arc']} | "
                         f"{r['fitting']} | {r['min_sj']:.3f} | {r['max_non_ortho']:.1f} | "
                         f"{r['min_sicn']:.3f} | {r['min_gmsh_sj']:.3f} | {r['worst']} |\n")
 

@@ -25,16 +25,16 @@ from hexmesh.quality_hex import evaluate_hex_quality
 
 
 def _one_layer():
-    return PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=0.1, nang=4), nrad=3)
+    return PipeSpec(n_arc=4).core("fluid", shape=CircleShape(radius=0.1, n_arc=4), n_radial=3)
 
 
 def _two_layer():
-    return _one_layer().shell("wall", dR=0.025, nrad=2)
+    return _one_layer().shell("wall", dR=0.025, n_radial=2)
 
 
 def _sbs(spec, angle=90.0, roll=0.0):
     """Straight → Bend → Straight along +Y with up = +Z."""
-    asm = Assembly(spec, direction=[0, 1, 0], up=[0, 0, 1], lc=0.1)
+    asm = Assembly(spec, direction=[0, 1, 0], up=[0, 0, 1])
     asm.add(Straight(0.2, n_layers=2))
     asm.add(Bend(radius=0.3, angle=angle, n_layers=6, roll=roll))
     asm.add(Straight(0.2, n_layers=2))
@@ -94,10 +94,10 @@ class TestTopologyWithoutGmsh:
             asm.add(Straight(0.6, n_layers=3))
             asm.add(Bend(radius=0.3, angle=90, n_layers=4, roll=90))
         tail = asm.interfaces[-1]
-        tail.spec = PipeSpec(nang=6).core("fluid", shape=CircleShape(radius=0.1, nang=6), nrad=3)
+        tail.spec = PipeSpec(n_arc=6).core("fluid", shape=CircleShape(radius=0.1, n_arc=6), n_radial=3)
         asm.close(tail, asm.inlet, Closure(n_layers=8))
         # caught by the switch-class check (task 0019), which names the field
-        with pytest.raises(AssemblyError, match=r"nang \(4 vs 6\).*class 2"):
+        with pytest.raises(AssemblyError, match=r"n_arc \(4 vs 6\).*class 2"):
             asm.validate()
 
     def test_port_type_mismatch_with_equal_signature_rejected(self):
@@ -105,7 +105,7 @@ class TestTopologyWithoutGmsh:
         type: the exact A4 check rejects it."""
         asm = Assembly(_one_layer(), up=[0, 0, 1])
         out = asm.add(Straight(0.6, n_layers=3))
-        out.spec = PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=0.12, nang=4), nrad=3)
+        out.spec = PipeSpec(n_arc=4).core("fluid", shape=CircleShape(radius=0.12, n_arc=4), n_radial=3)
         asm.add(Straight(0.3, n_layers=2))
         with pytest.raises(AssemblyError, match="port type"):
             asm.validate()
@@ -135,7 +135,7 @@ class TestQuality:
         _full_check(_sbs(_one_layer(), roll=90.0))
 
     def test_s_curve(self, gmsh_session):
-        asm = Assembly(_one_layer(), direction=[0, 1, 0], up=[0, 0, 1], lc=0.1)
+        asm = Assembly(_one_layer(), direction=[0, 1, 0], up=[0, 0, 1])
         asm.add(Straight(0.2, n_layers=2))
         asm.add(Bend(radius=0.3, angle=45, n_layers=4))
         asm.add(Straight(0.1, n_layers=2))
@@ -145,7 +145,7 @@ class TestQuality:
 
     def test_bend_outlet_on_true_arc(self, gmsh_session):
         """Bend wall nodes lie exactly on the torus."""
-        asm = Assembly(_one_layer(), lc=0.1)
+        asm = Assembly(_one_layer())
         asm.add(Bend(radius=0.3, angle=90, n_layers=6))
         asm.mesh()
         tags = asm._fill.walls
@@ -247,7 +247,7 @@ class TestPhysicalGroups:
 
 def _chain(rolls, side=0.6):
     """Inlet, then (Straight → Bend(roll)) per roll; open tail returned."""
-    asm = Assembly(_one_layer(), up=[0, 0, 1], lc=0.1)
+    asm = Assembly(_one_layer(), up=[0, 0, 1])
     for r in rolls:
         asm.add(Straight(side, n_layers=3))
         asm.add(Bend(radius=0.3, angle=90, n_layers=4, roll=r))

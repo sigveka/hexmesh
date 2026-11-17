@@ -51,11 +51,11 @@ STATUS = ("checked", "preflight_failed", "meshed", "mesh_failed", "case_ready", 
 
 def _spec_key(spec) -> list:
     """A spec's connectivity: its port signature without the grading floats
-    (``mprg``, ``mbmp``), which move nodes but don't renumber them."""
+    (``radial_grading``, ``arc_bump``), which move nodes but don't renumber them."""
     from ..assembly.signature import signature
     sig = signature(spec)
-    return [sig.n_outer, sig.nang_w, sig.nang_h,
-            [[layer.name, layer.kind, layer.nrad] for layer in sig.layers]]
+    return [sig.n_outer, sig.n_width, sig.n_height,
+            [[layer.name, layer.kind, layer.n_radial] for layer in sig.layers]]
 
 
 def _counts(fitting) -> dict:

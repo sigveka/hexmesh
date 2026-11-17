@@ -36,12 +36,12 @@ from hexmesh.interchange.importers.pcf import read_pcf
 
 
 def _steel():
-    return (PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=0.05, nang=4), nrad=3)
-            .shell("steel", dR=0.005, nrad=2))
+    return (PipeSpec(n_arc=4).core("fluid", shape=CircleShape(radius=0.05, n_arc=4), n_radial=3)
+            .shell("steel", dR=0.005, n_radial=2))
 
 
 def _single():
-    return PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=0.05, nang=4), nrad=3)
+    return PipeSpec(n_arc=4).core("fluid", shape=CircleShape(radius=0.05, n_arc=4), n_radial=3)
 
 
 HEADER = """\
@@ -300,7 +300,7 @@ def test_insulation_errors_name_the_component(tmp_path, text, match):
 
 
 def test_spec_with_insulation_shell_rejected(tmp_path):
-    spec = _steel().shell("insulation", dR=0.02, nrad=2)
+    spec = _steel().shell("insulation", dR=0.02, n_radial=2)
     with pytest.raises(ValueError, match="already has one"):
         _read(tmp_path, VALVE_LINE).to_assembly(spec, insulation=True)
 

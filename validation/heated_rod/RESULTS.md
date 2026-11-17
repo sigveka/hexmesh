@@ -22,7 +22,7 @@ The uniform and graded series' L2 and maximum field errors.
 
 ## Levels
 
-| series | nang | nrad | cells | Mesh OK | max non-orth. (°) | max skewness | energy balance | ΔT₀ error | L2 error | max error (at r/R) |
+| series | n_arc | n_radial | cells | Mesh OK | max non-orth. (°) | max skewness | energy balance | ΔT₀ error | L2 error | max error (at r/R) |
 |---|---|---|---|---|---|---|---|---|---|---|
 | uniform | 6 | 3 | 216 | yes | 23.5 | 0.422 | 1.2e-14 | −1.377 % | 1.324e-02 | 1.544e-02 (0.46) |
 | uniform | 12 | 6 | 864 | yes | 33.2 | 0.484 | 3.2e-14 | −0.459 % | 3.873e-03 | 5.272e-03 (0.51) |

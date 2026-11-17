@@ -36,30 +36,30 @@ DATA = Path(__file__).parent / "data"
 
 
 def _h(half_w=0.1, half_h=0.05, nw=8, nh=4, **kw):
-    return PipeSpec(nang_w=nw, nang_h=nh).core("air", half_w=half_w, half_h=half_h,
+    return PipeSpec(n_width=nw, n_height=nh).core("air", half_w=half_w, half_h=half_h,
                                               layout="h", **kw)
 
 
-def _oh(half_w=0.1, half_h=0.05, nw=8, nh=4, nrad=2):
-    return PipeSpec(nang_w=nw, nang_h=nh).core("air", half_w=half_w, half_h=half_h, nrad=nrad,
+def _oh(half_w=0.1, half_h=0.05, nw=8, nh=4, n_radial=2):
+    return PipeSpec(n_width=nw, n_height=nh).core("air", half_w=half_w, half_h=half_h, n_radial=n_radial,
                                               layout="oh")
 
 
 # -- the H default (0.4.0, task 0087) ---------------------------------------
 
 def test_layout_defaults_to_h_for_a_rectangle_and_oh_for_a_circle():
-    assert PipeSpec().core("air", shape=RectShape(0.1, 0.05, nang_w=8, nang_h=4)).layout == "h"
-    assert PipeSpec(nang_w=8, nang_h=4).core("air", half_w=0.1, half_h=0.05).layout == "h"
-    assert PipeSpec(nang=4).core("air", radius=0.1, nrad=2).layout == "oh"
-    assert PipeSpec().core("air", shape=RectShape(0.1, 0.05, nang_w=8, nang_h=4), nrad=2,
+    assert PipeSpec().core("air", shape=RectShape(0.1, 0.05, n_width=8, n_height=4)).layout == "h"
+    assert PipeSpec(n_width=8, n_height=4).core("air", half_w=0.1, half_h=0.05).layout == "h"
+    assert PipeSpec(n_arc=4).core("air", radius=0.1, n_radial=2).layout == "oh"
+    assert PipeSpec().core("air", shape=RectShape(0.1, 0.05, n_width=8, n_height=4), n_radial=2,
                            layout="oh").layout == "oh"
 
 
-def test_nrad_on_a_default_rectangle_names_both_fixes():
-    with pytest.raises(ValueError, match=r"nrad=3 on a rectangular core is H by default "
-                                         r"since 0\.4\.0.*Drop nrad and grade the walls.*"
+def test_n_radial_on_a_default_rectangle_names_both_fixes():
+    with pytest.raises(ValueError, match=r"n_radial=3 on a rectangular core is H by default "
+                                         r"since 0\.4\.0.*Drop n_radial and grade the walls.*"
                                          r"layout='oh'"):
-        PipeSpec().core("air", shape=RectShape(0.1, 0.05, nang_w=8, nang_h=4), nrad=3)
+        PipeSpec().core("air", shape=RectShape(0.1, 0.05, n_width=8, n_height=4), n_radial=3)
 
 
 def test_saved_before_0087_reproduces_its_oh_mesh():
@@ -72,11 +72,11 @@ def test_saved_before_0087_reproduces_its_oh_mesh():
     assert asm.inlet.spec.layout == "oh" and asm.cell_count() == 2240
 
     def duct(hw, hh):
-        return PipeSpec(nang_w=4, nang_h=4).core("air", half_w=hw, half_h=hh, nrad=3,
+        return PipeSpec(n_width=4, n_height=4).core("air", half_w=hw, half_h=hh, n_radial=3,
                                                  layout="oh")
-    fresh = Assembly(duct(0.1, 0.05), direction=[1, 0, 0], up=[0, 0, 1], lc=0.1)
+    fresh = Assembly(duct(0.1, 0.05), direction=[1, 0, 0], up=[0, 0, 1])
     fresh.add(Straight(0.2, n_layers=3))
-    main, br = fresh.add(Tee(branch=RectShape(0.06, 0.06, nang_w=4, nang_h=4), branch_length=0.25,
+    main, br = fresh.add(Tee(branch=RectShape(0.06, 0.06, n_width=4, n_height=4), branch_length=0.25,
                              n_run=3, n_branch=3), names=["main", "branch"])
     fresh.add(br, Straight(0.1, n_layers=2))
     main = fresh.add(main, Bend(0.2, 90, n_layers=4))
@@ -100,17 +100,17 @@ def test_oh_layout_has_no_wall_grading():
     assert _oh().layout == "oh" and _oh().wall_grading is None
 
 
-def test_nrad_on_h_names_both_fixes():
-    with pytest.raises(ValueError, match=r"nrad=3 on an H core.*first_cell= or mprg=.*layout='oh'"):
-        _h(nrad=3)
+def test_n_radial_on_h_names_both_fixes():
+    with pytest.raises(ValueError, match=r"n_radial=3 on an H core.*first_cell= or radial_grading=.*layout='oh'"):
+        _h(n_radial=3)
 
 
 @pytest.mark.parametrize("make, match", [
-    (lambda: PipeSpec(nang=4).core("air", radius=0.1, layout="h"), "rectangular core"),
-    (lambda: PipeSpec(nang=4).core("air", half_w=0.1, half_h=0.05, layout="x"), "layout must be"),
-    (lambda: _h(first_cell=0.002, mprg=1.2), "one of"),
+    (lambda: PipeSpec(n_arc=4).core("air", radius=0.1, layout="h"), "rectangular core"),
+    (lambda: PipeSpec(n_arc=4).core("air", half_w=0.1, half_h=0.05, layout="x"), "layout must be"),
+    (lambda: _h(first_cell=0.002, radial_grading=1.2), "one of"),
     (lambda: _h(wall_bump=(0.5,)), "two positive"),
-    (lambda: PipeSpec(nang_w=4, nang_h=4).core("air", half_w=0.1, half_h=0.05, nrad=2, layout="oh",
+    (lambda: PipeSpec(n_width=4, n_height=4).core("air", half_w=0.1, half_h=0.05, n_radial=2, layout="oh",
                                                 wall_bump=(0.5, 0.5)), "H core"),
 ])
 def test_bad_layouts(make, match):
@@ -122,8 +122,8 @@ def test_shells_on_h():
     """Rings on the core's corners (task 0086): one level per layer (the
     core has one), four ring patches per shell, the shells' sides graded
     as the core's."""
-    spec = _h(nw=6, nh=6, first_cell=0.004).shell("wall", dR=0.01, nrad=2).shell(
-        "lag", dR=0.03, nrad=3)
+    spec = _h(nw=6, nh=6, first_cell=0.004).shell("wall", dR=0.01, n_radial=2).shell(
+        "lag", dR=0.03, n_radial=3)
     lv = h.levels(spec)
     assert len(lv) == 3 and len(h.patches(spec)) == 1 + 4 + 4
     assert h.section_cells(spec) == 6 * 6 + 24 * (2 + 3)
@@ -135,15 +135,15 @@ def test_shells_on_h():
 
 def test_wall_grading():
     assert _h().wall_grading is None
-    assert _h(mprg=1.3).wall_grading == ("bump", (bump_for_ratio(8, 1.3), bump_for_ratio(4, 1.3)))
-    assert _h(mprg=1.0).wall_grading is None
+    assert _h(radial_grading=1.3).wall_grading == ("bump", (bump_for_ratio(8, 1.3), bump_for_ratio(4, 1.3)))
+    assert _h(radial_grading=1.0).wall_grading is None
     kind, (cw, ch) = _h(first_cell=0.002).wall_grading
     assert kind == "bump"
     assert cw == bump_for_first_cell(0.2, 8, 0.002) and ch == bump_for_first_cell(0.1, 4, 0.002)
     assert _h(wall_bump=(cw, ch)).wall_grading == ("bump", (cw, ch))
 
 
-@pytest.mark.parametrize("make", [_h, lambda: _h(first_cell=0.002), lambda: _h(mprg=1.2)])
+@pytest.mark.parametrize("make", [_h, lambda: _h(first_cell=0.002), lambda: _h(radial_grading=1.2)])
 def test_round_trip(make):
     s = make()
     d = s.to_dict()
@@ -161,7 +161,7 @@ def test_saved_before_0084_loads_as_oh_and_meshes_the_same():
     assert "layout" not in json.dumps(saved)
     asm = Assembly.from_dict(saved)
     assert asm.inlet.spec.layout == "oh"
-    duct = PipeSpec(nang_w=4, nang_h=2).core("air", half_w=0.1, half_h=0.05, nrad=2, layout="oh")
+    duct = PipeSpec(n_width=4, n_height=2).core("air", half_w=0.1, half_h=0.05, n_radial=2, layout="oh")
     fresh = Assembly(duct, direction=[1, 0, 0], up=[0, 0, 1])
     fresh.add(Straight(0.3, n_layers=2))
     fresh.add(Bend(0.15, 90, n_layers=4))
@@ -263,18 +263,18 @@ def test_predicted_quality_is_the_tensor_grid():
 def test_refinement_series():
     from hexmesh.assembly.intent import refine_spec_dict
     d = refine_spec_dict(_h().to_dict(), 2)
-    assert (PipeSpec.from_dict(d).nang_w, PipeSpec.from_dict(d).layout) == (16, "h")
+    assert (PipeSpec.from_dict(d).n_width, PipeSpec.from_dict(d).layout) == (16, "h")
 
 
 def _side_nodes(spec, k):
-    """Node fractions of side *k* (0: the nang_w side, 1: the nang_h side)."""
+    """Node fractions of side *k* (0: the n_width side, 1: the n_height side)."""
     from hexmesh.sections import h
     g = h.side_grading(spec, k)
     n = spec.core_shape.side_count(k, 4)
     return bump(n, g[1]) if g else np.arange(n + 1) / n
 
 
-@pytest.mark.parametrize("grading", [{"first_cell": 0.004}, {"mprg": 1.3}])
+@pytest.mark.parametrize("grading", [{"first_cell": 0.004}, {"radial_grading": 1.3}])
 @pytest.mark.parametrize("k", [2, 4])
 @pytest.mark.parametrize("side", [0, 1])
 def test_refined_series_nests(k, side, grading):
@@ -290,8 +290,8 @@ def test_refined_series_nests(k, side, grading):
     assert np.abs(f[::k] - c).max() <= 1e-12
 
 
-def test_a_ratio_saved_as_mprg_loads_as_its_coefficients():
-    """e0e88dc saved an H ratio as ``mprg``; it loads as ``wall_bump``."""
+def test_a_ratio_saved_as_radial_grading_loads_as_its_coefficients():
+    """e0e88dc saved an H ratio as ``radial_grading``; it loads as ``wall_bump``."""
     d = _h().to_dict()
-    d["core"]["mprg"] = 1.3
-    assert PipeSpec.from_dict(d).wall_grading == _h(mprg=1.3).wall_grading
+    d["core"]["radial_grading"] = 1.3
+    assert PipeSpec.from_dict(d).wall_grading == _h(radial_grading=1.3).wall_grading

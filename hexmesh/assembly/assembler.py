@@ -46,7 +46,7 @@ from ..io.writers import msh_comments
 from .sweep import Arc
 from .fittings import FillResult, Straight
 from .quality import QualityReport
-from .interface import Frame, Interface, outer_radius
+from .interface import Frame, Interface
 from . import _graph, _validate, _realise, _checks, _output
 from ._graph import Edge
 from ._realise import curve_constraints  # noqa: F401  (tests import it from here)
@@ -61,8 +61,6 @@ class Assembly:
         Cross-section of the inlet interface.
     position, direction, up : array-like, optional
         Absolute pose of the inlet interface.  Defaults: origin, +X, +Z.
-    lc : float, optional
-        GMSH characteristic length; defaults to outer radius / 4.
     inlet_name : str
         Name of the inlet interface (used for its boundary patch).
     axial_cell : float, optional
@@ -78,7 +76,6 @@ class Assembly:
         *, position=None,
         direction=None,
         up=None,
-        lc:         float | None = None,
         inlet_name: str = "inlet",
         axial_cell: float | None = None,
     ) -> None:
@@ -89,7 +86,6 @@ class Assembly:
         self.axial_cell = axial_cell
         self._interfaces: list[Interface] = []
         self._edges:      list[Edge]      = []
-        self._lc = lc
         self._fill: FillResult | None = None
         self._fitting_volumes: dict[int, list[int]] = {}
         self._checked_volumes: dict[int, list[int]] = {}
@@ -122,7 +118,7 @@ class Assembly:
         self._tail = self.inlet
 
     @classmethod
-    def from_nozzle(cls, drum, nozzle: str, *, lc: float | None = None,
+    def from_nozzle(cls, drum, nozzle: str, *,
                     axial_cell: float | None = None) -> "Assembly":
         """Start a network at a drum nozzle (decision 0002).
 
@@ -132,7 +128,7 @@ class Assembly:
         """
         drum.validate()
         frame = drum.frame(nozzle)
-        asm = cls(drum.nozzle(nozzle).spec, lc=lc, inlet_name=f"{drum.name}_{nozzle}",
+        asm = cls(drum.nozzle(nozzle).spec, inlet_name=f"{drum.name}_{nozzle}",
                   axial_cell=axial_cell)
         asm.inlet.frame = frame
         asm.inlet.equipment = True
@@ -242,26 +238,26 @@ class Assembly:
         """A new assembly at k× the resolution in every direction.
 
         Built from the saved description (:meth:`to_dict`, scaled,
-        :meth:`from_dict`); this assembly is unchanged.  ``nang``, every
-        ``nrad`` and every axial count (``n_layers``; a tee's ``n_run``,
+        :meth:`from_dict`); this assembly is unchanged.  ``n_arc``, every
+        ``n_radial`` and every axial count (``n_layers``; a tee's ``n_run``,
         ``n_branch`` and ``n_turn``; a wye's ``n_run`` and ``n_branch``)
-        are multiplied by *k*, and every grading ratio (radial ``mprg``,
+        are multiplied by *k*, and every grading ratio (radial ``radial_grading``,
         ``axial_grading``) becomes its k-th root, so each coarse cell
-        splits into k cells of the same growth.  Geometry, topology and ``mbmp`` are unchanged.
+        splits into k cells of the same growth.  Geometry, topology and ``arc_bump`` are unchanged.
 
         Exception: a wye's ``n_split`` grows only up to
         ``limits.WYE_N_SPLIT_MAX`` (6), and never shrinks.  More turning
         layers fold the wye under wall projection (a 120° wye at
-        ``nang`` 8: ``n_split`` 12 at k = 2 and 24 at k = 4 both fold;
-        task 0056), so its knee arcs refine only with ``nang``.
+        ``n_arc`` 8: ``n_split`` 12 at k = 2 and 24 at k = 4 both fold;
+        task 0056), so its knee arcs refine only with ``n_arc``.
 
         **Cost:** k³ × the cells (``refined(2)`` has 8×).
 
-        A spec built with ``first_cell=`` stores its resolved ``mprg``, so
+        A spec built with ``first_cell=`` stores its resolved ``radial_grading``, so
         the refined first cell is smaller, not the requested height.
 
         Use it for grid-convergence studies (decision 0015).  It refines
-        the whole network: ``nang`` and every layer's ``nrad`` are the same
+        the whole network: ``n_arc`` and every layer's ``n_radial`` are the same
         in every pipe of a connected network, so part of one can't be
         refined alone (GUIDE, "One density per network").
         """
@@ -343,11 +339,6 @@ class Assembly:
     def fill(self, order: Iterable[int] | None = None) -> None:
         """Pipeline step 5: fill every fitting between its existing faces."""
         return _realise.fill(self, order)
-
-    @property
-    def lc(self) -> float:
-        """Characteristic length used for all faces."""
-        return self._lc or outer_radius(self.inlet.spec) / 4
 
     # ------------------------------------------------------------------
     # 6–7. Groups and mesh

@@ -174,16 +174,16 @@ class Store:
         write(self.path, self.data)
 
 
-COUNTS = ("nang", "nrad", "nang_w", "nang_h")
+COUNTS = ("n_arc", "n_radial", "n_width", "n_height")
 
 
 def counts(asm) -> dict:
     """The inlet section's counts of *asm* (an ``Assembly``), for a level
-    of ``results.json``: ``nang``, the core's ``nrad`` (0 on an H core),
-    ``nang_w`` and ``nang_h`` (None where the section has none; task 0098)."""
+    of ``results.json``: ``n_arc``, the core's ``n_radial`` (0 on an H core),
+    ``n_width`` and ``n_height`` (None where the section has none; task 0098)."""
     spec = asm.to_dict()["inlet"]["spec"]
-    return {"nang": spec["nang"], "nrad": spec["core"]["nrad"],
-            "nang_w": spec["nang_w"], "nang_h": spec["nang_h"]}
+    return {"n_arc": spec["n_arc"], "n_radial": spec["core"]["n_radial"],
+            "n_width": spec["n_width"], "n_height": spec["n_height"]}
 
 
 def run_level(store: Store, name: str, run: Callable[[], dict], case_dir: Path | None,

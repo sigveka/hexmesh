@@ -178,7 +178,7 @@ The control has the same axial cells and about the same section cells:
 
 - **The H section here is the control's grid.**  Step 8 asks for about
   the control's cells per section.  With no wall grading
-  (`PipeSpec(nang_w=ny, nang_h=nz).core(..., layout="h")`, the
+  (`PipeSpec(n_width=ny, n_height=nz).core(..., layout="h")`, the
   control's `(ny, nz)`) the H patch is exactly the control's uniform
   Cartesian section: the same cells at every level (2000 … 414 720),
   0° non-orthogonality, min scaled Jacobian 1.000.

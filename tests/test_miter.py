@@ -18,8 +18,8 @@ from hexmesh.core.spec import PipeSpec
 
 
 def _spec(shell=True):
-    spec = PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=0.1, nang=4), nrad=3)
-    return spec.shell("wall", dR=0.02, nrad=2) if shell else spec
+    spec = PipeSpec(n_arc=4).core("fluid", shape=CircleShape(radius=0.1, n_arc=4), n_radial=3)
+    return spec.shell("wall", dR=0.02, n_radial=2) if shell else spec
 
 
 A = Frame.from_vectors([0, 0, 0], [1, 0, 0], [0, 0, 1])
@@ -59,7 +59,7 @@ class TestGeometry:
     def test_wall_nodes_exact(self, gmsh_session, n_cuts):
         """Every wall node is on a pipe cylinder; cut nodes are on two."""
         spec, m = _spec(), MiterBend(0.3, 90, n_cuts=n_cuts, n_layers=2)
-        asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1], lc=0.05)
+        asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1])
         asm.add(m)
         asm.mesh()
         R = outer_radius(spec)
@@ -84,7 +84,7 @@ class TestGeometry:
 
     def test_fine_station_spacing(self, gmsh_session):
         """Stations 0.125° apart: OCC plate filling left holes here."""
-        asm = Assembly(_spec(), direction=[1, 0, 0], up=[0, 0, 1], lc=0.05)
+        asm = Assembly(_spec(), direction=[1, 0, 0], up=[0, 0, 1])
         with pytest.warns(UserWarning, match="looks like radians"):   # 5° is meant
             asm.add(MiterBend(0.3, 5, n_cuts=1, n_layers=20))
         asm.mesh()
@@ -100,13 +100,13 @@ class TestValidation:
         MiterBend(0.3, 180, n_cuts=2).check(_spec())
 
     def test_radius_must_exceed_pipe(self):
-        asm = Assembly(_spec(), lc=0.05)
+        asm = Assembly(_spec())
         asm.add(MiterBend(0.11, 90))
         with pytest.raises(AssemblyError, match="tighter than"):
             asm.validate()
 
     def test_cell_count_without_gmsh(self):
-        asm = Assembly(_spec(), lc=0.05)
+        asm = Assembly(_spec())
         asm.add(MiterBend(0.3, 90, n_cuts=3, n_layers=2))
         asm.validate()
         assert not gmsh.isInitialized()

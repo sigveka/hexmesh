@@ -110,8 +110,8 @@ def _stations(lay, spec, maps, n_y, n_z, n_x, n_run, place) -> None:
             n = n_y if l0[1] == l1[1] else n_z
             for lvl in (0, 1):
                 lay.edge((X, lvl, l0), (X, lvl, l1), divisions=n)
-            lay.edge((X, 0, l0), (X, 1, l0), divisions=spec._core_nrad,
-                     grading=("Progression", spec._core_mprg))
+            lay.edge((X, 0, l0), (X, 1, l0), divisions=spec._core_n_radial,
+                     grading=("Progression", spec._core_radial_grading))
     # Port slabs.
     for port, X, m in (("A", "Sa", maps[0]), ("B", "Sd", maps[1])):
         inv = {k: lab for lab, k in m.items()}
@@ -211,18 +211,18 @@ class DuctTap:
         o, ex, ey, ez, a, b, on_U = self._basis(inlet, spec)
         d, u, *_ = self._lean(ex, ez, b)
         sh = spec.core_shape
-        # across ∥ R (main nang_w) when the tap is on a U face
+        # across ∥ R (main n_width) when the tap is on a U face
         up = u if on_U else ey
         frame = Frame(o + self.branch_length * d, d, up)
         if self.radius is not None:
-            shape = CircleShape(radius=self.radius, nang=sh.nang_w)
-            out = PipeSpec(nang=sh.nang_w)
+            shape = CircleShape(radius=self.radius, n_arc=sh.n_width)
+            out = PipeSpec(n_arc=sh.n_width)
         else:
             hw, hh = (self.across, self.along) if on_U else (self.along, self.across)
-            shape = RectShape(hw, hh, nang_w=sh.nang_w, nang_h=sh.nang_h)
-            out = PipeSpec(nang_w=sh.nang_w, nang_h=sh.nang_h)
-        return frame, out.core(spec.layer_names[0], shape=shape, nrad=spec._core_nrad, layout="oh",
-                               mprg=spec._core_mprg)
+            shape = RectShape(hw, hh, n_width=sh.n_width, n_height=sh.n_height)
+            out = PipeSpec(n_width=sh.n_width, n_height=sh.n_height)
+        return frame, out.core(spec.layer_names[0], shape=shape, n_radial=spec._core_n_radial, layout="oh",
+                               radial_grading=spec._core_radial_grading)
 
     def ports(self, inlet: Frame, spec: PipeSpec):
         o, ex, *_ = self._basis(inlet, spec)
@@ -260,10 +260,10 @@ class DuctTap:
         mapB = _label_map(lay, "B", frames[1].position, ey, ez)
         mapE = _label_map(lay, "E", frames[2].position, u, ey)
         # counts by canonical direction: across (y) and deep (z)
-        n_y = sh.nang_w if on_U else sh.nang_h
-        n_z = sh.nang_h if on_U else sh.nang_w
+        n_y = sh.n_width if on_U else sh.n_height
+        n_z = sh.n_height if on_U else sh.n_width
         n_j = n_z if self.radius is None else n_y      # the branch's count along x
-        nrad = spec._core_nrad
+        n_radial = spec._core_n_radial
 
         # Stations at x = xc ∓ s: ids by canonical (sy, sz).
         _stations(lay, spec, (mapA, mapB), n_y, n_z, n_j, self.n_run,
@@ -330,7 +330,7 @@ class DuctTap:
             lay.block([C(0, *l0), C(0, *l1), C(1, *l1), C(1, *l0),
                        D(0, *l0), D(0, *l1), D(1, *l1), D(1, *l0)], name)
         for lab in loop:
-            lay.edge(W(1, *lab), C(1, *lab), divisions=nrad)
+            lay.edge(W(1, *lab), C(1, *lab), divisions=n_radial)
         # The O-grid's radial count: station corners → hole corners.
         n_wall = self.n_wall or self.wall_cells(spec)
         for X, sx in (("Sa", -1), ("Sd", 1)):
@@ -371,7 +371,7 @@ class DuctTap:
         p, _ = self._hole()
         k = 1.0 / lean(self.angle)[1]                  # a shoe's hole is stretched along x
         extent = (self.radius if self.radius is not None else p) * k
-        n_y, n_z = (sh.nang_w, sh.nang_h) if on_U else (sh.nang_h, sh.nang_w)
+        n_y, n_z = (sh.n_width, sh.n_height) if on_U else (sh.n_height, sh.n_width)
         n_j = n_z if self.radius is None else n_y
         return max(2, math.ceil(n_j * (extent + self.margin * t - p * k) / (2 * p * k) - 1e-9))
 
@@ -435,8 +435,8 @@ class FullWidthTap(DuctTap):
         mapB = _label_map(lay, "B", frames[1].position, ey, ez)
         mapE = _label_map(lay, "E", frames[2].position, u, ey)
         mapZ = _label_map(lay, "Z", Z.position, u, ey)
-        n_y = sh.nang_w if on_U else sh.nang_h
-        n_z = sh.nang_h if on_U else sh.nang_w       # also the branch's count along x
+        n_y = sh.n_width if on_U else sh.n_height
+        n_z = sh.n_height if on_U else sh.n_width       # also the branch's count along x
 
         # Stations at the hole's ends x = xc ∓ p k: ids by canonical (sy, sz).
         # A shoe's core-top corners centre on the branch axis at z = ih, so
@@ -501,7 +501,7 @@ class TapTemplate:
 
     **H ports** (decision 0036 item 5, task 0086).  On an H main the
     junction keeps its O-H blocks: the O-H face the H main pillows into
-    (``sections.h.pillowed``, with the tee's ``nrad`` and ``mprg``,
+    (``sections.h.pillowed``, with the tee's ``n_radial`` and ``radial_grading``,
     derived and stored when the tee is added).  A ``Switch`` leg of
     ``limits.SWITCH_MIN_LENGTH`` ring thicknesses at each H port (both
     main ports, and a rectangular branch, which is H too) joins it to the
@@ -592,10 +592,10 @@ class TapTemplate:
         me._check_angle()
         if spec.layout == "h":
             return me._resolve_h(inlet, spec)
-        if tee.nrad is not None or tee.mprg is not None:
-            raise AssemblyError("Tee: nrad= and mprg= are for a duct tap on an H main (its "
+        if tee.n_radial is not None or tee.radial_grading is not None:
+            raise AssemblyError("Tee: n_radial= and radial_grading= are for a duct tap on an H main (its "
                                 "O-H blocks inside); an O-H main's ring is its own",
-                                code="tap_ring_override_on_oh_main", where={"field": "nrad"})
+                                code="tap_ring_override_on_oh_main", where={"field": "n_radial"})
         if me.full_width(spec):
             tuning = [n for n in _TUNABLES if getattr(tee, n) is not None]
             if tuning:
@@ -636,10 +636,10 @@ class TapTemplate:
                                      "them")
         if spec.layout == "h":
             return self._check_h(spec, tuned)
-        if tee.nrad is not None or tee.mprg is not None:
-            raise AssemblyError("Tee: nrad= and mprg= are for a duct tap on an H main (its "
+        if tee.n_radial is not None or tee.radial_grading is not None:
+            raise AssemblyError("Tee: n_radial= and radial_grading= are for a duct tap on an H main (its "
                                 "O-H blocks inside); an O-H main's ring is its own",
-                                code="tap_ring_override_on_oh_main", where={"field": "nrad"})
+                                code="tap_ring_override_on_oh_main", where={"field": "n_radial"})
         sh = spec.core_shape
         full = tee.branch is not None and self.full_width(spec)
         tunables = () if full else tuple(getattr(tee, k) for k in _TUNABLES)
@@ -671,11 +671,11 @@ class TapTemplate:
             if not (mw == mh == bw):
                 raise AssemblyError(
                     f"Tee: a round duct tap needs equal counts per side: main "
-                    f"(nang_w, nang_h) = ({mw}, {mh}), branch nang {bw}",
+                    f"(n_width, n_height) = ({mw}, {mh}), branch n_arc {bw}",
                     code="counts_mismatch", where={"field": "branch"}, value=bw, limit=(mw, mh))
         elif (bw, bh) != (mw, mh):
             raise AssemblyError(
-                f"Tee: branch counts (nang_w, nang_h) = ({bw}, {bh}) must "
+                f"Tee: branch counts (n_width, n_height) = ({bw}, {bh}) must "
                 f"be the main's ({mw}, {mh}): the branch keeps the main's "
                 f"counts per side (module notes)",
                 code="counts_mismatch", where={"field": "branch"}, value=(bw, bh), limit=(mw, mh))
@@ -775,8 +775,8 @@ class TapTemplate:
         found = []
         for part, fr, s in self._parts(frames, spec):
             if isinstance(part, TapTemplate):
-                ring = (f" (H main: the O-H ring inside has nrad {s._core_nrad}, "
-                        f"mprg {s._core_mprg:.4g})")
+                ring = (f" (H main: the O-H ring inside has n_radial {s._core_n_radial}, "
+                        f"radial_grading {s._core_radial_grading:.4g})")
                 found += [m + ring for m in part.quality(fr, s)]
                 _validate_layout(part.layout(fr, s))
                 found += [m + ring for m in nonorth_tiers(
@@ -850,12 +850,12 @@ class TapTemplate:
                 f"non-orthogonality to 82°, task 0069); the wide face is better")
         return found
 
-    def fill(self, faces, frames, spec, lc):
+    def fill(self, faces, frames, spec):
         """Bind the three port faces (declared in the ports' own frames).
         On an H main: the O-H faces at the legs' inner ends, then each
         part's fill on its faces."""
         if spec.layout == "h":
-            return self._fill_h(faces, frames, spec, lc)
+            return self._fill_h(faces, frames, spec)
         lay = self.layout(frames, spec)
         for prefix, face in zip("ABE", faces):
             bind_face(lay, prefix, face)
@@ -865,11 +865,11 @@ class TapTemplate:
 
     def inner_spec(self, spec: PipeSpec) -> PipeSpec:
         """The junction's own section: *spec*, or on an H main the O-H face
-        it pillows into (``sections.h.pillowed``; the tee's ``nrad`` and
-        ``mprg`` when set, else derived)."""
+        it pillows into (``sections.h.pillowed``; the tee's ``n_radial`` and
+        ``radial_grading`` when set, else derived)."""
         if spec.layout != "h":
             return spec
-        return h.pillowed(spec, self.tee.nrad, self.tee.mprg)
+        return h.pillowed(spec, self.tee.n_radial, self.tee.radial_grading)
 
     def legs(self, spec: PipeSpec) -> tuple[float, float]:
         """(main leg, branch leg): the switch lengths at the main ports and
@@ -891,7 +891,7 @@ class TapTemplate:
         """The inner junction's branch spec on an H main: its shape and
         counts don't depend on the lengths (any run length places it)."""
         s_oh = self.inner_spec(spec)
-        tpl = TapTemplate(replace(self.tee, nrad=None, mprg=None,
+        tpl = TapTemplate(replace(self.tee, n_radial=None, radial_grading=None,
                                   run_length=self.tee.run_length or 1.0))
         return tpl.tap(_ORIGIN, s_oh).branch(_ORIGIN, s_oh)[1]
 
@@ -902,12 +902,12 @@ class TapTemplate:
 
     def inner(self, spec: PipeSpec) -> "TapTemplate":
         """The O-H junction inside: the tee with the legs taken off its
-        lengths, and no ``nrad``/``mprg`` (its main is O-H)."""
+        lengths, and no ``n_radial``/``radial_grading`` (its main is O-H)."""
         lm, lb = self.legs(spec)
         tee = self.tee
         run = None if tee.run_length is None else tee.run_length - lm
         return TapTemplate(replace(tee, run_length=run, branch_length=tee.branch_length - lb,
-                                   nrad=None, mprg=None))
+                                   n_radial=None, radial_grading=None))
 
     def _h_branch(self, bspec: PipeSpec, spec: PipeSpec) -> PipeSpec:
         """A rectangular branch's H port: the inner branch spec's
@@ -915,7 +915,7 @@ class TapTemplate:
         as the branch keeps the main's counts per side)."""
         sh = bspec.core_shape
         wall = spec.wall_grading
-        return PipeSpec(nang_w=sh.nang_w, nang_h=sh.nang_h, mbmp=bspec.mbmp,
+        return PipeSpec(n_width=sh.n_width, n_height=sh.n_height, arc_bump=bspec.arc_bump,
                         rot=bspec.rot).core(bspec.layer_names[0], shape=sh, layout="h",
                                             wall_bump=None if wall is None else wall[1])
 
@@ -956,14 +956,14 @@ class TapTemplate:
 
     def _check_override(self) -> None:
         tee = self.tee
-        if tee.nrad is not None and (isinstance(tee.nrad, bool) or not isinstance(tee.nrad, int)
-                                     or tee.nrad < 1):
-            raise AssemblyError(f"Tee: nrad must be an integer >= 1, got {tee.nrad!r}",
-                                code="count_below_minimum", where={"field": "nrad"},
-                                value=tee.nrad, limit={"min": 1, "integer": True})
-        if tee.mprg is not None and not tee.mprg > 0:
-            raise AssemblyError(f"Tee: mprg must be positive, got {tee.mprg!r}",
-                                code="value_not_positive", where={"field": "mprg"}, value=tee.mprg,
+        if tee.n_radial is not None and (isinstance(tee.n_radial, bool) or not isinstance(tee.n_radial, int)
+                                     or tee.n_radial < 1):
+            raise AssemblyError(f"Tee: n_radial must be an integer >= 1, got {tee.n_radial!r}",
+                                code="count_below_minimum", where={"field": "n_radial"},
+                                value=tee.n_radial, limit={"min": 1, "integer": True})
+        if tee.radial_grading is not None and not tee.radial_grading > 0:
+            raise AssemblyError(f"Tee: radial_grading must be positive, got {tee.radial_grading!r}",
+                                code="value_not_positive", where={"field": "radial_grading"}, value=tee.radial_grading,
                                 limit={"min_exclusive": 0})
 
     def _room(self, e: ValueError, spec: PipeSpec) -> AssemblyError:
@@ -984,14 +984,14 @@ class TapTemplate:
             raise self._room(e, spec) from None
 
     def _resolve_h(self, inlet: Frame, spec: PipeSpec):
-        """The tee on an H main, resolved: ``nrad`` and ``mprg`` (the
+        """The tee on an H main, resolved: ``n_radial`` and ``radial_grading`` (the
         override, else derived), the O-H junction's resolve with the legs
         off, and the legs back on ``run_length``."""
         self._check_override()
         tee = self.tee
-        if tee.nrad is None or tee.mprg is None:
-            dn, dm = h.pillow_ring(spec, tee.nrad)
-            tee = replace(tee, nrad=dn, mprg=dm if tee.mprg is None else tee.mprg)
+        if tee.n_radial is None or tee.radial_grading is None:
+            dn, dm = h.pillow_ring(spec, tee.n_radial)
+            tee = replace(tee, n_radial=dn, radial_grading=dm if tee.radial_grading is None else tee.radial_grading)
         me = TapTemplate(tee)
         lm, lb = me.legs(spec)
         inner_inlet = Frame(inlet.position + lm * inlet.normal, inlet.normal, inlet.up)
@@ -1000,20 +1000,20 @@ class TapTemplate:
         except ValueError as e:
             raise me._room(e, spec) from None
         return replace(inner, run_length=inner.run_length + lm, branch_length=tee.branch_length,
-                       nrad=tee.nrad, mprg=tee.mprg)
+                       n_radial=tee.n_radial, radial_grading=tee.radial_grading)
 
-    def _fill_h(self, faces, frames, spec, lc):
+    def _fill_h(self, faces, frames, spec):
         from .interface import build_face
         parts = self._parts(frames, spec)
         (_, fr_in, s_oh), branch_leg = parts[1], parts[3] if len(parts) == 4 else None
-        inner_faces = [build_face(s_oh, fr_in[0], lc), build_face(s_oh, fr_in[1], lc),
-                       faces[2] if branch_leg is None else build_face(branch_leg[2], fr_in[2], lc)]
-        legs = [parts[0][0].fill([faces[0], inner_faces[0]], parts[0][1], parts[0][2], lc),
-                parts[2][0].fill([inner_faces[1], faces[1]], parts[2][1], parts[2][2], lc)]
+        inner_faces = [build_face(s_oh, fr_in[0]), build_face(s_oh, fr_in[1]),
+                       faces[2] if branch_leg is None else build_face(branch_leg[2], fr_in[2])]
+        legs = [parts[0][0].fill([faces[0], inner_faces[0]], parts[0][1], parts[0][2]),
+                parts[2][0].fill([inner_faces[1], faces[1]], parts[2][1], parts[2][2])]
         if branch_leg is not None:
             legs.append(branch_leg[0].fill([inner_faces[2], faces[2]], branch_leg[1],
-                                           branch_leg[2], lc))
-        result = parts[1][0].fill(inner_faces, fr_in, s_oh, lc)
+                                           branch_leg[2]))
+        result = parts[1][0].fill(inner_faces, fr_in, s_oh)
         for leg in legs:
             result.merge(leg)
         # the meshed checks measure the legs; a round tap's, the whole tee

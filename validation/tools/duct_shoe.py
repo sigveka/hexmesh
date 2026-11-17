@@ -14,7 +14,7 @@
 Task 0063: the shoe tap, measured (decision 0031, stage 4).
 
 Each case is ``Straight → Tee(angle=α) → Straight`` on both outlets, on
-the kit's 2:1 duct (half-extents 0.1 × 0.05, 4 cells per side, nrad 3),
+the kit's 2:1 duct (half-extents 0.1 × 0.05, 4 cells per side, n_radial 3),
 the tap on the wide face, with ``run_length`` resolved as a user gets it
 and the branch the hole's acute end + the face's half-width.  Over α ∈
 {30, 45, 60, 90}°, branch ratio (reach across / the face's half-width) ∈
@@ -56,15 +56,15 @@ def assembly(kind: str, ratio: float, angle: float):
     from hexmesh.core.spec import PipeSpec
     from hexmesh.assembly.interface import lean
     a = 2 * B
-    spec = PipeSpec(nang_w=N, nang_h=N).core("fluid", shape=RectShape(a, B, nang_w=N, nang_h=N), nrad=3, layout="oh")
+    spec = PipeSpec(n_width=N, n_height=N).core("fluid", shape=RectShape(a, B, n_width=N, n_height=N), n_radial=3, layout="oh")
     if kind == "full":
-        shape, reach = RectShape(a, ratio * a, nang_w=N, nang_h=N), ratio * a
+        shape, reach = RectShape(a, ratio * a, n_width=N, n_height=N), ratio * a
     elif kind == "rect":
-        shape, reach = RectShape(ratio * a, ratio * a, nang_w=N, nang_h=N), ratio * a
+        shape, reach = RectShape(ratio * a, ratio * a, n_width=N, n_height=N), ratio * a
     else:
-        shape, reach = CircleShape(radius=ratio * a, nang=N), ratio * a
+        shape, reach = CircleShape(radius=ratio * a, n_arc=N), ratio * a
     ca, sa = lean(angle)
-    asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1], lc=0.1)
+    asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Straight(0.2, n_layers=N))
     main, branch = asm.add(Tee(branch=shape, angle=angle, n_run=N, n_branch=N,
                                branch_length=(B + reach * ca) / sa + a),

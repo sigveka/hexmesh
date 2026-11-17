@@ -29,9 +29,9 @@
    "max_non_orthogonality_fluid": 23.5,
    "mesh_ok": true,
    "min_scaled_jacobian": 0.793,
+   "n_arc": 6,
    "n_proc": 1,
    "name": "k1",
-   "nang": 6,
    "nu": 4.46929,
    "nu_err": 0.02421229166666674,
    "precision": "rounded from RESULTS.md"
@@ -62,9 +62,9 @@
    "max_non_orthogonality_fluid": 33.2,
    "mesh_ok": true,
    "min_scaled_jacobian": 0.752,
+   "n_arc": 12,
    "n_proc": 4,
    "name": "k2",
-   "nang": 12,
    "nu": 4.3977,
    "nu_err": 0.007806250000000163,
    "precision": "rounded from RESULTS.md"
@@ -95,9 +95,9 @@
    "max_non_orthogonality_fluid": 36.9,
    "mesh_ok": true,
    "min_scaled_jacobian": 0.737,
+   "n_arc": 18,
    "n_proc": 4,
    "name": "k3",
-   "nang": 18,
    "nu": 4.38223,
    "nu_err": 0.004261041666666706,
    "precision": "rounded from RESULTS.md"

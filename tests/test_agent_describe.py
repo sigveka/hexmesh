@@ -82,7 +82,7 @@ def _pcf(tmp_path, text, name="plant.pcf"):
 
 
 def _spec():
-    return PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=0.05, nang=4), nrad=3)
+    return PipeSpec(n_arc=4).core("fluid", shape=CircleShape(radius=0.05, n_arc=4), n_radial=3)
 
 
 # --- describe ---------------------------------------------------------------------

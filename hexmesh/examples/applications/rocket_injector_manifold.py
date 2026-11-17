@@ -83,13 +83,13 @@ D_FEED = math.sqrt(4 * LOX_FLOW / (math.pi * V_LINE))
 D_RING = math.sqrt(4 * (LOX_FLOW / 2) / (math.pi * V_LINE / 3))
 D_LEG = math.sqrt(4 * (LOX_FLOW / N_INJECTORS) / (math.pi * V_LINE / 3))
 
-NANG = 8
+N_ARC = 8
 
 
 def pipe(diameter: float) -> PipeSpec:
     """Liquid oxygen in a steel tube of bore *diameter*."""
-    return (PipeSpec(nang=NANG).core("lox", radius=diameter / 2, nrad=4)
-            .shell("steel", dR=WALL, nrad=2))
+    return (PipeSpec(n_arc=N_ARC).core("lox", radius=diameter / 2, n_radial=4)
+            .shell("steel", dR=WALL, n_radial=2))
 
 
 #: The gallery's colours (``docs/gallery/build.py``).
@@ -118,7 +118,7 @@ def build() -> Assembly:
             asm.close(end, asm.inlet, bend)
     # The feed line: insulated from two cells out, then up toward the tank
     # through the venturi.
-    insulated = pipe(D_FEED).shell("insulation", dR=INSULATION, nrad=2)
+    insulated = pipe(D_FEED).shell("insulation", dR=INSULATION, n_radial=2)
     end = asm.add(feed, Straight(0.12, n_layers=8, stack_changes=((2, insulated),)))
     end = asm.add(end, Bend(radius=0.08, angle=90, toward=(0, 0, 1), n_layers=8))
     end = asm.add(end, Straight(0.15, n_layers=6))

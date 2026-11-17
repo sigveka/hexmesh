@@ -33,44 +33,44 @@ from hexmesh.sections import h, layout_of, oh
 
 
 def _rect(a, b, n=4, **kw):
-    return PipeSpec(nang=n, **kw).core("fluid", shape=RectShape(a, b, nang_w=n, nang_h=n), nrad=3, layout="oh")
+    return PipeSpec(n_arc=n, **kw).core("fluid", shape=RectShape(a, b, n_width=n, n_height=n), n_radial=3, layout="oh")
 
 
 def _h(a, b, nw, nh, rot=0.0, **kw):
-    return PipeSpec(nang_w=nw, nang_h=nh, rot=rot).core(
-        "fluid", shape=RectShape(a, b, nang_w=nw, nang_h=nh), layout="h", **kw)
+    return PipeSpec(n_width=nw, n_height=nh, rot=rot).core(
+        "fluid", shape=RectShape(a, b, n_width=nw, n_height=nh), layout="h", **kw)
 
 
 SPECS = {
-    "circle": lambda: PipeSpec(nang=6).core("fluid", radius=0.05, nrad=3),
+    "circle": lambda: PipeSpec(n_arc=6).core("fluid", radius=0.05, n_radial=3),
     "rect-1": lambda: _rect(0.06, 0.06),
     "rect-2": lambda: _rect(0.10, 0.05),
     "rect-4": lambda: _rect(0.20, 0.05),
-    "rect-unequal-counts": lambda: PipeSpec(nang_w=6, nang_h=3).core(
-        "fluid", shape=RectShape(0.10, 0.05, nang_w=6, nang_h=3), nrad=3, layout="oh"),
-    "circle-3layer": lambda: (PipeSpec(nang=4).core("fluid", radius=0.05, nrad=3, mprg=0.9)
-                              .shell("wall", dR=0.004, nrad=2, mprg=1.1)
-                              .shell("lagging", dR=0.02, nrad=3)),
-    "rect-3layer": lambda: (_rect(0.10, 0.05).shell("wall", dR=0.01, nrad=2)
-                            .shell("lagging", dR=0.03, nrad=2)),
-    "circle-in-rect": lambda: (PipeSpec(nang=4).core("fluid", radius=0.05, nrad=3)
-                               .shell("block", outer=RectShape(0.25, 0.125, nang_w=4, nang_h=4), nrad=3)),
+    "rect-unequal-counts": lambda: PipeSpec(n_width=6, n_height=3).core(
+        "fluid", shape=RectShape(0.10, 0.05, n_width=6, n_height=3), n_radial=3, layout="oh"),
+    "circle-3layer": lambda: (PipeSpec(n_arc=4).core("fluid", radius=0.05, n_radial=3, radial_grading=0.9)
+                              .shell("wall", dR=0.004, n_radial=2, radial_grading=1.1)
+                              .shell("lagging", dR=0.02, n_radial=3)),
+    "rect-3layer": lambda: (_rect(0.10, 0.05).shell("wall", dR=0.01, n_radial=2)
+                            .shell("lagging", dR=0.03, n_radial=2)),
+    "circle-in-rect": lambda: (PipeSpec(n_arc=4).core("fluid", radius=0.05, n_radial=3)
+                               .shell("block", outer=RectShape(0.25, 0.125, n_width=4, n_height=4), n_radial=3)),
     "circle-square-circle": lambda: (
-        PipeSpec(nang=4).core("fluid", radius=0.05, nrad=3)
-        .shell("filler", outer=RectShape(0.08, 0.08, nang_w=4, nang_h=4), nrad=2)
-        .shell("sheath", outer=CircleShape(0.14, nang=4), nrad=2)),
+        PipeSpec(n_arc=4).core("fluid", radius=0.05, n_radial=3)
+        .shell("filler", outer=RectShape(0.08, 0.08, n_width=4, n_height=4), n_radial=2)
+        .shell("sheath", outer=CircleShape(0.14, n_arc=4), n_radial=2)),
     "rect-in-circle": lambda: (_rect(0.10, 0.05)
-                               .shell("casing", outer=CircleShape(0.16, nang=4), nrad=3)),
-    "circle-rot": lambda: (PipeSpec(nang=4, rot=30).core("fluid", radius=0.05, nrad=3)
-                           .shell("wall", dR=0.01, nrad=2)),
-    "rect-rot-bump": lambda: (_rect(0.10, 0.05, rot=-17, mbmp=0.7)
-                              .shell("wall", dR=0.01, nrad=2)),
-    "circle8": lambda: PipeSpec(nang=4, n_outer=8).core("fluid", radius=0.05, nrad=3),
+                               .shell("casing", outer=CircleShape(0.16, n_arc=4), n_radial=3)),
+    "circle-rot": lambda: (PipeSpec(n_arc=4, rot=30).core("fluid", radius=0.05, n_radial=3)
+                           .shell("wall", dR=0.01, n_radial=2)),
+    "rect-rot-bump": lambda: (_rect(0.10, 0.05, rot=-17, arc_bump=0.7)
+                              .shell("wall", dR=0.01, n_radial=2)),
+    "circle8": lambda: PipeSpec(n_arc=4, n_outer=8).core("fluid", radius=0.05, n_radial=3),
     # the H layout (task 0084): one patch, graded to the walls
     "h-1": lambda: _h(0.06, 0.06, 5, 5),
     "h-2": lambda: _h(0.10, 0.05, 8, 4),
     "h-4-first-cell": lambda: _h(0.20, 0.05, 16, 4, first_cell=0.003),
-    "h-2-ratio": lambda: _h(0.10, 0.05, 8, 4, mprg=1.25),
+    "h-2-ratio": lambda: _h(0.10, 0.05, 8, 4, radial_grading=1.25),
     "h-rot-bump": lambda: _h(0.10, 0.05, 8, 4, first_cell=0.004, rot=-17),
 }
 
@@ -80,7 +80,7 @@ FRAME = Frame.from_vectors(position=[0.3, -1.2, 2.5], normal=[1.0, 2.0, -0.5], u
 
 def _realised(spec):
     """Per level, the GMSH corner points; per (a, b), the curve."""
-    face = sections.build_face(spec, FRAME.position, FRAME.right, FRAME.up, lc=0.1)
+    face = sections.build_face(spec, FRAME.position, FRAME.right, FRAME.up)
     gmsh.model.occ.synchronize()
     points, curves = {}, {}
     if spec.layout == "h":                  # one level: the boundary

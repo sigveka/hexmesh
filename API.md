@@ -14,7 +14,7 @@ Plain floats, metres per unit (decision 0047): `m`, `cm`, `mm`, `um`,
 
 ```python
 from hexmesh.units import mm
-pipe = PipeSpec(nang=8).core("blood", radius=13.25 * mm, nrad=6)
+pipe = PipeSpec(n_arc=8).core("blood", radius=13.25 * mm, n_radial=6)
 ```
 
 Nothing checks or converts: a length is a number in metres, and outputs
@@ -58,7 +58,7 @@ GMSH output to errors.
 
 ## Assembly
 
-### `Assembly(spec, *, position=None, direction=None, up=None, lc=None, inlet_name="inlet", axial_cell=None)`
+### `Assembly(spec, *, position=None, direction=None, up=None, inlet_name="inlet", axial_cell=None)`
 
 An interface-first pipe network ([DESIGN.md](DESIGN.md) §5).
 
@@ -66,7 +66,6 @@ An interface-first pipe network ([DESIGN.md](DESIGN.md) §5).
 |---|---|
 | `spec` | `PipeSpec` of the inlet interface |
 | `position`, `direction`, `up` | inlet pose; defaults are the origin, +x and +z. `up` fixes the roll of the cross-section and is made orthogonal to `direction` |
-| `lc` | GMSH characteristic length; defaults to outer radius / 4 (it doesn't affect the structured mesh) |
 | `inlet_name` | patch name of the inlet |
 | `axial_cell` | target axial cell length. A sweep fitting added with `n_layers=None` (`Straight`, `Bend`, `Elbow`, `MiterBend`, `Reducer`, `Transition`, `SplinePipe`, `Closure`, `Switch`) gets `ceil(L / axial_cell)` layers, `L` its centreline length (for `MiterBend`, one end leg, since `n_layers` counts those), or the fewest above that which pass its own checks: a bend's turn below 180° per layer, a spline's or closure's 30° per layer, a profiled reducer's `chord_tol`. Resolved in `add()` (in `close()` for `Closure`) and stored in the fitting, so `to_dict()`, `cell_count()` and `refined(k)` see an ordinary count. `n_layers=None` without `axial_cell` is an `AssemblyError` naming the fitting, and so are `stack_changes` with `n_layers=None` (their indices need the count). Saved in the file; `refined(k)` divides it by k |
 
@@ -136,14 +135,14 @@ in degrees. The thresholds are data, in `hexmesh.assembly.limits`.
 | `to_dict()` / `Assembly.from_dict(d)` | The network description as plain JSON-serialisable data, and back |
 | `save(path)` / `Assembly.load(path)` | The same, as a JSON file (indented, sorted keys) |
 | `Assembly.from_msh(path)` | The assembly a `.msh` was written from, by its recipe block: `from_dict(read_recipe(path))`.  `ValueError` when the file has no recipe |
-| `refined(k)` | A new assembly at k× the resolution (integer k ≥ 1), built from `to_dict()`: `nang` (a circle's `arcs`, each), every `nrad`, every `n_layers`, a tee's `n_run` / `n_branch` / `n_turn` and a wye's `n_run` / `n_branch` × k (a wye's `n_split` × k up to `WYE_N_SPLIT_MAX` = 6, never below its own value: more turning layers fold the wye, task 0056), the axial cell index of each `stack_changes` entry × k, and `mprg` and `axial_grading` → their k-th root.  Geometry, topology and `mbmp` stay; `first_cell` specs keep their resolved `mprg` (an H core: `wall_bump`), so the levels nest.  **k³× the cells.** |
+| `refined(k)` | A new assembly at k× the resolution (integer k ≥ 1), built from `to_dict()`: `n_arc` (a circle's `arcs`, each), every `n_radial`, every `n_layers`, a tee's `n_run` / `n_branch` / `n_turn` and a wye's `n_run` / `n_branch` × k (a wye's `n_split` × k up to `WYE_N_SPLIT_MAX` = 6, never below its own value: more turning layers fold the wye, task 0056), the axial cell index of each `stack_changes` entry × k, and `radial_grading` and `axial_grading` → their k-th root.  Geometry, topology and `arc_bump` stay; `first_cell` specs keep their resolved `radial_grading` (an H core: `wall_bump`), so the levels nest.  **k³× the cells.** |
 
 The file records how the network was built, not its geometry:
 - the pose and spec of the first interface;
 - every `add`, `close` and `prepend` in order, each with its fitting's
   type and fields, and the index of the interface it starts from
   (`source`) or joins (`close: [source, target]`), or `prepend: true`;
-- the interface names, the tail, `lc` and `axial_cell`.
+- the interface names, the tail and `axial_cell`.
 
 Replaying it recreates the interfaces in the same order, so interface
 indices are stable, and editing a fitting in the file moves everything
@@ -153,11 +152,14 @@ exception; it is stored as an override under `frames`.
 **Units.** Lengths are in your unit, stored unconverted; angles in
 degrees, as in the fitting.
 
-**Versions.** The format is version 2: `PipeSpec.rot` in degrees.
-Version-1 files stored it in radians; `from_dict` and `load` convert them.
+**Versions.** The format is version 3: the names of 0.8 (`n_arc`,
+`n_radial`, `radial_grading`, …).  `from_dict` and `load` convert older
+files: version 2 used `nang`, `nang_w`, `nang_h`, `nrad`, `mprg` and `mbmp`,
+and could hold `lc`, which is dropped; version 1 also stored `PipeSpec.rot`
+in radians.
 A circle with per-arc counts (0.7, task 0147) is saved as
 `{"type": "circle", "radius": …, "arcs": [a, b, a, b]}` instead of
-`"nang"`; files without `arcs` load unchanged, and are written
+`"n_arc"`; files without `arcs` load unchanged, and are written
 unchanged.
 
 The fitting types are a fixed registry, `hexmesh.assembly.intent.FITTING_TYPES`.
@@ -225,7 +227,7 @@ Pure Python: a drum gives nozzle poses and builds no geometry
   `"second"` head, parallel to the axis.  `projection` is measured from
   the tangent plane to the face.
 
-### `Assembly.from_nozzle(drum, nozzle, *, lc=None)`
+### `Assembly.from_nozzle(drum, nozzle, *, axial_cell=None)`
 
 Starts a network at the nozzle face.  The drum is validated first, and
 the inlet is named `"{drum.name}_{nozzle}"` (patch `fluid_D101_N1`).
@@ -237,56 +239,56 @@ the inlet of a fitting (task 0010, question for design).
 
 ## Cross-section specification
 
-### `PipeSpec(*, nang=None, nang_w=None, nang_h=None, mbmp=1.0, rot=0.0, n_outer=4)`
+### `PipeSpec(*, n_arc=None, n_width=None, n_height=None, arc_bump=1.0, rot=0.0, n_outer=4)`
 
 A builder for a concentric layer stack.
 
 | Parameter | Meaning |
 |---|---|
-| `nang` | cells per 90° arc, shared by all layers (circular cores); **one per network**: every connected fitting has the same |
-| `nang_w`, `nang_h` | cells along the width and the height of a rectangular core, or a circle's two arc counts (`arcs=[nang_w, nang_h, nang_w, nang_h]`, below); one per network, as `nang` |
-| `mbmp` | angular bump factor (1 = uniform) |
+| `n_arc` | cells per 90° arc, shared by all layers (circular cores); **one per network**: every connected fitting has the same |
+| `n_width`, `n_height` | cells along the width and the height of a rectangular core, or a circle's two arc counts (`arcs=[n_width, n_height, n_width, n_height]`, below); one per network, as `n_arc` |
+| `arc_bump` | angular bump factor (1 = uniform) |
 | `rot` | rotation of the O-H corners, in degrees; for a rectangle, of the whole rectangle |
 | `n_outer` | structural corners: 4, or 8, the 4-corner face cut along its middle grid lines (the same mesh; sweeps only, see below) |
 
-#### `.core(name, *, radius=..., nrad=..., mprg=1.0, first_cell=None)`
+#### `.core(name, *, radius=..., n_radial=..., radial_grading=1.0, first_cell=None)`
 
-The circular core. A `CircleShape(radius, nang=…)` can be passed as `shape=`
+The circular core. A `CircleShape(radius, n_arc=…)` can be passed as `shape=`
 instead of `radius=`; so can a circle with per-arc counts,
-`CircleShape(radius, arcs=[a, b, a, b])` (below). `nrad` is the cells from the inner square to
-the circle, and `mprg` the radial progression (above 1 refines toward the
-inner side).  `nrad` is **one per network**, per layer: a connected
-fitting can't change it, while `mprg` and `first_cell` may change along a
+`CircleShape(radius, arcs=[a, b, a, b])` (below). `n_radial` is the cells from the inner square to
+the circle, and `radial_grading` the radial progression (above 1 refines toward the
+inner side).  `n_radial` is **one per network**, per layer: a connected
+fitting can't change it, while `radial_grading` and `first_cell` may change along a
 `Reducer` (GUIDE, *One density per network*).
 
-`first_cell` replaces `mprg` with the largest radial height of a cell at
+`first_cell` replaces `radial_grading` with the largest radial height of a cell at
 the circle, the pipe wall. The core ring is thickest at mid-arc, 0.491 R
 from the inner arc to the circle
 (`hexmesh.core.shape.core_wall_span`), and the progression is solved
 there. So no wall cell is larger than `first_cell`, and the cells at the
 corners (span 0.4 R) are about 0.81× it. It needs `n_outer` 4 or 8. It raises
 `ValueError` if no progression fits (for example `first_cell` ≥ the span),
-and `TypeError` together with `mprg`.
+and `TypeError` together with `radial_grading`.
 
 **`first_cell` under refinement** (O-H and H alike): `first_cell` is exact
-at the level where it is given.  It is resolved there, to `mprg` on an O-H
+at the level where it is given.  It is resolved there, to `radial_grading` on an O-H
 layer and to `wall_bump` on an H core, and the spec stores the resolved
 grading.  `refined(k)` and `refine_spec_dict` keep it nested: an O-H
-`mprg` → `mprg ** (1/k)`, which splits each one-sided cell into k of the
+`radial_grading` → `radial_grading ** (1/k)`, which splits each one-sided cell into k of the
 same growth, and an H core's `wall_bump` as stored.  The refined levels'
 wall cell is the nested first cell, not `first_cell / k`.  Pass
 `first_cell=` again on a refined spec to pin the wall cell at that level
 instead.
 
-#### `.shell(name, *, dR=None, nrad, mprg=1.0, outer=None, first_cell=None)`
+#### `.shell(name, *, dR=None, n_radial, radial_grading=1.0, outer=None, first_cell=None)`
 
 A layer on top of the previous one, from that layer's outline to its own
 (decision 0026). Give exactly one of:
 
 - `dR`: the previous outline grown by `dR` (a circle's radius + `dR`; a
   rectangle's `half_w` and `half_h` + `dR`, sharp corners kept);
-- `outer`: a new outline, `CircleShape(radius, nang=…)` or
-  `RectShape(half_w, half_h, nang_w=…, nang_h=…)`.
+- `outer`: a new outline, `CircleShape(radius, n_arc=…)` or
+  `RectShape(half_w, half_h, n_width=…, n_height=…)`.
 
 So a circle can sit in a rectangle, a rectangle in a circle, and a
 rectangle in a rectangle, in any order and number of layers:
@@ -295,13 +297,13 @@ rectangle in a rectangle, in any order and number of layers:
 from hexmesh.core.shape import CircleShape, RectShape
 
 # cable in a square filler in a round sheath
-(PipeSpec(nang=4).core("copper", radius=0.01, nrad=3)
- .shell("filler", outer=RectShape(0.016, 0.016, nang_w=4, nang_h=4), nrad=2)
- .shell("sheath", outer=CircleShape(0.028, nang=4), nrad=2))
+(PipeSpec(n_arc=4).core("copper", radius=0.01, n_radial=3)
+ .shell("filler", outer=RectShape(0.016, 0.016, n_width=4, n_height=4), n_radial=2)
+ .shell("sheath", outer=CircleShape(0.028, n_arc=4), n_radial=2))
 
 # a duct with a wall and lagging (an H core, walls graded)
-(PipeSpec(nang=4).core("air", shape=RectShape(0.1, 0.05, nang_w=4, nang_h=4), mprg=1.2)
- .shell("wall", dR=0.002, nrad=2).shell("lagging", dR=0.03, nrad=3))
+(PipeSpec(n_arc=4).core("air", shape=RectShape(0.1, 0.05, n_width=4, n_height=4), radial_grading=1.2)
+ .shell("wall", dR=0.002, n_radial=2).shell("lagging", dR=0.03, n_radial=3))
 ```
 
 - **Ring.** Each shell is four blocks, one per side. Its corner lines
@@ -310,9 +312,9 @@ from hexmesh.core.shape import CircleShape, RectShape
   rectangle. A circle in a flat rectangle has skewed corner lines; a
   rectangle in a circle splits it into unequal arcs.
 - **Counts.** In a stack of rectangles every outline takes the core's
-  `(nang_w, nang_h)`, which may differ: a 2:1 duct with lagging can be
+  `(n_width, n_height)`, which may differ: a 2:1 duct with lagging can be
   8 × 4 throughout (decision 0041). Once a circle is in the stack, every
-  outline has the same count on every side (`nang = nang_w = nang_h`),
+  outline has the same count on every side (`n_arc = n_width = n_height`),
   since a circle carries one count. Any stack with a rectangle has
   `n_outer` 4 or 8. `ValueError` (`rect_stack_counts_unequal`) names the
   layer.  A circle with per-arc counts lifts that tie: see below.
@@ -320,37 +322,37 @@ from hexmesh.core.shape import CircleShape, RectShape
 #### Per-arc counts: `CircleShape(radius, arcs=[…])`
 
 `arcs` gives each quadrant arc its own count, corner *k* → *k* + 1,
-NE→NW first, instead of `nang` (decision 0041, task 0147).  It is saved
+NE→NW first, instead of `n_arc` (decision 0041, task 0147).  It is saved
 as a list.
 
 - **What meshes today:** opposite arcs equal, `arcs=[a, b, a, b]`, on
   `n_outer = 4`.  That circle has `a` cells along its top and bottom
   arcs and `b` along its sides, so it meets a rectangle with
-  `nang_w = a`, `nang_h = b`, in a stack or through a `Transition`.
+  `n_width = a`, `n_height = b`, in a stack or through a `Transition`.
   The field takes any four counts; the O-H and H layouts reject other
   patterns (`arc_counts_not_opposite`), and `n_outer = 8` too
   (`arc_counts_need_n_outer_4`).
-- **The spec's counts:** such a circle sets the spec's `nang_w` and
-  `nang_h`, as a rectangle does; give the `PipeSpec` no `nang`
+- **The spec's counts:** such a circle sets the spec's `n_width` and
+  `n_height`, as a rectangle does; give the `PipeSpec` no `n_arc`
   (`shape_counts_mismatch`).  Every outline in its stack has the same
   count on every side (`counts_mismatch` names the layer).  Four equal
-  counts are the same circle as `nang`.
-- **Density:** the arcs are density, like a duct's `nang_w`/`nang_h`
+  counts are the same circle as `n_arc`.
+- **Density:** the arcs are density, like a duct's `n_width`/`n_height`
   (one per network): the face's signature is that of an O-H rectangle
   with the same counts, and `refined(k)` multiplies every arc by k and
   nests (decision 0041).  A topology `pattern` comes with general arcs.
 - **Fittings opt in:** `Straight`, `Bend`, `Reducer` and `Transition`
   take it.  Every other fitting, the junctions included, raises
   `AssemblyError` (`arcs_unsupported`), naming the fitting.
-- `CircleShape(radius, nang=…, arcs=…)` raises `arcs_with_nang`; arcs
+- `CircleShape(radius, n_arc=…, arcs=…)` raises `arcs_with_n_arc`; arcs
   that aren't four whole counts, `arcs_invalid`.
 
 ```python
 from hexmesh.core.shape import CircleShape, RectShape
 
 # a round pipe into a 2:1 duct: 8 cells along the long sides, 4 along the short
-pipe = PipeSpec().core("air", shape=CircleShape(0.05, arcs=[8, 4, 8, 4]), nrad=3)
-duct = PipeSpec(nang_w=8, nang_h=4).core("air", shape=RectShape(0.08, 0.04, nang_w=8, nang_h=4), nrad=3,
+pipe = PipeSpec().core("air", shape=CircleShape(0.05, arcs=[8, 4, 8, 4]), n_radial=3)
+duct = PipeSpec(n_width=8, n_height=4).core("air", shape=RectShape(0.08, 0.04, n_width=8, n_height=4), n_radial=3,
                                           layout="oh")
 ```
 - **Containment.** Each outline lies inside the next all round, by at
@@ -359,7 +361,7 @@ duct = PipeSpec(nang_w=8, nang_h=4).core("air", shape=RectShape(0.08, 0.04, nang
 - **Symmetry period.** That of the least symmetric outline: a circle in a
   2:1 rectangle has period 180°.
 - **`first_cell`** sets the radial height of the cell at the layer's outer
-  boundary in place of `mprg`. For a circle grown by `dR` it is exact all
+  boundary in place of `radial_grading`. For a circle grown by `dR` it is exact all
   round. Otherwise it is solved on the ring's longest radial, so no wall
   cell is larger: the corner lines (`√2·dR` for a rectangle grown by `dR`),
   or, for a shell that changes shape, the longest line between
@@ -370,20 +372,20 @@ duct = PipeSpec(nang_w=8, nang_h=4).core("air", shape=RectShape(0.08, 0.04, nang
 `.square_shell()` is gone: use `.shell(name, outer=RectShape(...))`.
 Spec files that contain one still load, as that ring.
 
-#### `.core(name, *, half_w=..., half_h=..., first_cell=None, mprg=None)` — rectangular duct
+#### `.core(name, *, half_w=..., half_h=..., first_cell=None, radial_grading=None)` — rectangular duct
 
 A rectangular core of width `2·half_w` along the frame's `right` and height
-`2·half_h` along `up` (needs `PipeSpec(nang_w=…, nang_h=…)`, or a
+`2·half_h` along `up` (needs `PipeSpec(n_width=…, n_height=…)`, or a
 `RectShape`). **Since 0.4.0 it is an H face by default:** one Cartesian
 patch with graded walls (below; decision 0036, task 0087). On the O-H
 face the friction factor doesn't converge with refinement, and a
 Cartesian grid of the same cells converges at second order
-([RESEARCH §7.11](docs/RESEARCH.md)). `layout="oh"` with `nrad=` keeps the
-five-patch O-H face; `nrad=` alone is a `ValueError` naming both fixes.
+([RESEARCH §7.11](docs/RESEARCH.md)). `layout="oh"` with `n_radial=` keeps the
+five-patch O-H face; `n_radial=` alone is a `ValueError` naming both fixes.
 Circles stay O-H.
 
 - **Symmetry period** (DESIGN §6.1, `spec.period_deg`): 90° for a square
-  (`half_w == half_h` and `nang_w == nang_h`), 180° for any other
+  (`half_w == half_h` and `n_width == n_height`), 180° for any other
   rectangle. Corners match, and loop twist is absorbed, modulo that
   period; a mismatch of exactly half of it is ambiguous and rejected.
 - **"Easy way" and "hard way" bends.** `up` sets which side is the
@@ -400,32 +402,32 @@ Circles stay O-H.
   `Elbow` (ASME pipe schedules) and `Wye` reject ducts.
 - **Diameters.** `extend_open_ends` measures a duct in hydraulic
   diameters, 4A / P_w = `4·half_w·half_h / (half_w + half_h)`.
-- **Cells.** H: `nang_w·nang_h` per section. O-H:
-  `nang_w·nang_h + 2·(nang_w + nang_h)·nrad`.
+- **Cells.** H: `n_width·n_height` per section. O-H:
+  `n_width·n_height + 2·(n_width + n_height)·n_radial`.
 
-#### `.core(name, *, half_w=..., half_h=..., nrad=..., mprg=1.0, layout="oh")` — O-H duct
+#### `.core(name, *, half_w=..., half_h=..., n_radial=..., radial_grading=1.0, layout="oh")` — O-H duct
 
 The rectangle with the circle's five-patch O-H layout: a centre
 rectangle and a ring of uniform thickness, `0.4·min(half_w, half_h)`, so
-every corner radial runs at 45° to the walls. `nrad` is the cells across
+every corner radial runs at 45° to the walls. `n_radial` is the cells across
 the ring. `first_cell` is not supported (`TypeError`). The default
 before 0.4.0; it stays for comparison and for saved descriptions.
 
-#### `.core(name, *, half_w=..., half_h=..., layout="h", first_cell=None, mprg=None, wall_bump=None)` — H duct
+#### `.core(name, *, half_w=..., half_h=..., layout="h", first_cell=None, radial_grading=None, wall_bump=None)` — H duct
 
-The rectangle as one Cartesian patch of `nang_w × nang_h` cells
+The rectangle as one Cartesian patch of `n_width × n_height` cells
 (decision 0036; tasks 0084, 0087): the default, so `layout="h"` is
-optional. An H core has no ring, so no `nrad` (`ValueError` naming both
+optional. An H core has no ring, so no `n_radial` (`ValueError` naming both
 fixes). Its sides are graded toward both walls by a two-sided `Bump`,
 given by one of (none: uniform):
 
 - `first_cell`: the end cell on every side, at all four walls;
-- `mprg`: the wall growth ratio, the second cell from a wall over the
+- `radial_grading`: the wall growth ratio, the second cell from a wall over the
   first, on every side;
-- `wall_bump=(c_w, c_h)`: the coefficients themselves, for the `nang_w`
-  and `nang_h` sides (< 1 refines toward the walls).
+- `wall_bump=(c_w, c_h)`: the coefficients themselves, for the `n_width`
+  and `n_height` sides (< 1 refines toward the walls).
 
-`first_cell` and `mprg` resolve to `wall_bump` when the spec is built,
+`first_cell` and `radial_grading` resolve to `wall_bump` when the spec is built,
 one coefficient per side, and `to_dict` stores that, so a refined series
 nests.
 
@@ -450,17 +452,17 @@ rectangle to a rectangle with H at both ends is a `Reducer`, which
 changes `half_w` and `half_h` on H faces) and `Tee` as a duct tap
 (below). `Wye` takes circles only.
 
-Cells: `nang_w·nang_h + 2·(nang_w + nang_h)·Σ nrad` over the shells, per
+Cells: `n_width·n_height + 2·(n_width + n_height)·Σ n_radial` over the shells, per
 section.
 
-`spec.to_dict()` / `PipeSpec.from_dict(d)` serialise a spec.  `mprg` is
+`spec.to_dict()` / `PipeSpec.from_dict(d)` serialise a spec.  `radial_grading` is
 stored as resolved, so a spec built with `first_cell=` reloads with the
 same grading.  The core's `layout` is written; a description without it
 (written before 0.4.0) loads as `"oh"` and reproduces its mesh.
 
-`spec.with_radii(radii, mprgs=None)` gives the same circular stack
+`spec.with_radii(radii, radial_gradings=None)` gives the same circular stack
 with core radius `radii[0]` and shell thicknesses `radii[1:]` (and,
-if given, radial gradings `mprgs`, core first).  Every count, name and
+if given, radial gradings `radial_gradings`, core first).  Every count, name and
 the topology stay.  Stacks of `dR` shells only; extra shells beyond
 `radii` are dropped.
 
@@ -500,7 +502,7 @@ they only fill between the faces the assembly built.
 `stack_changes=((i, spec), …)`: from axial cell `i` on (`0 < i <
 n_layers`), the stack is `spec`.  Each change adds or removes whole
 outermost layers; the remaining layers must keep their names, radii,
-`nrad` and grading.  `validate()` checks this before GMSH and names the
+`n_radial` and grading.  `validate()` checks this before GMSH and names the
 fitting and the layer.
 - The station face at a change is built with the fuller stack.  The
   ending layer's annulus there becomes `{layer}_end`.
@@ -518,8 +520,8 @@ and the other fittings declare `{0}`.  A
 frozenset applies to every port pair; a tuple gives one per outlet.
 
 - `signature(spec)` is the hashable connectivity signature:
-  - per layer: name, layout (`oh_core`, `h_core` or `annulus`), `nrad` and `mprg`;
-  - per section: `n_outer`, the symmetry period, `nang` and `mbmp`.
+  - per layer: name, layout (`oh_core`, `h_core` or `annulus`), `n_radial` and `radial_grading`;
+  - per section: `n_outer`, the symmetry period, `n_arc` and `arc_bump`.
 
   Radii and `rot` are geometry, not connectivity, so they are left out.
 - `classify(a, b)` sorts a pair into a class and lists what differs:
@@ -531,29 +533,29 @@ frozenset applies to every port pair; a tuple gives one per outlet.
   | 2 | same layers, different counts or grading | grading only: a sweep that interpolates grading per station (`Reducer`); counts: nothing (one density per network; GUIDE) |
   | 3 | anything else | nothing (no fitting changes the section topology) |
 
-  A class-2 pair whose only differences are per-layer radial `mprg` is
+  A class-2 pair whose only differences are per-layer radial `radial_grading` is
   marked `grading_only` (decision 0016), as class 1 is marked
   `ends="wall"`.  Declaring class 2 bridges those pairs only; a count or
-  `mbmp` difference is still rejected:
+  `arc_bump` difference is still rejected:
 
-  > Reducer: outlet spec differs from the inlet in core nrad (3 vs 5); core
-  > mprg (1.0 vs 1.2). That is switch class 2 beyond radial grading (counts
-  > or mbmp): a change of cell count, which no fitting makes: a network has
-  > one nang and one nrad per layer; Reducer changes radial grading (mprg)
+  > Reducer: outlet spec differs from the inlet in core n_radial (3 vs 5); core
+  > radial_grading (1.0 vs 1.2). That is switch class 2 beyond radial grading (counts
+  > or arc_bump): a change of cell count, which no fitting makes: a network has
+  > one n_arc and one n_radial per layer; Reducer changes radial grading (radial_grading)
   > only
 
-  Its hint: "keep nang and each layer's nrad (and mbmp) as the inlet's:
-  hexmesh meshes a network at one density; radial grading (mprg,
+  Its hint: "keep n_arc and each layer's n_radial (and arc_bump) as the inlet's:
+  hexmesh meshes a network at one density; radial grading (radial_grading,
   first_cell) may change along a Reducer (GUIDE, 'One density per
   network')".
 
 `Assembly.validate` rejects an undeclared class before GMSH, naming the
 fitting, the field and the class, for example:
 
-> Reducer: outlet spec differs from the inlet in nang (4 vs 8). That is
-> switch class 2 beyond radial grading (counts or mbmp): a change of cell
-> count, which no fitting makes: a network has one nang and one nrad per
-> layer; Reducer changes radial grading (mprg) only
+> Reducer: outlet spec differs from the inlet in n_arc (4 vs 8). That is
+> switch class 2 beyond radial grading (counts or arc_bump): a change of cell
+> count, which no fitting makes: a network has one n_arc and one n_radial per
+> layer; Reducer changes radial grading (radial_grading) only
 
 ### `Straight(length, *, n_layers=None, axial_grading=1.0, stack_changes=(), twist=0.0)`
 
@@ -631,19 +633,19 @@ A segmented bend: straight pieces joined at `n_cuts` planar cuts.
 
 A concentric cone from the inlet spec to `outlet`; a larger outlet makes it an
 expander. **It may change sizes and radial grading** (radii, half-widths,
-`dR`, and `mprg` per layer). The outlet must equal the inlet in everything
+`dR`, and `radial_grading` per layer). The outlet must equal the inlet in everything
 else: the layer names and order, each layer's outline shape (a circle stays
-a circle; use `Transition` to change shape), `nrad`, counts, `mbmp`,
+a circle; use `Transition` to change shape), `n_radial`, counts, `arc_bump`,
 `n_outer` and `rot`. Validation names the fields that differ. Wall nodes
 lie exactly on the cone, or on the planes of a rectangle's sides.
 
-Stations interpolate the sizes linearly and each layer's `mprg`
-geometrically, `mprg_in^(1−u) · mprg_out^u`, at the same fractions. So a
+Stations interpolate the sizes linearly and each layer's `radial_grading`
+geometrically, `radial_grading_in^(1−u) · radial_grading_out^u`, at the same fractions. So a
 wall-resolved pipe can change diameter: give both sides the same absolute
-`first_cell`, and the solved `mprg` differs (decision 0016):
+`first_cell`, and the solved `radial_grading` differs (decision 0016):
 
 ```python
-pipe = lambda r: PipeSpec(nang=8).core("fluid", radius=r, nrad=8, first_cell=1e-3)
+pipe = lambda r: PipeSpec(n_arc=8).core("fluid", radius=r, n_radial=8, first_cell=1e-3)
 asm = Assembly(pipe(0.1))
 asm.add(Reducer(pipe(0.06), length=0.2, n_layers=6))
 ```
@@ -665,14 +667,14 @@ exactly on R(s).  Between stations the wall is a straight chord.
 profile, before GMSH, and names the `n_layers` needed:
 
 ```python
-pipe = PipeSpec(nang=6).core("fluid", radius=0.05, nrad=3)
+pipe = PipeSpec(n_arc=6).core("fluid", radius=0.05, n_radial=3)
 asm = Assembly(pipe)
 asm.add(Reducer(pipe, length=0.2, n_layers=40, profile=("cosine", 0.25)))
 ```
 
 A cosine constriction with `s0 = 0.25` needs 36 layers at the default
 tolerance.  Each layer adds a full cross-section of cells, so a fine
-profile is cheap compared with refining `nang` (doubling `nang` and `nrad`
+profile is cheap compared with refining `n_arc` (doubling `n_arc` and `n_radial`
 quadruples the cells per layer).
 
 ### `Transition(outlet, *, length, n_layers=None, axial_grading=1.0)`
@@ -684,9 +686,9 @@ rectangle (either way), or a rectangle to one of another size or aspect
 `outlet` is the outlet spec.
 
 - **Specs.** Equal in everything but each layer's outline: the same
-  layers (names, order, `nrad`, `mprg`), the same counts per side in
-  every layer (a circle's `nang` equals a rectangle's `nang_w` and
-  `nang_h`), `mbmp` and `rot`. Then the two faces have the same mesh
+  layers (names, order, `n_radial`, `radial_grading`), the same counts per side in
+  every layer (a circle's `n_arc` equals a rectangle's `n_width` and
+  `n_height`), `arc_bump` and `rot`. Then the two faces have the same mesh
   connectivity (switch class 0). A layer can't start or end in one (use
   `stack_changes`). Circles at both ends in every layer is a `Reducer`:
   **`Reducer` changes sizes, `Transition` shapes.**
@@ -704,7 +706,7 @@ rectangle (either way), or a rectangle to one of another size or aspect
 - **An H end** (tasks 0085, 0086). One end may be an H duct
   (`layout="h"`) with the other end's counts per side, with or without
   shells. The transition blends to the O-H face of that rectangle (the
-  other end's `nrad` and `mprg`, the H end's shells) and embeds a
+  other end's `n_radial` and `radial_grading`, the H end's shells) and embeds a
   `Switch` in the slabs at the H end: the fewest of the `n_layers` that
   give it the switch's shortest length (`Switch`, `length`), at equal
   shares of the length. At least one layer stays for the blend, else a
@@ -715,12 +717,12 @@ rectangle (either way), or a rectangle to one of another size or aspect
 
 Changes a rectangular duct between the O-H and H sections (decision
 0036, task 0085): switch class 1, a pillow (DESIGN A4), in either
-direction. The rectangle, counts, `mbmp`, `rot` and name stay.
+direction. The rectangle, counts, `arc_bump`, `rot` and name stay.
 
 - **`outlet`.** The outlet spec. From an O-H inlet it defaults to the
   ungraded H face; give it to grade the H walls (`first_cell=`,
-  `wall_bump=`). From an H inlet it is required (it carries `nrad` and
-  the ring's `mprg`).
+  `wall_bump=`). From an H inlet it is required (it carries `n_radial` and
+  the ring's `radial_grading`).
 - **Blocks.** Six (the capped construction): the ring sheets close as a
   cup across the duct, open toward the O-H port. A core block runs from
   the O-H face's centre rectangle to a level one ring thickness t before
@@ -736,15 +738,15 @@ direction. The rectangle, counts, `mbmp`, `rot` and name stay.
   the shortest length. `n_layers` counts the core's cells (and the
   wall's); `None` resolves from `axial_cell` over `length − t`.
 - **Quality.** On an ungraded H face, min scaled Jacobian 1/√3 = 0.577 at
-  any aspect ratio, `nrad` and length, non-orthogonality up to about 54°.
+  any aspect ratio, `n_radial` and length, non-orthogonality up to about 54°.
   On a graded one, `validate()` predicts the empirical bound at the
   switch's shear Δ/L (`limits.SWITCH_SHEAR_SJ`, measured over 450
   switches: 0.577 up to 0.1, 0.550 to 0.2, 0.548 to 0.3, 0.546 to 0.35,
   0.501 to 0.4), and `mesh()` applies the SJ tiers to the meshed cells
   too, naming the switch. **Steep wall gradings push the switch's
   non-orthogonality towards 70–80°** (first cell h/100 to h/200, a/b 4),
-  and it rises with the length and the ring's `nrad` (74° at the
-  shortest length with nrad 6, 79.5° at 20 t). So `mesh()` also checks
+  and it rises with the length and the ring's `n_radial` (74° at the
+  shortest length with n_radial 6, 79.5° at 20 t). So `mesh()` also checks
   the meshed non-orthogonality on the outline tiers: a warning above
   `OUTLINE_NONORTH_WARN` (70°), an `AssemblyError` above
   `OUTLINE_NONORTH_MAX` (80°). The same checks run on a `Transition`'s
@@ -752,8 +754,8 @@ direction. The rectangle, counts, `mbmp`, `rot` and name stay.
 - **Shells.** The shells run through unchanged: both faces' first shell
   starts at the rectangle's corners. The outlet's shells must be the
   inlet's; the default H outlet copies them.
-- **Cells.** `nang_w·nang_h·(n_layers + nrad) + 2·(nang_w + nang_h)·nrad·n_layers`,
-  and per shell `2·(nang_w + nang_h)·nrad_shell·n_layers`.
+- **Cells.** `n_width·n_height·(n_layers + n_radial) + 2·(n_width + n_height)·n_radial·n_layers`,
+  and per shell `2·(n_width + n_height)·n_radial_shell·n_layers`.
 
 ### `SplinePipe(*, points, n_layers=None, end_tangent=None, axial_grading=1.0)`
 
@@ -776,7 +778,7 @@ A pipe along a cubic spline through `points`, parametrised by chord length.
   (`where = {"field": "end_tangent"}`) when the same points with a free
   end bend wider than the radius there (task 0129).
 
-### `Tee(*, run_length=None, branch_length, branch_radius, n_run=3, n_branch=3, n_turn=2, roll=0.0, toward=None, angle=90.0, offset=0.0, branch=None, face=None, margin=None, dome=None, sheet=None, n_wall=None, branch_first_cell=None, branch_mprg=None, branch_shells=None)`
+### `Tee(*, run_length=None, branch_length, branch_radius, n_run=3, n_branch=3, n_turn=2, roll=0.0, toward=None, angle=90.0, offset=0.0, branch=None, face=None, margin=None, dome=None, sheet=None, n_wall=None, branch_first_cell=None, branch_radial_grading=None, branch_shells=None)`
 
 A centred side-branch tee, perpendicular or a lateral (`angle`), built as
 a block layout.
@@ -835,11 +837,11 @@ a block layout.
 - **Layers.** `n_run`, `n_branch` and `n_turn` are the axial layers of the
   runs, the branch, and the turning blocks.
 - **Branch grading** (task 0131; decision 0028). By default the branch
-  copies the main's core `nrad` and `mprg`, so its wall cell scales with
+  copies the main's core `n_radial` and `radial_grading`, so its wall cell scales with
   r/R (about half the main's at r/R 0.5). `branch_first_cell=` (as
-  `PipeSpec.core`'s `first_cell`) or `branch_mprg=` gives the branch port
+  `PipeSpec.core`'s `first_cell`) or `branch_radial_grading=` gives the branch port
   its own core grading; at most one (`grading_args_conflict`).
-  `branch_first_cell` resolves in `add()` to `branch_mprg`, which is what
+  `branch_first_cell` resolves in `add()` to `branch_radial_grading`, which is what
   `to_dict()` stores and `refined(k)` takes the k-th root of, so the
   levels nest. The turning station keeps the main's grading and the
   branch run blends to the port's over its `n_branch` layers (the wall
@@ -850,12 +852,12 @@ a block layout.
   to 2×, `n_branch` 3 and 6: the junction core sets them). Pipe tees with
   a smaller branch only: an equal tee or a duct tap raises
   `branch_grading_unsupported` (a grading-only `Reducer` after the
-  branch does it there; it also gives a geometric change of `mprg`
+  branch does it there; it also gives a geometric change of `radial_grading`
   along its length instead of the linear blend). The agent's density table sets every grading,
-  so `advise` drops `branch_mprg`.
+  so `advise` drops `branch_radial_grading`.
 - **Shells.** Any stack of circular shells runs through the junction
   (decision 0028). The branch copies the main's shells: same names,
-  thicknesses, `nrad` and `mprg`. `branch_shells=` is reserved for a
+  thicknesses, `n_radial` and `radial_grading`. `branch_shells=` is reserved for a
   branch with shells of its own, planned for 1.x (decision 0051): only
   `None` is accepted today (`branch_shells_reserved`). Circular shells and the copied branch
   are stated 1.0 limits (DESIGN §7.1, decision 0051;
@@ -910,29 +912,29 @@ a block layout.
   one projected block on each other side; every element from gmsh's
   transfinite meshing. Square and centred only: any other angle is
   `equal_lateral_angle_below_min` (`limits.EQUAL_LATERAL_ANGLE_MIN`, 90°;
-  equal laterals fold as `nang` rises), an offset `tee_offset_out_of_range`.
+  equal laterals fold as `n_arc` rises), an offset `tee_offset_out_of_range`.
   `run_length=None` resolves the length the cube needs (1.27 R bare, 1.58 R
   under insulation 0.25 R thick); a shorter one is `run_length_too_short`,
   a shorter branch `branch_length_too_short`. The meshed min corner SJ is
-  checked at `mesh()` (0.511, 0.399, 0.305, 0.293 at `nang` 8, 16, 48,
-  64); above `limits.EQUAL_TEE_NANG_CLEAN` (48) `validate()` warns
+  checked at `mesh()` (0.511, 0.399, 0.305, 0.293 at `n_arc` 8, 16, 48,
+  64); above `limits.EQUAL_TEE_N_ARC_CLEAN` (48) `validate()` warns
   (`fitting_quality_warning`) before gmsh, naming the measured value, or
-  that it is unmeasured above `nang` 64.  The crease misses the wall by
-  3.7 % R at `nang` 8, 1.1 % at 32.
+  that it is unmeasured above `n_arc` 64.  The crease misses the wall by
+  3.7 % R at `n_arc` 8, 1.1 % at 32.
   `mesh(order=2)` rejects it (`second_order_unsupported`), as it does the
   wye.
 - **Duct taps** (decision 0033, task 0070). On a rectangular main the tee
-  is a duct tap: `branch=RectShape(half_w, half_h, nang_w=…, nang_h=…)` or
-  `branch=CircleShape(radius, nang=…)` (`branch_radius` is the pipe
+  is a duct tap: `branch=RectShape(half_w, half_h, n_width=…, n_height=…)` or
+  `branch=CircleShape(radius, n_arc=…)` (`branch_radius` is the pipe
   shorthand; on a pipe, `branch=CircleShape` is the same as it).
   - **Face and side.** `face="wide"` (default) or `"narrow"`; `roll` 0 puts
     the tap on the +`up` face (wide face of a duct wider than deep) or the
     +`right` face (narrow), 180 on the opposite one. `toward` is rejected.
   - **Branch frame.** The branch keeps the main's counts per side (a
-    class-0 port), so its section must have the main's `(nang_w,
-    nang_h)`, or for a round tap the main must have equal counts and
-    `nang` match them. On an up/down face the branch's `up` is the main's
-    axis, so its `half_w`/`nang_w` run across (along the main's `right`)
+    class-0 port), so its section must have the main's `(n_width,
+    n_height)`, or for a round tap the main must have equal counts and
+    `n_arc` match them. On an up/down face the branch's `up` is the main's
+    axis, so its `half_w`/`n_width` run across (along the main's `right`)
     and `half_h` along the main; on a right/left face its `up` is the
     main's `up`, so `half_w` runs along the main and `half_h` across.
   - **Size.** A tap inside the face (pillowed) reaches at most
@@ -947,7 +949,7 @@ a block layout.
     The predicted SJ (meshed = predicted) depends only on the tap's length
     along the main, p, relative to the duct's ring thickness t =
     (1 − OH_RATIO)·min(half_w, half_h): 0.12 at p = 0.5 t, 0.20 at
-    0.75 t, 0.40 at 1.5 t, 0.55 at 2.25 t, 0.58 (1/√3) at 3.75 t and beyond. Neither `run_length`, `nang`
+    0.75 t, 0.40 at 1.5 t, 0.55 at 2.25 t, 0.58 (1/√3) at 3.75 t and beyond. Neither `run_length`, `n_arc`
     nor the aspect changes it, so its tier messages suggest a longer tap.
     `branch_length` must exceed the turning station, the face plus half
     the branch's smaller half-extent.
@@ -984,18 +986,18 @@ a block layout.
     0.22–0.29 at 45° and 0.13–0.16 at 30° (warn). Their tier messages name
     a larger angle.
   - **On an H main** (task 0086). The junction's blocks stay O-H: the
-    main's rectangle pillowed into an O-H face with a ring of `nrad`
+    main's rectangle pillowed into an O-H face with a ring of `n_radial`
     cells, and a `Switch` leg at each H port, the main's two and a
     rectangular branch's (a round branch stays O-H). Each leg is the
     switch's shortest (`Switch`, `length`), with `n_run` layers (`n_branch`
     for the branch), and comes out of `run_length` and `branch_length`:
     a room error from the junction inside names the legs. The ring is
-    derived from the H face: `nrad` is the number of H cells whose
+    derived from the H face: `n_radial` is the number of H cells whose
     midpoint lies within a ring thickness of the wall on the smaller side
-    (at least 1), and `mprg` puts the ring's wall cell at the H face's.
-    Override with `Tee(nrad=, mprg=)`, on an H main only. Both are stored
-    resolved, so `to_dict()` is explicit and `refined(k)` gives `nrad·k`,
-    `mprg^(1/k)`. A quality warning names the ring. On a graded H main,
+    (at least 1), and `radial_grading` puts the ring's wall cell at the H face's.
+    Override with `Tee(n_radial=, radial_grading=)`, on an H main only. Both are stored
+    resolved, so `to_dict()` is explicit and `refined(k)` gives `n_radial·k`,
+    `radial_grading^(1/k)`. A quality warning names the ring. On a graded H main,
     `mesh()` checks the switch legs' meshed SJ and non-orthogonality
     (`Switch`, quality); a round tap's SJ check takes the whole tee.
   - **Limits.** Single-layer ducts, `rot = 0`, `n_outer = 4`;
@@ -1019,18 +1021,18 @@ decision 0017).
   runs (inlet, each daughter); `n_split` those of each daughter's turning
   block.  A count left `None` is resolved in `add()`: the fewest layers
   that keep every edge it divides, the hub cap's arcs included, no longer
-  than the angular cell at the wall, (π/2)·R / `nang` (or `axial_cell` if
+  than the angular cell at the wall, (π/2)·R / `n_arc` (or `axial_cell` if
   shorter).  A resolved `n_split` is capped at `limits.WYE_N_SPLIT_MAX`
   (6), because more turning layers degrade the turning blocks and fold
   120° wyes; so the knee arcs stay coarser than the angular cell, about
-  2–3× at `nang` 8.  An explicit count above the cap is allowed, and a
+  2–3× at `n_arc` 8.  An explicit count above the cap is allowed, and a
   fold is caught by `mesh()`'s inversion check, which names the wye.
   `refined(k)` holds `n_split` at the cap too (task 0056).
-- **Limits of the cap.**  Default wyes are reliable to about `nrad` 6;
-  at 120° with `nrad` 12 only `n_split` 3 is safe (4 folds).  So
+- **Limits of the cap.**  Default wyes are reliable to about `n_radial` 6;
+  at 120° with `n_radial` 12 only `n_split` 3 is safe (4 folds).  So
   `refined(k)` of a wye may fold beyond k = 2; `mesh()` raises
   `AssemblyError` naming the wye.  The wall error at the knee, 3–6 % of R
-  away from the creases, doesn't fall with `nang` (the knee arcs stay at
+  away from the creases, doesn't fall with `n_arc` (the knee arcs stay at
   6 layers), so grid studies over wyes stop at k = 2.
 - **Limits.** Circular core and shells, `rot = 0`, `n_outer = 4`, and
   `angle` from 30° to 120°. `run_length` must exceed R·(tan(angle/2) + 0.1)
@@ -1055,8 +1057,8 @@ decision 0017).
   crease. `mesh()` projects the junction's wall nodes onto it (decision
   0029), so they lie on it to rounding; the faces between them are
   chords. At the crease the chord error is about 3 %, 1 % and 0.3 % of R at
-  `nang` 4, 8 and 16 (task 0051). The hub's spherical cap is resolved by
-  `n_run`, not `nang`: chords there stay about 10 % of R.
+  `n_arc` 4, 8 and 16 (task 0051). The hub's spherical cap is resolved by
+  `n_run`, not `n_arc`: chords there stay about 10 % of R.
 - **Quality.** Measured, not gated (decision 0017). The worst cells, min
   scaled Jacobian 0.06–0.16 depending on the angle, sit next to the hub's
   back corners. The numbers are in task 0030; projection leaves them
@@ -1186,7 +1188,7 @@ $Comments
 generated by hexmesh 0.4.0 (gmsh 4.12.1, MSH 4.1 ASCII)
 write: write dim=3 walls_by_fitting=False
 hexmesh-recipe-begin
-{"format":"hexmesh.assembly","version":2,...}      (to_dict(), compact JSON, 200 characters a line)
+{"format":"hexmesh.assembly","version":3,...}      (to_dict(), compact JSON, 200 characters a line)
 hexmesh-recipe-end
 $EndComments
 ```
@@ -1303,7 +1305,7 @@ keypoint insulation on the ports, and `END-CONNECTION-PIPELINE` points as
 declared connections.  Messages name parts as `component <n> (<TYPE>
 <label>[, SKEY …] at <point>)`.  A fresh model per call.
 
-### `NetworkSpec.to_assembly(spec, *, axial_cell=None, kinks="error", tol=None, lc=None, inlet=None, insulation=False, insulation_nrad=2) -> Assembly`
+### `NetworkSpec.to_assembly(spec, *, axial_cell=None, kinks="error", tol=None, inlet=None, insulation=False, insulation_n_radial=2) -> Assembly`
 
 `interchange.build(self.to_model(), spec, …)`; kept so no caller breaks.
 
@@ -1331,7 +1333,7 @@ declared connections.  Messages name parts as `component <n> (<TYPE>
 | `tol` | position tolerance in metres.  Default: 1e-4 × the model diagonal, at least the snap tolerance `read_pcf` was given (default 0.11", 2.79 mm, just above the weld gap) |
 | `inlet` | the root: an open end's name or a point (metres).  Default below |
 | `insulation` | add a shell named `insulation` to insulated components (below).  Off: the spec alone decides the layers |
-| `insulation_nrad` | radial cells across that shell |
+| `insulation_n_radial` | radial cells across that shell |
 
 **Insulation** (`insulation=True`)
 
@@ -1391,7 +1393,7 @@ weld gap.  `NetworkSpec.report` records the tolerance and where it came
 from (`tol_source`), the joints absorbed or dropped, and the largest
 lateral offset absorbed.
 
-### `NetworkSpec.to_assemblies(spec, *, axial_cell=None, kinks="error", tol=None, lc=None, insulation=False, insulation_nrad=2) -> dict[str, Assembly]`
+### `NetworkSpec.to_assemblies(spec, *, axial_cell=None, kinks="error", tol=None, insulation=False, insulation_n_radial=2) -> dict[str, Assembly]`
 
 One `Assembly` per connected piece, for a file holding pipelines that
 don't connect.  The result is `{name: Assembly}` in file order, named
@@ -1504,7 +1506,7 @@ m.join("p14", "p15")                 # ix.build(m, pipe) is the original line ag
   same point bypass (a zero-length weld) is `model_cut_bypassed` at
   build; `cut_at` separates them all.
 
-### `build(model, spec, *, selection=None, axial_cell=None, kinks="error", tol=None, lc=None, inlet=None, insulation=False, insulation_nrad=2) -> Assembly`
+### `build(model, spec, *, selection=None, axial_cell=None, kinks="error", tol=None, inlet=None, insulation=False, insulation_n_radial=2) -> Assembly`
 
 What `NetworkSpec.to_assembly` documents above, for any model: the parts
 are joined into a graph where their ports meet within `tol`, which must be
@@ -1628,7 +1630,7 @@ v1912 here (`docs/integrations/openfoam.md`).
 
 **Topology key**: a hash, in creation order, over:
 - every interface's connectivity: its port signature without the grading
-  floats `mprg` and `mbmp`;
+  floats `radial_grading` and `arc_bump`;
 - every fitting's type, ports and integer counts, as resolved
   (`n_layers`, `n_cuts`, a tee's `n_run`…), with its stack changes.
 
@@ -1747,7 +1749,7 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `arc_counts_not_opposite` | a circle whose opposite arcs differ in count, which no layout meshes yet (task 0147) | `SpecError` |
 | `arcs_invalid` | a circle's arcs not four whole counts | `SpecError` |
 | `arcs_unsupported` | a fitting that doesn't handle a circle with unequal arc counts (task 0147) | `AssemblyError` |
-| `arcs_with_nang` | a circle given both nang and arcs | `SpecError` |
+| `arcs_with_n_arc` | a circle given both n_arc and arcs | `SpecError` |
 | `argument_missing` | a required fitting argument is missing | `AssemblyTypeError` |
 | `assembly_already_built` | fittings added or changed after the assembly was built | `AssemblyError` |
 | `assembly_empty` | an assembly with no fittings | `AssemblyError` |
@@ -1810,7 +1812,7 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `fitting_type_unknown` | an unknown fitting type in a description | `AssemblyError` |
 | `full_width_tap_tunables` | pillowed-tap tunables given to a full-width duct tap | `AssemblyError` |
 | `gmsh_unavailable` | gmsh could not be imported: only build and meshing need it | `GmshUnavailable` |
-| `grading_args_conflict` | both mprg= and first_cell= given | `SpecTypeError` |
+| `grading_args_conflict` | both radial_grading= and first_cell= given | `SpecTypeError` |
 | `grading_unreachable` | no grading coefficient reaches the target with the cell count | `SpecError` |
 | `h_layout_needs_n_outer_4` | layout='h' with n_outer other than 4 | `SpecError` |
 | `h_layout_needs_rectangle` | layout='h' on a non-rectangular core | `SpecError` |
@@ -1874,8 +1876,8 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `n_layers_unresolvable` | no axial layer count up to the maximum passes the checks | `AssemblyError` |
 | `n_layers_unresolved` | n_layers used before Assembly.add() resolved it | `AssemblyError` |
 | `n_outer_invalid` | n_outer not a positive multiple of 4 | `SpecError` |
-| `nang_missing` | a core given by size on a spec without nang, or a circle without nang or arcs | `SpecTypeError`, `SpecError` |
-| `nang_not_divisible` | nang not divisible by n_outer // 4 | `SpecError` |
+| `n_arc_missing` | a core given by size on a spec without n_arc, or a circle without n_arc or arcs | `SpecTypeError`, `SpecError` |
+| `n_arc_not_divisible` | n_arc not divisible by n_outer // 4 | `SpecError` |
 | `network_disconnected` | a network that is not one connected piece | `AssemblyError` |
 | `network_empty` | a network model with no parts | `AssemblyError` |
 | `network_loop` | a network with a loop | `AssemblyError` |
@@ -1894,7 +1896,7 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `nozzle_projection_too_short` | a nozzle projection that does not leave the drum shell | `EquipmentError` |
 | `nozzle_too_large` | a nozzle as large as the drum | `EquipmentError` |
 | `nozzle_unknown` | a drum has no nozzle of that name | `EquipmentError` |
-| `nrad_on_h_core` | nrad= on an H core, which has no ring | `SpecError` |
+| `n_radial_on_h_core` | n_radial= on an H core, which has no ring | `SpecError` |
 | `offset_on_duct_tap` | a Tee offset other than 0 on a duct tap | `AssemblyError` |
 | `openfoam_boundary_unparsable` | an OpenFOAM boundary file that can't be parsed | `ReaderError` |
 | `openfoam_command_failed` | an OpenFOAM command that exited with an error | `FoamCommandFailed` |
@@ -1971,7 +1973,7 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `shape_counts_mismatch` | a shape's cell counts differ from the spec's | `SpecError` |
 | `shape_not_serialisable` | a core shape that can't be written to a description | `SpecTypeError` |
 | `shape_type_unknown` | an unknown shape type in a description | `SpecError` |
-| `shell_nrad_missing` | a shell without nrad | `SpecTypeError` |
+| `shell_n_radial_missing` | a shell without n_radial | `SpecTypeError` |
 | `shell_outline_args` | a shell given both or neither of dR and outer | `SpecError` |
 | `shell_type_unknown` | an unknown shell type in a description | `SpecError` |
 | `shape_not_circular` | a circle's radius asked of a non-circular shape | `SpecError` |
@@ -2120,7 +2122,7 @@ Kinds:
 | `TEE_MAX_OFFSET_RATIO` | 1 | `1` | error | largest offset of a pipe tee's branch axis, over the branch radius |
 | `EQUAL_TEE_RTOL` | 1e-09 | `1` | info | relative tolerance within which a branch radius equals the main's (an equal tee) |
 | `EQUAL_LATERAL_ANGLE_MIN` | 90 | `deg` | error | smallest angle of an equal tee (branch as wide as the main): square only |
-| `EQUAL_TEE_NANG_CLEAN` | 48 | `1` | warn | largest nang at which an equal tee measured meshed SJ >= 0.3 |
+| `EQUAL_TEE_N_ARC_CLEAN` | 48 | `1` | warn | largest n_arc at which an equal tee measured meshed SJ >= 0.3 |
 | `DUCT_TAP_MAX_RATIO` | 0.93 | `1` | error | largest reach across of a duct tap, over the face's half-width |
 | `DUCT_TAP_NARROW_ASPECT_WARN` | 3 | `1` | warn | a tap on the narrow face of a duct this deep (depth / width) or deeper warns |
 | `SWITCH_MIN_LENGTH` | 1.25 | `t` | error | shortest Switch, in ring thicknesses |
@@ -2216,7 +2218,7 @@ More references: `docs/agent/preview_hvac_branched.png` and
 ## Resolution advice (`hexmesh.agent.advise`, `apply`) and the `hexmesh` CLI
 
 Task 0098, decision 0040.  `advise(x, inputs)` chooses the counts:
-- `nang`, `nrad`, or `nang_w` / `nang_h`;
+- `n_arc`, `n_radial`, or `n_width` / `n_height`;
 - the wall grading;
 - every fitting's axial counts.
 
@@ -2228,7 +2230,7 @@ the description; build it with `Assembly.from_dict`.  No GMSH is needed.
 >>> from hexmesh.agent import advise, apply
 >>> r = advise(asm, {"fluid": "water", "flow": {"velocity": 0.005}})   # a 20 mm pipe
 >>> r["density"]
-{'nang': 12, 'nrad': 6, 'nang_w': None, 'nang_h': None, 'mprg': 1.0, 'wall_bump': None}
+{'n_arc': 12, 'n_radial': 6, 'n_width': None, 'n_height': None, 'radial_grading': 1.0, 'wall_bump': None}
 >>> built = Assembly.from_dict(apply(asm.to_dict(), r["table"]))
 >>> built.cell_count() == r["totals"]["cells"]
 True
@@ -2249,7 +2251,7 @@ True
 - **Re and regime.**  Re = U D_h / ν.  Laminar below 2300; transitional
   up to 4000, which is noted and graded as turbulent; turbulent above.
 - **Core counts** come from `hexmesh/agent/calibration.json`.  It holds
-  the cells across D (circles, `nang + 2 nrad`) or D_h (H rectangles,
+  the cells across D (circles, `n_arc + 2 n_radial`) or D_h (H rectangles,
   square cells) at which each class's error was measured:
   - poiseuille for circles;
   - rect_duct's uniform H series at a/b 1, 2 and 4 for rectangles.
@@ -2261,8 +2263,8 @@ True
     `validation/*/results.json`; `--check` reports whether it is stale.
 - **Shared counts.**  Density is shared by every section of an
   assembly, so the largest count any section needs wins.
-  - A circle's `nang` is even, so a node sits mid-arc.
-  - A circle meeting a rectangle ties `nang = nang_w = nang_h`: a
+  - A circle's `n_arc` is even, so a node sits mid-arc.
+  - A circle meeting a rectangle ties `n_arc = n_width = n_height`: a
     circle → rectangle Transition, a round tap on a duct, or a layer
     stack with both.  The reason names the fitting or layer.  A stack of
     rectangles isn't tied.
@@ -2273,7 +2275,7 @@ True
   - Turbulent: the first cell for the y⁺ target, y = y⁺ ν / u_τ with
     u_τ = U √(f/8).  f is Blasius below Re 10⁵ [blasius_1913] and
     Haaland (smooth) above [haaland_1983].
-  - Circles get `mprg`, with `nrad` raised until the growth is within
+  - Circles get `radial_grading`, with `n_radial` raised until the growth is within
     `MAX_WALL_GROWTH`; H rectangles get `wall_bump`.
   - No validated case covers turbulent flow, so the report says
     `advice_not_validated`.

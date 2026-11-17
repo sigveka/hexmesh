@@ -21,7 +21,7 @@ S2 = math.sqrt(0.5)
 
 
 def _spec(r=0.1):
-    return PipeSpec(nang=4).core("fluid", radius=r, nrad=3)
+    return PipeSpec(n_arc=4).core("fluid", radius=r, n_radial=3)
 
 
 def _horizontal(*nozzles, **kw):
@@ -203,7 +203,7 @@ def test_names_checked():
 
 def _from_top_nozzle():
     drum = _horizontal(Nozzle("N1", spec=_spec(), location=OnShell(1.5, angle=0, projection=1.4)))
-    asm = Assembly.from_nozzle(drum, "N1", lc=0.05)
+    asm = Assembly.from_nozzle(drum, "N1")
     asm.add(Straight(0.4, n_layers=3))
     asm.add(Bend(0.3, 90, n_layers=4))
     asm.add(Straight(0.4, n_layers=3))

@@ -50,7 +50,7 @@ polygon's area deficit competing with discretisation error.
 
 ### Non-orthogonality trend (checkMesh only, 2 D pipe, 4 axial layers)
 
-| nang | nrad | cells | Mesh OK | max non-orth. (°) | max skewness |
+| n_arc | n_radial | cells | Mesh OK | max non-orth. (°) | max skewness |
 |---|---|---|---|---|---|
 | 6 | 3 | 432 | True | 23.5 | 0.422 |
 | 12 | 6 | 1728 | True | 33.2 | 0.484 |
@@ -137,7 +137,7 @@ Max non-orthogonality and skewness *grow* with refinement (23 → 33 →
 not the O-H section.  The meshed section is an inscribed polygon whose
 area deficit adds a second-order error of the opposite sign.  Richardson
 extrapolation and the meshed-section reference (above) show convergence.
-The `nang` sweep shows non-orthogonality levelling off near 45°.
+The `n_arc` sweep shows non-orthogonality levelling off near 45°.
 
 ## Cross-check on OpenFOAM v2406
 

@@ -13,7 +13,7 @@ right) plane.  Ports are named, and the open ends become the patches
 
 from hexmesh import Assembly, PipeSpec, Straight, Wye
 
-PIPE = PipeSpec(nang=6).core("fluid", radius=0.1, nrad=3)
+PIPE = PipeSpec(n_arc=6).core("fluid", radius=0.1, n_radial=3)
 
 
 def build() -> Assembly:

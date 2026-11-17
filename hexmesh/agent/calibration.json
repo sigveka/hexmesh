@@ -88,8 +88,8 @@
      "n": 48
     }
    ],
-   "metric": "cells along a diameter: nang + 2 nrad",
-   "nrad_per_nang": 0.5,
+   "metric": "cells along a diameter: n_arc + 2 n_radial",
+   "n_radial_per_n_arc": 0.5,
    "quantities": {
     "dp": "dp_err_signed",
     "u_max": "u_max_err_signed"

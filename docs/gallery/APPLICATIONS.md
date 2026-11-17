@@ -43,7 +43,7 @@ python3 -m hexmesh.examples.applications.drum_nozzle
 - **Open ends:** `water_D101_N1`, `water_outlet`, `water_vent`
 - **Walls:** `water_wall`
 - **Colours:** water blue; walls grey.
-- **Parameters:** [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Elbow`](../../API.md#elbowangle900-schedulelong-n_layers8-roll00-axial_grading10-towardnone), [`Tee`](../../API.md#teerun_lengthnone-branch_length-branch_radius-n_run3-n_branch3-n_turn2-roll00-towardnone-angle900-offset00-branchnone-facenone-marginnone-domenone-sheetnone-n_wallnone-branch_first_cellnone-branch_mprgnone)
+- **Parameters:** [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00), [`Elbow`](../../API.md#elbowangle900-schedulelong--n_layers8-roll00-axial_grading10-towardnone), [`Tee`](../../API.md#tee-run_lengthnone-branch_length-branch_radius-n_run3-n_branch3-n_turn2-roll00-towardnone-angle900-offset00-branchnone-facenone-marginnone-domenone-sheetnone-n_wallnone-branch_first_cellnone-branch_radial_gradingnone-branch_shellsnone)
 - **Fittings used:** Straight ×4 ([building networks](FEATURES.md#building-networks)), Elbow ×2 ([bends](FEATURES.md#bends)), Tee ([junctions](FEATURES.md#junctions))
 
 ## hvac_supply
@@ -53,7 +53,7 @@ python3 -m hexmesh.examples.applications.drum_nozzle
 <p><img src="img/hvac_supply.png" width="68%" alt="hvac_supply"> <img src="img/hvac_supply_section.png" width="29%" alt="hvac_supply, inlet section"></p>
 
 - A `Transition` takes the round fan outlet (Ø 0.3) to a 0.5 × 0.25
-  duct.  Counts per side match (`nang` = `nang_w` = `nang_h`), so the
+  duct.  Counts per side match (`n_arc` = `n_width` = `n_height`), so the
   two faces have the same mesh connectivity.
 - The duct rises with an easy-way bend (`roll=0`: across the height),
   turns along the ceiling with a two-cut mitred hard-way bend
@@ -62,7 +62,7 @@ python3 -m hexmesh.examples.applications.drum_nozzle
 - A `Reducer` (rectangle → rectangle: half_w and half_h change on the
   H face) ends at a 0.3 × 0.3 square terminal, named `terminal`.
 - The rectangles are H faces (the default since 0.4.0), their walls
-  graded by `mprg` (the second cell from each wall over the first).
+  graded by `radial_grading` (the second cell from each wall over the first).
 
 Patches: `air_inlet`, `air_terminal`, `air_wall`.
 
@@ -77,7 +77,7 @@ python3 -m hexmesh.examples.applications.hvac_supply
 - **Open ends:** `air_inlet`, `air_terminal`
 - **Walls:** `air_wall`
 - **Colours:** air blue; walls grey.
-- **Parameters:** [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Transition`](../../API.md#transitionoutlet-length-n_layersnone-axial_grading10), [`Bend`](../../API.md#bendradius-angle-n_layersnone-roll00-axial_grading10-towardnone), [`MiterBend`](../../API.md#miterbendradius-angle-n_cuts1-n_layers2-roll00-towardnone), [`SplinePipe`](../../API.md#splinepipepoints-n_layersnone-end_tangentnone-axial_grading10), [`Reducer`](../../API.md#reduceroutlet-length-n_layersnone-axial_grading10-profilenone-chord_tol1e-3)
+- **Parameters:** [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00), [`Transition`](../../API.md#transitionoutlet--length-n_layersnone-axial_grading10), [`Bend`](../../API.md#bendradius-angle--n_layersnone-roll00-axial_grading10-towardnone), [`MiterBend`](../../API.md#miterbendradius-angle--n_cuts1-n_layers2-roll00-towardnone), [`SplinePipe`](../../API.md#splinepipe-points-n_layersnone-end_tangentnone-axial_grading10), [`Reducer`](../../API.md#reduceroutlet--length-n_layersnone-axial_grading10-profilenone-chord_tol1e-3)
 - **Fittings used:** Straight ×5 ([building networks](FEATURES.md#building-networks)), Transition ([sections and transitions](FEATURES.md#sections-and-transitions)), Bend ([bends](FEATURES.md#bends)), MiterBend ([bends](FEATURES.md#bends)), SplinePipe ([bends](FEATURES.md#bends)), Reducer ([reducers and profiles](FEATURES.md#reducers-and-profiles))
 
 ## hvac_branched
@@ -117,7 +117,7 @@ python3 -m hexmesh.examples.applications.hvac_branched
 - **Open ends:** `air_inlet`, `air_main_end`, `air_supply_down`, `air_supply_side`, `air_supply_up`
 - **Walls:** `air_wall`
 - **Colours:** air blue; walls grey.
-- **Parameters:** [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Transition`](../../API.md#transitionoutlet-length-n_layersnone-axial_grading10), [`Tee`](../../API.md#teerun_lengthnone-branch_length-branch_radius-n_run3-n_branch3-n_turn2-roll00-towardnone-angle900-offset00-branchnone-facenone-marginnone-domenone-sheetnone-n_wallnone-branch_first_cellnone-branch_mprgnone), [`Bend`](../../API.md#bendradius-angle-n_layersnone-roll00-axial_grading10-towardnone)
+- **Parameters:** [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00), [`Transition`](../../API.md#transitionoutlet--length-n_layersnone-axial_grading10), [`Tee`](../../API.md#tee-run_lengthnone-branch_length-branch_radius-n_run3-n_branch3-n_turn2-roll00-towardnone-angle900-offset00-branchnone-facenone-marginnone-domenone-sheetnone-n_wallnone-branch_first_cellnone-branch_radial_gradingnone-branch_shellsnone), [`Bend`](../../API.md#bendradius-angle--n_layersnone-roll00-axial_grading10-towardnone)
 - **Fittings used:** Straight ×9 ([building networks](FEATURES.md#building-networks)), Transition ([sections and transitions](FEATURES.md#sections-and-transitions)), Tee ×3 ([junctions](FEATURES.md#junctions)), Bend ([bends](FEATURES.md#bends))
 
 ## cooling_channels
@@ -129,8 +129,8 @@ python3 -m hexmesh.examples.applications.hvac_branched
 Each daughter of the 60° wye bends back parallel to the supply, then a
 `Transition` flattens it into a 3:1 channel (0.12 × 0.04), the kind of
 passage that cools a plate or a mould.  After the channel a second
-`Transition` rounds it off again.  The circle's `nang` equals the
-channel's `nang_w` and `nang_h`, so every transition is a plain sweep.
+`Transition` rounds it off again.  The circle's `n_arc` equals the
+channel's `n_width` and `n_height`, so every transition is a plain sweep.
 Outlets: `fluid_left_out`, `fluid_right_out`.
 
 ```bash
@@ -144,7 +144,7 @@ python3 -m hexmesh.examples.applications.cooling_channels
 - **Open ends:** `fluid_inlet`, `fluid_left_out`, `fluid_right_out`
 - **Walls:** `fluid_wall`
 - **Colours:** fluid blue; walls grey.
-- **Parameters:** [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Wye`](../../API.md#wyeangle-run_length-branch_length-n_runnone-n_branchnone-n_splitnone-roll00-towardnone), [`Bend`](../../API.md#bendradius-angle-n_layersnone-roll00-axial_grading10-towardnone), [`Transition`](../../API.md#transitionoutlet-length-n_layersnone-axial_grading10)
+- **Parameters:** [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00), [`Wye`](../../API.md#wye-angle-run_length-branch_length-n_runnone-n_branchnone-n_splitnone-roll00-towardnone), [`Bend`](../../API.md#bendradius-angle--n_layersnone-roll00-axial_grading10-towardnone), [`Transition`](../../API.md#transitionoutlet--length-n_layersnone-axial_grading10)
 - **Fittings used:** Straight ×7 ([building networks](FEATURES.md#building-networks)), Wye ([junctions](FEATURES.md#junctions)), Bend ×2 ([bends](FEATURES.md#bends)), Transition ×4 ([sections and transitions](FEATURES.md#sections-and-transitions))
 
 ## pcf_line
@@ -176,7 +176,7 @@ python3 -m hexmesh.examples.applications.pcf_line
 - **Walls:** `insulation_end`, `insulation_wall`, `steel_wall`
 - **Interfaces:** `interface_fluid_steel`, `interface_steel_insulation`
 - **Colours:** fluid blue, steel orange, insulation green; walls grey.
-- **Parameters:** [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Tee`](../../API.md#teerun_lengthnone-branch_length-branch_radius-n_run3-n_branch3-n_turn2-roll00-towardnone-angle900-offset00-branchnone-facenone-marginnone-domenone-sheetnone-n_wallnone-branch_first_cellnone-branch_mprgnone), [`Bend`](../../API.md#bendradius-angle-n_layersnone-roll00-axial_grading10-towardnone), [`Reducer`](../../API.md#reduceroutlet-length-n_layersnone-axial_grading10-profilenone-chord_tol1e-3)
+- **Parameters:** [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00), [`Tee`](../../API.md#tee-run_lengthnone-branch_length-branch_radius-n_run3-n_branch3-n_turn2-roll00-towardnone-angle900-offset00-branchnone-facenone-marginnone-domenone-sheetnone-n_wallnone-branch_first_cellnone-branch_radial_gradingnone-branch_shellsnone), [`Bend`](../../API.md#bendradius-angle--n_layersnone-roll00-axial_grading10-towardnone), [`Reducer`](../../API.md#reduceroutlet--length-n_layersnone-axial_grading10-profilenone-chord_tol1e-3)
 - **Fittings used:** Straight ×6 ([building networks](FEATURES.md#building-networks)), Tee ([junctions](FEATURES.md#junctions)), Bend ([bends](FEATURES.md#bends)), Reducer ([reducers and profiles](FEATURES.md#reducers-and-profiles))
 
 ## idealised_aorta
@@ -248,7 +248,7 @@ centimetres here):
   diameter in a `Reducer` each: a stand-in for a fork with unequal
   daughters.
 
-**Quality** (`nang` 8): the three arch tees warn (predicted min SJ
+**Quality** (`n_arc` 8): the three arch tees warn (predicted min SJ
 0.20, 0.14 and 0.15: small branch ratios, r/R 0.37–0.56), the left
 common carotid's turn block also on non-orthogonality (70.6°), and the
 wye on its crotch's non-orthogonality (79°), as every wye does.  No cell
@@ -269,7 +269,7 @@ python3 -m hexmesh.examples.applications.idealised_aorta
 - **Open ends:** `fluid_aortic_root`, `fluid_brachiocephalic`, `fluid_left_common_carotid`, `fluid_left_common_iliac`, `fluid_left_subclavian`, `fluid_right_common_iliac`
 - **Walls:** `fluid_wall`
 - **Colours:** fluid blue; walls grey.
-- **Parameters:** [`Reducer`](../../API.md#reduceroutlet-length-n_layersnone-axial_grading10-profilenone-chord_tol1e-3), [`SplinePipe`](../../API.md#splinepipepoints-n_layersnone-end_tangentnone-axial_grading10), [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Tee`](../../API.md#teerun_lengthnone-branch_length-branch_radius-n_run3-n_branch3-n_turn2-roll00-towardnone-angle900-offset00-branchnone-facenone-marginnone-domenone-sheetnone-n_wallnone-branch_first_cellnone-branch_mprgnone), [`Wye`](../../API.md#wyeangle-run_length-branch_length-n_runnone-n_branchnone-n_splitnone-roll00-towardnone)
+- **Parameters:** [`Reducer`](../../API.md#reduceroutlet--length-n_layersnone-axial_grading10-profilenone-chord_tol1e-3), [`SplinePipe`](../../API.md#splinepipe-points-n_layersnone-end_tangentnone-axial_grading10), [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00), [`Tee`](../../API.md#tee-run_lengthnone-branch_length-branch_radius-n_run3-n_branch3-n_turn2-roll00-towardnone-angle900-offset00-branchnone-facenone-marginnone-domenone-sheetnone-n_wallnone-branch_first_cellnone-branch_radial_gradingnone-branch_shellsnone), [`Wye`](../../API.md#wye-angle-run_length-branch_length-n_runnone-n_branchnone-n_splitnone-roll00-towardnone)
 - **Fittings used:** Reducer ×7 ([reducers and profiles](FEATURES.md#reducers-and-profiles)), SplinePipe ×4 ([bends](FEATURES.md#bends)), Straight ×9 ([building networks](FEATURES.md#building-networks)), Tee ×3 ([junctions](FEATURES.md#junctions)), Wye ([junctions](FEATURES.md#junctions))
 
 ## rocket_injector_manifold
@@ -320,11 +320,6 @@ below the 0.3 tier, at a branch ratio r/R of 0.5 ("no run length reaches
 it").  Faster legs would be narrower and worse; the warning is the cost
 of eight legs off a slow ring.  No cell is inverted.
 
-**A workaround, for now:** the feed line's insulated section is built
-from the tee branch's own spec (`copy.deepcopy(feed.spec)`), because a
-tee's branch recomputes its shells' thicknesses and differs from the
-given 1.5 mm in the last bits (task 0155).
-
 Inlet `lox_inlet`; outlets `injector_1` … `injector_8`.  The
 ring's start, `ring_start`, is closed: it isn't an open end.
 
@@ -340,7 +335,7 @@ python3 -m hexmesh.examples.applications.rocket_injector_manifold
 - **Walls:** `insulation_end`, `insulation_wall`, `steel_wall`
 - **Interfaces:** `interface_lox_steel`, `interface_steel_insulation`
 - **Colours:** lox light blue, steel grey, insulation yellow; walls grey.
-- **Parameters:** [`Tee`](../../API.md#teerun_lengthnone-branch_length-branch_radius-n_run3-n_branch3-n_turn2-roll00-towardnone-angle900-offset00-branchnone-facenone-marginnone-domenone-sheetnone-n_wallnone-branch_first_cellnone-branch_mprgnone), [`Bend`](../../API.md#bendradius-angle-n_layersnone-roll00-axial_grading10-towardnone), [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Reducer`](../../API.md#reduceroutlet-length-n_layersnone-axial_grading10-profilenone-chord_tol1e-3)
+- **Parameters:** [`Tee`](../../API.md#tee-run_lengthnone-branch_length-branch_radius-n_run3-n_branch3-n_turn2-roll00-towardnone-angle900-offset00-branchnone-facenone-marginnone-domenone-sheetnone-n_wallnone-branch_first_cellnone-branch_radial_gradingnone-branch_shellsnone), [`Bend`](../../API.md#bendradius-angle--n_layersnone-roll00-axial_grading10-towardnone), [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00), [`Reducer`](../../API.md#reduceroutlet--length-n_layersnone-axial_grading10-profilenone-chord_tol1e-3)
 - **Fittings used:** Tee ×9 ([junctions](FEATURES.md#junctions)), Bend ×10 ([bends](FEATURES.md#bends)), Straight ×11 ([building networks](FEATURES.md#building-networks)), Reducer ([reducers and profiles](FEATURES.md#reducers-and-profiles))
 
 ## micromixer
@@ -402,7 +397,7 @@ python3 -m hexmesh.examples.applications.micromixer
 - **Open ends:** `fluid_aqueous_inlet`, `fluid_lipid_inlet`, `fluid_outlet`
 - **Walls:** `fluid_wall`
 - **Colours:** fluid blue; walls grey.
-- **Parameters:** [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Tee`](../../API.md#teerun_lengthnone-branch_length-branch_radius-n_run3-n_branch3-n_turn2-roll00-towardnone-angle900-offset00-branchnone-facenone-marginnone-domenone-sheetnone-n_wallnone-branch_first_cellnone-branch_mprgnone)
+- **Parameters:** [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00), [`Tee`](../../API.md#tee-run_lengthnone-branch_length-branch_radius-n_run3-n_branch3-n_turn2-roll00-towardnone-angle900-offset00-branchnone-facenone-marginnone-domenone-sheetnone-n_wallnone-branch_first_cellnone-branch_radial_gradingnone-branch_shellsnone)
 - **Fittings used:** Straight ×5 ([building networks](FEATURES.md#building-networks)), Tee ([junctions](FEATURES.md#junctions))
 
 ## subsea_pipeline
@@ -467,7 +462,7 @@ python3 -m hexmesh.examples.applications.subsea_pipeline
 - **Walls:** `insulation_wall`
 - **Interfaces:** `interface_coating_insulation`, `interface_oil_steel`, `interface_steel_coating`
 - **Colours:** oil dark brown, steel grey, coating blue, insulation orange; walls grey.
-- **Parameters:** [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`SplinePipe`](../../API.md#splinepipepoints-n_layersnone-end_tangentnone-axial_grading10), [`Bend`](../../API.md#bendradius-angle-n_layersnone-roll00-axial_grading10-towardnone)
+- **Parameters:** [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00), [`SplinePipe`](../../API.md#splinepipe-points-n_layersnone-end_tangentnone-axial_grading10), [`Bend`](../../API.md#bendradius-angle--n_layersnone-roll00-axial_grading10-towardnone)
 - **Fittings used:** Straight ×3 ([building networks](FEATURES.md#building-networks)), SplinePipe ([bends](FEATURES.md#bends)), Bend ([bends](FEATURES.md#bends))
 
 ## district_heating
@@ -485,7 +480,7 @@ a model of it is usually for, so the soil is part of the mesh:
 - a **square of near soil** around the casing, finely meshed, where the
   temperature changes fastest;
 - a **rectangle of far soil** around that, to the domain's boundary, its
-  cells growing outward (radial grading, `mprg`).
+  cells growing outward (radial grading, `radial_grading`).
 
 Every layer is a region of its own, with an interface to the next, so a
 conjugate heat-transfer case can give each its conductivity.
@@ -526,7 +521,7 @@ python3 -m hexmesh.examples.applications.district_heating
 - **Walls:** `far_soil_wall`
 - **Interfaces:** `interface_casing_near_soil`, `interface_near_soil_far_soil`, `interface_pur_casing`, `interface_steel_pur`, `interface_water_steel`
 - **Colours:** water red, steel grey, pur yellow, casing black, near_soil light brown, far_soil dark brown; walls grey.
-- **Parameters:** [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Bend`](../../API.md#bendradius-angle-n_layersnone-roll00-axial_grading10-towardnone)
+- **Parameters:** [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00), [`Bend`](../../API.md#bendradius-angle--n_layersnone-roll00-axial_grading10-towardnone)
 - **Fittings used:** Straight ×2 ([building networks](FEATURES.md#building-networks)), Bend ([bends](FEATURES.md#bends))
 
 ---

@@ -22,10 +22,10 @@ from hexmesh import Assembly, PipeSpec, Straight, Tee, Wye
 
 
 def pipe(radius: float, insulated: bool = True) -> PipeSpec:
-    spec = (PipeSpec(nang=6)
-            .core("fluid", radius=radius, nrad=5, mprg=0.85)
-            .shell("steel", dR=0.006, nrad=2))
-    return spec.shell("insulation", dR=0.025, nrad=2) if insulated else spec
+    spec = (PipeSpec(n_arc=6)
+            .core("fluid", radius=radius, n_radial=5, radial_grading=0.85)
+            .shell("steel", dR=0.006, n_radial=2))
+    return spec.shell("insulation", dR=0.025, n_radial=2) if insulated else spec
 
 
 def build() -> Assembly:

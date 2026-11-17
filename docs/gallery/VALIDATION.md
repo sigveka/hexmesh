@@ -172,13 +172,23 @@ Case: `validation/turbulent_pipe/`: [README.md](../../validation/turbulent_pipe/
 
 Tags: `laminar`, `flow`, `section:circle`, `straight`, `spline`, `OpenFOAM v2406 (docker)`.
 
-Gates: the spline's distance from the exact helix (32 points per turn): within 0.1 % of $d$; Darcy friction factor $f$, finest level, at Re 1800, 2400 and 3000: within 5 % of Ito (1959); mesh convergence of $f$ at each Re (nang 12, 16, 24): Richardson status converging; GCI reported; reported, not gated: the digitised measured points (Fig. 12); f per pair of consecutive turns: reported.
+Gates: the spline's distance from the exact helix (32 points per turn): within 0.1 % of $d$; Darcy friction factor $f$, finest level, at Re 1800, 2400 and 3000: within 5 % of Ito (1959); mesh convergence of $f$ at each Re (n_arc 12, 16, 24): Richardson status converging; GCI reported; reported, not gated: the digitised measured points (Fig. 12); f per pair of consecutive turns: reported.
 
 <p><img src="../../validation/helical_pipe/img/n12.png" width="68%"> <img src="../../validation/helical_pipe/img/n12_section.png" width="29%"></p>
 
 <img src="../../validation/helical_pipe/figure.png" width="70%">
 
 Case: `validation/helical_pipe/`: [README.md](../../validation/helical_pipe/README.md), [RESULTS.md](../../validation/helical_pipe/RESULTS.md), [case.json](../../validation/helical_pipe/case.json).
+
+### Equal-diameter 90° tee: loss coefficients, k-ω SST
+
+**Status:** in progress (task 0162).  **Reference:** stigler_and_klas_etal_2014 (digitised: validation/junction_loss/reference/stigler_2014.csv).
+
+Tags: `rans:kOmegaSST`, `flow`, `section:circle`, `straight`, `tee`, `OpenFOAM v2406 (docker)`.
+
+Gates: geometry coefficients ξ_PG (eq. 15) and ξ_MGb (eq. 16) at γ = 90°, configurations Div a, Com a, Div c, Com c, q = 0.2, 0.4, 0.6, 0.8, 1.0 (40 values, 20 flow points), finest level, Re 10⁵ on the combined branch: each value within u_measured + T of the measured point (reference/stigler_2014.csv), where T is the largest |CFD − measured| of the paper's own CFD over the five q: Div a ξ_PG 0.02, ξ_MGb 0.015; Com a ξ_PG 0.055, ξ_MGb 0.035; Div c ξ_PG 0.30, ξ_MGb 0.03; Com c ξ_PG 0.07, ξ_MGb 0.02. The case passes when every value passes; the pass count per curve is reported; mesh convergence of ξ_PG and ξ_MGb at q = 0.6, Div a and Com a (refined(k), three levels): Richardson status converging; order, extrapolation and GCI reported; Reynolds dependence at Div a, q = 0.6: Re 5 × 10⁴ and 2 × 10⁵: reported (the paper gives no Re; 10⁵ is the task's choice); reported, not gated: realizable k–ε with wall functions at one level (their model); the 45° points (no equal lateral in hexmesh); cells, wall time and peak memory per level (finest under about 6 GB): reported.
+
+Case: `validation/junction_loss/`: [case.json](../../validation/junction_loss/case.json).
 
 ### Laminar flow in a 90° square-duct bend, Re 790
 
@@ -198,7 +208,7 @@ Planned:
 
 | Task | Status |
 |---|---|
-| [0050: Validation: turbulent flow in a 90° bend (Sudo et al. 1998)](../tasks/0050-validation-turbulent-bend.md) | ready (after 0049) |
+| [0050: Validation: turbulent flow in a 90° bend (PTB LDA; Sudo et al. 1998 the ideal)](../tasks/0050-validation-turbulent-bend.md) | ready (Q1 answered, 2026-11-15: the PTB bend; *Questions for design*) |
 | [0079: Validation (V3): a Taylor bubble rising in stagnant liquid (VOF)](../tasks/0079-validation-taylor-bubble.md) | ready (on the v2406 runner) |
 
 ## V4: correlation or standard
@@ -209,26 +219,26 @@ _No cases yet._
 
 Which hexmesh features each case exercises (decision 0012's list, extended by decision 0050). Marks: ● accepted, ◐ in progress, ○ planned, ✗ rejected; planned cases are named by task.  Rows marked *(none)* have no validation case, existing or planned.
 
-| Feature | fenicsx_second_order<br>V1 | heated_pipe<br>V1 | heated_rod<br>V1 | helical_pipe<br>V3 | layered_conduction<br>V1 | mms<br>V1 | poiseuille<br>V1 | rect_duct<br>V1 | square_bend<br>V3 | stenosis<br>V2 | stenosis_pulsatile<br>V2 | turbulent_pipe<br>V2 | womersley<br>V1 | 0050<br>V3 | 0079<br>V3 |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `section:circle` | ● | ● | ● | ◐ | ● | ● | ● |  |  | ● | ● | ● | ● | ○ | ○ |
-| `section:rect` |  |  |  |  |  | ● |  | ● | ● |  |  |  |  |  |  |
-| `layers` |  | ● |  |  | ● | ● |  |  |  |  |  |  |  |  |  |
-| `straight` | ● | ● | ● | ◐ | ● | ● | ● | ● | ● | ● | ● | ● | ● | ○ | ○ |
-| `bend` | ● |  |  |  |  | ● |  |  | ● |  |  |  |  | ○ |  |
-| `elbow` (none) |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| `miter` |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |
-| `spline` |  |  |  | ◐ |  | ● |  |  |  |  |  |  |  |  |  |
-| `reducer` (none) |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| `profiled-reducer` |  |  |  |  |  | ● |  |  |  | ● | ● |  |  |  |  |
-| `transition` |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |
-| `switch` (none) |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| `tee` | ● |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |
-| `duct-tap` |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |
-| `wye` |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |
-| `closure` (none) |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| `stack-changes` |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |
-| `projection` | ● |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |
+| Feature | fenicsx_second_order<br>V1 | heated_pipe<br>V1 | heated_rod<br>V1 | helical_pipe<br>V3 | junction_loss<br>V3 | layered_conduction<br>V1 | mms<br>V1 | poiseuille<br>V1 | rect_duct<br>V1 | square_bend<br>V3 | stenosis<br>V2 | stenosis_pulsatile<br>V2 | turbulent_pipe<br>V2 | womersley<br>V1 | 0050<br>V3 | 0079<br>V3 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `section:circle` | ● | ● | ● | ◐ | ◐ | ● | ● | ● |  |  | ● | ● | ● | ● | ○ | ○ |
+| `section:rect` |  |  |  |  |  |  | ● |  | ● | ● |  |  |  |  |  |  |
+| `layers` |  | ● |  |  |  | ● | ● |  |  |  |  |  |  |  |  |  |
+| `straight` | ● | ● | ● | ◐ | ◐ | ● | ● | ● | ● | ● | ● | ● | ● | ● | ○ | ○ |
+| `bend` | ● |  |  |  |  |  | ● |  |  | ● |  |  |  |  | ○ |  |
+| `elbow` (none) |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `miter` |  |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |
+| `spline` |  |  |  | ◐ |  |  | ● |  |  |  |  |  |  |  |  |  |
+| `reducer` (none) |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `profiled-reducer` |  |  |  |  |  |  | ● |  |  |  | ● | ● |  |  |  |  |
+| `transition` |  |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |
+| `switch` (none) |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `tee` | ● |  |  |  | ◐ |  | ● |  |  |  |  |  |  |  |  |  |
+| `duct-tap` |  |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |
+| `wye` |  |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |
+| `closure` (none) |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `stack-changes` |  |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |
+| `projection` | ● |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |
 
 ---
 

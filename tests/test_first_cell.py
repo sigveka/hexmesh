@@ -61,36 +61,36 @@ class TestSolver:
 
 class TestSpec:
     def test_wall_cell_is_outer(self):
-        spec = (PipeSpec(nang=4).core("fluid", radius=R, nrad=6, first_cell=1e-3)
-                .shell("wall", dR=DR, nrad=4, first_cell=1e-3))
+        spec = (PipeSpec(n_arc=4).core("fluid", radius=R, n_radial=6, first_cell=1e-3)
+                .shell("wall", dR=DR, n_radial=4, first_cell=1e-3))
         core_t = oh_core_wall_span(R)
-        assert spec._core_mprg < 1 and spec.shells[0].mprg < 1    # fine at the outer end
-        # mprg grows cells outward, so the last (outer) cell is the first-cell height
-        assert first_cell_height(core_t, 6, spec._core_mprg) * spec._core_mprg ** 5 \
+        assert spec._core_radial_grading < 1 and spec.shells[0].radial_grading < 1    # fine at the outer end
+        # radial_grading grows cells outward, so the last (outer) cell is the first-cell height
+        assert first_cell_height(core_t, 6, spec._core_radial_grading) * spec._core_radial_grading ** 5 \
             == pytest.approx(1e-3)
-        assert first_cell_height(DR, 4, spec.shells[0].mprg) * spec.shells[0].mprg ** 3 \
+        assert first_cell_height(DR, 4, spec.shells[0].radial_grading) * spec.shells[0].radial_grading ** 3 \
             == pytest.approx(1e-3)
 
-    def test_mprg_and_first_cell_exclusive(self):
+    def test_radial_grading_and_first_cell_exclusive(self):
         with pytest.raises(TypeError, match="not both"):
-            PipeSpec(nang=4).core("fluid", radius=R, nrad=6, mprg=1.0, first_cell=1e-3)
+            PipeSpec(n_arc=4).core("fluid", radius=R, n_radial=6, radial_grading=1.0, first_cell=1e-3)
         with pytest.raises(TypeError, match="not both"):
-            PipeSpec(nang=4).core("fluid", radius=R, nrad=6).shell(
-                "wall", dR=DR, nrad=3, mprg=1.2, first_cell=1e-3)
+            PipeSpec(n_arc=4).core("fluid", radius=R, n_radial=6).shell(
+                "wall", dR=DR, n_radial=3, radial_grading=1.2, first_cell=1e-3)
 
     def test_rect_core_rejected(self):
         with pytest.raises(TypeError, match="circular cores only"):
-            PipeSpec(nang_w=4, nang_h=4).core("air", half_w=0.1, half_h=0.1, nrad=4, layout="oh",
+            PipeSpec(n_width=4, n_height=4).core("air", half_w=0.1, half_h=0.1, n_radial=4, layout="oh",
                                               first_cell=1e-3)
 
     def test_impossible_reported_at_build(self):
         with pytest.raises(ValueError, match="no larger than the layer thickness"):
-            PipeSpec(nang=4).core("fluid", radius=R, nrad=6).shell(
-                "wall", dR=DR, nrad=3, first_cell=0.02)
+            PipeSpec(n_arc=4).core("fluid", radius=R, n_radial=6).shell(
+                "wall", dR=DR, n_radial=3, first_cell=0.02)
 
     def test_default_unchanged(self):
-        spec = PipeSpec(nang=4).core("fluid", radius=R, nrad=6).shell("wall", dR=DR, nrad=3)
-        assert spec._core_mprg == 1.0 and spec.shells[0].mprg == 1.0
+        spec = PipeSpec(n_arc=4).core("fluid", radius=R, n_radial=6).shell("wall", dR=DR, n_radial=3)
+        assert spec._core_radial_grading == 1.0 and spec.shells[0].radial_grading == 1.0
 
 
 # ---------------------------------------------------------------------------
@@ -118,9 +118,9 @@ def _wall_cell(r, a, angle, wall):
 
 @pytest.fixture
 def meshed(gmsh_session):
-    spec = (PipeSpec(nang=6).core("fluid", radius=R, nrad=8, first_cell=H)
-            .shell("wall", dR=DR, nrad=4, first_cell=H))
-    asm = Assembly(spec, lc=0.1)
+    spec = (PipeSpec(n_arc=6).core("fluid", radius=R, n_radial=8, first_cell=H)
+            .shell("wall", dR=DR, n_radial=4, first_cell=H))
+    asm = Assembly(spec)
     asm.add(Straight(0.2, n_layers=2))
     asm.mesh()
     assert asm.check_quality().ok
@@ -135,8 +135,8 @@ def test_core_mid_arc_cell_is_first_cell(meshed):
 
 def test_core_wall_cell_never_exceeds_first_cell(gmsh_session):
     """Every wall node's nearest interior neighbour is at most first_cell in."""
-    spec = PipeSpec(nang=6).core("fluid", radius=R, nrad=8, first_cell=H)
-    asm = Assembly(spec, lc=0.1)
+    spec = PipeSpec(n_arc=6).core("fluid", radius=R, n_radial=8, first_cell=H)
+    asm = Assembly(spec)
     asm.add(Straight(0.2, n_layers=2))
     asm.mesh()
     c = kit._hex_nodes()
@@ -173,8 +173,8 @@ def test_wall_span_matches_geometry(meshed):
 
 def test_n_outer_8_takes_it_as_4_and_12_is_rejected():
     """8 is the 4-corner mesh, cut (task 0088): the same grading."""
-    four = PipeSpec(nang=4).core("fluid", radius=R, nrad=6, first_cell=1e-3)
-    eight = PipeSpec(nang=4, n_outer=8).core("fluid", radius=R, nrad=6, first_cell=1e-3)
-    assert eight._core_mprg == four._core_mprg
+    four = PipeSpec(n_arc=4).core("fluid", radius=R, n_radial=6, first_cell=1e-3)
+    eight = PipeSpec(n_arc=4, n_outer=8).core("fluid", radius=R, n_radial=6, first_cell=1e-3)
+    assert eight._core_radial_grading == four._core_radial_grading
     with pytest.raises(TypeError, match="n_outer=4 or 8"):
-        PipeSpec(nang=6, n_outer=12).core("fluid", radius=R, nrad=6, first_cell=1e-3)
+        PipeSpec(n_arc=6, n_outer=12).core("fluid", radius=R, n_radial=6, first_cell=1e-3)

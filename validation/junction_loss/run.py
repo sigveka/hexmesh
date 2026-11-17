@@ -91,7 +91,7 @@ STATIONS = np.arange(10, 18.5, 1.0) * D   # pressure stations from the junction 
 GAMMA = 90.0
 
 # --- the mesh, at k = 1 ----------------------------------------------------------
-NANG, N_LAYERS = 8, 50    # 50 layers: 0.5 D long cells along each branch
+N_ARC, N_LAYERS = 8, 50    # 50 layers: 0.5 D long cells along each branch
 WALL_YPLUS = 30           # the wall cell's height at k = 1 [viscous units, total branch]
 GROWTH_MAX = 1.3          # the radial growth ratio at k = 1
 LEVELS = (1, 2, 3)        # refined(k)
@@ -132,20 +132,20 @@ def first_cell(re: float = RE) -> float:
 
 
 def wall_ring(first: float) -> int:
-    """The smallest nrad whose growth toward the centre is at most GROWTH_MAX."""
+    """The smallest n_radial whose growth toward the centre is at most GROWTH_MAX."""
     for n in range(2, 100):
         try:
-            spec = PipeSpec(nang=NANG).core("fluid", radius=R, nrad=n, first_cell=first)
+            spec = PipeSpec(n_arc=N_ARC).core("fluid", radius=R, n_radial=n, first_cell=first)
         except Exception:                          # first cell too large for n cells
             continue
-        if 1 / spec.to_dict()["core"]["mprg"] <= GROWTH_MAX:
+        if 1 / spec.to_dict()["core"]["radial_grading"] <= GROWTH_MAX:
             return n
     raise ValueError(f"no ring for a first cell of {first}")
 
 
 def assembly(k: int = 1, re: float = RE) -> Assembly:
     first = first_cell(re)
-    spec = PipeSpec(nang=NANG).core("fluid", radius=R, nrad=wall_ring(first), first_cell=first)
+    spec = PipeSpec(n_arc=N_ARC).core("fluid", radius=R, n_radial=wall_ring(first), first_cell=first)
     asm = Assembly(spec, position=[0, 0, 0], direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Straight(BRANCH, n_layers=N_LAYERS))
     main, branch = asm.add(Tee(branch_length=2 * R, branch_radius=R))

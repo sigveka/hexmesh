@@ -84,7 +84,7 @@ FRE_TABLE = {1: 56.91, 2: 62.19, 4: 72.93}
 SERIES_TERMS = 4001       # odd n up to this; checked against twice as many
 
 # --- mesh: every density parameter × k (k³ cells) ----------------------------
-BASE = dict(nang_h=6, nrad=3, n_layers=(6, 4, 4, 6))    # 3, 2, 2, 3 D_h: D_h/2 each
+BASE = dict(n_height=6, n_radial=3, n_layers=(6, 4, 4, 6))    # 3, 2, 2, 3 D_h: D_h/2 each
 LEVELS = (1, 2, 4)
 
 
@@ -181,12 +181,12 @@ def assembly(ratio: float, k: int = 1, layout: str = "h") -> Assembly:
     if layout in ("h", "hg"):
         nw, nh = control_cells(ratio)
         grading = {"first_cell": HG_FIRST_CELL} if layout == "hg" else {}
-        spec = PipeSpec(nang_w=nw, nang_h=nh).core("fluid", shape=RectShape(a, b, nang_w=nw, nang_h=nh), layout="h",
+        spec = PipeSpec(n_width=nw, n_height=nh).core("fluid", shape=RectShape(a, b, n_width=nw, n_height=nh), layout="h",
                                                    **grading)
     else:
-        nh = BASE["nang_h"]
+        nh = BASE["n_height"]
         nw = int(round(nh * ratio))           # cells roughly square in the core
-        spec = PipeSpec(nang=nh).core("fluid", shape=RectShape(a, b, nang_w=nw, nang_h=nh), nrad=BASE["nrad"],
+        spec = PipeSpec(n_arc=nh).core("fluid", shape=RectShape(a, b, n_width=nw, n_height=nh), n_radial=BASE["n_radial"],
                                       layout="oh")
     asm = Assembly(spec, position=[0, 0, 0], direction=[1, 0, 0], up=[0, 0, 1])
     lengths = (X_A, X_M - X_A, X_B - X_M, LENGTH - X_B)
@@ -203,13 +203,13 @@ def meshes():
     out = []
     for r in RATIOS:
         nw, nh = control_cells(r)
-        out.append((f"h_ar{r}_k1", f"H, a/b = {r}, k = 1: nang_w {nw}, nang_h {nh}",
+        out.append((f"h_ar{r}_k1", f"H, a/b = {r}, k = 1: n_width {nw}, n_height {nh}",
                     lambda r=r: assembly(r, 1)))
     nw, nh = control_cells(1)
-    out += [(f"h_ar1_k{k}", f"H, a/b = 1, k = {k}: nang {nh * k}",
+    out += [(f"h_ar1_k{k}", f"H, a/b = 1, k = {k}: n_arc {nh * k}",
              lambda k=k: assembly(1, k)) for k in LEVELS[1:]]
-    nh, nr = BASE["nang_h"], BASE["nrad"]
-    out.append(("ar1_k1", f"O-H, a/b = 1, k = 1: nang {nh}, nrad {nr}",
+    nh, nr = BASE["n_height"], BASE["n_radial"]
+    out.append(("ar1_k1", f"O-H, a/b = 1, k = 1: n_arc {nh}, n_radial {nr}",
                 lambda: assembly(1, 1, layout="oh")))
     return out
 

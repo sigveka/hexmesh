@@ -66,8 +66,8 @@ def test_every_fitting_of_an_n_outer_8_assembly_records_its_partition(order):
     """Task 0088: the nodes set to the 4-corner face's are recorded on
     every fitting, ports and stations; the moves are gmsh's own fill
     missing the 4-corner mesh (~1e-4 R), well under a cell."""
-    asm = Assembly(PipeSpec(nang=8, n_outer=8).core("fluid", radius=0.05, nrad=3)
-                   .shell("wall", dR=0.01, nrad=2), direction=[1, 0, 0], up=[0, 0, 1])
+    asm = Assembly(PipeSpec(n_arc=8, n_outer=8).core("fluid", radius=0.05, n_radial=3)
+                   .shell("wall", dR=0.01, n_radial=2), direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Straight(0.1, n_layers=2))
     asm.add(Bend(0.15, 90, n_layers=4))
     asm.add(Straight(0.1, n_layers=2))
@@ -86,7 +86,7 @@ def test_every_fitting_of_an_n_outer_8_assembly_records_its_partition(order):
 
 
 def _straight():
-    asm = Assembly(PipeSpec(nang=8).core("fluid", radius=0.05, nrad=3),
+    asm = Assembly(PipeSpec(n_arc=8).core("fluid", radius=0.05, n_radial=3),
                    direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Straight(0.2, n_layers=4))
     return asm
@@ -133,7 +133,7 @@ def test_the_cli_reports_notices_and_corrections(tmp_path, capsys):
 
 
 def _bend():
-    asm = Assembly(PipeSpec(nang=8).core("fluid", radius=0.05, nrad=3),
+    asm = Assembly(PipeSpec(n_arc=8).core("fluid", radius=0.05, n_radial=3),
                    direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Straight(0.1, n_layers=2))
     asm.add(Bend(0.15, 90, n_layers=6))

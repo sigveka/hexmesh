@@ -22,7 +22,7 @@ the CAD.
 
 from hexmesh import Assembly, PipeSpec, Straight, Tee, Wye
 
-PIPE = PipeSpec(nang=8).core("fluid", radius=0.1, nrad=3)
+PIPE = PipeSpec(n_arc=8).core("fluid", radius=0.1, n_radial=3)
 
 
 def build() -> Assembly:

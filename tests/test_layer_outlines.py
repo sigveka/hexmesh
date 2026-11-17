@@ -35,11 +35,11 @@ from hexmesh.core.spec import BundleSpec, PipeSpec
 
 
 def _core(r=0.1):
-    return PipeSpec(nang=4).core("fluid", shape=CircleShape(r, nang=4), nrad=3)
+    return PipeSpec(n_arc=4).core("fluid", shape=CircleShape(r, n_arc=4), n_radial=3)
 
 
 def _in(outline, name="block"):
-    return _core().shell(name, outer=outline, nrad=3)
+    return _core().shell(name, outer=outline, n_radial=3)
 
 
 def _validate(spec, fitting=None):
@@ -50,17 +50,17 @@ def _validate(spec, fitting=None):
 
 class TestSpec:
     def test_outlines(self):
-        spec = _in(RectShape(0.25, 0.125, nang_w=4, nang_h=4)).shell("skin", dR=0.01, nrad=2)
-        assert spec.outlines == [CircleShape(0.1, nang=4), RectShape(0.25, 0.125, nang_w=4, nang_h=4),
-                                 RectShape(0.26, 0.135, nang_w=4, nang_h=4)]
+        spec = _in(RectShape(0.25, 0.125, n_width=4, n_height=4)).shell("skin", dR=0.01, n_radial=2)
+        assert spec.outlines == [CircleShape(0.1, n_arc=4), RectShape(0.25, 0.125, n_width=4, n_height=4),
+                                 RectShape(0.26, 0.135, n_width=4, n_height=4)]
 
     def test_period_is_the_stack_s(self):
         """The section's roll symmetry is that of its least symmetric outline."""
         assert _core().period_deg == pytest.approx(90)
-        assert _in(RectShape(0.2, 0.2, nang_w=4, nang_h=4)).period_deg == pytest.approx(90)
-        assert _in(RectShape(0.25, 0.125, nang_w=4, nang_h=4)).period_deg == pytest.approx(180)
-        rc = (PipeSpec(nang=4).core("f", shape=RectShape(0.1, 0.05, nang_w=4, nang_h=4), nrad=3, layout="oh")
-              .shell("c", outer=CircleShape(0.2, nang=4), nrad=2))
+        assert _in(RectShape(0.2, 0.2, n_width=4, n_height=4)).period_deg == pytest.approx(90)
+        assert _in(RectShape(0.25, 0.125, n_width=4, n_height=4)).period_deg == pytest.approx(180)
+        rc = (PipeSpec(n_arc=4).core("f", shape=RectShape(0.1, 0.05, n_width=4, n_height=4), n_radial=3, layout="oh")
+              .shell("c", outer=CircleShape(0.2, n_arc=4), n_radial=2))
         assert rc.period_deg == pytest.approx(180)
 
     def test_period_in_radians_is_deprecated(self):
@@ -68,27 +68,27 @@ class TestSpec:
             assert _core().period == pytest.approx(math.pi / 2)
 
     def test_extents_use_the_outermost_outline(self):
-        spec = _in(RectShape(0.25, 0.125, nang_w=4, nang_h=4))
+        spec = _in(RectShape(0.25, 0.125, n_width=4, n_height=4))
         assert outer_radius(spec) == pytest.approx(math.hypot(0.25, 0.125))
         assert half_extent(spec, 0.0) == pytest.approx(0.25)
         assert half_extent(spec, math.pi / 2) == pytest.approx(0.125)
 
     def test_counts_name_the_layer(self):
         with pytest.raises(ValueError, match=r"shell `block`: .*layer `block` has \(4, 2\)"):
-            _in(RectShape(0.25, 0.125, nang_w=4, nang_h=2))
+            _in(RectShape(0.25, 0.125, n_width=4, n_height=2))
 
     def test_rectangle_needs_n_outer_4_or_8(self):
         """8 is the 4-corner face cut (task 0088); 12 is not built."""
-        spec = PipeSpec(nang=8, n_outer=8).core("fluid", shape=CircleShape(0.1, nang=8), nrad=3)
-        spec.shell("block", outer=RectShape(0.2, 0.2, nang_w=8, nang_h=8), nrad=2)
-        spec = PipeSpec(nang=12, n_outer=12).core("fluid", shape=CircleShape(0.1, nang=12), nrad=3)
+        spec = PipeSpec(n_arc=8, n_outer=8).core("fluid", shape=CircleShape(0.1, n_arc=8), n_radial=3)
+        spec.shell("block", outer=RectShape(0.2, 0.2, n_width=8, n_height=8), n_radial=2)
+        spec = PipeSpec(n_arc=12, n_outer=12).core("fluid", shape=CircleShape(0.1, n_arc=12), n_radial=3)
         with pytest.raises(ValueError, match="n_outer = 4 or 8"):
-            spec.shell("block", outer=RectShape(0.2, 0.2, nang_w=12, nang_h=12), nrad=2)
+            spec.shell("block", outer=RectShape(0.2, 0.2, n_width=12, n_height=12), n_radial=2)
 
     def test_round_trip(self):
-        spec = (_in(RectShape(0.25, 0.125, nang_w=4, nang_h=4), "filler")
-                .shell("wall", dR=0.01, nrad=2)
-                .shell("sheath", outer=CircleShape(0.4, nang=4), nrad=2, first_cell=0.002))
+        spec = (_in(RectShape(0.25, 0.125, n_width=4, n_height=4), "filler")
+                .shell("wall", dR=0.01, n_radial=2)
+                .shell("sheath", outer=CircleShape(0.4, n_arc=4), n_radial=2, first_cell=0.002))
         again = PipeSpec.from_dict(spec.to_dict())
         assert again.to_dict() == spec.to_dict()
         assert again.outlines == spec.outlines
@@ -99,79 +99,79 @@ class TestSpec:
         same ring: a square outline with the stack's count per side."""
         d = _core().to_dict()
         d["shells"] = [{"type": "square_shell", "name": "box", "half_w": 0.2,
-                        "half_h": 0.2, "nrad": 2, "mprg": 1.0}]
+                        "half_h": 0.2, "n_radial": 2, "radial_grading": 1.0}]
         spec = PipeSpec.from_dict(d)
-        assert spec.outlines[-1] == RectShape(0.2, 0.2, nang_w=4, nang_h=4)
+        assert spec.outlines[-1] == RectShape(0.2, 0.2, n_width=4, n_height=4)
         assert spec.layer_names == ["fluid", "box"]
 
     def test_bundle_cell_ends_in_a_rectangle(self):
-        b = BundleSpec(_in(RectShape(0.2, 0.15, nang_w=4, nang_h=4), "shell"), nx=2, ny=3)
+        b = BundleSpec(_in(RectShape(0.2, 0.15, n_width=4, n_height=4), "shell"), nx=2, ny=3)
         assert (b.pitch_w, b.pitch_h) == pytest.approx((0.4, 0.3))
         with pytest.raises(TypeError, match="rectangular shell"):
-            BundleSpec(_core().shell("wall", dR=0.01, nrad=2), nx=2, ny=2)
+            BundleSpec(_core().shell("wall", dR=0.01, n_radial=2), nx=2, ny=2)
 
 
 class TestFirstCell:
     """``first_cell`` is solved on the ring's longest radial (task 0045, 6)."""
 
-    def _mprg(self, span, nrad, h):
-        return 1.0 / progression_for_first_cell(span, nrad, h)
+    def _radial_grading(self, span, n_radial, h):
+        return 1.0 / progression_for_first_cell(span, n_radial, h)
 
     def test_circle_in_rectangle_at_the_corner_line(self):
-        spec = _core().shell("block", outer=RectShape(0.25, 0.125, nang_w=4, nang_h=4), nrad=4,
+        spec = _core().shell("block", outer=RectShape(0.25, 0.125, n_width=4, n_height=4), n_radial=4,
                              first_cell=0.01)
         c = 0.1 * math.sqrt(0.5)                    # the O-H corner at 45°
         span = math.hypot(0.25 - c, 0.125 - c)      # to the rectangle's corner
-        assert spec.shells[0].mprg == pytest.approx(self._mprg(span, 4, 0.01), rel=1e-9)
+        assert spec.shells[0].radial_grading == pytest.approx(self._radial_grading(span, 4, 0.01), rel=1e-9)
 
     def test_rectangle_grown_by_dR_at_the_corner_line(self):
-        spec = (PipeSpec(nang=4).core("f", shape=RectShape(0.1, 0.05, nang_w=4, nang_h=4), nrad=3, layout="oh")
-                .shell("wall", dR=0.02, nrad=4, first_cell=0.002))
+        spec = (PipeSpec(n_arc=4).core("f", shape=RectShape(0.1, 0.05, n_width=4, n_height=4), n_radial=3, layout="oh")
+                .shell("wall", dR=0.02, n_radial=4, first_cell=0.002))
         span = 0.02 * math.sqrt(2)
-        assert spec.shells[0].mprg == pytest.approx(self._mprg(span, 4, 0.002), rel=1e-9)
+        assert spec.shells[0].radial_grading == pytest.approx(self._radial_grading(span, 4, 0.002), rel=1e-9)
 
     def test_circle_grown_by_dR_unchanged(self):
-        spec = _core().shell("wall", dR=0.02, nrad=4, first_cell=0.002)
-        assert spec.shells[0].mprg == pytest.approx(self._mprg(0.02, 4, 0.002), rel=1e-12)
+        spec = _core().shell("wall", dR=0.02, n_radial=4, first_cell=0.002)
+        assert spec.shells[0].radial_grading == pytest.approx(self._radial_grading(0.02, 4, 0.002), rel=1e-12)
 
 
 class TestSignature:
     def test_circle_in_square_is_class_0_with_circle_in_circle(self):
         """Equal counts and the same layers: the same connectivity, so a
         straight joins them with no switch (task 0045, item 7)."""
-        ring = _in(CircleShape(0.15, nang=4))
-        for o in (RectShape(0.15, 0.15, nang_w=4, nang_h=4), RectShape(0.25, 0.125, nang_w=4, nang_h=4)):
+        ring = _in(CircleShape(0.15, n_arc=4))
+        for o in (RectShape(0.15, 0.15, n_width=4, n_height=4), RectShape(0.25, 0.125, n_width=4, n_height=4)):
             assert classify(signature(ring), signature(_in(o))).cls == 0
-        assert signature(ring) == signature(_in(RectShape(0.25, 0.125, nang_w=4, nang_h=4)))
+        assert signature(ring) == signature(_in(RectShape(0.25, 0.125, n_width=4, n_height=4)))
 
 
 class TestContainment:
     @pytest.mark.parametrize("inner, outer, at", [
-        (CircleShape(0.1, nang=4), RectShape(0.25, 0.1, nang_w=4, nang_h=4), "90.0°"),       # touches
-        (CircleShape(0.1, nang=4), RectShape(0.25, 0.09, nang_w=4, nang_h=4), "90.0°"),      # cuts
-        (RectShape(0.1, 0.05, nang_w=4, nang_h=4), CircleShape(0.11, nang=4), "-?153.4°"),  # corners out
+        (CircleShape(0.1, n_arc=4), RectShape(0.25, 0.1, n_width=4, n_height=4), "90.0°"),       # touches
+        (CircleShape(0.1, n_arc=4), RectShape(0.25, 0.09, n_width=4, n_height=4), "90.0°"),      # cuts
+        (RectShape(0.1, 0.05, n_width=4, n_height=4), CircleShape(0.11, n_arc=4), "-?153.4°"),  # corners out
     ])
     def test_outline_must_enclose_the_previous(self, inner, outer, at):
-        spec = PipeSpec(nang=4).core("fluid", shape=inner, nrad=3, layout="oh").shell(
-            "block", outer=outer, nrad=2)
+        spec = PipeSpec(n_arc=4).core("fluid", shape=inner, n_radial=3, layout="oh").shell(
+            "block", outer=outer, n_radial=2)
         with pytest.raises((AssemblyError, ValueError),
                            match=rf"layer `block`: .*enclose `fluid`.*OUTLINE_MIN_GAP.* at {at}"):
             _validate(spec)
         assert not gmsh.isInitialized()
 
     def test_dR_after_a_rectangle_is_contained(self):
-        _validate(_in(RectShape(0.12, 0.11, nang_w=4, nang_h=4)).shell("skin", dR=0.005, nrad=2))
+        _validate(_in(RectShape(0.12, 0.11, n_width=4, n_height=4)).shell("skin", dR=0.005, n_radial=2))
 
 
 class TestFittingRules:
-    SPEC = staticmethod(lambda: _in(RectShape(0.25, 0.125, nang_w=4, nang_h=4)))
+    SPEC = staticmethod(lambda: _in(RectShape(0.25, 0.125, n_width=4, n_height=4)))
 
     @pytest.mark.parametrize("fitting, message", [
         (lambda: Elbow(90), "Elbow schedules .* a section with a rectangle"),
         (lambda: Tee(run_length=0.2, branch_length=0.3, branch_radius=0.05), "not circular.*circular only"),
         (lambda: Wye(angle=60, run_length=0.3, branch_length=0.5), "not circular.*circular only"),
         (lambda: Transition(_core(), length=0.3, n_layers=3), "layer `block` present only at the inlet"),
-        (lambda: Reducer(_in(CircleShape(0.3, nang=4)), length=0.3, n_layers=2),
+        (lambda: Reducer(_in(CircleShape(0.3, n_arc=4)), length=0.3, n_layers=2),
          r"layer `block` is a RectShape at the inlet and a CircleShape .*Transition"),
     ])
     def test_rejections_name_the_limit(self, fitting, message):
@@ -181,18 +181,18 @@ class TestFittingRules:
 
     def test_reducer_changes_sizes(self):
         _validate(self.SPEC(), Reducer(_core(0.08).shell(
-            "block", outer=RectShape(0.2, 0.1, nang_w=4, nang_h=4), nrad=3), length=0.3, n_layers=2))
+            "block", outer=RectShape(0.2, 0.1, n_width=4, n_height=4), n_radial=3), length=0.3, n_layers=2))
 
     def test_termination_compares_outlines(self):
         """A stack change may drop whole outer layers; the rest must match."""
-        three = self.SPEC().shell("skin", dR=0.01, nrad=2)
-        other = _in(RectShape(0.25, 0.12, nang_w=4, nang_h=4))
+        three = self.SPEC().shell("skin", dR=0.01, n_radial=2)
+        other = _in(RectShape(0.25, 0.12, n_width=4, n_height=4))
         with pytest.raises((AssemblyError, ValueError),
                            match=r"remaining layers must match \(`block` outline"):
             _validate(three, Straight(0.6, n_layers=4, stack_changes=((2, other),)))
 
     def test_drum_nozzles_are_circular_in_every_layer(self):
-        nozzle = Nozzle("N1", spec=_in(RectShape(0.2, 0.2, nang_w=4, nang_h=4)), location=OnShell(1.5, angle=0, projection=1.4))
+        nozzle = Nozzle("N1", spec=_in(RectShape(0.2, 0.2, n_width=4, n_height=4)), location=OnShell(1.5, angle=0, projection=1.4))
         with pytest.raises(EquipmentError, match="layer `block` is a RectShape"):
             Drum("D101", diameter=2.0, length=6.0, nozzles=(nozzle,)).validate()
 
@@ -201,19 +201,19 @@ class TestFittingRules:
 # Predicted section quality and its limits (task 0047)
 # ---------------------------------------------------------------------------
 
-def _circle_in_rect(aspect, gap, nang=4):
+def _circle_in_rect(aspect, gap, n_arc=4):
     """Circle r = 0.1 in a rectangle whose thinnest gap is gap · r."""
     hh = 0.1 * (1 + gap)
-    return (PipeSpec(nang=nang).core("core", shape=CircleShape(0.1, nang=nang), nrad=4)
-            .shell("ring", outer=RectShape(aspect * hh, hh, nang_w=nang, nang_h=nang), nrad=4))
+    return (PipeSpec(n_arc=n_arc).core("core", shape=CircleShape(0.1, n_arc=n_arc), n_radial=4)
+            .shell("ring", outer=RectShape(aspect * hh, hh, n_width=n_arc, n_height=n_arc), n_radial=4))
 
 
-def _rect_in_circle(aspect, gap, nang=4):
+def _rect_in_circle(aspect, gap, n_arc=4):
     """Rectangle of half-diagonal 0.1 in a circle of radius (1 + gap) · 0.1."""
     hh = 0.1 / math.hypot(aspect, 1)
-    return (PipeSpec(nang=nang).core("core", shape=RectShape(aspect * hh, hh, nang_w=nang, nang_h=nang), nrad=4,
+    return (PipeSpec(n_arc=n_arc).core("core", shape=RectShape(aspect * hh, hh, n_width=n_arc, n_height=n_arc), n_radial=4,
                                      layout="oh")
-            .shell("ring", outer=CircleShape(0.1 * (1 + gap), nang=nang), nrad=4))
+            .shell("ring", outer=CircleShape(0.1 * (1 + gap), n_arc=n_arc), n_radial=4))
 
 
 class TestSectionQuality:
@@ -232,12 +232,12 @@ class TestSectionQuality:
         np.testing.assert_allclose(x, want, atol=1e-6)   # GMSH integrates Bump numerically
 
     @pytest.mark.parametrize("spec", [
-        _circle_in_rect(2.5, 0.3), _circle_in_rect(1.5, 1.0, nang=8),
-        _rect_in_circle(2, 0.3), _rect_in_circle(4, 0.1, nang=8),
-        _core().shell("wall", dR=0.01, nrad=2, first_cell=0.002),
-        PipeSpec(nang=4, mbmp=0.6).core("core", shape=RectShape(0.2, 0.1, nang_w=4, nang_h=4), nrad=3, layout="oh")
-        .shell("ring", outer=CircleShape(0.3, nang=4), nrad=3, mprg=1.2),
-    ], ids=["c-in-2.5to1", "c-in-1.5to1-nang8", "2to1-in-c", "4to1-in-c-nang8", "dR-graded",
+        _circle_in_rect(2.5, 0.3), _circle_in_rect(1.5, 1.0, n_arc=8),
+        _rect_in_circle(2, 0.3), _rect_in_circle(4, 0.1, n_arc=8),
+        _core().shell("wall", dR=0.01, n_radial=2, first_cell=0.002),
+        PipeSpec(n_arc=4, arc_bump=0.6).core("core", shape=RectShape(0.2, 0.1, n_width=4, n_height=4), n_radial=3, layout="oh")
+        .shell("ring", outer=CircleShape(0.3, n_arc=4), n_radial=3, radial_grading=1.2),
+    ], ids=["c-in-2.5to1", "c-in-1.5to1-n_arc8", "2to1-in-c", "4to1-in-c-n_arc8", "dR-graded",
             "bumped"])
     def test_corner_sj_matches_the_mesh(self, gmsh_session, spec):
         """A straight's per-layer corner scaled Jacobian is the prediction."""
@@ -299,11 +299,11 @@ class TestQualityLimits:
     def test_shells_that_keep_their_shape_are_not_checked(self):
         """dR shells (the inner outline grown) and circles round circles."""
         from hexmesh.assembly.section_quality import changes_shape
-        duct = (PipeSpec(nang=4).core("air", shape=RectShape(0.6, 0.1, nang_w=4, nang_h=4), nrad=3, layout="oh")
-                .shell("wall", dR=0.01, nrad=2))
+        duct = (PipeSpec(n_arc=4).core("air", shape=RectShape(0.6, 0.1, n_width=4, n_height=4), n_radial=3, layout="oh")
+                .shell("wall", dR=0.01, n_radial=2))
         assert not changes_shape(duct, 1)
-        assert not changes_shape(_in(CircleShape(0.2, nang=4)), 1)
-        assert changes_shape(_in(RectShape(0.2, 0.2, nang_w=4, nang_h=4)), 1)
+        assert not changes_shape(_in(CircleShape(0.2, n_arc=4)), 1)
+        assert changes_shape(_in(RectShape(0.2, 0.2, n_width=4, n_height=4)), 1)
 
     def test_warnings_reset_on_each_validate(self):
         asm = Assembly(_circle_in_rect(2, 0.3), direction=[1, 0, 0], up=[0, 0, 1])

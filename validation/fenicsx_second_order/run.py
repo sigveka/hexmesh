@@ -32,7 +32,7 @@ wall nodes are).  Three rows per level:
 - Hex8 mesh, Q2: geometry-limited, about 2;
 - Hex27 mesh (``mesh(order=2)``), Q2: order 3 expected.
 
-The levels are ``refined(k)``, k = 1, 2, 4 (``nang`` doubling).  The wye
+The levels are ``refined(k)``, k = 1, 2, 4 (``n_arc`` doubling).  The wye
 and the equal tee are left out: ``mesh(order=2)`` rejects them
 (``second_order_unsupported``, task 0076).
 
@@ -86,7 +86,7 @@ JOBS = {1: [(1, "dirichlet"), (2, "dirichlet"), (1, "neumann"), (2, "neumann")],
 # --- the cases ---------------------------------------------------------------
 
 def _pipe():
-    return PipeSpec(nang=6).core("body", radius=R, nrad=3)
+    return PipeSpec(n_arc=6).core("body", radius=R, n_radial=3)
 
 
 def _asm():

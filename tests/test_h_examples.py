@@ -27,7 +27,7 @@ from hexmesh.quality_hex import hex_vertices, min_scaled_jacobians
 
 
 def _h(half_w, half_h, n, **kw):
-    return PipeSpec(nang_w=n, nang_h=n).core("air", shape=RectShape(half_w, half_h, nang_w=n, nang_h=n),
+    return PipeSpec(n_width=n, n_height=n).core("air", shape=RectShape(half_w, half_h, n_width=n, n_height=n),
                                              layout="h", **kw)
 
 
@@ -51,10 +51,10 @@ def _branched(monkeypatch, **kw):
 
 
 def _lagged(monkeypatch, **kw):
-    n = lagged_duct.NANG
+    n = lagged_duct.N_ARC
     monkeypatch.setattr(lagged_duct, "duct", lambda half_w, half_h: (
-        PipeSpec(nang=n).core("air", shape=RectShape(half_w, half_h, nang_w=n, nang_h=n), layout="h", **kw)
-        .shell("steel", dR=0.002, nrad=2).shell("lagging", dR=0.03, nrad=3)))
+        PipeSpec(n_arc=n).core("air", shape=RectShape(half_w, half_h, n_width=n, n_height=n), layout="h", **kw)
+        .shell("steel", dR=0.002, n_radial=2).shell("lagging", dR=0.03, n_radial=3)))
     return lagged_duct.build()
 
 

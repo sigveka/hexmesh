@@ -27,7 +27,7 @@ An assembly is saved as the record of how it was built, not as geometry:
 * ``equipment``: indices of the interfaces marked as equipment ends
   (omitted when none);
 * ``tail``: the interface index ``add(fitting)`` continues from;
-* ``lc`` and ``axial_cell`` if set.  Every saved fitting holds its
+* ``axial_cell`` if set.  Every saved fitting holds its
   resolved ``n_layers``, so ``axial_cell`` only matters for fittings added
   after loading.
 
@@ -37,8 +37,9 @@ only a frame set by hand after ``add()`` is stored, under ``frames``, as an
 override.
 
 Lengths are in the user's unit and are stored unconverted.  Angles are in
-degrees.  Version 1 stored ``PipeSpec.rot`` in radians; :func:`from_dict`
-converts it (decision 0024).
+degrees.  :func:`upgrade` converts older versions: version 1 stored
+``PipeSpec.rot`` in radians (decision 0024); version 2 used the names from
+before decision 0053.
 
 Input-only fitting fields (``toward``) are resolved by ``Assembly.add()``
 and never saved.
@@ -49,6 +50,7 @@ from __future__ import annotations
 import dataclasses
 import json
 import math
+import re
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -69,7 +71,12 @@ if TYPE_CHECKING:
     from .assembler import Assembly
 
 FORMAT = "hexmesh.assembly"
-VERSION = 2          # 2: PipeSpec.rot in degrees (1: radians)
+VERSION = 3          # 3: the 1.0 names, no lc (2: PipeSpec.rot in degrees; 1: radians)
+
+# Version 2's field names → version 3's (decision 0053, task 0166), as the
+# parts of a name they are: ``branch_mprg`` → ``branch_radial_grading``.
+_RENAMED = {"nang_w": "n_width", "nang_h": "n_height", "nang": "n_arc", "nrad": "n_radial",
+            "mprg": "radial_grading", "mbmp": "arc_bump"}
 
 # Explicit registry: no plugins or entry points (DESIGN §6.1).
 FITTING_TYPES = {cls.__name__: cls for cls in (
@@ -185,8 +192,6 @@ def to_dict(asm: "Assembly") -> dict:
     marked = [i.index for i in asm.interfaces if i.equipment]
     if marked:
         d["equipment"] = marked
-    if asm._lc is not None:
-        d["lc"] = asm._lc
     if asm.axial_cell is not None:
         d["axial_cell"] = asm.axial_cell
     return d
@@ -204,6 +209,21 @@ def _rot_to_degrees(v):
     return v
 
 
+def _renamed_key(key: str) -> str:
+    for old, new in _RENAMED.items():
+        key = re.sub(rf"(?<![A-Za-z]){old}(?![A-Za-z])", new, key)
+    return key
+
+
+def _rename_fields(v):
+    """Every dict key inside *v* with version 2's names renamed (no ``lc``)."""
+    if isinstance(v, dict):
+        return {_renamed_key(k): _rename_fields(x) for k, x in v.items() if k != "lc"}
+    if isinstance(v, list):
+        return [_rename_fields(x) for x in v]
+    return v
+
+
 def upgrade(d: dict) -> dict:
     """A saved description at the current :data:`VERSION`."""
     if d.get("format") != FORMAT:
@@ -211,7 +231,9 @@ def upgrade(d: dict) -> dict:
                             code="description_format_invalid", where={"field": "format"},
                             value=d.get("format"), limit=FORMAT)
     if d.get("version") == 1:
-        d = {**_rot_to_degrees(d), "version": VERSION}
+        d = {**_rot_to_degrees(d), "version": 2}
+    if d.get("version") == 2:
+        d = {**_rename_fields(d), "version": VERSION}
     if d.get("version") != VERSION:
         raise AssemblyError(f"unsupported {FORMAT} version {d.get('version')!r}",
                             code="description_version_unsupported", where={"field": "version"},
@@ -225,10 +247,10 @@ def from_dict(cls, d: dict) -> "Assembly":
     if "nozzle" in inlet:
         from .equipment import Drum
         asm = cls.from_nozzle(Drum.from_dict(inlet["nozzle"]["drum"]),
-                              inlet["nozzle"]["name"], lc=d.get("lc"),
+                              inlet["nozzle"]["name"],
                               axial_cell=d.get("axial_cell"))
     else:
-        asm = cls(PipeSpec.from_dict(inlet["spec"]), lc=d.get("lc"),
+        asm = cls(PipeSpec.from_dict(inlet["spec"]),
                   axial_cell=d.get("axial_cell"))
         asm.inlet.frame = _frame_from_dict(inlet)
     for e in d["edges"]:
@@ -264,25 +286,25 @@ AXIAL_COUNTS = ("n_layers", "n_run", "n_branch", "n_turn", "n_split", "n_wall")
 
 def refine_spec_dict(d: dict, k: int) -> dict:
     """A :meth:`PipeSpec.to_dict` description at k× the density: every
-    angular and radial count × k, every radial ``mprg`` → ``mprg ** (1/k)``
+    angular and radial count × k, every radial ``radial_grading`` → ``radial_grading ** (1/k)``
     so each coarse cell splits into k cells of the same growth.  Topology
-    (``n_outer``, ``rot``, layers), ``mbmp``, geometry and an H core's
+    (``n_outer``, ``rot``, layers), ``arc_bump``, geometry and an H core's
     ``wall_bump`` are unchanged: the same ``Bump`` at k× the cells nests."""
     d = json.loads(json.dumps(d))
-    for key in ("nang", "nang_w", "nang_h"):
+    for key in ("n_arc", "n_width", "n_height"):
         if d.get(key) is not None:
             d[key] *= k
     shapes = [d["core"]["shape"]] + [sh["outer"] for sh in d["shells"] if "outer" in sh]
     for shape in shapes:
-        for key in ("nang", "nang_w", "nang_h"):
+        for key in ("n_arc", "n_width", "n_height"):
             if key in shape:
                 shape[key] *= k
         if "arcs" in shape:          # a circle's per-arc counts (task 0147), each × k
             shape["arcs"] = [n * k for n in shape["arcs"]]
     for layer in (d["core"], *d["shells"]):
-        layer["nrad"] *= k
-        layer["mprg"] = layer.get("mprg", 1.0) ** (1.0 / k)
-    # an H core's wall_bump is kept (its first_cell= or mprg= resolved to
+        layer["n_radial"] *= k
+        layer["radial_grading"] = layer.get("radial_grading", 1.0) ** (1.0 / k)
+    # an H core's wall_bump is kept (its first_cell= or radial_grading= resolved to
     # it): a Bump at the same coefficient and k× the cells puts every k-th
     # node on a coarse one (task 0084)
     return d
@@ -301,14 +323,14 @@ def _refine_fitting_dict(d: dict, k: int) -> dict:
     if "outlet" in d:
         d["outlet"] = refine_spec_dict(d["outlet"], k)
     if isinstance(d.get("branch"), dict):    # a duct tap's branch shape: its counts
-        d["branch"] = {key: v * k if key in ("nang", "nang_w", "nang_h") else
+        d["branch"] = {key: v * k if key in ("n_arc", "n_width", "n_height") else
                        [n * k for n in v] if key == "arcs" else v
                        for key, v in d["branch"].items()}
-    if d.get("type") == "Tee" and d.get("nrad") is not None:   # an H main's ring (task 0086)
-        d["nrad"] *= k
-        d["mprg"] = d.get("mprg", 1.0) ** (1.0 / k)
-    if d.get("type") == "Tee" and d.get("branch_mprg") is not None:   # task 0131
-        d["branch_mprg"] **= 1.0 / k
+    if d.get("type") == "Tee" and d.get("n_radial") is not None:   # an H main's ring (task 0086)
+        d["n_radial"] *= k
+        d["radial_grading"] = d.get("radial_grading", 1.0) ** (1.0 / k)
+    if d.get("type") == "Tee" and d.get("branch_radial_grading") is not None:   # task 0131
+        d["branch_radial_grading"] **= 1.0 / k
     if "stack_changes" in d:          # (axial cell index, spec): cell i → cell k·i
         d["stack_changes"] = [[i * k, refine_spec_dict(spec, k)]
                               for i, spec in d["stack_changes"]]

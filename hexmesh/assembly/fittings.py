@@ -19,7 +19,7 @@ Every fitting implements the contract:
                             computed from the inlet frame.  Pure numpy.
 ``validate(frames, spec)``  Topology.  Raise ``ValueError`` if the fitting
                             cannot be built between these frames.
-``fill(faces, frames, spec, lc)``
+``fill(faces, frames, spec)``
                             Realisation.  Build *internal* entities only,
                             between the given existing port faces.
 
@@ -681,34 +681,34 @@ def _scale_layers(spec: PipeSpec, f: float) -> list:
     return [x * f if isinstance(x, (int, float)) else x.scaled(f) for x in _layers(spec)]
 
 
-def _with_layers(spec: PipeSpec, layers: list, mprgs: list[float],
+def _with_layers(spec: PipeSpec, layers: list, radial_gradings: list[float],
                  wall_bump: tuple | None = None) -> PipeSpec:
     """*spec* with every layer's size replaced (``_layers`` form, core
-    first) and radial gradings *mprgs*: a station of a ``Reducer``.  An H
+    first) and radial gradings *radial_gradings*: a station of a ``Reducer``.  An H
     core takes *wall_bump* (``None``: uniform)."""
     name, _ = spec._core
-    out = PipeSpec(nang=spec.nang, nang_w=spec.nang_w, nang_h=spec.nang_h,
-                   n_outer=spec.n_outer, rot=spec.rot, mbmp=spec.mbmp)
+    out = PipeSpec(n_arc=spec.n_arc, n_width=spec.n_width, n_height=spec.n_height,
+                   n_outer=spec.n_outer, rot=spec.rot, arc_bump=spec.arc_bump)
     if spec.layout == "h":            # its shells as an O-H core's (task 0086)
         out = out.core(name, shape=layers[0], layout="h", wall_bump=wall_bump)
     else:
-        out = out.core(name, shape=layers[0], nrad=spec._core_nrad, mprg=mprgs[0], layout="oh")
-    for sh, x, m in zip(spec.shells, layers[1:], mprgs[1:]):
+        out = out.core(name, shape=layers[0], n_radial=spec._core_n_radial, radial_grading=radial_gradings[0], layout="oh")
+    for sh, x, m in zip(spec.shells, layers[1:], radial_gradings[1:]):
         if isinstance(x, (int, float)):
-            out = out.shell(sh.name, dR=x, nrad=sh.nrad, mprg=m)
+            out = out.shell(sh.name, dR=x, n_radial=sh.n_radial, radial_grading=m)
         else:
-            out = out.shell(sh.name, nrad=sh.nrad, mprg=m, outer=x)
+            out = out.shell(sh.name, n_radial=sh.n_radial, radial_grading=m, outer=x)
     return out
 
 
 def _sizes(outline) -> np.ndarray:
     """An outline's lengths (radius; half_w, half_h), for comparisons."""
     return np.array([v for k, v in outline.to_dict().items()
-                     if k != "type" and not k.startswith("nang")], dtype=float)
+                     if k != "type" and not k.startswith("n_arc")], dtype=float)
 
 
-def _mprgs(spec: PipeSpec) -> np.ndarray:
-    return np.array([spec._core_mprg] + [sh.mprg for sh in spec.shells])
+def _radial_gradings(spec: PipeSpec) -> np.ndarray:
+    return np.array([spec._core_radial_grading] + [sh.radial_grading for sh in spec.shells])
 
 
 class _AxialOutlet(Sweep):
@@ -732,8 +732,8 @@ class Reducer(_AxialOutlet):
 
     *outlet* is the outlet spec.  It must equal the inlet spec in everything
     except its sizes (every layer's outline: radii, half-widths) and radial
-    gradings (``mprg`` per layer): the same layers, outline shapes,
-    ``nrad``, counts, ``mbmp``, ``n_outer`` and ``rot``, so that every axial
+    gradings (``radial_grading`` per layer): the same layers, outline shapes,
+    ``n_radial``, counts, ``arc_bump``, ``n_outer`` and ``rot``, so that every axial
     edge joins matching nodes (rule A4; decision 0026).  A larger outlet
     makes it an expander.  A rectangle's sides stay planar (the station
     outlines interpolate linearly), so a duct reducer is exact too.
@@ -743,7 +743,7 @@ class Reducer(_AxialOutlet):
     corresponding corners are joined by straight lines, which are generators
     of the cone; wall nodes therefore lie exactly on the cone.  Radial
     gradings interpolate geometrically at the same fractions
-    (``mprg_in^(1-u) · mprg_out^u``), so a wall-resolved pipe (absolute
+    (``radial_grading_in^(1-u) · radial_grading_out^u``), so a wall-resolved pipe (absolute
     ``first_cell``) can change diameter (decision 0016).
     *axial_grading* spaces the stations as for ``Straight``.
 
@@ -811,10 +811,10 @@ class Reducer(_AxialOutlet):
                                 hint=f"give the outlet spec layout={spec.layout!r}; a Switch changes the layout")
         kinds = {(s.wall_grading or ("uniform",))[0] for s in (spec, self.outlet)}
         if spec.layout == "h" and "bump" in kinds and len(kinds) > 1:
-            raise AssemblyError("Reducer: grade both ends of an H duct (first_cell=, mprg= "
+            raise AssemblyError("Reducer: grade both ends of an H duct (first_cell=, radial_grading= "
                                 "or wall_bump=), or neither (the stations interpolate it)",
                                 code="reducer_grading_one_end", where={"field": "outlet"},
-                                hint="pass the same grading (first_cell=, mprg= or wall_bump=) to both ends, or to neither")
+                                hint="pass the same grading (first_cell=, radial_grading= or wall_bump=) to both ends, or to neither")
         if self.profile is not None:
             self._check_profile(spec)
 
@@ -856,7 +856,7 @@ class Reducer(_AxialOutlet):
     def path(self, a: Frame, b: Frame, spec: PipeSpec) -> Path:
         n = self.n_layers
         u = self.fractions(n)
-        m0, m1 = _mprgs(spec), _mprgs(self.outlet)
+        m0, m1 = _radial_gradings(spec), _radial_gradings(self.outlet)
         if self.profile is None:
             layers = [_blend_layers(spec, self.outlet, float(uk)) for uk in u]
         else:
@@ -892,8 +892,8 @@ class Transition(_AxialOutlet):
 
     *outlet* is the outlet spec.  The two are equal in everything but each
     layer's outline (shape and size): the same layers (names, order,
-    ``nrad``, grading), equal counts per side throughout (a circle's
-    ``nang`` equals a rectangle's ``nang_w`` and ``nang_h``), ``mbmp`` and
+    ``n_radial``, grading), equal counts per side throughout (a circle's
+    ``n_arc`` equals a rectangle's ``n_width`` and ``n_height``), ``arc_bump`` and
     ``rot``.  So the two faces have equal signatures (switch class 0) and
     every axial edge joins matching nodes.  A change of sizes only, every
     outline keeping its shape, is a ``Reducer``; a stack of circles at both
@@ -910,7 +910,7 @@ class Transition(_AxialOutlet):
     **An H rectangular end** (decision 0036 item 5, task 0085): one end may
     be an H face (``layout="h"``) with the other end's counts per side.
     The transition stays a class-0 blend to the O-H face of that rectangle
-    (the other end's ``nrad`` and ``mprg``), and a ``Switch`` takes the
+    (the other end's ``n_radial`` and ``radial_grading``), and a ``Switch`` takes the
     slabs at the H end: the fewest of the ``n_layers`` that give it its
     shortest length (``switch.min_length``) at equal shares of the
     length.  Shells (task 0086): the blend's H-end face carries the H
@@ -963,8 +963,8 @@ class Transition(_AxialOutlet):
             if x.counts != y.counts:
                 raise AssemblyError(
                     f"Transition needs equal counts per side: layer `{lname}` inlet "
-                    f"{_counts(x)} vs outlet {_counts(y)} (a circle's nang must "
-                    f"equal the rectangle's nang_w and nang_h)",
+                    f"{_counts(x)} vs outlet {_counts(y)} (a circle's n_arc must "
+                    f"equal the rectangle's n_width and n_height)",
                     code="counts_mismatch", where={"label": lname}, value=_counts(y),
                     limit=_counts(x),
                     hint=f"give layer `{lname}` the same counts at both ends ({_counts(x)})")
@@ -1022,19 +1022,19 @@ class Transition(_AxialOutlet):
 
     def _blend_spec(self, spec: PipeSpec) -> PipeSpec:
         """The O-H face of the H end's rectangle: the other end's core
-        (name, ``nrad``, ``mprg``), ``mbmp`` and ``rot``, and the H end's
+        (name, ``n_radial``, ``radial_grading``), ``arc_bump`` and ``rot``, and the H end's
         shells."""
         end = self._h_end(spec)
         h_spec, o_spec = (spec, self.outlet) if end == "inlet" else (self.outlet, spec)
         if o_spec.layout == "h":
             raise AssemblyError(_BOTH_H, code="transition_both_h", hint="use Reducer")
         sh = h_spec.core_shape
-        out = PipeSpec(nang_w=sh.nang_w, nang_h=sh.nang_h, mbmp=o_spec.mbmp,
+        out = PipeSpec(n_width=sh.n_width, n_height=sh.n_height, arc_bump=o_spec.arc_bump,
                        rot=o_spec.rot).core(o_spec.layer_names[0], shape=sh,
-                                            nrad=o_spec._core_nrad, mprg=o_spec._core_mprg,
+                                            n_radial=o_spec._core_n_radial, radial_grading=o_spec._core_radial_grading,
                                             layout="oh")
         for s in h_spec.shells:
-            out = out.shell(s.name, dR=s.dR, nrad=s.nrad, mprg=s.mprg, outer=s.outer)
+            out = out.shell(s.name, dR=s.dR, n_radial=s.n_radial, radial_grading=s.radial_grading, outer=s.outer)
         return out
 
     def _split(self, spec: PipeSpec) -> tuple[int, float]:
@@ -1110,14 +1110,14 @@ class Transition(_AxialOutlet):
             return super().cell_count(frames, spec)
         return sum(part.cell_count(list(fr), s) for part, fr, s in self._parts(frames, spec))
 
-    def fill(self, faces, frames, spec, lc):
+    def fill(self, faces, frames, spec):
         if self._h_end(spec) is None:
-            return super().fill(faces, frames, spec, lc)
+            return super().fill(faces, frames, spec)
         from .interface import build_face
         (p0, fr0, s0), (p1, fr1, s1) = self._parts(frames, spec)
-        mid = build_face(s1, fr0[1], lc)          # the O-H rectangle at the station
-        r0 = p0.fill([faces[0], mid], list(fr0), s0, lc)
-        r1 = p1.fill([mid, faces[1]], list(fr1), s1, lc)
+        mid = build_face(s1, fr0[1])          # the O-H rectangle at the station
+        r0 = p0.fill([faces[0], mid], list(fr0), s0)
+        r1 = p1.fill([mid, faces[1]], list(fr1), s1)
         switch = r0 if isinstance(p1, Transition) else r1
         checked = [v for vs in switch.volumes.values() for v in vs]
         r0.merge(r1)
@@ -1137,12 +1137,12 @@ class Transition(_AxialOutlet):
         ca, cb = spec.corners(), b.corners()
         oa, ob = spec.outlines, b.outlines
         name, shape = spec._core
-        out = PipeSpec(rot=spec.rot, mbmp=spec.mbmp, n_outer=spec.n_outer).core(
+        out = PipeSpec(rot=spec.rot, arc_bump=spec.arc_bump, n_outer=spec.n_outer).core(
             name, shape=BlendShape(shape, b.core_shape, u),
-            nrad=spec._core_nrad, mprg=spec._core_mprg)
+            n_radial=spec._core_n_radial, radial_grading=spec._core_radial_grading)
         for i, sh in enumerate(spec.shells, start=1):
             blend = BlendShape(oa[i], ob[i], u, _points(ca[i]), _points(cb[i]))
-            out = out.shell(sh.name, outer=blend, nrad=sh.nrad, mprg=sh.mprg)
+            out = out.shell(sh.name, outer=blend, n_radial=sh.n_radial, radial_grading=sh.radial_grading)
         return out
 
     def _blend_path(self, a: Frame, b: Frame, spec: PipeSpec) -> Path:

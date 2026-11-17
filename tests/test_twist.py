@@ -20,12 +20,12 @@ from hexmesh.core.spec import PipeSpec
 R = 0.1
 
 
-def _spec(nrad=3):
-    return PipeSpec(nang=8).core("fluid", radius=R, nrad=nrad)
+def _spec(n_radial=3):
+    return PipeSpec(n_arc=8).core("fluid", radius=R, n_radial=n_radial)
 
 
 def _asm(spec=None):
-    return Assembly(spec or _spec(), direction=[1, 0, 0], up=[0, 0, 1], lc=0.05)
+    return Assembly(spec or _spec(), direction=[1, 0, 0], up=[0, 0, 1])
 
 
 def _validated(*fittings):
@@ -121,7 +121,7 @@ def test_roll_per_layer_warns_naming_the_layers():
 
 
 def test_n_layers_none_resolves_to_the_warning_tier():
-    asm = Assembly(_spec(), direction=[1, 0, 0], up=[0, 0, 1], lc=0.05, axial_cell=0.2)
+    asm = Assembly(_spec(), direction=[1, 0, 0], up=[0, 0, 1], axial_cell=0.2)
     asm.add(Straight(0.6, twist=100))
     assert asm.edges[0].fitting.n_layers == 7         # 3 from axial_cell; 100/7 ≤ 15°
 

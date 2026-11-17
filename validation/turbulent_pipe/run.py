@@ -32,7 +32,7 @@ velocity to U_b.  Steady ``simpleFoam``; post-processing in Python.
   ``nutUSpaldingWallFunction`` (the gated wall-function variant, task
   0049's design answer Q3).
 
-lowre_550 runs at k = 1, 2, 4 (``refined(k)``: nang, nrad and the axial
+lowre_550 runs at k = 1, 2, 4 (``refined(k)``: n_arc, n_radial and the axial
 layers ×k, the radial growth its k-th root, so the wall cell shrinks too).
 The flow is axially uniform, so the axial count matters only through cell
 aspect; it is scaled with the rest.  The other cases run at one level.
@@ -79,7 +79,7 @@ R = 0.05                  # pipe radius [m]
 D = 2 * R
 U_B = 1.0                 # bulk velocity [m/s]
 LENGTH = R                # the periodic pipe; the flow doesn't vary along it
-NANG, N_LAYERS = 12, 2    # at k = 1
+N_ARC, N_LAYERS = 12, 2    # at k = 1
 GROWTH_MAX = 1.15         # radial growth ratio of the wall-resolved ring
 YPLUS_SAMPLES = (1, 10, 30, 100)
 
@@ -139,15 +139,15 @@ def design_u_tau(re_b: float) -> float:
 
 # --- the mesh -----------------------------------------------------------------
 
-def wall_ring(first: float, nang: int = NANG) -> int:
-    """The smallest nrad whose ring growth toward the centre is at most
+def wall_ring(first: float, n_arc: int = N_ARC) -> int:
+    """The smallest n_radial whose ring growth toward the centre is at most
     GROWTH_MAX with a wall cell of *first*."""
     for n in range(2, 200):
         try:
-            spec = PipeSpec(nang=nang).core("fluid", radius=R, nrad=n, first_cell=first)
+            spec = PipeSpec(n_arc=n_arc).core("fluid", radius=R, n_radial=n, first_cell=first)
         except Exception:                          # first cell too large for n cells
             continue
-        if 1 / spec.to_dict()["core"]["mprg"] <= GROWTH_MAX:
+        if 1 / spec.to_dict()["core"]["radial_grading"] <= GROWTH_MAX:
             return n
     raise ValueError(f"no ring for a first cell of {first}")
 
@@ -156,8 +156,8 @@ def assembly(name: str, k: int = 1) -> Assembly:
     c = CASES[name]
     nu = U_B * D / c["re_b"]
     first = c["wall_yplus"] * nu / design_u_tau(c["re_b"])
-    nang = c.get("nang", NANG)
-    spec = PipeSpec(nang=nang).core("fluid", radius=R, nrad=wall_ring(first, nang),
+    n_arc = c.get("n_arc", N_ARC)
+    spec = PipeSpec(n_arc=n_arc).core("fluid", radius=R, n_radial=wall_ring(first, n_arc),
                                     first_cell=first)
     asm = Assembly(spec, position=[0, 0, 0], direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Straight(LENGTH, n_layers=N_LAYERS))

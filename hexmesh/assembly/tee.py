@@ -67,10 +67,10 @@ A branch as wide as the main (r = R within ``EQUAL_TEE_RTOL``) is an
 equal tee or an equal lateral, with the oriented junction cube of
 ``cube.CubeTee``: ``Tee`` delegates to it, as to the duct-tap template.
 The branch must be centred (``offset`` 0) and square
-(``EQUAL_LATERAL_ANGLE_MIN``, 90°: equal laterals fold as ``nang``
+(``EQUAL_LATERAL_ANGLE_MIN``, 90°: equal laterals fold as ``n_arc``
 rises).  Its crease, where the branch meets the main, lies on cube edges
 only on the main's two sides, so its chord error is first order in
-``nang`` (3.7 % R at nang 8, 1.1 % at 32).  First order only:
+``n_arc`` (3.7 % R at n_arc 8, 1.1 % at 32).  First order only:
 ``mesh(order=2)`` rejects it, as it does the wye.
 
 Duct taps (decision 0033, task 0070)
@@ -81,7 +81,7 @@ narrower than it, with the pillowed layout of ``duct_tap.DuctTap``.
 ``Tee`` picks the template (``duct_tap.TapTemplate``) and delegates.  The
 branch keeps the main's counts per side (a class-0 port); its frame's
 ``up`` is the main's axis for a tap on an up/down face and the main's
-``up`` for one on a right/left face, so its ``half_w``/``nang_w`` run
+``up`` for one on a right/left face, so its ``half_w``/``n_width`` run
 along the main's ``right`` or along the main's axis respectively.
 """
 
@@ -133,23 +133,23 @@ def main_radii(spec: PipeSpec) -> tuple[float, float]:
     return circle_radius(spec.core_shape), thicknesses(spec)[-1]
 
 
-def branch_spec(spec: PipeSpec, radius: float, mprg: float | None = None,
+def branch_spec(spec: PipeSpec, radius: float, radial_grading: float | None = None,
                 first_cell: float | None = None) -> PipeSpec:
     """Branch spec: *spec* with core radius *radius* and the same shells
-    (names, thicknesses, ``nrad``, ``mprg``).  The core's grading is the
-    main's unless *mprg* or *first_cell* gives the branch its own (task
+    (names, thicknesses, ``n_radial``, ``radial_grading``).  The core's grading is the
+    main's unless *radial_grading* or *first_cell* gives the branch its own (task
     0131)."""
     name, shape = spec._core
-    if mprg is None and first_cell is None:
-        mprg = spec._core_mprg
-    out = (PipeSpec(nang=spec.nang, n_outer=spec.n_outer, rot=spec.rot, mbmp=spec.mbmp)
-           .core(name, shape=CircleShape(radius=radius, nang=shape.nang),
-                 nrad=spec._core_nrad, mprg=mprg, first_cell=first_cell))
+    if radial_grading is None and first_cell is None:
+        radial_grading = spec._core_radial_grading
+    out = (PipeSpec(n_arc=spec.n_arc, n_outer=spec.n_outer, rot=spec.rot, arc_bump=spec.arc_bump)
+           .core(name, shape=CircleShape(radius=radius, n_arc=shape.n_arc),
+                 n_radial=spec._core_n_radial, radial_grading=radial_grading, first_cell=first_cell))
     T = thicknesses(spec)
     for sh, t0, t1 in zip(spec.shells, T, T[1:]):
         # the given dR, exactly: t1 - t0 differs in the last bits, and a
         # stack change on the branch compares outlines exactly (task 0155)
-        out = out.shell(sh.name, dR=t1 - t0 if sh.dR is None else sh.dR, nrad=sh.nrad, mprg=sh.mprg)
+        out = out.shell(sh.name, dR=t1 - t0 if sh.dR is None else sh.dR, n_radial=sh.n_radial, radial_grading=sh.radial_grading)
     return out
 
 
@@ -290,7 +290,7 @@ class Tee:
     n_wall : int, optional
         Duct taps: cells from a station to the hole, resolved when the tee
         is added (``DuctTap.wall_cells``).
-    nrad, mprg : int, float, optional
+    n_radial, radial_grading : int, float, optional
         Duct taps on an H main (task 0086): the radial cells and growth of
         the O-H ring inside the junction and its switch legs.  Derived when
         the tee is added (``sections.h.pillow_ring``: the H cells within a
@@ -301,13 +301,13 @@ class Tee:
         Reserved (task 0150; decision 0051): a branch with shells of its
         own is planned for 1.x.  Only ``None`` is accepted; any other value
         raises ``AssemblyError`` (``branch_shells_reserved``).
-    branch_first_cell, branch_mprg : float, optional
+    branch_first_cell, branch_radial_grading : float, optional
         Pipe tees: the branch port's own core grading (task 0131; decision
         0028), as ``PipeSpec.core``'s ``first_cell`` (resolved to
-        ``branch_mprg`` when the tee is added) or ``mprg``; at most one.
+        ``branch_radial_grading`` when the tee is added) or ``radial_grading``; at most one.
         The turning station keeps the main's grading, and the branch run's
         cells blend to the port's over its ``n_branch`` layers.  Without
-        them the branch copies the main's ``mprg``, so its wall cell
+        them the branch copies the main's ``radial_grading``, so its wall cell
         scales with r/R.  Not on an equal tee or a duct tap.
 
     Ports are ``run`` (the run outlet, keeping the inlet's ``up``) and
@@ -366,16 +366,16 @@ class Tee:
     n_wall:   int | None = param(
         "cells", "duct taps: cells from a station to the hole; resolved when added", input=True,
         minimum=1)
-    nrad:     int | None = param(
+    n_radial:     int | None = param(
         "cells", "duct taps on an H main: radial cells of the O-H ring; derived when added",
         input=True, minimum=1)
-    mprg:     float | None = param(
+    radial_grading:     float | None = param(
         "1", "duct taps on an H main: radial growth of the O-H ring; derived when added",
         input=True, exclusiveMinimum=0)
     branch_first_cell: float | None = param(
-        "length", "pipe tees: the branch port's core wall cell; resolves to branch_mprg when "
+        "length", "pipe tees: the branch port's core wall cell; resolves to branch_radial_grading when "
         "added", input=True, exclusiveMinimum=0)
-    branch_mprg: float | None = param(
+    branch_radial_grading: float | None = param(
         "1", "pipe tees: the branch port's core radial growth (None: the main's)",
         input=True, exclusiveMinimum=0)
     branch_shells: None = param(
@@ -398,21 +398,21 @@ class Tee:
         if self.branch_radius is not None and self.branch is not None:
             raise AssemblyTypeError("Tee: give branch_radius or branch, not both",
                                     code="branch_args_conflict", where={"field": "branch"})
-        if self.branch_first_cell is not None and self.branch_mprg is not None:
-            raise AssemblyTypeError("Tee: give branch_first_cell or branch_mprg, not both",
+        if self.branch_first_cell is not None and self.branch_radial_grading is not None:
+            raise AssemblyTypeError("Tee: give branch_first_cell or branch_radial_grading, not both",
                                     code="grading_args_conflict",
                                     where={"field": "branch_first_cell"},
-                                    hint="give branch_first_cell or branch_mprg")
+                                    hint="give branch_first_cell or branch_radial_grading")
 
     def _branch_graded(self) -> bool:
-        return self.branch_first_cell is not None or self.branch_mprg is not None
+        return self.branch_first_cell is not None or self.branch_radial_grading is not None
 
     def _check_branch_grading(self, spec: PipeSpec) -> None:
         """The branch's own grading: a pipe tee with a smaller round
         branch only (task 0131)."""
         if not self._branch_graded():
             return
-        field = "branch_first_cell" if self.branch_first_cell is not None else "branch_mprg"
+        field = "branch_first_cell" if self.branch_first_cell is not None else "branch_radial_grading"
         what = ("a duct tap (a rectangular main)" if not spec.core_shape.is_round
                 else "an equal tee" if self._is_equal(spec) else None)
         if what is not None:
@@ -428,19 +428,19 @@ class Tee:
             self._check_branch_grading(spec)
             return tpl.resolve(inlet, spec)
         if self.branch is not None and self.branch.is_round:   # the shorthand's long form
-            if self.branch.nang != spec.core_shape.nang:
-                raise AssemblyError(f"Tee: branch nang {self.branch.nang} must be the main's "
-                                    f"{spec.core_shape.nang}",
+            if self.branch.n_arc != spec.core_shape.n_arc:
+                raise AssemblyError(f"Tee: branch n_arc {self.branch.n_arc} must be the main's "
+                                    f"{spec.core_shape.n_arc}",
                                     code="counts_mismatch", where={"field": "branch"},
-                                    value=self.branch.nang, limit=spec.core_shape.nang,
-                                    hint=f"give the branch nang={spec.core_shape.nang}")
+                                    value=self.branch.n_arc, limit=spec.core_shape.n_arc,
+                                    hint=f"give the branch n_arc={spec.core_shape.n_arc}")
             self = replace(self, branch_radius=circle_radius(self.branch), branch=None)
         tee = junction_toward(self, inlet, spec, self.toward_offset)  # counts keep defaults
         tee._check_branch_grading(spec)
-        if tee.branch_first_cell is not None:     # stored as its mprg, which nests (task 0131)
+        if tee.branch_first_cell is not None:     # stored as its radial_grading, which nests (task 0131)
             _check_circle(spec)
-            tee = replace(tee, branch_first_cell=None, branch_mprg=branch_spec(
-                spec, tee.branch_radius, first_cell=tee.branch_first_cell)._core_mprg)
+            tee = replace(tee, branch_first_cell=None, branch_radial_grading=branch_spec(
+                spec, tee.branch_radius, first_cell=tee.branch_first_cell)._core_radial_grading)
         if tee._is_equal(spec):
             tee = replace(tee, branch_radius=spec.core_shape.max_extent)   # exactly the main's
             if tee.run_length is None:
@@ -583,7 +583,7 @@ class Tee:
         return [(main, spec), (branch, self._branch_port_spec(spec))]
 
     def _branch_port_spec(self, spec: PipeSpec) -> PipeSpec:
-        return branch_spec(spec, self.branch_radius, mprg=self.branch_mprg,
+        return branch_spec(spec, self.branch_radius, radial_grading=self.branch_radial_grading,
                            first_cell=self.branch_first_cell)
 
     # -- topology -----------------------------------------------------
@@ -595,7 +595,7 @@ class Tee:
             return tpl.check(spec)
         _check_circle(spec)
         duct_only = [n for n in ("branch", "face", "margin", "dome", "sheet", "n_wall",
-                                         "nrad", "mprg")
+                                         "n_radial", "radial_grading")
                      if getattr(self, n) is not None]
         if duct_only:
             raise AssemblyError(f"Tee: {', '.join(duct_only)} are for a duct tap (a "
@@ -900,10 +900,10 @@ class Tee:
             return tpl.cell_count(frames, spec)
         return self.layout(frames, spec).cell_count()
 
-    def fill(self, faces, frames, spec, lc):
+    def fill(self, faces, frames, spec):
         tpl = self._template(spec)
         if tpl is not None:          # declared in the ports' own frames
-            return tpl.fill(faces, frames, spec, lc)
+            return tpl.fill(faces, frames, spec)
         lay = self.layout(frames, spec)
         for prefix, face, frame in zip("AB", faces, frames):
             bind_face(lay, prefix, face,
@@ -948,7 +948,7 @@ class Tee:
         (the wye's rule, for the other projected junction)."""
         if self._is_equal(spec):
             return ("its second-order hexes near the projected wall invert (72 of 4160 in "
-                    "the equal tee example at nang 8; task 0122)")
+                    "the equal tee example at n_arc 8; task 0122)")
         return None
 
     def meshed_nonorth_check(self, spec: PipeSpec) -> bool:

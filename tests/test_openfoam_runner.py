@@ -282,7 +282,7 @@ def test_msh_hexes_wants_msh_2_2(tmp_path):
 
 def test_a_straight_would_flip_nothing(tmp_path):
     from hexmesh import Assembly, PipeSpec, Session, Straight
-    asm = Assembly(PipeSpec(nang=6).core("fluid", radius=0.05, nrad=3),
+    asm = Assembly(PipeSpec(n_arc=6).core("fluid", radius=0.05, n_radial=3),
                    direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Straight(0.2, n_layers=4))
     with Session("would-invert-straight"):

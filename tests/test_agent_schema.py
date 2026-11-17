@@ -147,10 +147,10 @@ def test_schema_ranges_are_enforced():
     are now coded errors."""
     from hexmesh.assembly.equipment import EquipmentError
     from hexmesh.errors import SpecError
-    with pytest.raises(SpecError, match="mbmp must be positive") as info:
-        PipeSpec(nang=4, mbmp=0)
+    with pytest.raises(SpecError, match="arc_bump must be positive") as info:
+        PipeSpec(n_arc=4, arc_bump=0)
     assert info.value.code == "value_not_positive"
-    spec = PipeSpec(nang=4).core("f", radius=0.05, nrad=3)
+    spec = PipeSpec(n_arc=4).core("f", radius=0.05, n_radial=3)
     for loc, field_ in ((OnShell(1.0, angle=0.0, projection=0.0), "projection"),
                         (OnHead("first", offset=-0.1, angle=0.0, projection=1.0), "offset"),
                         (OnHead("first", offset=0.0, angle=0.0, projection=-1.0), "projection")):
@@ -209,3 +209,11 @@ def test_api_limits_table_matches_the_registry():
 
 def _api_value(v) -> str:
     return f"`{v!r}`" if isinstance(v, tuple) else f"{v:g}"
+
+
+def test_schema_uses_the_1_0_names():
+    """Decision 0053 item 5 (task 0166): no retired name, and no ``lc``."""
+    from test_architecture import retired_names
+    text = dumps()
+    assert retired_names(text) == []
+    assert '"lc"' not in text

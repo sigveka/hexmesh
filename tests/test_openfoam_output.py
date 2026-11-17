@@ -34,8 +34,8 @@ OPENFOAM_RC = pathlib.Path("/usr/share/openfoam/etc/bashrc")
 
 
 def _insulated():
-    spec = (PipeSpec(nang=4).core("fluid", radius=0.1, nrad=3)
-            .shell("steel", dR=0.01, nrad=1).shell("insulation", dR=0.03, nrad=2))
+    spec = (PipeSpec(n_arc=4).core("fluid", radius=0.1, n_radial=3)
+            .shell("steel", dR=0.01, n_radial=1).shell("insulation", dR=0.03, n_radial=2))
     asm = Assembly(spec)
     asm.add(Straight(0.3, n_layers=4))
     return asm
@@ -109,7 +109,7 @@ def test_interface_groups_left_out_of_file_only(gmsh_session, tmp_path):
 def test_single_material_keeps_every_group(gmsh_session, tmp_path):
     """No interface groups to drop: removePhysicalGroups([]) would remove all."""
     out = tmp_path / "pipe.msh"
-    spec = PipeSpec(nang=4).core("fluid", radius=0.1, nrad=3)
+    spec = PipeSpec(n_arc=4).core("fluid", radius=0.1, n_radial=3)
     asm = Assembly(spec)
     asm.add(Straight(0.3, n_layers=4))
     asm.write_openfoam(out)

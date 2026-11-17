@@ -16,7 +16,7 @@ The building blocks of a hexmesh network, by family: what each looks like, how g
 
 A pipe that changes direction: a smooth circular arc, a standard butt-weld elbow, a mitred bend of straight pieces, or a pipe along a spline through given points.  Every bend carries the whole cross-section, layers included.
 
-**Fittings:** [`Bend`](../../API.md#bendradius-angle-n_layersnone-roll00-axial_grading10-towardnone), [`Elbow`](../../API.md#elbowangle900-schedulelong-n_layers8-roll00-axial_grading10-towardnone), [`MiterBend`](../../API.md#miterbendradius-angle-n_cuts1-n_layers2-roll00-towardnone), [`SplinePipe`](../../API.md#splinepipepoints-n_layersnone-end_tangentnone-axial_grading10).
+**Fittings:** [`Bend`](../../API.md#bendradius-angle--n_layersnone-roll00-axial_grading10-towardnone), [`Elbow`](../../API.md#elbowangle900-schedulelong--n_layers8-roll00-axial_grading10-towardnone), [`MiterBend`](../../API.md#miterbendradius-angle--n_cuts1-n_layers2-roll00-towardnone), [`SplinePipe`](../../API.md#splinepipe-points-n_layersnone-end_tangentnone-axial_grading10).
 
 **Validated by** (tags `bend`, `elbow`, `miter`, `spline`):
 
@@ -53,7 +53,7 @@ python3 -m hexmesh.examples.fittings.smooth_bend
 - **Walls:** `pipe_wall_wall`
 - **Interfaces:** `interface_fluid_pipe_wall`
 - **Colours:** fluid blue, pipe_wall orange; walls grey.
-- **Parameters:** [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Bend`](../../API.md#bendradius-angle-n_layersnone-roll00-axial_grading10-towardnone)
+- **Parameters:** [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00), [`Bend`](../../API.md#bendradius-angle--n_layersnone-roll00-axial_grading10-towardnone)
 
 ### miter_bend
 
@@ -77,7 +77,7 @@ python3 -m hexmesh.examples.fittings.miter_bend
 - **Walls:** `pipe_wall_wall`
 - **Interfaces:** `interface_fluid_pipe_wall`
 - **Colours:** fluid blue, pipe_wall orange; walls grey.
-- **Parameters:** [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`MiterBend`](../../API.md#miterbendradius-angle-n_cuts1-n_layers2-roll00-towardnone)
+- **Parameters:** [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00), [`MiterBend`](../../API.md#miterbendradius-angle--n_cuts1-n_layers2-roll00-towardnone)
 
 ### spline_pipe
 
@@ -100,13 +100,13 @@ python3 -m hexmesh.examples.fittings.spline_pipe
 - **Walls:** `pipe_wall_wall`
 - **Interfaces:** `interface_fluid_pipe_wall`
 - **Colours:** fluid blue, pipe_wall orange; walls grey.
-- **Parameters:** [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`SplinePipe`](../../API.md#splinepipepoints-n_layersnone-end_tangentnone-axial_grading10)
+- **Parameters:** [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00), [`SplinePipe`](../../API.md#splinepipe-points-n_layersnone-end_tangentnone-axial_grading10)
 
 ## Reducers and profiles
 
 A pipe that changes size: a concentric cone, or a profile along the axis, such as a smooth constriction (a stenosis) or a venturi.  The cell counts stay the same; only the sizes change.
 
-**Fittings:** [`Reducer`](../../API.md#reduceroutlet-length-n_layersnone-axial_grading10-profilenone-chord_tol1e-3).
+**Fittings:** [`Reducer`](../../API.md#reduceroutlet--length-n_layersnone-axial_grading10-profilenone-chord_tol1e-3).
 
 **Validated by** (tags `reducer`, `profiled-reducer`):
 
@@ -140,7 +140,7 @@ python3 -m hexmesh.examples.fittings.reducer_network
 - **Walls:** `pipe_wall_wall`
 - **Interfaces:** `interface_fluid_pipe_wall`
 - **Colours:** fluid blue, pipe_wall orange; walls grey.
-- **Parameters:** [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Reducer`](../../API.md#reduceroutlet-length-n_layersnone-axial_grading10-profilenone-chord_tol1e-3), [`Bend`](../../API.md#bendradius-angle-n_layersnone-roll00-axial_grading10-towardnone)
+- **Parameters:** [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00), [`Reducer`](../../API.md#reduceroutlet--length-n_layersnone-axial_grading10-profilenone-chord_tol1e-3), [`Bend`](../../API.md#bendradius-angle--n_layersnone-roll00-axial_grading10-towardnone)
 
 ### stenosis
 
@@ -182,17 +182,18 @@ python3 -m hexmesh.examples.fittings.stenosis
 - **Open ends:** `fluid_inlet`, `fluid_outlet`
 - **Walls:** `fluid_wall_downstream`, `fluid_wall_stenosis`, `fluid_wall_upstream`
 - **Colours:** fluid blue; walls grey.
-- **Parameters:** [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Reducer`](../../API.md#reduceroutlet-length-n_layersnone-axial_grading10-profilenone-chord_tol1e-3)
+- **Parameters:** [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00), [`Reducer`](../../API.md#reduceroutlet--length-n_layersnone-axial_grading10-profilenone-chord_tol1e-3)
 
 ## Junctions
 
 Where a network branches: a tee puts a side branch on a pipe, a wye splits one pipe into two.  Junctions hold the lowest-quality cells of a network, so their limits are checked before meshing.
 
-**Fittings:** [`Tee`](../../API.md#teerun_lengthnone-branch_length-branch_radius-n_run3-n_branch3-n_turn2-roll00-towardnone-angle900-offset00-branchnone-facenone-marginnone-domenone-sheetnone-n_wallnone-branch_first_cellnone-branch_mprgnone), [`Wye`](../../API.md#wyeangle-run_length-branch_length-n_runnone-n_branchnone-n_splitnone-roll00-towardnone).
+**Fittings:** [`Tee`](../../API.md#tee-run_lengthnone-branch_length-branch_radius-n_run3-n_branch3-n_turn2-roll00-towardnone-angle900-offset00-branchnone-facenone-marginnone-domenone-sheetnone-n_wallnone-branch_first_cellnone-branch_radial_gradingnone-branch_shellsnone), [`Wye`](../../API.md#wye-angle-run_length-branch_length-n_runnone-n_branchnone-n_splitnone-roll00-towardnone).
 
 **Validated by** (tags `tee`, `duct-tap`, `wye`, `projection`):
 
 - ● [FEniCSx: second-order export checked end to end](../../validation/fenicsx_second_order/README.md) (V1, accepted; last run 2026-11-11, hexmesh 5952340; `tee`, `projection`)
+- ◐ [Equal-diameter 90° tee: loss coefficients, k-ω SST](../../validation/junction_loss/README.md) (V3, in progress; `tee`)
 - ● [Manufactured solutions for conduction on every fitting](../../validation/mms/README.md) (V1, accepted; last run 2026-11-09, hexmesh b3fbf76; `tee`, `duct-tap`, `wye`, `projection`)
 
 | Example | Shows | Cells | min SICN | min SJ | Build |
@@ -226,7 +227,7 @@ python3 -m hexmesh.examples.fittings.tee
 - **Open ends:** `fluid_branch_end`, `fluid_inlet`, `fluid_main_end`
 - **Walls:** `fluid_wall`
 - **Colours:** fluid blue; walls grey.
-- **Parameters:** [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Tee`](../../API.md#teerun_lengthnone-branch_length-branch_radius-n_run3-n_branch3-n_turn2-roll00-towardnone-angle900-offset00-branchnone-facenone-marginnone-domenone-sheetnone-n_wallnone-branch_first_cellnone-branch_mprgnone), [`Bend`](../../API.md#bendradius-angle-n_layersnone-roll00-axial_grading10-towardnone)
+- **Parameters:** [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00), [`Tee`](../../API.md#tee-run_lengthnone-branch_length-branch_radius-n_run3-n_branch3-n_turn2-roll00-towardnone-angle900-offset00-branchnone-facenone-marginnone-domenone-sheetnone-n_wallnone-branch_first_cellnone-branch_radial_gradingnone-branch_shellsnone), [`Bend`](../../API.md#bendradius-angle--n_layersnone-roll00-axial_grading10-towardnone)
 
 ### equal_tee
 
@@ -241,8 +242,8 @@ three sides, whose outer face is projected onto the wall.
 `run_length` is left out, so the tee resolves the length the cube
 needs.  (Limits: circular layers, square and centred, first order only.
 The crease where branch and main meet crosses the cube's faces beside
-the branch, so its chord error falls as `nang` rises: 3.7 % of the
-radius at `nang` 8.)
+the branch, so its chord error falls as `n_arc` rises: 3.7 % of the
+radius at `n_arc` 8.)
 
 ```bash
 python3 -m hexmesh.examples.fittings.equal_tee
@@ -255,7 +256,7 @@ python3 -m hexmesh.examples.fittings.equal_tee
 - **Open ends:** `fluid_branch_end`, `fluid_inlet`, `fluid_main_end`
 - **Walls:** `fluid_wall`
 - **Colours:** fluid blue; walls grey.
-- **Parameters:** [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Tee`](../../API.md#teerun_lengthnone-branch_length-branch_radius-n_run3-n_branch3-n_turn2-roll00-towardnone-angle900-offset00-branchnone-facenone-marginnone-domenone-sheetnone-n_wallnone-branch_first_cellnone-branch_mprgnone)
+- **Parameters:** [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00), [`Tee`](../../API.md#tee-run_lengthnone-branch_length-branch_radius-n_run3-n_branch3-n_turn2-roll00-towardnone-angle900-offset00-branchnone-facenone-marginnone-domenone-sheetnone-n_wallnone-branch_first_cellnone-branch_radial_gradingnone-branch_shellsnone)
 
 ### wye
 
@@ -281,7 +282,7 @@ python3 -m hexmesh.examples.fittings.wye
 - **Open ends:** `fluid_inlet`, `fluid_left_end`, `fluid_right_end`
 - **Walls:** `fluid_wall`
 - **Colours:** fluid blue; walls grey.
-- **Parameters:** [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Wye`](../../API.md#wyeangle-run_length-branch_length-n_runnone-n_branchnone-n_splitnone-roll00-towardnone)
+- **Parameters:** [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00), [`Wye`](../../API.md#wye-angle-run_length-branch_length-n_runnone-n_branchnone-n_splitnone-roll00-towardnone)
 
 ### junction_walls
 
@@ -315,13 +316,13 @@ python3 -m hexmesh.examples.fittings.junction_walls
 - **Open ends:** `fluid_branch_end`, `fluid_inlet`, `fluid_left_end`, `fluid_right_end`
 - **Walls:** `fluid_wall`
 - **Colours:** fluid blue; walls grey.
-- **Parameters:** [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Tee`](../../API.md#teerun_lengthnone-branch_length-branch_radius-n_run3-n_branch3-n_turn2-roll00-towardnone-angle900-offset00-branchnone-facenone-marginnone-domenone-sheetnone-n_wallnone-branch_first_cellnone-branch_mprgnone), [`Wye`](../../API.md#wyeangle-run_length-branch_length-n_runnone-n_branchnone-n_splitnone-roll00-towardnone)
+- **Parameters:** [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00), [`Tee`](../../API.md#tee-run_lengthnone-branch_length-branch_radius-n_run3-n_branch3-n_turn2-roll00-towardnone-angle900-offset00-branchnone-facenone-marginnone-domenone-sheetnone-n_wallnone-branch_first_cellnone-branch_radial_gradingnone-branch_shellsnone), [`Wye`](../../API.md#wye-angle-run_length-branch_length-n_runnone-n_branchnone-n_splitnone-roll00-towardnone)
 
 ## Sections and transitions
 
 The shape of the pipe: round, or a rectangular duct, and the fittings that change one into the other.
 
-**Fittings:** [`PipeSpec`](../../API.md#pipespecnangnone-nang_wnone-nang_hnone-mbmp10-rot00-n_outer4), [`Transition`](../../API.md#transitionoutlet-length-n_layersnone-axial_grading10), [`Switch`](../../API.md#switchlength-n_layersnone-outletnone).
+**Fittings:** [`PipeSpec`](../../API.md#pipespec-n_arcnone-n_widthnone-n_heightnone-arc_bump10-rot00-n_outer4), [`Transition`](../../API.md#transitionoutlet--length-n_layersnone-axial_grading10), [`Switch`](../../API.md#switch-length-n_layersnone-outletnone).
 
 **Validated by** (tags `section:circle`, `section:rect`, `transition`, `switch`):
 
@@ -329,6 +330,7 @@ The shape of the pipe: round, or a rectangular duct, and the fittings that chang
 - ● [Heated multi-layer pipe with laminar flow (full CHT)](../../validation/heated_pipe/README.md) (V1, accepted; last run 2026-10-31, hexmesh d1baada+local; `section:circle`)
 - ● [Solid rod with uniform heat generation](../../validation/heated_rod/README.md) (V1, accepted; last run 2026-11-02, hexmesh e54faae; `section:circle`)
 - ◐ [Laminar flow in a helical pipe (the SIET coil)](../../validation/helical_pipe/README.md) (V3, in progress; last run 2026-11-08, hexmesh c8c7c76+local; `section:circle`)
+- ◐ [Equal-diameter 90° tee: loss coefficients, k-ω SST](../../validation/junction_loss/README.md) (V3, in progress; `section:circle`)
 - ● [Conduction through a heated multi-layer cylinder](../../validation/layered_conduction/README.md) (V1, accepted; last run 2026-10-28, hexmesh 91c897a; `section:circle`)
 - ● [Manufactured solutions for conduction on every fitting](../../validation/mms/README.md) (V1, accepted; last run 2026-11-09, hexmesh b3fbf76; `section:circle`, `section:rect`, `transition`)
 - ● [Laminar Hagen–Poiseuille pipe](../../validation/poiseuille/README.md) (V1, accepted; last run 2026-10-26, hexmesh 4ba565b; `section:circle`)
@@ -361,7 +363,7 @@ checked against the half-width).  The open ends become `air_inlet` and
 
 The section is an H face, one Cartesian patch (the default for a
 rectangle since 0.4.0).  `first_cell` grades its walls: the end cell of
-every side, here 4 mm against a uniform cell of 12.5 mm.  `layout="oh"` with `nrad=` gives the O-H
+every side, here 4 mm against a uniform cell of 12.5 mm.  `layout="oh"` with `n_radial=` gives the O-H
 face instead.
 (Limits: no elbow for ducts yet; duct tees are single-layer.  A duct with a wall and lagging:
 `sections.lagged_duct`.)
@@ -377,7 +379,7 @@ python3 -m hexmesh.examples.sections.rect_duct
 - **Open ends:** `air_inlet`, `air_outlet`
 - **Walls:** `air_wall`
 - **Colours:** air blue; walls grey.
-- **Parameters:** [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Bend`](../../API.md#bendradius-angle-n_layersnone-roll00-axial_grading10-towardnone)
+- **Parameters:** [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00), [`Bend`](../../API.md#bendradius-angle--n_layersnone-roll00-axial_grading10-towardnone)
 
 ### duct_transition
 
@@ -386,7 +388,7 @@ python3 -m hexmesh.examples.sections.rect_duct
 <p><img src="img/duct_transition.png" width="68%" alt="duct_transition"> <img src="img/duct_transition_section.png" width="29%" alt="duct_transition, inlet section"></p>
 
 `Transition` joins a circle and a rectangle with the same counts per
-side: the circle's `nang` equals the duct's `nang_w` and `nang_h`.
+side: the circle's `n_arc` equals the duct's `n_width` and `n_height`.
 Then the two faces have the same mesh connectivity (switch class 0), and
 every station between them blends the two outlines.  The open ends
 become `air_inlet` and `air_outlet`.
@@ -404,13 +406,13 @@ python3 -m hexmesh.examples.sections.duct_transition
 - **Open ends:** `air_inlet`, `air_outlet`
 - **Walls:** `air_wall`
 - **Colours:** air blue; walls grey.
-- **Parameters:** [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Transition`](../../API.md#transitionoutlet-length-n_layersnone-axial_grading10), [`Bend`](../../API.md#bendradius-angle-n_layersnone-roll00-axial_grading10-towardnone)
+- **Parameters:** [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00), [`Transition`](../../API.md#transitionoutlet--length-n_layersnone-axial_grading10), [`Bend`](../../API.md#bendradius-angle--n_layersnone-roll00-axial_grading10-towardnone)
 
 ## Layers
 
 What surrounds the flow: a pipe wall, insulation, lagging, each its own region for conjugate heat transfer.  Every fitting carries the whole stack, and a layer can end or start along a straight run.
 
-**Fittings:** [`PipeSpec`](../../API.md#pipespecnangnone-nang_wnone-nang_hnone-mbmp10-rot00-n_outer4), [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00).
+**Fittings:** [`PipeSpec`](../../API.md#pipespec-n_arcnone-n_widthnone-n_heightnone-arc_bump10-rot00-n_outer4), [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00).
 
 **Validated by** (tags `layers`, `stack-changes`):
 
@@ -450,7 +452,7 @@ python3 -m hexmesh.examples.sections.insulated_pipe
 - **Walls:** `insulation_wall`
 - **Interfaces:** `interface_fluid_steel`, `interface_steel_insulation`
 - **Colours:** fluid blue, steel orange, insulation green; walls grey.
-- **Parameters:** [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Elbow`](../../API.md#elbowangle900-schedulelong-n_layers8-roll00-axial_grading10-towardnone)
+- **Parameters:** [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00), [`Elbow`](../../API.md#elbowangle900-schedulelong--n_layers8-roll00-axial_grading10-towardnone)
 
 ### insulated_route
 
@@ -477,7 +479,7 @@ python3 -m hexmesh.examples.sections.insulated_route
 - **Walls:** `insulation_wall`
 - **Interfaces:** `interface_fluid_steel`, `interface_steel_insulation`
 - **Colours:** fluid blue, steel orange, insulation green; walls grey.
-- **Parameters:** [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Reducer`](../../API.md#reduceroutlet-length-n_layersnone-axial_grading10-profilenone-chord_tol1e-3), [`MiterBend`](../../API.md#miterbendradius-angle-n_cuts1-n_layers2-roll00-towardnone), [`SplinePipe`](../../API.md#splinepipepoints-n_layersnone-end_tangentnone-axial_grading10), [`Elbow`](../../API.md#elbowangle900-schedulelong-n_layers8-roll00-axial_grading10-towardnone)
+- **Parameters:** [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00), [`Reducer`](../../API.md#reduceroutlet--length-n_layersnone-axial_grading10-profilenone-chord_tol1e-3), [`MiterBend`](../../API.md#miterbendradius-angle--n_cuts1-n_layers2-roll00-towardnone), [`SplinePipe`](../../API.md#splinepipe-points-n_layersnone-end_tangentnone-axial_grading10), [`Elbow`](../../API.md#elbowangle900-schedulelong--n_layers8-roll00-axial_grading10-towardnone)
 
 ### layer_outlines
 
@@ -494,7 +496,7 @@ layer goes through the bends as a separate volume, with conformal
 `interface_*` groups between them.
 
 Rules: a stack with a circle and a rectangle has one count on every
-side (`nang` equals each rectangle's `nang_w` and `nang_h`), and each
+side (`n_arc` equals each rectangle's `n_width` and `n_height`), and each
 outline lies inside the next all round.  Quality falls as the rectangles flatten;
 task 0047 measured it.
 
@@ -510,7 +512,7 @@ python3 -m hexmesh.examples.sections.layer_outlines
 - **Walls:** `sheath_wall`
 - **Interfaces:** `interface_copper_filler`, `interface_filler_sheath`
 - **Colours:** copper blue, filler orange, sheath green; walls grey.
-- **Parameters:** [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Bend`](../../API.md#bendradius-angle-n_layersnone-roll00-axial_grading10-towardnone)
+- **Parameters:** [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00), [`Bend`](../../API.md#bendradius-angle--n_layersnone-roll00-axial_grading10-towardnone)
 
 ### lagged_duct
 
@@ -526,7 +528,7 @@ only.  A change of shape is a `Transition`
 (`sections.insulated_transition`).
 
 Rules: in a stack of rectangles every outline takes the core's counts,
-here 6 × 6.  They may differ (`nang_w ≠ nang_h`, decision 0041).
+here 6 × 6.  They may differ (`n_width ≠ n_height`, decision 0041).
 
 ```bash
 python3 -m hexmesh.examples.sections.lagged_duct
@@ -540,7 +542,7 @@ python3 -m hexmesh.examples.sections.lagged_duct
 - **Walls:** `lagging_wall`
 - **Interfaces:** `interface_air_steel`, `interface_steel_lagging`
 - **Colours:** air blue, steel orange, lagging green; walls grey.
-- **Parameters:** [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Bend`](../../API.md#bendradius-angle-n_layersnone-roll00-axial_grading10-towardnone), [`Reducer`](../../API.md#reduceroutlet-length-n_layersnone-axial_grading10-profilenone-chord_tol1e-3)
+- **Parameters:** [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00), [`Bend`](../../API.md#bendradius-angle--n_layersnone-roll00-axial_grading10-towardnone), [`Reducer`](../../API.md#reduceroutlet--length-n_layersnone-axial_grading10-profilenone-chord_tol1e-3)
 
 ### insulated_transition
 
@@ -570,7 +572,7 @@ python3 -m hexmesh.examples.sections.insulated_transition
 - **Walls:** `insulation_end`, `insulation_wall`, `steel_wall`
 - **Interfaces:** `interface_air_steel`, `interface_steel_insulation`
 - **Colours:** air blue, steel orange, insulation green; walls grey.
-- **Parameters:** [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Transition`](../../API.md#transitionoutlet-length-n_layersnone-axial_grading10), [`Bend`](../../API.md#bendradius-angle-n_layersnone-roll00-axial_grading10-towardnone)
+- **Parameters:** [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00), [`Transition`](../../API.md#transitionoutlet--length-n_layersnone-axial_grading10), [`Bend`](../../API.md#bendradius-angle--n_layersnone-roll00-axial_grading10-towardnone)
 
 ### insulated_tee
 
@@ -604,7 +606,7 @@ python3 -m hexmesh.examples.sections.insulated_tee
 - **Walls:** `insulation_wall`
 - **Interfaces:** `interface_fluid_steel`, `interface_steel_insulation`
 - **Colours:** fluid blue, steel orange, insulation green; walls grey.
-- **Parameters:** [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Tee`](../../API.md#teerun_lengthnone-branch_length-branch_radius-n_run3-n_branch3-n_turn2-roll00-towardnone-angle900-offset00-branchnone-facenone-marginnone-domenone-sheetnone-n_wallnone-branch_first_cellnone-branch_mprgnone), [`Bend`](../../API.md#bendradius-angle-n_layersnone-roll00-axial_grading10-towardnone)
+- **Parameters:** [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00), [`Tee`](../../API.md#tee-run_lengthnone-branch_length-branch_radius-n_run3-n_branch3-n_turn2-roll00-towardnone-angle900-offset00-branchnone-facenone-marginnone-domenone-sheetnone-n_wallnone-branch_first_cellnone-branch_radial_gradingnone-branch_shellsnone), [`Bend`](../../API.md#bendradius-angle--n_layersnone-roll00-axial_grading10-towardnone)
 
 ### insulated_network
 
@@ -637,13 +639,13 @@ python3 -m hexmesh.examples.sections.insulated_network
 - **Walls:** `insulation_end`, `insulation_wall`, `steel_wall`
 - **Interfaces:** `interface_fluid_steel`, `interface_steel_insulation`
 - **Colours:** fluid blue, steel orange, insulation green; walls grey.
-- **Parameters:** [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Tee`](../../API.md#teerun_lengthnone-branch_length-branch_radius-n_run3-n_branch3-n_turn2-roll00-towardnone-angle900-offset00-branchnone-facenone-marginnone-domenone-sheetnone-n_wallnone-branch_first_cellnone-branch_mprgnone), [`Wye`](../../API.md#wyeangle-run_length-branch_length-n_runnone-n_branchnone-n_splitnone-roll00-towardnone)
+- **Parameters:** [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00), [`Tee`](../../API.md#tee-run_lengthnone-branch_length-branch_radius-n_run3-n_branch3-n_turn2-roll00-towardnone-angle900-offset00-branchnone-facenone-marginnone-domenone-sheetnone-n_wallnone-branch_first_cellnone-branch_radial_gradingnone-branch_shellsnone), [`Wye`](../../API.md#wye-angle-run_length-branch_length-n_runnone-n_branchnone-n_splitnone-roll00-towardnone)
 
 ## Grading and resolution
 
 Where the cells go: thin cells at the wall for boundary layers, axial cells clustered where the flow changes, and straight runs added at the open ends for a CFD case.
 
-**Fittings:** [`PipeSpec`](../../API.md#pipespecnangnone-nang_wnone-nang_hnone-mbmp10-rot00-n_outer4), [`Assembly`](../../API.md#assemblyspec-positionnone-directionnone-upnone-lcnone-inlet_nameinlet-axial_cellnone).
+**Fittings:** [`PipeSpec`](../../API.md#pipespec-n_arcnone-n_widthnone-n_heightnone-arc_bump10-rot00-n_outer4), [`Assembly`](../../API.md#assemblyspec--positionnone-directionnone-upnone-inlet_nameinlet-axial_cellnone).
 
 **Validated by:** no validation tag covers this family yet.
 
@@ -678,13 +680,13 @@ python3 -m hexmesh.examples.sections.graded_bend
 - **Open ends:** `fluid_inlet`, `fluid_outlet`
 - **Walls:** `fluid_wall_Straight3`, `fluid_wall_Straight4`, `fluid_wall_bend`, `fluid_wall_downstream`, `fluid_wall_upstream`
 - **Colours:** fluid blue; walls grey.
-- **Parameters:** [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Bend`](../../API.md#bendradius-angle-n_layersnone-roll00-axial_grading10-towardnone)
+- **Parameters:** [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00), [`Bend`](../../API.md#bendradius-angle--n_layersnone-roll00-axial_grading10-towardnone)
 
 ## Building networks
 
 Fittings join in any order and any orientation: a network is a sequence of `add` calls, branching from any open end, and `close` joins two ends into a loop.
 
-**Fittings:** [`Assembly`](../../API.md#assemblyspec-positionnone-directionnone-upnone-lcnone-inlet_nameinlet-axial_cellnone), [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Closure`](../../API.md#closuren_layersnone-tension10-axial_grading10).
+**Fittings:** [`Assembly`](../../API.md#assemblyspec--positionnone-directionnone-upnone-inlet_nameinlet-axial_cellnone), [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00), [`Closure`](../../API.md#closure-n_layersnone-tension10-axial_grading10).
 
 **Validated by** (tags `straight`, `closure`):
 
@@ -692,6 +694,7 @@ Fittings join in any order and any orientation: a network is a sequence of `add`
 - ● [Heated multi-layer pipe with laminar flow (full CHT)](../../validation/heated_pipe/README.md) (V1, accepted; last run 2026-10-31, hexmesh d1baada+local; `straight`)
 - ● [Solid rod with uniform heat generation](../../validation/heated_rod/README.md) (V1, accepted; last run 2026-11-02, hexmesh e54faae; `straight`)
 - ◐ [Laminar flow in a helical pipe (the SIET coil)](../../validation/helical_pipe/README.md) (V3, in progress; last run 2026-11-08, hexmesh c8c7c76+local; `straight`)
+- ◐ [Equal-diameter 90° tee: loss coefficients, k-ω SST](../../validation/junction_loss/README.md) (V3, in progress; `straight`)
 - ● [Conduction through a heated multi-layer cylinder](../../validation/layered_conduction/README.md) (V1, accepted; last run 2026-10-28, hexmesh 91c897a; `straight`)
 - ● [Manufactured solutions for conduction on every fitting](../../validation/mms/README.md) (V1, accepted; last run 2026-11-09, hexmesh b3fbf76; `straight`)
 - ● [Laminar Hagen–Poiseuille pipe](../../validation/poiseuille/README.md) (V1, accepted; last run 2026-10-26, hexmesh 4ba565b; `straight`)
@@ -735,7 +738,7 @@ python3 -m hexmesh.examples.fittings.loop
 - **Walls:** `pipe_wall_wall`
 - **Interfaces:** `interface_fluid_pipe_wall`
 - **Colours:** fluid blue, pipe_wall orange; walls grey.
-- **Parameters:** [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Bend`](../../API.md#bendradius-angle-n_layersnone-roll00-axial_grading10-towardnone), [`Closure`](../../API.md#closuren_layersnone-tension10-axial_grading10)
+- **Parameters:** [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00), [`Bend`](../../API.md#bendradius-angle--n_layersnone-roll00-axial_grading10-towardnone), [`Closure`](../../API.md#closure-n_layersnone-tension10-axial_grading10)
 
 ### pipe_network
 
@@ -760,7 +763,7 @@ python3 -m hexmesh.examples.networks.pipe_network
 - **Open ends:** `water_header_end`, `water_inlet`, `water_tap0`, `water_tap1`
 - **Walls:** `water_wall`
 - **Colours:** water blue; walls grey.
-- **Parameters:** [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Tee`](../../API.md#teerun_lengthnone-branch_length-branch_radius-n_run3-n_branch3-n_turn2-roll00-towardnone-angle900-offset00-branchnone-facenone-marginnone-domenone-sheetnone-n_wallnone-branch_first_cellnone-branch_mprgnone), [`Elbow`](../../API.md#elbowangle900-schedulelong-n_layers8-roll00-axial_grading10-towardnone)
+- **Parameters:** [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00), [`Tee`](../../API.md#tee-run_lengthnone-branch_length-branch_radius-n_run3-n_branch3-n_turn2-roll00-towardnone-angle900-offset00-branchnone-facenone-marginnone-domenone-sheetnone-n_wallnone-branch_first_cellnone-branch_radial_gradingnone-branch_shellsnone), [`Elbow`](../../API.md#elbowangle900-schedulelong--n_layers8-roll00-axial_grading10-towardnone)
 
 ### pipe_rack
 
@@ -789,7 +792,7 @@ python3 -m hexmesh.examples.networks.pipe_rack
 - **Walls:** `pipe_wall_wall`
 - **Interfaces:** `interface_fluid_pipe_wall`
 - **Colours:** fluid blue, pipe_wall orange; walls grey.
-- **Parameters:** [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Elbow`](../../API.md#elbowangle900-schedulelong-n_layers8-roll00-axial_grading10-towardnone), [`MiterBend`](../../API.md#miterbendradius-angle-n_cuts1-n_layers2-roll00-towardnone), [`SplinePipe`](../../API.md#splinepipepoints-n_layersnone-end_tangentnone-axial_grading10), [`Reducer`](../../API.md#reduceroutlet-length-n_layersnone-axial_grading10-profilenone-chord_tol1e-3), [`Bend`](../../API.md#bendradius-angle-n_layersnone-roll00-axial_grading10-towardnone)
+- **Parameters:** [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00), [`Elbow`](../../API.md#elbowangle900-schedulelong--n_layers8-roll00-axial_grading10-towardnone), [`MiterBend`](../../API.md#miterbendradius-angle--n_cuts1-n_layers2-roll00-towardnone), [`SplinePipe`](../../API.md#splinepipe-points-n_layersnone-end_tangentnone-axial_grading10), [`Reducer`](../../API.md#reduceroutlet--length-n_layersnone-axial_grading10-profilenone-chord_tol1e-3), [`Bend`](../../API.md#bendradius-angle--n_layersnone-roll00-axial_grading10-towardnone)
 
 ### distribution_tree
 
@@ -814,7 +817,7 @@ python3 -m hexmesh.examples.networks.distribution_tree
 - **Open ends:** `water_branch_a`, `water_branch_a_tap`, `water_branch_b`, `water_header_end`, `water_inlet`
 - **Walls:** `water_wall`
 - **Colours:** water blue; walls grey.
-- **Parameters:** [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Tee`](../../API.md#teerun_lengthnone-branch_length-branch_radius-n_run3-n_branch3-n_turn2-roll00-towardnone-angle900-offset00-branchnone-facenone-marginnone-domenone-sheetnone-n_wallnone-branch_first_cellnone-branch_mprgnone), [`MiterBend`](../../API.md#miterbendradius-angle-n_cuts1-n_layers2-roll00-towardnone), [`Elbow`](../../API.md#elbowangle900-schedulelong-n_layers8-roll00-axial_grading10-towardnone), [`Reducer`](../../API.md#reduceroutlet-length-n_layersnone-axial_grading10-profilenone-chord_tol1e-3)
+- **Parameters:** [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00), [`Tee`](../../API.md#tee-run_lengthnone-branch_length-branch_radius-n_run3-n_branch3-n_turn2-roll00-towardnone-angle900-offset00-branchnone-facenone-marginnone-domenone-sheetnone-n_wallnone-branch_first_cellnone-branch_radial_gradingnone-branch_shellsnone), [`MiterBend`](../../API.md#miterbendradius-angle--n_cuts1-n_layers2-roll00-towardnone), [`Elbow`](../../API.md#elbowangle900-schedulelong--n_layers8-roll00-axial_grading10-towardnone), [`Reducer`](../../API.md#reduceroutlet--length-n_layersnone-axial_grading10-profilenone-chord_tol1e-3)
 
 ### bifurcation_tree
 
@@ -848,7 +851,7 @@ python3 -m hexmesh.examples.networks.bifurcation_tree
 - **Open ends:** `fluid_a`, `fluid_b`, `fluid_c`, `fluid_d`, `fluid_inlet`
 - **Walls:** `fluid_wall`
 - **Colours:** fluid blue; walls grey.
-- **Parameters:** [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Wye`](../../API.md#wyeangle-run_length-branch_length-n_runnone-n_branchnone-n_splitnone-roll00-towardnone), [`Bend`](../../API.md#bendradius-angle-n_layersnone-roll00-axial_grading10-towardnone)
+- **Parameters:** [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00), [`Wye`](../../API.md#wye-angle-run_length-branch_length-n_runnone-n_branchnone-n_splitnone-roll00-towardnone), [`Bend`](../../API.md#bendradius-angle--n_layersnone-roll00-axial_grading10-towardnone)
 
 ### skewed_network
 
@@ -872,7 +875,7 @@ python3 -m hexmesh.examples.networks.skewed_network
 - **Open ends:** `water_D201_N1`, `water_branch`, `water_outlet`
 - **Walls:** `water_wall`
 - **Colours:** water blue; walls grey.
-- **Parameters:** [`Straight`](../../API.md#straightlength-n_layersnone-axial_grading10-stack_changes-twist00), [`Bend`](../../API.md#bendradius-angle-n_layersnone-roll00-axial_grading10-towardnone), [`Tee`](../../API.md#teerun_lengthnone-branch_length-branch_radius-n_run3-n_branch3-n_turn2-roll00-towardnone-angle900-offset00-branchnone-facenone-marginnone-domenone-sheetnone-n_wallnone-branch_first_cellnone-branch_mprgnone), [`MiterBend`](../../API.md#miterbendradius-angle-n_cuts1-n_layers2-roll00-towardnone), [`Elbow`](../../API.md#elbowangle900-schedulelong-n_layers8-roll00-axial_grading10-towardnone)
+- **Parameters:** [`Straight`](../../API.md#straightlength--n_layersnone-axial_grading10-stack_changes-twist00), [`Bend`](../../API.md#bendradius-angle--n_layersnone-roll00-axial_grading10-towardnone), [`Tee`](../../API.md#tee-run_lengthnone-branch_length-branch_radius-n_run3-n_branch3-n_turn2-roll00-towardnone-angle900-offset00-branchnone-facenone-marginnone-domenone-sheetnone-n_wallnone-branch_first_cellnone-branch_radial_gradingnone-branch_shellsnone), [`MiterBend`](../../API.md#miterbendradius-angle--n_cuts1-n_layers2-roll00-towardnone), [`Elbow`](../../API.md#elbowangle900-schedulelong--n_layers8-roll00-axial_grading10-towardnone)
 
 ---
 

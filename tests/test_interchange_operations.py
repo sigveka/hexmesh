@@ -31,7 +31,7 @@ from hexmesh.core.spec import PipeSpec
 
 
 def _spec(bore=0.1):
-    return PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=(bore or 0.1) / 2, nang=4), nrad=2)
+    return PipeSpec(n_arc=4).core("fluid", shape=CircleShape(radius=(bore or 0.1) / 2, n_arc=4), n_radial=2)
 
 
 def _by_bore(bore):

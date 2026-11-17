@@ -56,38 +56,38 @@ from hexmesh.core.spec import PipeSpec
 # ---------------------------------------------------------------------------
 
 def _one(radius=0.1):
-    return PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=radius, nang=4), nrad=3)
+    return PipeSpec(n_arc=4).core("fluid", shape=CircleShape(radius=radius, n_arc=4), n_radial=3)
 
 
 def _two(radius=0.1, dR=0.025):
-    return _one(radius).shell("wall", dR=dR, nrad=2)
+    return _one(radius).shell("wall", dR=dR, n_radial=2)
 
 
 def _three(radius=0.1):
-    return _two(radius).shell("insulation", dR=0.03, nrad=2)
+    return _two(radius).shell("insulation", dR=0.03, n_radial=2)
 
 
 def _three_thin(radius=0.1):
     """Fluid, wall and insulation, 0.3 R in all: inside the wye's thickness
     limit at 60° (0.40 R, task 0053), which `_three` (0.55 R) is not."""
-    return _one(radius).shell("wall", dR=0.01, nrad=2).shell("insulation", dR=0.02, nrad=2)
+    return _one(radius).shell("wall", dR=0.01, n_radial=2).shell("insulation", dR=0.02, n_radial=2)
 
 
-def _duct(half_w=0.1, half_h=0.05, nang_w=4, nang_h=2, name="air", nrad=2):
+def _duct(half_w=0.1, half_h=0.05, n_width=4, n_height=2, name="air", n_radial=2):
     """Single-layer rectangular duct, 2:1 by default (task 0028)."""
-    return PipeSpec(nang_w=nang_w, nang_h=nang_h).core(
-        name, half_w=half_w, half_h=half_h, nrad=nrad, layout="oh")
+    return PipeSpec(n_width=n_width, n_height=n_height).core(
+        name, half_w=half_w, half_h=half_h, n_radial=n_radial, layout="oh")
 
 
-def _hduct(half_w=0.1, half_h=0.05, nang_w=8, nang_h=4, first_cell=None, mprg=None):
+def _hduct(half_w=0.1, half_h=0.05, n_width=8, n_height=4, first_cell=None, radial_grading=None):
     """An H duct (decision 0036, task 0084): one Cartesian patch, graded to
-    the walls by *first_cell* or a wall growth ratio *mprg*."""
-    return PipeSpec(nang_w=nang_w, nang_h=nang_h).core(
-        "air", half_w=half_w, half_h=half_h, layout="h", first_cell=first_cell, mprg=mprg)
+    the walls by *first_cell* or a wall growth ratio *radial_grading*."""
+    return PipeSpec(n_width=n_width, n_height=n_height).core(
+        "air", half_w=half_w, half_h=half_h, layout="h", first_cell=first_cell, radial_grading=radial_grading)
 
 
 def _flat(half_w=0.14, half_h=0.07):
-    """A duct with ``_one()``'s counts, name and nrad: a transition's partner."""
+    """A duct with ``_one()``'s counts, name and n_radial: a transition's partner."""
     return _duct(half_w, half_h, 4, 4, "fluid", 3)
 
 
@@ -98,48 +98,48 @@ def _square():
 def _in_rect(half_w=0.25, half_h=0.125):
     """Circular pipe in a rectangular block (decision 0026): skewed corner
     lines when the block is not square."""
-    return _one().shell("block", outer=RectShape(half_w, half_h, nang_w=4, nang_h=4), nrad=3)
+    return _one().shell("block", outer=RectShape(half_w, half_h, n_width=4, n_height=4), n_radial=3)
 
 
 def _rect_in_circle():
     """2:1 duct in a circular casing: the casing's arcs are unequal."""
-    return PipeSpec(nang=4).core("fluid", shape=RectShape(0.1, 0.05, nang_w=4, nang_h=4), nrad=3, layout="oh").shell(
-        "casing", outer=CircleShape(0.16, nang=4), nrad=3)
+    return PipeSpec(n_arc=4).core("fluid", shape=RectShape(0.1, 0.05, n_width=4, n_height=4), n_radial=3, layout="oh").shell(
+        "casing", outer=CircleShape(0.16, n_arc=4), n_radial=3)
 
 
 def _rect3(half_w=0.1, half_h=0.05, lagging=True):
     """A duct with a wall and lagging, each grown by dR."""
-    spec = (PipeSpec(nang=4).core("fluid", shape=RectShape(half_w, half_h, nang_w=4, nang_h=4), nrad=3, layout="oh")
-            .shell("wall", dR=0.01, nrad=2))
-    return spec.shell("lagging", dR=0.03, nrad=2) if lagging else spec
+    spec = (PipeSpec(n_arc=4).core("fluid", shape=RectShape(half_w, half_h, n_width=4, n_height=4), n_radial=3, layout="oh")
+            .shell("wall", dR=0.01, n_radial=2))
+    return spec.shell("lagging", dR=0.03, n_radial=2) if lagging else spec
 
 
 def _rect_in_circle_h(first_cell=None):
     """``_rect_in_circle`` with an H core (task 0086): the casing's corner
     lines start at the core's corners."""
-    return PipeSpec(nang=4).core("fluid", shape=RectShape(0.1, 0.05, nang_w=4, nang_h=4), layout="h",
+    return PipeSpec(n_arc=4).core("fluid", shape=RectShape(0.1, 0.05, n_width=4, n_height=4), layout="h",
                                  first_cell=first_cell).shell(
-        "casing", outer=CircleShape(0.16, nang=4), nrad=3)
+        "casing", outer=CircleShape(0.16, n_arc=4), n_radial=3)
 
 
 def _rect3_h(half_w=0.1, half_h=0.05, lagging=True, first_cell=None):
     """``_rect3`` with an H core (task 0086), graded to the walls by
     *first_cell*; the shells' sides follow the core's grading."""
-    spec = (PipeSpec(nang=4).core("fluid", shape=RectShape(half_w, half_h, nang_w=4, nang_h=4), layout="h",
+    spec = (PipeSpec(n_arc=4).core("fluid", shape=RectShape(half_w, half_h, n_width=4, n_height=4), layout="h",
                                   first_cell=first_cell)
-            .shell("wall", dR=0.01, nrad=2))
-    return spec.shell("lagging", dR=0.03, nrad=2) if lagging else spec
+            .shell("wall", dR=0.01, n_radial=2))
+    return spec.shell("lagging", dR=0.03, n_radial=2) if lagging else spec
 
 
 def _cyl_box_cyl():
     """Circle, square, circle: a cable in a square filler in a sheath."""
-    return (_one(0.05).shell("filler", outer=RectShape(0.08, 0.08, nang_w=4, nang_h=4), nrad=2)
-            .shell("sheath", outer=CircleShape(0.14, nang=4), nrad=2))
+    return (_one(0.05).shell("filler", outer=RectShape(0.08, 0.08, n_width=4, n_height=4), n_radial=2)
+            .shell("sheath", outer=CircleShape(0.14, n_arc=4), n_radial=2))
 
 
 def _between(spec, fitting, **kw):
     """Straight → fitting → Straight."""
-    asm = Assembly(spec, direction=[0, 1, 0], up=[0, 0, 1], lc=0.1, **kw)
+    asm = Assembly(spec, direction=[0, 1, 0], up=[0, 0, 1], **kw)
     asm.add(Straight(0.2, n_layers=2))
     asm.add(fitting)
     asm.add(Straight(0.2, n_layers=2))
@@ -147,7 +147,7 @@ def _between(spec, fitting, **kw):
 
 
 def _ring(spec, rolls, closer, extra_straight=False):
-    asm = Assembly(spec, up=[0, 0, 1], lc=0.1)
+    asm = Assembly(spec, up=[0, 0, 1])
     for r in rolls:
         asm.add(Straight(0.6, n_layers=3))
         asm.add(Bend(radius=0.3, angle=90, n_layers=4, roll=r))
@@ -165,7 +165,7 @@ def _rolled_outlet(spec, fitting, degrees):
     """
     from hexmesh.assembly.interface import Frame
     from hexmesh.assembly.interface import rotate
-    asm = Assembly(spec, direction=[0, 1, 0], up=[0, 0, 1], lc=0.1)
+    asm = Assembly(spec, direction=[0, 1, 0], up=[0, 0, 1])
     out = asm.add(fitting)
     f = out.frame
     out.frame = Frame(f.position, f.normal,
@@ -176,7 +176,7 @@ def _rolled_outlet(spec, fitting, degrees):
 
 def _spline(spec, points, **kw):
     """Straight → SplinePipe (points relative to its inlet) → Straight."""
-    asm = Assembly(spec, direction=[0, 1, 0], up=[0, 0, 1], lc=0.1)
+    asm = Assembly(spec, direction=[0, 1, 0], up=[0, 0, 1])
     start = asm.add(Straight(0.2, n_layers=2)).frame.position
     asm.add(SplinePipe(points=tuple(tuple(start + p) for p in points), n_layers=20, **kw))
     asm.add(Straight(0.2, n_layers=2))
@@ -187,7 +187,7 @@ def _tee(ratio, direction=(0, 1, 0), spec=None, angle=90, offset=0.0):
     """Straight → Tee → Straight on both outlets; a lateral at *angle* < 90
     resolves its run and reaches farther along its leaning axis.  *offset*:
     the branch axis's offset, over R (task 0061)."""
-    asm = Assembly(spec or _one(), direction=list(direction), up=[0, 0, 1], lc=0.1)
+    asm = Assembly(spec or _one(), direction=list(direction), up=[0, 0, 1])
     asm.add(Straight(0.2, n_layers=2))
     kw = (dict(run_length=0.2, branch_length=0.25) if angle == 90 else
           dict(branch_length=0.6, angle=angle))
@@ -210,19 +210,19 @@ def _duct_tap(branch, aspect=2, face="wide", roll=0, direction=(1, 0, 0), layout
     B = 0.05
     n = 4
     if layout == "h":
-        spec = PipeSpec(nang_w=n, nang_h=n).core("fluid", shape=RectShape(aspect * B, B, nang_w=n, nang_h=n),
+        spec = PipeSpec(n_width=n, n_height=n).core("fluid", shape=RectShape(aspect * B, B, n_width=n, n_height=n),
                                                  layout="h", first_cell=first_cell)
     else:
-        spec = _duct(half_w=aspect * B, half_h=B, nang_w=n, nang_h=n, name="fluid", nrad=3)
+        spec = _duct(half_w=aspect * B, half_h=B, n_width=n, n_height=n, name="fluid", n_radial=3)
     a = aspect * B if face == "wide" else B
     if branch == "full":
         along_up = face == "wide" or aspect == 1      # the tap on an up/down face
-        shape = RectShape(a, 0.6 * a, nang_w=n, nang_h=n) if along_up else RectShape(0.6 * a, a, nang_w=n, nang_h=n)
+        shape = RectShape(a, 0.6 * a, n_width=n, n_height=n) if along_up else RectShape(0.6 * a, a, n_width=n, n_height=n)
     elif branch == "rect":
-        shape = RectShape(0.6 * a, 0.6 * a, nang_w=n, nang_h=n)
+        shape = RectShape(0.6 * a, 0.6 * a, n_width=n, n_height=n)
     else:
-        shape = CircleShape(radius=0.6 * a, nang=n)
-    asm = Assembly(spec, direction=list(direction), up=[0, 0, 1], lc=0.1)
+        shape = CircleShape(radius=0.6 * a, n_arc=n)
+    asm = Assembly(spec, direction=list(direction), up=[0, 0, 1])
     asm.add(Straight(0.2, n_layers=n))
     main, br = asm.add(Tee(branch_length=2 * aspect * B, branch=shape, face=face, roll=roll,
                            n_run=n, n_branch=n, angle=angle), names=["main", "branch"])
@@ -233,7 +233,7 @@ def _duct_tap(branch, aspect=2, face="wide", roll=0, direction=(1, 0, 0), layout
 
 def _wye(angle, direction=(0, 1, 0), spec=None):
     """Straight → Wye → Straight on both outlets."""
-    asm = Assembly(spec or _one(), direction=list(direction), up=[0, 0, 1], lc=0.1)
+    asm = Assembly(spec or _one(), direction=list(direction), up=[0, 0, 1])
     asm.add(Straight(0.2, n_layers=2))
     left, right = asm.add(Wye(angle=angle, run_length=0.25, branch_length=0.4),
                           names=["left", "right"])
@@ -378,10 +378,10 @@ CASES = {
     "transition-2layer-circle-rect": lambda: _between(_two(), Transition(
         _rect3(0.14, 0.07, lagging=False), length=0.3, n_layers=4)),
     "transition-square-shell-circle": lambda: _between(_in_rect(0.15, 0.15), Transition(
-        _one().shell("block", dR=0.08, nrad=3), length=0.3, n_layers=4)),
+        _one().shell("block", dR=0.08, n_radial=3), length=0.3, n_layers=4)),
     "transition-3layer-circle-2to1": lambda: _between(_three(), Transition(
-        PipeSpec(nang=4).core("fluid", shape=RectShape(0.15, 0.075, nang_w=4, nang_h=4), nrad=3, layout="oh")
-        .shell("wall", dR=0.025, nrad=2).shell("insulation", dR=0.03, nrad=2), length=0.4, n_layers=6,
+        PipeSpec(n_arc=4).core("fluid", shape=RectShape(0.15, 0.075, n_width=4, n_height=4), n_radial=3, layout="oh")
+        .shell("wall", dR=0.025, n_radial=2).shell("insulation", dR=0.03, n_radial=2), length=0.4, n_layers=6,
         axial_grading=1.1)),
 }
 
@@ -412,7 +412,7 @@ H_DUCTS = {
     "1":        lambda: _hduct(0.06, 0.06, 6, 6),
     "2":        lambda: _hduct(),
     "4-graded": lambda: _hduct(0.2, 0.05, 16, 4, first_cell=0.004),
-    "2-ratio":  lambda: _hduct(mprg=1.3),
+    "2-ratio":  lambda: _hduct(radial_grading=1.3),
 }
 CASES.update({
     f"h-{d}-straight": (lambda d=d: _between(H_DUCTS[d](), Straight(0.3, n_layers=3)))
@@ -442,25 +442,25 @@ CASES.update({
 
 def _switch_oblique():
     """O-H → H on an oblique axis (the frame's right and up both off-axis)."""
-    asm = Assembly(_duct(0.1, 0.05, 8, 4), direction=[1, 1, 0.2], up=[0, 0, 1], lc=0.1)
+    asm = Assembly(_duct(0.1, 0.05, 8, 4), direction=[1, 1, 0.2], up=[0, 0, 1])
     asm.add(Straight(0.2, n_layers=2))
     asm.add(Switch(length=0.1, n_layers=3))
     asm.add(Straight(0.2, n_layers=2))
     return asm
 
 
-# The O-H ↔ H switch (task 0085), both ways: a/b 1, 2, 4; nrad 1–3; the H
+# The O-H ↔ H switch (task 0085), both ways: a/b 1, 2, 4; n_radial 1–3; the H
 # end uniform or graded to the walls
 CASES.update({
     "switch-2-oh-h":        lambda: _between(_duct(0.1, 0.05, 8, 4), Switch(length=0.1, n_layers=3)),
     "switch-2-h-oh":        lambda: _between(_hduct(), Switch(length=0.1, n_layers=3,
                                                               outlet=_duct(0.1, 0.05, 8, 4))),
-    "switch-1-oh-h-graded": lambda: _between(_duct(0.06, 0.06, 6, 6, nrad=3), Switch(
+    "switch-1-oh-h-graded": lambda: _between(_duct(0.06, 0.06, 6, 6, n_radial=3), Switch(
         length=0.08, n_layers=3, outlet=_hduct(0.06, 0.06, 6, 6, first_cell=0.003))),
     "switch-4-h-oh-graded": lambda: _between(H_DUCTS["4-graded"](), Switch(   # Q2's rule
-        length=0.16, n_layers=4, outlet=_duct(0.2, 0.05, 16, 4, nrad=1))),
-    "switch-2-oh-h-ratio":  lambda: _between(_duct(0.1, 0.05, 8, 4, nrad=3), Switch(
-        length=0.1, n_layers=3, outlet=_hduct(mprg=1.3))),
+        length=0.16, n_layers=4, outlet=_duct(0.2, 0.05, 16, 4, n_radial=1))),
+    "switch-2-oh-h-ratio":  lambda: _between(_duct(0.1, 0.05, 8, 4, n_radial=3), Switch(
+        length=0.1, n_layers=3, outlet=_hduct(radial_grading=1.3))),
     "switch-2-oblique":     _switch_oblique,
 })
 
@@ -468,13 +468,13 @@ CASES.update({
 def _rstack(layout="h", shells=1, outer=False, half_w=0.1, half_h=0.05):
     """A 2:1 duct whose rectangular stack keeps unequal counts, 8 × 4 on
     every outline (task 0101, decision 0041 option B)."""
-    core = {"nrad": 3} if layout == "oh" else {}
-    spec = PipeSpec(nang_w=8, nang_h=4).core("air", half_w=half_w, half_h=half_h,
+    core = {"n_radial": 3} if layout == "oh" else {}
+    spec = PipeSpec(n_width=8, n_height=4).core("air", half_w=half_w, half_h=half_h,
                                              layout=layout, **core)
     if outer:
-        return spec.shell("wall", outer=RectShape(half_w + 0.02, half_h + 0.03, nang_w=8, nang_h=4), nrad=2)
+        return spec.shell("wall", outer=RectShape(half_w + 0.02, half_h + 0.03, n_width=8, n_height=4), n_radial=2)
     for k in range(shells):
-        spec = spec.shell(("wall", "lagging")[k], dR=(0.01, 0.03)[k], nrad=2)
+        spec = spec.shell(("wall", "lagging")[k], dR=(0.01, 0.03)[k], n_radial=2)
     return spec
 
 
@@ -499,7 +499,7 @@ CASES.update({
 
 def _hflat(half_w=0.14, half_h=0.07, **kw):
     """An H duct with ``_one()``'s counts and name: a transition's H partner."""
-    return PipeSpec(nang_w=4, nang_h=4).core("fluid", shape=RectShape(half_w, half_h, nang_w=4, nang_h=4),
+    return PipeSpec(n_width=4, n_height=4).core("fluid", shape=RectShape(half_w, half_h, n_width=4, n_height=4),
                                              layout="h", **kw)
 
 
@@ -929,10 +929,10 @@ class TestConformance:
 class _OwnOutlet(Straight):
     """Violates A1/A2: builds its own outlet face instead of using the port."""
 
-    def fill(self, faces, frames, spec, lc):
+    def fill(self, faces, frames, spec):
         from hexmesh.assembly.sweep import _fill_slab
         from hexmesh.assembly.interface import build_face
-        own = build_face(spec, frames[1], lc)
+        own = build_face(spec, frames[1])
         gmsh.model.occ.synchronize()
         return _fill_slab(faces[0], own, self.n_layers)
 
@@ -940,8 +940,8 @@ class _OwnOutlet(Straight):
 class _NoWalls(Straight):
     """Violates A7: does not report its wall surfaces."""
 
-    def fill(self, faces, frames, spec, lc):
-        result = super().fill(faces, frames, spec, lc)
+    def fill(self, faces, frames, spec):
+        result = super().fill(faces, frames, spec)
         result.walls.clear()
         return result
 

@@ -113,13 +113,13 @@ def exact() -> dict:
 # --- mesh --------------------------------------------------------------------
 # One axial spacing throughout (0.625 D), so the planes at 20 D and 25 D are
 # fitting interfaces with equal cells either side.
-BASE = dict(nang=6, fluid=3, steel=2, insulation=3, n_layers=(32, 8, 8))   # 20, 5, 5 D
+BASE = dict(n_arc=6, fluid=3, steel=2, insulation=3, n_layers=(32, 8, 8))   # 20, 5, 5 D
 
 
 def assembly(k: int = 1) -> Assembly:
-    spec = (PipeSpec(nang=BASE["nang"]).core("fluid", radius=R1, nrad=BASE["fluid"])
-            .shell("steel", dR=R2 - R1, nrad=BASE["steel"])
-            .shell("insulation", dR=R3 - R2, nrad=BASE["insulation"]))
+    spec = (PipeSpec(n_arc=BASE["n_arc"]).core("fluid", radius=R1, n_radial=BASE["fluid"])
+            .shell("steel", dR=R2 - R1, n_radial=BASE["steel"])
+            .shell("insulation", dR=R3 - R2, n_radial=BASE["insulation"]))
     asm = Assembly(spec, position=[0, 0, 0], direction=[1, 0, 0], up=[0, 0, 1])
     lengths = (X_A, X_B - X_A, LENGTH - X_B)
     for i, (L, n) in enumerate(zip(lengths, BASE["n_layers"])):
@@ -130,7 +130,7 @@ def assembly(k: int = 1) -> Assembly:
 def meshes():
     """(label, caption, build) per mesh shown in README.md
     (``docs/gallery/build.py --validation``)."""
-    return [(f"k{k}", f"k = {k}: nang {BASE['nang'] * k}, nrad {BASE['fluid'] * k} / "
+    return [(f"k{k}", f"k = {k}: n_arc {BASE['n_arc'] * k}, n_radial {BASE['fluid'] * k} / "
                       f"{BASE['steel'] * k} / {BASE['insulation'] * k}, "
                       f"{sum(BASE['n_layers']) * k} axial layers",
              lambda k=k: assembly(k)) for k in (1, 2, 3)]
@@ -527,7 +527,7 @@ def run_level(k: int, work: Path, end_time: int, n_proc: int) -> dict:
     solve = "".join(logs)
     history = residual_history(solve)
     out = {
-        "k": k, "nang": BASE["nang"] * k, "cells": cells,
+        "k": k, "n_arc": BASE["n_arc"] * k, "cells": cells,
         "cells_foam": sum(c["cells_foam"] for c in checks.values()),
         "mesh_ok": all(c["mesh_ok"] for c in checks.values()), "checks": checks,
         "patches": {r: patches(case, r) for r in REGIONS},

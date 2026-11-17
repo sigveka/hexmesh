@@ -41,10 +41,10 @@ it and a user can override one value and re-run.
 
 **Counts.**  Density is shared by every section of an assembly
 (DESIGN: a reducer may change radii only), so the table has one
-``density`` and per-fitting axial counts.  Circles: ``nang`` and the
-core's ``nrad`` from the calibrated cells along a diameter.  Rectangles
-(the H layout): ``nang_w`` and ``nang_h`` from the cells across D_h,
-square cells.  A transition ties a circle's ``nang`` to a rectangle's
+``density`` and per-fitting axial counts.  Circles: ``n_arc`` and the
+core's ``n_radial`` from the calibrated cells along a diameter.  Rectangles
+(the H layout): ``n_width`` and ``n_height`` from the cells across D_h,
+square cells.  A transition ties a circle's ``n_arc`` to a rectangle's
 counts: the largest wins.  Laminar flow keeps the calibrated runs'
 uniform grading; turbulent wall-resolved flow grades the wall to the
 y⁺ target, which no validated case covers yet (``"validated": false``).
@@ -90,7 +90,7 @@ ACCURACY = ("coarse", "medium", "fine")
 LENGTH_UNITS = {"m": units.m, "mm": units.mm}
 RE_LAMINAR, RE_TURBULENT = 2300.0, 4000.0
 RE_BLASIUS_MAX = 1e5
-EIGHT_X = ("doubling every count (nang, nrad, n_layers) doubles the cells in each "
+EIGHT_X = ("doubling every count (n_arc, n_radial, n_layers) doubles the cells in each "
            "direction: 8× the cells")
 #: fittings whose own rules set their counts (``advise`` keeps them)
 OWN_RULES = {"Wye": "its n_split, n_run and n_branch rules", "Switch": "its length rule"}
@@ -313,7 +313,7 @@ def _class(shape: str, aspect: float | None, accuracy: str, reasons: list) -> di
 
 
 def _rect_counts(core: dict, n: float) -> tuple[int, int]:
-    """(nang_w, nang_h) for *n* cells across D_h, square cells."""
+    """(n_width, n_height) for *n* cells across D_h, square cells."""
     a, b = core["half_w"], core["half_h"]
     short, long_ = min(a, b), max(a, b)
     n_short = max(1, math.ceil(n * 2 * short / core["d_h"] - 1e-9))
@@ -325,7 +325,7 @@ def _density(sections: list[dict], inp: dict, tied: str | None) -> dict:
     """One density for the assembly: the largest count any section needs."""
     reasons: list[str] = []
     classes = {}
-    nang = nrad = nang_w = nang_h = None
+    n_arc = n_radial = n_width = n_height = None
     for s in sections:
         if s["shape"] == "rect" and s["layout"] != "h":
             raise AdviceError(f"{s['name']}: a rectangle with layout {s['layout']!r} has no "
@@ -340,26 +340,26 @@ def _density(sections: list[dict], inp: dict, tied: str | None) -> dict:
         if s["shape"] == "circle":
             na = math.ceil(c["n"] / 2 - 1e-9)
             na += na % 2                    # even: a node mid-arc, as calibrated
-            nang = max(nang or 0, na)
-            nrad = max(nrad or 0, math.ceil(na * calibration()["shapes"]["circle"]
-                                            ["nrad_per_nang"] - 1e-9))
+            n_arc = max(n_arc or 0, na)
+            n_radial = max(n_radial or 0, math.ceil(na * calibration()["shapes"]["circle"]
+                                            ["n_radial_per_n_arc"] - 1e-9))
         else:
             w, h = _rect_counts(s, c["n"])
-            nang_w, nang_h = max(nang_w or 0, w), max(nang_h or 0, h)
-    if nang is not None:
-        reasons.append(f"circles: nang {nang} and nrad {nrad} (nrad = nang/2, as calibrated) "
-                       f"give nang + 2 nrad ≥ the class's cells along a diameter; nang "
+            n_width, n_height = max(n_width or 0, w), max(n_height or 0, h)
+    if n_arc is not None:
+        reasons.append(f"circles: n_arc {n_arc} and n_radial {n_radial} (n_radial = n_arc/2, as calibrated) "
+                       f"give n_arc + 2 n_radial ≥ the class's cells along a diameter; n_arc "
                        f"even, so a node sits mid-arc, where the first cell is measured")
-    if nang_w is not None:
-        reasons.append(f"rectangles (H): nang_w {nang_w}, nang_h {nang_h}: square cells, "
+    if n_width is not None:
+        reasons.append(f"rectangles (H): n_width {n_width}, n_height {n_height}: square cells, "
                        "at least the class's cells across D_h")
-    if tied and (nang_w is not None or nang is not None):
-        m = max(x for x in (nang, nang_w, nang_h) if x is not None)
-        reasons.append(f"{tied}, which needs nang = nang_w = nang_h: all {m}")
-        nang = nang_w = nang_h = m
-        nrad = max(nrad or 0, math.ceil(m / 2 - 1e-9))
-    return {"nang": nang, "nrad": nrad, "nang_w": nang_w, "nang_h": nang_h,
-            "mprg": 1.0, "wall_bump": None, "classes": classes, "reasons": reasons}
+    if tied and (n_width is not None or n_arc is not None):
+        m = max(x for x in (n_arc, n_width, n_height) if x is not None)
+        reasons.append(f"{tied}, which needs n_arc = n_width = n_height: all {m}")
+        n_arc = n_width = n_height = m
+        n_radial = max(n_radial or 0, math.ceil(m / 2 - 1e-9))
+    return {"n_arc": n_arc, "n_radial": n_radial, "n_width": n_width, "n_height": n_height,
+            "radial_grading": 1.0, "wall_bump": None, "classes": classes, "reasons": reasons}
 
 
 def _bump_growth(n: int, coef: float) -> float:
@@ -370,7 +370,7 @@ def _bump_growth(n: int, coef: float) -> float:
 
 def _wall(density: dict, sections: list[dict], inp: dict) -> list[str]:
     """Grade the wall to the y⁺ target where a section is turbulent or
-    transitional: ``mprg`` (circles) or ``wall_bump`` (H), with more cells
+    transitional: ``radial_grading`` (circles) or ``wall_bump`` (H), with more cells
     where the growth would pass ``MAX_WALL_GROWTH``.  Laminar: the
     calibrated runs' uniform grading (design answer Q3).  Fills each
     section's ``first_cell`` (in the geometry's unit) and reasons."""
@@ -385,21 +385,21 @@ def _wall(density: dict, sections: list[dict], inp: dict) -> list[str]:
         s["wall"] = {**w, "first_cell": w["first_cell"] / scale}
     circles = [s for s in turbulent if s["shape"] == "circle"]
     if circles:
-        # mprg is shared, so the section with the smallest first cell
+        # radial_grading is shared, so the section with the smallest first cell
         # against its ring sets it; the others' first cells follow
         def need(n):
             return max(progression_for_first_cell(core_wall_span(s["radius"]), n,
                                                   s["wall"]["first_cell"]) for s in circles)
-        n = density["nrad"]
+        n = density["n_radial"]
         while need(n) > growth:
             n += 1
-        if n != density["nrad"]:
-            reasons.append(f"nrad {density['nrad']} → {n}: the ring's growth from the "
+        if n != density["n_radial"]:
+            reasons.append(f"n_radial {density['n_radial']} → {n}: the ring's growth from the "
                            f"first cell stays within MAX_WALL_GROWTH {growth:g}")
-            density["nrad"] = n
+            density["n_radial"] = n
         q = need(n)
-        density["mprg"] = 1.0 / q
-        reasons.append(f"circles: mprg {1 / q:.6g} (growth {q:.4g} per cell) puts the "
+        density["radial_grading"] = 1.0 / q
+        reasons.append(f"circles: radial_grading {1 / q:.6g} (growth {q:.4g} per cell) puts the "
                        f"y⁺ = {y_plus:g} first cell at the governing section's wall")
     rects = [s for s in turbulent if s["shape"] == "rect"]
     if rects:
@@ -408,14 +408,14 @@ def _wall(density: dict, sections: list[dict], inp: dict) -> list[str]:
         while True:
             coefs = []
             for s in [x for x in sections if x["shape"] == "rect"]:
-                coefs.append((bump_for_first_cell(2 * s["half_w"], density["nang_w"], h),
-                              bump_for_first_cell(2 * s["half_h"], density["nang_h"], h)))
+                coefs.append((bump_for_first_cell(2 * s["half_w"], density["n_width"], h),
+                              bump_for_first_cell(2 * s["half_h"], density["n_height"], h)))
             cw, ch = coefs[0]
-            g = max(_bump_growth(density["nang_w"], cw), _bump_growth(density["nang_h"], ch))
+            g = max(_bump_growth(density["n_width"], cw), _bump_growth(density["n_height"], ch))
             if g <= growth:
                 break
-            density["nang_w"] = math.ceil(density["nang_w"] * 1.25)
-            density["nang_h"] = math.ceil(density["nang_h"] * 1.25)
+            density["n_width"] = math.ceil(density["n_width"] * 1.25)
+            density["n_height"] = math.ceil(density["n_height"] * 1.25)
         density["wall_bump"] = [cw, ch]
         density["first_cell"] = h
         reasons.append(f"rectangles: wall_bump puts a first cell of {h:.4g} at every wall "
@@ -434,14 +434,14 @@ def _first_cell(s: dict, density: dict) -> float:
     """The meshed wall cell of section *s* under *density*: the largest
     (mid-arc on a circle; on an H rectangle the larger of the two sides'
     end cells, which ``wall_bump`` makes equal).
-    A circle's radial cells grow outward by ``mprg``, so its wall cell is
-    the first of the ring read inward, growing by 1/mprg."""
+    A circle's radial cells grow outward by ``radial_grading``, so its wall cell is
+    the first of the ring read inward, growing by 1/radial_grading."""
     if s["shape"] == "circle":
-        return first_cell_height(core_wall_span(s["radius"]), density["nrad"],
-                                 1.0 / density["mprg"])
+        return first_cell_height(core_wall_span(s["radius"]), density["n_radial"],
+                                 1.0 / density["radial_grading"])
     if density.get("wall_bump"):
         return density["first_cell"]
-    return max(2 * s["half_w"] / density["nang_w"], 2 * s["half_h"] / density["nang_h"])
+    return max(2 * s["half_w"] / density["n_width"], 2 * s["half_h"] / density["n_height"])
 
 
 # --- axial counts -------------------------------------------------------------------
@@ -449,9 +449,9 @@ def _first_cell(s: dict, density: dict) -> float:
 def _h_core(core: dict, density: dict) -> float:
     """The core cell size of a section under *density* (geometry's unit)."""
     if core["shape"] == "circle":
-        return core["d_h"] / (density["nang"] + 2 * density["nrad"])
+        return core["d_h"] / (density["n_arc"] + 2 * density["n_radial"])
     # the larger in-plane cell, where tied counts make them unequal
-    return max(2 * core["half_w"] / density["nang_w"], 2 * core["half_h"] / density["nang_h"])
+    return max(2 * core["half_w"] / density["n_width"], 2 * core["half_h"] / density["n_height"])
 
 
 def _minimum(e, field: str) -> int:
@@ -512,7 +512,7 @@ def _axial(asm: Assembly, density: dict, ar_straight: float, ar_fitting: float,
 # --- the table and apply ------------------------------------------------------------
 
 TABLE_FORMAT = "hexmesh.agent.resolution"
-DENSITY_KEYS = ("nang", "nrad", "nang_w", "nang_h", "mprg", "wall_bump")
+DENSITY_KEYS = ("n_arc", "n_radial", "n_width", "n_height", "radial_grading", "wall_bump")
 
 
 def _table(density: dict, axial: dict) -> dict:
@@ -523,9 +523,9 @@ def _table(density: dict, axial: dict) -> dict:
 
 def _shape_with(shape: dict, dens: dict) -> dict:
     shape = dict(shape)
-    if shape["type"] == "circle" and dens.get("nang"):
-        shape["nang"] = dens["nang"]
-    for key in ("nang_w", "nang_h"):
+    if shape["type"] == "circle" and dens.get("n_arc"):
+        shape["n_arc"] = dens["n_arc"]
+    for key in ("n_width", "n_height"):
         if key in shape and dens.get(key):
             shape[key] = dens[key]
     return shape
@@ -534,16 +534,16 @@ def _shape_with(shape: dict, dens: dict) -> dict:
 def _spec_with(spec: dict, dens: dict) -> dict:
     """A ``PipeSpec.to_dict()`` with the table's density."""
     spec = copy.deepcopy(spec)
-    for key in ("nang", "nang_w", "nang_h"):
+    for key in ("n_arc", "n_width", "n_height"):
         if spec.get(key) is not None and dens.get(key):
             spec[key] = dens[key]
     core = spec["core"]
     core["shape"] = _shape_with(core["shape"], dens)
     if core["layout"] == "oh" and core["shape"]["type"] == "circle":
-        core["nrad"] = dens["nrad"]
-        core["mprg"] = dens.get("mprg") or 1.0
+        core["n_radial"] = dens["n_radial"]
+        core["radial_grading"] = dens.get("radial_grading") or 1.0
     elif core["layout"] == "h":
-        core["mprg"] = 1.0
+        core["radial_grading"] = 1.0
         core["wall_bump"] = list(dens.get("wall_bump") or [1.0, 1.0])
     for shell in spec["shells"]:
         if "outer" in shell:
@@ -584,7 +584,7 @@ def apply(description: dict, table: dict) -> dict:
             f["branch"] = _shape_with(f["branch"], dens)
         if f["type"] == "Tee":                              # re-derived for the new counts;
             # the branch's own grading is the table's, as every spec's (task 0131)
-            for key in ("n_wall", "nrad", "mprg", "branch_mprg"):
+            for key in ("n_wall", "n_radial", "radial_grading", "branch_radial_grading"):
                 if f.get(key) is not None:
                     f[key] = None
     return d
@@ -597,12 +597,12 @@ def _round(shape) -> bool:
 
 
 def _tied(asm: Assembly) -> str | None:
-    """Why the assembly's counts are tied (nang = nang_w = nang_h), or None
+    """Why the assembly's counts are tied (n_arc = n_width = n_height), or None
     (decision 0041, task 0100): a circle carries one count, so it ties a
     rectangle it meets.  That is a Transition joining a circle to a
     rectangle, a round duct tap on a rectangle, or a stack with a circle
-    and a rectangle.  A stack of rectangles takes the core's (nang_w,
-    nang_h) and ties nothing."""
+    and a rectangle.  A stack of rectangles takes the core's (n_width,
+    n_height) and ties nothing."""
     for e in asm.edges:
         shapes = [o for port in e.ports for o in port.spec.outlines]
         if type(e.fitting).__name__ == "Transition" and \
@@ -655,7 +655,7 @@ def advise(x, inputs: dict) -> dict:
                 f"its calibration is for one count per arc",
                 code="advice_arcs_unsupported", where={"interface": iface.index},
                 value=list(arcs[0]),
-                hint="advise the network with the circle's nang, then give arcs in the "
+                hint="advise the network with the circle's n_arc, then give arcs in the "
                      "ratio you want, at least that count on each arc")
     sections = _sections(asm, inp)
     scale = LENGTH_UNITS[inp["length_unit"]]

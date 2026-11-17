@@ -220,8 +220,8 @@ def _types(case, region=None):
 
 
 def _tee():
-    asm = Assembly(PipeSpec(nang=4).core("fluid", radius=0.1, nrad=3),
-                   up=[0, 0, 1], lc=0.05)
+    asm = Assembly(PipeSpec(n_arc=4).core("fluid", radius=0.1, n_radial=3),
+                   up=[0, 0, 1])
     asm.add(Straight(0.2, n_layers=2))
     main, branch = asm.add(Tee(run_length=0.2, branch_length=0.25, branch_radius=0.05), names=["main", "branch"])
     asm.add(main, Straight(0.2, n_layers=2))

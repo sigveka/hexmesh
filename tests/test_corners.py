@@ -33,9 +33,9 @@ from hexmesh.core.spec import PipeSpec
 
 
 def _spec(n_outer=4, rot=0.0):
-    return (PipeSpec(nang=4, n_outer=n_outer, rot=rot)
-            .core("fluid", shape=CircleShape(radius=0.1, nang=4), nrad=3)
-            .shell("wall", dR=0.025, nrad=2))
+    return (PipeSpec(n_arc=4, n_outer=n_outer, rot=rot)
+            .core("fluid", shape=CircleShape(radius=0.1, n_arc=4), n_radial=3)
+            .shell("wall", dR=0.025, n_radial=2))
 
 
 def _rolled(f, degrees):
@@ -102,7 +102,7 @@ class TestCanonicalGeom:
         """Corner k at corner0 + k·90° from right; curves run k → k+1."""
         spec = _spec(rot=rot)
         frame = Frame.from_vectors([0.2, -0.1, 0.4], [0, 1, 1], [1, 0, 0])
-        face = build_face(spec, frame, 0.1)
+        face = build_face(spec, frame)
         gmsh.model.occ.synchronize()
         for _, cs in face.layers:
             g = canonical_geom(cs)
@@ -123,7 +123,7 @@ class TestCanonicalGeom:
 
 class TestValidationBeforeGmsh:
     def _hairpin(self, n):
-        spec = PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=0.1, nang=4), nrad=3)
+        spec = PipeSpec(n_arc=4).core("fluid", shape=CircleShape(radius=0.1, n_arc=4), n_radial=3)
         asm = Assembly(spec, up=[0, 0, 1])
         for r in (45, 225, 45):
             asm.add(Straight(0.6, n_layers=3))
@@ -143,7 +143,7 @@ class TestValidationBeforeGmsh:
     def test_n_outer_12_rejected(self):
         """8 is the 4-corner face cut in half; a 3 × 3 core needs curved
         cuts (task 0088)."""
-        asm = Assembly(PipeSpec(nang=6, n_outer=12).core("fluid", radius=0.1, nrad=3))
+        asm = Assembly(PipeSpec(n_arc=6, n_outer=12).core("fluid", radius=0.1, n_radial=3))
         # add() checks the section before the fitting resolves (task 0106)
         with pytest.raises(AssemblyError, match="n_outer must be 4 or 8") as e:
             asm.add(Straight(0.3, n_layers=2))

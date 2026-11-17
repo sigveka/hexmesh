@@ -11,9 +11,9 @@ and gives an assembly with no open ends (DESIGN.md §8).
 
 from hexmesh import Assembly, Bend, Closure, PipeSpec, Straight
 
-PIPE = (PipeSpec(nang=6)
-        .core("fluid", radius=0.1, nrad=5)
-        .shell("pipe_wall", dR=0.01, nrad=2))
+PIPE = (PipeSpec(n_arc=6)
+        .core("fluid", radius=0.1, n_radial=5)
+        .shell("pipe_wall", dR=0.01, n_radial=2))
 
 
 def build() -> Assembly:

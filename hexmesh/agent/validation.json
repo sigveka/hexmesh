@@ -84,7 +84,7 @@
     },
     {
      "limit": "Richardson status converging; GCI reported",
-     "quantity": "mesh convergence of $f$ at each Re (nang 12, 16, 24)"
+     "quantity": "mesh convergence of $f$ at each Re (n_arc 12, 16, 24)"
     },
     {
      "limit": "reported",

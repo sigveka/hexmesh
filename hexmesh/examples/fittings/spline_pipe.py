@@ -9,9 +9,9 @@ rotation-minimising (Bishop) frames, one station per axial layer.
 
 from hexmesh import Assembly, PipeSpec, SplinePipe, Straight
 
-PIPE = (PipeSpec(nang=6)
-        .core("fluid", radius=0.05, nrad=4)
-        .shell("pipe_wall", dR=0.008, nrad=2))
+PIPE = (PipeSpec(n_arc=6)
+        .core("fluid", radius=0.05, n_radial=4)
+        .shell("pipe_wall", dR=0.008, n_radial=2))
 
 
 def build() -> Assembly:

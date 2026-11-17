@@ -30,13 +30,13 @@ from hexmesh.sections.oh import outline
 from hexmesh.core.spec import PipeSpec
 
 
-def _circle(r=0.1, nang=6, nrad=3, name="fluid", **kw):
-    return PipeSpec(nang=nang, **kw).core(name, radius=r, nrad=nrad)
+def _circle(r=0.1, n_arc=6, n_radial=3, name="fluid", **kw):
+    return PipeSpec(n_arc=n_arc, **kw).core(name, radius=r, n_radial=n_radial)
 
 
-def _rect(hw=0.14, hh=0.07, nang_w=6, nang_h=6, nrad=3, name="fluid", **kw):
-    return PipeSpec(nang_w=nang_w, nang_h=nang_h, **kw).core(
-        name, half_w=hw, half_h=hh, nrad=nrad, layout="oh")
+def _rect(hw=0.14, hh=0.07, n_width=6, n_height=6, n_radial=3, name="fluid", **kw):
+    return PipeSpec(n_width=n_width, n_height=n_height, **kw).core(
+        name, half_w=hw, half_h=hh, n_radial=n_radial, layout="oh")
 
 
 def _asm(inlet, outlet, n_layers=4, length=0.3):
@@ -66,10 +66,10 @@ class TestRules:
         assert path.offsets(asm.inlet.spec) == [0] * 4
 
     @pytest.mark.parametrize("outlet, message", [
-        (_rect(nang_w=6, nang_h=4), r"equal counts per side: layer `fluid` inlet nang 6 "
-                                    r"vs outlet nang_w 6, nang_h 4"),
+        (_rect(n_width=6, n_height=4), r"equal counts per side: layer `fluid` inlet n_arc 6 "
+                                    r"vs outlet n_width 6, n_height 4"),
         (_circle(0.06), r"for circles at both ends \(sizes only\) use Reducer"),
-        (_rect(nrad=4), "core nrad"),
+        (_rect(n_radial=4), "core n_radial"),
         (_rect(name="air"), "core: layer 0 is `fluid`"),
         (_rect(rot=0.3), "rot"),
     ])
@@ -81,7 +81,7 @@ class TestRules:
     def test_layers_must_match(self):
         """Multi-layer transitions exist (task 0046); a layer may not start
         or end in one."""
-        inlet = _circle().shell("wall", dR=0.01, nrad=2)
+        inlet = _circle().shell("wall", dR=0.01, n_radial=2)
         with pytest.raises(AssemblyError, match="shells: layer `wall` present only"):
             _asm(inlet, _rect()).validate()
 
@@ -93,12 +93,12 @@ class TestRules:
         again = Assembly.load(path)
         assert again.to_dict() == asm.to_dict()
         assert again.cell_count() == asm.cell_count()
-        assert again.edges[0].fitting.outlet.core_shape == RectShape(0.14, 0.07, nang_w=6, nang_h=6)
+        assert again.edges[0].fitting.outlet.core_shape == RectShape(0.14, 0.07, n_width=6, n_height=6)
 
 
 class TestStationShape:
     def test_ends_are_the_end_outlines(self):
-        c, r = CircleShape(0.1, nang=6), RectShape(0.14, 0.07, nang_w=6, nang_h=6)
+        c, r = CircleShape(0.1, n_arc=6), RectShape(0.14, 0.07, n_width=6, n_height=6)
         s = np.linspace(0, 1, 7)
         for k in range(4):
             for inner in (False, True):
@@ -112,9 +112,9 @@ class TestStationShape:
         from hexmesh.sections import build_oh_circle
         from hexmesh.sections import build_oh_rect
         h, v = np.array([1.0, 0, 0]), np.array([0, 1.0, 0])
-        for shape, build in ((CircleShape(0.1, nang=6), build_oh_circle),
-                             (RectShape(0.14, 0.07, nang_w=6, nang_h=6), build_oh_rect)):
-            cs = build(0, 0, 0, shape, h, v, 0.1, 3)
+        for shape, build in ((CircleShape(0.1, n_arc=6), build_oh_circle),
+                             (RectShape(0.14, 0.07, n_width=6, n_height=6), build_oh_rect)):
+            cs = build(0, 0, 0, shape, h, v, 3)
             gmsh.model.occ.synchronize()
             for k in range(4):
                 for pts, inner in ((cs.outer_points, False), (cs.inner_points, True)):
@@ -149,14 +149,14 @@ class TestStationShape:
 # Multi-layer transitions (task 0046)
 # ---------------------------------------------------------------------------
 
-def _insulated(core, outer, nang=6):
-    return (PipeSpec(nang=nang).core("fluid", shape=core, nrad=3, layout="oh")
-            .shell("insulation", outer=outer, nrad=2))
+def _insulated(core, outer, n_arc=6):
+    return (PipeSpec(n_arc=n_arc).core("fluid", shape=core, n_radial=3, layout="oh")
+            .shell("insulation", outer=outer, n_radial=2))
 
 
 class TestMultiLayer:
-    A = staticmethod(lambda: _insulated(CircleShape(0.1, nang=6), CircleShape(0.13, nang=6)))
-    B = staticmethod(lambda: _insulated(RectShape(0.14, 0.07, nang_w=6, nang_h=6), RectShape(0.17, 0.1, nang_w=6, nang_h=6)))
+    A = staticmethod(lambda: _insulated(CircleShape(0.1, n_arc=6), CircleShape(0.13, n_arc=6)))
+    B = staticmethod(lambda: _insulated(RectShape(0.14, 0.07, n_width=6, n_height=6), RectShape(0.17, 0.1, n_width=6, n_height=6)))
 
     def test_cell_count(self):
         asm = _asm(self.A(), self.B(), n_layers=5)
@@ -190,20 +190,20 @@ class TestMultiLayer:
                     spec.outlines[1].side(c[k], c[(k + 1) % 4], s), atol=1e-15)
 
     def test_counts_name_the_layer(self):
-        b = _insulated(RectShape(0.14, 0.07, nang_w=4, nang_h=4), RectShape(0.17, 0.1, nang_w=4, nang_h=4), nang=4)
-        with pytest.raises(AssemblyError, match="nang"):
+        b = _insulated(RectShape(0.14, 0.07, n_width=4, n_height=4), RectShape(0.17, 0.1, n_width=4, n_height=4), n_arc=4)
+        with pytest.raises(AssemblyError, match="n_arc"):
             _asm(self.A(), b).validate()
 
     def test_shell_shape_alone_may_change(self):
         """Circle core in a square shell → circle core in a circle shell."""
-        a = _insulated(CircleShape(0.1, nang=6), RectShape(0.13, 0.13, nang_w=6, nang_h=6))
+        a = _insulated(CircleShape(0.1, n_arc=6), RectShape(0.13, 0.13, n_width=6, n_height=6))
         _asm(a, self.A()).validate()
 
     def test_crossing_station_rejected_before_gmsh(self, monkeypatch):
         """Measured (task 0046): blending nested ends kept every station
         nested, so the check is a safety net; a crossing station stands in
         for one here."""
-        crossing = _insulated(CircleShape(0.1, nang=6), RectShape(0.3, 0.09, nang_w=6, nang_h=6))
+        crossing = _insulated(CircleShape(0.1, n_arc=6), RectShape(0.3, 0.09, n_width=6, n_height=6))
         real = Transition.station
         monkeypatch.setattr(Transition, "station", lambda self, spec, u: (
             crossing if u == 0.5 else real(self, spec, u)))

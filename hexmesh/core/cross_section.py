@@ -122,8 +122,6 @@ class CrossSection:
     cy:            float
     cz:            float
     layout:        str
-    # GMSH characteristic mesh length used when this face was built.
-    lc:   float = 0.1
     # Number of outer structural corners.  Automatically derived from
     # outer_points in __post_init__; do not pass explicitly.
     n_outer: int = field(default=0)

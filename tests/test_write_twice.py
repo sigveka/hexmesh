@@ -26,7 +26,7 @@ from hexmesh.assembly import AssemblyError
 
 def _tee():
     """A tee: transfinite surfaces with more than four corners."""
-    asm = Assembly(PipeSpec(nang=6).core("fluid", radius=0.1, nrad=5, first_cell=0.01),
+    asm = Assembly(PipeSpec(n_arc=6).core("fluid", radius=0.1, n_radial=5, first_cell=0.01),
                    direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Straight(0.5, n_layers=4))
     main, branch = asm.add(Tee(branch_length=0.3, branch_radius=0.06))
@@ -37,7 +37,7 @@ def _tee():
 
 def _bend():
     """A bend: no such surface."""
-    asm = Assembly(PipeSpec(nang=4).core("fluid", radius=0.05, nrad=3))
+    asm = Assembly(PipeSpec(n_arc=4).core("fluid", radius=0.05, n_radial=3))
     asm.add(Straight(0.2, n_layers=3))
     asm.add(Bend(radius=0.2, angle=90, n_layers=6))
     return asm

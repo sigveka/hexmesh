@@ -25,7 +25,7 @@ def _groups():
 
 
 def _elbow(**labels):
-    asm = Assembly(_two(), lc=0.1)
+    asm = Assembly(_two())
     asm.add(Straight(0.3, n_layers=3), label=labels.get("first"))
     asm.add(Bend(0.3, 90, n_layers=4), label=labels.get("bend"))
     asm.add(Straight(0.3, n_layers=3))
@@ -66,7 +66,7 @@ def test_off_by_default(gmsh_session):
 
 
 def test_tee_branch_walls(gmsh_session):
-    asm = Assembly(_one(), up=[0, 0, 1], lc=0.1)
+    asm = Assembly(_one(), up=[0, 0, 1])
     asm.add(Straight(0.2, n_layers=2))
     main, branch = asm.add(Tee(run_length=0.2, branch_length=0.25, branch_radius=0.05), label="tee")
     asm.add(main, Straight(0.2, n_layers=2), label="run")
@@ -93,7 +93,7 @@ def test_label_unique():
 
 def test_label_clashing_with_a_later_default(gmsh_session):
     """A label equal to a later fitting's default name is caught at write time."""
-    asm = Assembly(_one(), lc=0.1)
+    asm = Assembly(_one())
     asm.add(Straight(0.3, n_layers=2), label="Straight1")
     asm.add(Straight(0.3, n_layers=2))                  # default name Straight1
     with pytest.raises(AssemblyError, match="not unique"):

@@ -38,9 +38,9 @@ Gates (design answer to Q2, fixed before the runs): f within 5 % of Ito
 Re; the spline within 0.1 % of d of the helix.  The digitised measured
 points of the paper's Fig. 12 (``data/``) are reported, not gated.
 
-Each nang 24 solve starts from the converged nang 16 field, mapped
+Each n_arc 24 solve starts from the converged n_arc 16 field, mapped
 (``MAP_FROM``; design answer to Q4).  The flow is steady, so the start
-changes only the path to convergence.  The nang 16 source is solved
+changes only the path to convergence.  The n_arc 16 source is solved
 again for the purpose, and its f is checked against the stored level's.
 
 Each solve runs in chunks of ``CHUNK`` (50) steps (design answer to
@@ -50,7 +50,7 @@ and f appended to the case's ``f_history.json`` (stored in the level as
 resumes from its latest time when the driver is run again with the same
 ``--work``; it loses at most one chunk.
 
-Run:   python3 validation/helical_pipe/run.py --np 4      # nang 12, 16, 24
+Run:   python3 validation/helical_pipe/run.py --np 4      # n_arc 12, 16, 24
 Recheck: python3 -m validation.tools.recheck helical_pipe
 """
 
@@ -100,8 +100,8 @@ GATED_PAIR = 1                # turns 2 → 3 (0-based pair index)
 DEV_LIMIT = 1e-3              # spline deviation gate, in d
 F_LIMIT = 0.05                # f against Ito
 
-# --- the levels: nang, with the axial layers scaled alike -------------------
-# The gated series is nang 12, 16, 24 (task 0075, design answer Q3): nang 8
+# --- the levels: n_arc, with the axial layers scaled alike -------------------
+# The gated series is n_arc 12, 16, 24 (task 0075, design answer Q3): n_arc 8
 # wasn't in the asymptotic range at De 270-340.  Its runs stay in
 # results.json, reported.
 LEVELS = (12, 16, 24)
@@ -116,10 +116,10 @@ LAYERS_PER_TURN = {8: 130, 12: 195, 16: 260, 24: 390}   # about 2, 1.33, 1, 0.67
 LAYERS_IN = {8: 3, 12: 4, 16: 6, 24: 9}
 
 
-def area_ratio(nang: int) -> float:
-    """The meshed section's area over πa²: the wall is the 4·nang-gon of
+def area_ratio(n_arc: int) -> float:
+    """The meshed section's area over πa²: the wall is the 4·n_arc-gon of
     the wall nodes on the circle."""
-    n = 4 * nang
+    n = 4 * n_arc
     return n * math.sin(2 * math.pi / n) / (2 * math.pi)
 
 DATA = HERE / "data" / "deamicis_2014_fig12.csv"
@@ -174,25 +174,25 @@ def spline_deviation(per_turn: int = PER_TURN, n: int = 100001) -> dict:
     inner = (u > 0.1) & (u < 0.9)
     return {"points_per_turn": per_turn, "max_over_d": float(dist.max() / D),
             "interior_max_over_d": float(dist[inner].max() / D),
-            "chord_sag_over_d": {str(nang): float((L_TURN / LAYERS_PER_TURN[nang]) ** 2
+            "chord_sag_over_d": {str(n_arc): float((L_TURN / LAYERS_PER_TURN[n_arc]) ** 2
                                                   * (R_C / (R_C ** 2 + B ** 2)) / 8 / D)
-                                 for nang in LEVELS}}
+                                 for n_arc in LEVELS}}
 
 
-def assembly(nang: int = LEVELS[0]) -> Assembly:
-    spec = PipeSpec(nang=nang).core("fluid", radius=A, nrad=nang // 2)
+def assembly(n_arc: int = LEVELS[0]) -> Assembly:
+    spec = PipeSpec(n_arc=n_arc).core("fluid", radius=A, n_radial=n_arc // 2)
     t0, T = tangent(0.0), 2 * np.pi * TURNS
     asm = Assembly(spec, position=list(helix(0.0) - L_IN * t0), direction=list(t0),
                    up=[1.0, 0.0, 0.0])
-    asm.add(Straight(L_IN, n_layers=LAYERS_IN[nang]))
-    asm.add(SplinePipe(points=tuple(map(tuple, spline_points())), n_layers=TURNS * LAYERS_PER_TURN[nang],
+    asm.add(Straight(L_IN, n_layers=LAYERS_IN[n_arc]))
+    asm.add(SplinePipe(points=tuple(map(tuple, spline_points())), n_layers=TURNS * LAYERS_PER_TURN[n_arc],
                        end_tangent=tuple(tangent(T))))
     return asm
 
 
 def meshes():
     """(label, caption, build) per mesh shown in README.md."""
-    return [(f"n{n}", f"nang {n}, {LAYERS_PER_TURN[n]} layers per turn",
+    return [(f"n{n}", f"n_arc {n}, {LAYERS_PER_TURN[n]} layers per turn",
              lambda n=n: assembly(n)) for n in LEVELS[:2]]
 
 
@@ -367,9 +367,9 @@ def friction(cc, vol, p, U) -> dict:
             "f_per_pair": f}
 
 
-def run_level(re_: float, nang: int, work: Path, end_time: int, n_proc: int,
+def run_level(re_: float, n_arc: int, work: Path, end_time: int, n_proc: int,
               init_from: Path | None = None, case: Path | None = None) -> dict:
-    """Solve one level in *case* (default ``work/re<Re>_n<nang>``),
+    """Solve one level in *case* (default ``work/re<Re>_n<n_arc>``),
     started from *init_from*'s latest field, mapped, if given.
 
     The solve runs in chunks of ``CHUNK`` steps.  Only ``0`` and the
@@ -378,26 +378,26 @@ def run_level(re_: float, nang: int, work: Path, end_time: int, n_proc: int,
     from its latest time, so an interrupted level loses at most one
     chunk."""
     t0 = time.monotonic()
-    case = case or work / f"re{re_}_n{nang}"
+    case = case or work / f"re{re_}_n{n_arc}"
     if (case / "setup.json").exists():
-        print(f"[re={re_} nang={nang}] resuming at step {_latest_step(case)}", flush=True)
+        print(f"[re={re_} n_arc={n_arc}] resuming at step {_latest_step(case)}", flush=True)
     else:
-        setup_level(case, re_, nang, end_time, init_from)
-    return solve_level(case, re_, nang, end_time, n_proc, t0)
+        setup_level(case, re_, n_arc, end_time, init_from)
+    return solve_level(case, re_, n_arc, end_time, n_proc, t0)
 
 
-def setup_level(case: Path, re_: float, nang: int, end_time: int,
+def setup_level(case: Path, re_: float, n_arc: int, end_time: int,
                 init_from: Path | None = None, keep_msh: bool = False) -> dict:
-    """Mesh level (re_, nang) into a new *case*, convert and check it, map
+    """Mesh level (re_, n_arc) into a new *case*, convert and check it, map
     *init_from*'s latest field if given, and write ``setup.json``, which
     marks the case as set up.  *keep_msh* keeps ``case/mesh.msh``."""
     if case.exists():
         shutil.rmtree(case)
     case.mkdir(parents=True)
-    asm = assembly(nang)
-    with Session(f"helix-{re_}-{nang}"):
+    asm = assembly(n_arc)
+    with Session(f"helix-{re_}-{n_arc}"):
         cells = asm.cell_count()
-        print(f"[re={re_} nang={nang}] predicted cells: {cells}", flush=True)
+        print(f"[re={re_} n_arc={n_arc}] predicted cells: {cells}", flush=True)
         msh = case / "mesh.msh"
         asm.write_openfoam(str(msh))
         sj = asm.check_quality("scaled_jacobian").worst
@@ -409,7 +409,7 @@ def setup_level(case: Path, re_: float, nang: int, end_time: int,
     if init_from is not None:
         _map_fields(case, init_from)
     meta = {"cells": cells, "sj": sj, "counts": stored.counts(asm), "check": check,
-            "init_from": None if init_from is None else f"nang {MAP_FROM[nang]}, mapped",
+            "init_from": None if init_from is None else f"n_arc {MAP_FROM[n_arc]}, mapped",
             "wall_s": 0.0}
     (case / "setup.json").write_text(json.dumps(meta), encoding="utf-8")
     return meta
@@ -420,7 +420,7 @@ def _map_fields(case: Path, init_from: Path) -> None:
             case, "log.mapFields", mounts=[Path(init_from).resolve()])
 
 
-def solve_level(case: Path, re_: float, nang: int, end_time: int, n_proc: int,
+def solve_level(case: Path, re_: float, n_arc: int, end_time: int, n_proc: int,
                 t0: float | None = None, solve: bool = True) -> dict:
     """Solve the set-up *case* in chunks until converged or *end_time*
     (with *solve*; without, only read it), and return the level's
@@ -446,12 +446,12 @@ def solve_level(case: Path, re_: float, nang: int, end_time: int, n_proc: int,
         meta["wall_s"] += time.monotonic() - t0
         t0 = time.monotonic()
         setup.write_text(json.dumps(meta), encoding="utf-8")
-        print(f"[re={re_} nang={nang}] step {hist[-1]['step']}: f {hist[-1]['f']:.6f}"
+        print(f"[re={re_} n_arc={n_arc}] step {hist[-1]['step']}: f {hist[-1]['f']:.6f}"
               + (", converged" if converged else ""), flush=True)
     fr = friction(*_fields(case))
     meta["wall_s"] += time.monotonic() - t0
-    return {"re": re_, "nang": nang, "cells": meta["cells"],
-            "layers_per_turn": LAYERS_PER_TURN[nang], "area_ratio": area_ratio(nang),
+    return {"re": re_, "n_arc": n_arc, "cells": meta["cells"],
+            "layers_per_turn": LAYERS_PER_TURN[n_arc], "area_ratio": area_ratio(n_arc),
             "min_scaled_jacobian": meta["sj"], **meta["counts"],
             **{f"check_{k}": v for k, v in meta["check"].items()},
             "steps": _latest_step(case), "converged": converged,
@@ -492,23 +492,23 @@ def _set_end_time(case: Path, end: int) -> None:
 # --- analysis -----------------------------------------------------------------
 
 def analyse(levels: list[dict]) -> dict:
-    """Richardson on f at each Re (nang 12, 16, 24: ratios 4/3, 1.5)."""
+    """Richardson on f at each Re (n_arc 12, 16, 24: ratios 4/3, 1.5)."""
     out = {}
     for re_ in RES:
-        rows = sorted((r for r in levels if r["re"] == re_ and r["nang"] in LEVELS),
-                      key=lambda r: r["nang"])
-        if [r["nang"] for r in rows] == list(LEVELS):
+        rows = sorted((r for r in levels if r["re"] == re_ and r["n_arc"] in LEVELS),
+                      key=lambda r: r["n_arc"])
+        if [r["n_arc"] for r in rows] == list(LEVELS):
             out[str(re_)] = conv.richardson(*(r["f"] for r in rows),
                                             r21=LEVELS[2] / LEVELS[1], r32=LEVELS[1] / LEVELS[0])
     return out
 
 
 def table(levels: list[dict]) -> str:
-    lines = ["| Re | nang | cells | f per turn pair | f (gated pair) | Ito | vs Ito | "
+    lines = ["| Re | n_arc | cells | f per turn pair | f (gated pair) | Ito | vs Ito | "
              "fc/fs | steps |", "|---|---|---|---|---|---|---|---|---|"]
-    for r in sorted(levels, key=lambda r: (r["re"], r["nang"])):
+    for r in sorted(levels, key=lambda r: (r["re"], r["n_arc"])):
         pairs = ", ".join(f"{x:.5f}" for x in r["f_per_pair"])
-        lines.append(f"| {r['re']} | {r['nang']} | {r['cells']} | {pairs} | {r['f']:.5f} | "
+        lines.append(f"| {r['re']} | {r['n_arc']} | {r['cells']} | {pairs} | {r['f']:.5f} | "
                      f"{r['f_ito']:.5f} | {r['f_err_ito']:+.2%} | {r['fc_over_fs']:.3f} | "
                      f"{r['steps']} |")
     return "\n".join(lines)
@@ -527,15 +527,15 @@ def recheck(data: dict) -> list[dict]:
     for re_ in RES:
         r = rich.get(str(re_))
         if r is not None:
-            out.append(stored.row(f"Re {re_}: f (nang {', '.join(map(str, LEVELS))})", rich=r,
+            out.append(stored.row(f"Re {re_}: f (n_arc {', '.join(map(str, LEVELS))})", rich=r,
                                   gate="converging",
                                   ok=r["status"] == "converging",
                                   value=f"GCI {r['gci_fine']:.2%}" if r["gci_fine"] is not None
                                   else r["status"], note=r["note"]))
-        rows = [lv for lv in data["levels"] if lv["re"] == re_ and lv["nang"] in LEVELS]
+        rows = [lv for lv in data["levels"] if lv["re"] == re_ and lv["n_arc"] in LEVELS]
         if rows:
-            lv = max(rows, key=lambda x: x["nang"])
-            out.append(stored.row(f"Re {re_}: f (nang {lv['nang']})",
+            lv = max(rows, key=lambda x: x["n_arc"])
+            out.append(stored.row(f"Re {re_}: f (n_arc {lv['n_arc']})",
                                   gate=f"within {F_LIMIT:.0%} of Ito",
                                   ok=abs(lv["f_err_ito"]) <= F_LIMIT,
                                   value=f"{lv['f_err_ito']:+.2%}",
@@ -548,7 +548,7 @@ def main(argv=None) -> dict:
     ap.add_argument("--res", nargs="+", type=int, default=list(RES),
                     help='Reynolds numbers to run (default: %(default)s)')
     ap.add_argument("--levels", nargs="+", type=int, default=list(LEVELS),
-                    help="meshes, by nang, the cells around a quarter of the tube (default: %(default)s; 24 starts from 16's mapped result)")
+                    help="meshes, by n_arc, the cells around a quarter of the tube (default: %(default)s; 24 starts from 16's mapped result)")
     ap.add_argument("--work", type=Path, default=HERE / "work",
                     help="folder for each level's OpenFOAM case (default: validation/helical_pipe/work/, not committed); a level's case is deleted once its results are stored, unless --keep-work")
     ap.add_argument("--end-time", type=int, default=END_TIME,
@@ -563,10 +563,10 @@ def main(argv=None) -> dict:
     store.put_extra("reference", "De Amicis et al. (2014), the SIET coil; Ito (1959) as their eq. (2)")
     store.put_extra("spline_deviation", spline_deviation())
     for re_ in args.res:
-        for nang in args.levels:
-            r = stored.run_level(store, f"re{re_}_n{nang}",
-                                 lambda re_=re_, nang=nang: _mapped_level(store, re_, nang, args),
-                                 args.work / f"re{re_}_n{nang}", args.keep_work)
+        for n_arc in args.levels:
+            r = stored.run_level(store, f"re{re_}_n{n_arc}",
+                                 lambda re_=re_, n_arc=n_arc: _mapped_level(store, re_, n_arc, args),
+                                 args.work / f"re{re_}_n{n_arc}", args.keep_work)
             print(table([r]), flush=True)
     rich = analyse(store.levels())
     store.put_extra("richardson_f", rich)
@@ -574,28 +574,28 @@ def main(argv=None) -> dict:
     return rich
 
 
-def _mapped_level(store, re_: int, nang: int, args) -> dict:
-    """Level (re_, nang), started from its ``MAP_FROM`` level's field if
+def _mapped_level(store, re_: int, n_arc: int, args) -> dict:
+    """Level (re_, n_arc), started from its ``MAP_FROM`` level's field if
     it has one.  That source is solved again in ``work/`` and deleted
     afterwards; its f against the stored level's is kept in extras."""
-    src_nang = MAP_FROM.get(nang)
-    if src_nang is None:
-        return run_level(re_, nang, args.work, args.end_time, args.n_proc)
-    target = args.work / f"re{re_}_n{nang}"
-    src = args.work / f"re{re_}_n{src_nang}_source"
+    src_n_arc = MAP_FROM.get(n_arc)
+    if src_n_arc is None:
+        return run_level(re_, n_arc, args.work, args.end_time, args.n_proc)
+    target = args.work / f"re{re_}_n{n_arc}"
+    src = args.work / f"re{re_}_n{src_n_arc}_source"
     if not (target / "setup.json").exists():          # not yet mapped: solve the source
-        s = run_level(re_, src_nang, args.work, args.end_time, args.n_proc, case=src)
-        ref = store.level(f"re{re_}_n{src_nang}")
+        s = run_level(re_, src_n_arc, args.work, args.end_time, args.n_proc, case=src)
+        ref = store.level(f"re{re_}_n{src_n_arc}")
         sources = dict(store.data.get("extra", {}).get("map_sources", {}))
-        sources[f"re{re_}_n{nang}"] = {
-            "nang": src_nang, "steps": s["steps"], "converged": s["converged"], "f": s["f"],
+        sources[f"re{re_}_n{n_arc}"] = {
+            "n_arc": src_n_arc, "steps": s["steps"], "converged": s["converged"], "f": s["f"],
             "wall_s": s["wall_s"],
             "f_vs_stored": None if ref is None else s["f"] / ref["f"] - 1}
         store.put_extra("map_sources", sources)
-        print(f"[re={re_} nang={src_nang} source] f {s['f']:.5f}, {s['steps']} steps, "
+        print(f"[re={re_} n_arc={src_n_arc} source] f {s['f']:.5f}, {s['steps']} steps, "
               f"{s['wall_s'] / 60:.0f} min", flush=True)
     try:
-        return run_level(re_, nang, args.work, args.end_time, args.n_proc, init_from=src)
+        return run_level(re_, n_arc, args.work, args.end_time, args.n_proc, init_from=src)
     finally:
         # the source is needed only until the target is mapped (setup.json)
         if not args.keep_work and (target / "setup.json").exists():
@@ -607,7 +607,7 @@ def _mapped_level(store, re_: int, nang: int, args) -> dict:
 # d/case, a mapped level's source in d/source until it is mapped.
 
 def _parse(level: str) -> tuple[int, int]:
-    """(Re, nang) of a level name such as ``re3000_n24``."""
+    """(Re, n_arc) of a level name such as ``re3000_n24``."""
     m = re.fullmatch(r"re(\d+)_n(\d+)", level)
     if not m or int(m[1]) not in RES or int(m[2]) not in LAYERS_PER_TURN:
         raise ValueError(f"helical_pipe has no level {level!r}: re<{'|'.join(map(str, RES))}>"
@@ -625,46 +625,46 @@ def prepare(level: str, d: Path, mesh_only: bool = False) -> dict:
     """Mesh *level*, and unless *mesh_only*, set up its case (and its
     mapped start's source case).  Returns ``{"msh": path}``, the mesh as
     written, which the tool hashes and deletes, and ``check``."""
-    re_, nang = _parse(level)
+    re_, n_arc = _parse(level)
     d.mkdir(parents=True, exist_ok=True)
     if mesh_only:
         msh = d / f"{level}.msh"
-        with Session(f"helix-{re_}-{nang}"):
-            assembly(nang).write_openfoam(str(msh))
+        with Session(f"helix-{re_}-{n_arc}"):
+            assembly(n_arc).write_openfoam(str(msh))
         return {"msh": msh, "check": None}
-    meta = setup_level(d / "case", re_, nang, END_TIME, keep_msh=True)
-    if nang in MAP_FROM:
-        setup_level(d / "source", re_, MAP_FROM[nang], END_TIME)
+    meta = setup_level(d / "case", re_, n_arc, END_TIME, keep_msh=True)
+    if n_arc in MAP_FROM:
+        setup_level(d / "source", re_, MAP_FROM[n_arc], END_TIME)
     return {"msh": d / "case" / "mesh.msh", "check": meta["check"]}
 
 
 def run(level: str, d: Path, n_proc: int) -> None:
     """Solve *level* in *d*, resumably: a mapped level's source first,
     then the mapping (the source is deleted), then the level."""
-    re_, nang = _parse(level)
+    re_, n_arc = _parse(level)
     case, src = d / "case", d / "source"
     meta = json.loads((case / "setup.json").read_text(encoding="utf-8"))
-    if nang in MAP_FROM and meta["init_from"] is None:
-        s = solve_level(src, re_, MAP_FROM[nang], END_TIME, n_proc)
+    if n_arc in MAP_FROM and meta["init_from"] is None:
+        s = solve_level(src, re_, MAP_FROM[n_arc], END_TIME, n_proc)
         ref = stored.Store(HERE / "results.json", "helical_pipe").level(
-            f"re{re_}_n{MAP_FROM[nang]}")
+            f"re{re_}_n{MAP_FROM[n_arc]}")
         (d / "source.json").write_text(json.dumps({
-            "nang": MAP_FROM[nang], "steps": s["steps"], "converged": s["converged"],
+            "n_arc": MAP_FROM[n_arc], "steps": s["steps"], "converged": s["converged"],
             "f": s["f"], "wall_s": s["wall_s"],
             "f_vs_stored": None if ref is None else s["f"] / ref["f"] - 1}), encoding="utf-8")
         _map_fields(case, src)
-        meta["init_from"] = f"nang {MAP_FROM[nang]}, mapped"
+        meta["init_from"] = f"n_arc {MAP_FROM[n_arc]}, mapped"
         (case / "setup.json").write_text(json.dumps(meta), encoding="utf-8")
         shutil.rmtree(src)
-    solve_level(case, re_, nang, END_TIME, n_proc)
+    solve_level(case, re_, n_arc, END_TIME, n_proc)
 
 
 def collect(level: str, d: Path) -> dict:
     """The finished level's values as :func:`run_level` returns them, and
     the extras to merge (the mapped start's source).  Refuses a level
     that is still running."""
-    re_, nang = _parse(level)
-    values = solve_level(d / "case", re_, nang, END_TIME, 1, solve=False)
+    re_, n_arc = _parse(level)
+    values = solve_level(d / "case", re_, n_arc, END_TIME, 1, solve=False)
     if not values["converged"] and values["steps"] < END_TIME:
         raise ValueError(f"{level} isn't finished (step {values['steps']}, not converged): "
                          "run the job again; it resumes")
@@ -682,9 +682,9 @@ def recompute(values: dict) -> dict:
     f = [(a - b) * D / (L_TURN * 0.5 * u ** 2)
          for a, b, u in zip(fr["turn_mean_p"], fr["turn_mean_p"][1:], ub)]
     fr.update(u_bulk_per_pair=ub, f_per_pair=f)
-    nang = values["nang"]
-    return {"cells": assembly(nang).cell_count(), "layers_per_turn": LAYERS_PER_TURN[nang],
-            "area_ratio": area_ratio(nang), "u_bulk_per_pair": ub, "f_per_pair": f,
+    n_arc = values["n_arc"]
+    return {"cells": assembly(n_arc).cell_count(), "layers_per_turn": LAYERS_PER_TURN[n_arc],
+            "area_ratio": area_ratio(n_arc), "u_bulk_per_pair": ub, "f_per_pair": f,
             **derived(values["re"], fr)}
 
 

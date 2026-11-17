@@ -22,15 +22,15 @@ R = 0.05
 EXACT = 1e-10            # in R: the task's bound
 
 
-def _circle(n, nang=8, mprg=1.0, mbmp=1.0, radius=R, shell=True):
-    s = PipeSpec(nang=nang, n_outer=n, mbmp=mbmp).core("fluid", radius=radius, nrad=4, mprg=mprg)
-    return s.shell("wall", dR=0.2 * radius, nrad=2, mprg=1.1) if shell else s
+def _circle(n, n_arc=8, radial_grading=1.0, arc_bump=1.0, radius=R, shell=True):
+    s = PipeSpec(n_arc=n_arc, n_outer=n, arc_bump=arc_bump).core("fluid", radius=radius, n_radial=4, radial_grading=radial_grading)
+    return s.shell("wall", dR=0.2 * radius, n_radial=2, radial_grading=1.1) if shell else s
 
 
-def _rect(n, nang=8, mprg=1.0):
+def _rect(n, n_arc=8, radial_grading=1.0):
     """2:1, an O-H core."""
-    return PipeSpec(nang_w=nang, nang_h=nang // 2, n_outer=n).core(
-        "fluid", half_w=R, half_h=R / 2, nrad=4, mprg=mprg, layout="oh")
+    return PipeSpec(n_width=n_arc, n_height=n_arc // 2, n_outer=n).core(
+        "fluid", half_w=R, half_h=R / 2, n_radial=4, radial_grading=radial_grading, layout="oh")
 
 
 def _elements(dim: int) -> np.ndarray:
@@ -69,7 +69,7 @@ def _face(spec, stretch=None):
     """2-D: the face built as an assembly builds it, meshed, placed."""
     with Session("face"):
         face = build_face(spec, np.zeros(3), np.array([1.0, 0, 0]), np.array([0, 1.0, 0]),
-                          0.1, stretch)
+                          stretch)
         gmsh.model.occ.synchronize()
         gmsh.model.mesh.generate(1)
         place_partition_nodes([face], 1)
@@ -81,33 +81,33 @@ def _face(spec, stretch=None):
 STRETCH = (np.array([np.cos(0.4), np.sin(0.4), 0.0]), 1.3)     # a miter station's
 
 
-@pytest.mark.parametrize("nang, mprg, mbmp, stretch", [
+@pytest.mark.parametrize("n_arc, radial_grading, arc_bump, stretch", [
     (8, 1.0, 1.0, None), (24, 1.2, 1.0, None), (8, 1.0, 1.3, None), (8, 1.1, 1.0, STRETCH)],
-    ids=["uniform", "nang24-graded", "bump", "stretched"])
+    ids=["uniform", "n_arc24-graded", "bump", "stretched"])
 @pytest.mark.parametrize("make", [_circle, _rect], ids=["circle", "rect"])
-def test_the_face_is_the_4_corner_face(make, nang, mprg, mbmp, stretch):
-    if make is _rect and mbmp != 1.0:
-        spec = lambda n: PipeSpec(nang_w=nang, nang_h=nang // 2, n_outer=n, mbmp=mbmp).core(
-            "fluid", half_w=R, half_h=R / 2, nrad=4, mprg=mprg, layout="oh")
+def test_the_face_is_the_4_corner_face(make, n_arc, radial_grading, arc_bump, stretch):
+    if make is _rect and arc_bump != 1.0:
+        spec = lambda n: PipeSpec(n_width=n_arc, n_height=n_arc // 2, n_outer=n, arc_bump=arc_bump).core(
+            "fluid", half_w=R, half_h=R / 2, n_radial=4, radial_grading=radial_grading, layout="oh")
     elif make is _rect:
-        spec = lambda n: _rect(n, nang, mprg)
+        spec = lambda n: _rect(n, n_arc, radial_grading)
     else:
-        spec = lambda n: _circle(n, nang, mprg, mbmp)
+        spec = lambda n: _circle(n, n_arc, radial_grading, arc_bump)
     _assert_same(_face(spec(4), stretch), _face(spec(8), stretch), 1.2 * R, EXACT)
 
 
 def test_halves_one_cell_across():
     """2 divisions on a side: its halves are one cell, their sub-patches
     have no interior nodes."""
-    _assert_same(_face(_rect(4, nang=4)), _face(_rect(8, nang=4)), R, EXACT)
+    _assert_same(_face(_rect(4, n_arc=4)), _face(_rect(8, n_arc=4)), R, EXACT)
 
 
 def test_a_blend_station_is_the_4_corner_one():
     """A Transition's station: a circle blended halfway to a square."""
     def station(n):
         a = _circle(n, shell=False)
-        b = PipeSpec(nang_w=8, nang_h=8, n_outer=n).core(
-            "fluid", half_w=0.04, half_h=0.04, nrad=4, layout="oh")
+        b = PipeSpec(n_width=8, n_height=8, n_outer=n).core(
+            "fluid", half_w=0.04, half_h=0.04, n_radial=4, layout="oh")
         return Transition(b, length=0.1, n_layers=2).station(a, 0.5)
     _assert_same(_face(station(4)), _face(station(8)), R, EXACT)
 
@@ -130,19 +130,19 @@ def _asm(spec, *fittings):
 
 
 def _transition(n):
-    out = PipeSpec(nang_w=8, nang_h=8, n_outer=n).core(
-        "fluid", half_w=0.04, half_h=0.04, nrad=4, mprg=1.1, layout="oh")
-    return _asm(_circle(n, mprg=1.1, shell=False), Transition(out, length=0.15, n_layers=4))
+    out = PipeSpec(n_width=8, n_height=8, n_outer=n).core(
+        "fluid", half_w=0.04, half_h=0.04, n_radial=4, radial_grading=1.1, layout="oh")
+    return _asm(_circle(n, radial_grading=1.1, shell=False), Transition(out, length=0.15, n_layers=4))
 
 
 SWEEPS = {
     # one layer per slab: every node on a station face or an axial curve
-    "bend": lambda n: _asm(_circle(n, mbmp=1.3), Bend(radius=0.15, angle=90.0, n_layers=6)),
-    "miter": lambda n: _asm(_circle(n, mprg=1.1), MiterBend(radius=0.15, angle=90.0, n_cuts=3)),
-    "rect-bend": lambda n: _asm(_rect(n, mprg=1.1), Straight(0.2, n_layers=3),
+    "bend": lambda n: _asm(_circle(n, arc_bump=1.3), Bend(radius=0.15, angle=90.0, n_layers=6)),
+    "miter": lambda n: _asm(_circle(n, radial_grading=1.1), MiterBend(radius=0.15, angle=90.0, n_cuts=3)),
+    "rect-bend": lambda n: _asm(_rect(n, radial_grading=1.1), Straight(0.2, n_layers=3),
                                 Bend(radius=0.2, angle=60.0, n_layers=4)),
-    "reducer": lambda n: _asm(_circle(n, mprg=1.1, shell=False),
-                              Reducer(_circle(n, mprg=1.1, radius=0.03, shell=False),
+    "reducer": lambda n: _asm(_circle(n, radial_grading=1.1, shell=False),
+                              Reducer(_circle(n, radial_grading=1.1, radius=0.03, shell=False),
                                       length=0.1, n_layers=3)),
     "transition": _transition,
     "spline": lambda n: _asm(_circle(n), SplinePipe(
@@ -161,7 +161,7 @@ def test_a_multi_layer_straight_is_the_4_corner_one_to_gmsh_s_own_fill():
     4-corner mesh's side faces in their parameter space, 1.3e-7 R off the
     exact extrusion; the cut mesh's halves are 3e-9 R off.  So the two
     agree to the 4-corner mesh's own error, not 1e-10 R (task 0088)."""
-    build = lambda n: _asm(_circle(n, nang=24, mprg=1.2), Straight(0.3, n_layers=4))
+    build = lambda n: _asm(_circle(n, n_arc=24, radial_grading=1.2), Straight(0.3, n_layers=4))
     a, b = _mesh(build, 4), _mesh(build, 8)
     _assert_same(a, b, 1.2 * R, 1e-6)
     for (pos, _), off in ((a, 1e-6), (b, 1e-8)):      # each against the exact extrusion
@@ -190,7 +190,7 @@ def test_junctions_reject_n_outer_8_with_their_code():
 def test_the_h_layout_rejects_n_outer_8():
     """One patch, no partition (PipeSpec, task 0084)."""
     with pytest.raises(SpecError, match="layout='h' needs n_outer = 4"):
-        PipeSpec(nang_w=8, nang_h=4, n_outer=8).core("air", half_w=R, half_h=R / 2, layout="h")
+        PipeSpec(n_width=8, n_height=4, n_outer=8).core("air", half_w=R, half_h=R / 2, layout="h")
 
 
 def test_the_cell_count_is_the_4_corner_one():

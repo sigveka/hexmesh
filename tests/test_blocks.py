@@ -55,7 +55,7 @@ class BlockStraight(Straight):
         super().validate(frames, spec)
         self.layout(*frames, spec).validate()
 
-    def fill(self, faces, frames, spec, lc):
+    def fill(self, faces, frames, spec):
         lay = self.layout(frames[0], frames[1], spec)
         bind_face(lay, "A", faces[0])
         bind_face(lay, "B", faces[1])
@@ -63,11 +63,11 @@ class BlockStraight(Straight):
 
 
 def _one():
-    return PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=0.1, nang=4), nrad=3)
+    return PipeSpec(n_arc=4).core("fluid", shape=CircleShape(radius=0.1, n_arc=4), n_radial=3)
 
 
 def _two():
-    return _one().shell("wall", dR=0.025, nrad=2)
+    return _one().shell("wall", dR=0.025, n_radial=2)
 
 
 A = Frame.from_vectors([0, 0, 0], [0, 1, 0], [0, 0, 1])
@@ -154,7 +154,7 @@ def _mesh_nodes(fitting, spec, roll=0.0):
     gmsh.option.setNumber("General.Verbosity", 0)
     gmsh.model.add("blocks")
     try:
-        asm = Assembly(spec, direction=[0, 1, 0], up=[0, 0, 1], lc=0.1)
+        asm = Assembly(spec, direction=[0, 1, 0], up=[0, 0, 1])
         out = asm.add(fitting)
         if roll:
             from hexmesh.assembly.interface import rotate

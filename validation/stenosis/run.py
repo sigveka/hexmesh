@@ -109,7 +109,7 @@ STEADY_TOL = 1e-3         # 0.1 % change over CHUNK: steady
 # --- the coarse level; refined(k) doubles every count -----------------------
 # Both runs next to the constriction are graded to meet its axial spacing,
 # L_STEN / sten, so no cell length jumps there.
-BASE = dict(nang=6, nrad=3, up=16, sten=36, near=80, far=10)
+BASE = dict(n_arc=6, n_radial=3, up=16, sten=36, near=80, far=10)
 # k = 1 ("coarse") has no steady axisymmetric state; it stays for the
 # pipeline test (tests/test_validation.py).
 LEVELS = {"coarse": 1, "k2": 2, "k3": 3, "k4": 4}
@@ -127,7 +127,7 @@ def growth(first: float, length: float, n: int) -> float:
 
 
 def assembly(k: int = 1) -> Assembly:
-    spec = PipeSpec(nang=BASE["nang"]).core("fluid", radius=R, nrad=BASE["nrad"])
+    spec = PipeSpec(n_arc=BASE["n_arc"]).core("fluid", radius=R, n_radial=BASE["n_radial"])
     h = L_STEN / BASE["sten"]
     up, near = -L_STEN / 2 - X_IN, X_SPLIT - L_STEN / 2
     asm = Assembly(spec, position=[X_IN, 0, 0], direction=[1, 0, 0], up=[0, 0, 1])
@@ -143,7 +143,7 @@ def assembly(k: int = 1) -> Assembly:
 def meshes():
     """(label, caption, build) per mesh shown in README.md
     (``docs/gallery/build.py --validation``)."""
-    return [(name, f"{name}: nang {BASE['nang'] * k}, nrad {BASE['nrad'] * k}, "
+    return [(name, f"{name}: n_arc {BASE['n_arc'] * k}, n_radial {BASE['n_radial'] * k}, "
                    f"{sum(BASE[n] for n in ('up', 'sten', 'near', 'far')) * k} axial layers",
              lambda k=k: assembly(k))
             for name, k in ((n, LEVELS[n]) for n in DEFAULT_LEVELS)]

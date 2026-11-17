@@ -17,7 +17,7 @@ Fig. 8; RESEARCH §4.3; decision 0043, amendment 2026-11-10; tasks 0118,
 (:class:`CubeTee`) and delegates, as it does to ``duct_tap.TapTemplate``
 on a rectangular main.  Square only (``EQUAL_LATERAL_ANGLE_MIN``): the
 layout and :func:`orient` handle a lean, but equal laterals' meshed
-quality falls as ``nang`` rises (task 0122).
+quality falls as ``n_arc`` rises (task 0122).
 
 - **The cube.**  Axes e1, e2, e3 from :func:`orient`: the rotation that
   maximises the smallest angle between a pipe (the inlet, the run, the
@@ -33,8 +33,8 @@ quality falls as ``nang`` rises (task 0122).
   pipes' tubes.  The station's run to the port is a plain swept block.
   The other three sides keep one block each, whose outer face lies on
   the wall.
-- **Counts.**  Cube and centre-hex edges carry ``nang``; the diagonals
-  the ring's ``nrad``; a port's split edges ``n_turn``; the runs
+- **Counts.**  Cube and centre-hex edges carry ``n_arc``; the diagonals
+  the ring's ``n_radial``; a port's split edges ``n_turn``; the runs
   ``n_run`` and the branch ``n_branch``.
 - **The wall.**  Cube edges and the edges from a cube corner to its
   station are splines through points on the wall, the main cylinder
@@ -43,13 +43,13 @@ quality falls as ``nang`` rises (task 0122).
   ``Assembly.projection_report``.  Shells are offset levels.
 - **The crease** where the branch meets the main lies on cube edges only
   on the main's two sides; elsewhere it crosses faces, and its chord
-  error is first order in ``nang``: 3.7 % R at nang 8, 2.0 at 16, 1.4 at
+  error is first order in ``n_arc``: 3.7 % R at n_arc 8, 2.0 at 16, 1.4 at
   24, 1.1 at 32 (task 0122; decision 0043 keeps the 1 % R gate and
   states the miss).
 - **Refinement.**  The wall sides' flat block faces sit up to 0.18 R
   inside the curved wall, and projection moves their nodes that far
-  whatever ``nang`` is, so finer meshes crush more, thinner cells: the
-  meshed min SJ is 0.511, 0.399, 0.353, 0.330 and 0.305 at nang 8, 16,
+  whatever ``n_arc`` is, so finer meshes crush more, thinner cells: the
+  meshed min SJ is 0.511, 0.399, 0.353, 0.330 and 0.305 at n_arc 8, 16,
   24, 32 and 48.  First order only: second-order hexes invert near the
   wall, so ``mesh(order=2)`` rejects the equal tee (``Tee``'s
   ``second_order_limitation``).
@@ -75,10 +75,10 @@ from .blocks import ArcAbout, BlockLayout, LayoutError, Spline, face_patches, fa
 from .errors import AssemblyError
 from .interface import Frame, outer_radius, rolled
 from .junction_quality import CUBE_BLOCKS, CUBE_HINT, _layout_key, nonorth_tiers, predicted_angle
-from .limits import (EQUAL_LATERAL_ANGLE_MIN, EQUAL_TEE_NANG_CLEAN, PREDICTED_SJ_MIN,
+from .limits import (EQUAL_LATERAL_ANGLE_MIN, EQUAL_TEE_N_ARC_CLEAN, PREDICTED_SJ_MIN,
                      PREDICTED_SJ_WARN)
 
-#: The square tee's measured meshed min SJ by nang, single and shelled
+#: The square tee's measured meshed min SJ by n_arc, single and shelled
 #: (task 0127; validation/tools/equal_tee.json).  The predicted SJ doesn't
 #: see this fall, so validate() reads it here: measured values only.
 _MEASURED_SJ = {8: 0.511, 16: 0.399, 24: 0.353, 32: 0.330, 48: 0.305, 64: 0.293}
@@ -92,7 +92,7 @@ _PIPES = "ABE"                                                # inlet, run outle
 #: the cube's shape per angle: (angle, hub, station), interpolated in
 #: angle.  Task 0122: at 90° the meshed SJ doesn't depend on the hub
 #: (0.4–0.8) or the station (0.25–4, bare and insulated 0.25 R and 0.5 R,
-#: nang 8 and 16), so the station is the shortest measured, which fits
+#: n_arc 8 and 16), so the station is the shortest measured, which fits
 #: the shortest runs.  Equal laterals (``EQUAL_LATERAL_ANGLE_MIN``)
 #: measured 0.5 at 75°, 2 at 60° and 3 at 45° and 40°.
 SHAPE = ((90.0, 0.6, 0.25),)
@@ -472,7 +472,7 @@ class CubeTee:
                                     limit="PREDICTED_SJ_MIN", hint=hint)
             found.append(msg)
             break
-        found += self._nang_tier(spec)
+        found += self._n_arc_tier(spec)
         try:
             self.layout(frames, spec).validate()
         except LayoutError as e:
@@ -482,23 +482,23 @@ class CubeTee:
                                      CUBE_BLOCKS, CUBE_HINT)
 
     @staticmethod
-    def _nang_tier(spec: PipeSpec) -> list[str]:
-        """Above ``EQUAL_TEE_NANG_CLEAN``, the measured SJ at the next
-        measured nang, or, past the last, that it is unmeasured."""
-        nang = spec.nang
-        if nang is None or nang <= EQUAL_TEE_NANG_CLEAN:
+    def _n_arc_tier(spec: PipeSpec) -> list[str]:
+        """Above ``EQUAL_TEE_N_ARC_CLEAN``, the measured SJ at the next
+        measured n_arc, or, past the last, that it is unmeasured."""
+        n_arc = spec.n_arc
+        if n_arc is None or n_arc <= EQUAL_TEE_N_ARC_CLEAN:
             return []
-        hint = f"nang <= EQUAL_TEE_NANG_CLEAN ({EQUAL_TEE_NANG_CLEAN}) builds without a warning"
-        above = [n for n in sorted(_MEASURED_SJ) if n >= nang]
+        hint = f"n_arc <= EQUAL_TEE_N_ARC_CLEAN ({EQUAL_TEE_N_ARC_CLEAN}) builds without a warning"
+        above = [n for n in sorted(_MEASURED_SJ) if n >= n_arc]
         last = max(_MEASURED_SJ)
         if above:
             n = above[0]
             told = (f"meshed corner scaled Jacobian measured {_MEASURED_SJ[n]:.3f} "
-                    f"at nang {n}, below PREDICTED_SJ_WARN {PREDICTED_SJ_WARN:g}")
+                    f"at n_arc {n}, below PREDICTED_SJ_WARN {PREDICTED_SJ_WARN:g}")
         else:
-            told = (f"meshed quality is unmeasured above nang {last} "
-                    f"({_MEASURED_SJ[last]:.3f} there, falling as nang rises)")
-        return [f"equal tee at nang {nang}: {told}; {hint}"]
+            told = (f"meshed quality is unmeasured above n_arc {last} "
+                    f"({_MEASURED_SJ[last]:.3f} there, falling as n_arc rises)")
+        return [f"equal tee at n_arc {n_arc}: {told}; {hint}"]
 
     def predicted_nonorth(self, frames: list[Frame], spec: PipeSpec) -> float:
         return predicted_angle(self.tee, frames, spec, lambda: self.layout(frames, spec))

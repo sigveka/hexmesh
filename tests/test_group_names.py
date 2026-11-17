@@ -48,6 +48,6 @@ def test_helper_is_inner_then_outer():
 @pytest.mark.parametrize("bad", ["fluid-1", "steel wall", "", "ü", None])
 def test_layer_names_restricted(bad):
     with pytest.raises(ValueError, match="letters, digits"):
-        PipeSpec(nang=4).core(bad, radius=0.1, nrad=2)
+        PipeSpec(n_arc=4).core(bad, radius=0.1, n_radial=2)
     with pytest.raises(ValueError, match="letters, digits"):
-        PipeSpec(nang=4).core("fluid", radius=0.1, nrad=2).shell(bad, dR=0.01, nrad=1)
+        PipeSpec(n_arc=4).core("fluid", radius=0.1, n_radial=2).shell(bad, dR=0.01, n_radial=1)

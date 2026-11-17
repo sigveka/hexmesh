@@ -39,7 +39,7 @@ from hexmesh.core.spec import PipeSpec
 
 
 def _pipe(rot=0.0):
-    return PipeSpec(nang=4, rot=rot).core("fluid", shape=CircleShape(radius=0.1, nang=4), nrad=3)
+    return PipeSpec(n_arc=4, rot=rot).core("fluid", shape=CircleShape(radius=0.1, n_arc=4), n_radial=3)
 
 
 def _tee():
@@ -204,7 +204,7 @@ def test_wye_toward_names_right_daughter():
 
 
 def _junction_case(kind, roll, after_bend):
-    a = Assembly(_pipe(), direction=[0, 1, 0], up=[0, 0, 1], lc=0.1)
+    a = Assembly(_pipe(), direction=[0, 1, 0], up=[0, 0, 1])
     if after_bend:
         a.add(Bend(radius=0.3, angle=60, n_layers=4, roll=30))
     else:
@@ -265,12 +265,12 @@ def test_rot_is_degrees():
 
 def test_version_1_file_converts_rot():
     d = _rot_run(_pipe(rot=45)).to_dict()
-    assert d["version"] == 2 and d["inlet"]["spec"]["rot"] == 45.0
+    assert d["version"] == 3 and d["inlet"]["spec"]["rot"] == 45.0
     v1 = dict(d, version=1, inlet=dict(d["inlet"], spec=dict(d["inlet"]["spec"],
                                                              rot=math.pi / 4)))
     loaded = Assembly.from_dict(v1)
     assert loaded.inlet.spec.rot == pytest.approx(45.0, abs=1e-12)
-    assert loaded.to_dict()["version"] == 2
+    assert loaded.to_dict()["version"] == 3
     np.testing.assert_allclose(_nodes(loaded), _nodes(_rot_run(_pipe(rot=45))),
                                atol=1e-12, rtol=0)
 

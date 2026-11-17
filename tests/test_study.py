@@ -39,7 +39,7 @@ TEMPLATE = '''
 from hexmesh import Assembly, Bend, PipeSpec, Straight
 
 def build(p):
-    spec = PipeSpec(nang=4).core("fluid", radius=0.05, nrad=2)
+    spec = PipeSpec(n_arc=4).core("fluid", radius=0.05, n_radial=2)
     asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Straight(p.get("length", 0.2), n_layers=p.get("n", 3)))
     asm.add(Bend(radius=p["radius"], angle=p["angle"], n_layers=p.get("n_bend", 6)))
@@ -157,14 +157,14 @@ class TestTopologyKey:
         assert len({r["topology"] for r in out}) == 3
 
     def test_key_ignores_geometry_and_grading(self):
-        def asm(radius, angle, mprg=1.0):
-            spec = PipeSpec(nang=4).core("fluid", radius=radius, nrad=2, mprg=mprg)
+        def asm(radius, angle, radial_grading=1.0):
+            spec = PipeSpec(n_arc=4).core("fluid", radius=radius, n_radial=2, radial_grading=radial_grading)
             a = Assembly(spec)
             a.add(Bend(radius=0.3, angle=angle, n_layers=6))
             return a
         assert topology_key(asm(0.05, 90)) == topology_key(asm(0.07, 30.0)) \
-            == topology_key(asm(0.05, 90, mprg=1.2))
-        a = Assembly(PipeSpec(nang=8).core("fluid", radius=0.05, nrad=2))
+            == topology_key(asm(0.05, 90, radial_grading=1.2))
+        a = Assembly(PipeSpec(n_arc=8).core("fluid", radius=0.05, n_radial=2))
         a.add(Bend(radius=0.3, angle=90, n_layers=6))
         assert topology_key(a) != topology_key(asm(0.05, 90))
 
@@ -202,8 +202,8 @@ from hexmesh import Assembly, PipeSpec, Straight
 from hexmesh.core.shape import CircleShape, RectShape
 
 def build(p):
-    spec = (PipeSpec(nang=4).core("core", shape=CircleShape(0.1, nang=4), nrad=3)
-            .shell("block", outer=RectShape(p["w"], 0.13, nang_w=4, nang_h=4), nrad=3))
+    spec = (PipeSpec(n_arc=4).core("core", shape=CircleShape(0.1, n_arc=4), n_radial=3)
+            .shell("block", outer=RectShape(p["w"], 0.13, n_width=4, n_height=4), n_radial=3))
     asm = Assembly(spec)
     asm.add(Straight(0.3, n_layers=2))
     return asm
@@ -218,7 +218,7 @@ def build(p):
 
 class TestJsonTemplate:
     def _network(self, tmp_path):
-        spec = PipeSpec(nang=4).core("fluid", radius=0.05, nrad=2)
+        spec = PipeSpec(n_arc=4).core("fluid", radius=0.05, n_radial=2)
         a = Assembly(spec)
         a.add(Straight(0.2, n_layers=3))
         a.add(Bend(radius=0.3, angle=90, n_layers=6))
@@ -328,7 +328,7 @@ PIPE = '''
 from hexmesh import Assembly, PipeSpec, Straight
 
 def build(p):
-    spec = PipeSpec(nang=4).core("fluid", radius=0.01, nrad=2)
+    spec = PipeSpec(n_arc=4).core("fluid", radius=0.01, n_radial=2)
     asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Straight(0.2, n_layers=p.get("n", 20)))
     return asm

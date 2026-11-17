@@ -83,10 +83,10 @@ GALLERY_COLOURS = {"oil": ("#3b2a1e", "dark brown"), "steel": ("#8e979f", "grey"
                    "coating": ("#2e75b6", "blue"), "insulation": ("#e8833a", "orange")}
 
 #: The flowline's section: oil, steel, coating, insulation.
-SPEC = (PipeSpec(nang=8).core("oil", radius=OD / 2 - WALL, nrad=4)
-        .shell("steel", dR=WALL, nrad=2)
-        .shell("coating", dR=COATING, nrad=1)
-        .shell("insulation", dR=INSULATION, nrad=2))
+SPEC = (PipeSpec(n_arc=8).core("oil", radius=OD / 2 - WALL, n_radial=4)
+        .shell("steel", dR=WALL, n_radial=2)
+        .shell("coating", dR=COATING, n_radial=1)
+        .shell("insulation", dR=INSULATION, n_radial=2))
 
 
 def seabed(x, y):

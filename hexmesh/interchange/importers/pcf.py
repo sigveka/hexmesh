@@ -250,8 +250,8 @@ class NetworkSpec:
 
     def to_assembly(self, spec, *, axial_cell: float | None = None,
                     kinks: str = "error", tol: float | None = None,
-                    lc: float | None = None, inlet=None, insulation: bool = False,
-                    insulation_nrad: int = 2):
+                    inlet=None, insulation: bool = False,
+                    insulation_n_radial: int = 2):
         """Build an ``hexmesh.assembly.Assembly`` from the components.
 
         The components form a graph, joined where their end points meet
@@ -317,13 +317,11 @@ class NetworkSpec:
             Default: ``TOL_RELATIVE`` × the model diagonal, at least the
             snap tolerance ``read_pcf`` was given (default ``TOL_FLOOR``,
             0.11").
-        lc : float, optional
-            Passed to ``Assembly``.
         inlet : str or 3-vector, optional
             The root: an open end's name or its point (metres).
         insulation : bool
             Add a shell named ``insulation`` (the pipeline's
-            ``INSULATION-THICKNESS``, ``insulation_nrad`` cells) to the
+            ``INSULATION-THICKNESS``, ``insulation_n_radial`` cells) to the
             spec of insulated components (``INSULATION ON``, or an
             ``INSULATION-ON`` / ``-SINGLE`` keypoint).  Where it starts or
             stops, the change is placed one cell inside the neighbouring
@@ -332,7 +330,7 @@ class NetworkSpec:
             straight neighbour, a junction that is insulated, or an
             insulated pipeline without ``INSULATION-THICKNESS`` raises
             ``AssemblyError``.  Off (the default), the spec alone decides.
-        insulation_nrad : int
+        insulation_n_radial : int
             Radial cells across the insulation shell.
 
         Equipment: an open end at an ``END-CONNECTION-EQUIPMENT`` (or
@@ -349,15 +347,15 @@ class NetworkSpec:
         from .._build import build
         model = self.to_model()
         try:
-            return build(model, spec, axial_cell=axial_cell, kinks=kinks, tol=tol, lc=lc,
-                         inlet=inlet, insulation=insulation, insulation_nrad=insulation_nrad)
+            return build(model, spec, axial_cell=axial_cell, kinks=kinks, tol=tol,
+                         inlet=inlet, insulation=insulation, insulation_n_radial=insulation_n_radial)
         finally:
             self.report = model.report
 
     def to_assemblies(self, spec, *, axial_cell: float | None = None,
                       kinks: str = "error", tol: float | None = None,
-                      lc: float | None = None, insulation: bool = False,
-                      insulation_nrad: int = 2) -> dict:
+                      insulation: bool = False,
+                      insulation_n_radial: int = 2) -> dict:
         """One ``Assembly`` per connected piece, for a file holding several
         pipelines that don't connect: ``hexmesh.interchange.build_pieces``
         on ``to_model()``.
@@ -376,7 +374,7 @@ class NetworkSpec:
         model = self.to_model()
         try:
             return build_pieces(model, spec, axial_cell=axial_cell, kinks=kinks, tol=tol,
-                                lc=lc, insulation=insulation, insulation_nrad=insulation_nrad)
+                                insulation=insulation, insulation_n_radial=insulation_n_radial)
         finally:
             self.report = model.report
 

@@ -20,7 +20,7 @@ the same quad rolled by Δθ, Δz further on: at radius ρ it is sheared by
 Jacobian and max non-orthogonality from the section's quads alone (three
 stations, pure numpy; ``section_quality.twist_quality``), and its
 largest face warp, and meshes it to compare, over Δθ ∈ {5…40}° (45° is half a circle's period: the corners are ambiguous),
-Δz / R ∈ {0.25, 0.5, 1, 2} and ``nrad`` ∈ {2, 3, 5}, at ``nang`` 8.
+Δz / R ∈ {0.25, 0.5, 1, 2} and ``n_radial`` ∈ {2, 3, 5}, at ``n_arc`` 8.
 
     python3 -m validation.tools.straight_twist       # from the repository root
 
@@ -43,15 +43,15 @@ OUT = ROOT / "validation" / "tools" / "straight_twist.json"
 R = 0.1
 TWISTS = (5, 10, 15, 20, 30, 40)          # per layer, degrees
 DZ = (0.25, 0.5, 1.0, 2.0)                # layer length over R
-NRADS = (2, 3, 5)
+N_RADIALS = (2, 3, 5)
 N_LAYERS = 4
 
 
-def spec_for(nrad: int, shells: int = 0):
+def spec_for(n_radial: int, shells: int = 0):
     from hexmesh.core.spec import PipeSpec
-    s = PipeSpec(nang=8).core("fluid", radius=R, nrad=nrad)
+    s = PipeSpec(n_arc=8).core("fluid", radius=R, n_radial=n_radial)
     for i in range(shells):
-        s = s.shell(f"s{i}", dR=0.1 * R, nrad=2)
+        s = s.shell(f"s{i}", dR=0.1 * R, n_radial=2)
     return s
 
 
@@ -66,7 +66,7 @@ def meshed(spec, dtheta: float, dz: float) -> tuple[float, float, float, int]:
     from hexmesh.assembly import Assembly, Straight
     from hexmesh.assembly.section_quality import face_warp
     from hexmesh.quality_hex import max_non_orthogonality, min_scaled_jacobians
-    asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1], lc=0.05)
+    asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Straight(N_LAYERS * dz, n_layers=N_LAYERS, twist=N_LAYERS * dtheta))
     with Session("twist"), warnings.catch_warnings():
         warnings.simplefilter("ignore")
@@ -84,17 +84,17 @@ def meshed(spec, dtheta: float, dz: float) -> tuple[float, float, float, int]:
 
 def main(argv=None) -> int:
     rows = {}
-    for nrad in NRADS:
-        spec = spec_for(nrad)
+    for n_radial in N_RADIALS:
+        spec = spec_for(n_radial)
         for dz in DZ:
             for tw in TWISTS:
-                key = f"nrad{nrad}-dz{dz:g}-tw{tw}"
+                key = f"n_radial{n_radial}-dz{dz:g}-tw{tw}"
                 psj, pno, pwarp = predicted(spec, tw, dz * R)
                 row = {"wall_shear_deg": round(math.degrees(math.atan(math.radians(tw) * R
                                                                        / (dz * R))), 2),
                        "predicted_min_sj": round(psj, 4), "predicted_nonorth": round(pno, 2),
                        "predicted_warp_deg": round(pwarp, 2)}
-                if nrad == 3 or tw in (15, 40):
+                if n_radial == 3 or tw in (15, 40):
                     try:
                         msj, mno, mwarp, cells = meshed(spec, tw, dz * R)
                         row.update(meshed_min_sj=round(msj, 4), meshed_nonorth=round(mno, 2),

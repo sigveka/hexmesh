@@ -25,7 +25,7 @@ are unchanged); `hexmesh.io.readers` is removed.  Meshes are unchanged.
   `Transition(outlet, *, length, …)`; `Tee`, `Wye`, `Switch`, `Closure`
   and `SplinePipe` take keywords only.  `PipeSpec(*, …)`,
   `.core(name, *, …)`, `.shell(name, *, …)`, `CircleShape(radius, *, …)`,
-  `RectShape(half_w, half_h, *, nang_w, nang_h)`; `Assembly(spec, *, …)`,
+  `RectShape(half_w, half_h, *, n_width, n_height)`; `Assembly(spec, *, …)`,
   `add(source, fitting, *, …)`, `close(source, target, fitting, *, …)`,
   `write(path, *, dim, …)`, `check_quality(quality_name, *, …)`;
   `Drum(name, *, …)`, `Nozzle(name, *, spec, location)`, `OnHead`,
@@ -47,6 +47,26 @@ are unchanged); `hexmesh.io.readers` is removed.  Meshes are unchanged.
 - **Limits** (README *Stability*): a limit's value and level may change
   in 1.x as measurements justify; tightening one is noted under
   *Behaviour*.
+
+**Names a reader understands** (task 0166, decision 0053).
+- **Breaking: the mesh-jargon names are renamed**, with no aliases:
+  `nang` → `n_arc`, `nang_w`/`nang_h` → `n_width`/`n_height`, `nrad` →
+  `n_radial`, `mprg` → `radial_grading`, `mbmp` → `arc_bump`, wherever
+  they appear: arguments, properties, the description's fields, the
+  schema, error fields and messages, the command line's JSON.  Names
+  built on them follow (`branch_mprg` → `branch_radial_grading`,
+  `insulation_nrad` → `insulation_n_radial`).
+- **Breaking: `lc` is removed** from `Assembly`, `Assembly.from_nozzle`,
+  `build`, `NetworkSpec.to_assembly` and `to_assemblies`.  It was gmsh's
+  characteristic length, which a structured mesh doesn't use: meshes are
+  unchanged.
+- **Breaking: error codes renamed:** `arcs_with_nang` →
+  `arcs_with_n_arc`, `nang_missing` → `n_arc_missing`,
+  `nang_not_divisible` → `n_arc_not_divisible`, `nrad_on_h_core` →
+  `n_radial_on_h_core`, `shell_nrad_missing` → `shell_n_radial_missing`.
+- Saved descriptions are version 3.  Older files still load: their
+  fields are renamed and `lc` is dropped (a test loads every example as
+  0.6 saved it).
 
 **Fixed: writing an assembly twice** (task 0163).
 - A second `write` or `write_openfoam` in the same session failed on a
@@ -107,15 +127,15 @@ are unchanged); `hexmesh.io.readers` is removed.  Meshes are unchanged.
 
 **Per-arc counts on a circle** (task 0147, decision 0041).
 - `CircleShape(radius, arcs=[a, b, a, b])`: each quadrant arc its own
-  count, instead of `nang`.  Such a circle meets a duct with
-  `nang_w = a`, `nang_h = b`, in a stack or through a `Transition`.
+  count, instead of `n_arc`.  Such a circle meets a duct with
+  `n_width = a`, `n_height = b`, in a stack or through a `Transition`.
 - `Straight`, `Bend`, `Reducer` and `Transition` take it; every other
   fitting raises `arcs_unsupported`, naming itself.  Opposite arcs must
   be equal (`arc_counts_not_opposite`), on `n_outer = 4`.
-- The arcs are density, like a duct's `nang_w`/`nang_h`: `refined(k)`
+- The arcs are density, like a duct's `n_width`/`n_height`: `refined(k)`
   multiplies every arc, and the signature is that of an O-H rectangle
   with the same counts.
-- Saved as `"arcs": [a, b, a, b]` in place of `"nang"`.  Descriptions
+- Saved as `"arcs": [a, b, a, b]` in place of `"n_arc"`.  Descriptions
   without it load and save unchanged.
 
 **The volunteer command line, for people** (task 0160).

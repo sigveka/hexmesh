@@ -20,9 +20,9 @@ Quick start
     from hexmesh import Assembly, Bend, CircleShape, PipeSpec, Session, Straight
 
     pipe = (
-        PipeSpec(nang=4)
-        .core("fluid",      shape=CircleShape(radius=0.1, nang=4), nrad=4)
-        .shell("pipe_wall", dR=0.01, nrad=2)
+        PipeSpec(n_arc=4)
+        .core("fluid",      shape=CircleShape(radius=0.1, n_arc=4), n_radial=4)
+        .shell("pipe_wall", dR=0.01, n_radial=2)
     )
 
     with Session("elbow"):

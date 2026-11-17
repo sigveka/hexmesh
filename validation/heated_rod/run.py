@@ -21,7 +21,7 @@ convection, so it tests the O-H cross-section on its own:
     hexmesh Assembly → write_openfoam → gmshToFoam → checkMesh
     → laplacianFoam (scalarSemiImplicitSource) → post-processing in Python
 
-Two series of five levels (``nang`` 6 → 96, ``nrad`` = ``nang`` / 2):
+Two series of five levels (``n_arc`` 6 → 96, ``n_radial`` = ``n_arc`` / 2):
 uniform, and radially graded (``first_cell`` = 0.05 R at the coarsest
 level, refined by ``Assembly.refined``, so each coarse cell splits into
 cells of the same growth).  The axial count stays at 2: the problem is
@@ -90,7 +90,7 @@ def t_exact(r):
     return T_W + SU * (R**2 - np.asarray(r) ** 2) / (4 * DT)
 
 
-BASE = dict(nang=6, nrad=3, n_layers=2)
+BASE = dict(n_arc=6, n_radial=3, n_layers=2)
 FIRST_CELL = 0.05 * R      # graded series, coarsest level
 LEVELS = (1, 2, 4, 8, 16)
 SERIES = ("uniform", "graded")
@@ -100,7 +100,7 @@ def assembly(series: str, k: int) -> Assembly:
     """Level *k* of *series*: the coarse rod refined k× across the section
     (``Assembly.refined``), with the axial count put back to 2."""
     extra = {"first_cell": FIRST_CELL} if series == "graded" else {}
-    spec = PipeSpec(nang=BASE["nang"]).core("rod", radius=R, nrad=BASE["nrad"], **extra)
+    spec = PipeSpec(n_arc=BASE["n_arc"]).core("rod", radius=R, n_radial=BASE["n_radial"], **extra)
     asm = Assembly(spec, position=[0, 0, 0], direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Straight(LENGTH, n_layers=BASE["n_layers"]), names=["outlet"])
     d = intent.refined_dict(asm.to_dict(), k)
@@ -112,8 +112,8 @@ def assembly(series: str, k: int) -> Assembly:
 def meshes():
     """(label, caption, build) per mesh shown in README.md
     (``docs/gallery/build.py --validation``)."""
-    return [(f"{series}-{k}", f"{series}, k = {k}: nang {BASE['nang'] * k}, "
-                              f"nrad {BASE['nrad'] * k}",
+    return [(f"{series}-{k}", f"{series}, k = {k}: n_arc {BASE['n_arc'] * k}, "
+                              f"n_radial {BASE['n_radial'] * k}",
              lambda s=series, k=k: assembly(s, k))
             for series, k in (("uniform", 1), ("graded", 1), ("uniform", 4))]
 
@@ -269,8 +269,8 @@ def run_level(series: str, k: int, work: Path, end_time: int) -> dict:
     solve = pois.foam("laplacianFoam", case, "log.laplacianFoam")
     res = [float(v) for v in re.findall(r"Initial residual = ([\d.e+-]+)", solve)]
     out = {
-        "series": series, "k": k, "nang": spec.nang, "nrad": spec._core_nrad,
-        "mprg": spec._core_mprg, "cells": cells,
+        "series": series, "k": k, "n_arc": spec.n_arc, "n_radial": spec._core_n_radial,
+        "radial_grading": spec._core_radial_grading, "cells": cells,
         "cells_foam": int(re.search(r"cells:\s+(\d+)", check).group(1)),
         "mesh_ok": "Mesh OK." in check,
         "min_scaled_jacobian": sj,
@@ -309,12 +309,12 @@ def analyse(rows: list[dict]) -> dict:
 
 
 def table(rows: list[dict]) -> str:
-    lines = ["| series | nang | nrad | cells | Mesh OK | max non-orth. (°) | max skewness "
+    lines = ["| series | n_arc | n_radial | cells | Mesh OK | max non-orth. (°) | max skewness "
              "| energy balance | ΔT₀ error | L2 error | max error (at r/R) |",
              "|---|---|---|---|---|---|---|---|---|---|---|"]
     for r in rows:
         lines.append(
-            f"| {r['series']} | {r['nang']} | {r['nrad']} | {r['cells']} | {r['mesh_ok']} "
+            f"| {r['series']} | {r['n_arc']} | {r['n_radial']} | {r['cells']} | {r['mesh_ok']} "
             f"| {r['max_non_orthogonality']:.1f} | {r['max_skewness']:.3f} "
             f"| {r['energy_err']:.1e} | {r['dt0_err_signed']:+.4%} | {r['l2_err']:.3e} "
             f"| {r['max_err']:.3e} ({r['max_err_r']:.2f}) |")

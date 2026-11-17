@@ -33,7 +33,7 @@ Meshes go to `validation/fenicsx_second_order/work/` (git-ignored), or
 | Error | ‖u − u_m‖ in L2 relative to ‖u_m‖, and the H1 seminorm, quadrature degree 8 |
 | Levels | `refined(k)`, k = 1, 2, 4 (8× the cells per level) |
 
-## Cases (`R` = 0.05 m, `nang` 6, `nrad` 3 at k = 1)
+## Cases (`R` = 0.05 m, `n_arc` 6, `n_radial` 3 at k = 1)
 
 `straight` (8 R), `bend` (2 R, a 90° bend of radius 3 R, 2 R) and `tee`
 (r/R 0.5, branch 4 R, 2 R runs).  The wye and the equal tee are skipped:

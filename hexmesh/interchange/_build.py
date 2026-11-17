@@ -357,8 +357,8 @@ def _split_hosts(comps, labels, tol, seton_run):
 
 
 def build(model: NetworkModel, spec, *, selection=None, axial_cell: float | None = None,
-          kinks: str = "error", tol: float | None = None, lc: float | None = None,
-          inlet=None, insulation: bool = False, insulation_nrad: int = 2):
+          kinks: str = "error", tol: float | None = None,
+          inlet=None, insulation: bool = False, insulation_n_radial: int = 2):
     """Build an ``hexmesh.assembly.Assembly`` from a network model.
 
     The parts form a graph, joined where their ports meet (within *tol*),
@@ -417,8 +417,8 @@ def build(model: NetworkModel, spec, *, selection=None, axial_cell: float | None
     _reject_unsupported(comps)
     terminals = [t for t in model.parts.values() if isinstance(t, Terminal)
                  and (selection is None or t.id in selection)]
-    asm, report = _build(model, comps, terminals, spec, axial_cell, kinks, tol, lc, inlet,
-                         insulation, insulation_nrad)
+    asm, report = _build(model, comps, terminals, spec, axial_cell, kinks, tol, inlet,
+                         insulation, insulation_n_radial)
     report["tol_source"] = source
     if selection is not None:
         report["selection"] = {"parts": sorted(selection),
@@ -428,8 +428,8 @@ def build(model: NetworkModel, spec, *, selection=None, axial_cell: float | None
 
 
 def build_pieces(model: NetworkModel, spec, *, axial_cell: float | None = None,
-                 kinks: str = "error", tol: float | None = None, lc: float | None = None,
-                 insulation: bool = False, insulation_nrad: int = 2) -> dict:
+                 kinks: str = "error", tol: float | None = None,
+                 insulation: bool = False, insulation_n_radial: int = 2) -> dict:
     """One ``Assembly`` per connected piece of *model*: ``build`` with a
     selection per piece (same options; the root is chosen per piece).
 
@@ -461,8 +461,8 @@ def build_pieces(model: NetworkModel, spec, *, axial_cell: float | None = None,
             name, n = f"{pipe or f'piece{k}'}_{n}", n + 1
         try:
             out[name], reports[name] = _build(
-                model, _comps(model, ids), terms, spec, axial_cell, kinks, tol, lc, None,
-                insulation, insulation_nrad, ignored={})
+                model, _comps(model, ids), terms, spec, axial_cell, kinks, tol, None,
+                insulation, insulation_n_radial, ignored={})
         except AssemblyError as e:
             raise AssemblyError.wrap(e, f"{name}: {e}",
                                      code="network_piece_invalid", label=name) from None
@@ -471,8 +471,8 @@ def build_pieces(model: NetworkModel, spec, *, axial_cell: float | None = None,
     return out
 
 
-def _build(model, comps, terminals, spec, axial_cell, kinks, tol, lc, inlet, insulation,
-           insulation_nrad, ignored=None):
+def _build(model, comps, terminals, spec, axial_cell, kinks, tol, inlet, insulation,
+           insulation_n_radial, ignored=None):
     """Build *comps* (from ``_comps``; checked) and return ``(Assembly, report)``."""
     from ..assembly import AssemblyError
     report = {"ignored": model.report.get("ignored", {}) if ignored is None else ignored}
@@ -496,7 +496,7 @@ def _build(model, comps, terminals, spec, axial_cell, kinks, tol, lc, inlet, ins
         from ..assembly.interface import Frame
         from ..assembly.limits import TEE_MAX_OFFSET_RATIO
         base = spec(host.sec) if callable(spec) else spec
-        main = _dressed(base, t_j, insulation_nrad) if insulation else base
+        main = _dressed(base, t_j, insulation_n_radial) if insulation else base
         R = _radius(main)
         rb = _branch_radius(spec, R, j_c.branch_sec, host.bore)
         if not rb < R:             # the junction rejects it, naming the radii
@@ -530,20 +530,20 @@ def _build(model, comps, terminals, spec, axial_cell, kinks, tol, lc, inlet, ins
     equipment = _equipment_ends(model, terminals, parts, nodes, names, tol,
                                 lambda p: _describe(p.comp, p.label))
     root = _choose_root(parts, nodes, names, inlet, tol)
-    ins = {"on": bool(insulation), "nrad": insulation_nrad, "equipment": equipment}
+    ins = {"on": bool(insulation), "n_radial": insulation_n_radial, "equipment": equipment}
 
     roll = 0.0
     for _ in range(2):
         try:
             asm = _place(report, parts, nodes, at_node, names, root, spec, axial_cell,
-                         kinks, tol, lc, roll, reroll=(roll == 0.0), ins=ins)
+                         kinks, tol, roll, reroll=(roll == 0.0), ins=ins)
             return asm, report
         except _Reroll as r:
             roll = r.miss
     raise AssertionError("unreachable")
 
 
-def _place(report, parts, nodes, at_node, names, root, spec, axial_cell, kinks, tol, lc,
+def _place(report, parts, nodes, at_node, names, root, spec, axial_cell, kinks, tol,
            roll, reroll, ins):
     """Place the network from *root* (part, port, node), depth first."""
     from ..assembly import Assembly, AssemblyError, Tee, Wye
@@ -555,12 +555,12 @@ def _place(report, parts, nodes, at_node, names, root, spec, axial_cell, kinks, 
     current = base = spec(first.sec) if callable(spec) else spec
     if ins["on"]:
         t0 = first.ins_junction if first.kind in ("tee", "wye") else first.ins[0]
-        current = _dressed(current, t0, ins["nrad"])
+        current = _dressed(current, t0, ins["n_radial"])
     d0 = (_unit(first.end - first.start) if first.kind == "tee"
           else _unit(first.centre - first.start) if first.kind == "wye"
           else _start_direction(first))
     up0 = rotate(_perpendicular(d0), d0, math.radians(roll))
-    asm = Assembly(current, position=first.start, direction=d0, up=up0, lc=lc,
+    asm = Assembly(current, position=first.start, direction=d0, up=up0,
                    axial_cell=axial_cell or outer_radius(base),
                    **({"inlet_name": names[n0]} if names.get(n0) else {}))
     asm.inlet.equipment = n0 in ins["equipment"]
@@ -829,7 +829,7 @@ def _place_chain(asm, iface, chain, end_dir, spec, kinks, tol, ins, to_junction,
             ax, lat = along(frame, c.end)
             report["max_offset"] = max(report["max_offset"], lat)
             switch = None if uniform(k) else _stack_changes(
-                plan[k][2], ax, asm.axial_cell, iface.spec, ins["nrad"])
+                plan[k][2], ax, asm.axial_cell, iface.spec, ins["n_radial"])
             if switch is None:
                 iface = asm.add(iface, Straight(ax), label=lab, origin=_source(c) or None)
             else:
@@ -869,7 +869,7 @@ def _place_chain(asm, iface, chain, end_dir, spec, kinks, tol, ins, to_junction,
             if callable(spec):
                 outlet = spec(c.end_sec)
                 if ins["on"]:
-                    outlet = _dressed(outlet, _thickness(iface.spec), ins["nrad"])
+                    outlet = _dressed(outlet, _thickness(iface.spec), ins["n_radial"])
             else:
                 cur = iface.spec
                 radii = [_radius(cur) * c.end_bore / c.bore] + [sh.dR for sh in cur.shells]

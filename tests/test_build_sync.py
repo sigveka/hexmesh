@@ -12,7 +12,7 @@ import pytest
 import test_fitting_conformance as kit
 from hexmesh import Assembly, Bend, PipeSpec, Straight, _occ
 
-SPEC = PipeSpec(nang=4).core("fluid", radius=0.05, nrad=2)
+SPEC = PipeSpec(n_arc=4).core("fluid", radius=0.05, n_radial=2)
 
 
 @pytest.fixture

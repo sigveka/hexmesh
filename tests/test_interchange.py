@@ -34,7 +34,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def _spec(bore=0.1):
-    return PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=bore / 2, nang=4), nrad=3)
+    return PipeSpec(n_arc=4).core("fluid", shape=CircleShape(radius=bore / 2, n_arc=4), n_radial=3)
 
 
 def _line(model=None, system="L-1"):

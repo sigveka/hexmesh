@@ -17,10 +17,10 @@ from hexmesh import (Assembly, Elbow, MiterBend, PipeSpec, Reducer,
 
 
 def pipe(radius: float) -> PipeSpec:
-    return (PipeSpec(nang=6)
-            .core("fluid", radius=radius, nrad=6, first_cell=0.1 * radius)
-            .shell("steel", dR=0.006, nrad=2)
-            .shell("insulation", dR=0.04, nrad=3, mprg=1.2))
+    return (PipeSpec(n_arc=6)
+            .core("fluid", radius=radius, n_radial=6, first_cell=0.1 * radius)
+            .shell("steel", dR=0.006, n_radial=2)
+            .shell("insulation", dR=0.04, n_radial=3, radial_grading=1.2))
 
 
 def build() -> Assembly:

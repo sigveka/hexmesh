@@ -149,7 +149,7 @@ class TestMeshed:
         """A 35° lateral at r/R 0.9: predicted 69.7°, meshed 72.8°."""
         from hexmesh.core.spec import PipeSpec
         asm = _tee(0.9, angle=35,
-                   spec=PipeSpec(nang=4).core("fluid", radius=0.1, nrad=3))
+                   spec=PipeSpec(n_arc=4).core("fluid", radius=0.1, n_radial=3))
         found = self._mesh(asm)
         assert len(found) == 1 and "meshed non-orthogonality 72." in found[0]
         assert "OUTLINE_NONORTH_WARN" in found[0] and "larger branch ratio" in found[0]

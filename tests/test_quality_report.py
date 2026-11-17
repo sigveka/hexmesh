@@ -56,7 +56,7 @@ class TestMetrics:
 
 @pytest.fixture
 def tee_assembly(gmsh_session):
-    spec = PipeSpec(nang=6).core("fluid", radius=0.1, nrad=5)
+    spec = PipeSpec(n_arc=6).core("fluid", radius=0.1, n_radial=5)
     asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1])
     asm.add(Straight(0.3, n_layers=4))
     main, branch = asm.add(Tee(run_length=0.2, branch_length=0.25, branch_radius=0.06))

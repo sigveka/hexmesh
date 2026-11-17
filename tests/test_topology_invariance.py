@@ -35,11 +35,11 @@ _HEX_EDGES = [(0, 1), (1, 2), (2, 3), (3, 0), (4, 5), (5, 6), (6, 7), (7, 4),
 
 
 def _one(radius=0.1):
-    return PipeSpec(nang=4).core("fluid", shape=CircleShape(radius=radius, nang=4), nrad=3)
+    return PipeSpec(n_arc=4).core("fluid", shape=CircleShape(radius=radius, n_arc=4), n_radial=3)
 
 
 def _two(radius=0.1):
-    return _one(radius).shell("wall", dR=0.025, nrad=2)
+    return _one(radius).shell("wall", dR=0.025, n_radial=2)
 
 
 R_OUT = 0.125   # outer radius of _two()
@@ -121,7 +121,7 @@ def _isomorphic(a, b):
 
 def _sbs(spec, fitting):
     def build():
-        asm = Assembly(spec, lc=0.1)
+        asm = Assembly(spec)
         asm.add(Straight(0.2, n_layers=3))
         asm.add(fitting)
         asm.add(Straight(0.2, n_layers=3))
@@ -131,7 +131,7 @@ def _sbs(spec, fitting):
 
 def _tee(ratio):
     def build():
-        asm = Assembly(_one(), direction=[1, 0, 0], up=[0, 0, 1], lc=0.1)
+        asm = Assembly(_one(), direction=[1, 0, 0], up=[0, 0, 1])
         asm.add(Straight(0.2, n_layers=3))
         main, branch = asm.add(Tee(run_length=0.2, branch_length=0.25, branch_radius=ratio * 0.1))
         asm.add(main, Straight(0.2, n_layers=3))
