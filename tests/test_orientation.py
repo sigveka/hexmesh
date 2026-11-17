@@ -55,13 +55,13 @@ def _wye(**kw):
 # ---------------------------------------------------------------------------
 
 def test_port_names_declared():
-    assert Tee.port_names == ("main", "branch")
+    assert Tee.port_names == ("run", "branch")
     assert Wye.port_names == ("left", "right")
     assert Straight.port_names == ("outlet",)
 
 
 @pytest.mark.parametrize("fitting, as_list, as_dict", [
-    (_tee(), ["run", "tap"], {"branch": "tap", "main": "run"}),
+    (_tee(), ["run", "tap"], {"branch": "tap", "run": "run"}),
     (_wye(), ["l", "r"], {"right": "r", "left": "l"}),
     (Straight(0.2, n_layers=2), ["end"], {"outlet": "end"}),
 ])
@@ -83,7 +83,7 @@ def test_partial_dict_names_only_those():
 
 def test_wrong_port_name_lists_valid_ones():
     a = Assembly(_pipe())
-    with pytest.raises(AssemblyError, match="main, branch") as exc:
+    with pytest.raises(AssemblyError, match="run, branch") as exc:
         a.add(_tee(), names={"side": "tap"})
     assert "'side'" in str(exc.value)
 

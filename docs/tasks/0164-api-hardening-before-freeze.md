@@ -151,6 +151,9 @@ deprecation shims.
   fast part in one run, the slow files one at a time (fitting
   conformance 1052, refined 1041 + 14 skipped, second order 46, msh
   recipe 54, examples 39, h examples 6, units 12).
+  Correction (2026-11-17): three tests in `test_orientation.py` still
+  expected the tee's port named `main`; my fast sweep had missed them.
+  Fixed in the next commit.
 - **Examples unchanged:** all 35 examples give byte-identical meshes
   (recipe block left out) and identical saved descriptions, against a
   worktree at fcb5d42.
