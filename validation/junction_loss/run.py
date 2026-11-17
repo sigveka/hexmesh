@@ -43,11 +43,16 @@ the cells.  Steady `simpleFoam`.
 **Coefficients** (their eqs. 5, 8, 15, 16).  The static pressure of
 each branch is area-averaged per axial cell layer, at stations
 STATIONS from the junction centre.  It is carried back to the centre
-along the fully developed friction gradient f(Re_i) v_i² / (2 D), with
-McKeon's f (task 0049 validated it, within 5 % with this wall
-function).  The friction part (ξ_PF, ξ_MFb) is thereby removed, so
-ξ_PG and ξ_MGb follow directly; ξ_MGb takes the total branch's pressure
-as 0.  A straight-line fit of the same stations is reported as a check.
+along the solution's own friction gradient: a straight line through
+the stations, as the paper does for its CFD ("in case of numerical
+solution they are evaluated from the numerical solution", §3).  The
+friction part (ξ_PF, ξ_MFb) is thereby removed, so ξ_PG and ξ_MGb follow
+directly; ξ_MGb takes the total branch's pressure as 0.
+
+The experiment's way, the developed gradient f(Re_i) v_i² / (2 D) with
+McKeon's f in place of the measured one, is reported beside it
+(``xi_PG_mckeon``, ``xi_MGb_mckeon``), never gated.  It was the compared
+value until 2026-11-17 (task 0162's notes).
 """
 
 from __future__ import annotations
@@ -381,17 +386,17 @@ def coefficients(g: dict, p: np.ndarray, flows: dict, total: str, re: float) -> 
     qv = {b: flows[b] * q_total for b in PATCH}
     vx, qx = v[total], abs(qv[total])
     power = sum((0.5 * v[b] ** 2 + pr[b]) * qv[b] for b in PATCH)
-    xi_pg = -2 * power / (vx ** 2 * qx)
+    xi_pg_mckeon = -2 * power / (vx ** 2 * qx)
     cg = math.cos(math.radians(GAMMA))
-    xi_mgb = ((v["a"] ** 2 + pr["a"]) - (v["b"] ** 2 + pr["b"])
-              - (v["c"] ** 2 + pr["c"]) * cg) / vx ** 2
-    # the same from the straight-line fits, as a check
+    xi_mgb_mckeon = ((v["a"] ** 2 + pr["a"]) - (v["b"] ** 2 + pr["b"])
+                     - (v["c"] ** 2 + pr["c"]) * cg) / vx ** 2
+    # the compared value: the solution's own gradient, the straight-line fits (§3)
     prf = {b: fit[b]["intercept"] - fit[total]["intercept"] for b in PATCH}
-    xi_pg_fit = -2 * sum((0.5 * v[b] ** 2 + prf[b]) * qv[b] for b in PATCH) / (vx ** 2 * qx)
-    xi_mgb_fit = ((v["a"] ** 2 + prf["a"]) - (v["b"] ** 2 + prf["b"])
-                  - (v["c"] ** 2 + prf["c"]) * cg) / vx ** 2
-    out.update(xi_PG=xi_pg, xi_MGb=xi_mgb, xi_PG_fit=xi_pg_fit, xi_MGb_fit=xi_mgb_fit,
-               centre_p=pr, fit=fit)
+    xi_pg = -2 * sum((0.5 * v[b] ** 2 + prf[b]) * qv[b] for b in PATCH) / (vx ** 2 * qx)
+    xi_mgb = ((v["a"] ** 2 + prf["a"]) - (v["b"] ** 2 + prf["b"])
+              - (v["c"] ** 2 + prf["c"]) * cg) / vx ** 2
+    out.update(xi_PG=xi_pg, xi_MGb=xi_mgb, xi_PG_mckeon=xi_pg_mckeon,
+               xi_MGb_mckeon=xi_mgb_mckeon, centre_p=prf, centre_p_mckeon=pr, fit=fit)
     return out
 
 
@@ -478,7 +483,7 @@ def collect_point(case: Path) -> dict:
     series = [coefficients(g, pi, flows, total, reynolds) for pi in ps]
     p_mean = np.mean(ps, axis=0)
     res = coefficients(g, p_mean, flows, total, reynolds)
-    coefs = ("xi_PG", "xi_MGb")
+    coefs = ("xi_PG", "xi_MGb", "xi_PG_mckeon", "xi_MGb_mckeon")
     spread = {f"{c}_spread": float(np.std([s[c] for s in series], ddof=1))
               if len(series) > 1 else None for c in coefs}
     drift = {c: series[-1][c] - series[0][c] for c in coefs} if len(series) > 1 else None
@@ -618,7 +623,8 @@ def main(argv=None) -> dict:
     store.put_extra("references", {
         "coefficients": "Štigler, Klas & Šperka (2014), figures 5, 6, 9-12, 15, 16, "
                         "digitised (reference/stigler_2014.csv, CC-BY 2.0)",
-        "friction": "McKeon, Zagarola & Smits (2005) eq. 3.5"})
+        "friction": "the solution's own gradient (the paper's §3); McKeon, Zagarola & "
+                    "Smits (2005) eq. 3.5 for the *_mckeon variant"})
     points = args.points or [(c, q) for c in CONFIGS for q in QS]
     for config, q in points:
         for k in args.levels:
@@ -629,8 +635,8 @@ def main(argv=None) -> dict:
                                      args.window, args.samples, args.model),
                                  args.work / name, args.keep_work)
             print(f"[{name}] ξ_PG {r['xi_PG']:.4f} ± {r['xi_PG_spread'] or 0:.4f} "
-                  f"(fit {r['xi_PG_fit']:.4f}), ξ_MGb {r['xi_MGb']:.4f} "
-                  f"± {r['xi_MGb_spread'] or 0:.4f} (fit {r['xi_MGb_fit']:.4f}), "
+                  f"(McKeon {r['xi_PG_mckeon']:.4f}), ξ_MGb {r['xi_MGb']:.4f} "
+                  f"± {r['xi_MGb_spread'] or 0:.4f} (McKeon {r['xi_MGb_mckeon']:.4f}), "
                   f"steps {r['steps']}, converged {r['converged']}", flush=True)
     rich = analyse(store.levels())
     if rich:
