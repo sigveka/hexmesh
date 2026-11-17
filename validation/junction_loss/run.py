@@ -427,12 +427,12 @@ def point_name(config: str, q: float, k: int, re: float = RE, model: str = "sst"
     return f"{config}_q{q:.1f}_k{k}{tail}" + ("" if model == "sst" else f"_{model}")
 
 
-def run_point(config: str, q: float, k: int, work: Path, end_time: int, n_proc: int,
-              reynolds: float = RE, window: int = 1000, samples: int = 10,
-              model: str = "sst") -> dict:
+def prepare_point(case: Path, config: str, q: float, k: int, end_time: int,
+                  reynolds: float = RE, window: int = 1000, samples: int = 10,
+                  model: str = "sst") -> dict:
+    """Mesh one point into *case*, write its OpenFoam case and check the
+    mesh; what :func:`collect_point` needs is saved as ``point.json``."""
     total, pressure, flows_of = CONFIGS[config]
-    flows = flows_of(q)
-    case = work / point_name(config, q, k, reynolds, model)
     if case.exists():
         shutil.rmtree(case)
     case.mkdir(parents=True)
@@ -445,11 +445,25 @@ def run_point(config: str, q: float, k: int, work: Path, end_time: int, n_proc: 
         sj = asm.check_quality("scaled_jacobian").worst
     area = math.pi * R ** 2
     # the last samples + 1 writes span the last *window* iterations
-    write_case(case, {b: f * U_TOTAL * area for b, f in flows.items()}, pressure, area,
+    write_case(case, {b: f * U_TOTAL * area for b, f in flows_of(q).items()}, pressure, area,
                end_time, max(window // samples, 1), samples + 1, reynolds, model)
     of.convert(case, msh, keep_orientation=sj > 0)
-    check = of.check_mesh(case)
-    log = of.run_solver(case, "simpleFoam", n_proc=n_proc)
+    point = {"config": config, "q": q, "k": k, "re": reynolds, "model": model,
+             "window": window, "cells": cells, "worst_sj": sj,
+             **{f"check_{key}": v for key, v in of.check_mesh(case).items()},
+             **stored.counts(asm)}
+    (case / "point.json").write_text(json.dumps(point, indent=1), encoding="utf-8")
+    return point
+
+
+def collect_point(case: Path) -> dict:
+    """The coefficients of a solved point (:func:`prepare_point`, then
+    ``simpleFoam``), averaged over its window."""
+    point = json.loads((case / "point.json").read_text(encoding="utf-8"))
+    config, q, reynolds, window = point["config"], point["q"], point["re"], point.pop("window")
+    total, _, flows_of = CONFIGS[config]
+    flows = flows_of(q)
+    log = (case / "log.simpleFoam").read_text(encoding="utf-8", errors="replace")
     steps = [int(s) for s in re.findall(r"^Time = (\d+)", log, re.M)]
     g = geometry(case)
     last = float(of.latest_time(case).name)
@@ -468,14 +482,20 @@ def run_point(config: str, q: float, k: int, work: Path, end_time: int, n_proc: 
     spread = {f"{c}_spread": float(np.std([s[c] for s in series], ddof=1))
               if len(series) > 1 else None for c in coefs}
     drift = {c: series[-1][c] - series[0][c] for c in coefs} if len(series) > 1 else None
-    return {"config": config, "q": q, "k": k, "re": reynolds, "model": model,
-            "cells": cells, "worst_sj": sj,
-            **{f"check_{key}": v for key, v in check.items()}, **stored.counts(asm),
-            "steps": steps[-1] if steps else 0,
+    return {**point, "steps": steps[-1] if steps else 0,
             "converged": "solution converged in" in log, "drift": drift, **res, **spread,
             "window": {"steps": [float(d.name) for d in times],
                        **{c: [s[c] for s in series] for c in coefs}},
             "profile": profile(g, p_mean, flows, reynolds)}
+
+
+def run_point(config: str, q: float, k: int, work: Path, end_time: int, n_proc: int,
+              reynolds: float = RE, window: int = 1000, samples: int = 10,
+              model: str = "sst") -> dict:
+    case = work / point_name(config, q, k, reynolds, model)
+    prepare_point(case, config, q, k, end_time, reynolds, window, samples, model)
+    of.run_solver(case, "simpleFoam", n_proc=n_proc)
+    return collect_point(case)
 
 
 # --- the reference and the gates ---------------------------------------------------
