@@ -19,6 +19,7 @@ mesh (node count, element count, physical group names).
 """
 
 import json
+import math
 from pathlib import Path
 
 import gmsh
@@ -170,6 +171,26 @@ def test_an_unknown_version_fails_naming_it(version):
 V2_EXAMPLES = Path(__file__).parent / "data" / "examples_v2.json"
 
 
+def _same(a, b, path="") -> list[str]:
+    """Where *a* and *b* differ, numbers compared to 1e-9 (relative) and
+    1e-15 (absolute): the fixture was saved on one machine, and a pose
+    computed on another can differ in its last bit."""
+    if isinstance(a, dict) and isinstance(b, dict):
+        if a.keys() != b.keys():
+            return [f"{path}: keys {sorted(a.keys() ^ b.keys())}"]
+        return [d for k in a for d in _same(a[k], b[k], f"{path}.{k}")]
+    if isinstance(a, list) and isinstance(b, list):
+        if len(a) != len(b):
+            return [f"{path}: length {len(a)} != {len(b)}"]
+        return [d for k, (x, y) in enumerate(zip(a, b)) for d in _same(x, y, f"{path}[{k}]")]
+    if isinstance(a, float) or isinstance(b, float):
+        ok = (isinstance(a, (int, float)) and isinstance(b, (int, float))
+              and not isinstance(a, bool) and not isinstance(b, bool)
+              and math.isclose(a, b, rel_tol=1e-9, abs_tol=1e-15))
+        return [] if ok else [f"{path}: {a!r} != {b!r}"]
+    return [] if a == b else [f"{path}: {a!r} != {b!r}"]
+
+
 @pytest.mark.parametrize("name", sorted(json.loads(V2_EXAMPLES.read_text(encoding="utf-8"))))
 def test_version_2_example_loads_as_today(name, gmsh_session):
     """Every example's description as 0.7 saved it (``nang``, ``nrad``,
@@ -179,7 +200,7 @@ def test_version_2_example_loads_as_today(name, gmsh_session):
     assert old["version"] == 2
     loaded = Assembly.from_dict(old).to_dict()
     today = importlib.import_module("hexmesh.examples." + name).build().to_dict()
-    assert loaded == today
+    assert _same(loaded, today) == []
     assert loaded["version"] == intent.VERSION == 3
 
 

@@ -103,7 +103,7 @@
    "gates": [
     {
      "limit": "each value within u_measured + T of the measured point (reference/stigler_2014.csv), where T is the largest |CFD − measured| of the paper's own CFD over the five q: Div a ξ_PG 0.02, ξ_MGb 0.015; Com a ξ_PG 0.055, ξ_MGb 0.035; Div c ξ_PG 0.30, ξ_MGb 0.03; Com c ξ_PG 0.07, ξ_MGb 0.02. The case passes when every value passes; the pass count per curve is reported",
-     "quantity": "geometry coefficients ξ_PG (eq. 15) and ξ_MGb (eq. 16) at γ = 90°, configurations Div a, Com a, Div c, Com c, q = 0.2, 0.4, 0.6, 0.8, 1.0 (40 values, 20 flow points), finest level, Re 10⁵ on the combined branch"
+     "quantity": "geometry coefficients ξ_PG (eq. 15) and ξ_MGb (eq. 16) at γ = 90°, configurations Div a, Com a, Div c, Com c, q = 0.2, 0.4, 0.6, 0.8, 1.0 (40 values, 20 flow points), finest level, Re 10⁵ on the combined branch; each branch's pressure carried to the centre along the solution's own gradient (a line through the stations 10–18 D), as the paper's CFD does (§3); the developed McKeon gradient, the experiment's way, reported beside it"
     },
     {
      "limit": "Richardson status converging; order, extrapolation and GCI reported",
