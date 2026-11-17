@@ -289,6 +289,36 @@ intersections (decision 0045).
     solved unsteady; no Re given.
   - SST k = 3 started 11:46, alone.
 
+- **2026-11-17, correction: the compared value is the solution's own
+  gradient** (the design session's decision, after the note above).
+  - Step 5 asks for the coefficients "as the paper's definition
+    requires".  The paper's §3: the friction gradients Δp₁ "can be
+    obtained either by experimental way or by using some empirical
+    formula … They were measured before the measurement of the T-junction
+    started.  In case of numerical solution they are evaluated from the
+    numerical solution."  The McKeon gradient was the experiment's way
+    applied to CFD: a misreading of the definition, not a choice.
+  - **Made after seeing results**, and it moves ξ_PG toward the
+    measurement.  It is a correction anyway: the definition fixes the
+    method, and the paper's own CFD, whose error sets T, used it.  The
+    gates, the stations (10-18 D) and the line through them are
+    unchanged; the McKeon value stays in results.json beside it.
+  - `run.py`: `xi_PG`/`xi_MGb` are now the line-fit values (the earlier
+    `*_fit`); `xi_PG_mckeon`/`xi_MGb_mckeon` hold the McKeon ones, with
+    their own spread and drift.  `case.json`'s first gate names the
+    method.  Results stored before this (k = 1, 2, and the k = 3 run,
+    which uses the code frozen at its start) have the old keys and are
+    mapped when analysed.
+
+    | Div a, q = 0.6 | ξ_PG own gradient | ξ_PG McKeon | ξ_MGb own gradient | ξ_MGb McKeon |
+    |---|---|---|---|---|
+    | k = 1, SST | 0.672 | 0.724 | 0.438 | 0.461 |
+    | k = 2, SST | 0.616 | 0.672 | 0.449 | 0.469 |
+    | k = 2, realizable k–ε | 0.575 | 0.667 | 0.432 | 0.472 |
+
+  - The k = 3 reading (band 0.44-0.56 for ξ_PG, 0.387-0.487 for ξ_MGb)
+    is applied to the own-gradient values.
+
 ## Questions for design
 
 - **Q1 (2026-11-15, coding session). hexmesh can't mesh the 45° equal
