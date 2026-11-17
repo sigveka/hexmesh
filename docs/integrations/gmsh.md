@@ -740,6 +740,51 @@ tee).
 `removePhysicalName` as well, and give the tags explicitly if the file
 must match a fresh write (`_realise._meshed_already`).
 
+### Independent builds in one process: a model each (gmsh 4.12.1 and 4.15.2, task 0167, 2026-11-17) — *verified*
+One `gmsh.initialize()` holds several models (`gmsh.model.add(name)`,
+`setCurrent`, `remove`), and each has its own OCC state.  Evidence (a
+spike in the coding session's scratchpad: `sections.insulated_tee`, 11 s,
+and `fittings.wye`, 2 s; identical results on both versions):
+- **Correct:** each built and written in its own model, one after the
+  other, or interleaved (A meshed in model a, B meshed in model b, then
+  `setCurrent("a")` and A written, then B), gives the same bytes as each
+  built alone in its own `Session`.
+- **OCC is per model:** a box added in model 1, then model 2 added,
+  `occ.getEntities(3)` is empty in model 2; each model numbers its own
+  volumes from 1.
+- **Memory is released:** add, build, write, `gmsh.model.remove()`
+  repeated 20 times (4.12.1) keeps RSS at 128-130 MB, as a fresh
+  `Session` per build does.
+- **Cost:** a model per build costs what a `Session` per build costs
+  (about 10.2 s for the tee either way).  A worker process per build adds
+  the interpreter and the imports: 0.59 s (4.12.1), 0.50 s (4.15.2) to
+  import `gmsh` and `hexmesh`, so 11.1-11.6 s for the tee.  Timings were
+  taken beside a running OpenFOAM job, so they are rough; their ratios
+  are what matter.
+- **hexmesh's own state:** `hexmesh._occ`'s record of the curves it
+  creates is module-global and reset at each build (`build_faces`).  It
+  is read while faces and fills are built, not when meshing or writing.
+  So whole builds may interleave across models, but the steps of two
+  builds may not (A's faces, then B's, then A's fill would use B's
+  record).
+**Consequence:** a build call can take a fresh model, build, mesh and
+keep the model for writing, without a `Session` and without touching
+the caller's current model.
+
+### A merged mesh doesn't write back byte for byte (gmsh 4.12.1 and 4.15.2, task 0167, 2026-11-17) — *verified*
+A `.msh` written by `Assembly.write`, merged into a fresh model
+(`gmsh.merge`) and written again differs from the original (recipe block
+aside): MSH 4.1 (plain and `Mesh.ScalingFactor` 2), `.vtk`, and for one
+of three examples the MSH 2.2 written for OpenFOAM.  The merged model
+holds only discrete entities, so `$Entities` loses its bounding boxes
+(micromixer's become zeros); and `write_openfoam`'s and
+`walls_by_fitting`'s physical groups are made at write time
+(`insulated_tee`: 13 named groups for OpenFOAM against the merged
+file's 15).  Nodes and elements were not compared separately.
+**Consequence:** a result that keeps only the mesh as data can't
+reproduce `write` and `write_openfoam` exactly; one that keeps its gmsh
+model can.
+
 ## Open questions
 
 - ~~Does `gmsh.write` keep physical names and element orientation the way
@@ -750,6 +795,7 @@ must match a fresh write (`_realise._meshed_already`).
 - Can the transfinite cut lines of an `n_outer = 8` sub-partition
   reproduce the 4-corner face's nodes exactly?  Decision 0005,
   pre-acceptance check.
-- Behaviour of the assembly path on 4.15.x is untested.  Only the legacy
-  wye, task 0116's two minimal experiments (B1, B2) and task 0117's
-  written block were tried.
+- Behaviour of the assembly path on 4.15.x is mostly untested.  The
+  legacy wye, task 0116's two minimal experiments (B1, B2), task 0117's
+  written block and task 0167's spike (two examples built, meshed and
+  written on 4.15.2) were tried.
