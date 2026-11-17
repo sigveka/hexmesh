@@ -413,7 +413,9 @@
   "layout_not_supported",
   "layout_unknown",
   "merge_id_clash",
+  "mesh_closed",
   "mesh_not_all_hex",
+  "mesh_not_picklable",
   "mesh_order_invalid",
   "mesh_order_needs_volume",
   "mesh_sj_not_positive",
@@ -1141,6 +1143,36 @@
        {
         "kind": "positional_or_keyword",
         "name": "self"
+       }
+      ]
+     },
+     "to_mesh": {
+      "kind": "method",
+      "signature": [
+       {
+        "kind": "positional_or_keyword",
+        "name": "self"
+       },
+       {
+        "default": {
+         "value": 3
+        },
+        "kind": "keyword_only",
+        "name": "dim"
+       },
+       {
+        "default": {
+         "value": 1
+        },
+        "kind": "keyword_only",
+        "name": "order"
+       },
+       {
+        "default": {
+         "value": false
+        },
+        "kind": "keyword_only",
+        "name": "incomplete"
        }
       ]
      },
@@ -1890,6 +1922,30 @@
      }
     }
    },
+   "ELEMENT_TYPES": {
+    "keys": [
+     "1",
+     "10",
+     "11",
+     "12",
+     "13",
+     "14",
+     "15",
+     "16",
+     "17",
+     "18",
+     "19",
+     "2",
+     "3",
+     "4",
+     "5",
+     "6",
+     "7",
+     "8",
+     "9"
+    ],
+    "kind": "mapping"
+   },
    "Elbow": {
     "bases": [
      "hexmesh.assembly.fittings._Toward",
@@ -2409,6 +2465,191 @@
      "is_open": {
       "kind": "property",
       "settable": false
+     }
+    }
+   },
+   "Mesh": {
+    "bases": [],
+    "kind": "class",
+    "members": {
+     "__init__": {
+      "kind": "method",
+      "signature": [
+       {
+        "kind": "positional_or_keyword",
+        "name": "self"
+       },
+       {
+        "kind": "positional_or_keyword",
+        "name": "assembly"
+       },
+       {
+        "kind": "positional_or_keyword",
+        "name": "model"
+       },
+       {
+        "kind": "keyword_only",
+        "name": "description"
+       },
+       {
+        "kind": "keyword_only",
+        "name": "dim"
+       },
+       {
+        "kind": "keyword_only",
+        "name": "order"
+       },
+       {
+        "kind": "keyword_only",
+        "name": "incomplete"
+       }
+      ]
+     },
+     "cell_count": {
+      "kind": "property",
+      "settable": false
+     },
+     "cells": {
+      "kind": "property",
+      "settable": false
+     },
+     "check_quality": {
+      "kind": "method",
+      "signature": [
+       {
+        "kind": "positional_or_keyword",
+        "name": "self"
+       },
+       {
+        "default": {
+         "value": "minSICN"
+        },
+        "kind": "positional_or_keyword",
+        "name": "quality_name"
+       },
+       {
+        "default": {
+         "value": null
+        },
+        "kind": "keyword_only",
+        "name": "threshold"
+       },
+       {
+        "default": {
+         "value": "material"
+        },
+        "kind": "keyword_only",
+        "name": "by"
+       }
+      ]
+     },
+     "close": {
+      "kind": "method",
+      "signature": [
+       {
+        "kind": "positional_or_keyword",
+        "name": "self"
+       }
+      ]
+     },
+     "closed": {
+      "kind": "property",
+      "settable": false
+     },
+     "description": {
+      "kind": "property",
+      "settable": false
+     },
+     "dim": {
+      "kind": "property",
+      "settable": false
+     },
+     "groups": {
+      "kind": "property",
+      "settable": false
+     },
+     "nodes": {
+      "kind": "property",
+      "settable": false
+     },
+     "order": {
+      "kind": "property",
+      "settable": false
+     },
+     "write": {
+      "kind": "method",
+      "signature": [
+       {
+        "kind": "positional_or_keyword",
+        "name": "self"
+       },
+       {
+        "kind": "positional_or_keyword",
+        "name": "path"
+       },
+       {
+        "default": {
+         "value": false
+        },
+        "kind": "keyword_only",
+        "name": "walls_by_fitting"
+       },
+       {
+        "default": {
+         "value": true
+        },
+        "kind": "keyword_only",
+        "name": "provenance"
+       },
+       {
+        "default": {
+         "value": 1.0
+        },
+        "kind": "keyword_only",
+        "name": "scale"
+       }
+      ]
+     },
+     "write_openfoam": {
+      "kind": "method",
+      "signature": [
+       {
+        "kind": "positional_or_keyword",
+        "name": "self"
+       },
+       {
+        "kind": "positional_or_keyword",
+        "name": "path"
+       },
+       {
+        "default": {
+         "value": false
+        },
+        "kind": "keyword_only",
+        "name": "interfaces"
+       },
+       {
+        "default": {
+         "value": false
+        },
+        "kind": "keyword_only",
+        "name": "walls_by_fitting"
+       },
+       {
+        "default": {
+         "value": true
+        },
+        "kind": "keyword_only",
+        "name": "provenance"
+       },
+       {
+        "default": {
+         "value": 1.0
+        },
+        "kind": "keyword_only",
+        "name": "scale"
+       }
+      ]
      }
     }
    },
@@ -5250,6 +5491,36 @@
        }
       ]
      },
+     "to_mesh": {
+      "kind": "method",
+      "signature": [
+       {
+        "kind": "positional_or_keyword",
+        "name": "self"
+       },
+       {
+        "default": {
+         "value": 3
+        },
+        "kind": "keyword_only",
+        "name": "dim"
+       },
+       {
+        "default": {
+         "value": 1
+        },
+        "kind": "keyword_only",
+        "name": "order"
+       },
+       {
+        "default": {
+         "value": false
+        },
+        "kind": "keyword_only",
+        "name": "incomplete"
+       }
+      ]
+     },
      "validate": {
       "kind": "method",
       "signature": [
@@ -5920,6 +6191,30 @@
      }
     }
    },
+   "ELEMENT_TYPES": {
+    "keys": [
+     "1",
+     "10",
+     "11",
+     "12",
+     "13",
+     "14",
+     "15",
+     "16",
+     "17",
+     "18",
+     "19",
+     "2",
+     "3",
+     "4",
+     "5",
+     "6",
+     "7",
+     "8",
+     "9"
+    ],
+    "kind": "mapping"
+   },
    "Elbow": {
     "bases": [
      "hexmesh.assembly.fittings._Toward",
@@ -6199,6 +6494,191 @@
      "is_open": {
       "kind": "property",
       "settable": false
+     }
+    }
+   },
+   "Mesh": {
+    "bases": [],
+    "kind": "class",
+    "members": {
+     "__init__": {
+      "kind": "method",
+      "signature": [
+       {
+        "kind": "positional_or_keyword",
+        "name": "self"
+       },
+       {
+        "kind": "positional_or_keyword",
+        "name": "assembly"
+       },
+       {
+        "kind": "positional_or_keyword",
+        "name": "model"
+       },
+       {
+        "kind": "keyword_only",
+        "name": "description"
+       },
+       {
+        "kind": "keyword_only",
+        "name": "dim"
+       },
+       {
+        "kind": "keyword_only",
+        "name": "order"
+       },
+       {
+        "kind": "keyword_only",
+        "name": "incomplete"
+       }
+      ]
+     },
+     "cell_count": {
+      "kind": "property",
+      "settable": false
+     },
+     "cells": {
+      "kind": "property",
+      "settable": false
+     },
+     "check_quality": {
+      "kind": "method",
+      "signature": [
+       {
+        "kind": "positional_or_keyword",
+        "name": "self"
+       },
+       {
+        "default": {
+         "value": "minSICN"
+        },
+        "kind": "positional_or_keyword",
+        "name": "quality_name"
+       },
+       {
+        "default": {
+         "value": null
+        },
+        "kind": "keyword_only",
+        "name": "threshold"
+       },
+       {
+        "default": {
+         "value": "material"
+        },
+        "kind": "keyword_only",
+        "name": "by"
+       }
+      ]
+     },
+     "close": {
+      "kind": "method",
+      "signature": [
+       {
+        "kind": "positional_or_keyword",
+        "name": "self"
+       }
+      ]
+     },
+     "closed": {
+      "kind": "property",
+      "settable": false
+     },
+     "description": {
+      "kind": "property",
+      "settable": false
+     },
+     "dim": {
+      "kind": "property",
+      "settable": false
+     },
+     "groups": {
+      "kind": "property",
+      "settable": false
+     },
+     "nodes": {
+      "kind": "property",
+      "settable": false
+     },
+     "order": {
+      "kind": "property",
+      "settable": false
+     },
+     "write": {
+      "kind": "method",
+      "signature": [
+       {
+        "kind": "positional_or_keyword",
+        "name": "self"
+       },
+       {
+        "kind": "positional_or_keyword",
+        "name": "path"
+       },
+       {
+        "default": {
+         "value": false
+        },
+        "kind": "keyword_only",
+        "name": "walls_by_fitting"
+       },
+       {
+        "default": {
+         "value": true
+        },
+        "kind": "keyword_only",
+        "name": "provenance"
+       },
+       {
+        "default": {
+         "value": 1.0
+        },
+        "kind": "keyword_only",
+        "name": "scale"
+       }
+      ]
+     },
+     "write_openfoam": {
+      "kind": "method",
+      "signature": [
+       {
+        "kind": "positional_or_keyword",
+        "name": "self"
+       },
+       {
+        "kind": "positional_or_keyword",
+        "name": "path"
+       },
+       {
+        "default": {
+         "value": false
+        },
+        "kind": "keyword_only",
+        "name": "interfaces"
+       },
+       {
+        "default": {
+         "value": false
+        },
+        "kind": "keyword_only",
+        "name": "walls_by_fitting"
+       },
+       {
+        "default": {
+         "value": true
+        },
+        "kind": "keyword_only",
+        "name": "provenance"
+       },
+       {
+        "default": {
+         "value": 1.0
+        },
+        "kind": "keyword_only",
+        "name": "scale"
+       }
+      ]
      }
     }
    },
@@ -8968,7 +9448,9 @@
      "layout_not_supported",
      "layout_unknown",
      "merge_id_clash",
+     "mesh_closed",
      "mesh_not_all_hex",
+     "mesh_not_picklable",
      "mesh_order_invalid",
      "mesh_order_needs_volume",
      "mesh_sj_not_positive",

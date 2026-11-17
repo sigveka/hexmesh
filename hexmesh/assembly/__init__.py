@@ -24,6 +24,7 @@ from .fittings  import (
 )
 from .profile   import Profile
 from .assembler import Assembly, AssemblyError, AssemblyTypeError
+from .mesh      import Mesh, ELEMENT_TYPES
 from .tee       import Tee, TeeOutlets
 from .switch    import Switch
 from .wye       import Wye, WyeOutlets
@@ -33,6 +34,6 @@ __all__ = [
     "Frame", "Interface", "port_type",
     "Straight", "Bend", "MiterBend", "Elbow", "Reducer", "Transition", "SplinePipe", "Closure",
     "FillResult", "Profile",
-    "Assembly", "AssemblyError", "AssemblyTypeError", "Tee", "TeeOutlets", "Wye", "WyeOutlets", "Switch",
+    "Assembly", "AssemblyError", "AssemblyTypeError", "Mesh", "ELEMENT_TYPES", "Tee", "TeeOutlets", "Wye", "WyeOutlets", "Switch",
     "Drum", "Nozzle", "OnShell", "OnHead", "EquipmentError",
 ]

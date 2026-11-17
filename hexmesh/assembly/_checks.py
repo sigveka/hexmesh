@@ -21,6 +21,7 @@ import warnings
 
 import numpy as np
 
+from .. import _gmsh
 from .._gmsh import gmsh
 from ..errors import HexmeshWarning
 from .errors import AssemblyError
@@ -30,10 +31,16 @@ from .quality import QualityReport, RegionQuality
 
 
 def _require_session() -> None:
-    """Raise before any GMSH call when no GMSH session is open (task 0039)."""
-    if not gmsh.isInitialized():
-        raise AssemblyError("needs a GMSH session: use `with Session(...):`",
-                            code="no_gmsh_session", hint="open one with `with Session(...):`")
+    """Raise before any GMSH call when no GMSH session is open (task 0039):
+    a Session, gmsh the caller initialized, or a to_mesh() call running
+    (task 0167)."""
+    if not _gmsh.may_mesh():
+        raise AssemblyError("needs a GMSH session: use `with Session(...):`, or "
+                            "`assembly.to_mesh()`, which needs none",
+                            code="no_gmsh_session",
+                            hint="`mesh = assembly.to_mesh()` meshes without a Session "
+                                 "(mesh.write, mesh.check_quality, the arrays); or open "
+                                 "one with `with Session(...):`")
 
 
 def _check_projection(asm, moved: dict[int, tuple[np.ndarray, np.ndarray]]) -> None:

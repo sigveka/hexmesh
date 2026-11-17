@@ -84,6 +84,29 @@ are unchanged); `hexmesh.io.readers` is removed.  Meshes are unchanged.
 - Saved descriptions are version 4.  Version 3 files load: their profile
   tuples become objects.
 
+**Meshing without a Session: `Assembly.to_mesh()`** (task 0167,
+decision 0053).
+- `asm.to_mesh(dim=3, order=1, incomplete=False)` meshes a copy of the
+  assembly in a gmsh model of its own and returns a `Mesh`, exported from
+  `hexmesh`: `nodes`, `cells` and `groups` as read-only arrays (element
+  types named by `hexmesh.ELEMENT_TYPES`), `cell_count`,
+  `check_quality()`, `description`, and `write` / `write_openfoam`,
+  which give the bytes a `Session` gives.  The assembly stays unmeshed,
+  so it meshes again with other options without a new `Session`.
+- gmsh starts on first use and stops when the last `Mesh` closes
+  (`close()`, a `with` block, or when it's collected).  In a `Session`
+  it shares that gmsh; the caller's model and gmsh's options are left
+  as they were.  Not thread-safe: the GUIDE builds in a process pool.
+  A `Mesh` can't be pickled (`mesh_not_picklable`); a closed one raises
+  `mesh_closed`.
+- `write` and `write_openfoam` outside a `Session` no longer raise
+  `no_gmsh_session`: they write through `to_mesh()`, the same bytes.
+  `mesh()`, `check_quality()` and the pipeline steps still need a
+  `Session`; the error's hint names `to_mesh()`.
+- A `Session` opened while a `Mesh` is open shares its gmsh: at its end
+  it removes its own model and closes the meshes made in it, instead of
+  finalizing gmsh.
+
 **Fixed: writing an assembly twice** (task 0163).
 - A second `write` or `write_openfoam` in the same session failed on a
   tee ("Surface 1 is transfinite but has 8 corners"): `mesh()` meshed

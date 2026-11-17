@@ -24,6 +24,11 @@ from ._gmsh import gmsh
 class Session:
     """Initialize GMSH, add a model, and finalize on exit.
 
+    Needed for ``Assembly.mesh()``, ``check_quality()`` and the pipeline
+    steps; ``Assembly.to_mesh()`` needs none.  Opened while a ``Mesh`` is
+    open, it shares that gmsh: at its end it closes the meshes made in
+    it and removes its own model instead of finalizing (task 0167).
+
     Parameters
     ----------
     name : str
@@ -38,13 +43,29 @@ class Session:
 
     def __enter__(self) -> "Session":
         _gmsh.load()                    # GmshUnavailable here, not mid-build
-        gmsh.initialize()
+        # gmsh that Assembly.to_mesh() started holds open Meshes: share it,
+        # and remove only this session's model at the end (task 0167)
+        self._shared = gmsh.isInitialized() and _gmsh.started()
+        if not self._shared:
+            gmsh.initialize()
+        self._verbosity = gmsh.option.getNumber("General.Verbosity")
         gmsh.option.setNumber("General.Verbosity", 5 if self.verbose else 1)
         gmsh.model.add(self.name)
+        self._model = gmsh.model.getCurrent()
+        _gmsh.sessions.append(self)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
-        gmsh.finalize()
+        _gmsh.sessions.remove(self)
+        for m in list(_gmsh.open_meshes):
+            if m._session is self:
+                m.close()
+        if self._shared:
+            gmsh.option.setNumber("General.Verbosity", self._verbosity)
+            _gmsh.release(self._model)
+        else:
+            gmsh.finalize()
+            _gmsh.finalized()
         return False
 
     @staticmethod

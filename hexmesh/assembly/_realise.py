@@ -134,6 +134,33 @@ def _located(edge: "Edge", errors=AssemblyError):
         raise located from e
 
 
+#: what building and meshing add to an assembly, as before build
+#: (``Assembly.__init__``'s values): ``unbuilt_copy`` resets them
+_BUILT = {"_fill": None, "_fitting_volumes": dict, "_checked_volumes": dict,
+          "_fitting_walls": dict, "_fitting_projections": dict,
+          "_fitting_partitions": dict, "projection_report": dict, "corrections": dict,
+          "_faces_built": False, "_group_roles": dict, "_meshed": False,
+          "_mesh_options": None, "_mesh_walls_by_fitting": False, "mesh_order": 1}
+
+
+def unbuilt_copy(asm):
+    """A copy of *asm* as it was added: its graph and fittings, none of
+    its gmsh state, so it builds and meshes in another model as *asm*
+    would (task 0167).  Not through ``to_dict()``: that fails for an
+    assembly it can't describe, which still meshes."""
+    memo = {id(i.face): None for i in asm._interfaces if i.face is not None}
+    for k in _BUILT:
+        v = getattr(asm, k)
+        if v is not None and not isinstance(v, (bool, int)):
+            memo[id(v)] = None                 # not worth copying: reset below
+    c = copy.deepcopy(asm, memo)
+    for k, v in _BUILT.items():
+        setattr(c, k, v() if callable(v) else v)
+    for i in c._interfaces:
+        i.face = None
+    return c
+
+
 def build(asm, order: Iterable[int] | None = None) -> None:
     _require_session()
     if asm._fill is not None:

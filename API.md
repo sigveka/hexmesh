@@ -54,6 +54,64 @@ GMSH output to errors.
 `Assembly` builds into whatever GMSH model is current. You can manage
 `gmsh.initialize()` yourself instead of using `Session`.
 
+A `Session` is needed for `mesh()`, `check_quality()` and the pipeline
+steps, which act on gmsh's current model.  `Assembly.to_mesh()` needs
+none, and neither do `write` and `write_openfoam` outside one (task 0167).
+A session started while a `Mesh` is open shares that gmsh, and at its
+end removes its own model and closes the `Mesh`es made inside it.
+
+## Meshing without a Session: `Assembly.to_mesh()` and `Mesh`
+
+### `Assembly.to_mesh(*, dim=3, order=1, incomplete=False) -> Mesh`
+
+Meshes a copy of the assembly, as it was before any build, in a gmsh
+model of its own, and returns the result as a value.  The assembly
+stays unbuilt and unmeshed: call `to_mesh` again with other options, or
+`refined(k).to_mesh()`.  *dim*, *order*, *incomplete*: as `mesh()`.
+
+gmsh is initialized on first use if nothing has, and finalized when the
+last `Mesh` closes (or at exit).  In a `Session`, or in gmsh you
+initialized yourself, it shares that gmsh; the current model and gmsh's
+options are left as they were.
+
+```python
+from hexmesh import Assembly, PipeSpec, Straight
+
+asm = Assembly(PipeSpec(n_arc=4).core("fluid", radius=0.01, n_radial=1))
+asm.add(Straight(0.05, n_layers=2))
+with asm.to_mesh() as mesh:
+    print(mesh.cell_count, mesh.check_quality().ok)
+    mesh.write("pipe.msh")
+    mesh.write_openfoam("foam/pipe.msh")
+    hexes = mesh.nodes[mesh.cells["hex8"]]          # (M, 8, 3)
+```
+
+**Not thread-safe** (gmsh isn't).  To build in parallel, use a process
+pool with one build per worker, each returning what it wrote or the
+arrays (the GUIDE has an example).
+
+### `Mesh`
+
+| Member | Is |
+|---|---|
+| `nodes` | `(N, 3)` float array, in the unit the assembly was built in |
+| `cells` | element type name → `(M, k)` int array: the 0-based rows of each element's nodes in `nodes`, in gmsh's node order for the type, for every dimension the mesh has (`"hex8"`, `"quad4"`, `"line2"`, `"point1"`; `"hex27"`, `"hex20"` at order 2) |
+| `groups` | physical group name → {type name → row indices into `cells[type]`}, volumes and boundaries alike, as `write` writes them with `walls_by_fitting=False` |
+| `cell_count` | the number of volume elements |
+| `dim`, `order` | as meshed |
+| `description` | the assembly's `to_dict()`, or `None` for an assembly no description holds; works after `close()` |
+| `check_quality(quality_name="minSICN", *, threshold=None, by="material")` | as `Assembly.check_quality` |
+| `write(path, *, walls_by_fitting=False, provenance=True, scale=1.0)` | the bytes `Assembly.write` gives in a `Session` with the same options |
+| `write_openfoam(path, *, interfaces=False, walls_by_fitting=False, provenance=True, scale=1.0)` | as `Assembly.write_openfoam`; a first-order mesh only |
+| `close()`, `closed` | remove the gmsh model; again: nothing.  Also a context manager, and done when the `Mesh` is collected or its `Session` ends |
+
+The arrays are read-only.  After `close()` every member but
+`description` and `closed` raises `AssemblyError` (`mesh_closed`).  A
+`Mesh` can't be pickled (`mesh_not_picklable`).
+
+`hexmesh.ELEMENT_TYPES` maps gmsh's element type numbers to the names
+(`5` → `"hex8"`, `12` → `"hex27"`, …).
+
 ---
 
 ## Assembly
@@ -120,8 +178,9 @@ in degrees. The thresholds are data, in `hexmesh.assembly.limits`.
 | Method | Does |
 |---|---|
 | `mesh(dim=3, *, order=1, incomplete=False, walls_by_fitting=False)` | Build faces, fill all fittings, write physical groups, and mesh. Between the surface and volume mesh, junction wall nodes are projected onto their analytic walls (decision 0029); `projection_report` holds each fitting's largest move, absolute and in local wall radii, and its cells' min corner scaled Jacobian. A move beyond `limits.WALL_PROJECTION_WARN_MOVE` (1) wall radii warns; a folded cell (corner SJ ≤ 0) in a projected fitting or its neighbours raises `AssemblyError`, naming the fitting. An OCC or GMSH error inside a fitting's fill also becomes an `AssemblyError` naming the fitting and quoting the original message. Projected nodes keep stale parametric coordinates, so leave GMSH's mesh optimisers off. Walls are `{layer}_wall`, after the layer outermost where they are, plus `{layer}_end` for the end faces of a terminated layer. With `walls_by_fitting`, each is split per fitting, `{group}_{name}`; *name* is the fitting's label or `<Type><index>` (`Bend3`). *order* 2 (task 0076) raises the checked linear mesh to second order: Hex27, or Hex20 with *incomplete*.  High-order nodes on projected walls are projected too, and a bend's high-order nodes between stations are placed exactly on its arcs (gmsh leaves interior axial edges straight, which folds thin shells in tight bends).  gmsh's high-order optimisers are never run.  A hex whose Jacobian determinant is ≤ 0 at one of its nodes or Gauss4 points raises `AssemblyError` (`second_order_inverted`), naming the fitting.  A `Wye` is rejected before meshing (`second_order_unsupported`): its hexes at the creases invert.  On an `n_outer = 8` `Transition` the mid-face nodes differ from the 4-corner mesh's by up to 4e-4 R (both lie on an approximate OCC filling; task 0088).  `mesh_order` records the order; `cell_count()` is unchanged (cells, not nodes).  Once per session (task 0163): `mesh()` again with the same `dim`, `order` and `incomplete` does nothing, so writing an assembly again (another format, another `scale`) is cheap, and a different `walls_by_fitting` rewrites only the physical groups; other options raise `AssemblyError` (`remesh_with_other_options`): build it again in a new `Session`.  Second order is verified with FEniCSx (task 0077, [RESEARCH §7.15](docs/RESEARCH.md)) on straights, bends and tees, Hex27; not for wyes and equal tees (rejected), second-order OpenFOAM output, or flow |
-| `write(path, *, dim=3, order=1, incomplete=False, walls_by_fitting=False, provenance=True, scale=1.0)` | `mesh()`, then `gmsh.write(path)`; the format follows the extension.  *scale* multiplies the written nodes, once (gmsh's `Mesh.ScalingFactor`); the model keeps its size, and the recipe block's write line adds `scale=…`; not positive and finite: `AssemblyError` (`value_not_positive`).  A `.msh` carries the recipe block (see below) unless `provenance=False`, which writes exactly gmsh's file.  *order*, *incomplete*: as for `mesh()`; `.msh` 2.2 and 4.1 both carry Hex27 and the physical groups, and the recipe block's write line adds `order=2 incomplete=…` |
-| `write_openfoam(path, *, interfaces=False, walls_by_fitting=False, provenance=True, order=1, scale=1.0)` | `mesh()`, then write a `.msh` for `gmshToFoam` (*scale* as for `write`): MSH 2.2 ASCII, without the material-interface groups unless `interfaces=True` (the split rebuilds them as `mappedWall`; kept, they become faceZones); the GMSH options and groups are restored afterwards.  Also writes the role manifest `<stem>.roles.json`.  The recipe block as for `write`; `gmshToFoam` skips it.  *order* other than 1 raises `AssemblyError` (`openfoam_needs_order_1`): `gmshToFoam` reads first-order elements only |
+| `to_mesh(*, dim=3, order=1, incomplete=False)` | A `Mesh` of a copy of the assembly, with no `Session` (see Meshing without a Session) |
+| `write(path, *, dim=3, order=1, incomplete=False, walls_by_fitting=False, provenance=True, scale=1.0)` | Outside a `Session`: `to_mesh(...).write(...)`, the same bytes.  In one: `mesh()`, then `gmsh.write(path)`; the format follows the extension.  *scale* multiplies the written nodes, once (gmsh's `Mesh.ScalingFactor`); the model keeps its size, and the recipe block's write line adds `scale=…`; not positive and finite: `AssemblyError` (`value_not_positive`).  A `.msh` carries the recipe block (see below) unless `provenance=False`, which writes exactly gmsh's file.  *order*, *incomplete*: as for `mesh()`; `.msh` 2.2 and 4.1 both carry Hex27 and the physical groups, and the recipe block's write line adds `order=2 incomplete=…` |
+| `write_openfoam(path, *, interfaces=False, walls_by_fitting=False, provenance=True, order=1, scale=1.0)` | Outside a `Session`, through `to_mesh()`, as `write`.  In one: `mesh()`, then write a `.msh` for `gmshToFoam` (*scale* as for `write`): MSH 2.2 ASCII, without the material-interface groups unless `interfaces=True` (the split rebuilds them as `mappedWall`; kept, they become faceZones); the GMSH options and groups are restored afterwards.  Also writes the role manifest `<stem>.roles.json`.  The recipe block as for `write`; `gmshToFoam` skips it.  *order* other than 1 raises `AssemblyError` (`openfoam_needs_order_1`): `gmshToFoam` reads first-order elements only |
 | `group_roles()` | Physical-group name → role (`volume`, `open_end`, `wall`, `interface`), from the graph, as last written by `mesh()` |
 | `check_quality(quality_name="minSICN", *, threshold=None, by="material")` | `QualityReport` per material, or per fitting with `by="fitting"` (see Quality) |
 | `fitting_volumes()` | Volume tags per fitting (edge index → tags) |
@@ -1872,6 +1931,8 @@ Checks of hexmesh's own invariants, which no input should reach, stay plain
 | `layout_unknown` | an unknown section layout | `SpecError` |
 | `merge_id_clash` | merge: a port or part id in both models, without prefix= | `AssemblyError` |
 | `mesh_not_all_hex` | a mesh with elements other than hexahedra | `StudyError` |
+| `mesh_closed` | a Mesh used after close() | `AssemblyError` |
+| `mesh_not_picklable` | a Mesh pickled (it holds a gmsh model of its process) | `AssemblyError` |
 | `mesh_order_invalid` | a mesh order other than 1 or 2 | `AssemblyError` |
 | `mesh_order_needs_volume` | order=2 asked of a surface or line mesh | `AssemblyError` |
 | `mesh_sj_not_positive` | a mesh with an inverted hex corner, converted with gmshToFoam's orientation test on (warning) | `HexmeshWarning` |

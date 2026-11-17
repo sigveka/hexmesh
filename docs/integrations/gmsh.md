@@ -771,6 +771,24 @@ and `fittings.wye`, 2 s; identical results on both versions):
 keep the model for writing, without a `Session` and without touching
 the caller's current model.
 
+**Starting gmsh again per call is free (task 0167 step 2, 2026-11-17):**
+outside a `Session`, `to_mesh()` starts gmsh and finalizes it when the
+last `Mesh` closes, so a loop of `with asm.to_mesh() as m: m.write(…)`
+initializes and finalizes gmsh every call.  Medians over 13 calls,
+beside a running OpenFOAM job (`time167.py` in the coding session's
+scratchpad):
+
+| gmsh | `initialize` + `finalize` | small pipe (64 cells): per call / one `Mesh` held open / one `Session` | `insulated_tee` |
+|---|---|---|---|
+| 4.12.1 | 0.9 ms | 129.5 / 125.1 / 125.2 ms | 10.27 / 10.18 / 10.30 s |
+| 4.15.2 | 0.6 ms | 118.5 / 117.3 / 119.7 ms | 10.85 / 10.02 / 10.12 s |
+
+So the restart costs about 1 ms.  The differences between the loops
+(up to 4 ms for the small pipe, 0.8 s once for the tee on 4.15.2) are
+far above that and change sign between versions: the OpenFOAM job's
+noise, not the restart.  Keeping a `Mesh` open or a `Session` across
+many builds buys nothing measurable.
+
 ### A merged mesh doesn't write back byte for byte (gmsh 4.12.1 and 4.15.2, task 0167, 2026-11-17) — *verified*
 A `.msh` written by `Assembly.write`, merged into a fresh model
 (`gmsh.merge`) and written again differs from the original (recipe block

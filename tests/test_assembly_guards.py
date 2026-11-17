@@ -87,8 +87,6 @@ def test_prepend_unaffected():
 # ---------------------------------------------------------------------------
 
 @pytest.mark.parametrize("call", [
-    lambda a, p: a.write(str(p / "x.msh")),
-    lambda a, p: a.write_openfoam(str(p / "x.msh")),
     lambda a, p: a.mesh(),
     lambda a, p: a.build(),
     lambda a, p: a.build_faces(),
@@ -97,7 +95,7 @@ def test_prepend_unaffected():
     lambda a, p: a.check_quality(),
     lambda a, p: a.fitting_volumes(),
     lambda a, p: a.volumes,
-], ids=["write", "write_openfoam", "mesh", "build", "build_faces", "fill",
+], ids=["mesh", "build", "build_faces", "fill",
         "write_physical_groups", "check_quality", "fitting_volumes", "volumes"])
 def test_outside_session_raises_quietly(call, tmp_path, capfd):
     assert not gmsh.isInitialized()
@@ -107,6 +105,21 @@ def test_outside_session_raises_quietly(call, tmp_path, capfd):
     out, err = capfd.readouterr()
     assert "Gmsh" not in err and "Gmsh" not in out
     assert err == ""
+
+
+@pytest.mark.parametrize("call", [
+    lambda a, p: a.write(str(p / "x.msh")),
+    lambda a, p: a.write_openfoam(str(p / "x.msh")),
+], ids=["write", "write_openfoam"])
+def test_writes_outside_a_session_need_none(call, tmp_path, capfd):
+    """They write through to_mesh() and leave no gmsh running (task 0167)."""
+    assert not gmsh.isInitialized()
+    a = _run()
+    call(a, tmp_path)
+    assert (tmp_path / "x.msh").stat().st_size > 0
+    assert not gmsh.isInitialized() and not a._meshed
+    out, err = capfd.readouterr()
+    assert "Gmsh" not in err and "Gmsh" not in out
 
 
 def test_check_quality_before_mesh(tmp_path):

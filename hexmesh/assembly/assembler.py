@@ -38,6 +38,7 @@ from typing import Iterable
 
 import numpy as np
 
+from .. import _gmsh
 from ..errors import HexmeshNotice
 from .errors import AssemblyError, AssemblyTypeError
 from ..core.spec import PipeSpec
@@ -48,6 +49,7 @@ from .fittings import FillResult, Straight
 from .quality import QualityReport
 from .interface import Frame, Interface
 from . import _graph, _validate, _realise, _checks, _output
+from . import mesh as _mesh
 from ._graph import Edge
 from ._realise import curve_constraints  # noqa: F401  (tests import it from here)
 
@@ -401,6 +403,22 @@ class Assembly:
         return _realise.mesh(
             self, dim, order=order, incomplete=incomplete, walls_by_fitting=walls_by_fitting)
 
+    def to_mesh(self, *, dim: int = 3, order: int = 1,
+                incomplete: bool = False) -> "_mesh.Mesh":
+        """Mesh a copy of the assembly, without a ``Session``: a
+        :class:`~hexmesh.Mesh` that holds the mesh as a value (its arrays,
+        quality, ``write`` and ``write_openfoam``) in a gmsh model of its
+        own (task 0167).  *dim*, *order*, *incomplete*: as :meth:`mesh`.
+
+        The assembly itself stays unbuilt and unmeshed, so ``to_mesh``
+        can be called again with other options.  gmsh is initialized on
+        first use if nothing has, and finalized at exit; in a ``Session``
+        it shares that session's gmsh, and the caller's current model and
+        gmsh's options are left as they were.  Close the result
+        (``close()`` or a ``with`` block) to free its memory at once.
+        Not thread-safe: run builds in parallel in a process pool."""
+        return _mesh.to_mesh(self, dim, order, incomplete)
+
     def _revolve_high_order(self, e, arc: Arc) -> None:
         # kept on the class: called or patched from outside (task 0136)
         return _realise._revolve_high_order(self, e, arc)
@@ -421,7 +439,16 @@ class Assembly:
         count and the checks keep the built size.  Build a small part at
         a reference size and scale it here: building at 1:30 or smaller
         drifts (task 0139).  Positive and finite, or ``AssemblyError``
-        (``value_not_positive``)."""
+        (``value_not_positive``).
+
+        Outside a ``Session`` it writes ``to_mesh(...)`` and closes it
+        (task 0167): the same bytes, and the assembly stays unmeshed."""
+        if not _gmsh.may_mesh():
+            _output._check_scale(scale)
+            with self.to_mesh(dim=dim, order=order, incomplete=incomplete) as m:
+                m.write(path, walls_by_fitting=walls_by_fitting, provenance=provenance,
+                        scale=scale)
+            return
         return _output.write(
             self, path, dim, order=order, incomplete=incomplete, walls_by_fitting=walls_by_fitting,
             provenance=provenance, scale=scale)
@@ -459,7 +486,15 @@ class Assembly:
         (task 0076), so ``order=2`` is an ``AssemblyError``.
 
         *scale*: as :meth:`write`, the written nodes times *scale*.
+
+        Outside a ``Session``: as :meth:`write`, through :meth:`to_mesh`.
         """
+        if not _gmsh.may_mesh():
+            _output.check_openfoam(path, order, scale)
+            with self.to_mesh() as m:
+                m.write_openfoam(path, interfaces=interfaces, walls_by_fitting=walls_by_fitting,
+                                 provenance=provenance, scale=scale)
+            return
         return _output.write_openfoam(
             self, path, interfaces=interfaces, walls_by_fitting=walls_by_fitting,
             provenance=provenance, order=order, scale=scale)

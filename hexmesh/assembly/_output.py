@@ -135,9 +135,8 @@ def _stamp(asm, path, write: str) -> None:
         msh=msh_comments.msh_format(path), error=error))
 
 
-def write_openfoam(asm, path: str, *, interfaces: bool = False,
-                   walls_by_fitting: bool = False, provenance: bool = True,
-                   order: int = 1, scale: float = 1.0) -> None:
+def check_openfoam(path: str, order: int, scale) -> float:
+    """``write_openfoam``'s checks, before any meshing; the scale."""
     scale = _check_scale(scale)
     if order != 1:
         raise AssemblyError(f"write_openfoam writes first-order meshes only, got "
@@ -149,6 +148,13 @@ def write_openfoam(asm, path: str, *, interfaces: bool = False,
         raise AssemblyError(f"write_openfoam writes a .msh file, got {path!r}",
                             code="write_openfoam_needs_msh", where={"field": "path"},
                             value=str(path))
+    return scale
+
+
+def write_openfoam(asm, path: str, *, interfaces: bool = False,
+                   walls_by_fitting: bool = False, provenance: bool = True,
+                   order: int = 1, scale: float = 1.0) -> None:
+    scale = check_openfoam(path, order, scale)
     _require_session()
     asm.mesh(walls_by_fitting=walls_by_fitting)
     dropped = []

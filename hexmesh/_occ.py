@@ -52,6 +52,24 @@ def reset() -> None:
 
 
 @contextmanager
+def saved():
+    """The records as they were before the block, after it: a whole build
+    inside it (Assembly.to_mesh) leaves the caller's build's records
+    valid (task 0167).  ``fallbacks`` keeps counting."""
+    global in_build
+    state = (dict(_ends), dict(_kind), {k: list(v) for k, v in _loops.items()},
+             list(_discarded), in_build)
+    try:
+        yield
+    finally:
+        ends, kind, loops, discarded, in_build = state
+        _ends.clear(), _ends.update(ends)
+        _kind.clear(), _kind.update(kind)
+        _loops.clear(), _loops.update(loops)
+        _discarded[:] = discarded
+
+
+@contextmanager
 def building():
     """Inside an assembly build: records are trusted (the build reset them),
     face builders skip their mesh constraints (and the synchronizes they

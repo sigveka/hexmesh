@@ -334,6 +334,8 @@ CODES: dict[str, str] = {
     "layout_unknown": "an unknown section layout",
     "merge_id_clash": "merge: a port or part id in both models, without prefix=",
     "mesh_not_all_hex": "a mesh with elements other than hexahedra",
+    "mesh_closed": "a Mesh used after close()",
+    "mesh_not_picklable": "a Mesh pickled (it holds a gmsh model of its process)",
     "mesh_order_invalid": "a mesh order other than 1 or 2",
     "mesh_order_needs_volume": "order=2 asked of a surface or line mesh",
     "mesh_sj_not_positive": "a mesh with an inverted hex corner, converted with gmshToFoam's "

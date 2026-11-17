@@ -93,6 +93,54 @@ print(report.worst_region.name)    # e.g. "#3 Tee"
 To inspect a mesh, run `gmsh elbow.msh`. Use Tools → Clipping to see inside,
 and Tools → Visibility to show individual patches.
 
+### Without a Session: `to_mesh()`
+
+A script that only builds and writes needs no `Session`.
+`asm.to_mesh()` meshes a copy of the assembly and returns a `Mesh`: its
+arrays, its quality, and `write` / `write_openfoam`.  The assembly stays
+unmeshed, so the same one can be meshed again with other options.
+
+```python
+asm = Assembly(pipe, direction=[1, 0, 0], up=[0, 0, 1])
+asm.add(Straight(0.5, n_layers=10))
+asm.add(Bend(radius=0.3, angle=90, n_layers=12))
+asm.add(Straight(0.5, n_layers=10))
+
+with asm.to_mesh() as mesh:            # no Session
+    print(mesh.cell_count, mesh.check_quality().ok)
+    mesh.write("elbow.msh")
+    corners = mesh.nodes[mesh.cells["hex8"]]      # (cells, 8, 3)
+with asm.to_mesh(order=2) as mesh:     # the same assembly, second order
+    mesh.write("elbow_o2.msh")
+```
+
+`asm.write("elbow.msh")` outside a `Session` does the same in one call.
+`mesh()`, `check_quality()` and the pipeline steps still need a
+`Session`.
+
+gmsh isn't thread-safe, so neither is `to_mesh`.  To mesh many
+assemblies at once, use processes, one build per worker; a `Mesh` stays
+in its process, so return what it wrote, or its arrays:
+
+```python
+from concurrent.futures import ProcessPoolExecutor
+
+def mesh_one(radius):
+    asm = Assembly(pipe, direction=[1, 0, 0], up=[0, 0, 1])
+    asm.add(Bend(radius=radius, angle=90, n_layers=12))
+    with asm.to_mesh() as mesh:
+        mesh.write(f"bend_{radius}.msh")
+        return radius, mesh.cell_count, mesh.check_quality("scaled_jacobian").ok
+
+if __name__ == "__main__":
+    with ProcessPoolExecutor(max_workers=4) as pool:
+        for radius, cells, ok in pool.map(mesh_one, [0.15, 0.2, 0.3]):
+            print(radius, cells, ok)
+```
+
+For many variants with a manifest, `hexmesh.study` (below) does this
+for you.
+
 ---
 
 ## How it works

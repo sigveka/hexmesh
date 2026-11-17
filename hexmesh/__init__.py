@@ -40,7 +40,7 @@ design rules are in ``DESIGN.md``.
 """
 
 from .assembly import (
-    Assembly, AssemblyError, Bend, Closure, Elbow, Frame, Interface,
+    Assembly, AssemblyError, Bend, Closure, Elbow, ELEMENT_TYPES, Frame, Interface, Mesh,
     MiterBend, Profile, Reducer, SplinePipe, Straight, Switch, Tee, TeeOutlets, Transition, Wye,
     WyeOutlets,
     Drum, Nozzle, OnShell, OnHead, EquipmentError,
@@ -53,7 +53,7 @@ from .quality_hex import HexVolumeQuality, all_metrics as hex_all_metrics
 from .session import Session
 
 __all__ = [
-    "Assembly", "AssemblyError", "Frame", "Interface",
+    "Assembly", "AssemblyError", "Frame", "Interface", "Mesh", "ELEMENT_TYPES",
     "Straight", "Bend", "Elbow", "MiterBend", "Reducer", "Profile", "Transition", "SplinePipe",
     "Closure", "Tee", "TeeOutlets", "Wye", "WyeOutlets", "Switch",
     "Drum", "Nozzle", "OnShell", "OnHead", "EquipmentError",

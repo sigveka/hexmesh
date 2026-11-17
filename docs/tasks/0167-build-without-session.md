@@ -1,6 +1,6 @@
 # 0167 — Meshing without managing `Session`
 
-- **Status:** ready (Q1 answered)
+- **Status:** done
 - **Decision:** [0053](../decisions/0053-api-hardening-before-freeze.md), amendment item 7
 - **Depends on:** 0163 (mesh once per option set), 0165.
 - **Blocks:** the 0.8.0 tag.
@@ -46,6 +46,28 @@ the tests, examples byte-identical, full suite and CI green.
   - a merged `.msh` doesn't write back byte for byte (entities lose
     their bounding boxes; write-time groups), so the result keeps its
     model to write exactly as `Assembly.write` does.
+- **Step 2, refinements of the answer (2026-11-17)**, each with its reason:
+  - **gmsh that hexmesh starts is finalized when its last `Mesh` closes**,
+    not only at exit.  A gmsh left running after `asm.write(...)` outside a
+    Session would make later code that calls `gmsh.initialize()` itself
+    (the test fixture `gmsh_session`, user scripts) look like it is outside
+    any session, and `mesh()` would raise `no_gmsh_session` there.  The
+    cost is an initialize per build when meshes aren't kept, which the
+    spike measured as no more than a model per build.
+  - **A `Session` opened while a `Mesh` is open shares that gmsh**: it adds
+    its model, and at its end closes the meshes made in it and removes its
+    model, instead of finalizing.  So meshes made before it survive it (the
+    answer's point 5 said only that a Session closes the meshes made in it).
+  - **`_occ`'s records are saved and restored around `to_mesh()`**
+    (`_occ.saved()`), so a `to_mesh()` in the middle of a Session's build
+    leaves that build's records valid; the spike had found this the one
+    thing that can't interleave.  `fallbacks` keeps counting.
+  - **A `Mesh` whose model is gone** (the caller finalized gmsh under it)
+    reports itself closed (`mesh_closed`) instead of a gmsh error.
+  - **`cells` includes `point1`** (gmsh's elements at geometry points):
+    every dimension the mesh has, as the answer asked.
+  - `write_openfoam` outside a Session checks `order` and the `.msh`
+    extension before meshing.
 
 ## Questions for design
 
@@ -143,3 +165,44 @@ with these changes:
 Set the task `ready` again.
 
 ## Outcome
+
+- **Done, 2026-11-17.**  `Assembly.to_mesh(*, dim=3, order=1,
+  incomplete=False) -> Mesh`, as the answer to Q1 has it, with the
+  refinements in *Agent notes*.
+- **Files:** new `hexmesh/assembly/mesh.py` (`to_mesh`, `Mesh`,
+  `ELEMENT_TYPES`); `hexmesh/_gmsh.py` (who started gmsh, the open
+  sessions and meshes, a model made current for a block, finalizing when
+  the last `Mesh` closes); `session.py` (a `Session` shares gmsh that
+  hexmesh started); `_occ.saved()`; `_realise.unbuilt_copy`;
+  `_output.check_openfoam` split out; `assembler.py` (`to_mesh`, and
+  `write`/`write_openfoam` outside a Session); `_checks.py` (the
+  `no_gmsh_session` hint names `to_mesh()`); errors `mesh_closed`,
+  `mesh_not_picklable`; exports.  Docs: API.md (*Meshing without a
+  Session*, the method and error tables), GUIDE (*Without a Session*,
+  with a process-pool example, run), CHANGELOG, `docs/api-1.0.json`,
+  `docs/integrations/gmsh.md`.
+- **Tests:** new `tests/test_to_mesh.py`, 17: the spike's checks
+  (Session's bytes, OpenFOAM's and the roles'; interleaved order 2 and 1
+  give each one's bytes alone; models freed by close, by collection and
+  over repeated builds) and the answer's (the assembly stays unmeshed;
+  the arrays; the caller's model and build records untouched mid-build;
+  a Session closes only its own meshes; closed and finalized-under
+  meshes raise `mesh_closed`; not picklable; no description; a failed
+  build leaves no model; the hint; checks before meshing).
+  `test_assembly_guards.py`: `write` and `write_openfoam` outside a
+  Session need none.  The files touched, with architecture and
+  inventory: 390 passed (`-n 1`).
+- **Examples byte-identical:** 35 of 35 (`example_hashes.py` against
+  the base).  **Full suite:** on one worker beside the OpenFOAM job it
+  timed out at 2 h, at 81%, with no failure; CI runs it whole.
+- **Measurement (the design's second ask):** gmsh started and finalized
+  per call costs 0.6-0.9 ms (4.12.1, 4.15.2); a loop of
+  `to_mesh().write()` is as fast as one with a `Mesh` held open or in a
+  `Session`, within the noise.  So the GUIDE's many-builds example needs
+  no warning.  Table in `gmsh.md`.
+- **Surprises:** gmsh left running after `asm.write()` outside a
+  Session made later code that calls `gmsh.initialize()` itself look
+  sessionless (hence finalizing on the last close); and a caller
+  finalizing gmsh under an open `Mesh` had left hexmesh thinking it
+  still owned gmsh (hence `_gmsh.started()` checking a live model).
+- **Follow-ups:** none.
