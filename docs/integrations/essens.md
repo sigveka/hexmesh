@@ -135,3 +135,50 @@ Jekyll would).  A scratch copy of all 233 tracked `.md` files outside
   error, so the build passes.
 - 237 pages in about 17 s; 29.8 MB with `assets/` and `_static/`.
 
+
+## The local build after 0.1.4 (2026-11-17), from `essens describe`
+
+`essens describe` prints Essens's integration surface as JSON. Its
+`contracts` key gives each promise to other programs a version of its
+own (bindings, codes, command JSON, describe, editor, mcp, schemas: all
+1.0 on 2026-11-17).  Re-run it after an Essens upgrade, compare
+`contracts`, and check the points below.  It is the first place to look
+before the vendor docs.
+
+The **release** is still v0.1.4 (2026-11-06; `gh release list --repo
+Essens-lang/essens`, checked 2026-11-17), which CI pins.  The **local**
+`~/.local/bin/essens` (built 2026-11-17, still reporting `0.1.4`)
+differs from it.  These differences break or obsolete parts of
+hexmesh's site build once a release carries them:
+- **`--template` is refused:** `essens: error: render: --template is now
+  --layout (LAYOUTS.ess) [BadArguments]` (checked with a one-line
+  page).  `render.html.template` is refused the same way.  A layout is
+  a name (`layouts/NAME/html.layout`) or a file path, and its slots are
+  the same `&[textus]` and `&[toc]`.  **`docs/site.py` passes
+  `--template`, so `python3 docs/site.py` fails with the local build.**
+  The v0.1.4 archive CI uses still takes `--template`.
+- **HTML math is MathML,** "typeset by the browser with no script", in
+  `span.math-inline` / `div.math-display`.  Equations that MathML can't
+  take give the warning `MathNotConverted` and show their source.  The
+  vendored KaTeX (`docs/site/vendor/katex/`, the template's three
+  KaTeX lines) then has nothing to render.
+- **Pictures and stylesheet:** `--linked` (`render.html.assets: linked`)
+  writes `essens.css`, `essens.js`, the faces and the pictures to
+  `assets/`.  `--pictures linked` is now "the older form of
+  `--linked`".  Every page carries Essens's own stylesheet unless
+  `render.html.essens-style: none`.  That stylesheet is new; it competes
+  with `site.css` and simple.css.
+- **`folder-pages`** is in the `essens.yaml` schema (`essens schema
+  yaml`), so the RESULTS/README id clash that fails v0.1.4's lint is
+  handled once a release has it.
+
+**What to do:** nothing while CI pins v0.1.4.  When a release after
+0.1.4 comes out, before moving the pin:
+- `--template` becomes `--layout`;
+- check `MathNotConverted` over RESEARCH's 203 equations;
+- remove KaTeX;
+- choose `essens-style` (keep Essens's stylesheet or `none`);
+- rebuild and compare.
+
+Until then, a contributor building the site locally needs the v0.1.4
+release archive, not a source build.
