@@ -9,12 +9,14 @@ its gate and ξ_PG misses it: 0.605, 0.105 from the measured 0.50,
 against a gate of 0.03.  The
 three mesh levels converge (order 1.9, GCI 0.012 on ξ_PG), so the gap is
 the model and set-up's, not the mesh's resolution.  The paper's own CFD
-(realizable k-ε, 2.3 M cells, transient) gave 0.48.  Results and the
-reasons in [RESULTS.md](RESULTS.md).
+(realizable k-ε, 2.3 M cells, transient) gave 0.48; ours with that model,
+steady, gives 0.575 with Spalding's wall function and 0.567 with
+`nutkWallFunction`.  Results and the reasons in [RESULTS.md](RESULTS.md).
 
 ```bash
 python3 validation/junction_loss/run.py --points div_a:0.6 --levels 1 2 3 --end-time 8000 --window 2400 --samples 12 --np 3
 python3 validation/junction_loss/run.py --points div_a:0.6 --levels 2 --model rke ...   # their model, not gated
+python3 validation/junction_loss/run.py --points div_a:0.6 --levels 2 --model rke --wall nutk ...   # and their wall treatment's nearest
 python3 -m validation.tools.recheck junction_loss       # gates, from results.json
 ```
 
@@ -32,7 +34,7 @@ and 14 h at k = 3.
 | Flow | the branch with the total flow at U = 1 m/s, Re 10⁵ (the paper gives none).  One pressure outlet (p = 0), the others at fixed flow rates.  Uniform inlets, 5 % intensity, as in the paper's CFD |
 | Model | `kOmegaSST`, steady `simpleFoam`, Spalding's wall function (`nutUSpaldingWallFunction`) with the wall cell at y⁺ ≈ 30 at k = 1: task 0049's gated wall-function set-up |
 | Levels | `refined(k)`, k = 1, 2, 3: 65 792, 526 336 and 1 776 384 cells.  Each runs 8000 iterations; the coefficients are the mean over the last 2400 (12 samples), because the steady solve oscillates with a period of about 1200 |
-| Comparison (not gated) | realizable k-ε (`--model rke`) at k = 2, the paper's model, steady |
+| Comparison (not gated) | realizable k-ε (`--model rke`) at k = 2, the paper's model, steady, with Spalding's wall function and with `nutkWallFunction` (`--wall nutk`) |
 
 ## Coefficients
 

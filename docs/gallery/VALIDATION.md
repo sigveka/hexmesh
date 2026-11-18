@@ -164,6 +164,12 @@ Gates: friction factor $f$, wall-resolved, finest level (Re_b 19 000, 37 700, 10
 
 Case: `validation/turbulent_pipe/`: [README.md](../../validation/turbulent_pipe/README.md), [RESULTS.md](../../validation/turbulent_pipe/RESULTS.md), [case.json](../../validation/turbulent_pipe/case.json).
 
+Planned:
+
+| Task | Status |
+|---|---|
+| [0180: Validation (V2): turbulent rectangular ducts against the KTH DNS, with a volunteer card](../tasks/0180-validation-kth-duct-dns.md) | ready (after 0176, which settles the card format; coordinate with 0179) |
+
 ## V3: experiment
 
 ### Laminar flow in a helical pipe (the SIET coil)
@@ -221,26 +227,26 @@ _No cases yet._
 
 Which hexmesh features each case exercises (decision 0012's list, extended by decision 0050). Marks: ● accepted, ⚠ missed, ◐ in progress, ○ planned; planned cases are named by task.  Rows marked *(none)* have no validation case, existing or planned.
 
-| Feature | fenicsx_second_order<br>V1 | heated_pipe<br>V1 | heated_rod<br>V1 | helical_pipe<br>V3 | junction_loss<br>V3 | layered_conduction<br>V1 | mms<br>V1 | poiseuille<br>V1 | rect_duct<br>V1 | square_bend<br>V3 | stenosis<br>V2 | stenosis_pulsatile<br>V2 | turbulent_pipe<br>V2 | womersley<br>V1 | 0050<br>V3 | 0079<br>V3 |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `section:circle` | ● | ● | ● | ● | ⚠ | ● | ● | ● |  |  | ● | ● | ● | ● | ○ | ○ |
-| `section:rect` |  |  |  |  |  |  | ● |  | ● | ● |  |  |  |  |  |  |
-| `layers` |  | ● |  |  |  | ● | ● |  |  |  |  |  |  |  |  |  |
-| `straight` | ● | ● | ● | ● | ⚠ | ● | ● | ● | ● | ● | ● | ● | ● | ● | ○ | ○ |
-| `bend` | ● |  |  |  |  |  | ● |  |  | ● |  |  |  |  | ○ |  |
-| `elbow` (none) |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| `miter` |  |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |
-| `spline` |  |  |  | ● |  |  | ● |  |  |  |  |  |  |  |  |  |
-| `reducer` (none) |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| `profiled-reducer` |  |  |  |  |  |  | ● |  |  |  | ● | ● |  |  |  |  |
-| `transition` |  |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |
-| `switch` (none) |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| `tee` | ● |  |  |  | ⚠ |  | ● |  |  |  |  |  |  |  |  |  |
-| `duct-tap` |  |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |
-| `wye` |  |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |
-| `closure` (none) |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| `stack-changes` |  |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |
-| `projection` | ● |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |
+| Feature | fenicsx_second_order<br>V1 | heated_pipe<br>V1 | heated_rod<br>V1 | helical_pipe<br>V3 | junction_loss<br>V3 | layered_conduction<br>V1 | mms<br>V1 | poiseuille<br>V1 | rect_duct<br>V1 | square_bend<br>V3 | stenosis<br>V2 | stenosis_pulsatile<br>V2 | turbulent_pipe<br>V2 | womersley<br>V1 | 0050<br>V3 | 0079<br>V3 | 0180<br>V2 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `section:circle` | ● | ● | ● | ● | ⚠ | ● | ● | ● |  |  | ● | ● | ● | ● | ○ | ○ |  |
+| `section:rect` |  |  |  |  |  |  | ● |  | ● | ● |  |  |  |  |  |  | ○ |
+| `layers` |  | ● |  |  |  | ● | ● |  |  |  |  |  |  |  |  |  |  |
+| `straight` | ● | ● | ● | ● | ⚠ | ● | ● | ● | ● | ● | ● | ● | ● | ● | ○ | ○ | ○ |
+| `bend` | ● |  |  |  |  |  | ● |  |  | ● |  |  |  |  | ○ |  |  |
+| `elbow` (none) |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `miter` |  |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |  |
+| `spline` |  |  |  | ● |  |  | ● |  |  |  |  |  |  |  |  |  |  |
+| `reducer` (none) |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `profiled-reducer` |  |  |  |  |  |  | ● |  |  |  | ● | ● |  |  |  |  |  |
+| `transition` |  |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |  |
+| `switch` (none) |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `tee` | ● |  |  |  | ⚠ |  | ● |  |  |  |  |  |  |  |  |  |  |
+| `duct-tap` |  |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |  |
+| `wye` |  |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |  |
+| `closure` (none) |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `stack-changes` |  |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |  |
+| `projection` | ● |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |  |
 
 ---
 

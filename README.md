@@ -287,7 +287,7 @@ convergence against gates set in advance.
 | Laminar flow in a 90° square-duct bend, Re 790 | experiment (V3), Taylor et al. 1981 | peak velocity at the measured position at six stations; peak U/V_c converging (GCI ≤ 0.05 %) | ✅ accepted |
 | Laminar flow in a helical pipe (the SIET coil) | experiment (V3), De Amicis et al. 2014 | f within 0.6 % of Ito at n_arc 24 (Re 1800 to 3000), converging at order 1.8 to 1.9; GCI at most 1.4 % | ✅ accepted |
 | Equal-diameter 90° tee: loss coefficients, k-ω SST | experiment (V3), Štigler et al. 2014 | ξ_MGb 0.459 against 0.437 measured (gate 0.025); ξ_PG 0.605 against 0.50 missed (gate 0.03), grid-converged at 0.596 (GCI 0.012): the gap is the model and set-up | ⚠️ missed |
-| Turbulent flow in a 90° bend (PTB LDA; Sudo et al. 1998 the ideal); a Taylor bubble rising in stagnant liquid (VOF) | experiment (V3) | | 📋 planned |
+| Turbulent flow in a 90° bend (PTB LDA; Sudo et al. 1998 the ideal); a Taylor bubble rising in stagnant liquid (VOF); turbulent rectangular ducts against the KTH DNS, with a volunteer card | simulation (V2), experiment (V3) | | 📋 planned |
 <!-- readme:validation:end -->
 
 Categories, the coverage matrix (which features are validated and which

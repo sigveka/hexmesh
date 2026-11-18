@@ -203,7 +203,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0108](0108-gmshtofoam-inversion-audit.md) | Audit the validation cases for gmshToFoam's silent inversions | V1 | done | 0012 |
 | [0109](0109-mms-wall-slope.md) | MMS: does the order track the wall slope? | V1 | done | 0012 |
 | [0180](0180-validation-kth-duct-dns.md) | Validation: turbulent rectangular ducts against the KTH DNS (Reynolds-stress RANS here; wall-resolved LES as a volunteer card) | V2 | ready (after 0176) | 0012, 0015, 0044, 0055 |
-| [0162](0162-validation-junction-flow-stigler.md) | Validation: loss coefficients of equal-diameter tees and laterals (Štigler et al. 2014) | V3 | ready (reported: missed; Q4 answered: one steady k–ε run with nutkWallFunction) | 0042, 0012, 0015 |
+| [0162](0162-validation-junction-flow-stigler.md) | Validation: loss coefficients of equal-diameter tees and laterals (Štigler et al. 2014) | V3 | done (missed: ξ_PG 0.605 against 0.50, grid-converged; k–ε 0.575, with nutkWallFunction 0.567) | 0042, 0012, 0015 |
 
 
 ### Order

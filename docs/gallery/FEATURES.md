@@ -342,6 +342,7 @@ The shape of the pipe: round, or a rectangular duct, and the fittings that chang
 - ● [Womersley flow (pulsatile laminar pipe flow)](../../validation/womersley/README.md) (V1, accepted; last run 2026-10-30, hexmesh 75e9f27; `section:circle`)
 - ○ [task 0050](../tasks/0050-validation-turbulent-bend.md) (V3, planned; `section:circle`)
 - ○ [task 0079](../tasks/0079-validation-taylor-bubble.md) (V3, planned; `section:circle`)
+- ○ [task 0180](../tasks/0180-validation-kth-duct-dns.md) (V2, planned; `section:rect`)
 
 | Example | Shows | Cells | min SICN | min SJ | Build |
 |---|---|---|---|---|---|
@@ -706,6 +707,7 @@ Fittings join in any order and any orientation: a network is a sequence of `add`
 - ● [Womersley flow (pulsatile laminar pipe flow)](../../validation/womersley/README.md) (V1, accepted; last run 2026-10-30, hexmesh 75e9f27; `straight`)
 - ○ [task 0050](../tasks/0050-validation-turbulent-bend.md) (V3, planned; `straight`)
 - ○ [task 0079](../tasks/0079-validation-taylor-bubble.md) (V3, planned; `straight`)
+- ○ [task 0180](../tasks/0180-validation-kth-duct-dns.md) (V2, planned; `straight`)
 
 | Example | Shows | Cells | min SICN | min SJ | Build |
 |---|---|---|---|---|---|

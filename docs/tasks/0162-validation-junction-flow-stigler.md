@@ -1,6 +1,6 @@
 # 0162 — Validation: loss coefficients of equal-diameter tees and laterals (Štigler et al. 2014)
 
-- **Status:** ready (Q4 answered: one steady k–ε run with nutkWallFunction)
+- **Status:** done (missed: ξ_MGb passes, ξ_PG misses, grid-converged)
 - **Decision:** [0042](../decisions/0042-road-to-1-0.md) criterion 4
   ("a junction-flow benchmark (Štigler's T-junction, on equal tees)"),
   milestone 0.7; [0012](../decisions/0012-openfoam-validation-cases.md);
@@ -400,6 +400,22 @@ intersections (decision 0045).
     budget is 16 h.  Even a step ten times cheaper would be 80 h.  Not
     started; see Q4.
 
+- **2026-11-18, Q4: the steady k–ε run with `nutkWallFunction`.**
+  `run.py --wall {spalding,nutk}` (1d5902c); level
+  `div_a_q0.6_k2_rke_nutk`, Div a, q = 0.6, k = 2 (526 336 cells), np 3,
+  8000 iterations, the last 2400 sampled 12 times, as the Spalding run.
+  3 h 46 min.  **ξ_PG 0.567** (McKeon 0.650), **ξ_MGb 0.433** (McKeon
+  0.468); spreads below 10⁻⁵, so it settles.  Spalding gave 0.575 and
+  0.432: the wall treatment's share of ξ_PG is 0.008.  Outside
+  0.45–0.51, so our meshes with their model and the nearest wall
+  function don't reproduce their CFD's 0.48.  The work directory is
+  deleted.
+  - `results.json` stamped the level with hexmesh ffbf6cd, the commit
+    checked out when the run wrote it, not the code it ran
+    (`environment()` is called at the end).  Set by hand to 1d5902c:
+    `hexmesh/` is the same at 7972972 and 1d5902c, and the merge of
+    0173 came after meshing.  Follow-up below.
+
 ## Questions for design
 
 - **Q1 (2026-11-15, coding session). hexmesh can't mesh the 45° equal
@@ -557,3 +573,33 @@ k-ε, other wall fn").**  (a), as you recommend:
 - Gates and verdict unchanged.
 
 ## Outcome
+
+**Missed** (decision 0012's note): at Div a, q = 0.6, ξ_MGb passes its
+gate (0.459 against 0.437 ± 0.025) and ξ_PG misses it (0.605 against
+0.500 ± 0.030).  The mesh is not the cause: k = 1, 2, 3 converge at
+order 1.9, extrapolated 0.596, GCI 0.012.
+
+- **Files:** `validation/junction_loss/` (run.py, case.json,
+  results.json with five levels, RESULTS.md, README.md, figure.png,
+  reference/), `validation/tools/plots.py` (`junction_loss`),
+  `validation/tools/recheck.py`; the "missed" status in
+  `validation/case.schema.json`, the gallery and
+  `tests/test_validation_meta.py`; `docs/integrations/openfoam.md`
+  (fieldAverage on v2406, `pFinal` relTol 0 stall).
+- **Comparisons, not gated, at k = 2:** realizable k–ε 0.575 with
+  Spalding's wall function and 0.567 with `nutkWallFunction`.  Neither
+  the model (−0.04 from SST) nor the wall function (−0.008) closes the
+  gap to their CFD's 0.48.
+- **Not run:** the 20 points, the Com a convergence point and the
+  Reynolds check (about 80 h at k = 2; task 0168 on hold), and the
+  transient run (about 800 h).
+- **Run cost:** k = 1 33 min, k = 2 about 4 h, k = 3 14 h 11 min, each
+  k–ε run about 4 h, on 3 processes.
+- **Follow-ups:**
+  1. `validation/tools/results.py`'s `environment()` is read when a
+     driver writes `results.json`, at the end of a long run, so a commit
+     made meanwhile is stamped as the run's.  Take it at the start of
+     the run (or stamp the start commit beside it).
+  2. If ξ_PG matters again: their mesh size (2.3 M cells, k = 3 is
+     1.8 M), or a transient run at k = 1 (option (c) of Q4, about 50 h),
+     as a volunteer card.

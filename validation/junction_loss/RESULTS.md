@@ -9,7 +9,8 @@ model and set-up's: refining further won't close it.
   `opencfd/openfoam-default:2406`) and gmsh 4.12.1, on 3 MPI processes;
   k = 3 and k-ε from a copy of hexmesh 972d9cb, k = 1 and 2 from the tree
   of 2026-11-16 (commit not recorded).
-  Wall time 33 min (k = 1), about 4 h (k = 2), 14 h 11 min (k = 3).
+  Wall time 33 min (k = 1), about 4 h (k = 2), 14 h 11 min (k = 3);
+  the k-ε run with `nutkWallFunction` 3 h 46 min, from hexmesh 1d5902c.
   Peak memory up to 1.9 GiB in the containers at k = 1 and 2; not
   logged at k = 3.
 - **Reference:** Štigler, Klas & Šperka (2014), figures 5 and 6,
@@ -53,10 +54,13 @@ moves away from the measurement as the mesh is refined.
   0.99, 1.17 at k = 3.
 - **The model and set-up.**  Realizable k-ε, the paper's model, gives
   ξ_PG 0.575 at k = 2, 0.04 below SST at the same level and still 0.075
-  above the measurement.  The paper's CFD differs from ours in being
-  transient, at 2.3 M cells, with Fluent's non-equilibrium wall
-  functions: a run set up that way is task 0162's next step, reported
-  beside this one, not in place of it.
+  above the measurement.  With `nutkWallFunction`, the nearest v2406
+  has to Fluent's non-equilibrium wall functions, in place of
+  Spalding's, it gives 0.567: the wall treatment's share is 0.008, and
+  the run is still 0.057 above the measurement, outside 0.45–0.51.  So
+  neither the model nor the wall function brings our meshes to their
+  CFD's 0.48.  What is left is what wasn't run: their transient solve
+  and their 2.3 M-cell mesh (see *Not run*).
 
 ## Reported (not gated)
 
@@ -65,7 +69,8 @@ moves away from the measurement as the mesh is refined.
 | k = 1, SST | 65 792 | 0.672 | 0.724 ± 0.008 | 0.438 | 0.461 ± 0.004 |
 | k = 2, SST | 526 336 | 0.616 | 0.672 ± 0.010 | 0.449 | 0.469 ± 0.008 |
 | k = 3, SST | 1 776 384 | 0.605 | 0.635 ± 0.005 | 0.459 | 0.469 ± 0.002 |
-| k = 2, realizable k-ε | 526 336 | 0.575 | 0.667 | 0.432 | 0.472 |
+| k = 2, realizable k-ε, Spalding | 526 336 | 0.575 | 0.667 | 0.432 | 0.472 |
+| k = 2, realizable k-ε, `nutkWallFunction` | 526 336 | 0.567 | 0.650 | 0.433 | 0.468 |
 | measured (their CFD) | | 0.50 (0.48) | | 0.437 (0.435) | |
 
 ± is the standard deviation of the 12 samples over the last 2400
@@ -95,5 +100,6 @@ set up and dropped.  At k = 2 on 3 processes a time step costs about
 800 h.  The steady k-ε run settles (its samples agree to 10⁻⁵), and a
 RANS flow that settles has that steady state as its transient limit, so
 the run would most likely have reproduced the steady value.  In its
-place, the steady k-ε run is repeated with the transient set-up's wall
-function (`nutkWallFunction`), to show the wall treatment's share.
+place, the steady k-ε run was repeated with the transient set-up's wall
+function (`nutkWallFunction`): ξ_PG 0.567 against 0.575 with Spalding's.
+It settles as well (its samples agree to 10⁻⁵).
