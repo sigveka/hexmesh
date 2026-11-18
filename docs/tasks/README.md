@@ -172,6 +172,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0174](0174-windows-volunteer-tool-gaps.md) | Volunteer tool off Linux: peak memory without `/proc`, generated files with LF, the POSIX-tool scan widened | ready | 0039, 0044 |
 | [0175](0175-volunteer-machine-record.md) | Volunteer runs record the machine (an allow-list) and the solver time | ready (after 0174) | 0044 |
 | [0176](0176-volunteer-try-out-card.md) | A try-out volunteer card: Poiseuille on 2 processes, the whole workflow in about 2 minutes, run in CI | ready | 0044, 0054 |
+| [0177](0177-caller-gmsh-before-load.md) | gmsh started by the caller before hexmesh loads it counts as a session (0167 bug; `test_build_sync.py` alone fails) | ready (before the 0.8.0 tag) | — |
 
 ### Validation
 
