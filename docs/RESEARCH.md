@@ -613,6 +613,7 @@ has the full tables.
 | SST k = 3 | 1 776 384 | 0.605 (0.635) | 0.459 (0.469) |
 | SST, Richardson | | **0.596**, order 1.90, GCI 0.012 | **0.468**, order 1.93, GCI 0.011 |
 | realizable k–ε k = 2 | 526 336 | 0.575 (0.667) | 0.432 (0.472) |
+| realizable k–ε k = 2, nutkWallFunction | 526 336 | 0.567 (0.650) | 0.433 |
 | measured (their CFD) | | 0.50 (0.48) | 0.437 (0.435) |
 
 - **ξ_PG misses** its gate (0.105 from 0.50 at k = 3, against 0.03).
@@ -631,10 +632,21 @@ has the full tables.
   experiment's measured one.
 - **Realizable k–ε,** the paper's model, is 0.04 lower than SST at the
   same level and still 0.075 above the measurement.  Their k–ε, transient
-  with non-equilibrium wall functions on 2.3 M cells, reached 0.48.  A
-  run set up as theirs (transient, at k = 2) is task 0162's next step.
-  Its reading is fixed before it runs: within 0.45–0.51 means hexmesh's
-  meshes reproduce their CFD.
+  with non-equilibrium wall functions on 2.3 M cells, reached 0.48.
+  - The run set up as theirs (transient, at k = 2) was estimated at
+    about 800 h, so it wasn't run (task 0162, Q4).
+  - In its place, a steady k–ε at k = 2 with their wall treatment's
+    nearest equivalent (`nutkWallFunction`) gives **ξ_PG 0.567**
+    (McKeon 0.650) and ξ_MGb 0.433.  It settles to 10⁻⁵ in 3 h 46 min on
+    3 processes.
+  - **The wall treatment's share** of ξ_PG is 0.008 (0.575 against
+    0.567).  The value stays outside the 0.45–0.51 band fixed before
+    the run, so the meshes don't reproduce their CFD's 0.48 in steady
+    RANS.
+  - The rest of the gap (about 0.07) is in what differs besides the
+    mesh: steady against transient, the inlet, and their 2.3 M cells.
+    A second code on the same mesh could separate the mesh's share from
+    the model's (decision 0057, after 1.0).
 - **Steady SST doesn't settle** at any level: the coefficients oscillate
   with a period of about 1200 iterations (ξ_PG ± 0.01 at k = 2), and the
   values are window means.  k–ε's steady solve settles (to 10⁻⁵).
