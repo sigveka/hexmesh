@@ -63,6 +63,9 @@ flags.
    - **fenicsx_second_order:** its runner is FEniCSx in Docker.  The
      card names that runner, and `run` must handle it, or the card says
      why it can't.
+   - **MMS:** its card marks the 16 `<fitting>_k1` levels as the
+     local check's fitting levels (decision 0055's note).  `python3 -m
+     validation run mms --fitting tee` (or `--level tee_k1`) runs one.
    - **Not reproduced:** a cheapest level that doesn't reproduce goes
      under *Questions for design* with the numbers.  Don't widen a
      tolerance to make it pass.

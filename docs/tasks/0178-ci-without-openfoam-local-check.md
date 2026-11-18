@@ -32,6 +32,14 @@ cheapest case to verify the volunteer and validation cards work."
      validation run poiseuille --level try_np2` once 0179 provides it.
      Until then, the volunteer tool's `prepare` → `run` → `collect` →
      `check` on the try-out level, in a temporary directory.
+   - **Step b2, every fitting** (decision 0055's note of 2026-11-18):
+     the MMS case's 16 `<fitting>_k1` levels listed there, each compared
+     with its stored values.  Run them in parallel as the cores allow.
+     `--order` adds the `_k2` levels.  Until 0179 gives MMS its card, call
+     the MMS driver for those levels into a temporary directory, without
+     touching `results.json`.  Record the time per level and in total
+     under *Agent notes*; the budget for the whole check is about
+     5 minutes here.
    - **Step c:** every case's card valid and its levels known to its
      driver, with no solving.  This is a no-op until 0179 lands; say so
      in its output.
@@ -57,8 +65,9 @@ cheapest case to verify the volunteer and validation cards work."
 
 **Accept.**
 - CI has no OpenFOAM job and is green.
-- `python3 tools/local_check.py` passes here, and reports "skipped" with
-  no runner.
+- `python3 tools/local_check.py` passes here: the try-out and all 16
+  MMS fitting levels reproduce, in about 5 minutes (measured, stated).
+  With no runner it reports "skipped".
 - The hook runs it only for the listed paths.
 
 **Out of scope.**  Running the validation cases' real levels in the

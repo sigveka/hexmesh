@@ -148,3 +148,30 @@ of these would be a local check under rule 3, never CI.
   Drivers with other runners (fenicsx_second_order runs FEniCSx in
   Docker, not OpenFOAM) need their runner on the card.  Task 0179 checks
   each one.
+
+## Note (2026-11-18): the local check covers every fitting
+
+The user, the same day: "maybe the cheapest case relevant for each
+fitting can be a good idea".  Rule 4's case step widens from one case to
+one cheap level per fitting:
+- **Flow:** the try-out (Poiseuille on 2 processes, task 0176), as before.
+  It covers the parallel path and the volunteer tooling.
+- **Every fitting:** the MMS case's coarsest level (`<fitting>_k1`)
+  already exists for each fitting, from 576 to 9 472 cells, solved with
+  `laplacianFoam` (conduction, decision 0034's MMS).  The check runs the
+  16 fitting levels and compares each with its stored values within the
+  card's tolerance.  Those levels are: straight, bend, miter, spline,
+  reducer, transition, tee, tee_shells, stack_change, wye60, wye90,
+  wye60_shell, wye90_shell, duct, duct_tap_rect and duct_tap_round.  The
+  scheme and slope variants (`_loc`, `_lsq`, `_skew`, `_s0…`, `_lim`)
+  stay out.  They test the solver settings, not the mesh.
+- One level per fitting can't show an order of convergence.  It checks
+  that the fitting still meshes, converts and solves to the stored
+  answer.  `--order` adds the `_k2` levels (up to about 45 000 cells),
+  which give an order.
+- **Budget:** the whole check should run in about 5 minutes on this
+  machine (8 cores, Docker).  Task 0178 measures it.  If the 16 levels
+  are well over that, it runs them in parallel, not fewer of them.
+- A flow case on a fitting (square_bend for the bend, stenosis for the
+  reducer) joins only if its cheapest level runs in under about a
+  minute.  Task 0179's table of cheapest levels shows which.
