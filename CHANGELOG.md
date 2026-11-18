@@ -124,6 +124,10 @@ decision 0053).
   rewrites only the physical groups.  Other options raise
   `remesh_with_other_options`: build the assembly in a new `Session`.
 
+**Fixed: gmsh the caller started first** (task 0177).  `import gmsh;
+gmsh.initialize()` before hexmesh had loaded gmsh, then `assembly.mesh()`,
+raised `no_gmsh_session`; that gmsh now counts as the caller's.
+
 **Windows: OpenFOAM commands run after meshing** (decision 0039; task
 0173).  `gmsh.initialize()` (gmsh 4.15.2) replaces the process's native
 `PATH` on Windows.  Every `docker` command after meshing then failed

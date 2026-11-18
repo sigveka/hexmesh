@@ -61,6 +61,15 @@ def load():
     return _module
 
 
+def _imported():
+    """The gmsh module if this process has imported it, else None, without
+    importing it: a caller may have imported and initialized gmsh before
+    hexmesh loaded it (task 0177)."""
+    if _module is None and sys.modules.get("gmsh") is not None:
+        load()
+    return _module
+
+
 class _Lazy:
     """Stands in for the gmsh module: every attribute is the real module's."""
 
@@ -104,7 +113,8 @@ def caller_drives() -> bool:
     """True inside a Session, or when the caller initialized gmsh
     itself: the calls that act on gmsh's current model may run."""
     started()
-    return (_module is not None and _module.isInitialized()
+    module = _imported()
+    return (module is not None and module.isInitialized()
             and (bool(sessions) or not _started))
 
 
@@ -116,9 +126,10 @@ def may_mesh() -> bool:
 
 def models() -> list[str]:
     """The model names of the running gmsh; none when it isn't running."""
-    if _module is None or not _module.isInitialized():
+    module = _imported()
+    if module is None or not module.isInitialized():
         return []
-    return _module.model.list()
+    return module.model.list()
 
 
 def initialize() -> None:

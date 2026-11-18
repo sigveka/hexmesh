@@ -8,6 +8,9 @@ import gc
 import importlib
 import io
 import pickle
+import subprocess
+import sys
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -244,3 +247,37 @@ def test_write_openfoam_outside_a_session_checks_before_meshing(tmp_path):
 def test_mesh_is_exported():
     assert Mesh.__module__ == "hexmesh.assembly.mesh"
     assert ELEMENT_TYPES[5] == "hex8" and len(set(ELEMENT_TYPES.values())) == len(ELEMENT_TYPES)
+
+
+# --- gmsh the caller started before hexmesh loaded it (task 0177) ------------
+# A fresh process each, so no earlier test's load() can hide it.
+
+_ROOT = Path(__file__).resolve().parents[1]
+
+
+def _fresh(code: str) -> str:
+    head = f"import sys; sys.path.insert(0, {str(_ROOT)!r})\n"
+    return subprocess.run([sys.executable, "-c", head + code], capture_output=True,
+                          text=True, check=True, cwd=_ROOT).stdout.strip()
+
+
+@pytest.mark.subprocess
+def test_gmsh_the_caller_started_before_hexmesh_loaded_it_meshes():
+    out = _fresh(
+        "import gmsh\n"
+        "gmsh.initialize(); gmsh.option.setNumber('General.Verbosity', 1)\n"
+        "from hexmesh import Assembly, PipeSpec, Straight, _gmsh\n"
+        "print(_gmsh.caller_drives())\n"
+        "asm = Assembly(PipeSpec(n_arc=4).core('fluid', radius=0.01, n_radial=1))\n"
+        "asm.add(Straight(0.05, n_layers=2))\n"
+        "asm.mesh()\n"
+        "print(len(gmsh.model.mesh.getElements(3)[1][0]) == asm.cell_count())\n"
+        "gmsh.finalize()\n")
+    assert out.splitlines()[-2:] == ["True", "True"], out
+
+
+@pytest.mark.subprocess
+def test_a_process_that_never_imported_gmsh_still_does_not():
+    out = _fresh("from hexmesh import _gmsh\n"
+                 "print(_gmsh.caller_drives(), _gmsh.models(), 'gmsh' in sys.modules)\n")
+    assert out == "False [] False", out
