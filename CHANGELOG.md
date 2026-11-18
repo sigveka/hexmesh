@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+**Windows: OpenFOAM commands run after meshing** (decision 0039; task
+0173).  `gmsh.initialize()` (gmsh 4.15.2) replaces the process's native
+`PATH` on Windows.  Every `docker` command after meshing then failed
+with `FileNotFoundError: [WinError 2]`, e.g. `gmshToFoam` in the
+volunteer tool's `prepare`.  hexmesh's start of gmsh (`Session`,
+`to_mesh`) now puts `PATH` back, and the OpenFOAM helpers look the
+program up on `os.environ`'s `PATH`.
+
+**Windows: parallel solves run in Docker** (task 0173).  A Windows
+host's container runs as root, and `mpirun` refused root.  The Docker
+runner now sets Open MPI's opt-in (`OMPI_ALLOW_RUN_AS_ROOT`) when it
+passes no `--user`.  `run_solver` removes the processor directories
+inside the runner: their Linux symlinks can't be opened by Windows,
+so `shutil.rmtree` failed after the first parallel chunk.
+
+**Volunteer contributions with the old names merge** (task 0173).  The
+volunteer tags predate the renames of task 0166, so their files say
+`nang`/`nrad`; `volunteer check` failed on them (`KeyError: 'n_arc'`).
+It now renames them on reading and says so in its report.
+
+**A runner that can't run says why** (task 0173).  A stopped Docker
+engine was reported as "has no OpenFOAM".  `require_version` now gives
+the runner's own error ("could not run (failed to connect to the docker
+API …)") and a hint to start the engine.  The error code is unchanged.
+
 ## 0.8.0 (2026-11-16)
 
 The API review before the 1.0 freeze (decision 0042): the public surface

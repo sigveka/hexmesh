@@ -28,6 +28,7 @@ meshing behaves as before.  When the import fails, :func:`load` raises
 from __future__ import annotations
 
 import atexit
+import os
 import sys
 import weakref
 from contextlib import contextmanager
@@ -120,6 +121,19 @@ def models() -> list[str]:
     return _module.model.list()
 
 
+def initialize() -> None:
+    """``gmsh.initialize()``, keeping the process's ``PATH``.  On Windows
+    gmsh 4.15.2 replaces the native ``PATH`` (``os.environ`` doesn't see
+    it), and programs started afterwards (``docker``, ``git``) are not
+    found; assigning ``os.environ`` resets it (task 0173,
+    ``docs/integrations/gmsh.md``).  Every hexmesh start of gmsh goes
+    through here."""
+    path = os.environ.get("PATH")
+    load().initialize()
+    if path is not None:
+        os.environ["PATH"] = path
+
+
 def start() -> None:
     """Initialize gmsh if nothing has, quietly, and finalize it at exit."""
     global _started
@@ -127,7 +141,7 @@ def start() -> None:
     started()
     if module.isInitialized():
         return
-    module.initialize()
+    initialize()
     module.option.setNumber("General.Verbosity", 1)
     if not _started:
         atexit.register(_finish)

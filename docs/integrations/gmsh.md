@@ -629,6 +629,26 @@ Linux's and `gmshToFoam` gets LF (decision 0039).  `msh_comments.insert`
 also follows a file's own line ending, for CRLF files hexmesh didn't
 write.
 
+### `gmsh.initialize()` on Windows replaces the process's native `PATH` (gmsh 4.15.2, 2026-11-18) — *verified*
+gmsh 4.15.2 (pip wheel, Python 3.14.7, Windows 11) rewrites the
+process's Win32 `PATH` during `gmsh.initialize()`.  On the development
+laptop it went from 1656 characters to 323: eight entries were kept, `C:\`
+was added, and the rest, including Rancher Desktop's `docker.exe`
+directory, Git and PowerShell, were gone.  It stays that way after
+`gmsh.finalize()`.  Python's `os.environ["PATH"]` is not updated and
+still shows the full value.  `subprocess.Popen(["docker", ...])`
+(with `env=None`) makes Windows `CreateProcess` search the *native*
+`PATH`, so any program started after gmsh has run fails with
+`FileNotFoundError: [WinError 2]`.  `shutil.which("docker")` still finds
+it, because it reads `os.environ`.  Evidence: `python -m
+validation.volunteer prepare helical_pipe re3000_n24` meshed, then
+failed in `of.convert` → `foam()` → `Popen`.  A probe of
+`GetEnvironmentVariableW("PATH")` before and after `gmsh.initialize()`
+reproduced it.  Linux is unaffected (`execvpe` uses Python's `PATH`).
+Workarounds: give `Popen` an absolute executable
+(`shutil.which(argv[0])`) and `env=os.environ`, or reset the native
+`PATH` from `os.environ` after `initialize`.
+
 ### Transfinite laws: only `Bump` is two-sided (gmsh 4.12.1, task 0084, 2026-11-03) — *verified*
 Measured on a unit line, `setTransfiniteCurve(l, n + 1, kind, coef)`,
 n = 8:
