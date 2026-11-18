@@ -131,14 +131,21 @@ def test_results_json_is_valid_small_and_deterministic(case):
 @pytest.mark.parametrize("case", recheck.CASES)
 def test_recheck_reproduces_every_gate(case):
     """Each recheck has gates; an accepted case (``case.json``) passes
-    them all.  A case still in progress reports failing gates (tasks 0049
-    and 0072) until design rules on them."""
+    them all; a missed one misses at least one, and its ``RESULTS.md``
+    names each miss (decision 0012's note of 2026-11-18).  A case still in
+    progress reports failing gates (tasks 0049 and 0072) until design
+    rules on them."""
     rows = recheck.recheck(case)
     gated = [r for r in rows if r["verdict"] is not None]
     assert gated, f"{case}: no gate rechecked"
     meta = json.loads((ROOT / "validation" / case / "case.json").read_text(encoding="utf-8"))
+    missed = [r["quantity"] for r in gated if r["verdict"] != "pass"]
     if meta["status"] == "accepted":
-        assert [r["quantity"] for r in gated if r["verdict"] != "pass"] == []
+        assert missed == []
+    if meta["status"] == "missed":
+        assert missed, f"{case}: missed, but every gate passes"
+        results = (ROOT / "validation" / case / "RESULTS.md").read_text(encoding="utf-8")
+        assert [q for q in missed if q not in results] == []
 
 
 def test_recheck_cli_exits_nonzero_on_a_failing_gate(monkeypatch, capsys):

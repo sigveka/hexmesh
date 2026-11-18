@@ -1,6 +1,6 @@
 # 0162 — Validation: loss coefficients of equal-diameter tees and laterals (Štigler et al. 2014)
 
-- **Status:** ready (Q3 answered: report the miss; one run as their CFD)
+- **Status:** in progress (Q3 part 1, the report, done; part 2, the transient run, next)
 - **Decision:** [0042](../decisions/0042-road-to-1-0.md) criterion 4
   ("a junction-flow benchmark (Štigler's T-junction, on equal tees)"),
   milestone 0.7; [0012](../decisions/0012-openfoam-validation-cases.md);
@@ -355,6 +355,29 @@ intersections (decision 0045).
     b to 0.99), so the two methods are converging too.  Realizable k–ε
     at k = 2 gave 0.575, 0.04 below SST at the same level.  Their 2.3 M
     cell k–ε gave 0.48.
+
+- **2026-11-18, Q3 part 1: the report.**
+  - `validation/junction_loss/`: `results.json` (the four levels, their
+    old keys mapped: `xi_*` ← `xi_*_fit`, `xi_*_mckeon` ← `xi_*`, `nang`
+    → `n_arc` etc.; `keys_mapped` says so in each level), `RESULTS.md`,
+    `README.md`, `figure.png` (the coefficients against h, with the
+    measurement, its gate, their CFD, the McKeon variant and k–ε).
+    `recheck` and `plots` know the case.
+  - **Status `missed`** (decision 0012's note, aebace9): added to
+    `case.schema.json` in place of `rejected`; the gallery marks it ⚠ /
+    ⚠️; `test_validation_meta` checks that a missed case misses a gate
+    and that its RESULTS.md names each miss.  The README's validation
+    table and the gallery pages regenerated (`--markdown-only`).
+  - **Found while writing it:** ξ_MGb's extrapolated value, 0.468, is
+    0.006 outside its gate's band (0.412-0.462).  It passes at k = 3
+    (0.459), the level the gate names, and drifts away as h falls.
+    RESULTS.md says so.
+  - `environment.hexmesh` is 972d9cb for k = 3 and k–ε (the frozen copy
+    matches every commit from 972d9cb to 4951278 file for file); k = 1
+    and 2 ran from the tree of 2026-11-16, commit not recorded (None).
+  - RESEARCH §7.2: left to the design session (its message of
+    2026-11-18).
+  - Part 2, the transient k–ε run, is next.
 
 ## Questions for design
 

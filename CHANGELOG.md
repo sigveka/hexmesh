@@ -189,6 +189,16 @@ decision 0053).
 - `-h` lists the commands.  The card and `VOLUNTEERS.md` give one way to
   get the version: `git clone --branch <tag>`.
 
+**Validation: an equal tee's loss coefficients** (task 0162).
+- A new V3 case, `validation/junction_loss`, against Štigler, Klas &
+  Šperka (2014): an equal 90° tee, k-ω SST, Div a at q = 0.6 at three
+  levels (65 k to 1.8 M cells).  ξ_MGb passes its gate; ξ_PG, 0.605
+  against a measured 0.50, misses it.  The levels converge (GCI 0.012),
+  so the gap is the model and set-up's, not the mesh's.
+- A case's status may be **missed** (decision 0012's note): run to the
+  end, at least one gate missed, the miss explained in its RESULTS.md.
+  It replaces the unused `rejected`.
+
 **A wheel and an sdist on each GitHub release** (task 0149).
 - From the next release on, each GitHub release carries
   `hexmesh-X.Y.Z-py3-none-any.whl` and `hexmesh-X.Y.Z.tar.gz`.

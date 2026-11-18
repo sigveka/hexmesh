@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "title": "Equal-diameter 90° tee: loss coefficients, k-ω SST",
+  "headline": "ξ_MGb 0.459 against 0.437 measured (gate 0.025); ξ_PG 0.605 against 0.50 missed (gate 0.03), grid-converged at 0.596 (GCI 0.012): the gap is the model and set-up",
   "category": "V3",
   "references": [
     {
@@ -26,7 +27,7 @@
       "conversion": "gmshToFoam, with -keepOrientation when the worst scaled Jacobian is positive (task 0108)"
     }
   },
-  "status": "in progress",
+  "status": "missed",
   "task": "0162",
   "gates": [
     {

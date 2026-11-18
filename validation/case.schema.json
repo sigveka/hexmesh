@@ -69,7 +69,7 @@
         }
       }
     },
-    "status": {"enum": ["planned", "in progress", "accepted", "rejected"]},
+    "status": {"description": "missed: run to the end, at least one gate missed, the miss explained in RESULTS.md and README (decision 0012 note, 2026-11-18)", "enum": ["planned", "in progress", "accepted", "missed"]},
     "gates": {
       "type": "array",
       "items": {

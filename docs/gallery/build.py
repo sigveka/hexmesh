@@ -799,7 +799,7 @@ CATEGORIES_V = {
     "V3": "experiment",
     "V4": "correlation or standard",
 }
-STATUS_MARK = {"accepted": "●", "in progress": "◐", "planned": "○", "rejected": "✗"}
+STATUS_MARK = {"accepted": "●", "missed": "⚠", "in progress": "◐", "planned": "○"}
 
 
 def case_schema() -> dict:
@@ -962,7 +962,7 @@ BIB = ROOT / "docs" / "references.bib"
 README_EXAMPLE = "sections.insulated_tee"
 #: a reference's kind when its source doesn't start with one
 KIND_V = {"V1": "exact", "V2": "simulation", "V3": "experiment", "V4": "correlation"}
-STATUS_ICON = {"accepted": "✅", "in progress": "🔄", "planned": "📋", "rejected": "❌"}
+STATUS_ICON = {"accepted": "✅", "missed": "⚠️", "in progress": "🔄", "planned": "📋"}
 
 
 def readme_block(text: str, name: str, body: str) -> str:

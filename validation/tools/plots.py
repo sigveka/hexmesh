@@ -51,7 +51,7 @@ from matplotlib.ticker import FixedLocator, FuncFormatter, LogLocator, NullForma
 ROOT = Path(__file__).resolve().parents[2]
 CASES = ("poiseuille", "heated_rod", "layered_conduction", "heated_pipe", "womersley",
          "stenosis", "stenosis_pulsatile", "rect_duct", "mms", "turbulent_pipe", "square_bend",
-         "helical_pipe",
+         "helical_pipe", "junction_loss",
          "fenicsx_second_order")
 
 SIZE, DPI = (8.0, 5.0), 200          # 1600 × 1000 px
@@ -716,6 +716,75 @@ def helical_pipe(data, out):
                     "5 % of Ito's correlation at n_arc 16.  No reference slopes: a correlation "
                     "is not an exact solution.", out / "figure.png"),
             "The friction factor's difference from Ito's correlation per level."]
+
+
+def junction_loss(data, out):
+    """The coefficients against cell size at Div a, q = 0.6: the measured
+    value with its gate, their CFD, ours (SST; the McKeon variant; k-ε)."""
+    rows = [r for r in _junction_reference() if r["config"] == "Div a" and r["gamma"] == 90]
+    ref = {r["coefficient"]: r for r in rows if r["q"] == 0.6}
+    # T: their CFD's largest miss over the five q (run.py's tolerances())
+    gate = {c: max(abs(r["cfd"] - r["measured"]) for r in rows if r["coefficient"] == c)
+            for c in ref}
+    sst = sorted(_levels(data, config="div_a", model="sst"), key=lambda l: l["k"])
+    rke = _levels(data, config="div_a", model="rke")
+    rich = data["extra"]["richardson"]["Div a q 0.6"]
+    h = _h(sst)
+    fig, ax = _figure(1, 2)
+    for a, coef, name in zip(ax.flat, ("xi_PG", "xi_MGb"), ("ξ_PG", "ξ_MGb")):
+        r = ref[coef]
+        tol = r["u"] + gate[coef]
+        a.axhspan(r["measured"] - tol, r["measured"] + tol, color=GATE, alpha=0.18,
+                  linewidth=0, zorder=0, label=f"gate: measured ± {tol:.3f}")
+        a.axhline(r["measured"], color=REFERENCE, linewidth=1.2, zorder=1,
+                  label=f"measured {r['measured']:.3f}")
+        a.axhline(r["cfd"], color=REFERENCE, linewidth=1, linestyle=(0, (5, 3)), zorder=1,
+                  label=f"their CFD (realizable k-ε) {r['cfd']:.3f}")
+        st = style(None, 0)
+        rc = rich[coef]
+        a.plot(h, _col(sst, coef), color=st["color"], marker=st["marker"], linewidth=1.5,
+               zorder=3, label=f"ours, k-ω SST ({_status(rc, len(h))})")
+        a.plot([0], [rc["extrapolated"]], color=st["color"], marker="*", markersize=10,
+               linestyle="none", zorder=3,
+               label=f"extrapolated {rc['extrapolated']:.3f} (GCI {rc['gci_fine']:.3f})")
+        a.plot([0, h[-1]], [rc["extrapolated"], sst[-1][coef]], color=st["color"],
+               linewidth=1, linestyle=(0, (1, 2)), zorder=2)
+        st = style(None, 1)
+        a.plot(h, _col(sst, f"{coef}_mckeon"), color=st["color"], marker=st["marker"],
+               linewidth=1, markerfacecolor="white", zorder=3,
+               label="ours, SST, McKeon's gradient (not gated)")
+        st = style(None, 3)
+        a.plot(_h(rke) if rke[0].get("k") else [], _col(rke, coef), color=st["color"],
+               marker=st["marker"], linestyle="none", zorder=4,
+               label="ours, realizable k-ε, k = 2 (not gated)")
+        _axes(a, "relative cell size h / h₁   (finer to the left)", name)
+        a.set_xlim(-0.05, 1.05)
+        a.xaxis.set_major_locator(FixedLocator([0] + sorted(h)))
+        a.xaxis.set_major_formatter(FuncFormatter(
+            lambda v, _: str(Fraction(v).limit_denominator(64))))
+        a.set_title(f"{name}, Div a, q = 0.6", fontsize=8)
+        _legend(a)
+    return [_finish(fig, "junction_loss", "Each branch's pressure carried to the centre along "
+                    "the solution's own gradient (the paper's §3).  Gate: within u + T of the "
+                    "measurement at the finest level (k = 3): ξ_MGb passes, ξ_PG misses.  The "
+                    "levels converge (order 1.9), so the gap is the model and set-up, not the "
+                    "mesh.", out / "figure.png"),
+            "ξ_PG and ξ_MGb at Div a, q = 0.6, against cell size: the measurement, its gate, "
+            "their CFD and ours."]
+
+
+def _junction_reference() -> list[dict]:
+    """reference/stigler_2014.csv's rows (validation/junction_loss/run.py)."""
+    rows = []
+    path = ROOT / "validation/junction_loss/reference/stigler_2014.csv"
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.startswith(("#", "figure,")):
+            continue
+        f = line.split(",")
+        rows.append({"config": f[1], "coefficient": f[2], "gamma": float(f[3]),
+                     "q": float(f[4]), "measured": float(f[5]), "u": float(f[6]),
+                     "cfd": float(f[7])})
+    return rows
 
 
 def fenicsx_second_order(data, out):
