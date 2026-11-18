@@ -69,6 +69,7 @@ rejected.  Records are written in design sessions, and they are the only way
 | [0052](0052-ci-gates-main.md) | CI gates `main`; platform rules as tests | accepted |
 | [0053](0053-api-hardening-before-freeze.md) | Three API changes before the freeze: keyword-only arguments, copy-on-write specs, named outlets | accepted |
 | [0054](0054-validation-needs-a-checkout.md) | Validation runs from a source checkout; the docs say so first, on every platform | accepted |
+| [0055](0055-cards-for-every-case-ci-without-openfoam.md) | A card for every validation case and one command to re-run it; CI without OpenFOAM, a local check | accepted (other solvers: proposed) |
 
 ## Future expansions
 

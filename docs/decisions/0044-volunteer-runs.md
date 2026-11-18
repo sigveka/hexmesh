@@ -218,5 +218,7 @@ test the workflow."
     from it is stored, and it gives no credit;
   - `list` and VOLUNTEERS.md show it first, as the step before picking
     a real level;
-  - the CI job with OpenFOAM in Docker runs it end to end, so the
-    volunteer path is tested on every push, not only at a tag.
+  - ~~the CI job with OpenFOAM in Docker runs it end to end~~.
+    Replaced the same day by decision 0055: CI doesn't depend on
+    OpenFOAM, and the try-out runs in the local check
+    (`tools/local_check.py`, task 0178).

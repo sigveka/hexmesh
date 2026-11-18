@@ -22,8 +22,7 @@ workflow.
 **Where.**  `validation/poiseuille/` (the case: V1, accepted, laminar,
 its coarse level solves in about 15 s), its `run.py` and a new
 `volunteer.json`; `validation/volunteer.py` (`list`, `check`, the
-generator of VOLUNTEERS.md); the card format, `.github/workflows/
-tests.yml` (the OpenFOAM Docker job); `tests/test_volunteer.py`;
+generator of VOLUNTEERS.md); the card format; `tests/test_volunteer.py`;
 README *Validate or volunteer*.
 
 **Do.**
@@ -60,17 +59,18 @@ README *Validate or volunteer*.
 6. **README *Validate or volunteer*:** the check command becomes, or is
    followed by, the try-out (one line, linking VOLUNTEERS.md).  Keep
    `test_readme` green.
-7. **CI:** the OpenFOAM Docker job runs the try-out end to end
-   (`prepare`, `run`, `collect`, `check`) in a temporary directory, and
-   fails on anything but "accepted".  Give its time in the job.
+7. **The local check, not CI** (decision 0055: CI doesn't depend on
+   OpenFOAM).  Task 0178's `tools/local_check.py` runs the try-out end
+   to end.  Here, make sure it can be scripted: one call per step, in a
+   temporary directory, and a non-zero exit on anything but "accepted".
 8. **Tests** (fast, no OpenFOAM): the card validates; `list` puts the
    try-out first; `--merge` of a try-out contribution is refused; a
    tampered try-out file is rejected as for a real level.
 9. CHANGELOG: one line.
 
 **Accept.**
-- The try-out runs end to end here and in CI, in about 2 minutes or
-  less (measured, stated), and `check` says "accepted".
+- The try-out runs end to end here, in about 2 minutes or less
+  (measured, stated), and `check` says "accepted".
 - `--merge` refuses it; nothing about it reaches `results.json` or
   RESULTS.md.
 - The user's Windows session runs it natively once (Docker or Rancher
