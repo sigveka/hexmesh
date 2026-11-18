@@ -1,6 +1,6 @@
 # 0150 — The API review, then the freeze (0.8)
 
-- **Status:** in progress (step 2's table waits for the design session's review)
+- **Status:** done (2026-11-18: v0.8.0 tagged on 601458d and released)
 - **Decision:** [0042](../decisions/0042-road-to-1-0.md) exit criterion 5
   ("the stable surface reviewed once, then frozen"), milestone 0.8 (the
   release candidate).
@@ -281,6 +281,29 @@ only (the soak).
   - **CI:** aa04883 green on all 8 jobs (run 44236179872), `main`
     promoted to it.  The release commit is the next push, once CI is green
     on it.
+
+- **2026-11-18, the tag (the design session, with the user's OK: "promote
+  and tag 0.8.0 when CI is green"):**
+  - **Release commit:** 601458d.  It holds the merge of the Windows fixes
+    (task 0173, after the history rewrite), 0177 (gmsh started by the
+    caller), and the docs since aa04883.
+  - **CI:** run 44395785840, green on all 8 jobs.  `main` was promoted to
+    601458d.
+  - **Quick validation checks** (RELEASING step 4), rerun because 0173
+    changed `hexmesh/study/openfoam.py` and 0177 changed `_gmsh`:
+    `pytest -m openfoam tests/test_validation.py -n 2`, native OpenFOAM,
+    beside the 0162 k-ε run.  21 of 21 passed, 58 min.
+  - **Tag and release:** `v0.8.0` (annotated) on 601458d.  The GitHub
+    release notes are the CHANGELOG's 0.8.0 section.
+  - **Release workflow** (run 44406219537): build, check and attach;
+    install by URL on Linux, macOS and Windows, all green.  Assets:
+    `hexmesh-0.8.0-py3-none-any.whl` and `hexmesh-0.8.0.tar.gz`.
+  - **The git install line** (RELEASING step 7), in a fresh venv outside
+    the checkout:
+    - `hexmesh @ git+…@v0.8.0` imports 0.8.0 from the venv;
+    - `hexmesh estimate <pcf_line.SAMPLE> --spec sizes.json
+      --insulation` gives ok, 35 712 cells, as in 0.5.0 and 0.6.0;
+    - the venv was deleted.
 
 ## Questions for design
 
