@@ -86,3 +86,14 @@ are not run.  At k = 2 they cost about 80 h on this machine.  With ξ_PG
 off by about 0.1 at the point tried, they would show the curves' shape,
 not change the verdict.  Task 0168 (a volunteer card for them) waits for
 the user's say.
+
+**A transient run like the paper's** (`run.py --transient`: realizable
+k-ε, `pimpleFoam` from rest, `maxCo` 1, settle 20 s, average 12 s) was
+set up and dropped.  At k = 2 on 3 processes a time step costs about
+41 s (about 200 GAMG iterations on p) and the step settles near
+0.4-0.5 ms, so the 32 s planned would take about 70 000 steps, about
+800 h.  The steady k-ε run settles (its samples agree to 10⁻⁵), and a
+RANS flow that settles has that steady state as its transient limit, so
+the run would most likely have reproduced the steady value.  In its
+place, the steady k-ε run is repeated with the transient set-up's wall
+function (`nutkWallFunction`), to show the wall treatment's share.

@@ -360,12 +360,16 @@ WALL = {"U": "type noSlip;", "p": "type zeroGradient;",
 #: pressure-gradient term.  Both switch to the laminar law below y⁺ ≈ 11;
 #: the wall cell sits near y⁺ 14 at k = 2.
 NUT_TRANSIENT = "type nutkWallFunction; value uniform 0;"
+#: --wall: nut's wall function; ``nutk`` is the transient set-up's, run steady
+#: to separate the wall treatment from the solver (task 0162 Q4)
+NUT_WALL = {"spalding": WALL["nut"], "nutk": NUT_TRANSIENT}
 
 
 def write_case(case: Path, flows: dict, pressure_branch: str, area: float, end_time: float,
                interval: float, purge: int, re: float, model: str = "sst",
-               transient: bool = False, window: float = 0.0) -> None:
+               transient: bool = False, window: float = 0.0, wall: str | None = None) -> None:
     ras, extra = MODELS[model]
+    wall = wall or ("nutk" if transient else "spalding")
     for d in ("0", "constant", "system"):
         (case / d).mkdir(parents=True, exist_ok=True)
     if transient:
@@ -397,8 +401,8 @@ def write_case(case: Path, flows: dict, pressure_branch: str, area: float, end_t
         cls = "volVectorField" if f == "U" else "volScalarField"
         rows = [f"    {PATCH[b]:12s} {{ {boundary(f, b, flows[b], b == pressure_branch, area)} }}"
                 for b in ("a", "b", "c")]
-        wall = NUT_TRANSIENT if transient and f == "nut" else WALL[f]
-        rows.append(f'    "fluid_wall.*" {{ {wall.format(k=repr(k0), omega=repr(omega0), epsilon=repr(epsilon0))} }}')
+        cond = NUT_WALL[wall] if f == "nut" else WALL[f]
+        rows.append(f'    "fluid_wall.*" {{ {cond.format(k=repr(k0), omega=repr(omega0), epsilon=repr(epsilon0))} }}')
         text = (H(cls, f, "0") + f"dimensions      {dims};\ninternalField   {internal[f]};\n"
                 "boundaryField\n{\n" + "\n".join(rows) + "\n}\n")
         (case / "0" / f).write_text(text, encoding="utf-8")
@@ -510,15 +514,18 @@ def profile(g: dict, p: np.ndarray, flows: dict, re: float) -> dict:
 # --- one point ---------------------------------------------------------------------
 
 def point_name(config: str, q: float, k: int, re: float = RE, model: str = "sst",
-               transient: bool = False) -> str:
+               transient: bool = False, wall: str | None = None) -> str:
     tail = "" if re == RE else f"_re{re:.0e}".replace("+0", "").replace("+", "")
+    own = "nutk" if transient else "spalding"
     return (f"{config}_q{q:.1f}_k{k}{tail}" + ("" if model == "sst" else f"_{model}")
-            + ("_transient" if transient else ""))
+            + ("_transient" if transient else "")
+            + ("" if wall in (None, own) else f"_{wall}"))
 
 
 def prepare_point(case: Path, config: str, q: float, k: int, end_time: float,
                   reynolds: float = RE, window: float = 1000, samples: int = 10,
-                  model: str = "sst", transient: bool = False) -> dict:
+                  model: str = "sst", transient: bool = False,
+                  wall: str | None = None) -> dict:
     """Mesh one point into *case*, write its OpenFoam case and check the
     mesh; what :func:`collect_point` needs is saved as ``point.json``."""
     total, pressure, flows_of = CONFIGS[config]
@@ -536,10 +543,11 @@ def prepare_point(case: Path, config: str, q: float, k: int, end_time: float,
     # the last samples + 1 writes span the last *window* iterations
     interval = window / samples if transient else max(window // samples, 1)
     write_case(case, {b: f * U_TOTAL * area for b, f in flows_of(q).items()}, pressure, area,
-               end_time, interval, samples + 1, reynolds, model, transient, window)
+               end_time, interval, samples + 1, reynolds, model, transient, window, wall)
     of.convert(case, msh, keep_orientation=sj > 0)
     point = {"config": config, "q": q, "k": k, "re": reynolds, "model": model,
-             "solver": "pimpleFoam" if transient else "simpleFoam", "window": window, "cells": cells, "worst_sj": sj,
+             "solver": "pimpleFoam" if transient else "simpleFoam",
+             "wall": wall or ("nutk" if transient else "spalding"), "window": window, "cells": cells, "worst_sj": sj,
              **{f"check_{key}": v for key, v in of.check_mesh(case).items()},
              **stored.counts(asm)}
     (case / "point.json").write_text(json.dumps(point, indent=1), encoding="utf-8")
@@ -586,9 +594,10 @@ def collect_point(case: Path) -> dict:
 
 def run_point(config: str, q: float, k: int, work: Path, end_time: float, n_proc: int,
               reynolds: float = RE, window: float = 1000, samples: int = 10,
-              model: str = "sst", transient: bool = False) -> dict:
-    case = work / point_name(config, q, k, reynolds, model, transient)
-    prepare_point(case, config, q, k, end_time, reynolds, window, samples, model, transient)
+              model: str = "sst", transient: bool = False, wall: str | None = None) -> dict:
+    case = work / point_name(config, q, k, reynolds, model, transient, wall)
+    prepare_point(case, config, q, k, end_time, reynolds, window, samples, model, transient,
+                  wall)
     of.run_solver(case, "pimpleFoam" if transient else "simpleFoam", n_proc=n_proc)
     return collect_point(case)
 
@@ -708,6 +717,10 @@ def main(argv=None) -> dict:
     ap.add_argument("--samples", type=int, default=None,
                     help="pressure fields written across the window (default 10; with "
                          f"--transient {TRANSIENT_SAMPLES})")
+    ap.add_argument("--wall", choices=sorted(NUT_WALL), default=None,
+                    help="nut's wall function: spalding (nutUSpaldingWallFunction, the default "
+                         "when steady) or nutk (nutkWallFunction, the default with --transient); "
+                         "a level with the other one is named *_<wall>")
     ap.add_argument("--transient", action="store_true",
                     help="pimpleFoam from rest, as the paper's CFD (task 0162 Q3); never gated")
     ap.add_argument("--np", type=int, default=1, dest="n_proc",
@@ -735,11 +748,12 @@ def main(argv=None) -> dict:
     points = args.points or [(c, q) for c in CONFIGS for q in QS]
     for config, q in points:
         for k in args.levels:
-            name = point_name(config, q, k, args.re, args.model, args.transient)
+            name = point_name(config, q, k, args.re, args.model, args.transient, args.wall)
             r = stored.run_level(store, name,
                                  lambda c=config, q=q, k=k: run_point(
                                      c, q, k, args.work, args.end_time, args.n_proc, args.re,
-                                     args.window, args.samples, args.model, args.transient),
+                                     args.window, args.samples, args.model, args.transient,
+                                     args.wall),
                                  args.work / name, args.keep_work)
             print(f"[{name}] ξ_PG {r['xi_PG']:.4f} ± {r['xi_PG_spread'] or 0:.4f} "
                   f"(McKeon {r['xi_PG_mckeon']:.4f}), ξ_MGb {r['xi_MGb']:.4f} "

@@ -332,6 +332,15 @@ All v1912, gmsh 4.12.1, 2026-10-25.
     (task 0162).  `hexmesh.study.openfoam`'s runner defaults to native,
     so a script calling it directly must `set_runner` first; the
     drivers do, from `--openfoam`.
+- **`pFinal` with `relTol 0` can stall at its iteration limit** (v2406,
+  Docker; task 0162, 2026-11-18).  `pimpleFoam`, GAMG with
+  `GaussSeidel`, `tolerance 1e-7`, on the junction case at k = 2 (526 k
+  cells, 3 processes): the last p solve of every step stopped at a
+  residual near 1.3e-6 after 1000 iterations, 48 s a step.  With
+  `relTol 0.01` on `pFinal` (and `tolerance 1e-6`) a step took about 200
+  GAMG iterations in all, 41 s: GAMG costs about 0.2 s an iteration
+  there.  An absolute tolerance below where GAMG levels off isn't met;
+  give `pFinal` a relTol, or a tolerance it reaches.
 - **Tutorial `pipeCyclic` does not run as shipped here.**  Its coded
   swirl inlet fails with `Unknown variable 'WM_OPTIONS'` (no build
   environment).  Its dictionaries are still a sound base: task 0020 uses
