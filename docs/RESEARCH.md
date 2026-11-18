@@ -1667,6 +1667,92 @@ cells).  L2 order of the error, k 1→2 and 2→4:
   step), and second-order OpenFOAM output (`gmshToFoam` reads first
   order).
 
+### 7.16 High-fidelity validation candidates (surveyed 2026-11-18, design session)
+
+The user asked for more high-fidelity validations, and for volunteer
+cards where data exist (decision 0055).  The search's rule was **open
+data first**: most bend and coil DNS have no public statistics.  Already
+planned or done, so left out here: the FDA nozzle and Zhao & Lieber
+(§7.9), the KIT square duct (§7.8), Vattenfall (0120), the PTB bend
+(0050), the Taylor bubble (0079); El Khoury's pipe DNS (turbulent_pipe)
+and Varghese's stenosis (stenosis).
+
+**Open data, tasked (0180):**
+- **KTH rectangular-duct DNS** (Vinuesa et al.; Nek5000).  Data page:
+  `https://www.mech.kth.se/~rvinuesa/DuctData/` (checked 2026-11-18).
+  - Turbulent, streamwise-periodic ducts.  Aspect ratios 1, 3, 5, 7, 10
+    and 14.4 at Re_τ 180, and 1 and 3 also at Re_τ 360.
+  - Per case, `.prof` text files: the mean velocities U, V, W and all six
+    Reynolds stresses on the cross-section coordinates.
+  - **Access:** FTP (`ftp.mech.kth.se/pub/rvinuesa/DuctData/`), and a
+    newer KTH SharePoint folder.  The page asks users to cite the
+    original papers.  No licence is stated, so download at run time,
+    as for the KIT data.
+  - **Fit:** `section:rect` straight ducts at six aspect ratios, in the H
+    and O-H layouts (decision 0036), plus the periodic set-up of
+    turbulent_pipe (cyclic plus `meanVelocityForce`).  With KIT's square
+    duct (Pinelli et al. 2010) it gives two independent DNS at AR 1.
+  - **What it tests:** the secondary flows of the second kind, which are
+    a few per cent of U_b and set by the corner cells.  Linear
+    eddy-viscosity RANS (SST) gives none, so the mesh is tested properly
+    only by a model that resolves them: wall-resolved LES (heavy, a
+    volunteer card), or a Reynolds-stress RANS (OpenFOAM's `LRR`/`SSG`,
+    cheap, reported).
+
+**Documented experiments; not tasked yet** (data in figures only, and the
+geometry needs decision 0021's stage 1, which is still proposed):
+- **ERCOFTAC UFR 4-14, sudden pipe contraction**
+  (`https://kbwiki.ercoftac.org/w/index.php/UFR_4-14_Test_Case`):
+  - **Test case 1:** σ 0.286, D 19.1 mm, LDA at Re_D 23–1213, laminar
+    (Durst & Loy 1985).  Global uncertainty 2 % at 95 % confidence;
+    separation length ±30 %.
+  - **Test case 2:** σ 0.332, D 110.17 mm, two-component LDA at Re_D
+    1.54 × 10⁵.  Mean velocities, k and Reynolds stresses at 12
+    stations; wall pressure for the loss coefficient.  Axial velocity
+    ±0.35 % in the core, ±6 % near the wall.
+  - The KB pages carry no data files: the values are in the papers.
+- **ERCOFTAC UFR 3-11, sudden pipe expansion with heat transfer**
+  (`https://kbwiki.ercoftac.org/w/index.php/UFR_3-11_Test_Case`):
+  - d/D 0.267–0.8, D 95.25 mm, air.
+  - **1984 series:** Re 5300–87 000, uniform heat flux, Nusselt only
+    (±6.6 % at the peak).
+  - **1989 series:** d/D 0.4, uniform wall temperature; mean velocity
+    and temperature at Re 4100–17 400.
+  - No data files on the KB.
+- Both fit flow restrictions (decision 0021), beside the FDA nozzle.
+  UFR 4-14's laminar case 1 is the simplest restriction validation with
+  stated uncertainty.  They become tasks when stage 1 is accepted and the
+  values are digitised or obtained.
+
+**High fidelity, data on request** (all from the KTH group whose pipe DNS
+turbulent_pipe uses; one request could cover them all):
+- **Turbulent 90° bend, DNS:** Wang, Örlü, Schlatter & Chung, *Int. J.
+  Heat Fluid Flow* 73 (2018) 199–208.  Re_D 5300, curvature 0.4, a
+  recycled turbulent inflow, 40 D downstream.  This would give 0050 a DNS
+  reference, and an LES of it is a realistic volunteer level.
+- **Straight to curved pipes (torus), DNS:** Noorani, El Khoury &
+  Schlatter, *IJHFF* 41 (2013) 16–26.  Re_b 5300 and 11 700, several
+  curvatures; a `Bend` is an exact torus section.
+- **Helical pipes, DNS:** Lupi, Örlü & Schlatter, ERCOFTAC Series 31
+  (2023) 362–367.  The turbulent continuation of 0075.
+- **Bend exit, stereo PIV:** Kalpakli & Örlü (2013); Kalpakli Vester,
+  Örlü & Alfredsson (*Exp. Fluids*, 2015, doi 10.1007/s00348-015-1926-6).  Re_D about 34 000, curvature 0.31, swirl
+  switching, steady and pulsatile.
+
+**Weaker fits, recorded so they aren't searched again:**
+- **Concentric annulus DNS** (Chung et al. 2002, Re_b 8900), the
+  pipe-in-pipe reference (decision 0035): no public data found.
+- **Conjugate heat transfer DNS** (Flageul et al.): open, GPLv3
+  (Mendeley `3c7v3cnwvg`), but a channel at Re_τ 150, not a pipe.
+  Straub et al. (KIT) have pipe heat-transfer DNS, but without a solid
+  wall.
+- **Carotid bifurcation PIV:** validation studies exist, but no open
+  benchmark.  A Zenodo set of 79 carotid geometries is CFD only.
+- **ERCOFTAC AC3-02** (a T-junction): it measures vortex penetration,
+  not velocity profiles.
+- **More straight-pipe DNS** (Yao et al. 2023 to Re_τ 5200; Eggels
+  Re 5300, open on 4TU) adds little to turbulent_pipe.
+
 ## 8. Proposed hexmesh actions
 
 | Area | Action | Source |
