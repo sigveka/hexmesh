@@ -175,7 +175,9 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0177](0177-caller-gmsh-before-load.md) | gmsh started by the caller before hexmesh loads it counts as a session (0167 bug; `test_build_sync.py` alone fails) | in progress (before the 0.8.0 tag) | — |
 | [0178](0178-ci-without-openfoam-local-check.md) | CI without OpenFOAM; `tools/local_check.py` (runner tests, the cheapest case end to end) and an opt-in pre-push hook | ready | 0055 |
 | [0179](0179-case-cards-and-rerun-command.md) | A card for every validation case, and `python3 -m validation run <case>` / `list` | ready (after 0176) | 0055, 0044 |
-| [0181](0181-unv-experimental-code-saturne.md) | `.unv` as an experimental export: docs label, a format test, one import in code_saturne; does the pip gmsh write CGNS? | ready | 0056 |
+| [0181](0181-unv-experimental-code-saturne.md) | Export check: `.unv` in code_saturne (import, Poiseuille, MMS on the fittings); experimental label until it passes; does the pip gmsh write CGNS? | ready (after 0182; before 1.0) | 0056, 0057 |
+| [0182](0182-export-checks-framework.md) | Export checks: `kind` in the case schema, `validation/exports/`, FEniCSx moved there, two tables | ready (before 1.0) | 0057 |
+| [0183](0183-export-check-su2.md) | Export check: `.su2` in SU2 (format test, Poiseuille with its order) | ready (after 0182; before 1.0) | 0057 |
 
 ### Validation
 

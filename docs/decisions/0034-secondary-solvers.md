@@ -193,3 +193,11 @@ second order is verified for (`mesh(order=2)` Hex27, with FEniCSx, on
 straights, bends and tees) and what it isn't (wyes and equal tees, which
 reject it; second-order OpenFOAM output; flow).
 
+## Note (2026-11-18): FEniCSx is an export check
+
+Decision 0057 splits the checks in two: validation (OpenFOAM) and export
+checks (one consumer per format).  The FEniCSx case of this decision
+checks the second-order `.msh` export, so it moves to
+`validation/exports/fenicsx/` as an export check (task 0182).  Its
+results and status are unchanged.  Nek5000/NekRS, still proposed here,
+is listed in 0057 as an export-check consumer for after 1.0, if asked.

@@ -175,3 +175,11 @@ one cheap level per fitting:
 - A flow case on a fitting (square_bend for the bend, stenosis for the
   reducer) joins only if its cheapest level runs in under about a
   minute.  Task 0179's table of cheapest levels shows which.
+
+## Note (2026-11-18): other solvers, settled in part by decision 0057
+
+*Not decided* is settled for mesh exports: decision 0057 makes one
+consumer per export format an *export check* (FEniCSx, code_saturne,
+SU2 before 1.0), run locally under rule 3.  The OpenFOAM Foundation
+build and a second RANS code inside a validation case (the tee in
+code_saturne) stay proposed, for after 1.0.

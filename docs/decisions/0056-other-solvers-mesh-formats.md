@@ -94,3 +94,10 @@ ANSYS", 2026-11-18):
   - that code_saturne reads gmsh's `.unv` (its documentation says it
     reads I-DEAS universal; not tried);
   - whether the pip gmsh has CGNS.
+
+## Note (2026-11-18): widened by decision 0057
+
+Rule 3's single import in code_saturne becomes a full export check
+(decision 0057 rule 2): the import, Poiseuille, and MMS conduction on the
+fittings, with orders.  It is a 1.0 criterion.  Task 0181 is widened to
+match.
