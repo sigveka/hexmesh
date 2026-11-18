@@ -163,3 +163,20 @@ factor).
 steel wall, temperatures measured in the fluid and through the wall
 (conjugate heat transfer, hexmesh's shells).  Data on request.  No task
 until the wye route (decision 0043) delivers equal tees.
+
+**Note (2026-11-18): the status `missed`.**  Task 0162 is the first case
+to finish with a gate missed: its branch loss converges 0.1 above the
+measurement while its grid is converged.  `case.json`'s statuses had no
+word for that.  `rejected` reads as if the case were dropped, and no
+case uses it.  So:
+- **`missed`** replaces `rejected` in `validation/case.schema.json`.  It
+  means: run to the end the task set, at least one gate missed, the
+  miss and its explanation in the case's RESULTS.md and README.  It is
+  a finished result, not work in progress.  It counts as "reported" for
+  decision 0042's 1.0 criterion.
+- `accepted` still means every gate passes; `test_validation_meta`'s
+  check for it is unchanged.  For `missed`, the test checks the
+  opposite: at least one gate misses, and RESULTS.md says which.
+- The gallery and the README's table show it as **⚠️ missed**.
+  The gates are never loosened to turn a `missed` into `accepted`
+  (decision 0015).
