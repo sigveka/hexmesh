@@ -178,6 +178,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0181](0181-unv-experimental-code-saturne.md) | Export check: `.unv` in code_saturne (import, Poiseuille, MMS on the fittings); experimental label until it passes; does the pip gmsh write CGNS? | ready (after 0182; before 1.0) | 0056, 0057 |
 | [0182](0182-export-checks-framework.md) | Export checks: `kind` in the case schema, `validation/exports/`, FEniCSx moved there, two tables | ready (before 1.0) | 0057 |
 | [0183](0183-export-check-su2.md) | Export check: `.su2` in SU2 (format test, Poiseuille with its order) | ready (after 0182; before 1.0) | 0057 |
+| [0184](0184-stamp-environment-at-run-start.md) | `results.json` records the code that ran: the environment taken at the start of a run (drivers, volunteer `prepare`/`collect`, FEniCSx) | ready (before 0050's runs) | — |
 
 ### Validation
 
