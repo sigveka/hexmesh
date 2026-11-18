@@ -1,6 +1,8 @@
 # 0168 — A volunteer card for the junction-flow benchmark
 
-- **Status:** ready (after 0162's level-3 point; see *Do* 1)
+- **Status:** ready (the user, 2026-11-18: the 20 points are to run as
+  volunteer levels on more powerful hardware; the hold of 0162's Q3
+  answer is lifted.  The level-3 point is done, so *Do* 1's gate is met)
 - **Decision:** [0044](../decisions/0044-volunteer-runs.md) (volunteer
   runs: one tool, a card per case, a mechanical check)
 - **Case:** `validation/junction_loss/` (task 0162)

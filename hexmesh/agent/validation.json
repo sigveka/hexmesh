@@ -92,14 +92,17 @@
     }
    ],
    "levels": 12,
-   "status": "in progress",
+   "status": "accepted",
    "task": "0075",
    "title": "Laminar flow in a helical pipe (the SIET coil)"
   },
   "junction_loss": {
    "case": "junction_loss",
    "category": "V3",
-   "cells": null,
+   "cells": [
+    65792,
+    1776384
+   ],
    "gates": [
     {
      "limit": "each value within u_measured + T of the measured point (reference/stigler_2014.csv), where T is the largest |CFD − measured| of the paper's own CFD over the five q: Div a ξ_PG 0.02, ξ_MGb 0.015; Com a ξ_PG 0.055, ξ_MGb 0.035; Div c ξ_PG 0.30, ξ_MGb 0.03; Com c ξ_PG 0.07, ξ_MGb 0.02. The case passes when every value passes; the pass count per curve is reported",
@@ -118,8 +121,8 @@
      "quantity": "reported, not gated: realizable k–ε with wall functions at one level (their model); the 45° points (no equal lateral in hexmesh); cells, wall time and peak memory per level (finest under about 6 GB)"
     }
    ],
-   "levels": 0,
-   "status": "in progress",
+   "levels": 4,
+   "status": "missed",
    "task": "0162",
    "title": "Equal-diameter 90° tee: loss coefficients, k-ω SST"
   },

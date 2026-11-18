@@ -35,7 +35,7 @@ What hexmesh's meshes look like and how good their cells are, on three pages.  E
 
 ## Validation
 
-Cases by status: ● 12 accepted, ◐ 1 in progress, ⚠ 1 missed.  [The Validation page](gallery/VALIDATION.md) has each case and the coverage matrix (which features each case exercises).
+Cases by status: ● 13 accepted, ⚠ 1 missed.  [The Validation page](gallery/VALIDATION.md) has each case and the coverage matrix (which features each case exercises).
 
 ## Reading the numbers
 

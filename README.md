@@ -45,6 +45,24 @@ built from them (an idealised aorta, ventilation runs, a plant line from
 a PCF file, cooling channels), and the [validation cases](docs/gallery/VALIDATION.md),
 each with its mesh, its cell quality and the code that made it.
 
+## Contents
+
+- [Ten lines, one checked mesh](#ten-lines-one-checked-mesh)
+- [From plant data (PCF)](#from-plant-data-pcf)
+- [With an agent](#with-an-agent)
+- [Fittings](#fittings)
+- [Validated, with the numbers](#validated-with-the-numbers)
+- [Where it fits](#where-it-fits)
+- [Install](#install):
+  [use hexmesh](#use-hexmesh) ·
+  [validate or volunteer](#validate-or-volunteer) ·
+  [develop](#develop) ·
+  [platforms](#platforms) ·
+  [stability](#stability)
+- [Documentation](#documentation)
+- [Licence](#licence)
+- [Citing](#citing)
+
 ---
 
 ## Ten lines, one checked mesh
@@ -267,7 +285,7 @@ convergence against gates set in advance.
 | Fully developed turbulent pipe flow, k-ω SST | simulation (V2), El Khoury et al. 2013 | f within 2.5 % of McKeon et al. at three Re; within 3.3 % with wall functions | ✅ accepted |
 | Pulsatile flow through the cosine constriction (Varghese et al., Part 2) | DNS (V2), Varghese et al. 2007 | throat peak at peak flow −1.3 % from the DNS; the five flow features of its §3.1 as in the DNS | ✅ accepted |
 | Laminar flow in a 90° square-duct bend, Re 790 | experiment (V3), Taylor et al. 1981 | peak velocity at the measured position at six stations; peak U/V_c converging (GCI ≤ 0.05 %) | ✅ accepted |
-| Laminar flow in a helical pipe (the SIET coil) | experiment (V3), De Amicis et al. 2014 | f within 0.3 % of Ito at n_arc 24 (Re 1800, 2400), converging; Re 3000's n_arc 24 to run | 🔄 in progress |
+| Laminar flow in a helical pipe (the SIET coil) | experiment (V3), De Amicis et al. 2014 | f within 0.6 % of Ito at n_arc 24 (Re 1800 to 3000), converging at order 1.8 to 1.9; GCI at most 1.4 % | ✅ accepted |
 | Equal-diameter 90° tee: loss coefficients, k-ω SST | experiment (V3), Štigler et al. 2014 | ξ_MGb 0.459 against 0.437 measured (gate 0.025); ξ_PG 0.605 against 0.50 missed (gate 0.03), grid-converged at 0.596 (GCI 0.012): the gap is the model and set-up | ⚠️ missed |
 | Turbulent flow in a 90° bend (PTB LDA; Sudo et al. 1998 the ideal); a Taylor bubble rising in stagnant liquid (VOF) | experiment (V3) | | 📋 planned |
 <!-- readme:validation:end -->

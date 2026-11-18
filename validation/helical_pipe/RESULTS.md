@@ -1,9 +1,8 @@
 # Results: laminar flow in a helical pipe (the SIET coil)
 
-**Status: in progress, undecided.**  Task 0075 is held by the user until
-better hardware (2026-11-08).  Re 3000's n_arc 24 level, the last one
-missing, ran on 2026-11-18 (a volunteer run, task 0173); the case's
-verdict is task 0075's.
+**Status: accepted** (2026-11-18, task 0075).  Every gate passes at
+n_arc 24 (see *Gates*).  Re 3000's n_arc 24 level, the last one, was a
+volunteer run on Windows (task 0173).
 - Design moved the convergence study to n_arc 12, 16, 24 (Q3), because
   n_arc 8 is too coarse at these Dean numbers.
 - **n_arc 24 at Re 1800 and 2400 is done** (2026-11-07/08, the restartable
@@ -64,35 +63,44 @@ The friction factor's difference from Ito's correlation per level.
 
 ## Gates
 
+**Verdict: accepted** (2026-11-18, task 0075): every gate passes at
+n_arc 24.  Recheck: `python3 -m validation.tools.recheck helical_pipe`.
+
 f and Re are based on the bulk velocity the mesh carries (the volume
 mean of the tangential velocity over the gated turns).  That is 0.5–1.4 %
 above the nominal U_B: the faceted section is smaller than πa², and the
-inlet parabola is set at face centres.
+inlet parabola is set at face centres.  Ito is evaluated at each level's
+own Re_b.
 
-| Re (nominal) | Re_b (n_arc 16) | f (n_arc 16) | Ito at Re_b | vs Ito (gate 5 %) | f converging (n_arc 8, 12, 16) |
-|---|---|---|---|---|---|
-| 1800 | 1809 | 0.06668 | 0.06643 | +0.36 %: **pass** | converging, order 1.29, GCI 2.0 %: **pass** |
-| 2400 | 2411 | 0.05606 | 0.05536 | +1.26 %: **pass** | converging, order 0.04, GCI 130 %: passes as written, but not in the asymptotic range |
-| 3000 | 3015 | 0.04918 | 0.04825 | +1.92 %: **pass** | diverging (\|ε32\| 0.00051 ≤ \|ε21\| 0.00082): **fail** |
+| Re (nominal) | f (n_arc 24) | Ito at Re_b | vs Ito (gate 5 %) | f converging (n_arc 12, 16, 24) |
+|---|---|---|---|---|
+| 1800 | 0.06633 | 0.06651 | −0.27 %: **pass** | converging, order 1.93, GCI 0.55 %: **pass** |
+| 2400 | 0.05557 | 0.05543 | +0.26 %: **pass** | converging, order 1.90, GCI 0.95 %: **pass** |
+| 3000 | 0.04856 | 0.04830 | +0.53 %: **pass** | converging, order 1.84, GCI 1.44 %: **pass** |
 
-- **All levels:**
+The spline is 3.41 × 10⁻⁴ d from the exact helix (gate 0.1 % of d):
+**pass**.
 
-  | Re | n_arc 8 | 12 | 16 |
-  |---|---|---|---|
-  | 1800 | +3.30 % | +1.24 % | +0.36 % |
-  | 2400 | +4.81 % | +2.62 % | +1.26 % |
-  | 3000 | +5.27 % | +3.77 % | +1.92 % |
+- **All levels**, f against Ito:
 
-  Cells: 100 416, 338 688 and 803 328 (130, 195 and 260 layers per turn).
+  | Re | n_arc 8 | 12 | 16 | 24 |
+  |---|---|---|---|---|
+  | 1800 | +3.30 % | +1.24 % | +0.36 % | −0.27 % |
+  | 2400 | +4.81 % | +2.62 % | +1.26 % | +0.26 % |
+  | 3000 | +5.27 % | +3.77 % | +1.92 % | +0.53 % |
+
+  Cells: 100 416, 338 688, 803 328 and 2 711 232.  The error falls
+  steadily at every Re.  At n_arc 24 it crosses Ito at Re 1800, and it
+  grows with Re.
+- **Why the series is n_arc 12, 16, 24** (task 0075, Q3): over n_arc 8,
+  12 and 16, the coarse levels weren't in the asymptotic range at the
+  higher Dean numbers (De 270–340).  At Re 2400 the order was 0.04 with
+  a GCI of 130 %, and Re 3000 was diverging.  Moving each level's f to
+  the nominal Re along Ito's slope didn't change that.  The n_arc 8
+  levels are kept and reported, but they are not in the Richardson
+  series.
 - **Re 3000 at n_arc 8** didn't reach the residual target in 5000 SIMPLE
   steps.  Its f agrees across turns to 1.6 × 10⁻⁶.
-- **The Re drift between levels doesn't explain the slow convergence.**
-  Moving each level's f to the nominal Re along Ito's local slope gives
-  orders 1.45 (Re 1800) and 0.36 (Re 2400), and Re 3000 is still
-  diverging.
-- **The coarse levels aren't in the asymptotic range at higher Dean
-  number** (De 270–340).  The error falls monotonically toward Ito at
-  every Re.
 
 ## Development (reported)
 

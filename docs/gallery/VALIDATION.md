@@ -168,7 +168,7 @@ Case: `validation/turbulent_pipe/`: [README.md](../../validation/turbulent_pipe/
 
 ### Laminar flow in a helical pipe (the SIET coil)
 
-**Status:** in progress (task 0075).  **Reference:** deamicis_and_cammi_etal_2014 (the SIET coil; Ito (1959) as their eq. 2; Fig. 12 digitised in data/).  **Last run:** 2026-11-18, hexmesh c7a64b9+local.
+**Status:** accepted (task 0075).  **Reference:** deamicis_and_cammi_etal_2014 (the SIET coil; Ito (1959) as their eq. 2; Fig. 12 digitised in data/).  **Last run:** 2026-11-18, hexmesh c7a64b9+local.
 
 Tags: `laminar`, `flow`, `section:circle`, `straight`, `spline`, `OpenFOAM v2406 (docker)`.
 
@@ -223,14 +223,14 @@ Which hexmesh features each case exercises (decision 0012's list, extended by de
 
 | Feature | fenicsx_second_order<br>V1 | heated_pipe<br>V1 | heated_rod<br>V1 | helical_pipe<br>V3 | junction_loss<br>V3 | layered_conduction<br>V1 | mms<br>V1 | poiseuille<br>V1 | rect_duct<br>V1 | square_bend<br>V3 | stenosis<br>V2 | stenosis_pulsatile<br>V2 | turbulent_pipe<br>V2 | womersley<br>V1 | 0050<br>V3 | 0079<br>V3 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `section:circle` | ● | ● | ● | ◐ | ⚠ | ● | ● | ● |  |  | ● | ● | ● | ● | ○ | ○ |
+| `section:circle` | ● | ● | ● | ● | ⚠ | ● | ● | ● |  |  | ● | ● | ● | ● | ○ | ○ |
 | `section:rect` |  |  |  |  |  |  | ● |  | ● | ● |  |  |  |  |  |  |
 | `layers` |  | ● |  |  |  | ● | ● |  |  |  |  |  |  |  |  |  |
-| `straight` | ● | ● | ● | ◐ | ⚠ | ● | ● | ● | ● | ● | ● | ● | ● | ● | ○ | ○ |
+| `straight` | ● | ● | ● | ● | ⚠ | ● | ● | ● | ● | ● | ● | ● | ● | ● | ○ | ○ |
 | `bend` | ● |  |  |  |  |  | ● |  |  | ● |  |  |  |  | ○ |  |
 | `elbow` (none) |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `miter` |  |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |
-| `spline` |  |  |  | ◐ |  |  | ● |  |  |  |  |  |  |  |  |  |
+| `spline` |  |  |  | ● |  |  | ● |  |  |  |  |  |  |  |  |  |
 | `reducer` (none) |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `profiled-reducer` |  |  |  |  |  |  | ● |  |  |  | ● | ● |  |  |  |  |
 | `transition` |  |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |

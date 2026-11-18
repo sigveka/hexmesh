@@ -74,6 +74,14 @@ physics tag and the `vof` regime tag to `validation/case.schema.json`.
      circumference.
 6. **Convergence:** three levels; GCI on UB and δ for the two gated
    cases.
+7. **A volunteer card** (decision 0044; the user, 2026-11-18: every
+   case that can use more hardware is a volunteer case).  Run here the
+   levels that fit, and measure seconds per step and the time to a
+   steady rise.  Offer the finest level, or any level that would take
+   more than about 12 h here, as a volunteer level.  Its requirements
+   are *estimated* from the measured runs, by cells and time step.
+   Give the driver the `prepare`/`run`/`collect` hooks, and do a dry run
+   here on the coarsest level through `check`.
 
 **Accept** (V3 gates, provisional; report and don't tune if missed):
 - **UB** within **5 %** of Nogueira's measured value for μ = 0.200 and

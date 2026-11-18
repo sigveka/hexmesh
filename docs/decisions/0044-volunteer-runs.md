@@ -195,3 +195,28 @@ record for its own runs.  The record lives in one self-contained
 function under `validation/`, not in the public `hexmesh` API (frozen
 at 1.0, decision 0042).  It can move to `hexmesh.study` as an addition
 in 1.x if the suite asks for it.  0018, 0019, 0021, 0035: not affected.
+
+## Note (2026-11-18): every heavy case gets a card, and one card to try the workflow
+
+The user (2026-11-18): "make sure all of them are volunteer tasks.  I
+also want a volunteer "test" that runs quickly and people can use to
+test the workflow."
+- **Cards:** every validation case with levels too heavy for the
+  project's machine gets a card under the rule of *Which cases are
+  offered* (the gates fixed, a smaller level run here).  These are the
+  junction-flow points (task 0168, the hold lifted), the turbulent bend
+  (0050), the Taylor bubble (0079) and the Vattenfall LES (0120).
+- **A try-out card** (task 0176).  It is the exception to *Which cases
+  are offered*, because it validates nothing new:
+  - one level, a minute or two on a laptop.  It runs the whole path a
+    real level takes: `prepare`, `run` on 2 MPI processes (so
+    decomposition, `mpirun` and the processor clean-up are exercised:
+    two of task 0173's Windows bugs were there), `collect`, and `check`,
+    which the volunteer runs themselves on their own file;
+  - its level is marked as a try-out in the card.  `check` accepts or
+    rejects it as for a real level, but `--merge` refuses it: nothing
+    from it is stored, and it gives no credit;
+  - `list` and VOLUNTEERS.md show it first, as the step before picking
+    a real level;
+  - the CI job with OpenFOAM in Docker runs it end to end, so the
+    volunteer path is tested on every push, not only at a tag.

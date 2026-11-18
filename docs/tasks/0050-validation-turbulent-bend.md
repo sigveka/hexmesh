@@ -69,6 +69,21 @@ RESEARCH §7.
    pressure, minus straight-pipe friction from 0049) against a
    handbook or correlation value, cited.
 
+5. **A volunteer card** (decision 0044; the user, 2026-11-18: every
+   case that can use more hardware is a volunteer case).
+   - Size levels 1 and 2 for this machine (under about 6 GB) and run
+     them here.  Their requirements are *measured*.
+   - Offer level 3, and a finer one if the card's numbers make it worth
+     it, as volunteer levels.  Their requirements are *estimated* from
+     level 2, scaled by cells.
+   - Give the driver the `prepare`/`run`/`collect` hooks (as the
+     helical driver does), and add a dry run here at level 1 through
+     `check`.
+   - The gates above are fixed now, so the card can be offered as soon
+     as level 2 has run.
+   - If level 3 also fits here, run it here, and offer the card for a
+     level 4 or for nothing.  Say which under *Agent notes*.
+
 **Accept.**
 - Gates, set now:
   - streamwise mean velocity at the measured stations: RMS difference

@@ -163,12 +163,15 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0165](0165-profile-type-and-section-kind.md) | A public `Profile` for reducers; a section kind in the description (before the 0.8.0 tag) | done | 0053 |
 | [0166](0166-rename-jargon-arguments.md) | Rename the mesh-jargon names (`nang` → `n_arc`, `nrad` → `n_radial`, `mprg` → `radial_grading`, …; `lc` removed) | done | 0053 |
 | [0167](0167-build-without-session.md) | Meshing without managing `Session`: a spike, then the API | done | 0053 |
-| [0168](0168-volunteer-card-junction-loss.md) | A volunteer card for the junction-flow benchmark (one level per point) | on hold (only if the user asks for 0162's 20 points) | 0044 |
+| [0168](0168-volunteer-card-junction-loss.md) | A volunteer card for the junction-flow benchmark (one level per point) | ready (the user asked for the 20 points, 2026-11-18) | 0044 |
 | [0169](0169-volunteer-card-turbulent-bend.md) | A volunteer card for the turbulent bend | ready (after 0050's driver) | 0044 |
 | [0170](0170-validation-setup-docs.md) | Validation needs a checkout: three setups in the docs, Windows forms, a test of the boundary | ready | 0054 |
 | [0171](0171-bathymetry-platform-independent.md) | The bathymetry reader gives the same route on every platform (bilinear on grids; a platform test over the examples) | ready | — |
 | [0172](0172-docs-site-next-essens.md) | The docs site on the next Essens release: `--layout`, MathML in place of KaTeX, the stylesheet; CONTRIBUTING names v0.1.4 now | ready (step 1; the rest after a release) | 0049 |
 | [0173](0173-windows-volunteer-run.md) | Windows volunteer run: gmsh clobbers `PATH`, `mpirun` as root, processor symlinks, a stopped Docker reported as "no OpenFOAM" | done | 0039 |
+| [0174](0174-windows-volunteer-tool-gaps.md) | Volunteer tool off Linux: peak memory without `/proc`, generated files with LF, the POSIX-tool scan widened | ready | 0039, 0044 |
+| [0175](0175-volunteer-machine-record.md) | Volunteer runs record the machine (an allow-list) and the solver time | ready (after 0174) | 0044 |
+| [0176](0176-volunteer-try-out-card.md) | A try-out volunteer card: Poiseuille on 2 processes, the whole workflow in about 2 minutes, run in CI | ready | 0044, 0054 |
 
 ### Validation
 
@@ -186,7 +189,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0071](0071-validation-rectangular-duct.md) | Validation: fully developed laminar flow in rectangular ducts | V1 | done | 0012, 0015 |
 | [0072](0072-validation-laminar-square-bend.md) | Validation: laminar 90° square-duct bend (Taylor et al., Re 790) | V3 | done | 0012, 0015 |
 | [0074](0074-validation-mms-conduction.md) | Verification: manufactured solutions for conduction on every fitting's mesh | V1 | done | 0012, 0015 |
-| [0075](0075-validation-helical-pipe.md) | Validation: laminar flow in a helical pipe (spline pipe) | V3 | blocked (held by the user until better hardware (2026-11-08); nang 24 done at Re 1800 and 2400, Re 3000 to run) | 0012, 0015 |
+| [0075](0075-validation-helical-pipe.md) | Validation: laminar flow in a helical pipe (spline pipe) | V3 | done (accepted 2026-11-18: f within 0.6 % of Ito at n_arc 24, every gate passes) | 0012, 0015 |
 | [0077](0077-validation-fenicsx-second-order.md) | Verification: FEniCSx toolchain, and second-order export checked end to end | V1 | done | 0034, 0012, 0015 |
 | [0079](0079-validation-taylor-bubble.md) | Validation: a Taylor bubble rising in stagnant liquid (VOF) | V3 | ready (v2406 runner) | 0012, 0015 |
 | [0099](0099-validation-graphs.md) | Validation results as graphs: convergence, layouts, the stenosis against DNS | docs | done | 0012, 0015, 0036 |

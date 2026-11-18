@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "title": "Laminar flow in a helical pipe (the SIET coil)",
-  "headline": "f within 0.3 % of Ito at n_arc 24 (Re 1800, 2400), converging; Re 3000's n_arc 24 to run",
+  "headline": "f within 0.6 % of Ito at n_arc 24 (Re 1800 to 3000), converging at order 1.8 to 1.9; GCI at most 1.4 %",
   "category": "V3",
   "references": [
     {
@@ -27,7 +27,7 @@
       "conversion": "gmshToFoam, with -keepOrientation when the worst scaled Jacobian is positive (task 0108)"
     }
   },
-  "status": "in progress",
+  "status": "accepted",
   "task": "0075",
   "gates": [
     {
