@@ -553,9 +553,9 @@ topology or mesh-construction details.
 - It is a ready OpenFOAM validation case for the lateral template
   (§3.1): loss coefficients against branch angle test the mesh where it
   matters for CFD.
-- It targets the equal-diameter tee ($r = R$), which `TJunction`
-  currently rejects.  It is the natural acceptance test when that case is
-  built.
+- It targets the equal-diameter tee ($r = R$), built since tasks 0122
+  and 0127 (90° only; equal laterals are deferred, decision 0031's note
+  of 2026-11-10).  Task 0162 is its flow validation; results below.
 - Its worst skewness of 0.51 shows an industrial all-hex equal-diameter
   tee lands right at the NES < 0.5 target of §4.2.
 
@@ -571,14 +571,16 @@ topology or mesh-construction details.
   ρ Q_X² / (2 A_X²) for ξ_P and ρ Q_X² / A_X for ξ_M, where X is the
   branch carrying the total.  The friction parts use each branch's
   measured pressure gradient per metre and per unit flow (eq. 13), and
-  its length to the station.
+  its length to the station.  For a computed solution the gradients
+  "are evaluated from the numerical solution" (section 3, after eq. 14):
+  the model's own, not the experiment's or a correlation's.
 - **ξ_MGb needs a reference pressure,** the branch carrying the total
   (p_a = 0 or p_c = 0); ξ_PG doesn't.  Measured pressures are wall-tap
   averages; computed ones are area averages (section 3.1).  The paper
   calls the difference slight.
 - **Branches against hexmesh:** `a` and `b` are the run's ends and `c`
   the branch, with γ between `b` and `c`.  On `Tee`: `a` is the inlet
-  port, `b` is `main`, `c` is `branch`, and γ is `angle`.  hexmesh has
+  port, `b` is `run` (`main` before task 0164), `c` is `branch`, and γ is `angle`.  hexmesh has
   only γ = 90° for equal tees (`EQUAL_LATERAL_ANGLE_MIN`).
 - **Not given:** the Reynolds number or flow rates, the uncertainty, and
   the distances of the pressure stations.  Their CFD branches are 25 D
@@ -593,6 +595,52 @@ topology or mesh-construction details.
 
   Div c's ξ_PG is the outlier: measured near 1.0 across q, computed
   near 0.7.  The text agrees ("very high turbulence", section 6.3).
+
+**hexmesh's result (task 0162, 2026-11-16 to 18; status *missed*,
+decision 0012's note of 2026-11-18).**  One point, Div a at q = 0.6,
+k–ω SST with wall functions (Spalding, y⁺ ≈ 30), steady, uniform inlet
+25 D upstream, Re 10⁵ (assumed; the paper gives none), OpenFOAM v2406.
+Pressures are carried to the junction centre along each branch's own
+fitted gradient, as the paper defines it for CFD.  An earlier run along
+McKeon's correlation is reported beside it.
+[`validation/junction_loss/RESULTS.md`](../validation/junction_loss/RESULTS.md)
+has the full tables.
+
+| | cells | ξ_PG own (McKeon) | ξ_MGb own (McKeon) |
+|---|---|---|---|
+| SST k = 1 | 65 792 | 0.672 (0.724) | 0.438 (0.461) |
+| SST k = 2 | 526 336 | 0.616 (0.672) | 0.449 (0.469) |
+| SST k = 3 | 1 776 384 | 0.605 (0.635) | 0.459 (0.469) |
+| SST, Richardson | | **0.596**, order 1.90, GCI 0.012 | **0.468**, order 1.93, GCI 0.011 |
+| realizable k–ε k = 2 | 526 336 | 0.575 (0.667) | 0.432 (0.472) |
+| measured (their CFD) | | 0.50 (0.48) | 0.437 (0.435) |
+
+- **ξ_PG misses** its gate (0.105 from 0.50 at k = 3, against 0.03).
+  **ξ_MGb passes** at k = 3 (0.022, against 0.025), but its extrapolated
+  0.468 lies just outside the band (0.412–0.462).  It moves away from
+  the measurement as the mesh is refined.
+- **The mesh isn't the cause:** both coefficients converge
+  monotonically at order about 1.9, and the grid uncertainty is a tenth
+  of ξ_PG's gap.  So hexmesh's equal tee gives a grid-converged answer
+  at about 1.8 M cells; what it converges to is the model and set-up's.
+- **The pressure method matters at coarse levels:** each branch's own
+  gradient sits 8–30 % above McKeon's at k = 2 and approaches it at
+  k = 3 (1.08, 0.99, 1.17 for a, b, c).  Carried back over about 14 D
+  of stations, that moves ξ_PG by about 0.05.  The paper's CFD
+  definition is the own gradient.  McKeon's stands in for the
+  experiment's measured one.
+- **Realizable k–ε,** the paper's model, is 0.04 lower than SST at the
+  same level and still 0.075 above the measurement.  Their k–ε, transient
+  with non-equilibrium wall functions on 2.3 M cells, reached 0.48.  A
+  run set up as theirs (transient, at k = 2) is task 0162's next step.
+  Its reading is fixed before it runs: within 0.45–0.51 means hexmesh's
+  meshes reproduce their CFD.
+- **Steady SST doesn't settle** at any level: the coefficients oscillate
+  with a period of about 1200 iterations (ξ_PG ± 0.01 at k = 2), and the
+  values are window means.  k–ε's steady solve settles (to 10⁻⁵).
+- **Not run:** the other 19 points of the planned 20 (about 80 h at
+  k = 2), the Com a convergence point and the Re check.  They would show
+  the curves' shape, not change the verdict.
 
 ### 7.3 Smooth axisymmetric constriction (stenosis) benchmark [`varghese_and_frankel_etal_2007`]
 
