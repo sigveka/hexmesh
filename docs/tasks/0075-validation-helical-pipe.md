@@ -1,6 +1,6 @@
 # 0075 — Validation (V3): laminar flow in a helical pipe (spline pipe)
 
-- **Status:** blocked (held by the user until better hardware (2026-11-08); nang 24 done at Re 1800 and 2400, Re 3000 to run)
+- **Status:** done (2026-11-18): **accepted**.  Every gate passes at n_arc 24.  Re 3000's n_arc 24 was run as a volunteer level on Windows (task 0173).
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (V3, with V4 secondary); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V3 (experiment: De Amicis et al. 2014; V4 correlation, Manlapaz & Churchill 1980, secondary)
 - **Features:** `section:circle`, `straight`, `spline`
@@ -380,7 +380,30 @@ on starting it for now").
 
 ## Outcome
 
-_Blocked on Q3; the runs and results for nang 8, 12, 16 are complete._
+**Verdict: accepted** (2026-11-18, the design session, with the user's
+go-ahead).  The study ran as designed after Q3–Q5: n_arc 12, 16 and 24
+at Re 1800, 2400 and 3000, with each n_arc 24 level mapped from the
+n_arc 16 field.  Re 3000's n_arc 24 level was the last one.  It was run
+with the volunteer tool on a Windows laptop (16 processes, v2406 in
+Docker), and merged with `volunteer check --merge` (task 0173,
+the commit "Helical pipe: Re 3000 at n_arc 24, the last missing level").
+
+| Re | f, n_arc 24 | vs Ito (gate 5 %) | order (12, 16, 24) | GCI |
+|---|---|---|---|---|
+| 1800 | 0.06633 | −0.27 % | 1.93 | 0.55 % |
+| 2400 | 0.05557 | +0.26 % | 1.90 | 0.95 % |
+| 3000 | 0.04856 | +0.53 % | 1.84 | 1.44 % |
+
+- Spline vs helix: 3.41e-4 d (gate 0.1 % of d): **pass**.
+- `python3 -m validation.tools.recheck helical_pipe`: all seven gates
+  pass.
+- Re 3000's n_arc 16 source, re-solved on Windows, matched the stored
+  Linux value to 1.0e-9.
+- Moved to RESEARCH §7.9 (*Result*).
+
+The original record follows, from when the case was blocked on Q3 with
+the n_arc 8, 12, 16 runs complete.  It still uses the old names (nang =
+n_arc).
 
 - **Files:** `validation/helical_pipe/` (`run.py`, `README.md`,
   `RESULTS.md`, `case.json`, `results.json`, and `data/`: Fig. 12

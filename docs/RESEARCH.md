@@ -1081,6 +1081,27 @@ decision 0012):
   stations (2.9e-3 d at s = 1 d), which is axial discretisation.
 - **Gate** (decision, task 0075 Q2): f within 5 % of Ito at Re 1800,
   2400 and 3000; the digitised points reported.
+- **Result** (task 0075, accepted 2026-11-18; v2406, `simpleFoam`,
+  n_arc 12, 16, 24; the n_arc 24 levels mapped from n_arc 16):
+
+  | Re | f, n_arc 24 | vs Ito | order | GCI |
+  |---|---|---|---|---|
+  | 1800 | 0.06633 | −0.27 % | 1.93 | 0.55 % |
+  | 2400 | 0.05557 | +0.26 % | 1.90 | 0.95 % |
+  | 3000 | 0.04856 | +0.53 % | 1.84 | 1.44 % |
+
+  - The order of about 1.9 is close to second order, so the meshes
+    converge as designed.  The n_arc 8 levels were too coarse at these
+    Dean numbers (order 0.04 at Re 2400, diverging at 3000) and stay
+    outside the series.
+  - The error against Ito grows with Re, and it lies inside Ito's own
+    4.1 % RMS against the data.  The digitised measured points lie 3.7 %
+    below Ito on average.
+  - The spline is 3.4e-4 d from the helix at 32 points per turn: well
+    under the gate of 0.1 % of d.
+  - The Re 3000 n_arc 24 level was a volunteer run on Windows (task
+    0173).  Its re-solved n_arc 16 source matched the stored Linux value
+    to 1e-9.
 
 **Priorities** (design's view):
 1. **MMS conduction harness** (V1, every feature);

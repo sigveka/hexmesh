@@ -413,11 +413,18 @@ Delete `check.json` afterwards.
   `python -m validation.volunteer run run\` in its place.
 - Set a runner for every case with `$env:HEXMESH_OPENFOAM = "docker:opencfd/openfoam-default:2406"`
   (PowerShell's form of `export HEXMESH_OPENFOAM=…`).
-- **Known issue (2026-11-17):** on native Windows, `prepare` fails with
-  `FileNotFoundError` when it first starts OpenFOAM in Docker.  It is
-  being investigated (task 0170).  Until it's fixed, use WSL 2: turn on
-  Docker Desktop's *WSL integration* (Settings → Resources), so that
-  `docker` works inside WSL, and follow the Linux commands there.
+- Start the Docker engine first (Docker Desktop, or Rancher Desktop
+  with `dockerd`).  If it isn't running, hexmesh says the runner "could
+  not run" and shows Docker's own error.
+- Use a `--dir` outside OneDrive: Windows may refuse to delete a folder
+  that OneDrive has synced, and `prepare` deletes and remakes its case.
+- Keep a laptop from sleeping during a run.  Sleep pauses Docker and
+  the solver.
+- **Fixed in 0.8.0:** with an older tag, `prepare` on native Windows
+  fails with `FileNotFoundError` after meshing.  gmsh replaced the
+  process's `PATH`, so `docker` was no longer found (task 0173).  With
+  such a tag, use WSL 2 with Docker Desktop's *WSL integration*, and
+  follow the Linux commands there.
 
 ### Develop
 
@@ -439,7 +446,7 @@ hook, the docs site and the rules for a pull request are in
 | | Linux | macOS | Windows |
 |---|---|---|---|
 | meshing | yes | yes | yes |
-| studies and validation, OpenFOAM in Docker | yes | yes | WSL 2 (native: the known issue above) |
+| studies and validation, OpenFOAM in Docker | yes | yes | yes (Docker Desktop or Rancher Desktop; before 0.8.0, WSL 2 only) |
 | studies and validation, installed OpenFOAM | yes | — | WSL only |
 
 ### Stability

@@ -78,6 +78,19 @@ before they show a validation command, and they must work on Windows.
   known issue, with WSL 2 as the way round.  Update that paragraph when
   the crash is fixed.  Steps 3–6 remain.  Step 5's text test can use
   the README's validation subsection as its first case.
+- **The crash was fixed by task 0173** (2026-11-18, gmsh's `PATH` on
+  Windows).  The README's paragraph now says it was fixed in 0.8.0, and
+  the Platforms row says native Windows works.
+- **Added to step 4 (the design session, 2026-11-18), from 0173's
+  follow-ups:**
+  - **1 (OneDrive):** VOLUNTEERS.md and validation/README.md say to use a
+    `--dir` outside OneDrive.  The README already does.  A retry in
+    `setup_level` isn't needed.
+  - **3 (`prepare`'s "next:" line):** quote the path.  On Windows, print
+    the `python -m validation.volunteer run <dir>` form, not `bash …job.sh`.
+    This is the hint step 4 already asks for.
+  - **4 (sleep):** a note on those pages to keep the machine awake.
+    Holding the system awake from `volunteer run` is not in scope.
 
 ## Questions for design
 

@@ -143,3 +143,55 @@ LES, after its stage (a) (task 0120).
     first real test unless the user installs it (task 0119 says so);
   - the helical pipe's requirements beyond what 0075 measured (peak
     memory isn't recorded).
+
+## Note (2026-11-18): the machine recorded automatically
+
+The first volunteer run (task 0173: Windows 11, v2406 in Docker on 16
+processes) showed two gaps in the contribution file.
+- **The machine was free text, typed afterwards.**  The number that set
+  the speed (Docker's VM had 20 CPUs and 31 GB of the host's 64 GB) is in
+  the file only because the user knew to write it.  Times from different
+  volunteers can't be compared without it.  The cards' "measured (on
+  which machine …)" rule needs it too.
+- **`wall_s` isn't solver time.**  It added up four `run` invocations,
+  37 minutes of laptop sleep, and the restarts after the Windows fixes:
+  12 730 s, against about 4 190 s of solving.
+
+So (the user, 2026-11-18: "yes, write the decision note and the task"):
+1. **`run` records the machine it runs on**, every time it starts.
+   Through the Python standard library and the runner, without a new
+   dependency:
+   - the OS and its version, the architecture;
+   - the CPU model, the logical CPUs, and the memory;
+   - for a `docker:` runner, the engine's own CPUs and memory and its
+     kind (`docker info`).  On Windows and macOS that is a VM, often
+     smaller than the host, and it is what the solver gets;
+   - on a scheduler, the node and task counts it gives (Slurm's
+     `SLURM_JOB_NUM_NODES`, `SLURM_NTASKS`).
+   `run` records it, not `collect`: on a cluster, `prepare` and
+   `collect` run on a login node and the solve on compute nodes.
+2. **An allow-list, nothing else.**  No hostname, user name, path,
+   serial number, IP or MAC address, or job ID.  The CPU model string
+   is kept as the system gives it.  `collect` prints the details before
+   writing the file, and `--no-machine` leaves them out.  `--machine`
+   stays: a free-text label ("HP ZBook laptop") beside the details.
+3. **Solver time, apart from wall time:** `solve_s`, summed from the
+   solver logs' `ClockTime` per chunk, for speed comparisons.  `wall_s`
+   keeps its meaning.
+4. **The file format stays version 1.**  The new fields are optional:
+   `check` is always the maintainer's current code, and contributions
+   from the volunteer tags simply lack them.  `check` reports a missing
+   machine as a note, never a rejection.  The fields are stored with the
+   level, and the credit in RESULTS.md is drawn from them when there is
+   no label.
+
+**Also learned from that run:** the mesh hash matched across systems,
+Windows to Linux (Re 3000 at n_arc 24, merged with `check --merge`).
+That was an assumption above (*Verified vs. assumed*), and it now holds
+for that pair.
+
+**Future expansions:** 0030 (the simulation suite) may want the same
+record for its own runs.  The record lives in one self-contained
+function under `validation/`, not in the public `hexmesh` API (frozen
+at 1.0, decision 0042).  It can move to `hexmesh.study` as an addition
+in 1.x if the suite asks for it.  0018, 0019, 0021, 0035: not affected.
