@@ -1,6 +1,6 @@
 # 0162 — Validation: loss coefficients of equal-diameter tees and laterals (Štigler et al. 2014)
 
-- **Status:** in progress
+- **Status:** blocked (Q3)
 - **Decision:** [0042](../decisions/0042-road-to-1-0.md) criterion 4
   ("a junction-flow benchmark (Štigler's T-junction, on equal tees)"),
   milestone 0.7; [0012](../decisions/0012-openfoam-validation-cases.md);
@@ -319,6 +319,43 @@ intersections (decision 0045).
   - The k = 3 reading (band 0.44-0.56 for ξ_PG, 0.387-0.487 for ξ_MGb)
     is applied to the own-gradient values.
 
+- **2026-11-18, k = 3 (SST, Div a, q = 0.6): not close; stopped.**
+  - The run: 1 776 384 cells, 8000 steps, 14:11 at np 3 (11:46 to
+    01:57).  Peak memory wasn't logged.  checkMesh OK
+    (non-orthogonality 50.3, skewness 2.37).  `converged` false, as at
+    k = 1 and 2: the residuals stay above the tolerance while the
+    coefficients oscillate within the window.  The case folder was
+    deleted by the run; the numbers are in the scratchpad's
+    `jl/conv3/results.json` (old keys, mapped below).
+  - The three levels, own gradient (the old `*_fit` keys) and McKeon,
+    mean over the last 2400 steps ± their standard deviation (that
+    spread is for the McKeon values, the only ones the window samples):
+
+    | k | cells | ξ_PG own | ξ_PG McKeon | ξ_MGb own | ξ_MGb McKeon | own slope / McKeon a, b, c |
+    |---|---|---|---|---|---|---|
+    | 1 | 65 792 | 0.672 | 0.724 ± 0.008 | 0.438 | 0.461 ± 0.004 | |
+    | 2 | 526 336 | 0.616 | 0.672 ± 0.010 | 0.449 | 0.469 ± 0.008 | 1.14, 1.09, 1.30 |
+    | 3 | 1 776 384 | 0.605 | 0.635 ± 0.005 | 0.459 | 0.469 ± 0.002 | 1.08, 0.99, 1.17 |
+
+  - **Richardson / GCI** (Celik et al. 2008, h ∝ 1/k, so r = 2 and 1.5):
+    both coefficients converge monotonically.
+    - ξ_PG: observed order 1.90, extrapolated **0.596**, GCI at k = 3
+      1.9 % (0.012).
+    - ξ_MGb: observed order 1.93, extrapolated **0.468**, GCI at k = 3
+      2.3 % (0.011).
+  - **The reading:** ξ_MGb's 0.468 is inside its band (0.387-0.487).
+    ξ_PG's 0.596 is outside its band (0.44-0.56), 0.096 above the
+    measured 0.50.  So "close" fails, and per the user's rule the 20
+    points at k = 2 aren't run.  Against the gates at k = 3: ξ_MGb 0.459
+    passes (0.022 from 0.437, gate 0.025); ξ_PG 0.605 fails (0.105 from
+    0.50, gate 0.03).
+  - **What the levels show:** the grid error is now small (GCI about
+    0.01) against the gap (about 0.1), so refinement won't close it.
+    The own gradients approach McKeon's as k rises (c from 1.30 to 1.17,
+    b to 0.99), so the two methods are converging too.  Realizable k–ε
+    at k = 2 gave 0.575, 0.04 below SST at the same level.  Their 2.3 M
+    cell k–ε gave 0.48.
+
 ## Questions for design
 
 - **Q1 (2026-11-15, coding session). hexmesh can't mesh the 45° equal
@@ -367,5 +404,28 @@ intersections (decision 0045).
   first run, as step 1 says.
 - **Memory** (the 0050 question applies here too): size the finest
   level so that one run stays under about 6 GB; report its peak.
+
+- **Q3 (2026-11-18, coding session). ξ_PG converges to 0.60, 0.1 above
+  the measurement; the "close" check fails.**  Numbers in *Agent notes*,
+  2026-11-18.  Grid-converged (GCI 0.012) at Div a, q = 0.6: ξ_PG 0.596,
+  measured 0.50 ± 0.01, their CFD 0.48; ξ_MGb 0.468, measured 0.437,
+  inside its band.  The user's rule says stop here.  Options:
+  - (a) **Report it as a fail, with the convergence study, and run no
+    more points** (my recommendation).  The case's verdict is "fail" at
+    Div a ξ_PG, with the grid error shown to be a tenth of the gap.
+    That is a finding about the setup (steady SST and wall functions,
+    the uniform inlet at 25 D, sharp edges), not about the mesh's
+    convergence.  It costs nothing further.
+  - (b) **Look for the cause first, at k = 2 (about 4 h a run):** a
+    developed inlet profile in place of the uniform one (a's slope still
+    rises toward the inlet, 1.08 to 1.4); a transient run as theirs was;
+    or low-Re wall treatment (y⁺ ≈ 1, which needs a new mesh grading
+    and more cells).  Any of these chosen after seeing the result needs
+    the gates left as they are.
+  - (c) Run the 20 points at k = 2 anyway (about 80 h at the rate
+    measured), to show the curves' shape against q.  It would report
+    ξ_MGb passes and ξ_PG fails across q, which (a) already predicts
+    for this point.
+  Which, and does the user's 60 h budget still stand for (b) or (c)?
 
 ## Outcome
