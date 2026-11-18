@@ -823,6 +823,34 @@ file's 15).  Nodes and elements were not compared separately.
 reproduce `write` and `write_openfoam` exactly; one that keeps its gmsh
 model can.
 
+### Formats for ANSYS: what gmsh writes, and whether the names survive (gmsh 4.12.1, 2026-11-18) — *verified for gmsh, not in ANSYS*
+The user asked whether hexmesh's meshes can go to ANSYS.
+`Assembly.write` and `Mesh.write` pass the file name to `gmsh.write`,
+so gmsh's writers decide.  Only `.msh` gets the provenance block.
+- **Probe:** the `equal_tee` example, written with `to_mesh().write`.
+  Its groups are `fluid`, `fluid_inlet`, `fluid_main_end`,
+  `fluid_branch_end` and `fluid_wall`.  The design session's scratchpad,
+  deleted after.
+- **Written, with the group names in the file:**
+  - `.unv` (I-DEAS universal), 2.8 MB;
+  - `.neu` (GAMBIT neutral, `CONTROL INFO 2.0.0`), 1.5 MB;
+  - `.inp` (Abaqus), 1.0 MB;
+  - `.su2`, 1.0 MB.
+- **Written, but without the names:** `.bdf` (NASTRAN), 1.4 MB.  The
+  groups are numbers only.
+- **Not written:**
+  - `.cgns`: "compiled without CGNS support" (the 4.12.1 build here).
+    Whether the pip wheel of 4.15.x has CGNS is unchecked;
+  - `.med`: no MED support;
+  - `.cdb` (ANSYS Mechanical APDL), `.ans`: "Unknown output file format".
+    gmsh has no ANSYS-native writer.
+- **Not verified in ANSYS** (no licence here).  Fluent's import of
+  I-DEAS `.unv`, GAMBIT `.neu` and CGNS is from ANSYS's documentation
+  as commonly described, not a test.  So is whether the groups become
+  Fluent's cell and boundary zones.
+- **Name clash:** Fluent's own mesh files are also `.msh`, in a
+  different format.  A gmsh `.msh` is not a Fluent mesh.
+
 ## Open questions
 
 - ~~Does `gmsh.write` keep physical names and element orientation the way
