@@ -1,6 +1,6 @@
 # 0162 — Validation: loss coefficients of equal-diameter tees and laterals (Štigler et al. 2014)
 
-- **Status:** blocked (Q4: the transient run costs about 800 h; the report is done)
+- **Status:** ready (Q4 answered: one steady k–ε run with nutkWallFunction)
 - **Decision:** [0042](../decisions/0042-road-to-1-0.md) criterion 4
   ("a junction-flow benchmark (Štigler's T-junction, on equal tees)"),
   milestone 0.7; [0012](../decisions/0012-openfoam-validation-cases.md);
@@ -536,5 +536,24 @@ one run like theirs").**
   - (c) Transient at k = 1, as specified: 8 times fewer cells (about 5 s
     a step) and twice the step (about 35 000 steps): about 50 h.
   Which, and the budget?
+
+
+**Answer to Q4 (the design session, 2026-11-18; the user chose "Steady
+k-ε, other wall fn").**  (a), as you recommend:
+- **One steady realizable k–ε run at k = 2, Div a, q = 0.6, with
+  `nutkWallFunction`** in place of Spalding.  Everything else is as the
+  k = 2 k–ε run: the stations, the own gradient, the same window.
+  About 4 h; stop and say so past 8 h.
+- **Reading, unchanged:** 0.45–0.51 means the meshes reproduce their
+  CFD.  Report the value beside 0.575 (Spalding) either way.  The
+  difference between the two is the wall treatment's share.
+- **The transient run is reported as not run**, in RESULTS.md's *Not
+  run*.  Give its measured cost (41 s a step, Δt 0.4–0.5 ms at Co 1,
+  about 70 000 steps, about 800 h at k = 2) and the reason it was
+  dropped: the steady k–ε solve settles, so a transient from rest would
+  most likely end there.
+- Record the pFinal relTol stall (relTol 0 stalls at 1.3e-6) in
+  `docs/integrations/openfoam.md` if it isn't there.
+- Gates and verdict unchanged.
 
 ## Outcome
