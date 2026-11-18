@@ -727,7 +727,9 @@ def junction_loss(data, out):
     gate = {c: max(abs(r["cfd"] - r["measured"]) for r in rows if r["coefficient"] == c)
             for c in ref}
     sst = sorted(_levels(data, config="div_a", model="sst"), key=lambda l: l["k"])
-    rke = _levels(data, config="div_a", model="rke")
+    rke = [l for l in _levels(data, config="div_a", model="rke")
+           if l.get("solver", "simpleFoam") == "simpleFoam"]
+    unsteady = [l for l in _levels(data, config="div_a", solver="pimpleFoam")]
     rich = data["extra"]["richardson"]["Div a q 0.6"]
     h = _h(sst)
     fig, ax = _figure(1, 2)
@@ -757,6 +759,11 @@ def junction_loss(data, out):
         a.plot(_h(rke) if rke[0].get("k") else [], _col(rke, coef), color=st["color"],
                marker=st["marker"], linestyle="none", zorder=4,
                label="ours, realizable k-ε, k = 2 (not gated)")
+        if unsteady:
+            st = style(None, 4)
+            a.plot(_h(unsteady), _col(unsteady, coef), color=st["color"], marker=st["marker"],
+                   linestyle="none", zorder=4,
+                   label=f"ours, realizable k-ε, transient, k = {unsteady[0]['k']} (not gated)")
         _axes(a, "relative cell size h / h₁   (finer to the left)", name)
         a.set_xlim(-0.05, 1.05)
         a.xaxis.set_major_locator(FixedLocator([0] + sorted(h)))

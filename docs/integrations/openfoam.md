@@ -324,6 +324,14 @@ All v1912, gmsh 4.12.1, 2026-10-25.
     24.04) of the 2020 sources: the SHA1 stream state fails.  Not checked
     against an upstream build.
   - *Verified* 2026-10-26 (task 0020), `openfoam` 1912.200626-2build3.
+  - **Not on v2406** (Docker `opencfd/openfoam-default:2406`): a
+    `fieldAverage` of p under `functions` (`libs (fieldFunctionObjects)`,
+    `base time`, `timeStart`) runs with `pimpleFoam` and writes `pMean` at
+    each write time, averaged from `timeStart`.  The same controlDict
+    fails as above on the native 1912 build.  *Verified* 2026-11-18
+    (task 0162).  `hexmesh.study.openfoam`'s runner defaults to native,
+    so a script calling it directly must `set_runner` first; the
+    drivers do, from `--openfoam`.
 - **Tutorial `pipeCyclic` does not run as shipped here.**  Its coded
   swirl inlet fails with `Unknown variable 'WM_OPTIONS'` (no build
   environment).  Its dictionaries are still a sound base: task 0020 uses

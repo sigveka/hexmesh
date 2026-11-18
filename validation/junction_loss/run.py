@@ -239,6 +239,73 @@ relaxationFactors
 #: CFD (task 0162 step 4); the turbulence fields each solves for
 MODELS = {"sst": ("kOmegaSST", "omega"), "rke": ("realizableKE", "epsilon")}
 
+# --- the transient run, set up as the paper's CFD (task 0162 Q3, part 2) ----------
+# pimpleFoam from rest.  The slowest branch (b at Div a, q = 0.6: 0.4 m/s)
+# takes 6.25 s to flush, so: settle for three of its flow-throughs (20 s),
+# then average p over 12 s, about two more (``fieldAverage``), with 12
+# samples, one a second, for the spread.  Fixed before the run.
+TRANSIENT_END, TRANSIENT_WINDOW, TRANSIENT_SAMPLES = 32.0, 12.0, 12
+
+CONTROL_TRANSIENT = """application     pimpleFoam;
+startFrom       startTime;
+startTime       0;
+stopAt          endTime;
+endTime         {end_time};
+deltaT          1e-4;
+adjustTimeStep  yes;
+maxCo           1;
+maxDeltaT       0.01;
+writeControl    adjustableRunTime;
+writeInterval   {interval};
+purgeWrite      {purge};
+writeFormat     ascii;
+writePrecision  12;
+timeFormat      general;
+timePrecision   8;
+runTimeModifiable false;
+functions
+{{
+    pAverage
+    {{
+        type            fieldAverage;
+        libs            (fieldFunctionObjects);
+        timeStart       {window_start};
+        writeControl    writeTime;
+        fields          ( p {{ mean on; prime2Mean off; base time; }} );
+    }}
+}}
+"""
+
+SOLUTION_TRANSIENT = """solvers
+{
+    p
+    {
+        solver          GAMG;
+        smoother        GaussSeidel;
+        tolerance       1e-7;
+        relTol          0.01;
+    }
+    pFinal
+    {
+        $p;
+        relTol          0;
+    }
+    "(U|k|epsilon)Final"
+    {
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
+        tolerance       1e-8;
+        relTol          0;
+    }
+}
+PIMPLE
+{
+    nOuterCorrectors 1;
+    nCorrectors     2;
+    nNonOrthogonalCorrectors 1;
+}
+"""
+
 TURBULENCE = """simulationType  RAS;
 RAS
 {{
@@ -287,18 +354,32 @@ WALL = {"U": "type noSlip;", "p": "type zeroGradient;",
         "omega": "type omegaWallFunction; value uniform {omega};",
         "epsilon": "type epsilonWallFunction; value uniform {epsilon};",
         "nut": "type nutUSpaldingWallFunction; value uniform 0;"}
+#: the transient run's wall: nearest v2406 has to Fluent's non-equilibrium
+#: wall functions (the paper's), the log law with the velocity scale
+#: C_μ^¼ k^½ and ε and G set in the wall cell; it lacks their
+#: pressure-gradient term.  Both switch to the laminar law below y⁺ ≈ 11;
+#: the wall cell sits near y⁺ 14 at k = 2.
+NUT_TRANSIENT = "type nutkWallFunction; value uniform 0;"
 
 
-def write_case(case: Path, flows: dict, pressure_branch: str, area: float, end_time: int,
-               interval: int, purge: int, re: float, model: str = "sst") -> None:
+def write_case(case: Path, flows: dict, pressure_branch: str, area: float, end_time: float,
+               interval: float, purge: int, re: float, model: str = "sst",
+               transient: bool = False, window: float = 0.0) -> None:
     ras, extra = MODELS[model]
     for d in ("0", "constant", "system"):
         (case / d).mkdir(parents=True, exist_ok=True)
+    if transient:
+        control = CONTROL_TRANSIENT.format(end_time=f"{end_time:g}", interval=f"{interval:g}",
+                                           purge=purge, window_start=f"{end_time - window:g}")
+        schemes = SCHEMES.replace("default steadyState;", "default backward;")
+        solution = SOLUTION_TRANSIENT
+    else:
+        control = CONTROL.format(end_time=int(end_time), interval=int(interval), purge=purge)
+        schemes, solution = SCHEMES, SOLUTION
     files = {
-        "system/controlDict": H("dictionary", "controlDict", "system")
-        + CONTROL.format(end_time=end_time, interval=interval, purge=purge),
-        "system/fvSchemes": H("dictionary", "fvSchemes", "system") + SCHEMES,
-        "system/fvSolution": H("dictionary", "fvSolution", "system") + SOLUTION,
+        "system/controlDict": H("dictionary", "controlDict", "system") + control,
+        "system/fvSchemes": H("dictionary", "fvSchemes", "system") + schemes,
+        "system/fvSolution": H("dictionary", "fvSolution", "system") + solution,
         "constant/transportProperties": H("dictionary", "transportProperties", "constant")
         + f"transportModel  Newtonian;\nnu              {nu(re)!r};\n",
         "constant/turbulenceProperties": H("dictionary", "turbulenceProperties", "constant")
@@ -316,7 +397,8 @@ def write_case(case: Path, flows: dict, pressure_branch: str, area: float, end_t
         cls = "volVectorField" if f == "U" else "volScalarField"
         rows = [f"    {PATCH[b]:12s} {{ {boundary(f, b, flows[b], b == pressure_branch, area)} }}"
                 for b in ("a", "b", "c")]
-        rows.append(f'    "fluid_wall.*" {{ {WALL[f].format(k=repr(k0), omega=repr(omega0), epsilon=repr(epsilon0))} }}')
+        wall = NUT_TRANSIENT if transient and f == "nut" else WALL[f]
+        rows.append(f'    "fluid_wall.*" {{ {wall.format(k=repr(k0), omega=repr(omega0), epsilon=repr(epsilon0))} }}')
         text = (H(cls, f, "0") + f"dimensions      {dims};\ninternalField   {internal[f]};\n"
                 "boundaryField\n{\n" + "\n".join(rows) + "\n}\n")
         (case / "0" / f).write_text(text, encoding="utf-8")
@@ -427,14 +509,16 @@ def profile(g: dict, p: np.ndarray, flows: dict, re: float) -> dict:
 
 # --- one point ---------------------------------------------------------------------
 
-def point_name(config: str, q: float, k: int, re: float = RE, model: str = "sst") -> str:
+def point_name(config: str, q: float, k: int, re: float = RE, model: str = "sst",
+               transient: bool = False) -> str:
     tail = "" if re == RE else f"_re{re:.0e}".replace("+0", "").replace("+", "")
-    return f"{config}_q{q:.1f}_k{k}{tail}" + ("" if model == "sst" else f"_{model}")
+    return (f"{config}_q{q:.1f}_k{k}{tail}" + ("" if model == "sst" else f"_{model}")
+            + ("_transient" if transient else ""))
 
 
-def prepare_point(case: Path, config: str, q: float, k: int, end_time: int,
-                  reynolds: float = RE, window: int = 1000, samples: int = 10,
-                  model: str = "sst") -> dict:
+def prepare_point(case: Path, config: str, q: float, k: int, end_time: float,
+                  reynolds: float = RE, window: float = 1000, samples: int = 10,
+                  model: str = "sst", transient: bool = False) -> dict:
     """Mesh one point into *case*, write its OpenFoam case and check the
     mesh; what :func:`collect_point` needs is saved as ``point.json``."""
     total, pressure, flows_of = CONFIGS[config]
@@ -450,11 +534,12 @@ def prepare_point(case: Path, config: str, q: float, k: int, end_time: int,
         sj = asm.check_quality("scaled_jacobian").worst
     area = math.pi * R ** 2
     # the last samples + 1 writes span the last *window* iterations
+    interval = window / samples if transient else max(window // samples, 1)
     write_case(case, {b: f * U_TOTAL * area for b, f in flows_of(q).items()}, pressure, area,
-               end_time, max(window // samples, 1), samples + 1, reynolds, model)
+               end_time, interval, samples + 1, reynolds, model, transient, window)
     of.convert(case, msh, keep_orientation=sj > 0)
     point = {"config": config, "q": q, "k": k, "re": reynolds, "model": model,
-             "window": window, "cells": cells, "worst_sj": sj,
+             "solver": "pimpleFoam" if transient else "simpleFoam", "window": window, "cells": cells, "worst_sj": sj,
              **{f"check_{key}": v for key, v in of.check_mesh(case).items()},
              **stored.counts(asm)}
     (case / "point.json").write_text(json.dumps(point, indent=1), encoding="utf-8")
@@ -468,12 +553,13 @@ def collect_point(case: Path) -> dict:
     config, q, reynolds, window = point["config"], point["q"], point["re"], point.pop("window")
     total, _, flows_of = CONFIGS[config]
     flows = flows_of(q)
-    log = (case / "log.simpleFoam").read_text(encoding="utf-8", errors="replace")
-    steps = [int(s) for s in re.findall(r"^Time = (\d+)", log, re.M)]
+    solver = point.get("solver", "simpleFoam")
+    log = (case / f"log.{solver}").read_text(encoding="utf-8", errors="replace")
+    steps = re.findall(r"^Time = ([\d.e+-]+)", log, re.M)
     g = geometry(case)
     last = float(of.latest_time(case).name)
     times = sorted((d for d in case.iterdir() if d.name.replace(".", "").isdigit()
-                    and d.name != "0" and float(d.name) >= last - window),
+                    and d.name != "0" and float(d.name) >= last - window - 1e-9 * window),
                    key=lambda d: float(d.name))
     # A steady solve whose coefficients still wander (task 0162 step 4):
     # report the mean over the window, with the samples' standard
@@ -482,24 +568,28 @@ def collect_point(case: Path) -> dict:
     ps = [of.read_internal(d / "p", 1).ravel() for d in times]
     series = [coefficients(g, pi, flows, total, reynolds) for pi in ps]
     p_mean = np.mean(ps, axis=0)
+    if solver == "pimpleFoam":                 # the time average over the window
+        p_mean = of.read_internal(times[-1] / "pMean", 1).ravel()
     res = coefficients(g, p_mean, flows, total, reynolds)
     coefs = ("xi_PG", "xi_MGb", "xi_PG_mckeon", "xi_MGb_mckeon")
     spread = {f"{c}_spread": float(np.std([s[c] for s in series], ddof=1))
               if len(series) > 1 else None for c in coefs}
     drift = {c: series[-1][c] - series[0][c] for c in coefs} if len(series) > 1 else None
-    return {**point, "steps": steps[-1] if steps else 0,
+    steady = solver == "simpleFoam"
+    return {**point, "steps": (int(steps[-1]) if steady else len(steps)) if steps else 0,
+            **({} if steady else {"end_time": float(steps[-1]) if steps else 0.0}),
             "converged": "solution converged in" in log, "drift": drift, **res, **spread,
             "window": {"steps": [float(d.name) for d in times],
                        **{c: [s[c] for s in series] for c in coefs}},
             "profile": profile(g, p_mean, flows, reynolds)}
 
 
-def run_point(config: str, q: float, k: int, work: Path, end_time: int, n_proc: int,
-              reynolds: float = RE, window: int = 1000, samples: int = 10,
-              model: str = "sst") -> dict:
-    case = work / point_name(config, q, k, reynolds, model)
-    prepare_point(case, config, q, k, end_time, reynolds, window, samples, model)
-    of.run_solver(case, "simpleFoam", n_proc=n_proc)
+def run_point(config: str, q: float, k: int, work: Path, end_time: float, n_proc: int,
+              reynolds: float = RE, window: float = 1000, samples: int = 10,
+              model: str = "sst", transient: bool = False) -> dict:
+    case = work / point_name(config, q, k, reynolds, model, transient)
+    prepare_point(case, config, q, k, end_time, reynolds, window, samples, model, transient)
+    of.run_solver(case, "pimpleFoam" if transient else "simpleFoam", n_proc=n_proc)
     return collect_point(case)
 
 
@@ -528,6 +618,11 @@ def tolerances(rows: list[dict]) -> dict:
     return t
 
 
+def _steady(level: dict) -> bool:
+    """A steady level: the gated kind (a transient one is only reported)."""
+    return level.get("solver", "simpleFoam") == "simpleFoam"
+
+
 def recheck(data: dict) -> list[dict]:
     """Every gated value (task 0162, Q2): within u_measured + T of the
     measurement at the finest level that ran; the pass count per curve;
@@ -541,7 +636,8 @@ def recheck(data: dict) -> list[dict]:
             for r in (r for r in rows if r["gamma"] == GAMMA and r["config"] == config
                       and r["coefficient"] == coef):
                 got = [lv for lv in levels if lv["config"] == config and lv["re"] == RE
-                       and lv.get("model", "sst") == "sst" and abs(lv["q"] - r["q"]) < 1e-9]
+                       and lv.get("model", "sst") == "sst" and _steady(lv)
+                       and abs(lv["q"] - r["q"]) < 1e-9]
                 if not got:
                     continue
                 lv = max(got, key=lambda x: x["k"])
@@ -572,7 +668,7 @@ def analyse(levels: list[dict]) -> dict:
     for spec in CONVERGENCE_POINTS:
         config, q = spec.split(":")
         rows = sorted((lv for lv in levels if lv["config"] == config and lv["re"] == RE
-                       and lv.get("model", "sst") == "sst"
+                       and lv.get("model", "sst") == "sst" and _steady(lv)
                        and abs(lv["q"] - float(q)) < 1e-9), key=lambda r: r["k"])
         if [r["k"] for r in rows] != list(LEVELS):
             continue
@@ -602,13 +698,18 @@ def main(argv=None) -> dict:
                     help="the total branch's Reynolds number (default %(default)g)")
     ap.add_argument("--work", type=Path, default=HERE / "work",
                     help="folder for each point's OpenFOAM case (default: validation/junction_loss/work/, not committed); a point's case is deleted once its results are stored, unless --keep-work")
-    ap.add_argument("--end-time", type=int, default=4000,
-                    help="the solver's last iteration (default %(default)s); it stops earlier once its residuals converge")
-    ap.add_argument("--window", type=int, default=1000,
+    ap.add_argument("--end-time", type=float, default=None,
+                    help="the solver's last iteration (default 4000); it stops earlier once its "
+                         f"residuals converge.  With --transient, seconds (default {TRANSIENT_END:g})")
+    ap.add_argument("--window", type=float, default=None,
                     help="the coefficients are the mean over the solver's last WINDOW "
-                         "iterations, their spread the standard deviation (default %(default)s)")
-    ap.add_argument("--samples", type=int, default=10,
-                    help="pressure fields written across the window (default %(default)s)")
+                         "iterations, their spread the standard deviation (default 1000).  With "
+                         f"--transient, seconds of p's time average (default {TRANSIENT_WINDOW:g})")
+    ap.add_argument("--samples", type=int, default=None,
+                    help="pressure fields written across the window (default 10; with "
+                         f"--transient {TRANSIENT_SAMPLES})")
+    ap.add_argument("--transient", action="store_true",
+                    help="pimpleFoam from rest, as the paper's CFD (task 0162 Q3); never gated")
     ap.add_argument("--np", type=int, default=1, dest="n_proc",
                     help="MPI processes per solve (check other runs first, CLAUDE.md)")
     ap.add_argument("--model", choices=sorted(MODELS), default="sst",
@@ -618,6 +719,12 @@ def main(argv=None) -> dict:
     stored.add_arguments(ap, HERE)
     stored.add_openfoam_argument(ap, of.V2406)
     args = ap.parse_args(argv)
+    steady = (4000, 1000, 10)
+    transient = (TRANSIENT_END, TRANSIENT_WINDOW, TRANSIENT_SAMPLES)
+    for name, default in zip(("end_time", "window", "samples"),
+                             transient if args.transient else steady):
+        if getattr(args, name) is None:
+            setattr(args, name, default)
     of.set_runner(args.openfoam)
     store = stored.Store(args.json, "junction_loss")
     store.put_extra("references", {
@@ -628,11 +735,11 @@ def main(argv=None) -> dict:
     points = args.points or [(c, q) for c in CONFIGS for q in QS]
     for config, q in points:
         for k in args.levels:
-            name = point_name(config, q, k, args.re, args.model)
+            name = point_name(config, q, k, args.re, args.model, args.transient)
             r = stored.run_level(store, name,
                                  lambda c=config, q=q, k=k: run_point(
                                      c, q, k, args.work, args.end_time, args.n_proc, args.re,
-                                     args.window, args.samples, args.model),
+                                     args.window, args.samples, args.model, args.transient),
                                  args.work / name, args.keep_work)
             print(f"[{name}] ξ_PG {r['xi_PG']:.4f} ± {r['xi_PG_spread'] or 0:.4f} "
                   f"(McKeon {r['xi_PG_mckeon']:.4f}), ξ_MGb {r['xi_MGb']:.4f} "
