@@ -262,6 +262,26 @@ only (the soak).
   4. **Quick validation checks:** `pytest -m openfoam
      tests/test_validation.py`, native OpenFOAM, `-n 2`, beside the
      0162 SST run (3 processes): 21 of 21 passed, 66 min.
+- **2026-11-18, the 0.8.0 release again, after 0164-0167 (decision 0053
+  put them before the tag):**
+  - **CHANGELOG:** dated 2026-11-18; the summary and the **Breaking:**
+    line now cover 0164-0167 (keyword-only arguments, copy-on-write
+    `PipeSpec`, the renamed names and codes, `lc` removed, `Profile`, the
+    tee's `run` port; descriptions version 4, older ones load).  Against
+    v0.6.0 (a worktree) again: the codes gone are the four renamed ones
+    the CHANGELOG lists; the names gone from an `__all__` are those of
+    `agent.schema`, `io.readers`, and of `assembly.fittings`,
+    `io.writers` and `sections`, which lost `__all__` on purpose (0150's
+    entry).  Nothing breaking is unlisted.  Meshes unchanged (the
+    examples byte-identical, 0167), so no gallery rebuild.
+  - **Version:** 0.8.0 unchanged; `CITATION.cff` released 2026-11-18;
+    `test_readme` passes (13).
+  - **Quick validation checks:** `pytest -m openfoam
+    tests/test_validation.py -n 2`, no other run: 21 of 21 passed, 35 min.
+  - **CI:** aa04883 green on all 8 jobs (run 44236179872), `main`
+    promoted to it.  The release commit is the next push, once CI is green
+    on it.
+
 ## Questions for design
 
 ## Outcome
