@@ -22,6 +22,11 @@ volunteer tags predate the renames of task 0166, so their files say
 `nang`/`nrad`; `volunteer check` failed on them (`KeyError: 'n_arc'`).
 It now renames them on reading and says so in its report.
 
+**Validation: Re 3000 at n_arc 24 in the helical pipe** (task 0173), the
+last missing level: f +0.53 % from Ito; convergence over n_arc 12, 16, 24
+of order 1.84, GCI 1.44 %.  Every gate of the case now passes; its
+verdict is task 0075's.
+
 **A runner that can't run says why** (task 0173).  A stopped Docker
 engine was reported as "has no OpenFOAM".  `require_version` now gives
 the runner's own error ("could not run (failed to connect to the docker

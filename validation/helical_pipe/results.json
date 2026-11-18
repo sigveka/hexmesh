@@ -17,6 +17,14 @@
     "n_arc": 16,
     "steps": 563,
     "wall_s": 3141.053189626953
+   },
+   "re3000_n24": {
+    "converged": true,
+    "f": 0.04917713851629603,
+    "f_vs_stored": 1.0382867898783843e-09,
+    "n_arc": 16,
+    "steps": 812,
+    "wall_s": 2052.2055270000565
    }
   },
   "reference": "De Amicis et al. (2014), the SIET coil; Ito (1959) as their eq. (2)",
@@ -776,6 +784,118 @@
     1.0030216220312709
    ],
    "wall_s": 20107.045419474074
+  },
+  {
+   "area_ratio": 0.9992862058229083,
+   "cells": 2711232,
+   "check_cells_foam": 2711232,
+   "check_max_aspect_ratio": 8.20589846087,
+   "check_max_non_orthogonality": 38.8674991207,
+   "check_max_skewness": 0.514597128599,
+   "check_mesh_ok": true,
+   "converged": true,
+   "environment": {
+    "contributed": {
+     "cores": 16,
+     "machine": "HP ZBook Fury G1i laptop: Intel Core Ultra 7 265HX (20 cores), 64 GB; Windows 11, OpenFOAM in Docker (Rancher Desktop, WSL2: 20 CPUs, 31 GB); 16 MPI processes",
+     "mesh_sha256": "09deb19dbfd149d50000b45113f0447ee10c9c01c88c903c6cf48b5daa3b3352",
+     "peak_memory_gb": null,
+     "wall_s": 12729.781088599993
+    },
+    "date": "2026-11-18",
+    "gmsh": "4.15.2",
+    "hexmesh": "c7a64b9+local",
+    "openfoam": "v2406",
+    "python": "3.14.7",
+    "runner": "docker:opencfd/openfoam-default:2406"
+   },
+   "f": 0.04855828083463716,
+   "f_err_ito": 0.005255370877423449,
+   "f_history": [
+    {
+     "converged": false,
+     "f": 0.04860415400829495,
+     "step": 50
+    },
+    {
+     "converged": false,
+     "f": 0.04853300300789993,
+     "step": 100
+    },
+    {
+     "converged": false,
+     "f": 0.048566126865147545,
+     "step": 150
+    },
+    {
+     "converged": false,
+     "f": 0.04855750253147479,
+     "step": 200
+    },
+    {
+     "converged": false,
+     "f": 0.048558486038246106,
+     "step": 250
+    },
+    {
+     "converged": false,
+     "f": 0.04855819680526208,
+     "step": 300
+    },
+    {
+     "converged": false,
+     "f": 0.04855830086042347,
+     "step": 350
+    },
+    {
+     "converged": false,
+     "f": 0.04855828014262335,
+     "step": 400
+    },
+    {
+     "converged": true,
+     "f": 0.04855828083463716,
+     "step": 440
+    }
+   ],
+   "f_ito": 0.04830442317582818,
+   "f_per_pair": [
+    0.048531781652708,
+    0.04855828083463716,
+    0.04855833646569913
+   ],
+   "fc_over_fs": 2.2831390084070455,
+   "init_from": "n_arc 16, mapped",
+   "layers_per_turn": 390,
+   "min_scaled_jacobian": 0.7298417043413417,
+   "n_arc": 24,
+   "n_height": null,
+   "n_radial": 12,
+   "n_width": null,
+   "name": "re3000_n24",
+   "precision": "full",
+   "re": 3000,
+   "re_bulk": 3009.18595194213,
+   "steps": 440,
+   "turn_agreement": 1.1456555095712417e-06,
+   "turn_mean_p": [
+    22.12183189718135,
+    15.80509041475233,
+    9.484888368276083,
+    3.1646778507688267
+   ],
+   "u_bulk_per_pair": [
+    1.003061070201095,
+    1.00306198398071,
+    1.0030620816059328
+   ],
+   "u_bulk_per_turn": [
+    1.0030601544626199,
+    1.0030619859395697,
+    1.0030619820218505,
+    1.0030621811900151
+   ],
+   "wall_s": 9177.47247170002
   }
  ],
  "version": 1
