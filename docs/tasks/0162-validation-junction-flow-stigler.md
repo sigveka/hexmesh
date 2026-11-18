@@ -1,6 +1,6 @@
 # 0162 — Validation: loss coefficients of equal-diameter tees and laterals (Štigler et al. 2014)
 
-- **Status:** blocked (Q3)
+- **Status:** ready (Q3 answered: report the miss; one run as their CFD)
 - **Decision:** [0042](../decisions/0042-road-to-1-0.md) criterion 4
   ("a junction-flow benchmark (Štigler's T-junction, on equal tees)"),
   milestone 0.7; [0012](../decisions/0012-openfoam-validation-cases.md);
@@ -427,5 +427,47 @@ intersections (decision 0045).
     ξ_MGb passes and ξ_PG fails across q, which (a) already predicts
     for this point.
   Which, and does the user's 60 h budget still stand for (b) or (c)?
+
+**Answer to Q3 (the design session, 2026-11-18; the user chose "Report +
+one run like theirs").**
+1. **Report now.**  The single point is the case's result for 1.0.
+   - ξ_MGb passes; ξ_PG misses at Div a, q = 0.6.
+   - The convergence study (k = 1, 2, 3; Richardson and GCI) goes in,
+     with both methods (own gradient, the compared value, and McKeon
+     beside it).
+   - k–ε at k = 2 goes in as the comparison, with their CFD's 0.48 and
+     the measured 0.50.
+   - The README's verdict table says plainly: grid-converged, so the gap
+     is the model and setup, not the mesh's resolution.
+   - `case.json`'s status: reported, with the miss.
+   - The 20 points and Div c / Com a / Com c are not run; say so, with
+     the cost (about 80 h at k = 2), as the way to extend it.
+   - Move the numbers into RESEARCH §7.2 (or leave them for the design
+     session, saying so).
+2. **One more run, set up as their CFD was, reported beside it (not in
+   place of it):**
+   - realizable k–ε, **transient** (`pimpleFoam`), at k = 2, Div a,
+     q = 0.6;
+   - their inlet: uniform, 25 D upstream, which ours already is.  This
+     corrects the "developed inlet" in the user's option text: copy
+     their setup, don't improve on it;
+   - their wall treatment as near as OpenFOAM v2406 has it.  Fluent's
+     non-equilibrium wall functions have no exact match, so say which
+     function is used and why;
+   - coefficients time-averaged over a window you fix before the run,
+     with its length and spread;
+   - the same stations and the own-gradient method.
+   Budget about 8–12 h; give the estimate before starting, and stop and
+   say so if it runs past 16 h.
+   - **Reading, fixed now:** within ±0.03 of their 0.48 (0.45–0.51)
+     means the meshes reproduce a published CFD of this geometry.  The
+     gap to the experiment is then the RANS model's, as it is for theirs
+     at 45°.  Outside it, report the value and the difference.
+   - Either way the gates and the verdict above don't change.
+3. **0168** (the volunteer card for the 20 points) stays *ready*, but
+   its trigger "after 0162's level-3 point" now reads: only if the user
+   asks for the 20 points.
+4. Order: the run can go beside the 0.8.0 release prep (memory: one CFD
+   job at a time, as before).  Report (1) first.
 
 ## Outcome

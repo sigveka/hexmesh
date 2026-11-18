@@ -163,7 +163,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0165](0165-profile-type-and-section-kind.md) | A public `Profile` for reducers; a section kind in the description (before the 0.8.0 tag) | done | 0053 |
 | [0166](0166-rename-jargon-arguments.md) | Rename the mesh-jargon names (`nang` → `n_arc`, `nrad` → `n_radial`, `mprg` → `radial_grading`, …; `lc` removed) | done | 0053 |
 | [0167](0167-build-without-session.md) | Meshing without managing `Session`: a spike, then the API | done | 0053 |
-| [0168](0168-volunteer-card-junction-loss.md) | A volunteer card for the junction-flow benchmark (one level per point) | ready (after 0162's level-3 point) | 0044 |
+| [0168](0168-volunteer-card-junction-loss.md) | A volunteer card for the junction-flow benchmark (one level per point) | on hold (only if the user asks for 0162's 20 points) | 0044 |
 | [0169](0169-volunteer-card-turbulent-bend.md) | A volunteer card for the turbulent bend | ready (after 0050's driver) | 0044 |
 | [0170](0170-validation-setup-docs.md) | Validation needs a checkout: three setups in the docs, Windows forms, a test of the boundary | ready | 0054 |
 | [0171](0171-bathymetry-platform-independent.md) | The bathymetry reader gives the same route on every platform (bilinear on grids; a platform test over the examples) | ready | — |
@@ -192,7 +192,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0120](0120-validation-vattenfall-tjunction-stage-a.md) | Validation: the Vattenfall T-junction (thermal mixing), stage (a): case, mesh, data and volunteer card | V3 | ready (after 0119) | 0012, 0044 |
 | [0108](0108-gmshtofoam-inversion-audit.md) | Audit the validation cases for gmshToFoam's silent inversions | V1 | done | 0012 |
 | [0109](0109-mms-wall-slope.md) | MMS: does the order track the wall slope? | V1 | done | 0012 |
-| [0162](0162-validation-junction-flow-stigler.md) | Validation: loss coefficients of equal-diameter tees and laterals (Štigler et al. 2014) | V3 | blocked (Q3: ξ_PG converges 0.1 above the measurement) | 0042, 0012, 0015 |
+| [0162](0162-validation-junction-flow-stigler.md) | Validation: loss coefficients of equal-diameter tees and laterals (Štigler et al. 2014) | V3 | ready (Q3 answered: report the miss; one transient k–ε run as their CFD) | 0042, 0012, 0015 |
 
 
 ### Order
