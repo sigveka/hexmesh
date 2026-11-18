@@ -205,7 +205,7 @@ test the workflow."
   project's machine gets a card under the rule of *Which cases are
   offered* (the gates fixed, a smaller level run here).  These are the
   junction-flow points (task 0168, the hold lifted), the turbulent bend
-  (0050), the Taylor bubble (0079) and the Vattenfall LES (0120).
+  (0169, with 0050's driver), the Taylor bubble (0079, step 7) and the Vattenfall LES (0120).
 - **A try-out card** (task 0176).  It is the exception to *Which cases
   are offered*, because it validates nothing new:
   - one level, a minute or two on a laptop.  It runs the whole path a
