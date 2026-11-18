@@ -484,6 +484,25 @@ def _close(a, b, rel: float = 1e-9) -> bool:
     return math.isclose(a, b, rel_tol=rel, abs_tol=1e-300)
 
 
+#: Names in contributions from hexmesh before task 0166 (decision 0053):
+#: the volunteer tags volunteer-helical-1 and -2 predate it (task 0173)
+OLD_NAMES = {"nang_w": "n_width", "nang_h": "n_height", "nang": "n_arc", "nrad": "n_radial"}
+
+
+def _current_names(v):
+    """*v* with :data:`OLD_NAMES` renamed in every dict key and string
+    (``"nang 16, mapped"``), as whole words."""
+    def word(text: str) -> str:
+        for old, new in OLD_NAMES.items():
+            text = re.sub(rf"(?<![A-Za-z_]){old}(?![A-Za-z_])", new, text)
+        return text
+    if isinstance(v, dict):
+        return {word(k): _current_names(x) for k, x in v.items()}
+    if isinstance(v, list):
+        return [_current_names(x) for x in v]
+    return word(v) if isinstance(v, str) else v
+
+
 def check(path: Path, *, results: Path | None = None, merge: bool = False,
           hasher=local_mesh_hash) -> tuple[bool, list[str]]:
     """Check the contribution at *path* (decision 0044).  Returns
@@ -507,6 +526,9 @@ def check(path: Path, *, results: Path | None = None, merge: bool = False,
         return False, ["rejected: the file doesn't match validation/contrib.schema.json:"] + [
             f"  {'/'.join(map(str, e.absolute_path)) or '(top level)'}: {e.message}"
             for e in errors]
+    renamed = sorted({k for k in contrib["results"] if k in OLD_NAMES})
+    contrib["results"] = _current_names(contrib["results"])
+    contrib["extra"] = _current_names(contrib.get("extra", {}))
     case, level, values = contrib["case"], contrib["level"], contrib["results"]
     if case not in cards():
         return False, [f"rejected: no volunteer card for case {case!r}"]
@@ -515,6 +537,8 @@ def check(path: Path, *, results: Path | None = None, merge: bool = False,
     report.append(f"{case} {level}: OpenFOAM {contrib['environment']['openfoam']} "
                   f"({contrib['environment']['runner']}), hexmesh "
                   f"{contrib['environment']['hexmesh']}, gmsh {contrib['environment']['gmsh']}")
+    if renamed:
+        report.append(f"note: renamed {', '.join(renamed)} to today's names (hexmesh before task 0166)")
     if contrib["environment"]["openfoam"].lstrip("vV") != c["openfoam"]["version"].lstrip("vV"):
         report.append(f"note: OpenFOAM {contrib['environment']['openfoam']}, not the card's "
                       f"{c['openfoam']['version']} (run with --allow-version)")

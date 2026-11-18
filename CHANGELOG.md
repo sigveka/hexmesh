@@ -6,13 +6,13 @@
 
 The API review before the 1.0 freeze (decisions 0042 and 0053): the
 public surface is listed in `docs/api-1.0.json` and checked by a test,
-and from here to 1.0 only fixes go in.  Before the freeze, the calls
-were made readable: keyword-only arguments, plain names in place of
-mesh jargon, profiles as values, named outlets, and meshing without a
-`Session` (`Assembly.to_mesh()`).  Also: `scale=` on the writers,
-per-arc counts on a circle, an assembly written twice in one session, a
-wheel and an sdist on each GitHub release, and a volunteer command line
-for people.  There is no 0.7.0.
+and from here to 1.0 only fixes go in.  Before the freeze, the calls were
+made readable: keyword-only arguments, plain names in place of mesh
+jargon, profiles as values, named outlets, and meshing without a
+`Session` (`Assembly.to_mesh()`).  Also: `scale=` on the writers, per-arc
+counts on a circle, an assembly written twice in one session, fixes for
+volunteer runs on Windows, a wheel and an sdist on each GitHub release,
+and a volunteer command line for people.  There is no 0.7.0.
 
 **Breaking:** arguments after the first one or two are keyword-only;
 `PipeSpec.core()` and `.shell()` return a new spec; `nang`, `nrad`,
@@ -124,6 +124,31 @@ decision 0053).
   rewrites only the physical groups.  Other options raise
   `remesh_with_other_options`: build the assembly in a new `Session`.
 
+**Windows: OpenFOAM commands run after meshing** (decision 0039; task
+0173).  `gmsh.initialize()` (gmsh 4.15.2) replaces the process's native
+`PATH` on Windows.  Every `docker` command after meshing then failed
+with `FileNotFoundError: [WinError 2]`, e.g. `gmshToFoam` in the
+volunteer tool's `prepare`.  hexmesh's start of gmsh (`Session`,
+`to_mesh`) now puts `PATH` back, and the OpenFOAM helpers look the
+program up on `os.environ`'s `PATH`.
+
+**Windows: parallel solves run in Docker** (task 0173).  A Windows
+host's container runs as root, and `mpirun` refused root.  The Docker
+runner now sets Open MPI's opt-in (`OMPI_ALLOW_RUN_AS_ROOT`) when it
+passes no `--user`.  `run_solver` removes the processor directories
+inside the runner: their Linux symlinks can't be opened by Windows,
+so `shutil.rmtree` failed after the first parallel chunk.
+
+**Volunteer contributions with the old names merge** (task 0173).  The
+volunteer tags predate the renames of task 0166, so their files say
+`nang`/`nrad`; `volunteer check` failed on them (`KeyError: 'n_arc'`).
+It now renames them on reading and says so in its report.
+
+**A runner that can't run says why** (task 0173).  A stopped Docker
+engine was reported as "has no OpenFOAM".  `require_version` now gives
+the runner's own error ("could not run (failed to connect to the docker
+API …)") and a hint to start the engine.  The error code is unchanged.
+
 **`scale=` on the writers** (task 0150, decision 0047).
 - `Assembly.write(..., scale=1.0)` and `write_openfoam(..., scale=1.0)`
   multiply the written node coordinates, once.  The assembly, its cell
@@ -207,6 +232,11 @@ decision 0053).
 - A case's status may be **missed** (decision 0012's note): run to the
   end, at least one gate missed, the miss explained in its RESULTS.md.
   It replaces the unused `rejected`.
+
+**Validation: Re 3000 at n_arc 24 in the helical pipe** (task 0173), the
+last missing level: f +0.53 % from Ito; convergence over n_arc 12, 16, 24
+of order 1.84, GCI 1.44 %.  Every gate of the case now passes; its
+verdict is task 0075's.
 
 **A wheel and an sdist on each GitHub release** (task 0149).
 - From the next release on, each GitHub release carries

@@ -104,6 +104,16 @@ def runner() -> str:
 _names = itertools.count()
 
 
+def _spawnable(argv: list[str]) -> list[str]:
+    """*argv* with its program resolved on ``os.environ``'s ``PATH``.
+    On Windows ``Popen`` searches the process's *native* ``PATH``, which
+    ``gmsh.initialize()`` replaces (gmsh 4.15.2; task 0173), so a bare
+    ``docker`` is not found after meshing.  Unresolvable names are left
+    for ``Popen`` to report."""
+    exe = shutil.which(argv[0])
+    return [exe, *argv[1:]] if exe else list(argv)
+
+
 def _argv(cmd: str, cwd: Path, mounts=(), name: str | None = None) -> list[str]:
     """The command line that runs *cmd* in *cwd* with the runner's
     OpenFOAM environment (Docker: :func:`docker_argv`); *name* names the
@@ -119,6 +129,10 @@ def _argv(cmd: str, cwd: Path, mounts=(), name: str | None = None) -> list[str]:
     return docker_argv(cmd, Path(cwd).resolve(), [Path(m).resolve() for m in mounts],
                        image=_runner[len("docker:"):], name=name, user=user)
 
+
+#: Open MPI's opt-in for running as root, which a container without
+#: ``--user`` (a Windows host) does; ``mpirun`` refuses otherwise
+_MPI_AS_ROOT = ["-e", "OMPI_ALLOW_RUN_AS_ROOT=1", "-e", "OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1"]
 
 #: where the Docker runner mounts host directories
 CONTAINER_ROOT = "/work"
@@ -164,12 +178,14 @@ def docker_argv(cmd: str, cwd: PurePath, mounts=(), *, image: str, name: str | N
     *mounts* mounted under ``/work`` (:func:`container_paths`), ``-w`` the
     container path of *cwd*, host paths in *cmd* rewritten
     (:func:`container_command`).  ``--user`` only with *user* (uid, gid):
-    Windows has none, and Docker Desktop maps file ownership itself."""
+    Windows has none, and Docker Desktop maps file ownership itself.
+    Without it the container runs as root, which Open MPI's ``mpirun``
+    refuses; its two opt-in variables are set then (task 0173)."""
     mapping = container_paths([cwd, *mounts])
     mounted = sorted((m for m in mapping if m[2]), key=lambda m: int(m[1].split("/")[2]))
     vols = [a for host, cont, _ in mounted for a in ("-v", f"{host}:{cont}")]
     return ["docker", "run", "--rm", *(["--name", name] if name else []),
-            *(["--user", f"{user[0]}:{user[1]}"] if user else []),
+            *(["--user", f"{user[0]}:{user[1]}"] if user else _MPI_AS_ROOT),
             "-e", "HOME=/tmp", *vols, "-w", mapping[0][1], "--entrypoint", "bash",
             image, "-c", f"{_DOCKER_RC} >/dev/null 2>&1; {container_command(cmd, mapping)}"]
 
@@ -201,7 +217,8 @@ def have_openfoam() -> bool:
     if _runner == "native" and not OPENFOAM_RC.exists():
         return False
     try:
-        run = subprocess.run(_argv("command -v gmshToFoam", Path.cwd()), capture_output=True)
+        run = subprocess.run(_spawnable(_argv("command -v gmshToFoam", Path.cwd())),
+                             capture_output=True)
     except FileNotFoundError:          # no docker
         return False
     return run.returncode == 0
@@ -227,13 +244,14 @@ def foam(cmd: str, case: Path, log: str, mounts=()) -> str:
         old = signal.signal(signal.SIGTERM, _term)
     try:
         with open(path, "w", encoding="utf-8") as out:
-            proc = subprocess.Popen(_argv(cmd, case, mounts, name), cwd=case, stdout=out,
-                                    stderr=subprocess.PIPE, text=True)
+            proc = subprocess.Popen(_spawnable(_argv(cmd, case, mounts, name)), cwd=case,
+                                    stdout=out, stderr=subprocess.PIPE, text=True)
             try:
                 _, err = proc.communicate()
             except BaseException:
                 if name:
-                    subprocess.run(["docker", "stop", "-t", "2", name], capture_output=True)
+                    subprocess.run(_spawnable(["docker", "stop", "-t", "2", name]),
+                                   capture_output=True)
                 proc.terminate()
                 proc.wait()
                 raise
@@ -253,12 +271,24 @@ def foam(cmd: str, case: Path, log: str, mounts=()) -> str:
     return stdout
 
 
-def openfoam_version() -> str:
+def _probe_version() -> tuple[str, str]:
+    """(version, why the runner couldn't run): the version is ``""`` when
+    there is none; the reason is ``""`` unless the runner's command
+    itself failed (a stopped Docker engine, a missing program)."""
     try:
-        return subprocess.run(_argv("echo $WM_PROJECT_VERSION", Path.cwd()),
-                              capture_output=True, text=True).stdout.strip()
-    except FileNotFoundError:          # no docker / apptainer
-        return ""
+        run = subprocess.run(_spawnable(_argv("echo $WM_PROJECT_VERSION", Path.cwd())),
+                             capture_output=True, text=True)
+    except FileNotFoundError as e:     # no docker / apptainer / bash
+        return "", f"{e.filename or 'the runner program'} not found"
+    if run.returncode != 0:
+        lines = [ln.strip() for ln in (run.stderr or "").splitlines() if ln.strip()]
+        return "", lines[-1] if lines else f"exit status {run.returncode}"
+    return run.stdout.strip(), ""
+
+
+def openfoam_version() -> str:
+    """The runner's ``$WM_PROJECT_VERSION`` (e.g. ``"v2406"``), or ``""``."""
+    return _probe_version()[0]
 
 
 def require_version(required: str, *, allow_other: bool = False) -> str:
@@ -266,16 +296,22 @@ def require_version(required: str, *, allow_other: bool = False) -> str:
     ``"v2406"``; a leading ``v`` is optional on either side).  A
     different or missing one raises, unless *allow_other*; either way
     the caller records the returned version (decision 0044)."""
-    got = openfoam_version()
+    got, failed = _probe_version()
     if got.lstrip("vV") == required.lstrip("vV") or allow_other:
         return got
-    found = f"OpenFOAM {got}" if got else "no OpenFOAM"
-    raise StudyError(f"runner {_runner!r} has {found}; this needs OpenFOAM {required}",
-                     code="openfoam_version_mismatch", where={"field": "runner"},
-                     value=got or None, limit=required,
-                     hint=f"pick a runner with OpenFOAM {required} (native with "
-                          "HEXMESH_OPENFOAM_RC, path after a module load, docker:… or "
-                          "apptainer:…), or allow another version explicitly")
+    if failed:                         # the runner itself didn't run (task 0173)
+        msg = f"runner {_runner!r} could not run ({failed}); this needs OpenFOAM {required}"
+        hint = ("start the Docker engine (Docker Desktop, or Rancher Desktop with dockerd) "
+                "and check `docker version` shows a Server" if _runner.startswith("docker:")
+                else f"check the runner works on its own ({_runner})")
+    else:
+        found = f"OpenFOAM {got}" if got else "no OpenFOAM"
+        msg = f"runner {_runner!r} has {found}; this needs OpenFOAM {required}"
+        hint = (f"pick a runner with OpenFOAM {required} (native with "
+                "HEXMESH_OPENFOAM_RC, path after a module load, docker:… or "
+                "apptainer:…), or allow another version explicitly")
+    raise StudyError(msg, code="openfoam_version_mismatch", where={"field": "runner"},
+                     value=got or None, limit=required, hint=hint)
 
 
 # --- mesh conversion ----------------------------------------------------------
@@ -395,9 +431,11 @@ def run_solver(case: Path, solver: str, *, n_proc: int = 1, log: str | None = No
     foam(f"decomposePar -force {start_time_option(case)}{every}", case, f"{log}.decomposePar")
     out = foam(f"mpirun -np {n_proc} {solver} -parallel", case, log)
     foam(f"reconstructPar -newTimes{every}", case, f"{log}.reconstructPar")
-    if not keep:
-        for d in case.glob("processor*"):
-            shutil.rmtree(d)
+    if not keep and any(case.glob("processor*")):
+        # in the runner: OpenFOAM links processor*/<time>/uniform, and a
+        # Linux symlink on a Windows host's mount is a WSL reparse point
+        # that Windows can't open, so shutil.rmtree fails (task 0173)
+        foam("rm -rf processor*", case, f"{log}.clean")
     return out
 
 

@@ -168,7 +168,7 @@ Case: `validation/turbulent_pipe/`: [README.md](../../validation/turbulent_pipe/
 
 ### Laminar flow in a helical pipe (the SIET coil)
 
-**Status:** in progress (task 0075).  **Reference:** deamicis_and_cammi_etal_2014 (the SIET coil; Ito (1959) as their eq. 2; Fig. 12 digitised in data/).  **Last run:** 2026-11-08, hexmesh c8c7c76+local.
+**Status:** in progress (task 0075).  **Reference:** deamicis_and_cammi_etal_2014 (the SIET coil; Ito (1959) as their eq. 2; Fig. 12 digitised in data/).  **Last run:** 2026-11-18, hexmesh c7a64b9+local.
 
 Tags: `laminar`, `flow`, `section:circle`, `straight`, `spline`, `OpenFOAM v2406 (docker)`.
 

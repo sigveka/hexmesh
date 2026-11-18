@@ -21,7 +21,7 @@ A pipe that changes direction: a smooth circular arc, a standard butt-weld elbow
 **Validated by** (tags `bend`, `elbow`, `miter`, `spline`):
 
 - ● [FEniCSx: second-order export checked end to end](../../validation/fenicsx_second_order/README.md) (V1, accepted; last run 2026-11-11, hexmesh 5952340; `bend`)
-- ◐ [Laminar flow in a helical pipe (the SIET coil)](../../validation/helical_pipe/README.md) (V3, in progress; last run 2026-11-08, hexmesh c8c7c76+local; `spline`)
+- ◐ [Laminar flow in a helical pipe (the SIET coil)](../../validation/helical_pipe/README.md) (V3, in progress; last run 2026-11-18, hexmesh c7a64b9+local; `spline`)
 - ● [Manufactured solutions for conduction on every fitting](../../validation/mms/README.md) (V1, accepted; last run 2026-11-09, hexmesh b3fbf76; `bend`, `miter`, `spline`)
 - ● [Laminar flow in a 90° square-duct bend, Re 790](../../validation/square_bend/README.md) (V3, accepted; last run 2026-11-06, hexmesh 42357ca+local; `bend`)
 - ○ [task 0050](../tasks/0050-validation-turbulent-bend.md) (V3, planned; `bend`)
@@ -329,7 +329,7 @@ The shape of the pipe: round, or a rectangular duct, and the fittings that chang
 - ● [FEniCSx: second-order export checked end to end](../../validation/fenicsx_second_order/README.md) (V1, accepted; last run 2026-11-11, hexmesh 5952340; `section:circle`)
 - ● [Heated multi-layer pipe with laminar flow (full CHT)](../../validation/heated_pipe/README.md) (V1, accepted; last run 2026-10-31, hexmesh d1baada+local; `section:circle`)
 - ● [Solid rod with uniform heat generation](../../validation/heated_rod/README.md) (V1, accepted; last run 2026-11-02, hexmesh e54faae; `section:circle`)
-- ◐ [Laminar flow in a helical pipe (the SIET coil)](../../validation/helical_pipe/README.md) (V3, in progress; last run 2026-11-08, hexmesh c8c7c76+local; `section:circle`)
+- ◐ [Laminar flow in a helical pipe (the SIET coil)](../../validation/helical_pipe/README.md) (V3, in progress; last run 2026-11-18, hexmesh c7a64b9+local; `section:circle`)
 - ⚠ [Equal-diameter 90° tee: loss coefficients, k-ω SST](../../validation/junction_loss/README.md) (V3, missed; last run 2026-11-18, hexmesh 972d9cb; `section:circle`)
 - ● [Conduction through a heated multi-layer cylinder](../../validation/layered_conduction/README.md) (V1, accepted; last run 2026-10-28, hexmesh 91c897a; `section:circle`)
 - ● [Manufactured solutions for conduction on every fitting](../../validation/mms/README.md) (V1, accepted; last run 2026-11-09, hexmesh b3fbf76; `section:circle`, `section:rect`, `transition`)
@@ -693,7 +693,7 @@ Fittings join in any order and any orientation: a network is a sequence of `add`
 - ● [FEniCSx: second-order export checked end to end](../../validation/fenicsx_second_order/README.md) (V1, accepted; last run 2026-11-11, hexmesh 5952340; `straight`)
 - ● [Heated multi-layer pipe with laminar flow (full CHT)](../../validation/heated_pipe/README.md) (V1, accepted; last run 2026-10-31, hexmesh d1baada+local; `straight`)
 - ● [Solid rod with uniform heat generation](../../validation/heated_rod/README.md) (V1, accepted; last run 2026-11-02, hexmesh e54faae; `straight`)
-- ◐ [Laminar flow in a helical pipe (the SIET coil)](../../validation/helical_pipe/README.md) (V3, in progress; last run 2026-11-08, hexmesh c8c7c76+local; `straight`)
+- ◐ [Laminar flow in a helical pipe (the SIET coil)](../../validation/helical_pipe/README.md) (V3, in progress; last run 2026-11-18, hexmesh c7a64b9+local; `straight`)
 - ⚠ [Equal-diameter 90° tee: loss coefficients, k-ω SST](../../validation/junction_loss/README.md) (V3, missed; last run 2026-11-18, hexmesh 972d9cb; `straight`)
 - ● [Conduction through a heated multi-layer cylinder](../../validation/layered_conduction/README.md) (V1, accepted; last run 2026-10-28, hexmesh 91c897a; `straight`)
 - ● [Manufactured solutions for conduction on every fitting](../../validation/mms/README.md) (V1, accepted; last run 2026-11-09, hexmesh b3fbf76; `straight`)

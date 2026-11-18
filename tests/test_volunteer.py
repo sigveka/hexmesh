@@ -71,6 +71,7 @@ def test_apptainer_runner_mounts_as_docker_does(restore_runner, tmp_path):
     assert argv[-1].endswith("gmshToFoam /work/1/x.msh") and "bashrc" in argv[-1]
 
 
+@pytest.mark.posix_only                        # runs `true` (task 0173)
 def test_only_docker_names_containers(restore_runner, tmp_path, monkeypatch):
     """``foam`` stops a named Docker container on interrupt; other
     runners' commands are its children."""
@@ -101,7 +102,7 @@ def test_native_bashrc_is_configurable(tmp_path):
 @pytest.mark.parametrize("got, ok", [("v2406", True), ("2406", True), ("v2312", False),
                                      ("", False)])
 def test_require_version(monkeypatch, got, ok):
-    monkeypatch.setattr(of, "openfoam_version", lambda: got)
+    monkeypatch.setattr(of, "_probe_version", lambda: (got, ""))
     if ok:
         assert of.require_version("v2406") == got
     else:
@@ -300,6 +301,26 @@ def test_a_good_contribution_is_accepted_and_merged(tmp_path, stored_copy):
                   if lv["name"] == LEVEL)
     assert merged["f"] == contrib["results"]["f"]
     assert merged["environment"]["contributed"]["name"] == "A. Volunteer"
+
+
+def test_a_contribution_with_the_old_names_is_merged_with_the_new(tmp_path, stored_copy):
+    """Task 0173: the volunteer tags predate task 0166's renames, so a
+    contribution says ``nang``/``nrad``; it is checked and stored under
+    today's names (``n_arc``/``n_radial``), strings included."""
+    contrib = _contribution(stored_copy)
+    new_to_old = {v: k for k, v in vol.OLD_NAMES.items()}
+    contrib["results"] = {new_to_old.get(k, k): v for k, v in contrib["results"].items()}
+    contrib["results"]["init_from"] = "nang 8, mapped"
+    contrib["extra"] = {"map_sources": {LEVEL: {"nang": 8, "f": 0.07}}}
+    assert "nang" in contrib["results"] and "n_arc" not in contrib["results"]
+    ok, lines = _check(tmp_path, contrib, stored_copy, merge=True)
+    assert ok, lines
+    assert any(x.startswith("note: renamed") and "nang" in x for x in lines)
+    data = json.loads(stored_copy.read_text(encoding="utf-8"))
+    merged = next(lv for lv in data["levels"] if lv["name"] == LEVEL)
+    assert not set(vol.OLD_NAMES) & set(merged)
+    assert merged["n_arc"] == 12 and merged["init_from"] == "n_arc 8, mapped"
+    assert data["extra"]["map_sources"][LEVEL] == {"n_arc": 8, "f": 0.07}
 
 
 def test_a_changed_number_is_rejected(tmp_path, stored_copy):

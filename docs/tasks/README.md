@@ -168,6 +168,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0170](0170-validation-setup-docs.md) | Validation needs a checkout: three setups in the docs, Windows forms, a test of the boundary | ready | 0054 |
 | [0171](0171-bathymetry-platform-independent.md) | The bathymetry reader gives the same route on every platform (bilinear on grids; a platform test over the examples) | ready | — |
 | [0172](0172-docs-site-next-essens.md) | The docs site on the next Essens release: `--layout`, MathML in place of KaTeX, the stylesheet; CONTRIBUTING names v0.1.4 now | ready (step 1; the rest after a release) | 0049 |
+| [0173](0173-windows-volunteer-run.md) | Windows volunteer run: gmsh clobbers `PATH`, `mpirun` as root, processor symlinks, a stopped Docker reported as "no OpenFOAM" | done | 0039 |
 
 ### Validation
 

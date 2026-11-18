@@ -21,6 +21,7 @@ Pipe-spec fixtures use the smallest practical n_arc (4) and n_radial (3) to keep
 meshing fast while still exercising all code paths.
 """
 
+import os
 import sys
 
 import pytest
@@ -48,6 +49,18 @@ def pytest_collection_modifyitems(config, items):
 # ---------------------------------------------------------------------------
 # GMSH session lifecycle
 # ---------------------------------------------------------------------------
+
+@pytest.fixture(autouse=True)
+def _keep_path():
+    """Put ``PATH`` back after each test.  A test that calls
+    ``gmsh.initialize()`` itself (not through hexmesh) replaces the native
+    ``PATH`` on Windows, and later tests in the worker then can't start
+    ``git`` or ``docker`` (task 0173; docs/integrations/gmsh.md)."""
+    path = os.environ.get("PATH")
+    yield
+    if path is not None:
+        os.environ["PATH"] = path
+
 
 @pytest.fixture
 def gmsh_session():

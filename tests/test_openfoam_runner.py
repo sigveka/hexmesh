@@ -35,6 +35,49 @@ def restore_runner():
     of.set_runner(before)
 
 
+def test_spawnable_resolves_the_program_on_os_environ_path(monkeypatch):
+    """Task 0173: on Windows ``Popen`` searches the native PATH, which
+    gmsh replaces; the helpers look the program up on ``os.environ``."""
+    monkeypatch.setattr(of.shutil, "which", lambda name: {"docker": "/opt/x/docker"}.get(name))
+    assert of._spawnable(["docker", "run", "img"]) == ["/opt/x/docker", "run", "img"]
+    assert of._spawnable(["nosuch", "a"]) == ["nosuch", "a"]
+
+
+class _Done:
+    def __init__(self, rc, out="", err=""):
+        self.returncode, self.stdout, self.stderr = rc, out, err
+
+
+def test_require_version_names_why_the_runner_failed(restore_runner, monkeypatch):
+    """Task 0173: a stopped Docker engine is not "no OpenFOAM"."""
+    of.set_runner(of.V2406)
+    err = ("Unable to find image locally\n"
+           "failed to connect to the docker API at npipe:////./pipe/docker_engine\n")
+    monkeypatch.setattr(of.subprocess, "run", lambda *a, **k: _Done(1, "", err))
+    with pytest.raises(of.StudyError, match="could not run .failed to connect to the docker API") as e:
+        of.require_version("v2406")
+    assert e.value.code == "openfoam_version_mismatch"
+    assert "no OpenFOAM" not in str(e.value) and "Docker" in e.value.hint
+    assert of.openfoam_version() == ""
+
+
+def test_require_version_runner_program_missing(restore_runner, monkeypatch):
+    of.set_runner(of.V2406)
+
+    def missing(*a, **k):
+        raise FileNotFoundError(2, "not found", "docker")
+    monkeypatch.setattr(of.subprocess, "run", missing)
+    with pytest.raises(of.StudyError, match="could not run .docker not found"):
+        of.require_version("v2406")
+
+
+def test_require_version_still_says_no_openfoam(restore_runner, monkeypatch):
+    of.set_runner(of.V2406)
+    monkeypatch.setattr(of.subprocess, "run", lambda *a, **k: _Done(0, "\n"))
+    with pytest.raises(of.StudyError, match="has no OpenFOAM; this needs OpenFOAM v2406"):
+        of.require_version("v2406")
+
+
 def test_native_command_line(restore_runner):
     of.set_runner("native")
     argv = of._argv("checkMesh", Path("/tmp"))
@@ -66,6 +109,18 @@ def test_docker_command_line_without_getuid(restore_runner, tmp_path, monkeypatc
     monkeypatch.delattr(os, "getuid", raising=False)
     argv = of._argv("checkMesh", tmp_path)
     assert "--user" not in argv and argv[argv.index("-w") + 1] == "/work/0"
+
+
+def test_docker_as_root_lets_mpirun_run():
+    """Task 0173: without ``--user`` the container is root, and ``mpirun``
+    refuses root unless Open MPI's two opt-in variables are set."""
+    case = PureWindowsPath(r"C:\Users\me\case")
+    argv = of.docker_argv("mpirun -np 2 simpleFoam -parallel", case, image="img")
+    env = [argv[i + 1] for i, a in enumerate(argv) if a == "-e"]
+    assert {"OMPI_ALLOW_RUN_AS_ROOT=1", "OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1"} <= set(env)
+    as_user = of.docker_argv("mpirun -np 2 simpleFoam -parallel", case, image="img",
+                             user=(1000, 1000))
+    assert not any("OMPI_ALLOW" in a for a in as_user)
 
 
 def test_docker_command_line_from_a_windows_host():
@@ -162,6 +217,29 @@ def test_run_solver_rejects_bad_process_counts(monkeypatch, tmp_path, n_proc, ma
     monkeypatch.setattr(of, "foam", lambda *a, **k: pytest.fail("ran a command"))
     with pytest.raises(ValueError, match=match):
         of.run_solver(tmp_path, "simpleFoam", n_proc=n_proc)
+
+
+def test_run_solver_removes_processor_dirs_in_the_runner(monkeypatch, tmp_path):
+    """Task 0173: the processor directories hold Linux symlinks
+    (``processor*/<time>/uniform``) that Windows can't open on a Docker
+    mount, so they are removed by the runner, not by ``shutil.rmtree``."""
+    monkeypatch.setattr(of, "physical_cores", lambda: 2)
+    monkeypatch.setattr(of, "long_axis", lambda case, regions=(): 2)
+    monkeypatch.setattr(of, "start_time_option", lambda case: "-latestTime")
+    monkeypatch.setattr(of.shutil, "rmtree", lambda *a, **k: pytest.fail("rmtree on the host"))
+    ran = []
+
+    def fake(cmd, case, log, mounts=()):
+        ran.append(cmd)
+        if cmd.startswith("decomposePar"):
+            (case / "processor0").mkdir(exist_ok=True)
+        return ""
+    monkeypatch.setattr(of, "foam", fake)
+    of.run_solver(tmp_path, "simpleFoam", n_proc=2)
+    assert ran[-1] == "rm -rf processor*"
+    ran.clear()
+    of.run_solver(tmp_path, "simpleFoam", n_proc=2, keep=True)
+    assert not any(c.startswith("rm") for c in ran)
 
 
 def _cavity(root: Path, name: str) -> Path:

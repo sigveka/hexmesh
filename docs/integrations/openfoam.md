@@ -677,6 +677,42 @@ All v1912, gmsh 4.12.1, 2026-10-25.
   - `-allGeometry` needs `system/fvSchemes` and `system/fvSolution`
     (an empty `fvSolution` will do), which plain `checkMesh` doesn't.
 
+- **`mpirun` refuses to run as root, which a Windows host's container
+  is** (`opencfd/openfoam-default:2406`, Rancher Desktop 29.9.3-rd
+  with moby, Windows 11, 2026-11-18, task 0173).
+  - On Windows the Docker runner passes no `--user` (no `os.getuid`),
+    so the container runs as root.
+  - `mpirun -np 16 simpleFoam -parallel` then stops at once: "mpirun has
+    detected an attempt to run as root … You can override this
+    protection by … OMPI_ALLOW_RUN_AS_ROOT=1 … and
+    OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1".
+  - Serial commands (`gmshToFoam`, `checkMesh`, `decomposePar`) run as
+    root without complaint, so only parallel solves fail.  Linux hosts
+    pass `--user uid:gid` and never see it.
+  - `docker_argv` now sets both variables whenever it passes no
+    `--user`.  The container is a throwaway one, with only the case
+    mounted.
+  - Evidence: the volunteer run of `helical_pipe re3000_n24` at
+    `--np 16` failed at the first `mpirun`.  After the change it runs,
+    and `tests/test_openfoam_runner.py -m openfoam` passes on Windows
+    (including the `mpirun -np 2` solver test).
+
+- **Parallel runs leave Linux symlinks that Windows can't open**
+  (v2406 in Docker, Rancher Desktop on Windows 11, 2026-11-18, task
+  0173).
+  - After `mpirun … simpleFoam -parallel`, each
+    `processorN/<time>/uniform` is a symlink to `../../<time>/uniform`.
+  - On a Windows host's bind mount it lands as reparse tag `0xa000001d`
+    (`IO_REPARSE_TAG_LX_SYMLINK`, a WSL symlink).  Windows Python
+    neither follows it nor treats it as a link.
+  - `shutil.rmtree(processorN)` fails with `[WinError 1920] The file
+    cannot be accessed by the system`.  The helical run crashed at its
+    second 50-step chunk.
+  - Reconstructed time directories have no links.
+  - `run_solver` now removes `processor*` inside the runner
+    (`rm -rf processor*`, log `log.<solver>.clean`).  Host code must
+    not walk or delete processor directories that a container wrote.
+
 ## Gaps in hexmesh's OpenFOAM support
 
 - **`hexmesh/io/writers/openfoam.py` (`write_openfoam_case`)** — noted

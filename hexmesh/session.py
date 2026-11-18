@@ -1,3 +1,15 @@
+#        _.-------._
+#    .-''     |     ''-.
+#  .'  \      |      /  '.     _                                         _
+# /     +-----+-----+     \   | |__   ___  __  __  _ __ ___   ___  ___  | |__
+# |     |     |     |     |   | '_ \ / _ \ \ \/ / | '_ ` _ \ / _ \/ __| | '_ \
+# |-----+-----+-----+-----|   | | | |  __/  >  <  | | | | | |  __/\__ \ | | | |
+# |     |     |     |     |   |_| |_|\___| /_/\_\ |_| |_| |_|\___||___/ |_| |_|
+# \     +-----+-----+     /
+#  '.  /      |      \  .'    structured all-hex meshes for pipe networks
+#    '-..     |     ..-'
+#        '---------'
+#
 """
 GMSH session context manager.
 
@@ -47,7 +59,7 @@ class Session:
         # and remove only this session's model at the end (task 0167)
         self._shared = gmsh.isInitialized() and _gmsh.started()
         if not self._shared:
-            gmsh.initialize()
+            _gmsh.initialize()          # keeps PATH on Windows (task 0173)
         self._verbosity = gmsh.option.getNumber("General.Verbosity")
         gmsh.option.setNumber("General.Verbosity", 5 if self.verbose else 1)
         gmsh.model.add(self.name)

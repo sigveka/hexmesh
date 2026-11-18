@@ -1,7 +1,9 @@
 # Results: laminar flow in a helical pipe (the SIET coil)
 
 **Status: in progress, undecided.**  Task 0075 is held by the user until
-better hardware (2026-11-08); Re 3000's n_arc 24 level is missing.
+better hardware (2026-11-08).  Re 3000's n_arc 24 level, the last one
+missing, ran on 2026-11-18 (a volunteer run, task 0173); the case's
+verdict is task 0075's.
 - Design moved the convergence study to n_arc 12, 16, 24 (Q3), because
   n_arc 8 is too coarse at these Dean numbers.
 - **n_arc 24 at Re 1800 and 2400 is done** (2026-11-07/08, the restartable
@@ -11,13 +13,19 @@ better hardware (2026-11-08); Re 3000's n_arc 24 level is missing.
   |---|---|---|---|---|---|
   | 1800 | 322 | 5.0 h | 0.06633 | −0.27 % | converging, order 1.93, GCI 0.55 % |
   | 2400 | 398 | 5.6 h | 0.05557 | +0.26 % | converging, order 1.90, GCI 0.95 % |
+  | 3000 | 440 | 1.2 h* | 0.04856 | +0.53 % | converging, order 1.84, GCI 1.44 % |
 
   The re-solved n_arc 16 sources matched the stored levels' f to 1e-8.
   Wall times overlapped other runs on the machine (task 0074's
   diagnostics, on 3 processes, for about an hour).
-- **Re 3000's n_arc 24 isn't run.**  It was stopped 6 minutes into its
-  n_arc 16 source when the user postponed the run; the case was deleted.
-  At n_arc 16 its f is +1.92 % from Ito.
+- **Re 3000's n_arc 24** (2026-11-18, task 0173): run with the volunteer
+  tool on a laptop, Windows 11, v2406 in Docker (Rancher Desktop), on 16
+  processes, and merged with `volunteer check --merge`.  *The fine
+  solve's 440 steps took about 4190 s (9.5 s/step), with the laptop's
+  sleep removed.  Its n_arc 16 source re-solved in 812 steps (34 min)
+  and matched the stored level's f to 1.0e-9.  The `wall_s` stored with
+  the level (12 730 s) also counts restarts after the Windows fixes and
+  the sleep.
 - Earlier: two attempts at Re 1800 (from rest, and mapped without
   chunks, Q4 and Q5) stopped unconverged after 4.5–5 h.
 - Under the Q4 rule, an unfinished level leaves the case neither

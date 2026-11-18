@@ -655,7 +655,9 @@ def run(level: str, d: Path, n_proc: int) -> None:
         _map_fields(case, src)
         meta["init_from"] = f"n_arc {MAP_FROM[n_arc]}, mapped"
         (case / "setup.json").write_text(json.dumps(meta), encoding="utf-8")
-        shutil.rmtree(src)
+        # cleanup only, as in main(): under OneDrive, Windows may refuse to
+        # remove an emptied directory it has synced ([WinError 5]; task 0173)
+        shutil.rmtree(src, ignore_errors=True)
     solve_level(case, re_, n_arc, END_TIME, n_proc)
 
 
