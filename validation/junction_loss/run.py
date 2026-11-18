@@ -282,13 +282,13 @@ SOLUTION_TRANSIENT = """solvers
     {
         solver          GAMG;
         smoother        GaussSeidel;
-        tolerance       1e-7;
+        tolerance       1e-6;
         relTol          0.01;
     }
     pFinal
     {
         $p;
-        relTol          0;
+        relTol          0.01;          // relTol 0 stalls at 1.3e-6 for 1000 iterations
     }
     "(U|k|epsilon)Final"
     {

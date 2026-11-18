@@ -1,6 +1,6 @@
 # 0162 — Validation: loss coefficients of equal-diameter tees and laterals (Štigler et al. 2014)
 
-- **Status:** in progress (Q3 part 1, the report, done; part 2, the transient run, next)
+- **Status:** blocked (Q4: the transient run costs about 800 h; the report is done)
 - **Decision:** [0042](../decisions/0042-road-to-1-0.md) criterion 4
   ("a junction-flow benchmark (Štigler's T-junction, on equal tees)"),
   milestone 0.7; [0012](../decisions/0012-openfoam-validation-cases.md);
@@ -379,6 +379,27 @@ intersections (decision 0045).
     2026-11-18).
   - Part 2, the transient k–ε run, is next.
 
+- **2026-11-18, Q3 part 2: the transient run, estimated: far over budget.**
+  - Set up in `run.py --transient` (4c1698e), as fixed before any run:
+    pimpleFoam from rest, realizable k–ε, `nutkWallFunction` (the nearest
+    v2406 has to Fluent's non-equilibrium wall functions: the log law with
+    the velocity scale C_μ^¼ k^½, ε and G set in the wall cell, no
+    pressure-gradient term; both switch to the laminar law below y⁺ ≈ 11,
+    and the wall cell is near y⁺ 14 at k = 2), `backward`, `maxCo` 1,
+    settle 20 s (three flow-throughs of the slowest branch, b at 0.4 m/s
+    over 25 D), then p time-averaged over 12 s by `fieldAverage`, 12
+    samples.  A k = 1 smoke run (0.05 s) wrote `pMean` and gave
+    coefficients.
+  - **Trials at k = 2, np 3** (both deleted):
+    - `pFinal` at relTol 0 stalls at a residual of 1.3e-6 for its 1000
+      iterations every step: 48 s a step.  Now relTol 0.01.
+    - Then about 200 GAMG iterations a step (two correctors, one
+      non-orthogonal corrector, so four p solves), about 0.2 s each:
+      **41 s a step**.  The step settles near Δt = 0.4-0.5 ms at Co 1.
+  - **Estimate:** 32 s simulated is about 70 000 steps, about 800 h.  The
+    budget is 16 h.  Even a step ten times cheaper would be 80 h.  Not
+    started; see Q4.
+
 ## Questions for design
 
 - **Q1 (2026-11-15, coding session). hexmesh can't mesh the 45° equal
@@ -492,5 +513,28 @@ one run like theirs").**
    asks for the 20 points.
 4. Order: the run can go beside the 0.8.0 release prep (memory: one CFD
    job at a time, as before).  Report (1) first.
+
+
+- **Q4 (2026-11-18, coding session). The transient run as set up costs
+  about 800 h, against a 16 h budget.**  Numbers in *Agent notes*.  Its
+  purpose was to see whether our meshes reproduce their CFD's 0.48.
+  Options:
+  - (a) **Don't run it; report the steady k–ε as the comparison**
+    (my recommendation).  Our steady k–ε at k = 2 settles: its samples
+    agree to 10⁻⁵ over 2400 iterations.  A RANS flow that settles in a
+    steady solve has that steady state as the transient solve's limit,
+    so a transient run from rest would end where the steady one did
+    (0.575), unless the flow has a RANS-scale unsteadiness that the
+    steady solver damps.  Add one steady k–ε run at k = 2 with the
+    transient set-up's wall function (`nutkWallFunction`), about 4 h,
+    to separate the wall treatment from the solver.  Then the reading
+    0.45–0.51 applies to that run.
+  - (b) Transient from the steady k–ε solution, with large steps (PIMPLE
+    at Co 10, three outer correctors) for about two flow-throughs of b
+    (15 s), to check that it stays steady: about 3300 steps at about
+    120 s, so about 100 h.
+  - (c) Transient at k = 1, as specified: 8 times fewer cells (about 5 s
+    a step) and twice the step (about 35 000 steps): about 50 h.
+  Which, and the budget?
 
 ## Outcome
