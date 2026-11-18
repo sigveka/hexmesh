@@ -2,19 +2,28 @@
 
 ## Unreleased
 
-## 0.8.0 (2026-11-16)
+## 0.8.0 (2026-11-18)
 
-The API review before the 1.0 freeze (decision 0042): the public surface
-is listed in `docs/api-1.0.json` and checked by a test, and from here to
-1.0 only fixes go in.  Also: `scale=` on the writers, per-arc counts on
-a circle, an assembly written twice in one session, a wheel and an sdist
-on each GitHub release, and a volunteer command line for people.
-There is no 0.7.0.
+The API review before the 1.0 freeze (decisions 0042 and 0053): the
+public surface is listed in `docs/api-1.0.json` and checked by a test,
+and from here to 1.0 only fixes go in.  Before the freeze, the calls
+were made readable: keyword-only arguments, plain names in place of
+mesh jargon, profiles as values, named outlets, and meshing without a
+`Session` (`Assembly.to_mesh()`).  Also: `scale=` on the writers,
+per-arc counts on a circle, an assembly written twice in one session, a
+wheel and an sdist on each GitHub release, and a volunteer command line
+for people.  There is no 0.7.0.
 
-**Breaking:** `python3 -m hexmesh.agent.schema` is gone (run
-`hexmesh schema`); the modules `hexmesh.agent.advise` and
-`hexmesh.interchange.build` are private (the functions of those names
-are unchanged); `hexmesh.io.readers` is removed.  Meshes are unchanged.
+**Breaking:** arguments after the first one or two are keyword-only;
+`PipeSpec.core()` and `.shell()` return a new spec; `nang`, `nrad`,
+`mprg` and `mbmp` are renamed (`n_arc`, `n_radial`, `radial_grading`,
+`arc_bump`) and `lc` is removed, with the error codes that named them;
+`Reducer(profile=…)` takes a `Profile`; the tee's run port is `run`.
+`python3 -m hexmesh.agent.schema` is gone (run `hexmesh schema`); the
+modules `hexmesh.agent.advise` and `hexmesh.interchange.build` are
+private (the functions of those names are unchanged);
+`hexmesh.io.readers` is removed.  Saved descriptions are version 4;
+older ones still load.  Meshes are unchanged.
 
 **Calls that stay readable after 1.0** (task 0164, decision 0053).
 - **Breaking: keyword-only arguments.**  A public callable keeps at most

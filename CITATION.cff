@@ -6,7 +6,7 @@ authors:
   - family-names: Karolius
     given-names: Sigve
 version: 0.8.0
-date-released: 2026-11-16
+date-released: 2026-11-18
 license: BSD-3-Clause
 repository-code: "https://github.com/sigveka/hexmesh"
 abstract: >-
