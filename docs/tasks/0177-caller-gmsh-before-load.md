@@ -1,6 +1,6 @@
 # 0177 — gmsh started by the caller before hexmesh has loaded it counts as a session
 
-- **Status:** in progress
+- **Status:** done
 - **Decision:** none.  A bug fix in task 0167's session rules
   (`_require_session`: "a Session, gmsh the caller initialized, or a
   to_mesh() call running").
@@ -77,14 +77,30 @@ than this case.
   False, `models()` empty, `gmsh` not in `sys.modules`).  Both pass.
   `tests/test_build_sync.py` alone: 180 passed (378 s, `-n 1`); 178
   failed before the fix.
-- **Step 3, in progress** at this commit: each module alone, `-n 1`,
-  one after another (beside an OpenFOAM run).  26 of 86 modules done, none
-  failing.  The list follows in a later commit.  The slowest alone so
-  far: `test_build_sync` 361 s, `test_agent_describe` 129 s,
-  `test_assembly` 124 s, `test_agent_advise` 51 s.
-- Committed before step 3 ends so that the fix goes into the 0.8.0
-  push; the status stays in progress until the list is recorded.
+- **Step 3, done (2026-11-19):** each of the 86 `tests/test_*.py` alone,
+  `-n 1`, `-p no:cacheprovider`, one after another, with the default
+  markers (not openfoam, not slow), on main from 601458d (the fix) on.  84
+  pass; `test_install` and `test_validation` have nothing to run
+  under those markers (exit 5).  **None fails alone**, so the list of
+  order-dependent modules is empty; no CI job for modules alone is
+  proposed.  The run was stopped once for low memory (not its own) and
+  resumed where it stopped.  Total 6538 s; the slowest alone:
+  `test_msh_recipe` 1543 s, `test_fitting_conformance` 977 s,
+  `test_examples` 889 s, `test_second_order` 604 s, `test_intent` 366 s,
+  `test_build_sync` 361 s, `test_refined` 342 s, `test_equal_tee` 191 s.
 
 ## Questions for design
 
 ## Outcome
+
+- **Files:** `hexmesh/_gmsh.py` (`_imported()`; `caller_drives()` and
+  `models()` use it), `tests/test_to_mesh.py` (two `subprocess` tests),
+  `CHANGELOG.md` (0.8.0, *Fixed*).  In 0.8.0: 601458d, tagged.
+- **Tests:** `test_build_sync.py` alone 180 passed (178 failed before);
+  the two new tests pass; CI green on all 8 jobs at 601458d; every
+  module alone passes (step 3).
+- **Surprise:** none beyond the bug.  `load()` stays lazy: a process
+  that never imported gmsh still doesn't.
+- **Follow-ups:** none.  The suite's time sits in a few modules (step 3's
+  list); if CI time matters, `test_msh_recipe` and
+  `test_fitting_conformance` are where to look.
