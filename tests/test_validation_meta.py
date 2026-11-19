@@ -53,6 +53,19 @@ def test_every_case_has_a_valid_case_json(build):
     for case in cases:
         meta = build.case_meta(case)
         assert meta["task"] and meta["category"] in build.CATEGORIES_V
+        assert meta.get("kind", "validation") == "validation"
+
+
+def test_every_export_check_has_a_valid_case_json(build):
+    """Export checks live apart, pass or fail, and have no V-category
+    (decision 0057, task 0182)."""
+    checks = build.export_dirs()
+    assert "fenicsx_second_order" in checks and "fenicsx_second_order" not in build.case_dirs()
+    assert build.where.rel("fenicsx_second_order", ROOT) == "validation/exports/fenicsx"
+    for name in checks:
+        meta = build.case_meta(name)
+        assert meta["kind"] == "export" and meta["name"] == name and "category" not in meta
+        assert meta["status"] in ("passes", "fails")
 
 
 def test_schema_rejects_bad_fields(build):
@@ -65,6 +78,19 @@ def test_schema_rejects_bad_fields(build):
                 {"references": []}):
         with pytest.raises(jsonschema.ValidationError):
             jsonschema.validate({**good, **bad}, schema)
+    export = json.loads((ROOT / "validation/exports/fenicsx/case.json").read_text(encoding="utf-8"))
+    jsonschema.validate(export, schema)
+    jsonschema.validate({**export, "status": "fails", "reason": "the groups are lost"}, schema)
+    gates = {"gates": good["gates"]}
+    for bad in ({"category": "V1"}, gates, {"status": "accepted"}, {"status": "fails"},
+                {"consumer": {"name": "x"}}, {"format": {"extension": "msh", "elements": ["Hex8"]}}):
+        with pytest.raises(jsonschema.ValidationError):
+            jsonschema.validate({**export, **bad}, schema)
+    no_name = {k: v for k, v in export.items() if k != "name"}
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(no_name, schema)
+    with pytest.raises(jsonschema.ValidationError):                # a validation case's fields
+        jsonschema.validate({**good, "consumer": export["consumer"]}, schema)
 
 
 def test_missing_or_invalid_case_json_stops_the_gallery(build, monkeypatch, tmp_path):
@@ -106,17 +132,18 @@ def _load(name, rel):
 
 stored = _load("stored", "validation/tools/results.py")
 recheck = _load("recheck", "validation/tools/recheck.py")
+where = _load("cases", "validation/tools/cases.py")
 SCHEMA = json.loads((ROOT / "validation/results.schema.json").read_text(encoding="utf-8"))
 
 
 def test_every_case_with_results_md_is_rechecked():
-    with_results = {p.parent.name for p in (ROOT / "validation").glob("*/RESULTS.md")}
+    with_results = {n for n, d in where.found().items() if (d / "RESULTS.md").exists()}
     assert with_results == set(recheck.CASES)
 
 
 @pytest.mark.parametrize("case", recheck.CASES)
 def test_results_json_is_valid_small_and_deterministic(case):
-    path = ROOT / "validation" / case / "results.json"
+    path = where.path(case) / "results.json"
     raw = path.read_bytes()
     assert len(raw) <= stored.MAX_BYTES
     assert b"\r" not in raw and raw.endswith(b"\n")
@@ -138,13 +165,13 @@ def test_recheck_reproduces_every_gate(case):
     rows = recheck.recheck(case)
     gated = [r for r in rows if r["verdict"] is not None]
     assert gated, f"{case}: no gate rechecked"
-    meta = json.loads((ROOT / "validation" / case / "case.json").read_text(encoding="utf-8"))
+    meta = json.loads((where.path(case) / "case.json").read_text(encoding="utf-8"))
     missed = [r["quantity"] for r in gated if r["verdict"] != "pass"]
-    if meta["status"] == "accepted":
+    if meta["status"] in ("accepted", "passes"):
         assert missed == []
-    if meta["status"] == "missed":
-        assert missed, f"{case}: missed, but every gate passes"
-        results = (ROOT / "validation" / case / "RESULTS.md").read_text(encoding="utf-8")
+    if meta["status"] in ("missed", "fails"):
+        assert missed, f"{case}: {meta['status']}, but every gate passes"
+        results = (where.path(case) / "RESULTS.md").read_text(encoding="utf-8")
         assert [q for q in missed if q not in results] == []
 
 
@@ -243,7 +270,7 @@ def test_a_level_is_stamped_with_the_code_its_run_started_on(tmp_path, head):
 
 
 def test_fenicsx_levels_are_stamped_with_the_start_too(tmp_path, head):
-    fx = _load("fenicsx_run", "validation/fenicsx_second_order/run.py")
+    fx = _load("fenicsx_run", "validation/exports/fenicsx/run.py")
     store = stored.Store(tmp_path / "results.json", "fenicsx_second_order")
     head["hexmesh"] = "bbbbbbb"
     env = fx._environment(store)
@@ -293,8 +320,15 @@ def plots():
 
 
 def _graphs():
-    return [ROOT / "validation" / c / "figure.png" for c in recheck.CASES] + \
+    return [where.path(c) / "figure.png" for c in recheck.CASES] + \
         [ROOT / "validation" / g for g in EXTRA_GRAPHS]
+
+
+def _case_dir(png: Path) -> Path:
+    """The case directory holding *png*: ``validation/<case>`` or
+    ``validation/exports/<consumer>``."""
+    parts = png.relative_to(ROOT / "validation").parts
+    return ROOT / "validation" / Path(*parts[:2 if parts[0] == "exports" else 1])
 
 
 def test_plots_cover_every_case(plots):
@@ -308,10 +342,10 @@ def test_every_graph_is_current_small_and_embedded(plots, png):
     assert png.stat().st_size < 250_000
     chunks = plots.text_chunks(png)
     assert set(chunks) == {plots.SHA_KEY, plots.SOURCES_KEY}     # no software or time
-    case = png.relative_to(ROOT / "validation").parts[0]
-    results = (ROOT / "validation" / case / "RESULTS.md").read_text(encoding="utf-8")
+    case = _case_dir(png)
+    results = (case / "RESULTS.md").read_text(encoding="utf-8")
     block = results[results.index(plots.GRAPHS_START):results.index(plots.GRAPHS_END)]
-    assert png.relative_to(ROOT / "validation" / case).as_posix() in block
+    assert png.relative_to(case).as_posix() in block
 
 
 def test_a_changed_results_json_makes_its_graph_stale(plots, tmp_path, monkeypatch):

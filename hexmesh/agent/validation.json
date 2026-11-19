@@ -1,23 +1,5 @@
 {
  "cases": {
-  "fenicsx_second_order": {
-   "case": "fenicsx_second_order",
-   "category": "V1",
-   "cells": [
-    864,
-    138240
-   ],
-   "gates": [
-    {
-     "limit": ">= 2.7 on straight, bend and tee",
-     "quantity": "L2 order of Q2 on the Hex27 mesh, Dirichlet and Neumann, every pair of levels"
-    }
-   ],
-   "levels": 18,
-   "status": "accepted",
-   "task": "0077",
-   "title": "FEniCSx: second-order export checked end to end"
-  },
   "heated_pipe": {
    "case": "heated_pipe",
    "category": "V1",
@@ -377,9 +359,46 @@
    "title": "Womersley flow (pulsatile laminar pipe flow)"
   }
  },
+ "exports": {
+  "fenicsx_second_order": {
+   "case": "fenicsx_second_order",
+   "cells": [
+    864,
+    138240
+   ],
+   "checks": {
+    "exact": "the manufactured solution: relative L2 and H1 errors reported per level; no absolute tolerance, the order gate is on these errors",
+    "import": "dolfinx's cell count equals cell_count() at every level (recheck); cell types and group names on the written file (tests/test_export_formats.py)",
+    "order": "L2 order of Q2 on the Hex27 mesh, Dirichlet and Neumann, every pair of levels: >= 2.7 on straight, bend and tee"
+   },
+   "consumer": {
+    "image": "dolfinx/dolfinx:v0.11.0@sha256:2ae4bfbc0d9077268880faf04c72750528bee986c94ab223a2c159969bd56fa8",
+    "name": "FEniCSx (dolfinx)",
+    "version": "v0.11.0"
+   },
+   "features": [
+    "section:circle",
+    "straight",
+    "bend",
+    "tee",
+    "projection"
+   ],
+   "format": {
+    "elements": [
+     "Hex8",
+     "Hex27"
+    ],
+    "extension": ".msh",
+    "version": "4.1"
+   },
+   "levels": 18,
+   "status": "passes",
+   "task": "0077",
+   "title": "FEniCSx: second-order export checked end to end"
+  }
+ },
  "features": {
   "bend": [
-   "fenicsx_second_order",
    "mms",
    "square_bend"
   ],
@@ -400,11 +419,9 @@
    "stenosis_pulsatile"
   ],
   "projection": [
-   "fenicsx_second_order",
    "mms"
   ],
   "section:circle": [
-   "fenicsx_second_order",
    "heated_pipe",
    "heated_rod",
    "helical_pipe",
@@ -430,7 +447,6 @@
    "mms"
   ],
   "straight": [
-   "fenicsx_second_order",
    "heated_pipe",
    "heated_rod",
    "helical_pipe",
@@ -446,7 +462,6 @@
    "womersley"
   ],
   "tee": [
-   "fenicsx_second_order",
    "junction_loss",
    "mms"
   ],
@@ -458,6 +473,6 @@
   ]
  },
  "format": "hexmesh.agent.validation",
- "generated_by": "python3 -m validation.tools.summary (task 0102)",
+ "generated_by": "python3 -m validation.tools.summary (tasks 0102, 0182)",
  "version": 1
 }

@@ -2,12 +2,21 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "validation/case.schema.json",
   "title": "hexmesh validation case",
-  "description": "validation/<case>/case.json: a case's category, references, tags, status, gates and task (decision 0012, amendment 2026-10-30; task 0073).",
+  "description": "validation/<case>/case.json: a validation case's category, references, tags, status, gates and task (decision 0012, amendment 2026-10-30; task 0073); or validation/exports/<consumer>/case.json: an export check's format, consumer, checks and status (decision 0057, task 0182).",
   "type": "object",
-  "required": ["schemaVersion", "title", "category", "references", "tags", "status", "gates", "task"],
+  "required": ["schemaVersion", "title", "references", "tags", "status", "task"],
   "additionalProperties": false,
   "properties": {
     "schemaVersion": {"const": 1},
+    "kind": {
+      "description": "validation (the default): is the mesh good enough for engineering answers, in OpenFOAM; export: does a mesh arrive intact and usable in another code (decision 0057).",
+      "enum": ["validation", "export"]
+    },
+    "name": {
+      "description": "An export check's case name: its results.json's case, and what recheck and the summaries call it (its directory is the consumer's).",
+      "type": "string",
+      "pattern": "^[a-z0-9_]+$"
+    },
     "title": {"type": "string", "minLength": 1},
     "category": {
       "description": "The strongest reference: V1 exact solution, V2 high-fidelity simulation, V3 experiment, V4 correlation or standard.",
@@ -69,7 +78,7 @@
         }
       }
     },
-    "status": {"description": "missed: run to the end, at least one gate missed, the miss explained in RESULTS.md and README (decision 0012 note, 2026-11-18)", "enum": ["planned", "in progress", "accepted", "missed"]},
+    "status": {"description": "A validation case: planned, in progress, accepted, or missed (run to the end, at least one gate missed, the miss explained in RESULTS.md and README; decision 0012 note, 2026-11-18).  An export check: passes or fails, with the reason (decision 0057 rule 2).", "enum": ["planned", "in progress", "accepted", "missed", "passes", "fails"]},
     "gates": {
       "type": "array",
       "items": {
@@ -83,6 +92,44 @@
       }
     },
     "task": {"type": "string", "pattern": "^[0-9]{4}$"},
+    "format": {
+      "description": "An export check's file format, as Assembly.write writes it.",
+      "type": "object",
+      "required": ["extension", "elements"],
+      "additionalProperties": false,
+      "properties": {
+        "extension": {"type": "string", "pattern": "^\\.[a-z0-9]+$"},
+        "version": {"type": "string", "minLength": 1},
+        "elements": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["Hex8", "Hex20", "Hex27"]}}
+      }
+    },
+    "consumer": {
+      "description": "The code an export check reads the file with, pinned (decision 0057 rule 2).",
+      "type": "object",
+      "required": ["name", "image", "version"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "image": {"description": "The container image, pinned by digest.", "type": "string", "minLength": 1},
+        "version": {"type": "string", "minLength": 1}
+      }
+    },
+    "checks": {
+      "description": "What an export check asserts, each with its limit: the import (cell count, cell types, group names), the exact answer, and the order (decision 0057 rule 2).",
+      "type": "object",
+      "required": ["import", "exact", "order"],
+      "additionalProperties": false,
+      "properties": {
+        "import": {"type": "string", "minLength": 1},
+        "exact": {"type": "string", "minLength": 1},
+        "order": {"type": "string", "minLength": 1}
+      }
+    },
+    "reason": {
+      "description": "Why an export check fails (required then), or what its pass rests on.",
+      "type": "string",
+      "minLength": 1
+    },
     "notes": {
       "description": "Optional: a caveat a reader needs before trusting the comparison, e.g. a reference's known mismatch (task 0068).",
       "type": "string",
@@ -93,5 +140,18 @@
       "type": "string",
       "minLength": 1
     }
+  },
+  "if": {"required": ["kind"], "properties": {"kind": {"const": "export"}}},
+  "then": {
+    "required": ["name", "format", "consumer", "checks"],
+    "properties": {"status": {"enum": ["passes", "fails"]}},
+    "not": {"anyOf": [{"required": ["category"]}, {"required": ["gates"]}]},
+    "if": {"required": ["status"], "properties": {"status": {"const": "fails"}}},
+    "then": {"required": ["reason"]}
+  },
+  "else": {
+    "required": ["category", "gates"],
+    "properties": {"status": {"enum": ["planned", "in progress", "accepted", "missed"]}},
+    "not": {"anyOf": [{"required": ["name"]}, {"required": ["format"]}, {"required": ["consumer"]}, {"required": ["checks"]}]}
   }
 }

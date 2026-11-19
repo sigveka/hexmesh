@@ -22,6 +22,14 @@ the end of a run, so a commit made while a long level ran stamped it.
 They now record it at the start: the driver's start, `prepare`, and
 `run`'s start.
 
+**Docs: validation and export checks, apart** (task 0182, decision 0057).
+An export check asks whether a mesh arrives intact in another code; it
+passes or fails, with no V-category.  `fenicsx_second_order` moved to
+`validation/exports/fenicsx/` as the first one.  The README, the gallery
+and `hexmesh manifest`'s `validation.exports` list the checks
+apart from the validation cases.  CI parses the written `.msh` 4.1 for
+its groups, cell types and counts.
+
 ## 0.8.0 (2026-11-18)
 
 The API review before the 1.0 freeze (decisions 0042 and 0053): the

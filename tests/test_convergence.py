@@ -101,7 +101,8 @@ def test_describe_shows_status_instead_of_an_order():
 
 def test_every_case_uses_the_shared_function():
     """No case takes Richardson from another case's driver (task 0089)."""
-    for run in sorted((ROOT / "validation").glob("*/run.py")):
+    for run in sorted([*(ROOT / "validation").glob("*/run.py"),
+                       *(ROOT / "validation/exports").glob("*/run.py")]):
         text = run.read_text(encoding="utf-8")
         assert "pois.richardson" not in text and "sten.richardson" not in text, run
         if "richardson(" in text:

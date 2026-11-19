@@ -75,6 +75,15 @@ local check (only the cheapest).  A self-hosted CI runner.
 
 ## Agent notes
 
+- **From task 0182** (2026-11-19, step 4 left here): the local check
+  should also run every export check's coarsest level,
+  `validation/exports/<consumer>/`.  Today that is FEniCSx:
+  `python3 validation/exports/fenicsx/run.py --levels 1 --json
+  <scratch>/results.json` (Docker, `dolfinx/dolfinx:v0.11.0` pinned by
+  digest; about 4 min for the three cases), then `recheck` on that file's
+  levels.  `validation/tools/cases.py` lists the checks
+  (`names("export")`) and where each lives (`path(name)`).
+
 ## Questions for design
 
 ## Outcome

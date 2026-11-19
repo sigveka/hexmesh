@@ -32,7 +32,7 @@ covers.  This page is about running them yourself.
    `--openfoam RUNNER` sets it for one run.  Without either, a case uses
    the default in the table below.  Every run records the OpenFOAM
    version it used.
-3. **FEniCSx** (only for `fenicsx_second_order`): Docker; the image
+3. **FEniCSx** (only for the export check `fenicsx_second_order`): Docker; the image
    `dolfinx/dolfinx:v0.11.0` downloads itself (about 3.4 GB of disk).  It isn't a hexmesh
    dependency.
 4. **Disk and memory:** each level's case is built in the case's
@@ -57,12 +57,20 @@ the one before.
 | [rect_duct](rect_duct/README.md) | laminar flow in rectangular ducts | exact (V1) | Docker v2406 | 1 s (solver) | 1.5 h of solver time, 30 meshes |
 | [mms](mms/README.md) | conduction on every fitting, manufactured solutions | exact (V1) | Docker v2406 | 7 min* (16 fittings) | not recorded |
 | [heated_pipe](heated_pipe/README.md) | flow and heat through a pipe wall and insulation (CHT) | exact (V1) | Docker v2406 | 15 min | 17 h (`--np 4`) |
-| [fenicsx_second_order](fenicsx_second_order/README.md) | second-order meshes, end to end | exact (V1) | FEniCSx in Docker | 4 min* | not recorded |
 | [stenosis](stenosis/README.md) | steady flow through a constriction | simulation (V2) | native | 13 min of solver time (k2) | 7 h (`--np 4`) |
 | [stenosis_pulsatile](stenosis_pulsatile/README.md) | pulsating flow through the constriction | simulation (V2) | Docker v2406 | 5 min (one period) | about a day (`--np 4`) |
 | [turbulent_pipe](turbulent_pipe/README.md) | turbulent pipe flow, wall-resolved and wall functions | simulation (V2) | Docker v2406 | 45 s* (lowre_550) | not recorded |
 | [square_bend](square_bend/README.md) | laminar flow round a square-duct bend | experiment (V3) | Docker v2406 | 13 min* (matched inlet) | not recorded |
 | [helical_pipe](helical_pipe/README.md) | laminar flow in a coil | experiment (V3) | Docker v2406 | — | 5–6 h per Reynolds number on the finest mesh (`--np 4`); Re 3000 is [a volunteer run](VOLUNTEERS.md) |
+
+**Export checks** (decision 0057) ask a different question: does a mesh
+arrive intact and usable in another code?  One consumer per export
+format, coarse meshes, exact answers; each passes or fails, with no
+V-category.  They live in `exports/<consumer>/`.
+
+| Check | Format | Consumer | Quick | Everything |
+|---|---|---|---|---|
+| [fenicsx_second_order](exports/fenicsx/README.md) | `.msh` 4.1, Hex8 and Hex27 | FEniCSx (dolfinx v0.11.0) in Docker | 4 min* | not recorded |
 
 ## Running a case
 

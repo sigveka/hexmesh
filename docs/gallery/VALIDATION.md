@@ -6,20 +6,6 @@ Each case lives in `validation/<case>/`: `case.json` gives its category, referen
 
 ## V1: exact solution (code verification)
 
-### FEniCSx: second-order export checked end to end
-
-**Status:** accepted (task 0077).  **Reference:** manufactured: $u_m = \sin(a x + 0.3)\,\sin(b y + 0.7)\,\sin(c z + 1.1)$, $-\nabla^2 u = -\nabla^2 u_m$, wall flux with the exact wall's normal.  **Last run:** 2026-11-11, hexmesh 5952340.
-
-Tags: `conduction`, `section:circle`, `straight`, `bend`, `tee`, `projection`, `FEniCSx dolfinx:v0.11.0 (docker)`.
-
-Gates: L2 order of Q2 on the Hex27 mesh, Dirichlet and Neumann, every pair of levels: >= 2.7 on straight, bend and tee.
-
-<p><img src="../../validation/fenicsx_second_order/img/tee.png" width="68%"> <img src="../../validation/fenicsx_second_order/img/tee_section.png" width="29%"></p>
-
-<img src="../../validation/fenicsx_second_order/figure.png" width="70%">
-
-Case: `validation/fenicsx_second_order/`: [README.md](../../validation/fenicsx_second_order/README.md), [RESULTS.md](../../validation/fenicsx_second_order/RESULTS.md), [case.json](../../validation/fenicsx_second_order/case.json).
-
 ### Heated multi-layer pipe with laminar flow (full CHT)
 
 **Status:** accepted (task 0035).  **Reference:** exact: fully developed $\mathrm{Nu} = 48/11$ (uniform flux), radial conduction through the shells.  **Last run:** 2026-10-31, hexmesh d1baada+local.
@@ -223,30 +209,48 @@ Planned:
 
 _No cases yet._
 
+## Export checks
+
+Does a mesh arrive intact and usable in another code?  One consumer per export format, coarse to medium meshes, exact-answer problems only; each check passes or fails, with no V-category (decision 0057).  Each lives in `validation/exports/<consumer>/`.
+
+| Check | Format | Consumer | Checks | Status |
+|---|---|---|---|---|
+| [FEniCSx: second-order export checked end to end](../../validation/exports/fenicsx/README.md) | `.msh` 4.1 (Hex8, Hex27) | FEniCSx (dolfinx) v0.11.0 | import: dolfinx's cell count equals cell_count() at every level (recheck); cell types and group names on the written file (tests/test_export_formats.py); exact: the manufactured solution: relative L2 and H1 errors reported per level; no absolute tolerance, the order gate is on these errors; order: L2 order of Q2 on the Hex27 mesh, Dirichlet and Neumann, every pair of levels: >= 2.7 on straight, bend and tee | ● passes |
+
+### FEniCSx: second-order export checked end to end
+
+**Last run:** 2026-11-11, hexmesh 5952340.
+
+<p><img src="../../validation/exports/fenicsx/img/tee.png" width="68%"> <img src="../../validation/exports/fenicsx/img/tee_section.png" width="29%"></p>
+
+<img src="../../validation/exports/fenicsx/figure.png" width="70%">
+
+Check: `validation/exports/fenicsx/`: [README.md](../../validation/exports/fenicsx/README.md), [RESULTS.md](../../validation/exports/fenicsx/RESULTS.md), [case.json](../../validation/exports/fenicsx/case.json).
+
 ## Coverage
 
-Which hexmesh features each case exercises (decision 0012's list, extended by decision 0050). Marks: ● accepted, ⚠ missed, ◐ in progress, ○ planned; planned cases are named by task.  Rows marked *(none)* have no validation case, existing or planned.
+Which hexmesh features each case exercises (decision 0012's list, extended by decision 0050). Marks: ● accepted, ⚠ missed, ◐ in progress, ○ planned, ● passes, ✗ fails; planned cases are named by task.  Rows marked *(none)* have no validation case, existing or planned.
 
-| Feature | fenicsx_second_order<br>V1 | heated_pipe<br>V1 | heated_rod<br>V1 | helical_pipe<br>V3 | junction_loss<br>V3 | layered_conduction<br>V1 | mms<br>V1 | poiseuille<br>V1 | rect_duct<br>V1 | square_bend<br>V3 | stenosis<br>V2 | stenosis_pulsatile<br>V2 | turbulent_pipe<br>V2 | womersley<br>V1 | 0050<br>V3 | 0079<br>V3 | 0180<br>V2 |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `section:circle` | ● | ● | ● | ● | ⚠ | ● | ● | ● |  |  | ● | ● | ● | ● | ○ | ○ |  |
-| `section:rect` |  |  |  |  |  |  | ● |  | ● | ● |  |  |  |  |  |  | ○ |
-| `layers` |  | ● |  |  |  | ● | ● |  |  |  |  |  |  |  |  |  |  |
-| `straight` | ● | ● | ● | ● | ⚠ | ● | ● | ● | ● | ● | ● | ● | ● | ● | ○ | ○ | ○ |
-| `bend` | ● |  |  |  |  |  | ● |  |  | ● |  |  |  |  | ○ |  |  |
-| `elbow` (none) |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| `miter` |  |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |  |
-| `spline` |  |  |  | ● |  |  | ● |  |  |  |  |  |  |  |  |  |  |
-| `reducer` (none) |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| `profiled-reducer` |  |  |  |  |  |  | ● |  |  |  | ● | ● |  |  |  |  |  |
-| `transition` |  |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |  |
-| `switch` (none) |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| `tee` | ● |  |  |  | ⚠ |  | ● |  |  |  |  |  |  |  |  |  |  |
-| `duct-tap` |  |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |  |
-| `wye` |  |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |  |
-| `closure` (none) |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| `stack-changes` |  |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |  |
-| `projection` | ● |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |  |
+| Feature | heated_pipe<br>V1 | heated_rod<br>V1 | helical_pipe<br>V3 | junction_loss<br>V3 | layered_conduction<br>V1 | mms<br>V1 | poiseuille<br>V1 | rect_duct<br>V1 | square_bend<br>V3 | stenosis<br>V2 | stenosis_pulsatile<br>V2 | turbulent_pipe<br>V2 | womersley<br>V1 | 0050<br>V3 | 0079<br>V3 | 0180<br>V2 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `section:circle` | ● | ● | ● | ⚠ | ● | ● | ● |  |  | ● | ● | ● | ● | ○ | ○ |  |
+| `section:rect` |  |  |  |  |  | ● |  | ● | ● |  |  |  |  |  |  | ○ |
+| `layers` | ● |  |  |  | ● | ● |  |  |  |  |  |  |  |  |  |  |
+| `straight` | ● | ● | ● | ⚠ | ● | ● | ● | ● | ● | ● | ● | ● | ● | ○ | ○ | ○ |
+| `bend` |  |  |  |  |  | ● |  |  | ● |  |  |  |  | ○ |  |  |
+| `elbow` (none) |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `miter` |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |  |
+| `spline` |  |  | ● |  |  | ● |  |  |  |  |  |  |  |  |  |  |
+| `reducer` (none) |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `profiled-reducer` |  |  |  |  |  | ● |  |  |  | ● | ● |  |  |  |  |  |
+| `transition` |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |  |
+| `switch` (none) |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `tee` |  |  |  | ⚠ |  | ● |  |  |  |  |  |  |  |  |  |  |
+| `duct-tap` |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |  |
+| `wye` |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |  |
+| `closure` (none) |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `stack-changes` |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |  |
+| `projection` |  |  |  |  |  | ● |  |  |  |  |  |  |  |  |  |  |
 
 ---
 

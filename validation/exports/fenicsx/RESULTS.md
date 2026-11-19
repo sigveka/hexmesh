@@ -1,6 +1,6 @@
 # Results: FEniCSx, second-order export checked end to end
 
-**Status: accepted** (task 0077): Q2 on hexmesh's Hex27 meshes converges
+**Status: passes** (an export check, decision 0057; accepted in task 0077): Q2 on hexmesh's Hex27 meshes converges
 at L2 order 2.78–2.98 on the straight, the bend and the tee, Dirichlet
 and Neumann.  With the exact wall's flux, Q2 on the Hex8 meshes is
 visibly lower: order 2.0 on the bend, 2.3–2.6 on the straight and tee.

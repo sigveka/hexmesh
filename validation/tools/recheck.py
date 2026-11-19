@@ -16,7 +16,8 @@ stored ``results.json`` (task 0093), with no OpenFOAM::
 
     python3 -m validation.tools.recheck [case …]      # from the repository root
 
-Each case's driver (``validation/<case>/run.py``) defines
+Each case's driver (``validation/<case>/run.py``, or an export check's
+``validation/exports/<consumer>/run.py``, task 0182) defines
 ``recheck(data) -> list[dict]`` (rows from ``validation/tools/results.row``);
 this prints them as one table, like task 0089's, and exits 1 if a gate
 fails.
@@ -44,16 +45,17 @@ def _load(name: str, rel: str):
 
 
 stored = _load("stored", "validation/tools/results.py")
+where = _load("cases", "validation/tools/cases.py")
 
 
 def driver(case: str):
-    return _load(f"{case}_run", f"validation/{case}/run.py")
+    return _load(f"{case}_run", f"{where.rel(case, ROOT)}/run.py")
 
 
 def recheck(case: str) -> list[dict]:
-    data = stored.load(ROOT / "validation" / case / "results.json")
+    data = stored.load(where.path(case, ROOT) / "results.json")
     if data is None:
-        raise FileNotFoundError(f"validation/{case}/results.json: none stored")
+        raise FileNotFoundError(f"{where.rel(case, ROOT)}/results.json: none stored")
     rows = driver(case).recheck(data)
     rounded = sorted({lv["name"] for lv in data["levels"] if lv["precision"] != stored.FULL})
     for r in rows:

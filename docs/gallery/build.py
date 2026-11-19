@@ -80,6 +80,7 @@ from __future__ import annotations
 import argparse
 import datetime
 import importlib
+import importlib.util
 import json
 import os
 import re
@@ -104,6 +105,10 @@ VALIDATION = HERE / "VALIDATION.md"
 API = ROOT / "API.md"
 
 sys.path.insert(0, str(ROOT))
+
+_spec = importlib.util.spec_from_file_location("cases", ROOT / "validation/tools/cases.py")
+where = importlib.util.module_from_spec(_spec)       # where each case lives (task 0182)
+_spec.loader.exec_module(where)
 
 # Open ends and section faces are coloured by material, in the order the
 # assembly lists its materials; walls are neutral.
@@ -534,9 +539,9 @@ def run_hero() -> None:
 
 
 def load_case(case: str):
-    """``validation/<case>/run.py`` as a module (not run)."""
-    import importlib.util
-    path = ROOT / "validation" / case / "run.py"
+    """``validation/<case>/run.py`` (an export check's in
+    ``validation/exports/``) as a module (not run)."""
+    path = where.path(case, ROOT) / "run.py"
     spec = importlib.util.spec_from_file_location(f"validation_{case}", path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -550,7 +555,7 @@ def validation_worker(case: str, label: str, out: Path) -> None:
     entries = load_case(case).meshes()
     first = entries[0][0] == label
     build = next(b for l, _, b in entries if l == label)
-    img = ROOT / "validation" / case / "img"
+    img = where.path(case, ROOT) / "img"
     img.mkdir(parents=True, exist_ok=True)
     with Session(f"{case}-{label}"):
         asm = build()
@@ -568,11 +573,12 @@ def validation_worker(case: str, label: str, out: Path) -> None:
 
 
 def validation_cases() -> list[str]:
-    """Cases whose run.py defines meshes()."""
+    """Cases (and export checks) whose run.py defines meshes()."""
     found = []
-    for run in sorted((ROOT / "validation").glob("*/run.py")):
-        if re.search(r"^def meshes\(", run.read_text(encoding="utf-8"), re.M):
-            found.append(run.parent.name)
+    for name, d in where.found(ROOT).items():
+        run = d / "run.py"
+        if run.exists() and re.search(r"^def meshes\(", run.read_text(encoding="utf-8"), re.M):
+            found.append(name)
     return found
 
 
@@ -636,7 +642,7 @@ def mesh_md(case: str, metrics: dict) -> str:
 def overview_width(case: str, label: str) -> str:
     """Full width for a wide overview, narrower for a tall one."""
     from PIL import Image
-    path = ROOT / "validation" / case / "img" / f"{label}.png"
+    path = where.path(case, ROOT) / "img" / f"{label}.png"
     if not path.exists():
         return "100%"
     w, h = Image.open(path).size
@@ -645,7 +651,7 @@ def overview_width(case: str, label: str) -> str:
 
 def update_readme(case: str, block: str) -> None:
     """Replace the marked block, or insert it after the "## Case" section."""
-    path = ROOT / "validation" / case / "README.md"
+    path = where.path(case, ROOT) / "README.md"
     text = path.read_text(encoding="utf-8")
     if MESH_START in text and MESH_END in text:
         a, b = text.index(MESH_START), text.index(MESH_END) + len(MESH_END)
@@ -799,7 +805,8 @@ CATEGORIES_V = {
     "V3": "experiment",
     "V4": "correlation or standard",
 }
-STATUS_MARK = {"accepted": "●", "missed": "⚠", "in progress": "◐", "planned": "○"}
+STATUS_MARK = {"accepted": "●", "missed": "⚠", "in progress": "◐", "planned": "○",
+               "passes": "●", "fails": "✗"}
 
 
 def case_schema() -> dict:
@@ -807,10 +814,11 @@ def case_schema() -> dict:
 
 
 def case_meta(case: str) -> dict:
-    """``validation/<case>/case.json``, checked against the schema; a
-    missing or invalid file raises, naming it (task 0073)."""
+    """``validation/<case>/case.json`` (an export check's in
+    ``validation/exports/``), checked against the schema; a missing or
+    invalid file raises, naming it (task 0073)."""
     import jsonschema
-    path = ROOT / "validation" / case / "case.json"
+    path = where.path(case, ROOT) / "case.json"
     if not path.exists():
         raise SystemExit(f"{path.relative_to(ROOT)}: missing (every validation case "
                          f"ships a case.json, docs/tasks/README.md)")
@@ -824,14 +832,30 @@ def case_meta(case: str) -> dict:
 
 
 def case_dirs() -> list[str]:
-    """Every validation case: a directory with a ``run.py``."""
-    return sorted(p.parent.name for p in (ROOT / "validation").glob("*/run.py"))
+    """Every validation case: a directory ``validation/<case>/`` with a
+    ``run.py``."""
+    return sorted(n for n, d in where.found(ROOT).items()
+                  if (d / "run.py").exists() and d.parent.name == "validation")
+
+
+def export_dirs() -> list[str]:
+    """Every export check (decision 0057): ``validation/exports/<consumer>/``
+    with a ``run.py``, by its name."""
+    return sorted(n for n, d in where.found(ROOT).items()
+                  if (d / "run.py").exists() and d.parent.name == "exports")
+
+
+def _sub(name: str) -> str:
+    """*name*'s directory below ``validation/``: ``<case>`` or
+    ``exports/<consumer>``."""
+    return where.rel(name, ROOT).removeprefix("validation/")
 
 
 def planned_cases(done_tasks: set[str]) -> list[dict]:
     """Validation tasks without a case yet that carry a ``Category`` line:
     {task, title, file, category, features, status}."""
     features = case_schema()["properties"]["tags"]["properties"]["features"]["items"]["enum"]
+    done_tasks = set(done_tasks) | {case_meta(c)["task"] for c in export_dirs()}   # 0077
     out = []
     for t in sorted((ROOT / "docs" / "tasks").glob("*validation*.md")):
         task = t.name[:4]
@@ -876,9 +900,9 @@ def coverage_md(cases: list[tuple[str, dict]], planned: list[dict],
 
 
 def last_run(case: str) -> dict | None:
-    """The latest-dated level's ``environment`` in ``validation/<case>/results.json``
+    """The latest-dated level's ``environment`` in the case's ``results.json``
     (date, hexmesh commit, …), or None."""
-    path = ROOT / "validation" / case / "results.json"
+    path = where.path(case, ROOT) / "results.json"
     if not path.exists():
         return None
     envs = [lv["environment"] for lv in json.loads(path.read_text(encoding="utf-8"))["levels"]
@@ -948,8 +972,55 @@ def validation_md(val: str = "../../validation/", tasks: str = "../tasks/") -> s
             out += ["Planned:", "", "| Task | Status |", "|---|---|",
                     *(f"| [{p['task']}: {p['title']}]({tasks}{p['file']}) | {p['status']} |"
                       for p in later), ""]
+    out += exports_md(val)
     out += coverage_md(cases, planned, level=2)
     return "\n".join(out)
+
+
+def format_text(m: dict) -> str:
+    """An export check's format: "`.msh` 4.1 (Hex8, Hex27)"."""
+    f = m["format"]
+    return (f"`{f['extension']}`" + (f" {f['version']}" if f.get("version") else "")
+            + f" ({', '.join(f['elements'])})")
+
+
+def exports_md(val: str = "../../validation/") -> list[str]:
+    """The Validation page's export checks (decision 0057): a table, then
+    each check's images and files."""
+    checks = [(c, case_meta(c)) for c in export_dirs()]
+    out = ["## Export checks", "",
+           "Does a mesh arrive intact and usable in another code?  One consumer per "
+           "export format, coarse to medium meshes, exact-answer problems only; each "
+           "check passes or fails, with no V-category (decision 0057).  Each lives in "
+           "`validation/exports/<consumer>/`.", ""]
+    if not checks:
+        return out + ["_No export checks yet._", ""]
+    out += ["| Check | Format | Consumer | Checks | Status |", "|---|---|---|---|---|"]
+    for name, m in checks:
+        c = m["checks"]
+        out.append(f"| [{m['title']}]({val}{_sub(name)}/README.md) | {format_text(m)} "
+                   f"| {m['consumer']['name']} {m['consumer']['version']} "
+                   f"| import: {c['import']}; exact: {c['exact']}; order: {c['order']} "
+                   f"| {STATUS_MARK[m['status']]} {m['status']} |")
+    out.append("")
+    for name, m in checks:
+        d = where.path(name, ROOT)
+        run = last_run(name)
+        out += [f"### {m['title']}", ""]
+        if run:
+            out += [f"**Last run:** {run['date']}, hexmesh {run.get('hexmesh', '?')}.", ""]
+        if name in validation_cases():
+            first = load_case(name).meshes()[0][0]
+            if (d / "img" / f"{first}.png").exists():
+                out += [f'<p><img src="{val}{_sub(name)}/img/{first}.png" width="68%"> '
+                        f'<img src="{val}{_sub(name)}/img/{first}_section.png" '
+                        f'width="29%"></p>', ""]
+        if (d / "figure.png").exists():
+            out += [f'<img src="{val}{_sub(name)}/figure.png" width="70%">', ""]
+        links = [f"[{f}]({val}{_sub(name)}/{f})" for f in ("README.md", "RESULTS.md", "case.json")
+                 if (d / f).exists()]
+        out += [f"Check: `validation/{_sub(name)}/`: " + ", ".join(links) + ".", ""]
+    return out
 
 
 # --------------------------------------------------------------------------
@@ -962,7 +1033,8 @@ BIB = ROOT / "docs" / "references.bib"
 README_EXAMPLE = "sections.insulated_tee"
 #: a reference's kind when its source doesn't start with one
 KIND_V = {"V1": "exact", "V2": "simulation", "V3": "experiment", "V4": "correlation"}
-STATUS_ICON = {"accepted": "✅", "missed": "⚠️", "in progress": "🔄", "planned": "📋"}
+STATUS_ICON = {"accepted": "✅", "missed": "⚠️", "in progress": "🔄", "planned": "📋",
+               "passes": "✅", "fails": "❌"}
 
 
 def readme_block(text: str, name: str, body: str) -> str:
@@ -1049,6 +1121,15 @@ def readme_validation_md() -> str:
         cats = sorted({p["category"] for p in planned})
         kinds = ", ".join(f"{KIND_V[c]} ({c})" for c in cats)
         lines.append(f"| {titles} | {kinds} | | {STATUS_ICON['planned']} planned |")
+    checks = [case_meta(c) for c in export_dirs()]
+    if checks:
+        lines += ["", "**Export checks** (decision 0057): does a mesh arrive intact in "
+                  "another code?  One consumer per format; each passes or fails.", "",
+                  "| Check | Format | Consumer | Result | Status |", "|---|---|---|---|---|"]
+        for m in checks:
+            lines.append(f"| {m['title']} | {format_text(m)} | {m['consumer']['name']} "
+                         f"{m['consumer']['version']} | {m.get('headline', '')} "
+                         f"| {STATUS_ICON[m['status']]} {m['status']} |")
     return "\n".join(lines)
 
 
@@ -1106,9 +1187,11 @@ def footer(meta: dict) -> list[str]:
 
 
 def validated_by(tags: list[str], cases: list[tuple[str, dict]], planned: list[dict],
-                 val: str = "../../validation/", tasks: str = "../tasks/") -> str:
+                 val: str = "../../validation/", tasks: str = "../tasks/",
+                 checks: list[tuple[str, dict]] = ()) -> str:
     """The family's "Validated by" line: every case carrying one of *tags*,
-    with its status and last run, or "none"."""
+    with its status and last run, or "none"; then the export *checks*
+    carrying one, apart (decision 0057)."""
     if not tags:
         return "**Validated by:** no validation tag covers this family yet."
     items = []
@@ -1127,9 +1210,18 @@ def validated_by(tags: list[str], cases: list[tuple[str, dict]], planned: list[d
             items.append(f"{STATUS_MARK['planned']} [task {p['task']}]({tasks}{p['file']}) "
                          f"({p['category']}, planned; " + ", ".join(f"`{t}`" for t in hit) + ")")
     tag_text = ", ".join(f"`{t}`" for t in tags)
+    exported = []
+    for name, m in checks:
+        hit = [t for t in m["tags"]["features"] if t in tags]
+        if hit:
+            exported.append(f"{STATUS_MARK[m['status']]} [{m['title']}]({val}{_sub(name)}/README.md) "
+                            f"({format_text(m)} in {m['consumer']['name']}, {m['status']}; "
+                            + ", ".join(f"`{t}`" for t in hit) + ")")
+    also = (["", "**Export checks:**", "", *(f"- {i}" for i in exported)] if exported else [])
     if not items:
-        return f"**Validated by:** none yet (tags {tag_text})."
-    return "\n".join([f"**Validated by** (tags {tag_text}):", "", *(f"- {i}" for i in items)])
+        return "\n".join([f"**Validated by:** none yet (tags {tag_text})."] + also)
+    return "\n".join([f"**Validated by** (tags {tag_text}):", "", *(f"- {i}" for i in items)]
+                     + also)
 
 
 def numbers_cells(m: dict | None) -> str:
@@ -1140,7 +1232,8 @@ def numbers_cells(m: dict | None) -> str:
 
 
 def features_md(metrics: dict, meta: dict, anchors: dict[str, str],
-                cases: list[tuple[str, dict]], planned: list[dict]) -> str:
+                cases: list[tuple[str, dict]], planned: list[dict],
+                checks: list[tuple[str, dict]] = ()) -> str:
     from hexmesh.examples import FAMILIES
     lines = ["# Features", "",
              "The building blocks of a hexmesh network, by family: what each looks "
@@ -1156,7 +1249,7 @@ def features_md(metrics: dict, meta: dict, anchors: dict[str, str],
         lines += [f"## {f['title']}", "", f["intro"], "",
                   "**Fittings:** " + ", ".join(api_link(t, anchors) for t in f["fittings"])
                   + ".", "",
-                  validated_by(f["tags"], cases, planned), "",
+                  validated_by(f["tags"], cases, planned, checks=checks), "",
                   "| Example | Shows | Cells | min SICN | min SJ | Build |",
                   "|---|---|---|---|---|---|"]
         for q in f["examples"]:
@@ -1206,7 +1299,8 @@ def validation_page_md(meta: dict) -> str:
     return "\n".join(["# Validation cases", "", validation_md()] + footer(meta))
 
 
-def landing_md(metrics: dict, meta: dict, cases: list[tuple[str, dict]]) -> str:
+def landing_md(metrics: dict, meta: dict, cases: list[tuple[str, dict]],
+               checks: list[tuple[str, dict]] = ()) -> str:
     from hexmesh.examples import CATEGORIES, FAMILIES
     n_feat = sum(len(f["examples"]) for f in FAMILIES.values())
     lines = ["# hexmesh gallery", "",
@@ -1220,7 +1314,9 @@ def landing_md(metrics: dict, meta: dict, cases: list[tuple[str, dict]]) -> str:
              f"- **[Applications](gallery/APPLICATIONS.md):** {len(CATEGORIES['applications'])} "
              "networks closer to a real model, and which fittings they use.",
              f"- **[Validation](gallery/VALIDATION.md):** {len(cases)} cases solved "
-             "and compared with a reference, judged by grid convergence.", "",
+             "and compared with a reference, judged by grid convergence"
+             + (f", and {len(checks)} export check{'s' * (len(checks) != 1)} (a mesh read "
+                "by another code)." if checks else "."), "",
              "## Features", "", "| | Family | Examples |", "|---|---|---|"]
     for fam, f in FAMILIES.items():
         first = f["examples"][0].split(".")[-1]
@@ -1238,11 +1334,15 @@ def landing_md(metrics: dict, meta: dict, cases: list[tuple[str, dict]]) -> str:
                  if (IMG / f"{name}.png").exists() else "")
         lines.append(f"| {thumb} | [{name}](gallery/APPLICATIONS.md#{name}) | {summary} |")
     by_status = Counter(m["status"] for _, m in cases)
+    by_check = Counter(m["status"] for _, m in checks)
     lines += ["", "## Validation", "",
               "Cases by status: " + ", ".join(f"{STATUS_MARK[s]} {n} {s}"
                                                for s, n in by_status.items()) + ".  "
-              "[The Validation page](gallery/VALIDATION.md) has each case and the "
-              "coverage matrix (which features each case exercises).", "",
+              + ("Export checks: " + ", ".join(f"{STATUS_MARK[s]} {n} {s}"
+                                               for s, n in by_check.items()) + ".  "
+                 if checks else "")
+              + "[The Validation page](gallery/VALIDATION.md) has each case, the export "
+              "checks and the coverage matrix (which features each case exercises).", "",
               "## Reading the numbers", "", *READING_NUMBERS, ""]
     return "\n".join(lines + footer(meta))
 
@@ -1251,9 +1351,10 @@ def write_markdown(metrics: dict, meta: dict) -> None:
     """The landing page and the three pages (decision 0050, task 0142)."""
     anchors = api_anchors()
     cases = [(c, case_meta(c)) for c in case_dirs()]
+    checks = [(c, case_meta(c)) for c in export_dirs()]
     planned = planned_cases({m["task"] for _, m in cases})
-    pages = {GALLERY: landing_md(metrics, meta, cases),
-             FEATURES: features_md(metrics, meta, anchors, cases, planned),
+    pages = {GALLERY: landing_md(metrics, meta, cases, checks),
+             FEATURES: features_md(metrics, meta, anchors, cases, planned, checks),
              APPLICATIONS: applications_md(metrics, meta, anchors),
              VALIDATION: validation_page_md(meta)}
     for path, text in pages.items():

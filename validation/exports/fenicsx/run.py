@@ -11,11 +11,11 @@
 #        '---------'
 #
 """
-Second-order export checked end to end with FEniCSx (task 0077, V1;
-decision 0034).
+Second-order export checked end to end with FEniCSx (task 0077; an export
+check, decision 0057; decision 0034).
 
-    python3 validation/fenicsx_second_order/run.py --work DIR
-    python3 validation/fenicsx_second_order/run.py --work DIR --cases straight --levels 1 2
+    python3 validation/exports/fenicsx/run.py --work DIR
+    python3 validation/exports/fenicsx/run.py --work DIR --cases straight --levels 1 2
 
 **The method.**  The manufactured field is task 0074's,
 
@@ -58,7 +58,7 @@ from pathlib import Path
 import numpy as np
 
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parents[1]
+ROOT = HERE.parents[2]
 sys.path.insert(0, str(ROOT))
 
 import gmsh                                                    # noqa: E402
@@ -214,12 +214,25 @@ def orders(data: dict, case: str, geometry: str, degree: int, variant: str) -> l
             for i in range(len(lv) - 1)]
 
 
+def predicted(case: str, k: int) -> int:
+    """``cell_count()`` of *case* at level *k*: no gmsh."""
+    asm = CASES[case]()
+    return (asm if k == 1 else asm.refined(k)).cell_count()
+
+
 def recheck(data: dict) -> list[dict]:
-    """Per case, from ``results.json``: the gate, Hex27/Q2's L2 order ≥
-    :data:`ORDER_MIN` between every pair of levels, Dirichlet and Neumann;
-    the Hex8 rows reported in the note (Q2 on Hex8 with the exact wall's
-    flux is the geometry-limited row)."""
-    out = []
+    """From ``results.json``: the import, dolfinx's cell count equal to
+    ``cell_count()`` at every level (decision 0057's import check; cell
+    types and group names are checked on the written file by
+    ``tests/test_export_formats.py``); per case, the gate, Hex27/Q2's L2
+    order ≥ :data:`ORDER_MIN` between every pair of levels, Dirichlet and
+    Neumann; the Hex8 rows reported in the note (Q2 on Hex8 with the exact
+    wall's flux is the geometry-limited row)."""
+    levels = data["levels"]
+    off = [lv["name"] for lv in levels if lv["cells"] != predicted(lv["case"], lv["k"])]
+    out = [stored.row("import: dolfinx's cell count equals cell_count(), every level",
+                      gate="equal", ok=not off, value=f"{len(levels) - len(off)}/{len(levels)}",
+                      note="; ".join(off))]
     for case in CASES:
         if not stored.series(data, case=case):
             continue
@@ -243,7 +256,7 @@ def _environment(store) -> dict:
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--work", type=Path, default=HERE / "work",
-                    help='folder for the meshes (default: validation/fenicsx_second_order/work/, not committed); deleted once each level is stored')
+                    help='folder for the meshes (default: validation/exports/fenicsx/work/, not committed); deleted once each level is stored')
     ap.add_argument("--cases", nargs="+", choices=list(CASES), default=list(CASES),
                     help='geometries to solve on (default: all of %(choices)s)')
     ap.add_argument("--levels", nargs="+", type=int, default=list(LEVELS),

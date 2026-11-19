@@ -3,7 +3,7 @@
 ## Role
 
 **Secondary solver** (decision 0034), the first consumer of hexmesh's
-second-order export: `validation/fenicsx_second_order/` (task 0077)
+second-order export: `validation/exports/fenicsx/` (task 0077; an export check since task 0182)
 checks that a Hex27 mesh from `mesh(order=2)` is read and used as curved
 geometry.  FEniCSx is **not** a hexmesh dependency; it runs in Docker.
 

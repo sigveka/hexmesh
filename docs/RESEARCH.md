@@ -1672,7 +1672,7 @@ cells).  L2 order of the error, k 1→2 and 2→4:
   curved elements needs exact-geometry boundary data.
 - **dolfinx reads Hex27, not Hex20** (gmsh type 17).
 - Cost: 22 min serial; 4.4 GB peak per solve (Q2, tee, k = 4, 1.13 M
-  dofs).  Details: `validation/fenicsx_second_order/RESULTS.md`,
+  dofs).  Details: `validation/exports/fenicsx/RESULTS.md`,
   `docs/integrations/fenicsx.md`.
 - **Still unverified:** second order on wyes and equal tees (rejected
   today), flow (a Stokes MMS on the same meshes is the proposed next

@@ -75,6 +75,7 @@ def _load(name: str, rel: str):
 
 
 conv = _load("convergence", "validation/tools/convergence.py")
+where = _load("cases", "validation/tools/cases.py")
 
 
 def style(key, index: int = 0) -> dict:
@@ -87,7 +88,7 @@ def source_sha(*cases: str) -> str:
     """The SHA-256 of the cases' ``results.json`` files, in order."""
     h = hashlib.sha256()
     for case in cases:
-        h.update((ROOT / "validation" / case / "results.json").read_bytes())
+        h.update((where.path(case, ROOT) / "results.json").read_bytes())
     return h.hexdigest()
 
 
@@ -111,7 +112,7 @@ def stale(png: Path) -> str | None:
         return f"{png.relative_to(ROOT)} has no {SHA_KEY} chunk"
     cases = chunks[SOURCES_KEY].split(",")
     if chunks[SHA_KEY] != source_sha(*cases):
-        return (f"{png.relative_to(ROOT)} is stale: validation/{{{','.join(cases)}}}/results.json "
+        return (f"{png.relative_to(ROOT)} is stale: the results.json of {', '.join(cases)} "
                 f"changed; regenerate with python3 -m validation.tools.plots {' '.join(cases)}")
     return None
 
@@ -134,7 +135,7 @@ def _plain(text: str) -> str:
 
 
 def _finish(fig, case: str, caption: str, path: Path, sources=None) -> Path:
-    meta = json.loads((ROOT / "validation" / case / "case.json").read_text(encoding="utf-8"))
+    meta = json.loads((where.path(case, ROOT) / "case.json").read_text(encoding="utf-8"))
     fig.suptitle(meta["title"], fontsize=10)
     fig.text(0.01, 0.01, _wrap(_plain(caption), 150), fontsize=6.5, color="0.25",
              va="bottom", ha="left")
@@ -824,14 +825,14 @@ def fenicsx_second_order(data, out):
 
 def draw(case: str) -> list[tuple[str, str]]:
     """Draw *case*'s graphs; returns [(path relative to the case, sentence)]."""
-    here = ROOT / "validation" / case
+    here = where.path(case, ROOT)
     data = json.loads((here / "results.json").read_text(encoding="utf-8"))
     flat = globals()[case](data, here)
     out = []
     for path, sentence in zip(flat[::2], flat[1::2]):
         rel = Path(path).relative_to(here) if Path(path).is_absolute() else Path(path)
         if not (here / rel).exists():
-            raise FileNotFoundError(f"validation/{case}/{rel}: draw its case first")
+            raise FileNotFoundError(f"{where.rel(case, ROOT)}/{rel}: draw its case first")
         out.append((rel.as_posix(), sentence))
     return out
 
@@ -848,7 +849,7 @@ def graphs_md(graphs) -> str:
 def embed(case: str, graphs) -> None:
     """Rewrite the graphs section of *case*'s RESULTS.md, or put it before
     the first ``## `` heading."""
-    path = ROOT / "validation" / case / "RESULTS.md"
+    path = where.path(case, ROOT) / "RESULTS.md"
     text = path.read_text(encoding="utf-8")
     block = graphs_md(graphs)
     if GRAPHS_START in text:
@@ -874,8 +875,8 @@ def main(argv=None) -> int:
         graphs = draw(case)
         embed(case, graphs)
         for rel, _ in graphs:
-            p = ROOT / "validation" / case / rel
-            print(f"validation/{case}/{rel}  {p.stat().st_size // 1024} kB")
+            p = where.path(case, ROOT) / rel
+            print(f"{where.rel(case, ROOT)}/{rel}  {p.stat().st_size // 1024} kB")
     return 0
 
 

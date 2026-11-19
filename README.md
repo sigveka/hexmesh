@@ -280,7 +280,6 @@ convergence against gates set in advance.
 | Womersley flow (pulsatile laminar pipe flow) | exact (V1) | profile error at most 0.31 % of u_c at every phase | ✅ accepted |
 | Laminar flow in rectangular ducts (aspect ratios 1, 2, 4) | exact (V1) | f·Re extrapolated within 0.011 % at aspect ratios 1, 2 and 4 (H section) | ✅ accepted |
 | Manufactured solutions for conduction on every fitting | manufactured (V1) | L2 error falls on all 16 fittings; 5 converge at the straight's order, the rest reported | ✅ accepted |
-| FEniCSx: second-order export checked end to end | manufactured (V1) | Q2 on Hex27 converges at L2 order 2.78–2.98 on the straight, bend and tee; on Hex8, with the exact wall's flux, 2.0–2.6 | ✅ accepted |
 | Smooth cosine constriction, Re = 500 | DNS (V2), Varghese et al. 2007 | reattachment 10.97 D vs the database's 11.03 D (−0.5 %) | ✅ accepted |
 | Fully developed turbulent pipe flow, k-ω SST | simulation (V2), El Khoury et al. 2013 | f within 2.5 % of McKeon et al. at three Re; within 3.3 % with wall functions | ✅ accepted |
 | Pulsatile flow through the cosine constriction (Varghese et al., Part 2) | DNS (V2), Varghese et al. 2007 | throat peak at peak flow −1.3 % from the DNS; the five flow features of its §3.1 as in the DNS | ✅ accepted |
@@ -288,6 +287,12 @@ convergence against gates set in advance.
 | Laminar flow in a helical pipe (the SIET coil) | experiment (V3), De Amicis et al. 2014 | f within 0.6 % of Ito at n_arc 24 (Re 1800 to 3000), converging at order 1.8 to 1.9; GCI at most 1.4 % | ✅ accepted |
 | Equal-diameter 90° tee: loss coefficients, k-ω SST | experiment (V3), Štigler et al. 2014 | ξ_MGb 0.459 against 0.437 measured (gate 0.025); ξ_PG 0.605 against 0.50 missed (gate 0.03), grid-converged at 0.596 (GCI 0.012): the gap is the model and set-up | ⚠️ missed |
 | Turbulent flow in a 90° bend (PTB LDA; Sudo et al. 1998 the ideal); a Taylor bubble rising in stagnant liquid (VOF); turbulent rectangular ducts against the KTH DNS, with a volunteer card | simulation (V2), experiment (V3) | | 📋 planned |
+
+**Export checks** (decision 0057): does a mesh arrive intact in another code?  One consumer per format; each passes or fails.
+
+| Check | Format | Consumer | Result | Status |
+|---|---|---|---|---|
+| FEniCSx: second-order export checked end to end | `.msh` 4.1 (Hex8, Hex27) | FEniCSx (dolfinx) v0.11.0 | Q2 on Hex27 converges at L2 order 2.78–2.98 on the straight, bend and tee; on Hex8, with the exact wall's flux, 2.0–2.6 | ✅ passes |
 <!-- readme:validation:end -->
 
 Categories, the coverage matrix (which features are validated and which

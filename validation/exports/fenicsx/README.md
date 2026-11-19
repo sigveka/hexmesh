@@ -2,14 +2,15 @@
 
 A Poisson problem with a manufactured solution, solved by FEniCSx (dolfinx)
 on hexmesh's linear (Hex8) and second-order (Hex27) meshes of a straight
-pipe, a bend and a tee (decision 0034's first secondary solver; decision
-0012, V1; task 0077).  Q2 elements converge at order 3 in L2 only on a
+pipe, a bend and a tee (decision 0034's first secondary solver; task
+0077).  An export check (decision 0057): the `.msh` 4.1 file, Hex8 and
+Hex27, read by dolfinx v0.11.0; it passes or fails, with no V-category.  Q2 elements converge at order 3 in L2 only on a
 second-order geometry.  On straight-sided cells, the wall's error holds
 them near order 2.
 
 ```bash
-python3 validation/fenicsx_second_order/run.py --memory 6g       # 3 cases × k = 1, 2, 4
-python3 validation/fenicsx_second_order/run.py --cases bend --levels 1 2
+python3 validation/exports/fenicsx/run.py --memory 6g       # 3 cases × k = 1, 2, 4
+python3 validation/exports/fenicsx/run.py --cases bend --levels 1 2
 python3 -m validation.tools.recheck fenicsx_second_order          # the table, from results.json
 ```
 
@@ -17,7 +18,7 @@ The solves run in Docker: `dolfinx/dolfinx:v0.11.0`, pinned by digest,
 one container per solve, run as the host user
 (`docs/integrations/fenicsx.md`).  FEniCSx isn't a hexmesh dependency.
 `--memory` caps each container: the Q2 solves at k = 4 peak at 4.4 GB.
-Meshes go to `validation/fenicsx_second_order/work/` (git-ignored), or
+Meshes go to `validation/exports/fenicsx/work/` (git-ignored), or
 `--work DIR`, and are deleted once their level is stored.
 
 ## Method

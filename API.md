@@ -2457,7 +2457,7 @@ is strict JSON (no NaN).
 | `limits` | `LIMITS`: value, unit, kind, doc |
 | `errors` | `CODES`: each code's one-line rule |
 | `advise` | the report's format and version, the calibration's, the scope caveat, and per accuracy class its maximum error and, per calibrated series, its basis (measured, interpolated, extrapolated) and whether it is validated |
-| `validation` | every validation case (title, status, category, gates, levels, cells) and, per feature tag, the cases that cover it |
+| `validation` | every validation case (title, status, category, gates, levels, cells) and, per feature tag, the cases that cover it; under `exports`, every export check apart (title, status `passes` or `fails`, format, consumer, checks, features, levels, cells; decision 0057) |
 | `conventions` | lengths as given, angles in degrees, the 8× rule, topology vs density, orders from k |
 
 The support matrix is **probed**: each fitting is built after a short

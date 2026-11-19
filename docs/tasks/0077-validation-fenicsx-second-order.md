@@ -15,7 +15,7 @@ Q2 finite-element solution converges at order **3** only when the
 geometry is second order.  On straight-sided cells it stalls at about
 **2**, the geometry error.
 
-**Where.**  `validation/fenicsx_second_order/` (`run.py`, `README.md`,
+**Where.**  `validation/fenicsx_second_order/` (now `validation/exports/fenicsx/`, task 0182) (`run.py`, `README.md`,
 `RESULTS.md`, `case.json`, `meshes()`); `docs/integrations/fenicsx.md`
 (new).  FEniCSx stays out of hexmesh's dependencies (decision 0034).
 

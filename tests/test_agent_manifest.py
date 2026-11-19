@@ -95,6 +95,9 @@ def test_the_validation_summary_matches_the_cases(m):
         "hexmesh/agent/validation.json is stale: python3 -m validation.tools.summary"
     cases = {p.parent.name for p in (ROOT / "validation").glob("*/case.json")}
     assert set(m["validation"]["cases"]) == cases
+    exports = {json.loads(p.read_text("utf-8"))["name"]
+               for p in (ROOT / "validation/exports").glob("*/case.json")}
+    assert set(m["validation"]["exports"]) == exports == {"fenicsx_second_order"}
     for tag, names in m["validation"]["features"].items():
         for name in names:
             meta = json.loads((ROOT / "validation" / name / "case.json").read_text("utf-8"))

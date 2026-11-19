@@ -1,8 +1,9 @@
 {
   "schemaVersion": 1,
+  "kind": "export",
+  "name": "fenicsx_second_order",
   "title": "FEniCSx: second-order export checked end to end",
   "headline": "Q2 on Hex27 converges at L2 order 2.78–2.98 on the straight, bend and tee; on Hex8, with the exact wall's flux, 2.0–2.6",
-  "category": "V1",
   "references": [
     {
       "source": "manufactured: $u_m = \\sin(a x + 0.3)\\,\\sin(b y + 0.7)\\,\\sin(c z + 1.1)$, $-\\nabla^2 u = -\\nabla^2 u_m$, wall flux with the exact wall's normal",
@@ -27,12 +28,24 @@
       "conversion": "dolfinx.io.gmsh.read_from_msh on write() (Hex8) and write(order=2) (Hex27)"
     }
   },
-  "status": "accepted",
+  "status": "passes",
   "task": "0077",
-  "gates": [
-    {
-      "quantity": "L2 order of Q2 on the Hex27 mesh, Dirichlet and Neumann, every pair of levels",
-      "limit": ">= 2.7 on straight, bend and tee"
-    }
-  ]
+  "format": {
+    "extension": ".msh",
+    "version": "4.1",
+    "elements": [
+      "Hex8",
+      "Hex27"
+    ]
+  },
+  "consumer": {
+    "name": "FEniCSx (dolfinx)",
+    "image": "dolfinx/dolfinx:v0.11.0@sha256:2ae4bfbc0d9077268880faf04c72750528bee986c94ab223a2c159969bd56fa8",
+    "version": "v0.11.0"
+  },
+  "checks": {
+    "import": "dolfinx's cell count equals cell_count() at every level (recheck); cell types and group names on the written file (tests/test_export_formats.py)",
+    "exact": "the manufactured solution: relative L2 and H1 errors reported per level; no absolute tolerance, the order gate is on these errors",
+    "order": "L2 order of Q2 on the Hex27 mesh, Dirichlet and Neumann, every pair of levels: >= 2.7 on straight, bend and tee"
+  }
 }
