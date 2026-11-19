@@ -17,7 +17,7 @@ and a buried district-heating pipe: the examples closest to a real model.
 | [idealised_aorta](#idealised_aorta) | Idealised aorta: the arch with its three branches, the tapering descending and abdominal aorta, and the iliac bifurcation. | 40 448 | 0.089 | 0.133 | 21.8 s |
 | [rocket_injector_manifold](#rocket_injector_manifold) | Rocket injector manifold: a liquid-oxygen ring feeding eight injector legs, supplied by an insulated feed line through a cavitating venturi. | 80 768 | 0.064 | 0.258 | 103.2 s |
 | [micromixer](#micromixer) | Micromixer: a T-mixer for lipid nanoparticles, with a twisted mixing channel, at its real size in micrometres. | 10 112 | 0.146 | 0.577 | 28.7 s |
-| [subsea_pipeline](#subsea_pipeline) | Subsea pipeline: an insulated flowline laid over a field of sand waves, read from a seabed survey, rising at its end into a riser. | 183 744 | 0.003 | 0.771 | 220.6 s |
+| [subsea_pipeline](#subsea_pipeline) | Subsea pipeline: an insulated flowline laid over a field of sand waves, read from a seabed survey, rising at its end into a riser. | 183 744 | 0.003 | 0.771 | 181.5 s |
 | [district_heating](#district_heating) | District heating: a buried pre-insulated pipe, its soil meshed with it, turning a street corner. | 23 040 | 0.023 | 0.599 | 8.4 s |
 
 ## drum_nozzle
@@ -456,7 +456,7 @@ python3 -m hexmesh.examples.applications.subsea_pipeline
 
 | Fittings | Volumes | Cells | min SICN | mean SICN | min SJ (where) | max aspect | Build |
 |---|---|---|---|---|---|---|---|
-| 5: Straight ×3, SplinePipe, Bend | 8092 | 183 744 | 0.003 | 0.062 | 0.771 (#3 Bend) | 985.3 | 220.6 s |
+| 5: Straight ×3, SplinePipe, Bend | 8092 | 183 744 | 0.003 | 0.062 | 0.771 (#3 Bend) | 982.8 | 181.5 s |
 
 - **Open ends:** `coating_inlet`, `coating_riser_top`, `insulation_inlet`, `insulation_riser_top`, `oil_inlet`, `oil_riser_top`, `steel_inlet`, `steel_riser_top`
 - **Walls:** `insulation_wall`
@@ -526,4 +526,4 @@ python3 -m hexmesh.examples.applications.district_heating
 
 ---
 
-Generated 2026-11-12 from hexmesh 73a2f07 + uncommitted changes, gmsh 4.12.1, Python 3.12.3, 8 CPUs, 2 job(s).
+Generated 2026-11-19 from hexmesh 3bf6edf + uncommitted changes, gmsh 4.12.1, Python 3.12.3, 8 CPUs, 1 job(s).

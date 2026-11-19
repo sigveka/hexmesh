@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+**Behaviour: a gridded seabed is interpolated bilinearly** (task 0171).
+`read_bathymetry` interpolated every surface on Qhull's Delaunay
+triangulation, which cuts a grid's cells along either diagonal as
+rounding decides, so a route's heights differed by platform (by up to
+about 2.5e-3 m on macOS in `subsea_pipeline`).  A surface whose points
+are every x with every y (GeoTIFF without rotation, NetCDF, a gridded
+XYZ file) is now bilinear in each cell, the same everywhere.  Routes
+over such surfaces move: in `subsea_pipeline` by up to 2.0e-3 m in a
+point and 2.6e-3° in a fitting's roll.  Scattered points, and a rotated
+grid, keep the triangulation.  A new test builds every example on every
+CI job and compares it with a stored copy, so a platform difference
+fails by name.
+
 ## 0.8.0 (2026-11-18)
 
 The API review before the 1.0 freeze (decisions 0042 and 0053): the

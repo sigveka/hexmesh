@@ -98,6 +98,20 @@ same quoting the code applies.
 `str(path)` above: the failing assert, `endswith(f"… run {tmp_path}")`,
 is one of its planted examples.
 
+### scipy/Qhull: a grid's Delaunay triangulation differs by platform — *verified*
+`scipy.interpolate.LinearNDInterpolator` triangulates with Qhull's
+Delaunay.  Each cell of a regular grid has four co-circular corners, so
+either diagonal is a Delaunay cut, and rounding picks one.  On
+`subsea_pipeline`'s survey (161 × 53 at 5 m, scipy 1.11.4, numpy 1.26.4,
+Linux) Qhull cut 4149 cells one way and 4171 the other.  The route's
+heights then differed on macOS by up to about 2.5e-3 m (CI run
+44148935916, 2026-11-17); the two consistent splits differ by up to
+3.7e-3 m.  `read_bathymetry` now interpolates a grid bilinearly
+(`RegularGridInterpolator`, task 0171); scattered points keep Qhull.
+**Rule:** `test_example_builds_the_same_description_on_every_platform`
+(`tests/test_intent.py`) builds every example on every CI job and
+compares it with `tests/data/examples_built.json`.
+
 ## Open questions
 
 - The gallery's rendering on Windows is untested (task 0092, out of

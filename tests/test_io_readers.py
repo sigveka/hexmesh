@@ -159,6 +159,37 @@ def test_bathymetry_route(tmp_path, gmsh_session):
     assert asm.check_quality().ok
 
 
+def test_a_gridded_surface_interpolates_bilinearly(tmp_path):
+    """A grid, written in shuffled order, gives a bilinear surface its
+    exact heights; the Delaunay surface cuts each cell into two planes
+    and doesn't (task 0171)."""
+    pytest.importorskip("scipy")
+    from hexmesh.interchange.importers.bathymetry import read_bathymetry
+    x, y = np.meshgrid([0.0, 1.0, 3.0], [0.0, 2.0, 2.5, 4.0])     # rectilinear
+    z = 1.0 + 0.5 * x - 0.25 * y + 0.75 * x * y                   # bilinear
+    rows = np.column_stack([x.ravel(), y.ravel(), z.ravel()])
+    surf = tmp_path / "grid.xyz"
+    np.savetxt(surf, np.random.default_rng(0).permutation(rows))
+    route = [(0.5, 0.5), (2.0, 1.0), (2.9, 3.3)]
+    net = read_bathymetry(surf, route)
+    got = np.array(net.positions(net.parts["route"]))
+    exact = [1.0 + 0.5 * px - 0.25 * py + 0.75 * px * py for px, py in route]
+    assert np.allclose(got[:, 2], exact, rtol=0, atol=1e-12)
+
+
+def test_scattered_points_keep_the_delaunay_surface(tmp_path):
+    pytest.importorskip("scipy")
+    from scipy.interpolate import LinearNDInterpolator
+    from hexmesh.interchange.importers.bathymetry import _make_interpolator
+    rng = np.random.default_rng(1)
+    x, y = rng.uniform(0, 1, 30), rng.uniform(0, 1, 30)
+    assert isinstance(_make_interpolator(x, y, x + y), LinearNDInterpolator)
+    gx, gy = (a.ravel() for a in np.meshgrid([0.0, 1.0], [0.0, 1.0]))
+    gz = np.array([0.0, 1.0, 1.0, 0.0])
+    assert np.isclose(float(_make_interpolator(gx, gy, gz)([0.5], [0.5])[0]), 0.5)
+    assert np.isnan(_make_interpolator(gx, gy, gz)([2.0], [0.5])[0])
+
+
 # ---------------------------------------------------------------------------
 # Conformance with the PCF reference guide (docs/tasks/0021)
 # ---------------------------------------------------------------------------

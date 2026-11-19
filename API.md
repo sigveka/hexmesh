@@ -1488,6 +1488,12 @@ model holding one `Polyline` (`PIPE`; segments `PIPE_1`, `PIPE_2`, …)
 with no sizes. Build it with `to_assembly(spec, kinks="spline")`. GeoTIFF and NetCDF surfaces
 and shapefile / GeoPackage routes need the `bathymetry` extra
 (`pip install -e ".[bathymetry]"`: rasterio, xarray, fiona, shapely).
+A surface whose points are every x with every y (GeoTIFF without
+rotation, NetCDF, a gridded XYZ file) is interpolated bilinearly in
+each cell, the same on every platform.  Other points, scattered or a
+rotated grid, are interpolated linearly on a Delaunay triangulation:
+where four points are co-circular, the heights there can differ by
+platform.
 
 ---
 

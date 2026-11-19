@@ -1,11 +1,11 @@
 {
  "meta": {
-  "date": "2026-11-12",
-  "commit": "73a2f07 + uncommitted changes",
+  "date": "2026-11-19",
+  "commit": "3bf6edf + uncommitted changes",
   "gmsh": "4.12.1",
   "python": "3.12.3",
   "cpus": 8,
-  "jobs": 2
+  "jobs": 1
  },
  "examples": {
   "fittings.smooth_bend": {
@@ -1312,11 +1312,11 @@
     "coating",
     "insulation"
    ],
-   "min_sicn": 0.0030112120524958394,
-   "mean_sicn": 0.0618795935044549,
-   "min_sj": 0.771357371664469,
+   "min_sicn": 0.0030186902660729858,
+   "mean_sicn": 0.06188244285157598,
+   "min_sj": 0.771357382661927,
    "min_sj_fitting": "#3 Bend",
-   "max_aspect": 985.2693311112954,
+   "max_aspect": 982.8283208024054,
    "groups": {
     "open_end": [
      "coating_inlet",
@@ -1346,7 +1346,7 @@
    "cutaway": true,
    "predicted": 183744,
    "meshed": 183744,
-   "build_s": 220.63
+   "build_s": 181.54
   },
   "applications.district_heating": {
    "fittings": 3,

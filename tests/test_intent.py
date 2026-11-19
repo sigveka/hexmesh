@@ -174,6 +174,10 @@ V2_EXAMPLES = Path(__file__).parent / "data" / "examples_v2.json"
 #: example may change later, and ``subsea_pipeline`` drapes its route over a
 #: surface differently on macOS)
 CURRENT_EXAMPLES = Path(__file__).parent / "data" / "examples_current.json"
+#: every example as it builds today, on any platform (task 0171): an
+#: intended change to an example regenerates its entry here, not in
+#: ``examples_current.json``
+BUILT_EXAMPLES = Path(__file__).parent / "data" / "examples_built.json"
 
 
 def _same(a, b, path="") -> list[str]:
@@ -266,13 +270,13 @@ def test_another_section_kind_is_a_coded_error():
     assert e.value.where == {"field": "kind"} and e.value.limit == ["concentric"]
 
 
-@pytest.mark.parametrize("name", sorted(json.loads(CURRENT_EXAMPLES.read_text(encoding="utf-8"))))
+@pytest.mark.parametrize("name", sorted(json.loads(BUILT_EXAMPLES.read_text(encoding="utf-8"))))
 def test_example_builds_the_same_description_on_every_platform(name, gmsh_session):
     """Every example builds the description recorded in
-    ``examples_current.json`` (task 0171): CI runs this on each platform,
+    ``examples_built.json`` (task 0171): CI runs this on each platform,
     so an example whose build depends on the platform fails by name.  An
     intended change to an example regenerates its entry."""
     import importlib
     built = importlib.import_module("hexmesh.examples." + name).build().to_dict()
-    expected = json.loads(CURRENT_EXAMPLES.read_text(encoding="utf-8"))[name]
+    expected = json.loads(BUILT_EXAMPLES.read_text(encoding="utf-8"))[name]
     assert _same(built, expected) == []

@@ -208,15 +208,43 @@ def _make_interpolator(
     y: np.ndarray,
     z: np.ndarray,
 ):
-    """Build a 2-D scatter interpolator for the bathymetric surface."""
+    """The surface's height at ``(x, y)``, NaN outside it.
+
+    Points on an axis-aligned grid (every x with every y, once: GeoTIFF
+    without rotation, NetCDF, and a gridded XYZ file) interpolate
+    bilinearly in each cell, the same on every platform (task 0171).
+    Other points, scattered or a rotated grid, interpolate linearly on
+    Qhull's Delaunay triangulation; where four points are co-circular
+    (as a grid's cells are) its choice of diagonal follows rounding, so
+    the heights there can differ by platform."""
     try:
-        from scipy.interpolate import LinearNDInterpolator
-        return LinearNDInterpolator(np.column_stack([x, y]), z)
+        from scipy.interpolate import LinearNDInterpolator, RegularGridInterpolator
     except ImportError:
         raise ImportError(
             "scipy is required for bathymetry interpolation. "
             "Install with: pip install scipy"
         )
+    grid = _grid(x, y, z)
+    if grid is None:
+        return LinearNDInterpolator(np.column_stack([x, y]), z)
+    bilinear = RegularGridInterpolator(grid[:2], grid[2], bounds_error=False,
+                                       fill_value=np.nan)
+    return lambda px, py: bilinear(np.column_stack([np.ravel(px), np.ravel(py)]))
+
+
+def _grid(x: np.ndarray, y: np.ndarray, z: np.ndarray):
+    """``(xs, ys, Z)`` with ``Z[i, j]`` the height at ``(xs[i], ys[j])``
+    when the points are every x with every y once (in any order), else
+    None."""
+    xs, i = np.unique(x, return_inverse=True)
+    ys, j = np.unique(y, return_inverse=True)
+    if len(xs) < 2 or len(ys) < 2 or len(xs) * len(ys) != len(z):
+        return None
+    zz = np.full((len(xs), len(ys)), np.nan)
+    zz[i.ravel(), j.ravel()] = z
+    seen = np.zeros(zz.shape, bool)
+    seen[i.ravel(), j.ravel()] = True
+    return (xs, ys, zz) if seen.all() else None
 
 
 # ---------------------------------------------------------------------------

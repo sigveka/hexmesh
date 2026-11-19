@@ -91,6 +91,50 @@ surfaces platform-independent.
   (`tests/test_intent.py`): 35 pass on Linux in 6 s, so it isn't marked.
   Pushed before the fix for the run that should fail on macOS for
   `subsea_pipeline` only.
+- **Step 4, the run before the fix:** CI run 44478052400 on 3bf6edf
+  (2026-11-19).  Both macOS jobs (Python 3.x and 3.11) fail one test,
+  `test_example_builds_the_same_description_on_every_platform[applications.subsea_pipeline]`
+  (its first difference in `.inlet.normal`); 4734 pass.  The three
+  Ubuntu jobs, both Windows jobs and the OpenFOAM job pass.  As
+  expected: no other example, and no other platform.
+- **Step 2, the fix (2026-11-19).**  `_make_interpolator` checks
+  whether the points are every x with every y, once, in any order
+  (`_grid`: `np.unique` on each axis, the product equals the count,
+  every pair seen).  Then `RegularGridInterpolator` (bilinear, NaN
+  outside, as `LinearNDInterpolator` gives); otherwise
+  `LinearNDInterpolator` as before.  Spacing may vary along an axis
+  (rectilinear).  **A rotated grid counts as scattered:** its x and y
+  don't repeat, so detecting it means fitting the transform; out of
+  scope.  The docstring and API.md say a scattered surface's heights
+  can depend on the platform.
+- **Step 3, the change.**  Only `subsea_pipeline` changes among the 35
+  examples; the others' descriptions are identical to the stored ones
+  (so are their meshes: a mesh is built from its description).  In
+  `subsea_pipeline`: points up to 2.04e-3 m, a fitting's roll up to
+  2.62e-3°, an angle up to 3.0e-4°, a length up to 2.4e-5 m, the inlet
+  normal 1.1e-5.  Gallery: `--only applications.subsea_pipeline`
+  rebuilt it (183 744 cells as before; max aspect 985.3 → 982.8, min
+  SICN 0.00301 → 0.00302); the images change by a few bytes, not
+  visibly.  The `--only` build also rewrites the gallery's header line
+  (date, commit, "one core"), as it always does.
+- **Refined step 3/4: a fixture of its own.**  `examples_current.json`
+  is the version-2 migration test's expected file, and its comment
+  keeps it fixed so that test checks the migration only:
+  `examples_v2.json`'s `subsea_pipeline` carries the old heights, so
+  regenerating that entry would break the migration test.  The
+  platform test reads `tests/data/examples_built.json` instead: a copy
+  of `examples_current.json` with `subsea_pipeline` rebuilt.  An
+  intended change to an example regenerates its entry there.
+- **Tests:** `test_a_gridded_surface_interpolates_bilinearly` (a
+  rectilinear 3 × 4 grid written shuffled, z = 1 + 0.5x − 0.25y +
+  0.75xy, three route points exact to 1e-12; the Delaunay surface,
+  planar per triangle, is not exact for the xy term) and
+  `test_scattered_points_keep_the_delaunay_surface`
+  (`tests/test_io_readers.py`).  `test_intent.py` and
+  `test_io_readers.py`: 301 passed; `test_api_inventory.py` and
+  `test_architecture.py`: 109 passed.
+- **Step 5:** `docs/integrations/platforms.md`, "scipy/Qhull: a grid's
+  Delaunay triangulation differs by platform".
 
 ## Questions for design
 
