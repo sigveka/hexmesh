@@ -222,3 +222,30 @@ test the workflow."
     Replaced the same day by decision 0055: CI doesn't depend on
     OpenFOAM, and the try-out runs in the local check
     (`tools/local_check.py`, task 0178).
+
+## Note (2026-11-19): every level records how long its run took
+
+Task 0184 found that a level's commit stamp can be checked against the
+code that ran only when the level records its run length.  Only
+`helical_pipe`'s n_arc 24 levels and merged volunteer levels do
+(`wall_s`).  The user (2026-11-19): "add how long the run took to each
+level".
+
+1. **Every level written by `Store.put` has `wall_s`:** the wall time of
+   that level's run, in seconds, from its start to its write.  The
+   store measures it, so no driver has to.
+   - A driver that resumes a level across processes (helical) or sums
+     its own time passes `wall_s` itself, and the store keeps it.
+   - Volunteer levels keep `wall_s` from the contribution's `run`, as
+     merged today.
+2. **Also, where known:** `cores` (the MPI processes the solve used), and
+   `solve_s` (rule 3 of the note above) when the driver reads the
+   solver logs.  Both are optional.
+3. **The format stays version 1.**  The fields are optional, and old
+   levels simply lack them.  Nothing is backfilled from guesses.  Old
+   levels whose length is known from a task's notes may be filled in
+   by hand, citing the source.
+4. **Not in the allow-list's scope:** a run length says nothing about
+   the machine or the person, so rule 2 of the note above is unaffected.
+
+Task 0185.

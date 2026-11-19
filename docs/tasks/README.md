@@ -179,6 +179,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0182](0182-export-checks-framework.md) | Export checks: `kind` in the case schema, `validation/exports/`, FEniCSx moved there, two tables | done | 0057 |
 | [0183](0183-export-check-su2.md) | Export check: `.su2` in SU2 (format test, Poiseuille with its order) | ready (after 0182; before 1.0) | 0057 |
 | [0184](0184-stamp-environment-at-run-start.md) | `results.json` records the code that ran: the environment taken at the start of a run (drivers, volunteer `prepare`/`collect`, FEniCSx) | done | — |
+| [0185](0185-level-run-length.md) | Every level in `results.json` records how long its run took (`wall_s`; `cores` and `solve_s` where known) | ready (before 0050's runs) | 0044 |
 
 ### Validation
 
@@ -190,7 +191,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0034](0034-validation-layered-conduction.md) | Validation: conduction through a heated multi-layer cylinder (CHT, solids) | V1 | done | 0012 |
 | [0035](0035-validation-heated-pipe-cht.md) | Validation: heated multi-layer pipe with laminar flow (full CHT) | V1 | done | 0012 |
 | [0049](0049-validation-turbulent-pipe.md) | Validation: fully developed turbulent pipe flow (RANS, k-ω SST) | V2 | done | 0012, 0015 |
-| [0050](0050-validation-turbulent-bend.md) | Validation: turbulent flow in a 90° bend (PTB LDA, Re 5 × 10⁴; Sudo et al. 1998 the ideal) | V3 | ready | 0012, 0015 |
+| [0050](0050-validation-turbulent-bend.md) | Validation: turbulent flow in a 90° bend (PTB LDA, Re 5 × 10⁴; Sudo et al. 1998 the ideal) | V3 | in progress | 0012, 0015 |
 | [0067](0067-validation-womersley.md) | Validation: Womersley flow (pulsatile laminar pipe flow, exact solution) | V1 | done | 0012, 0015 |
 | [0068](0068-validation-pulsatile-stenosis.md) | Validation: pulsatile flow through the cosine stenosis (Varghese et al., Part 2) | V2 | done | 0012, 0015 |
 | [0071](0071-validation-rectangular-duct.md) | Validation: fully developed laminar flow in rectangular ducts | V1 | done | 0012, 0015 |
