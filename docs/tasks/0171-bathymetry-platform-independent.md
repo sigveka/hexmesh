@@ -1,6 +1,6 @@
 # 0171 — The bathymetry reader gives the same route on every platform
 
-- **Status:** in progress
+- **Status:** done
 - **Decision:** none (a bug fix; DESIGN §3's reproducibility, decision
   0044's mesh fingerprint).
 - **Depends on:** none.
@@ -139,3 +139,21 @@ surfaces platform-independent.
 ## Questions for design
 
 ## Outcome
+
+- **Result:** a gridded seabed is interpolated bilinearly, the same on
+  every platform.  The platform test failed on macOS for
+  `subsea_pipeline` only before the fix (run 44478052400) and is green
+  on all 8 jobs after it (run 44483419014 on 744a94f, promoted).
+- **Files:** `hexmesh/interchange/importers/bathymetry.py`
+  (`_make_interpolator`, `_grid`); `tests/test_intent.py` (the platform
+  test), `tests/data/examples_built.json` (new),
+  `tests/test_io_readers.py` (two tests); API.md, CHANGELOG
+  (*Behaviour*, Unreleased), `docs/integrations/platforms.md`; the
+  gallery's `subsea_pipeline` entry, images and metrics.
+- **Measured:** `subsea_pipeline` moves by up to 2.04e-3 m in a point
+  and 2.62e-3° in a roll; the other 34 examples are unchanged.
+- **Surprise:** `examples_current.json` couldn't take the new entry: it
+  is the migration test's fixed expectation (Agent notes).
+- **Follow-ups:** a rotated grid is still triangulated (detecting it
+  means fitting the GeoTIFF transform); the platform test costs about
+  6 s, so it isn't marked.
