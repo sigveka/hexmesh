@@ -1,6 +1,6 @@
 # 0184 — `results.json` records the code that ran: the environment taken at the start of a run
 
-- **Status:** in progress
+- **Status:** done
 - **Decision:** none needed (a fix to the provenance record of decisions
   0012 and 0044; the results format stays version 1)
 - **Depends on:** none.
@@ -128,7 +128,7 @@ which fields the environment holds (decision 0044's allow-list).
   locally, `-n 1`: `test_api_inventory`, `test_architecture`,
   `test_errors`, `test_validation_meta`, `test_volunteer` and
   `test_study` give 344 passed, 1 skipped (49 s); `test_readme` gives 13
-  passed.  The full suite is left to CI.
+  passed.  CI: green on all 8 jobs at 1ea271c (run 44574512325), promoted.
 - **Format:** `results.json` stays version 1, with the same environment
   fields; contribution version 1, with one optional field.
 - **Step 6, levels that may be mis-stamped** (for the design session;
