@@ -166,7 +166,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0168](0168-volunteer-card-junction-loss.md) | A volunteer card for the junction-flow benchmark (one level per point) | ready (the user asked for the 20 points, 2026-11-18) | 0044 |
 | [0169](0169-volunteer-card-turbulent-bend.md) | A volunteer card for the turbulent bend | ready (after 0050's driver) | 0044 |
 | [0170](0170-validation-setup-docs.md) | Validation needs a checkout: three setups in the docs, Windows forms, a test of the boundary | ready | 0054 |
-| [0171](0171-bathymetry-platform-independent.md) | The bathymetry reader gives the same route on every platform (bilinear on grids; a platform test over the examples) | ready | — |
+| [0171](0171-bathymetry-platform-independent.md) | The bathymetry reader gives the same route on every platform (bilinear on grids; a platform test over the examples) | in progress (the platform test pushed before the fix) | — |
 | [0172](0172-docs-site-next-essens.md) | The docs site on the next Essens release: `--layout`, MathML in place of KaTeX, the stylesheet; CONTRIBUTING names v0.1.4 now | ready (step 1; the rest after a release) | 0049 |
 | [0173](0173-windows-volunteer-run.md) | Windows volunteer run: gmsh clobbers `PATH`, `mpirun` as root, processor symlinks, a stopped Docker reported as "no OpenFOAM" | done | 0039 |
 | [0174](0174-windows-volunteer-tool-gaps.md) | Volunteer tool off Linux: peak memory without `/proc`, generated files with LF, the POSIX-tool scan widened | ready | 0039, 0044 |

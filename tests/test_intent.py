@@ -264,3 +264,15 @@ def test_another_section_kind_is_a_coded_error():
         Assembly.from_dict(d)
     assert e.value.code == "section_kind_unsupported"
     assert e.value.where == {"field": "kind"} and e.value.limit == ["concentric"]
+
+
+@pytest.mark.parametrize("name", sorted(json.loads(CURRENT_EXAMPLES.read_text(encoding="utf-8"))))
+def test_example_builds_the_same_description_on_every_platform(name, gmsh_session):
+    """Every example builds the description recorded in
+    ``examples_current.json`` (task 0171): CI runs this on each platform,
+    so an example whose build depends on the platform fails by name.  An
+    intended change to an example regenerates its entry."""
+    import importlib
+    built = importlib.import_module("hexmesh.examples." + name).build().to_dict()
+    expected = json.loads(CURRENT_EXAMPLES.read_text(encoding="utf-8"))[name]
+    assert _same(built, expected) == []

@@ -1,6 +1,6 @@
 # 0171 — The bathymetry reader gives the same route on every platform
 
-- **Status:** ready
+- **Status:** in progress
 - **Decision:** none (a bug fix; DESIGN §3's reproducibility, decision
   0044's mesh fingerprint).
 - **Depends on:** none.
@@ -86,6 +86,11 @@ surfaces platform-independent.
   the push of the range up to 9de140b stays green while 0167 goes first
   (the design session's order).  It goes in as its own commit, pushed
   alone, for the before-the-fix run.
+- **Step 4, committed alone (2026-11-19)** as
+  `test_example_builds_the_same_description_on_every_platform`
+  (`tests/test_intent.py`): 35 pass on Linux in 6 s, so it isn't marked.
+  Pushed before the fix for the run that should fail on macOS for
+  `subsea_pipeline` only.
 
 ## Questions for design
 
