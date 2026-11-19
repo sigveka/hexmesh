@@ -1,6 +1,6 @@
 # 0182 — Export checks: the framework, and FEniCSx moved into it
 
-- **Status:** in progress
+- **Status:** done
 - **Decision:** [0057](../decisions/0057-two-kinds-validation-and-export-checks.md)
   rules 2 and 4
 - **Depends on:** none.  Coordinate with 0179 (cards) and 0178 (local
@@ -164,3 +164,5 @@ arrives intact in another code.  Today the one export check
   - `tags.toolchain` is still required with `openfoam` or `fenicsx`, so
     0181 and 0183 must widen it for code_saturne and SU2, or the schema
     could let `consumer` replace it for an export check.
+- **CI:** green on all 8 jobs at e64ff49 (run 44595951544); promoted,
+  `main` is e64ff49.
