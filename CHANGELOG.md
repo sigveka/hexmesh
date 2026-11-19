@@ -22,6 +22,12 @@ the end of a run, so a commit made while a long level ran stamped it.
 They now record it at the start: the driver's start, `prepare`, and
 `run`'s start.
 
+**Validation levels record how long their run took** (task 0185).  A
+level a driver stores now carries `wall_s` (seconds from its start to its
+write), `cores` where the driver states them, and `solve_s` (OpenFOAM's
+`ClockTime`) where it reads the log.  A volunteer's level keeps the time
+measured where it ran.  `results.json` stays version 1.
+
 **Docs: validation and export checks, apart** (task 0182, decision 0057).
 An export check asks whether a mesh arrives intact in another code; it
 passes or fails, with no V-category.  `fenicsx_second_order` moved to

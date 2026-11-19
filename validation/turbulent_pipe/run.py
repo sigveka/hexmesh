@@ -550,7 +550,8 @@ def main(argv=None) -> dict:
             r = stored.run_level(store, f"{name}_k{k}",
                                  lambda name=name, k=k: run_level(name, k, args.work,
                                                                   args.end_time, args.n_proc),
-                                 args.work / f"{name}_k{k}", args.keep_work)
+                                 args.work / f"{name}_k{k}", args.keep_work,
+                                 cores=args.n_proc)
             print(f"[{name} k={k}] f {r['f']:.5f} ({100 * r['f_err_mckeon']:+.2f} % McKeon), "
                   f"U_c/U_b {r['uc_over_ub']:.4f}, y+ {r['yplus_first_max']:.2f}, "
                   f"steps {r['steps']}", flush=True)

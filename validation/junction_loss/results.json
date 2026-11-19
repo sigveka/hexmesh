@@ -63,6 +63,7 @@
    "check_mesh_ok": true,
    "config": "div_a",
    "converged": false,
+   "cores": 3,
    "drift": {
     "xi_MGb_mckeon": 0.0018671801791902976,
     "xi_PG_mckeon": 0.008900958790111213
@@ -201,6 +202,7 @@
    "q": 0.6,
    "re": 100000.0,
    "steps": 8000,
+   "wall_s": 1980.0,
    "window": {
     "steps": [
      5600.0,
@@ -484,6 +486,7 @@
    "check_mesh_ok": true,
    "config": "div_a",
    "converged": false,
+   "cores": 3,
    "drift": {
     "xi_MGb_mckeon": -0.004019755955426141,
     "xi_PG_mckeon": -0.006866586929592411
@@ -622,6 +625,7 @@
    "q": 0.6,
    "re": 100000.0,
    "steps": 8000,
+   "wall_s": 51060.0,
    "window": {
     "steps": [
      5600.0,
@@ -909,6 +913,7 @@
    "check_mesh_ok": true,
    "config": "div_a",
    "converged": false,
+   "cores": 3,
    "drift": {
     "xi_MGb": 1.5686495888900254e-06,
     "xi_MGb_mckeon": 2.1279789764738766e-06,
@@ -1050,6 +1055,7 @@
    "solver": "simpleFoam",
    "steps": 8000,
    "wall": "nutk",
+   "wall_s": 13560.0,
    "window": {
     "steps": [
      5600.0,

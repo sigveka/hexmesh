@@ -291,6 +291,54 @@ def test_a_failed_level_keeps_its_case(tmp_path, capsys):
     assert stored.load(tmp_path / "results.json") is None      # nothing stored
 
 
+def test_each_level_records_its_own_wall_time(tmp_path, monkeypatch):
+    """Task 0185: wall_s from each level's start; a reused level doesn't
+    count toward the next; cores as the driver states them."""
+    monkeypatch.setattr(stored, "environment", lambda start=None: ENV)
+    # the store's start; per run_level: begin, the put, the put's end (the next start)
+    clock = iter([100.0, 103.0, 110.0, 111.0, 117.0, 130.0, 131.0, 151.0, 152.0])
+    monkeypatch.setattr(stored.time, "monotonic", lambda: next(clock))
+    store = stored.Store(tmp_path / "results.json", "demo")
+    a = stored.run_level(store, "a", lambda: {"x": 1.0}, None, cores=4)       # 103 → 110
+    b = stored.run_level(store, "b", lambda: {"x": 2.0, "n_proc": 2}, None)   # 117 → 130
+    assert a["wall_s"] == 7.0 and a["cores"] == 4
+    assert b["wall_s"] == 13.0 and b["cores"] == 2
+    c = store.put("c", {"x": 3.0})                                   # 131 (b's end) → 151
+    assert c["wall_s"] == 20.0 and "cores" not in c
+    on_disk = {lv["name"]: lv["wall_s"] for lv in stored.load(tmp_path / "results.json")["levels"]}
+    assert on_disk == {"a": 7.0, "b": 13.0, "c": 20.0}
+
+
+def test_a_supplied_wall_time_survives_and_rounded_levels_get_none(tmp_path, monkeypatch):
+    monkeypatch.setattr(stored, "environment", lambda start=None: ENV)
+    store = stored.Store(tmp_path / "results.json", "demo")
+    assert store.put("a", {"x": 1.0, "wall_s": 13560.0})["wall_s"] == 13560.0   # resumed
+    v = store.put("v", {"x": 1.0}, wall_s=42.0, cores=16)           # a volunteer's
+    assert v["wall_s"] == 42.0 and v["cores"] == 16
+    r = store.put("r", {"x": 0.3}, precision=stored.ROUNDED, env=ENV)
+    assert "wall_s" not in r and "cores" not in r
+
+
+def test_a_level_without_timing_still_loads(tmp_path):
+    """Version 1 stays: older levels carry no wall_s, cores or solve_s."""
+    import jsonschema
+    path = tmp_path / "results.json"
+    stored.write(path, {"format": stored.FORMAT, "version": 1, "case": "demo",
+                        "levels": [{"name": "a", "precision": "full", "environment": ENV,
+                                    "x": 1.0}], "extra": {}})
+    data = stored.load(path)
+    jsonschema.validate(data, json.loads((ROOT / "validation/results.schema.json")
+                                         .read_text(encoding="utf-8")))
+    assert stored.Store(path, "demo").level("a")["x"] == 1.0
+
+
+def test_clock_s_sums_each_logs_last_clock_time():
+    log1 = "Time = 1\nExecutionTime = 1.2 s  ClockTime = 2 s\nTime = 2\nClockTime = 5 s\n"
+    log2 = "ExecutionTime = 3 s  ClockTime = 7 s\n"
+    assert stored.clock_s(log1, log2) == 12.0
+    assert stored.clock_s("no clock here") is None
+
+
 def test_write_is_deterministic_and_capped(tmp_path):
     path = tmp_path / "r.json"
     data = {"case": "demo", "levels": [{"name": "a", "b": float("nan"), "a": 2}], "extra": {}}

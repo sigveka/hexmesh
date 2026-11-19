@@ -39,6 +39,12 @@ The file::
 - ``validation/results.schema.json`` describes it.
 - A hexmesh level records its section counts (:func:`counts`), which
   ``hexmesh.agent``'s calibration reads (task 0098).
+- A level a driver writes records how long its run took (task 0185):
+  ``wall_s``, seconds from the level's start to its write
+  (:meth:`Store.begin`); ``cores``, the solve's MPI processes, where the
+  driver states them; ``solve_s``, the solver's own clock, where the
+  driver reads it (:func:`clock_s`).  Older levels have none of them; the
+  format stays version 1.
 """
 
 from __future__ import annotations
@@ -47,7 +53,9 @@ import argparse
 import datetime
 import json
 import math
+import re
 import shutil
+import time
 from pathlib import Path
 from typing import Callable
 
@@ -152,6 +160,7 @@ class Store:
     def __init__(self, path: Path, case: str):
         self.path = Path(path)
         self.start = started()
+        self._began = time.monotonic()
         self.data = load(self.path) or {"case": case, "levels": [], "extra": {}}
         if self.data["case"] != case:
             raise ValueError(f"{path}: results of {self.data['case']!r}, not {case!r}")
@@ -163,10 +172,30 @@ class Store:
     def levels(self) -> list[dict]:
         return list(self.data["levels"])
 
+    def begin(self) -> None:
+        """A level's run starts now: its ``wall_s`` counts from here.  The
+        store's construction, and each :meth:`put`, begin the next level;
+        :func:`run_level` calls this before running one, so the levels it
+        reuses don't count."""
+        self._began = time.monotonic()
+
     def put(self, name: str, values: dict, *, precision: str = FULL,
-            env: dict | None = None) -> dict:
+            env: dict | None = None, wall_s: float | None = None,
+            cores: int | None = None) -> dict:
         """Store (or replace) level *name* and write the file, stamped with
-        *env*, or the environment at the store's :attr:`start`."""
+        *env*, or the environment at the store's :attr:`start`.
+
+        A full level gets ``wall_s``: *values*' own, else *wall_s* (a
+        volunteer's run, measured where it ran), else the seconds since
+        :meth:`begin`.  ``cores``: *values*' own, else *cores*, else the
+        level's ``n_proc``; none if no one states it (task 0185)."""
+        values = dict(values)
+        if precision == FULL:
+            values.setdefault("wall_s", wall_s if wall_s is not None
+                              else time.monotonic() - self._began)
+            stated = cores if cores is not None else values.get("n_proc")
+            if stated is not None:
+                values.setdefault("cores", int(stated))
         row = {**_finite(values), "name": name, "precision": precision,
                "environment": env if env is not None else environment(self.start)}
         old = [i for i, lv in enumerate(self.data["levels"]) if lv["name"] == name]
@@ -175,6 +204,7 @@ class Store:
         else:
             self.data["levels"].append(row)
         self.write()
+        self._began = time.monotonic()
         return row
 
     def put_extra(self, key: str, value) -> None:
@@ -198,24 +228,34 @@ def counts(asm) -> dict:
 
 
 def run_level(store: Store, name: str, run: Callable[[], dict], case_dir: Path | None,
-              keep_work: bool = False) -> dict:
+              keep_work: bool = False, *, cores: int | None = None) -> dict:
     """Level *name* from *store* if it holds it at full precision, else
-    ``run()``, stored.  The level's *case_dir* is then deleted unless
-    *keep_work*; a failed level keeps it and says where it is."""
+    ``run()``, stored with its ``wall_s`` and *cores* (:meth:`Store.put`).
+    The level's *case_dir* is then deleted unless *keep_work*; a failed
+    level keeps it and says where it is."""
     got = store.level(name)
     if got is not None and got["precision"] == FULL:
         print(f"[{name}] reused from {store.path}", flush=True)
         return got
+    store.begin()
     try:
         values = run()
     except BaseException:
         if case_dir is not None and Path(case_dir).exists():
             print(f"[{name}] failed; its case is kept in {case_dir}", flush=True)
         raise
-    row = store.put(name, values)
+    row = store.put(name, values, cores=cores)
     if case_dir is not None and not keep_work:
         remove_work(case_dir)
     return row
+
+
+def clock_s(*logs: str) -> float | None:
+    """The solver's own time: the sum over OpenFOAM *logs* of each one's
+    last ``ClockTime`` (it counts from the solver's start); None if no log
+    has one.  A volunteer's ``run`` measures ``wall_s`` instead."""
+    times = [re.findall(r"ClockTime = ([\d.eE+-]+) s", log) for log in logs]
+    return float(sum(float(t[-1]) for t in times if t)) if any(times) else None
 
 
 def remove_work(case_dir: Path) -> None:

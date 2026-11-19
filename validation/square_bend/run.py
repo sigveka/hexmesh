@@ -527,7 +527,8 @@ def main(argv=None) -> dict:
                                  lambda k=k, inlet=inlet: run_level(
                                      k, args.work, args.end_time, args.n_proc,
                                      l_ups[inlet], inlet),
-                                 args.work / f"{inlet}_k{k}", args.keep_work)
+                                 args.work / f"{inlet}_k{k}", args.keep_work,
+                                 cores=args.n_proc)
             print(f"{inlet} inlet, " + table(r), flush=True)
     rich = {inlet: analyse(store.levels(), inlet) for inlet in INLETS}
     store.put_extra("richardson_peak_u", rich)

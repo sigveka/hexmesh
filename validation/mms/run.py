@@ -751,7 +751,8 @@ def main(argv=None) -> dict:
                                      lambda name=name, k=k: run_level(name, k, args.work,
                                                                       args.end_time,
                                                                       args.n_proc),
-                                     args.work / f"{name}_k{k}", args.keep_work)
+                                     args.work / f"{name}_k{k}", args.keep_work,
+                                     cores=args.n_proc)
             except Exception as e:                 # the next case still runs
                 failed[f"{name}_k{k}"] = f"{type(e).__name__}: {e}"
                 print(f"[{name} k={k}] FAILED {failed[f'{name}_k{k}']}", flush=True)

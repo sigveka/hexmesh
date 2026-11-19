@@ -562,14 +562,14 @@ def main(argv=None) -> dict:
                                           if lv["precision"] == stored.FULL})
         rows.append(stored.run_level(
             store, name, lambda name=name, n=n: run_level(name, LEVELS[name], args.work, n),
-            args.work / name, keep))
+            args.work / name, keep, cores=n))
         print(json.dumps({k: v for k, v in rows[-1].items() if k != "phases"}), flush=True)
     if halved:
         rows.append(stored.run_level(
             store, level_name(halved, 2.0),
             lambda: run_level(halved, LEVELS[halved], args.work, args.np, dt_factor=2.0,
                               warm_from=args.work / halved),
-            args.work / f"{halved}-dt2", args.keep_work))
+            args.work / f"{halved}-dt2", args.keep_work, cores=args.np))
         print(json.dumps({k: v for k, v in rows[-1].items() if k != "phases"}), flush=True)
         if not args.keep_work:
             stored.remove_work(args.work / halved)

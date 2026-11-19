@@ -23,6 +23,9 @@
           "n_radial": {"type": ["integer", "null"], "minimum": 0, "description": "the core's O-H radial cells (0 on an H core)"},
           "n_width": {"type": ["integer", "null"], "minimum": 1, "description": "a rectangular core's divisions along each width edge"},
           "n_height": {"type": ["integer", "null"], "minimum": 1, "description": "a rectangular core's divisions along each height edge"},
+          "wall_s": {"type": "number", "minimum": 0, "description": "seconds the level's run took, from its start to its write; a volunteer's as measured where it ran (task 0185); absent on older levels"},
+          "cores": {"type": "integer", "minimum": 1, "description": "the solve's MPI processes (OpenMP threads for SU2), where the driver states them (task 0185)"},
+          "solve_s": {"type": ["number", "null"], "minimum": 0, "description": "the solver's own clock (OpenFOAM's ClockTime), where the driver reads it (task 0185)"},
           "environment": {
             "type": "object",
             "description": "the run's versions; for rounded levels, those RESULTS.md names",

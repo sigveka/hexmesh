@@ -179,7 +179,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0182](0182-export-checks-framework.md) | Export checks: `kind` in the case schema, `validation/exports/`, FEniCSx moved there, two tables | done | 0057 |
 | [0183](0183-export-check-su2.md) | Export check: `.su2` in SU2 (format test, Poiseuille with its order) | ready (after 0182; before 1.0) | 0057 |
 | [0184](0184-stamp-environment-at-run-start.md) | `results.json` records the code that ran: the environment taken at the start of a run (drivers, volunteer `prepare`/`collect`, FEniCSx) | done | — |
-| [0185](0185-level-run-length.md) | Every level in `results.json` records how long its run took (`wall_s`; `cores` and `solve_s` where known) | ready (before 0050's runs) | 0044 |
+| [0185](0185-level-run-length.md) | Every level in `results.json` records how long its run took (`wall_s`; `cores` and `solve_s` where known) | in progress | 0044 |
 
 ### Validation
 

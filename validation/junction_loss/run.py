@@ -754,7 +754,7 @@ def main(argv=None) -> dict:
                                      c, q, k, args.work, args.end_time, args.n_proc, args.re,
                                      args.window, args.samples, args.model, args.transient,
                                      args.wall),
-                                 args.work / name, args.keep_work)
+                                 args.work / name, args.keep_work, cores=args.n_proc)
             print(f"[{name}] ξ_PG {r['xi_PG']:.4f} ± {r['xi_PG_spread'] or 0:.4f} "
                   f"(McKeon {r['xi_PG_mckeon']:.4f}), ξ_MGb {r['xi_MGb']:.4f} "
                   f"± {r['xi_MGb_spread'] or 0:.4f} (McKeon {r['xi_MGb_mckeon']:.4f}), "

@@ -591,7 +591,8 @@ def check(path: Path, *, results: Path | None = None, merge: bool = False,
             **contrib.get("contributor", {}), "cores": contrib["run"]["cores"],
             "wall_s": contrib["run"]["wall_s"], "peak_memory_gb": contrib["run"]["peak_memory_gb"],
             "mesh_sha256": contrib["mesh"]["sha256"]}}
-        store.put(level, values, env=env)
+        store.put(level, values, env=env, wall_s=contrib["run"]["wall_s"],   # where it ran
+                  cores=contrib["run"]["cores"])
         for key, val in contrib.get("extra", {}).items():
             merged = store.data["extra"].get(key)
             store.put_extra(key, {**merged, **val} if isinstance(merged, dict)
