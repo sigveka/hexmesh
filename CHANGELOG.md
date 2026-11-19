@@ -15,6 +15,13 @@ grid, keep the triangulation.  A new test builds every example on every
 CI job and compares it with a stored copy, so a platform difference
 fails by name.
 
+**Fixed: a run is stamped with the code it started on** (task 0184).  A
+validation level, a volunteer contribution and a study's `study.json`
+recorded the hexmesh commit (and `+local`) when they were written, at
+the end of a run, so a commit made while a long level ran stamped it.
+They now record it at the start: the driver's start, `prepare`, and
+`run`'s start.
+
 ## 0.8.0 (2026-11-18)
 
 The API review before the 1.0 freeze (decisions 0042 and 0053): the

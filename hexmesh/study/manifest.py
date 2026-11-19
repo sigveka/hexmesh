@@ -60,7 +60,9 @@ def _public(row: dict) -> dict:
     return {k: v for k, v in row.items() if k not in ("network", "traceback", "group_roles")}
 
 
-def write_manifest(study: Study, rows: list[dict]) -> None:
+def write_manifest(study: Study, rows: list[dict], started: dict | None = None) -> None:
+    """``study.csv`` and ``study.json``, with the *started* :func:`versions`
+    (taken when the run began; task 0184), or now."""
     study.output.mkdir(parents=True, exist_ok=True)
     names = list(dict.fromkeys(k for r in rows for k in r["params"]))
     results = list(dict.fromkeys(k for r in rows for k in (r.get("result") or {})))
@@ -76,7 +78,7 @@ def write_manifest(study: Study, rows: list[dict]) -> None:
                        + ["" if res.get(k) is None else res[k] for k in results]
                        + ["" if vals[k] is None else vals[k] for k in COLUMNS[2:]])
     (study.output / "study.json").write_text(json.dumps({
-        "study": study.raw, "versions": versions(),
+        "study": study.raw, "versions": started or versions(),
         "variants": [_public(r) for r in rows]}, indent=1, default=str), encoding="utf-8")
 
 

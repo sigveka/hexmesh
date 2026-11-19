@@ -125,6 +125,24 @@ class TestGrid:
         assert set(data["versions"]) == {"hexmesh", "gmsh", "python"}
         assert status(study) == {"meshed": 9}
 
+    def test_manifest_records_the_code_the_run_started_on(self, tmp_path, monkeypatch):
+        """A commit made while the study runs doesn't stamp it (task 0184)."""
+        import hexmesh.study as hs
+        from hexmesh.study import manifest
+        now = {"hexmesh": "aaaaaaa", "gmsh": "4.13.1", "python": "3.12.0"}
+        monkeypatch.setattr(manifest, "versions", lambda: dict(now))
+        real = hs.preflight
+
+        def moving(study):
+            now["hexmesh"] = "bbbbbbb+local"
+            return real(study)
+
+        monkeypatch.setattr(hs, "preflight", moving)
+        study = _study(tmp_path, sampling={"grid": {"radius": [0.2], "angle": [90]}})
+        run(study, "preflight")
+        data = json.loads((study.output / "study.json").read_text(encoding="utf-8"))
+        assert data["versions"]["hexmesh"] == "aaaaaaa"
+
     def test_rerun_meshes_nothing_and_adding_a_row_meshes_it(self, grid, tmp_path):
         study, _, rows, _ = grid
         mtimes = {r["hash"]: (variant_dir(study, r["hash"]) / "mesh.msh").stat().st_mtime_ns

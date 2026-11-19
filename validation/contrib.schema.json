@@ -64,7 +64,10 @@
         "wall_s": {"type": "number", "minimum": 0},
         "peak_memory_gb": {"type": ["number", "null"], "minimum": 0},
         "peak_memory_how": {"type": "string", "maxLength": 300},
-        "allow_version": {"type": "boolean"}
+        "allow_version": {"type": "boolean"},
+        "environment_from": {
+          "description": "where the environment's hexmesh, gmsh, Python and date come from: prepare (the code that ran), or collect for a run directory from before prepare stored them",
+          "enum": ["prepare", "collect"]}
       }
     },
     "log_tail": {

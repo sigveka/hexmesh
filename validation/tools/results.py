@@ -83,13 +83,21 @@ def add_openfoam_argument(ap: argparse.ArgumentParser, default: str) -> None:
                          "the environment variable HEXMESH_OPENFOAM sets it for every case)")
 
 
-def environment() -> dict:
-    """hexmesh commit, gmsh, Python, the OpenFOAM version and runner, and
-    today's date."""
-    from hexmesh.study import openfoam as of
+def started() -> dict:
+    """The part of :func:`environment` that can move under a long run: the
+    hexmesh commit (and ``+local``), gmsh, Python and the date.  Taken when
+    the run starts, before meshing or solving: the sessions share one
+    working tree, so HEAD may move while a level runs (task 0184)."""
     from hexmesh.study.manifest import versions
-    return {**versions(), "openfoam": of.openfoam_version(), "runner": of.runner(),
-            "date": datetime.date.today().isoformat()}
+    return {**versions(), "date": datetime.date.today().isoformat()}
+
+
+def environment(start: dict | None = None) -> dict:
+    """hexmesh commit, gmsh, Python, the OpenFOAM version and runner, and
+    the date: *start* (from :func:`started`) or now, with the runner's
+    OpenFOAM version as it reports it now (it doesn't move with HEAD)."""
+    from hexmesh.study import openfoam as of
+    return {**(start or started()), "openfoam": of.openfoam_version(), "runner": of.runner()}
 
 
 def _finite(value):
@@ -138,10 +146,12 @@ def load(path: Path) -> dict | None:
 
 class Store:
     """One case's ``results.json``: levels by name, written after every
-    level (fine levels take hours)."""
+    level (fine levels take hours).  A driver makes it at its start, so
+    :attr:`start` is the code that runs (task 0184)."""
 
     def __init__(self, path: Path, case: str):
         self.path = Path(path)
+        self.start = started()
         self.data = load(self.path) or {"case": case, "levels": [], "extra": {}}
         if self.data["case"] != case:
             raise ValueError(f"{path}: results of {self.data['case']!r}, not {case!r}")
@@ -155,9 +165,10 @@ class Store:
 
     def put(self, name: str, values: dict, *, precision: str = FULL,
             env: dict | None = None) -> dict:
-        """Store (or replace) level *name* and write the file."""
+        """Store (or replace) level *name* and write the file, stamped with
+        *env*, or the environment at the store's :attr:`start`."""
         row = {**_finite(values), "name": name, "precision": precision,
-               "environment": env if env is not None else environment()}
+               "environment": env if env is not None else environment(self.start)}
         old = [i for i, lv in enumerate(self.data["levels"]) if lv["name"] == name]
         if old:
             self.data["levels"][old[0]] = row

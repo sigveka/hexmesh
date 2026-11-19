@@ -373,3 +373,81 @@ def test_raw_placeholders_are_caught():
     assert _raw_placeholders("one file, helical_pipe-<level>.contrib.json") == ["<level>"]
     assert _raw_placeholders("one file, `x-<level>.json`; <!-- see <case> -->\n"
                              "```bash\nprepare <case>\n```") == []
+
+
+# --- the environment stamped is the code that ran (task 0184) -------------------------
+
+@pytest.fixture
+def head(monkeypatch):
+    """``versions()`` reads this dict, and the runner reports v2406: a test
+    moves HEAD by changing it, as a commit between prepare and collect would."""
+    from hexmesh.study import manifest
+    now = {"hexmesh": "aaaaaaa", "gmsh": "4.13.1", "python": "3.12.0"}
+    monkeypatch.setattr(manifest, "versions", lambda: dict(now))
+    monkeypatch.setattr(of, "openfoam_version", lambda: "v2406")
+    monkeypatch.setattr(vol, "pick_runner", lambda c, given: "path")
+    monkeypatch.setattr(vol, "use_runner", lambda spec, required, allow: "v2406")
+    monkeypatch.setattr(vol, "mesh_hash", lambda msh: HASH)
+    monkeypatch.setattr(vol, "_drop_mesh", lambda msh: None)
+    return now
+
+
+class _Driver:
+    """prepare meshes while HEAD moves; collect gives one level's values."""
+    def __init__(self, head):
+        self.head = head
+
+    def prepare(self, level, d, mesh_only=False):
+        self.head["hexmesh"] = "bbbbbbb+local"
+        d.mkdir(parents=True, exist_ok=True)
+        return {"msh": d / "mesh.msh", "check": {"mesh_ok": True, "cells_foam": 1000}}
+
+    def check_level(self, level):
+        pass
+
+    def collect(self, level, d):
+        return {"values": {"converged": True, "steps": 100, "cells": 1000}, "extra": {}}
+
+
+def _collected(capsys, tmp_path, d):
+    code = vol.main(["collect", str(d), "--out", str(tmp_path), "--delete"])
+    assert code == 0
+    err = capsys.readouterr().err
+    contrib = json.loads((tmp_path / f"helical_pipe-{LEVEL}.contrib.json").read_text(
+        encoding="utf-8"))
+    import jsonschema
+    jsonschema.validate(contrib, json.loads(vol.SCHEMA.read_text(encoding="utf-8")))
+    return contrib, err
+
+
+def test_a_contribution_is_stamped_with_the_code_prepare_ran(capsys, tmp_path, head,
+                                                             monkeypatch):
+    monkeypatch.setattr(vol, "driver", lambda case: _Driver(head))
+    d = tmp_path / "run"
+    assert vol.main(["prepare", "helical_pipe", LEVEL, "--dir", str(d)]) == 0
+    state = json.loads((d / vol.STATE).read_text(encoding="utf-8"))
+    assert state["prepared"]["hexmesh"] == "aaaaaaa"          # before meshing
+    state["runs"], state["wall_s"] = 1, 60.0                  # as `run` leaves it
+    (d / vol.STATE).write_text(json.dumps(state), encoding="utf-8")
+    head["hexmesh"] = "ccccccc"                               # days later, another commit
+    contrib, err = _collected(capsys, tmp_path, d)
+    assert contrib["environment"]["hexmesh"] == "aaaaaaa"
+    assert contrib["environment"]["date"] == state["prepared"]["date"]
+    assert contrib["environment"]["openfoam"] == "v2406"      # the runner's, at collect
+    assert contrib["run"]["environment_from"] == "prepare" and "environment prepare had" not in err
+
+
+def test_an_older_run_directory_is_stamped_at_collect_with_a_note(capsys, tmp_path, head,
+                                                                  monkeypatch):
+    monkeypatch.setattr(vol, "driver", lambda case: _Driver(head))
+    d = tmp_path / "run"
+    d.mkdir()
+    (d / vol.STATE).write_text(json.dumps({
+        "case": "helical_pipe", "level": LEVEL, "runner": "path", "openfoam": "v2406",
+        "allow_version": False, "n_proc": 4, "mesh": {"sha256": HASH, "method": vol.HASH_METHOD,
+                                                      "check": {"mesh_ok": True, "cells_foam": 1000}},
+        "wall_s": 60.0, "peak_memory_bytes": None, "runs": 1}), encoding="utf-8")
+    head["hexmesh"] = "ccccccc"
+    contrib, err = _collected(capsys, tmp_path, d)
+    assert contrib["environment"]["hexmesh"] == "ccccccc"
+    assert contrib["run"]["environment_from"] == "collect" and "environment prepare had" in err

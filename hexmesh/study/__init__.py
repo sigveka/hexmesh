@@ -34,6 +34,7 @@ from __future__ import annotations
 from collections import Counter
 
 from .definition import Study, StudyError, canonical, load_study, variant_hash
+from . import manifest
 from .manifest import export, read_manifest, write_manifest
 from .sampling import variants
 from .stages import (
@@ -82,6 +83,7 @@ def run(study: Study, stage: str | None = None, *, jobs: int | None = None,
         raise StudyError(f"the study file has no {stage!r} block",
                          code="study_stage_missing", where={"field": stage})
     say = log or (lambda *a: None)
+    started = manifest.versions()        # the code that runs, before HEAD can move (task 0184)
     rows = preflight(study)
     cells = sum(r["cells"] or 0 for r in rows)
     say(f"preflight: {len(rows)} variant(s), {cells} cells, "
@@ -100,11 +102,11 @@ def run(study: Study, stage: str | None = None, *, jobs: int | None = None,
         try:
             done = run_stage(study, rows, jobs=jobs, force=force)
         except StudyError:
-            write_manifest(study, rows)
+            write_manifest(study, rows, started)
             raise
         say(f"run: {len(done)} run")
     load_case_run(study, rows)
-    write_manifest(study, rows)
+    write_manifest(study, rows, started)
     if failed and not keep_going:
         raise PreflightFailed(rows)
     return rows

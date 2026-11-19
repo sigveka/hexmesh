@@ -50,7 +50,6 @@ is accepted and reported as a miss.
 from __future__ import annotations
 
 import argparse
-import datetime
 import difflib
 import hashlib
 import importlib.util
@@ -336,7 +335,6 @@ def job_script(case: str, level: str, d: Path, req: dict | None, n_proc: int) ->
 
 
 def cmd_prepare(args) -> int:
-    from hexmesh.study.manifest import versions
     c = card(args.case)
     offered = offered_level(args.case, args.level)        # names first: no runner, no gmsh
     if offered is None:
@@ -361,6 +359,7 @@ def cmd_prepare(args) -> int:
     runner = pick_runner(c, args.runner)
     version = use_runner(runner, c["openfoam"]["version"], args.allow_version)
     print(f"OpenFOAM {version} ({runner})", flush=True)
+    prepared = results_module().started()       # before meshing; collect stamps it (task 0184)
     out = drv.prepare(args.level, d)
     h = mesh_hash(out["msh"])
     _drop_mesh(out["msh"])
@@ -368,7 +367,7 @@ def cmd_prepare(args) -> int:
     state = {"case": args.case, "level": args.level, "runner": runner, "openfoam": version,
              "allow_version": args.allow_version, "n_proc": n_proc,
              "mesh": {"sha256": h, "method": HASH_METHOD, "check": out["check"]},
-             "prepared": {**versions(), "date": datetime.date.today().isoformat()},
+             "prepared": prepared,
              "wall_s": 0.0, "peak_memory_bytes": None, "runs": 0}
     (d / STATE).write_text(json.dumps(state, indent=1), encoding="utf-8")
     (d / "job.sh").write_text(job_script(args.case, args.level, d, req, n_proc), encoding="utf-8")
@@ -444,17 +443,25 @@ def cmd_collect(args) -> int:
     c = card(state["case"])
     use_runner(state["runner"], c["openfoam"]["version"], state["allow_version"])
     got = driver(state["case"]).collect(state["level"], d)
+    # The code that ran is the one prepare stamped (task 0184); the runner's
+    # OpenFOAM version and name are collect's, as the runner reports them now.
+    # A run directory from before prepare stored it gets collect's own.
+    env = stored.environment(state.get("prepared"))
+    if "prepared" not in state:
+        print("note: this run directory doesn't record the environment prepare had; "
+              "the contribution is stamped with today's", file=sys.stderr)
     contrib = {
         "format": CONTRIB_FORMAT, "version": 1, "case": state["case"], "level": state["level"],
         "results": stored._finite(got["values"]), "extra": stored._finite(got["extra"]),
-        "environment": stored.environment(),
+        "environment": env,
         "mesh": state["mesh"],
         "run": {"cores": state.get("n_proc_used", [state["n_proc"]])[-1],
                 "runs": state["runs"], "wall_s": state["wall_s"],
                 "peak_memory_gb": None if state["peak_memory_bytes"] is None
                 else state["peak_memory_bytes"] / 1e9,
                 "peak_memory_how": state.get("peak_memory_how", "not measured"),
-                "allow_version": state["allow_version"]},
+                "allow_version": state["allow_version"],
+                "environment_from": "prepare" if "prepared" in state else "collect"},
         "log_tail": _log_tail(d)}
     if args.name or args.machine:
         contrib["contributor"] = {k: v for k, v in (("name", args.name),

@@ -100,7 +100,7 @@ Docker it skips.
 
 A run writes `results.json`: every level's numbers at full precision,
 and the environment it ran in (date, hexmesh commit, gmsh, OpenFOAM,
-runner).  Then:
+runner), taken when the run started.  Then:
 
 ```bash
 python3 -m validation.tools.recheck poiseuille   # the verdict table, from results.json

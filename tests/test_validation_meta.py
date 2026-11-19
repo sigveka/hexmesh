@@ -183,7 +183,7 @@ def _case(work: Path, name: str) -> Path:
 
 
 def test_a_stored_level_is_reused_and_its_work_removed(tmp_path, monkeypatch):
-    monkeypatch.setattr(stored, "environment", lambda: ENV)
+    monkeypatch.setattr(stored, "environment", lambda start=None: ENV)
     store = stored.Store(tmp_path / "results.json", "demo")
     work = tmp_path / "work"
     calls = []
@@ -206,12 +206,48 @@ def test_a_stored_level_is_reused_and_its_work_removed(tmp_path, monkeypatch):
 
 
 def test_a_rounded_level_is_rerun(tmp_path, monkeypatch):
-    monkeypatch.setattr(stored, "environment", lambda: ENV)
+    monkeypatch.setattr(stored, "environment", lambda start=None: ENV)
     store = stored.Store(tmp_path / "results.json", "demo")
     store.put("a", {"x": 0.33}, precision=stored.ROUNDED, env=ENV)
     row = stored.run_level(store, "a", lambda: {"x": 1.0 / 3}, None)
     assert row["precision"] == stored.FULL and row["x"] == 1.0 / 3
     assert [lv["name"] for lv in stored.load(tmp_path / "results.json")["levels"]] == ["a"]
+
+
+@pytest.fixture
+def head(monkeypatch):
+    """``versions()`` reads this dict, and the runner reports v2406: a test
+    moves HEAD by changing it, as the other session's commit would."""
+    from hexmesh.study import manifest
+    from hexmesh.study import openfoam as of
+    now = {"hexmesh": "aaaaaaa", "gmsh": "4.13.1", "python": "3.12.0"}
+    monkeypatch.setattr(manifest, "versions", lambda: dict(now))
+    monkeypatch.setattr(of, "openfoam_version", lambda: "v2406")
+    return now
+
+
+def test_a_level_is_stamped_with_the_code_its_run_started_on(tmp_path, head):
+    """A commit and an edit made while a level runs don't stamp it (task 0184)."""
+    store = stored.Store(tmp_path / "results.json", "demo")
+
+    def run():
+        head["hexmesh"] = "bbbbbbb+local"
+        return {"x": 1.0}
+
+    row = stored.run_level(store, "a", run, None)
+    assert row["environment"]["hexmesh"] == "aaaaaaa"
+    assert row["environment"]["openfoam"] == "v2406"
+    level, = stored.load(tmp_path / "results.json")["levels"]
+    assert level["environment"] == row["environment"]
+    assert stored.environment()["hexmesh"] == "bbbbbbb+local"   # a stamp of now is now's
+
+
+def test_fenicsx_levels_are_stamped_with_the_start_too(tmp_path, head):
+    fx = _load("fenicsx_run", "validation/fenicsx_second_order/run.py")
+    store = stored.Store(tmp_path / "results.json", "fenicsx_second_order")
+    head["hexmesh"] = "bbbbbbb"
+    env = fx._environment(store)
+    assert env["hexmesh"] == "aaaaaaa" and env["fenicsx"] == fx.IMAGE and env["date"]
 
 
 def test_a_failed_level_keeps_its_case(tmp_path, capsys):

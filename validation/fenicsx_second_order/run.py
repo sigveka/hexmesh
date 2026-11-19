@@ -46,7 +46,6 @@ mesh); levels already stored are reused.  The meshes are written to
 from __future__ import annotations
 
 import argparse
-import datetime
 import importlib.util
 import json
 import math
@@ -64,7 +63,6 @@ sys.path.insert(0, str(ROOT))
 
 import gmsh                                                    # noqa: E402
 from hexmesh import Assembly, Bend, PipeSpec, Session, Straight, Tee   # noqa: E402
-from hexmesh.study.manifest import versions                    # noqa: E402
 
 _spec = importlib.util.spec_from_file_location("stored", ROOT / "validation/tools/results.py")
 stored = importlib.util.module_from_spec(_spec)
@@ -237,9 +235,9 @@ def recheck(data: dict) -> list[dict]:
     return out
 
 
-def _environment() -> dict:
-    return {**versions(), "fenicsx": IMAGE, "runner": "docker",
-            "date": datetime.date.today().isoformat()}
+def _environment(store) -> dict:
+    """The store's start (task 0184), with the FEniCSx image."""
+    return {**store.start, "fenicsx": IMAGE, "runner": "docker"}
 
 
 def main(argv=None):
@@ -277,7 +275,7 @@ def main(argv=None):
                 geometry = "Hex27" if order == 2 else "Hex8"
                 store.put(names[order], {"case": case, "k": k, "geometry": geometry,
                                          "cells": res["cells"], **stored.counts(spec),
-                                         "w": w, "solves": res["rows"]}, env=_environment())
+                                         "w": w, "solves": res["rows"]}, env=_environment(store))
                 for r in res["rows"]:
                     print(f"{case} k={k} {geometry} Q{r['degree']} {r['variant']}: "
                           f"L2 {r['l2'] / r['l2_norm']:.3e} H1 {r['h1']:.3e}", flush=True)
