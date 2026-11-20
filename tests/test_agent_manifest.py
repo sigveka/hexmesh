@@ -97,7 +97,8 @@ def test_the_validation_summary_matches_the_cases(m):
     assert set(m["validation"]["cases"]) == cases
     exports = {json.loads(p.read_text("utf-8"))["name"]
                for p in (ROOT / "validation/exports").glob("*/case.json")}
-    assert set(m["validation"]["exports"]) == exports == {"fenicsx_second_order"}
+    assert set(m["validation"]["exports"]) == exports == {
+        "fenicsx_second_order", "code_saturne_poiseuille", "su2_poiseuille"}
     for tag, names in m["validation"]["features"].items():
         for name in names:
             meta = json.loads((ROOT / "validation" / name / "case.json").read_text("utf-8"))

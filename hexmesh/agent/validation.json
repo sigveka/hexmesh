@@ -298,6 +298,32 @@
    "task": "0068",
    "title": "Pulsatile flow through the cosine constriction (Varghese et al., Part 2)"
   },
+  "turbulent_bend": {
+   "case": "turbulent_bend",
+   "category": "V3",
+   "cells": [
+    59200,
+    1598400
+   ],
+   "gates": [
+    {
+     "limit": "RMS difference over the 19 LDA points of each plane within 0.10",
+     "quantity": "axial velocity $w/W_{vol}$ on the horizontal line through the axis, at the six LDA planes (2.43 to 30.82 D after the bend), finest level"
+    },
+    {
+     "limit": "the measured side (the outer wall)",
+     "quantity": "the side of the peak of $w$ at each plane, finest level"
+    },
+    {
+     "limit": "reported",
+     "quantity": "reported, not gated: the bend's loss coefficient K with GCI (k = 1, 2, 3); the peak $w$ at 2.43 D and 10.7 D with GCI; Ekat et al.'s own k-ω SST RMS per plane beside ours"
+    }
+   ],
+   "levels": 3,
+   "status": "in progress",
+   "task": "0050",
+   "title": "Turbulent flow in a 90° bend, k-ω SST, against the PTB LDA"
+  },
   "turbulent_pipe": {
    "case": "turbulent_pipe",
    "category": "V2",
@@ -360,6 +386,39 @@
   }
  },
  "exports": {
+  "code_saturne_poiseuille": {
+   "case": "code_saturne_poiseuille",
+   "cells": [
+    576,
+    606208
+   ],
+   "checks": {
+    "exact": "laminar Poiseuille at Re 100: dp/dx between 15 D and 25 D within 2 % of 32 nu U_b / D^2 at the finest level",
+    "import": "the preprocessor's cells and hexa8 equal cell_count(), every group by name with its size: the equal tee and each Poiseuille level (recheck); groups, cell types and counts on the written file (tests/test_unv.py)",
+    "order": "the Δp error's order over k = 1, 2, 3 reported (Richardson)"
+   },
+   "consumer": {
+    "image": "simvia/code_saturne:9.2.0@sha256:7639bc95baf6e5c284f4e67ea418ae6d46809410b7e04ed477983a8e39513ed5",
+    "name": "code_saturne",
+    "version": "9.2.0"
+   },
+   "features": [
+    "section:circle",
+    "straight",
+    "tee"
+   ],
+   "format": {
+    "elements": [
+     "Hex8"
+    ],
+    "extension": ".unv",
+    "version": "I-DEAS universal: datasets 2411, 2412, 2477"
+   },
+   "levels": 51,
+   "status": "passes",
+   "task": "0181",
+   "title": "code_saturne: the .unv export checked end to end"
+  },
   "fenicsx_second_order": {
    "case": "fenicsx_second_order",
    "cells": [
@@ -395,12 +454,46 @@
    "status": "passes",
    "task": "0077",
    "title": "FEniCSx: second-order export checked end to end"
+  },
+  "su2_poiseuille": {
+   "case": "su2_poiseuille",
+   "cells": [
+    5184,
+    139968
+   ],
+   "checks": {
+    "exact": "laminar Poiseuille at Re 100: Δp between 15 D and 25 D, and u on the axis at 20 D, each within 2 % of Poiseuille at U_b at the finest level",
+    "import": "SU2's hexahedra equal cell_count(), every boundary group a marker by name, every volume element correctly oriented, at each level (recheck); markers, cell types and counts on the written file (tests/test_export_formats.py)",
+    "order": "the errors' order over k = 1, 2, 3 reported (Richardson)"
+   },
+   "consumer": {
+    "image": "hexmesh-su2:8.6.0, built from validation/exports/su2/Dockerfile (ubuntu:24.04@sha256:008173c23f95b170204355c12626cb5a965d779a7e1283b09e9cffbb1bf33ca3; SU2_v8.6.0_linux64-omp.zip, sha256 b306dcb7e76caec54e376542916aae14a32abd6c2f6fa8b871ec10ffe80b41ac)",
+    "name": "SU2",
+    "version": "v8.6.0"
+   },
+   "features": [
+    "section:circle",
+    "straight",
+    "tee"
+   ],
+   "format": {
+    "elements": [
+     "Hex8"
+    ],
+    "extension": ".su2",
+    "version": "SU2 native ASCII (NDIME 3, VTK cell types)"
+   },
+   "levels": 3,
+   "status": "passes",
+   "task": "0183",
+   "title": "SU2: the .su2 export checked end to end"
   }
  },
  "features": {
   "bend": [
    "mms",
-   "square_bend"
+   "square_bend",
+   "turbulent_bend"
   ],
   "duct-tap": [
    "mms"
@@ -431,6 +524,7 @@
    "poiseuille",
    "stenosis",
    "stenosis_pulsatile",
+   "turbulent_bend",
    "turbulent_pipe",
    "womersley"
   ],
@@ -458,6 +552,7 @@
    "square_bend",
    "stenosis",
    "stenosis_pulsatile",
+   "turbulent_bend",
    "turbulent_pipe",
    "womersley"
   ],
