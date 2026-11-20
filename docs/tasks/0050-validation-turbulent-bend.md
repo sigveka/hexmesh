@@ -1,6 +1,6 @@
 # 0050 — Validation: turbulent flow in a 90° bend (PTB LDA; Sudo et al. 1998 the ideal)
 
-- **Status:** ready (Q1 answered, 2026-11-15: the PTB bend; *Questions for design*)
+- **Status:** blocked (Q2, 2026-11-20: the gates pass at k = 3, but the levels don't converge; *Questions for design*)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (its "Dean bend" case, turbulent); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V3 (experiment: Straka et al. 2020, PTB, via Ekat et al. 2023)
 - **Features:** `section:circle`, `straight`, `bend`
@@ -99,7 +99,40 @@ tees (the Štigler tee, RESEARCH §7.2, is a later case).
 
 ## Agent notes
 
-_None yet._
+- **Reference data (2026-11-19):** Fig. 3 of Ekat et al. is vector
+  graphics, so the LDA curves were read from the PDF's drawing paths,
+  not digitised by eye: 19 points per plane, extraction error under
+  1e-3 (`validation/turbulent_bend/reference/README.md`).  Their SST
+  curve the same way, with its RMS against the LDA per plane.
+- **Full domain**, not their half: hexmesh's O-H section has no
+  symmetry plane to offer, and the full domain is under 6 GB at k = 3.
+  No asymmetry appeared (they report it for SST on full domains).
+- **Wall treatment:** task 0049's wall-function set (Spalding), with
+  the k = 1 wall cell at y⁺ 50; wall-resolved SST at Re 5 × 10⁴ needs
+  y⁺ ≈ 1 and was not sized for this machine.  `refined(k)` keeps the
+  ring's grading nested, so the wall cell shrinks as 1/k: y⁺ 23, 11.6,
+  7.8 (cell centres).  This is what Q2 is about.
+- **Inlet:** the precursor (task 0049's periodic slab, same section and
+  k) mapped face by face; the mapped bulk velocity equals U_b to 1e-9.
+- **`walls_by_fitting`** (step 1) not used: K comes from the section-mean
+  pressure in slabs, which needs no wall split.
+- **Step 4, "normal to the bend plane":** the paper publishes only the
+  horizontal line, so there is nothing to compare there.
+- **Levels (step 5):** k = 1, 2, 3 here (59 k, 474 k, 1.6 M cells; k = 3
+  took 34 min + 1 h 50 min on 4 processes).  k = 4 (3.8 M) is for the
+  volunteer card, 0169.  The driver has the card hooks
+  (`check_level`, `prepare`, `run`, `collect`, `recompute`).
+- **Bugs fixed on the way:** `axial_grading` is the ratio between
+  neighbouring cells, not the end-to-end growth (4.0 gave 4¹⁹; now
+  4^(1/19)); `potentialFoam -writep` needs a `Phi` solver and a
+  `div(div(phi,U))` scheme; the precursor's first-layer test needed a
+  tolerance of a quarter cell, not 1e-9 m.
+- **Timing (task 0185):** these levels ran before 0185 landed; they
+  record `precursor.wall_s` and `bend_wall_s` (renamed from the
+  driver's `wall_s`, which timed the bend's solve alone), not a whole
+  level's `wall_s`.
+- **For RESEARCH (design session):** the measurements are in
+  `validation/turbulent_bend/RESULTS.md`; nothing written to RESEARCH here.
 
 ## Questions for design
 
@@ -147,6 +180,36 @@ _None yet._
   - **Not compared:** the bend loss coefficient against this paper (it
     gives none); K is still reported with GCI against a cited
     correlation, without a gate.
+
+- **Q2 (2026-11-20, coding session). The gates pass at k = 3, but the
+  three levels don't converge.**
+  - **Gates at k = 3 (1.6 M cells):** RMS of w/U_b against the LDA
+    0.072, 0.029, 0.032, 0.027, 0.020, 0.037 at the six planes (gate
+    0.10); every peak on the outer side.  Ekat et al.'s SST: 0.055 to
+    0.109.
+  - **But:** the precursor's f against McKeon is +0.55 %, +6.1 %,
+    +9.0 % at k = 1, 2, 3 (task 0049's wall-function gate is 5 %, at
+    its own y⁺), while the first-cell y⁺ falls 23 → 11.6 → 7.8:
+    `refined(k)` shrinks the wall cell, so Spalding's function and
+    `omegaWall` work in a different layer at each level.  K is
+    oscillatory (0.222, 0.261, 0.254: no GCI), the peak at 10.7 D shows
+    no asymptotic range, and the 2.43 D peak converges at order 0.64.
+    At k = 2 the 30.82 D plane misses by a hair (0.1002); only k = 3
+    passes everywhere.
+  - **No cited bend-loss correlation:** the references have none for a
+    smooth 90° bend (Idelchik and Miller are book-only, RESEARCH §7),
+    so K stands alone.
+  - **Options:**
+    (a) accept on the gates at k = 3, with the convergence reported as
+    not asymptotic and the y⁺ drift explained;
+    (b) a wall-function family that holds the wall cell at y⁺ ≈ 30–50
+    and refines the rest (not `refined(k)`, so the levels don't nest,
+    but the model is the same at each); about the same cells;
+    (c) wall-resolved SST (y⁺ ≈ 1): every level several times larger,
+    k = 2 and up for volunteers;
+    (d) a source for K (a handbook value the user has, or an open
+    paper).
+  - Nothing tuned.  Status in `case.json`: in progress.
 
 ## Outcome
 

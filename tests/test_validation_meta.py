@@ -108,7 +108,7 @@ def test_missing_or_invalid_case_json_stops_the_gallery(build, monkeypatch, tmp_
 
 def test_planned_tasks_carry_known_features(build):
     planned = build.planned_cases({build.case_meta(c)["task"] for c in build.case_dirs()})
-    assert {p["task"] for p in planned} >= {"0050"}           # 0072 has its case directory
+    assert {p["task"] for p in planned} >= {"0079"}           # 0050, 0072 have case directories
     assert all(p["features"] for p in planned)
 
 

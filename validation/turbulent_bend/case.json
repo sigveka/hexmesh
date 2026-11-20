@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "title": "Turbulent flow in a 90° bend, k-ω SST, against the PTB LDA",
+  "headline": "at 1.6 M cells, within 0.02–0.07 U_b RMS of the LDA at six planes, peaks on the measured side; the levels not yet asymptotic (wall-function y⁺ drift)",
+  "category": "V3",
+  "references": [
+    {
+      "source": "straka_and_koglin_etal_2020 (LDA, PTB Berlin; the profiles as ekat_and_weissenbrunner_etal_2023 Fig. 3 gives them)",
+      "role": "primary"
+    },
+    {
+      "source": "ekat_and_weissenbrunner_etal_2023",
+      "role": "secondary"
+    }
+  ],
+  "tags": {
+    "regime": [
+      "rans:kOmegaSST"
+    ],
+    "physics": [
+      "flow"
+    ],
+    "features": [
+      "section:circle",
+      "straight",
+      "bend"
+    ],
+    "toolchain": {
+      "openfoam": "v2406",
+      "runner": "docker",
+      "conversion": "gmshToFoam, with -keepOrientation when the worst scaled Jacobian is positive (task 0108)"
+    }
+  },
+  "status": "in progress",
+  "task": "0050",
+  "gates": [
+    {
+      "quantity": "axial velocity $w/W_{vol}$ on the horizontal line through the axis, at the six LDA planes (2.43 to 30.82 D after the bend), finest level",
+      "limit": "RMS difference over the 19 LDA points of each plane within 0.10"
+    },
+    {
+      "quantity": "the side of the peak of $w$ at each plane, finest level",
+      "limit": "the measured side (the outer wall)"
+    },
+    {
+      "quantity": "reported, not gated: the bend's loss coefficient K with GCI (k = 1, 2, 3); the peak $w$ at 2.43 D and 10.7 D with GCI; Ekat et al.'s own k-ω SST RMS per plane beside ours",
+      "limit": "reported"
+    }
+  ]
+}

@@ -51,7 +51,7 @@ from matplotlib.ticker import FixedLocator, FuncFormatter, LogLocator, NullForma
 ROOT = Path(__file__).resolve().parents[2]
 CASES = ("poiseuille", "heated_rod", "layered_conduction", "heated_pipe", "womersley",
          "stenosis", "stenosis_pulsatile", "rect_duct", "mms", "turbulent_pipe", "square_bend",
-         "helical_pipe", "junction_loss",
+         "helical_pipe", "junction_loss", "turbulent_bend",
          "fenicsx_second_order")
 
 SIZE, DPI = (8.0, 5.0), 200          # 1600 × 1000 px
@@ -822,6 +822,37 @@ def fenicsx_second_order(data, out):
 
 
 # --- the driver --------------------------------------------------------------
+
+def turbulent_bend(data, out):
+    """w/U_b on y = 0 at the six LDA planes: the LDA, each level, and
+    Ekat et al.'s own k-ω SST."""
+    ref = json.loads((ROOT / "validation/turbulent_bend/reference/lda_fig3.json")
+                     .read_text(encoding="utf-8"))
+    lv = sorted(data["levels"], key=lambda l: l["k"])
+    planes = sorted(lv[0]["planes"], key=float)
+    fig, ax = _figure(2, 3, sharey=True)
+    for i, z in enumerate(planes):
+        a = ax.flat[i]
+        x = ref["planes"][z]["x_over_R"]
+        a.plot(x, ref["planes"][z]["w_over_wvol"], "o", color="black", markersize=3.5,
+               label="LDA (Straka et al.)", zorder=5)
+        a.plot(x, ref["sst_ekat"]["planes"][z]["w_over_wvol_at_lda_points"], color="0.5",
+               linestyle=(0, (1, 1.5)), linewidth=1.2, label="Ekat et al.'s SST")
+        for j, l in enumerate(lv):
+            st = style(None, j)
+            a.plot(x, l["planes"][z]["w_over_ub"], color=st["color"], linewidth=1.3,
+                   label=f"k = {l['k']} (RMS {l['planes'][z]['rms']:.3f})")
+        a.set_title(f"{float(z):g} D after the bend", fontsize=8)
+        _axes(a, "x / R   (−1: the outer wall)", "w / U_b" if i % 3 == 0 else "")
+        a.set_ylim(0.3, 1.32)                      # room for the legend under the curves
+        a.legend(fontsize=5.5, frameon=False, loc="lower center", ncol=2)
+    return [_finish(fig, "turbulent_bend", "k-ω SST, Spalding wall functions, Re 50 000.  "
+                    "Gates at the finest level: the RMS difference over the 19 LDA points "
+                    "within 0.10 of U_b at each plane, and the peak on the measured (outer) side.",
+                    out / "figure.png"),
+            "The axial velocity across the bend plane at the six LDA planes: the measurements, "
+            "each level, and the paper's own k-ω SST."]
+
 
 def draw(case: str) -> list[tuple[str, str]]:
     """Draw *case*'s graphs; returns [(path relative to the case, sentence)]."""
