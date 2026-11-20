@@ -828,7 +828,9 @@ def turbulent_bend(data, out):
     Ekat et al.'s own k-ω SST."""
     ref = json.loads((ROOT / "validation/turbulent_bend/reference/lda_fig3.json")
                      .read_text(encoding="utf-8"))
-    lv = sorted(data["levels"], key=lambda l: l["k"])
+    # the refined(k) study; the fixed-wall family waits on task 0050's Q3
+    lv = sorted((l for l in data["levels"] if l.get("family", "refined") == "refined"),
+                key=lambda l: l["k"])
     planes = sorted(lv[0]["planes"], key=float)
     fig, ax = _figure(2, 3, sharey=True)
     for i, z in enumerate(planes):

@@ -111,45 +111,87 @@ LEVELS = (1, 2, 3)         # here; k = 4 (3.8 M cells) is for volunteers (task 0
 PLANES = (2.43, 5.56, 10.7, 15.69, 20.82, 30.82)
 K_BEFORE, K_AFTER = 1.0, 30.0
 RMS_GATE = 0.10            # of w_vol (design answer Q1, 2026-11-15)
+F_GATE = 0.05              # the precursor's f against McKeon (task 0049's wall-function gate)
+START = "rest"             # the bend's start; the refined(k) levels ran from potentialFoam -writep
 REFERENCE = HERE / "reference" / "lda_fig3.json"
+
+
+def ito_k(re: float = RE, r_over_d: float = R_K / D, theta: float = 90.0) -> float:
+    """Ito (1960)'s loss coefficient of a smooth 90° bend, for Re (a/R)² > 91,
+    as Villegas-León et al. (2021) give it (their eqs. 8 and 10; Ito's
+    paper isn't open): ξ = 0.004314 K θ Re^-0.17 (r/D)^0.84, K = 0.95 +
+    4.421 (r/D)^-1.96 for 2 r/D < 19.7, θ in degrees.  Ito's range: Re 2e4
+    to 4e5, 90° bends of r/D 1 to 3.3.  His ξ is the loss in the bend and
+    the excess downstream, the straight pipe's friction taken out: as K
+    here."""
+    if 0.25 * re / r_over_d ** 2 <= 91 or 2 * r_over_d >= 19.7 or theta != 90:
+        raise ValueError("outside the branch of Ito's correlation used here")
+    k = 0.95 + 4.421 * r_over_d ** -1.96
+    return 0.004314 * k * theta * re ** -0.17 * r_over_d ** 0.84
 
 
 def design_u_tau() -> float:
     return U_B * math.sqrt(tp.mckeon(RE) / 8)
 
 
-def spec() -> PipeSpec:
-    """The section at k = 1: the wall cell at WALL_YPLUS, the ring's
-    growth at most task 0049's GROWTH_MAX."""
-    first = WALL_YPLUS * NU / design_u_tau()
+def first_cell() -> float:
+    """The wall cell's height: WALL_YPLUS viscous units at the design u_τ."""
+    return WALL_YPLUS * NU / design_u_tau()
+
+
+def _ring(first: float) -> int:
+    """The smallest n_radial whose growth toward the centre is at most
+    task 0049's GROWTH_MAX."""
     for n in range(2, 200):
         try:
             s = PipeSpec(n_arc=N_ARC).core("fluid", radius=R, n_radial=n, first_cell=first)
         except Exception:                          # first cell too large for n cells
             continue
         if 1 / s.to_dict()["core"]["radial_grading"] <= tp.GROWTH_MAX:
-            return s
+            return n
     raise ValueError(f"no ring for a first cell of {first}")
 
 
-def assembly(k: int = 1) -> Assembly:
-    """The bend network: along +x, the bend turning toward +y in the
-    horizontal plane z = 0 (the paper's y = 0 line lies in it)."""
-    asm = Assembly(spec(), position=[0, 0, 0], direction=[1, 0, 0], up=[0, 0, 1])
-    asm.add(Straight(UPSTREAM, n_layers=round(UPSTREAM / AXIAL)))
-    asm.add(Bend(R_K, 90, n_layers=round(R_K * math.pi / 2 / AXIAL), toward=(0, 1, 0)))
-    asm.add(Straight(DOWNSTREAM, n_layers=round(DOWNSTREAM / AXIAL)))
-    asm.add(Straight(TAIL, n_layers=TAIL_LAYERS,           # axial_grading: cell to cell
-                     axial_grading=TAIL_GROWTH ** (1 / (TAIL_LAYERS - 1))))
+def spec(k: int = 1) -> PipeSpec:
+    """The section of the fixed-wall family at level *k* (design answer
+    Q2): n_arc and the radial cells outside the wall cell × k, the wall
+    cell the same height at every level.  At k = 1 it is the k = 1
+    section of the ``refined(k)`` family too."""
+    first = first_cell()
+    n = 1 + (_ring(first) - 1) * k
+    return PipeSpec(n_arc=N_ARC * k).core("fluid", radius=R, n_radial=n, first_cell=first)
+
+
+def _network(sp: PipeSpec, k: int) -> Assembly:
+    """The bend network on section *sp*, the axial counts × k: along +x,
+    the bend turning toward +y in the horizontal plane z = 0 (the
+    paper's y = 0 line lies in it)."""
+    asm = Assembly(sp, position=[0, 0, 0], direction=[1, 0, 0], up=[0, 0, 1])
+    asm.add(Straight(UPSTREAM, n_layers=round(UPSTREAM / AXIAL) * k))
+    asm.add(Bend(R_K, 90, n_layers=round(R_K * math.pi / 2 / AXIAL) * k, toward=(0, 1, 0)))
+    asm.add(Straight(DOWNSTREAM, n_layers=round(DOWNSTREAM / AXIAL) * k))
+    n = TAIL_LAYERS * k                                    # axial_grading: cell to cell
+    asm.add(Straight(TAIL, n_layers=n, axial_grading=TAIL_GROWTH ** (1 / (n - 1))))
+    return asm
+
+
+def assembly(k: int = 1, fixed: bool = False) -> Assembly:
+    """The bend network at level *k*: ``refined(k)`` of k = 1 (the first
+    study, which shrinks the wall cell as 1/k), or with *fixed* the
+    fixed-wall family."""
+    if fixed:
+        return _network(spec(k), k)
+    asm = _network(spec(1), 1)
     return asm if k == 1 else asm.refined(k)
 
 
-def precursor(k: int = 1) -> Assembly:
+def precursor(k: int = 1, fixed: bool = False) -> Assembly:
     """The periodic pipe on the same section, placed so its inlet is the
     bend network's (task 0049's two layers at k = 1)."""
-    asm = Assembly(spec(), position=[0, 0, 0], direction=[1, 0, 0], up=[0, 0, 1])
-    asm.add(Straight(PRECURSOR, n_layers=tp.N_LAYERS))
-    return asm if k == 1 else asm.refined(k)
+    asm = Assembly(spec(k if fixed else 1), position=[0, 0, 0], direction=[1, 0, 0],
+                   up=[0, 0, 1])
+    asm.add(Straight(PRECURSOR, n_layers=tp.N_LAYERS * (k if fixed else 1)))
+    return asm if fixed or k == 1 else asm.refined(k)
 
 
 def meshes():
@@ -184,7 +226,7 @@ BEND_SOLUTION = (tp.SOLUTION
                           "        relTol          0.01;\n    }", 1)
                  .replace("SIMPLE\n{", "potentialFlow\n{\n    nNonOrthogonalCorrectors 3;\n}\n"
                           "SIMPLE\n{", 1))
-#: task 0049's schemes, with potentialFoam -writep's
+#: task 0049's schemes, with the scheme potentialFoam -writep needed (kept: harmless without it)
 BEND_SCHEMES = tp.SCHEMES.replace("    div(phi,U) ", "    div(div(phi,U)) Gauss linear;\n    div(phi,U) ", 1)
 FIELDS = ("U", "p", "k", "omega", "nut")
 
@@ -375,7 +417,7 @@ def _mesh(case: Path, asm: Assembly, name: str) -> dict:
     return {"cells": cells, "min_sj": q.worst, "min_sicn": sicn, "msh": msh}
 
 
-def setup(d: Path, k: int, end_time: int) -> dict:
+def setup(d: Path, k: int, end_time: int, fixed: bool = False) -> dict:
     """Mesh and set up the precursor (d/precursor) and the bend (d/bend)."""
     pre, bend = d / "precursor", d / "bend"
     for c in (pre, bend):
@@ -383,14 +425,16 @@ def setup(d: Path, k: int, end_time: int) -> dict:
             shutil.rmtree(c)
         c.mkdir(parents=True)
     write_precursor(pre, end_time)
-    mp = _mesh(pre, precursor(k), f"bend-precursor-{k}")
+    mp = _mesh(pre, precursor(k, fixed), f"bend-precursor-{k}")
     of.foam("createPatch -overwrite", pre, "log.createPatch")
     _common(bend, end_time)
-    mb = _mesh(bend, assembly(k), f"bend-{k}")
+    asm = assembly(k, fixed)
+    mb = _mesh(bend, asm, f"bend-{k}")
     check = of.check_mesh(bend)
-    meta = {"k": k, "cells": mb["cells"], "precursor_cells": mp["cells"],
-            "min_sj": mb["min_sj"], "min_sicn": mb["min_sicn"], "check": check,
-            "counts": stored.counts(assembly(k))}
+    meta = {"k": k, "family": FIXED if fixed else REFINED, "cells": mb["cells"],
+            "precursor_cells": mp["cells"], "min_sj": mb["min_sj"], "min_sicn": mb["min_sicn"],
+            "check": check, "counts": stored.counts(asm),
+            "first_cell": first_cell() if fixed else None}    # refined(k): splits it k ways
     (d / "setup.json").write_text(json.dumps(meta, indent=1), encoding="utf-8")
     return meta
 
@@ -400,21 +444,27 @@ def solve(d: Path, k: int, end_time: int, n_proc: int) -> dict:
     pre, bend = d / "precursor", d / "bend"
     meta = json.loads((d / "setup.json").read_text(encoding="utf-8"))
     t0 = time.monotonic()
-    log = of.run_solver(pre, "simpleFoam", n_proc=n_proc)
+    # one process: decomposed, the cross-flow residuals (Uy, Uz, zero on
+    # average) floor at 2-5e-7, above residualControl (fixed_k2, 2026-11-20)
+    log = of.run_solver(pre, "simpleFoam", n_proc=1)
     pre_log = log
     pr = precursor_results(pre, log)
     pr["steps"] = int(re.findall(r"^Time = (\d+)", log, re.M)[-1])
     pr["converged"] = "solution converged in" in log
     inlet = inlet_values(pre, bend, k)
     write_bend(bend, end_time, inlet)
-    of.foam("potentialFoam -writep", bend, "log.potentialFoam")
+    # from rest (U = 0 inside, the precursor's profile at the inlet), no
+    # potentialFoam: on fixed_k2 its first Phi solve stalled at 1000
+    # iterations and its velocity reached 2.7e4 m/s in the thin wall cells,
+    # blowing simpleFoam up at step 1 (2026-11-20)
     t1 = time.monotonic()
     log = of.run_solver(bend, "simpleFoam", n_proc=n_proc)
     steps = re.findall(r"^Time = (\d+)", log, re.M)
-    out = {"k": k, "cells": meta["cells"], "precursor_cells": meta["precursor_cells"],
+    out = {"k": k, "family": meta.get("family", REFINED), "cells": meta["cells"],
+           "precursor_cells": meta["precursor_cells"],
            **meta["counts"], "min_sj": meta["min_sj"], "min_sicn": meta["min_sicn"],
            **{f"check_{key}": v for key, v in meta["check"].items()},
-           "re": RE, "u_b": U_B, "nu": NU,
+           "re": RE, "u_b": U_B, "nu": NU, "start": START,
            "precursor": {**pr, "wall_s": t1 - t0},
            "inlet_u_bulk": inlet["u_bulk"], "inlet_map_distance_max": inlet["map_distance_max"],
            "steps": int(steps[-1]) if steps else 0,
@@ -424,13 +474,30 @@ def solve(d: Path, k: int, end_time: int, n_proc: int) -> dict:
     return out
 
 
-def run_level(k: int, work: Path, end_time: int, n_proc: int) -> dict:
-    d = work / f"k{k}"
-    meta = setup(d, k, end_time)
+def run_level(k: int, work: Path, end_time: int, n_proc: int, fixed: bool = False) -> dict:
+    d = work / level_name(k, fixed)
+    meta = setup(d, k, end_time, fixed)
     print(f"[k={k}] {meta['cells']} cells (precursor {meta['precursor_cells']}), "
           f"min SJ {meta['min_sj']:.3f}, max non-orthogonality "
           f"{meta['check']['max_non_orthogonality']:.1f}", flush=True)
     return solve(d, k, end_time, n_proc)
+
+
+# --- the two families -------------------------------------------------------------------
+
+REFINED, FIXED = "refined", "fixed_wall"
+
+
+def level_name(k: int, fixed: bool) -> str:
+    """``k<k>`` (``refined(k)``, the first study) or ``fixed_k<k>``."""
+    return f"fixed_k{k}" if fixed else f"k{k}"
+
+
+def family(levels: list[dict], name: str) -> list[dict]:
+    """*levels* of one family, coarse to fine (levels stored before the
+    fixed-wall family have no ``family``: ``refined(k)``)."""
+    return sorted((lv for lv in levels if lv.get("family", REFINED) == name),
+                  key=lambda r: r["k"])
 
 
 # --- analysis -------------------------------------------------------------------------
@@ -445,13 +512,20 @@ def _series(lv: dict, q: str) -> float:
     return lv[q]
 
 
-def analyse(levels: list[dict]) -> dict:
-    """Richardson / GCI on :data:`SERIES` over k = 1, 2, 3 (spacing ratios
-    2 and 1.5)."""
-    rows = sorted((r for r in levels if r["k"] in (1, 2, 3)), key=lambda r: r["k"])
+def analyse(levels: list[dict], name: str = REFINED) -> dict:
+    """Richardson / GCI on :data:`SERIES` over k = 1, 2, 3 of family
+    *name*.  ``refined(k)`` nests (spacing ratios 2 and 1.5); the
+    fixed-wall levels don't, so their ratios are the representative cell
+    size's, h = (V/N)^(1/3) (Celik et al. 2008), from the cell counts."""
+    rows = [r for r in family(levels, name) if r["k"] in (1, 2, 3)]
     if len(rows) != 3:
         return {}
-    return {q: conv.richardson(*(_series(r, q) for r in rows), r21=1.5, r32=2.0)
+    if name == REFINED:
+        r21, r32 = 1.5, 2.0
+    else:
+        n1, n2, n3 = (r["cells"] for r in rows)
+        r21, r32 = (n3 / n2) ** (1 / 3), (n2 / n1) ** (1 / 3)
+    return {q: conv.richardson(*(_series(r, q) for r in rows), r21=r21, r32=r32)
             for q in SERIES}
 
 
@@ -462,36 +536,49 @@ def recheck(data: dict) -> list[dict]:
     reported (GCI), with the paper's SST RMS beside ours."""
     ref = json.loads(REFERENCE.read_text(encoding="utf-8"))
     out = []
-    rich = analyse(data["levels"])
-    for q, r in rich.items():
-        out.append(stored.row(f"{q} (k = 1, 2, 3)", rich=r,
+    # the verdict is on the fixed-wall family once it has levels (design
+    # answer Q2); refined(k) is the first study
+    name = FIXED if family(data["levels"], FIXED) else REFINED
+    tag = "fixed wall, " if name == FIXED else ""
+    for q, r in analyse(data["levels"], name).items():
+        out.append(stored.row(f"{q} ({tag}k = 1, 2, 3)", rich=r,
                               note=f"GCI {r['gci_fine']:.2%}" if r["status"] == "converging"
                               else r["note"]))
-    if not data["levels"]:
+    rows = family(data["levels"], name)
+    if not rows:
         return out
-    lv = max(data["levels"], key=lambda x: x["k"])
+    for r in rows:
+        p = r["precursor"]
+        out.append(stored.row(f"precursor f against McKeon ({tag}k = {r['k']})",
+                              gate=f"|e| <= {F_GATE:g} (task 0049)",
+                              ok=abs(p["f_err_mckeon"]) <= F_GATE,
+                              value=f"{p['f_err_mckeon']:+.4f}",
+                              note=f"first-cell y+ {p['yplus_first_mean']:.1f} mean"))
+    lv = rows[-1]
     for z in PLANES:
         pl = lv["planes"][f"{z:g}"]
         theirs = ref["sst_ekat"]["planes"][f"{z:g}"]["rms_vs_lda"]
-        out.append(stored.row(f"{z:g} D: RMS of w/w_vol along y = 0 (k = {lv['k']})",
+        out.append(stored.row(f"{z:g} D: RMS of w/w_vol along y = 0 ({tag}k = {lv['k']})",
                               gate=f"<= {RMS_GATE:g}", ok=pl["rms"] <= RMS_GATE,
                               value=f"{pl['rms']:.4f}",
                               note=f"Ekat et al.'s SST: {theirs:.4f}"))
-        out.append(stored.row(f"{z:g} D: the peak's side (k = {lv['k']})",
+        out.append(stored.row(f"{z:g} D: the peak's side ({tag}k = {lv['k']})",
                               gate="outer wall, as measured",
                               ok=(pl["peak_x_over_r"] < 0) == (pl["lda_peak_x_over_r"] < 0),
                               value=f"x/R {pl['peak_x_over_r']:+.3f}",
                               note=f"LDA x/R {pl['lda_peak_x_over_r']:+.3f}"))
-    out.append(stored.row(f"K of the bend (k = {lv['k']})", value=f"{lv['k_bend']:.3f}",
-                          note="reported; no gate (design answer Q1)"))
+    out.append(stored.row(f"K of the bend ({tag}k = {lv['k']})", value=f"{lv['k_bend']:.3f}",
+                          note=f"Ito (1960): {ito_k():.3f}; reported, no gate (Q1, Q2)"))
     return out
 
 
 def table(levels: list[dict]) -> str:
-    lines = ["| k | cells | steps | K | " + " | ".join(f"RMS {z:g} D" for z in PLANES) + " |",
-             "|---|---|---|---|" + "---|" * len(PLANES)]
-    for r in sorted(levels, key=lambda r: r["k"]):
-        lines.append(f"| {r['k']} | {r['cells']} | {r['steps']} | {r['k_bend']:.3f} | "
+    lines = ["| family | k | cells | steps | K | "
+             + " | ".join(f"RMS {z:g} D" for z in PLANES) + " |",
+             "|---|---|---|---|---|" + "---|" * len(PLANES)]
+    for r in family(levels, REFINED) + family(levels, FIXED):
+        lines.append(f"| {r.get('family', REFINED)} | {r['k']} | {r['cells']} | {r['steps']} | "
+                     f"{r['k_bend']:.3f} | "
                      + " | ".join(f"{r['planes'][f'{z:g}']['rms']:.4f}" for z in PLANES) + " |")
     return "\n".join(lines)
 
@@ -501,11 +588,13 @@ def table(levels: list[dict]) -> str:
 END_TIME = 20000
 
 
-def _parse(level: str) -> int:
-    m = re.fullmatch(r"k([1-9])", level)
+def _parse(level: str) -> tuple[int, bool]:
+    """(k, fixed) of a level name."""
+    m = re.fullmatch(r"(fixed_)?k([1-9])", level)
     if not m:
-        raise ValueError(f"turbulent_bend has no level {level!r}: k1 … k9 (refined(k))")
-    return int(m[1])
+        raise ValueError(f"turbulent_bend has no level {level!r}: fixed_k1 … fixed_k9 (the "
+                         "wall cell fixed) or k1 … k9 (refined(k))")
+    return int(m[2]), bool(m[1])
 
 
 def check_level(level: str) -> None:
@@ -516,20 +605,20 @@ def check_level(level: str) -> None:
 def prepare(level: str, d: Path, mesh_only: bool = False) -> dict:
     """Mesh *level*, and unless *mesh_only* set up its precursor and
     bend.  Returns ``{"msh": path, "check": …}``."""
-    k = _parse(level)
+    k, fixed = _parse(level)
     d.mkdir(parents=True, exist_ok=True)
     if mesh_only:
         msh = d / f"{level}.msh"
         with Session(f"bend-{k}"):
-            assembly(k).write_openfoam(str(msh))
+            assembly(k, fixed).write_openfoam(str(msh))
         return {"msh": msh, "check": None}
-    meta = setup(d, k, END_TIME)
+    meta = setup(d, k, END_TIME, fixed)
     return {"msh": d / "bend" / "mesh.msh", "check": meta["check"]}
 
 
 def run(level: str, d: Path, n_proc: int) -> None:
     """Solve *level* in *d*; the values go to d/level.json for collect."""
-    k = _parse(level)
+    k, _ = _parse(level)
     (d / "level.json").write_text(json.dumps(solve(d, k, END_TIME, n_proc)), encoding="utf-8")
 
 
@@ -543,7 +632,8 @@ def collect(level: str, d: Path) -> dict:
 def recompute(values: dict) -> dict:
     """What a level's stored numbers must equal, from its own values."""
     ref = json.loads(REFERENCE.read_text(encoding="utf-8"))
-    out = {"cells": assembly(values["k"]).cell_count()}
+    fixed = values.get("family", REFINED) == FIXED
+    out = {"cells": assembly(values["k"], fixed).cell_count()}
     for z, pl in values["planes"].items():
         err = np.array(pl["w_over_ub"], float) - np.array(ref["planes"][z]["w_over_wvol"])
         out[f"rms_{z}"] = float(np.sqrt(np.nanmean(err ** 2)))
@@ -555,6 +645,10 @@ def main(argv=None) -> dict:
     ap.add_argument("--levels", nargs="+", type=int, default=list(LEVELS),
                     help="refinement levels k (refined(k): every count ×k, so 8× the cells "
                          "per doubling); default %(default)s; k = 4 is 3.8 M cells")
+    ap.add_argument("--family", choices=(FIXED, REFINED), default=FIXED,
+                    help="fixed_wall: the wall cell the same height at every level, the rest "
+                         "× k (design answer Q2, the verdict); refined: refined(k), the first "
+                         "study; default %(default)s")
     ap.add_argument("--work", type=Path, default=HERE / "work",
                     help="folder for each level's OpenFOAM cases (default: "
                          "validation/turbulent_bend/work/, not committed); a level's cases "
@@ -571,18 +665,23 @@ def main(argv=None) -> dict:
     store = stored.Store(args.json, "turbulent_bend")
     store.put_extra("reference", {"lda": str(REFERENCE.relative_to(ROOT).as_posix()),
                                   "planes_D": list(PLANES), "rms_gate": RMS_GATE})
+    fixed = args.family == FIXED
     for k in args.levels:
-        r = stored.run_level(store, f"k{k}",
-                             lambda k=k: run_level(k, args.work, args.end_time, args.n_proc),
-                             args.work / f"k{k}", args.keep_work, cores=args.n_proc)
-        print(f"[k={k}] K {r['k_bend']:.3f}, RMS "
+        name = level_name(k, fixed)
+        r = stored.run_level(store, name,
+                             lambda k=k: run_level(k, args.work, args.end_time, args.n_proc,
+                                                   fixed),
+                             args.work / name, args.keep_work, cores=args.n_proc)
+        print(f"[{name}] f {r['precursor']['f_err_mckeon']:+.4f} (y+ "
+              f"{r['precursor']['yplus_first_mean']:.1f}), K {r['k_bend']:.3f}, RMS "
               + ", ".join(f"{z:g} D {r['planes'][f'{z:g}']['rms']:.4f}" for z in PLANES)
               + f", steps {r['steps']}", flush=True)
-    rich = analyse(store.levels())
-    if rich:
-        store.put_extra("richardson", rich)
+    for name in (REFINED, FIXED):
+        rich = analyse(store.levels(), name)
+        if rich:
+            store.put_extra("richardson" if name == REFINED else "richardson_fixed_wall", rich)
     print(table(store.levels()))
-    return rich
+    return analyse(store.levels(), args.family)
 
 
 if __name__ == "__main__":

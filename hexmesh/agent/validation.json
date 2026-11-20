@@ -319,7 +319,7 @@
      "quantity": "reported, not gated: the bend's loss coefficient K with GCI (k = 1, 2, 3); the peak $w$ at 2.43 D and 10.7 D with GCI; Ekat et al.'s own k-ω SST RMS per plane beside ours"
     }
    ],
-   "levels": 3,
+   "levels": 5,
    "status": "in progress",
    "task": "0050",
    "title": "Turbulent flow in a 90° bend, k-ω SST, against the PTB LDA"

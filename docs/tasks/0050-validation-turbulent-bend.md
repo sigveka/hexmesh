@@ -1,6 +1,6 @@
 # 0050 — Validation: turbulent flow in a 90° bend (PTB LDA; Sudo et al. 1998 the ideal)
 
-- **Status:** ready (Q2 answered, 2026-11-20: a family with the wall cell fixed, and K against Ito 1960; *Questions for design*)
+- **Status:** blocked (Q3, 2026-11-21: the fixed-wall family's levels 2 and up don't converge; *Questions for design*)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (its "Dean bend" case, turbulent); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V3 (experiment: Straka et al. 2020, PTB, via Ekat et al. 2023)
 - **Features:** `section:circle`, `straight`, `bend`
@@ -218,6 +218,9 @@ tees (the Štigler tee, RESEARCH §7.2, is a later case).
     cell, so `refined(k)` changed the model as it refined the mesh.
     `junction_loss` already holds the wall cell fixed (`first_cell`,
     `wall_ring`) and converges at order 1.9.  The bend follows it.
+    Correction (2026-11-20): junction_loss doesn't fix the wall cell
+    (`refined(k)` splits it); the bend builds each level directly; see
+    RESEARCH §7.2 and task 0186.
   - **The family:**
     - The wall cell is fixed at first-cell y⁺ ≈ 30–50, with one target
       for all levels, computed from the precursor's u_τ as
@@ -255,6 +258,49 @@ tees (the Štigler tee, RESEARCH §7.2, is a later case).
   - **Memory and CPU:** check `pgrep -af pytest` and free memory before
     each level (CLAUDE.md).  The suite run for 0185 also needs the
     machine, so don't run both at once.
+
+- **Q3 (2026-11-21, coding session). The fixed-wall family doesn't
+  converge to a steady state at level 2.**
+  - **What holds:** the wall cell fixed at 1.95 mm (50 viscous units at
+    McKeon's u_τ) keeps the model the same: the precursor's f is
+    +0.55 % and +0.77 % against McKeon at levels 1 and 2, first-cell y⁺
+    23.2 and 23.3 (it drifted to +6.1 % and y⁺ 11.6 under `refined(k)`).
+  - **What fails:** the bend at level 2 (n_arc 16, n_radial 15, axial
+    D/8: 450 k cells) never meets residualControl.  Its residuals sit
+    on a plateau (p 2-7e-2, Uz 5-9e-3) from a few hundred steps on,
+    and K depends on the start and settings:
+
+    | level-2 run | steps | K | p residual at the end |
+    |---|---|---|---|
+    | potentialFoam -writep start (stored `fixed_k2`) | 20 000 | 0.227 | not met |
+    | from rest | 4 000 | 0.250 | 3.3e-2 |
+    | from rest, relaxation p 0.2, U/k/ω 0.5 | 3 000 | 0.253 | 6.8e-2 |
+    | from rest, ring kept at level 1's 8 cells (growth 1.127 outward) | 3 000 | 0.271 | 2.6e-2 |
+
+    `refined(k)`'s k = 2 (same n_arc and axial cells, the wall cell
+    half as thick) converged in 1 880 steps.  So it isn't the ring's
+    grading or the relaxation; it comes with the thick wall cell on the
+    finer mesh.  A physical unsteadiness the steady solver can't settle
+    (the bend's secondary flow and the inner-wall separation) is the
+    likely reading, not verified.
+  - **Fixed on the way (driver):** the precursor now solves on one
+    process (decomposed, its Uy/Uz residuals floor at 2-5e-7, above
+    residualControl; it converges in 3 245 steps on one); the bend
+    starts from rest, as `potentialFoam` gave 2.7e4 m/s in the thin
+    wall cells on this mesh and blew simpleFoam up at step 1.
+  - **Options:**
+    (a) average the plateau: run each level a fixed number of steps
+    and report K and the profiles as means over the last N, with
+    their spread as an iteration error (gated levels then carry ±);
+    (b) transient (pimpleFoam), time-averaged: settles whether it is
+    physical; hours per level at 450 k and more at 1.5 M;
+    (c) the wall cell fixed lower (y⁺ ≈ 25-30 at the cell, about half
+    of now), between the two families, if that converges;
+    (d) keep `refined(k)` as the result and report its drift.
+  - Nothing tuned for the gates.  `results.json` holds `fixed_k1`
+    (converged) and `fixed_k2` (not converged, flagged
+    `converged: false`); the driver's fixed family (`--family`), Ito's K
+    and these fixes are committed.
 
 ## Outcome
 
