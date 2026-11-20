@@ -180,6 +180,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0183](0183-export-check-su2.md) | Export check: `.su2` in SU2 (format test, Poiseuille with its order) | done | 0057 |
 | [0184](0184-stamp-environment-at-run-start.md) | `results.json` records the code that ran: the environment taken at the start of a run (drivers, volunteer `prepare`/`collect`, FEniCSx) | done | — |
 | [0185](0185-level-run-length.md) | Every level in `results.json` records how long its run took (`wall_s`; `cores` and `solve_s` where known) | done | 0044 |
+| [0186](0186-tee-fixed-wall-cell.md) | The tee benchmark with the wall cell fixed: is 0162's order 1.9 a mesh convergence? (y⁺ fell as 1/k) | ready (after 0050) | 0012, 0015 |
 
 ### Validation
 

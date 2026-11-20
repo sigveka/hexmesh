@@ -624,6 +624,18 @@ has the full tables.
   monotonically at order about 1.9, and the grid uncertainty is a tenth
   of ξ_PG's gap.  So hexmesh's equal tee gives a grid-converged answer
   at about 1.8 M cells; what it converges to is the model and set-up's.
+  - **Correction (2026-11-20, found in task 0050):** the levels don't
+    hold the wall cell fixed.  `assembly()` sets `first_cell` at k = 1
+    and `refined(k)` splits every radial cell into k, the wall cell
+    included, so the first-cell y⁺ falls as 1/k (about 30, 15, 10).
+    The wall function therefore works in a different layer at each
+    level, and the order 1.9 mixes mesh convergence with that change.
+    The results store no y⁺, so how far it moved isn't known.  The bend
+    at the same settings drifted its precursor f by +9 % at k = 3.
+  - So "grid-converged" above is **not shown**.  The gap of about 0.1 to
+    the measurement still stands, since every level and both models sit
+    above it.  But how much of it is the mesh's isn't settled.  Task
+    0186 reruns the tee with the wall cell fixed, as 0050 now does.
 - **The pressure method matters at coarse levels:** each branch's own
   gradient sits 8–30 % above McKeon's at k = 2 and approaches it at
   k = 3 (1.08, 0.99, 1.17 for a, b, c).  Carried back over about 14 D
