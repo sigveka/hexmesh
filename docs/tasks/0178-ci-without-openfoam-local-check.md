@@ -75,6 +75,11 @@ local check (only the cheapest).  A self-hosted CI runner.
 
 ## Agent notes
 
+- **Export checks to include (from 0183, 2026-11-20):** the SU2 check's
+  k = 1 (`validation/exports/su2/run.py --levels 1`, a few minutes at most, needs
+  the `hexmesh-su2:8.6.0` image built from its `Dockerfile`); code_saturne's
+  k = 1 likewise once 0181 is done.
+
 - **From task 0182** (2026-11-19, step 4 left here): the local check
   should also run every export check's coarsest level,
   `validation/exports/<consumer>/`.  Today that is FEniCSx:

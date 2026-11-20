@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "kind": "export",
+  "name": "su2_poiseuille",
+  "title": "SU2: the .su2 export checked end to end",
+  "headline": "SU2 v8.6.0 reads every hexahedron and marker of the .su2; laminar Poiseuille Δp and u_max converge at order 2.02 to +0.26 %",
+  "references": [
+    {
+      "source": "Hagen–Poiseuille: $\\Delta p = 32 \\nu U_b \\Delta x / D^2$, $u_{max} = 2 U_b$ at the realised bulk velocity",
+      "role": "primary"
+    }
+  ],
+  "tags": {
+    "regime": [
+      "laminar"
+    ],
+    "physics": [
+      "flow"
+    ],
+    "features": [
+      "section:circle",
+      "straight",
+      "tee"
+    ],
+    "toolchain": {
+      "su2": "v8.6.0",
+      "runner": "docker",
+      "conversion": "write() to .su2, read by SU2_CFD (MESH_FORMAT= SU2)"
+    }
+  },
+  "status": "passes",
+  "task": "0183",
+  "format": {
+    "extension": ".su2",
+    "version": "SU2 native ASCII (NDIME 3, VTK cell types)",
+    "elements": [
+      "Hex8"
+    ]
+  },
+  "consumer": {
+    "name": "SU2",
+    "image": "hexmesh-su2:8.6.0, built from validation/exports/su2/Dockerfile (ubuntu:24.04@sha256:008173c23f95b170204355c12626cb5a965d779a7e1283b09e9cffbb1bf33ca3; SU2_v8.6.0_linux64-omp.zip, sha256 b306dcb7e76caec54e376542916aae14a32abd6c2f6fa8b871ec10ffe80b41ac)",
+    "version": "v8.6.0"
+  },
+  "checks": {
+    "import": "SU2's hexahedra equal cell_count(), every boundary group a marker by name, every volume element correctly oriented, at each level (recheck); markers, cell types and counts on the written file (tests/test_export_formats.py)",
+    "exact": "laminar Poiseuille at Re 100: Δp between 15 D and 25 D, and u on the axis at 20 D, each within 2 % of Poiseuille at U_b at the finest level",
+    "order": "the errors' order over k = 1, 2, 3 reported (Richardson)"
+  }
+}

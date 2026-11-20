@@ -64,16 +64,19 @@
           "uniqueItems": true
         },
         "toolchain": {
-          "description": "The solver: OpenFOAM, or FEniCSx for a secondary-solver case (decision 0034, task 0077).",
+          "description": "The solver: OpenFOAM, or FEniCSx for a secondary-solver case (decision 0034, task 0077); code_saturne or SU2 for an export check (tasks 0181, 0183).",
           "type": "object",
           "required": ["runner", "conversion"],
-          "oneOf": [{"required": ["openfoam"]}, {"required": ["fenicsx"]}],
+          "oneOf": [{"required": ["openfoam"]}, {"required": ["fenicsx"]},
+                    {"required": ["code_saturne"]}, {"required": ["su2"]}],
           "additionalProperties": false,
           "properties": {
             "openfoam": {"type": "string", "pattern": "^v[0-9]{4}$"},
             "fenicsx": {"type": "string", "pattern": "^dolfinx:v[0-9]+\\.[0-9]+\\.[0-9]+$"},
+            "code_saturne": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+            "su2": {"type": "string", "pattern": "^v[0-9]+\\.[0-9]+\\.[0-9]+$"},
             "runner": {"enum": ["native", "docker"]},
-            "conversion": {"description": "How the mesh reaches OpenFOAM: gmshToFoam's flags, and any mesh made otherwise (task 0108).", "type": "string", "minLength": 1}
+            "conversion": {"description": "How the mesh reaches the solver: gmshToFoam's flags, and any mesh made otherwise (task 0108); the written format for another solver.", "type": "string", "minLength": 1}
           }
         }
       }

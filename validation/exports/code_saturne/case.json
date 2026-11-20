@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "kind": "export",
+  "name": "code_saturne_poiseuille",
+  "title": "code_saturne: the .unv export checked end to end",
+  "headline": "code_saturne 9.2.0 reads every cell and group of the .unv; laminar Poiseuille Δp converges at order 2.05 to +0.18 %",
+  "references": [
+    {
+      "source": "Hagen–Poiseuille: $dp/dx = 32 \\nu U_b / D^2$ at the realised bulk velocity",
+      "role": "primary"
+    }
+  ],
+  "tags": {
+    "regime": [
+      "laminar"
+    ],
+    "physics": [
+      "flow"
+    ],
+    "features": [
+      "section:circle",
+      "straight",
+      "tee"
+    ],
+    "toolchain": {
+      "code_saturne": "9.2.0",
+      "runner": "docker",
+      "conversion": "write() to .unv (I-DEAS universal), read by cs_preprocess"
+    }
+  },
+  "status": "passes",
+  "task": "0181",
+  "format": {
+    "extension": ".unv",
+    "version": "I-DEAS universal: datasets 2411, 2412, 2477",
+    "elements": [
+      "Hex8"
+    ]
+  },
+  "consumer": {
+    "name": "code_saturne",
+    "image": "simvia/code_saturne:9.2.0@sha256:7639bc95baf6e5c284f4e67ea418ae6d46809410b7e04ed477983a8e39513ed5",
+    "version": "9.2.0"
+  },
+  "checks": {
+    "import": "the preprocessor's cells and hexa8 equal cell_count(), every group by name with its size: the equal tee and each Poiseuille level (recheck); groups, cell types and counts on the written file (tests/test_unv.py)",
+    "exact": "laminar Poiseuille at Re 100: dp/dx between 15 D and 25 D within 2 % of 32 nu U_b / D^2 at the finest level",
+    "order": "the Δp error's order over k = 1, 2, 3 reported (Richardson)"
+  }
+}

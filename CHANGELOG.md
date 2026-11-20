@@ -36,6 +36,16 @@ and `hexmesh manifest`'s `validation.exports` list the checks
 apart from the validation cases.  CI parses the written `.msh` 4.1 for
 its groups, cell types and counts.
 
+**Docs: `.unv`, `.su2` and `.cgns` are experimental, and checked**
+(tasks 0181, 0183).  `write()` already wrote gmsh's other formats; the
+README, API.md and the GUIDE now say which, and what is checked.  CI
+parses `.unv` and `.su2` for their group names, hex cells and counts
+(`.cgns` too where gmsh has CGNS: the pip wheel 4.15 does, the 4.12.1
+build here doesn't).  Locally, code_saturne 9.2.0 reads the `.unv` and
+SU2 v8.6.0 the `.su2`, and each solves laminar Poiseuille on it
+(`validation/exports/code_saturne/`, `validation/exports/su2/`).  Not
+checked in Fluent or STAR-CCM+.
+
 ## 0.8.0 (2026-11-18)
 
 The API review before the 1.0 freeze (decisions 0042 and 0053): the

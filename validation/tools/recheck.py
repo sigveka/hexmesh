@@ -34,7 +34,7 @@ ROOT = Path(__file__).resolve().parents[2]
 CASES = ("poiseuille", "heated_rod", "layered_conduction", "heated_pipe", "womersley",
          "stenosis", "stenosis_pulsatile", "rect_duct", "mms", "turbulent_pipe", "square_bend",
          "helical_pipe", "junction_loss", "turbulent_bend",
-         "fenicsx_second_order")
+         "fenicsx_second_order", "code_saturne_poiseuille", "su2_poiseuille")
 
 
 def _load(name: str, rel: str):

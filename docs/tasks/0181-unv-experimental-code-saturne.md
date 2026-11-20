@@ -1,6 +1,6 @@
 # 0181 — Export check: `.unv` in code_saturne (experimental until it passes); does the pip gmsh write CGNS?
 
-- **Status:** ready
+- **Status:** done (2026-11-20; the local check's part handed to 0178)
 - **Decision:** [0056](../decisions/0056-other-solvers-mesh-formats.md);
   [0057](../decisions/0057-two-kinds-validation-and-export-checks.md)
   (export checks, widened 2026-11-18)
@@ -82,6 +82,56 @@ asked; `.su2` is task 0183); validating in Fluent or STAR-CCM+.
 
 ## Agent notes
 
+- **Step 2:** gmsh writes the groups as dataset **2477**, not 2467; the
+  test parses 2477 (`docs/integrations/gmsh.md`).
+- **Step 3, CGNS:** the system gmsh 4.12.1 has no CGNS; the pip wheel
+  4.15.2 writes it, with a `Family_t` per entity named after its group,
+  and `gmsh.merge` reads the groups back.  `tests/test_export_formats.py`
+  checks it where gmsh has CGNS and skips elsewhere.  Not tried in a CGNS
+  consumer, so no label beyond "written".
+- **Step 4, the image:** `simvia/code_saturne:9.2.0`, pinned by digest
+  (`docs/integrations/code_saturne.md`).  User sources need C++ linkage,
+  and boundary types set face by face; the steady algorithm cycled on
+  the pipe, so Poiseuille is time-marched.
+- **Step 4, MMS:** all 16 non-diagnostic MMS cases (cheap: 24 min for
+  the 48 runs on one core), as a frozen-flow user scalar
+  (`src/cs_user_mms.cpp`), `validation/mms`'s field, wave numbers and
+  meshes at k = 1, 2, 4.  The import is gated per level, every group by
+  name and size; orders are reported, as in `validation/mms`.
+- **One driver, one card:** the MMS levels live in the same
+  `results.json` as Poiseuille (`mms_<case>_k<k>`, with a `case` key);
+  the volunteer hooks cover the Poiseuille levels only.
+- **Step 4, "joins the local check":** 0178 hasn't landed; noted in its
+  *Agent notes*.
+
 ## Questions for design
 
 ## Outcome
+
+- **Passes.**  code_saturne 9.2.0 reads every cell and group of the
+  `.unv`: the equal tee (8000 cells, every group by name and size), the
+  Poiseuille pipe at k = 1, 2, 3 and the 16 MMS fittings at k = 1, 2, 4.
+- **Poiseuille:** Δp +1.65 %, +0.40 %, +0.18 % (gate 2 %); order 2.05,
+  GCI 0.22 %.
+- **MMS (for RESEARCH §7.14):** code_saturne's L2 order in the fitting
+  under test, k 2→4, is 1.85–1.99 on 12 of the 16 fittings, including
+  the miter (1.97), reducer (1.85), transition (1.94), tee (1.97) and
+  tee with shells (1.95), where OpenFOAM's is 1.14, 0.95, 0.97, 1.03,
+  1.04 on the same meshes.  It confirms task 0109's cause from the other
+  side: the meshes support second order there; OpenFOAM's `fixedValue`
+  wall gradient loses it.  The wyes stay low in both (code_saturne
+  0.27–0.49, OpenFOAM 0.34–0.51): `n_split` isn't refined.  The duct taps
+  converge at k = 4 here (1.87), where OpenFOAM's didn't.
+- **Files:** `validation/exports/code_saturne/` (`run.py`,
+  `src/cs_user_poiseuille.cpp`, `src/cs_user_mms.cpp`, `case.json`,
+  `README.md`, `RESULTS.md`, `results.json`, `figure.png`,
+  `img/mms.png`); `tests/test_unv.py` (new);
+  `tests/test_export_formats.py` (CGNS); `docs/integrations/code_saturne.md`
+  (new), `gmsh.md` (`.unv` datasets, CGNS); README, API.md, GUIDE (*Other
+  solvers*), CHANGELOG; `validation/tools/plots.py`, `recheck.py`;
+  `case.schema.json`.
+- **Follow-ups:** the local check (0178); CGNS in a consumer (SU2 or
+  code_saturne) after 1.0 (decision 0057); a refined-split wye family, if
+  design wants the split region verified (RESEARCH §7.14: "the split
+  region isn't verified").
+

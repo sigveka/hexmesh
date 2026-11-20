@@ -674,6 +674,31 @@ reducer: an order of 1.7–1.8 with an exact wall flux, but 1.3 down to
 Gentler slopes help; refinement alone lowers the error but not its
 order.
 
+### Other solvers (experimental)
+
+`write()` hands the file name to gmsh, so its other writers follow the
+extension:
+
+```python
+asm.write("pipe.unv")     # I-DEAS universal: code_saturne, and ANSYS-type tools
+asm.write("pipe.su2")     # SU2
+asm.write("pipe.cgns")    # CGNS, where gmsh has it (the pip wheel 4.15 does)
+```
+
+These formats are **experimental**.  Each is checked by an export check
+(decision 0057): a format test in CI parses the file and checks the
+group names, the hex cells and their count, and locally a consumer reads
+the file and solves on it: code_saturne for `.unv`
+(`validation/exports/code_saturne/`) and SU2 for `.su2`
+(`validation/exports/su2/`).  `.cgns` has only the format test, and
+only where gmsh is built with CGNS.  **Not checked:** Fluent, STAR-CCM+
+and other commercial tools (no licence here).  SU2 has no cell zones, so
+a layered mesh's materials arrive as one volume.
+
+**Fluent's `.msh` is not gmsh's.**  Fluent's own mesh files use the
+same extension in a different format: a gmsh `.msh` does not open in
+Fluent.  Give Fluent the `.unv` (or `.cgns`) instead.
+
 ---
 
 ## Inlet and outlet runs

@@ -1,0 +1,183 @@
+{
+ "case": "su2_poiseuille",
+ "extra": {
+  "method": {
+   "error_max": 0.02,
+   "exact": "Poiseuille at the realised bulk velocity U_b (SU2's outlet mass flow over rho pi R^2)",
+   "image": "hexmesh-su2:8.6.0",
+   "re": 100,
+   "su2": "v8.6.0"
+  },
+  "richardson": {
+   "dp_err": {
+    "bounds": [
+     0.002649295460205092,
+     0.024110546662119203
+    ],
+    "differences": [
+     0.018141770724662054,
+     0.003319480477252057
+    ],
+    "e_a": 0.003319480477252057,
+    "e_ext": 0.0026171986006881874,
+    "extrapolated": 3.209685951690485e-05,
+    "gci_fine": 0.0032714982508602343,
+    "note": "",
+    "order": 2.0200144809316813,
+    "oscillatory": false,
+    "status": "converging"
+   },
+   "inlet_deficit": {
+    "bounds": [
+     0.0551755719799395,
+     0.15893661930334702
+    ],
+    "differences": [
+     0.07798458712336598,
+     0.02577646020004154
+    ],
+    "e_a": 0.02577646020004154,
+    "e_ext": 0.05064711025782016,
+    "extrapolated": 0.0045284617221193315,
+    "gci_fine": 0.0633088878222752,
+    "note": "",
+    "order": 1.014659407916266,
+    "oscillatory": false,
+    "status": "converging"
+   },
+   "u_max_err": {
+    "bounds": [
+     0.002608665710896796,
+     0.023773728600977373
+    ],
+    "differences": [
+     0.017891704136602682,
+     0.003273358753477895
+    ],
+    "e_a": 0.003273358753477895,
+    "e_ext": 0.0025804860969231027,
+    "extrapolated": 2.8179613973693042e-05,
+    "gci_fine": 0.003225607621153879,
+    "note": "",
+    "order": 2.0202006967170356,
+    "oscillatory": false,
+    "status": "converging"
+   }
+  }
+ },
+ "format": "hexmesh.validation.results",
+ "levels": [
+  {
+   "cells": 5184,
+   "converged": false,
+   "dp": 6.890735028661915e-05,
+   "dp_err": 0.024110546662119203,
+   "dp_exact_at_u_b": 6.728507045573224e-05,
+   "environment": {
+    "date": "2026-11-19",
+    "gmsh": "4.12.1",
+    "hexmesh": "3680ced",
+    "python": "3.12.3",
+    "runner": "docker",
+    "su2": "hexmesh-su2:8.6.0 (SU2 v8.6.0, ./Dockerfile)"
+   },
+   "hexahedra": 5184,
+   "inlet_deficit": 0.15893661930334702,
+   "k": 1,
+   "markers": {
+    "fluid_inlet": 108,
+    "fluid_outlet": 108,
+    "fluid_wall": 1152
+   },
+   "massflow_in": 1.31617349e-06,
+   "massflow_out": -1.321139269e-06,
+   "n_arc": 6,
+   "n_height": null,
+   "n_radial": 3,
+   "n_width": null,
+   "name": "k1",
+   "oriented": true,
+   "precision": "full",
+   "reoriented_surface": 108,
+   "steps": 20000,
+   "u_b": 0.0042053169034832645,
+   "u_max": 0.008610585932455556,
+   "u_max_err": 0.023773728600977373
+  },
+  {
+   "cells": 41472,
+   "converged": false,
+   "dp": 7.396268473725695e-05,
+   "dp_err": 0.005968775937457149,
+   "dp_exact_at_u_b": 7.35238374256015e-05,
+   "environment": {
+    "date": "2026-11-19",
+    "gmsh": "4.12.1",
+    "hexmesh": "3680ced",
+    "python": "3.12.3",
+    "runner": "docker",
+    "su2": "hexmesh-su2:8.6.0 (SU2 v8.6.0, ./Dockerfile)"
+   },
+   "hexahedra": 41472,
+   "inlet_deficit": 0.08095203217998104,
+   "k": 2,
+   "markers": {
+    "fluid_inlet": 432,
+    "fluid_outlet": 432,
+    "fluid_wall": 4608
+   },
+   "massflow_in": 1.436928398e-06,
+   "massflow_out": -1.443637172e-06,
+   "n_arc": 12,
+   "n_height": null,
+   "n_radial": 6,
+   "n_width": null,
+   "name": "k2",
+   "oriented": true,
+   "precision": "full",
+   "reoriented_surface": 432,
+   "steps": 20000,
+   "u_b": 0.004595239839100094,
+   "u_max": 0.009244538304506701,
+   "u_max_err": 0.005882024464374691
+  },
+  {
+   "cells": 139968,
+   "converged": false,
+   "dp": 7.578620376703238e-05,
+   "dp_err": 0.002649295460205092,
+   "dp_exact_at_u_b": 7.558595424160483e-05,
+   "environment": {
+    "date": "2026-11-19",
+    "gmsh": "4.12.1",
+    "hexmesh": "3680ced",
+    "python": "3.12.3",
+    "runner": "docker",
+    "su2": "hexmesh-su2:8.6.0 (SU2 v8.6.0, ./Dockerfile)"
+   },
+   "hexahedra": 139968,
+   "inlet_deficit": 0.0551755719799395,
+   "k": 3,
+   "markers": {
+    "fluid_inlet": 972,
+    "fluid_outlet": 972,
+    "fluid_wall": 10368
+   },
+   "massflow_in": 1.476773279e-06,
+   "massflow_out": -1.484126741e-06,
+   "n_arc": 18,
+   "n_height": null,
+   "n_radial": 9,
+   "n_width": null,
+   "name": "k3",
+   "oriented": true,
+   "precision": "full",
+   "reoriented_surface": 972,
+   "steps": 20000,
+   "u_b": 0.004724122140100302,
+   "u_max": 0.00947289159108254,
+   "u_max_err": 0.002608665710896796
+  }
+ ],
+ "version": 1
+}

@@ -840,7 +840,7 @@ so gmsh's writers decide.  Only `.msh` gets the provenance block.
   groups are numbers only.
 - **Not written:**
   - `.cgns`: "compiled without CGNS support" (the 4.12.1 build here).
-    Whether the pip wheel of 4.15.x has CGNS is unchecked;
+    The pip wheel, 4.15.2, writes it (task 0181, the next section);
   - `.med`: no MED support;
   - `.cdb` (ANSYS Mechanical APDL), `.ans`: "Unknown output file format".
     gmsh has no ANSYS-native writer.
@@ -850,6 +850,28 @@ so gmsh's writers decide.  Only `.msh` gets the provenance block.
   Fluent's cell and boundary zones.
 - **Name clash:** Fluent's own mesh files are also `.msh`, in a
   different format.  A gmsh `.msh` is not a Fluent mesh.
+
+### `.unv` datasets, and CGNS from the pip gmsh (gmsh 4.12.1 and 4.15.2, 2026-11-19, task 0181)
+- **`.unv`:** datasets 2411 (nodes, two lines each), 2412 (elements:
+  type **115** the 8-node hexahedron, **94** the 4-node quadrilateral;
+  a header line of six integers, the last the node count, then the
+  nodes eight a line) and **2477** (permanent groups, by name; task
+  0181 expected 2467).  A group's header ends with its entity count;
+  the name follows; then entities two a line, `8 <element label> 0 0`
+  (8 = an element).  Every element carries colour 7.  Parsed in
+  `tests/test_unv.py`; `gmsh.merge` reads it back with the same nodes
+  and elements; code_saturne 9.2.0 reads the groups by name
+  ([code_saturne.md](code_saturne.md)).
+- **CGNS:** the system gmsh 4.12.1 (Ubuntu's build): "This version of
+  Gmsh was compiled without CGNS support".  **The pip wheel, 4.15.2,
+  writes it** (a fresh venv, `pip install gmsh`): one zone, an
+  `Elements_t` section per geometric entity (QUAD_4, HEXA_8), a
+  `ZoneBC` entry and a `Family_t` per entity whose `FamilyName` is the
+  physical group's name.  The names survive, one family per entity
+  rather than per group; `gmsh.merge` reads them back as the groups
+  with the same counts (the equal tee: 8000 hexes, 192 + 192 + 192 +
+  1312 quads).  `tests/test_export_formats.py` checks it where gmsh
+  has CGNS and skips elsewhere.  Not tried in a CGNS consumer.
 
 ## Open questions
 

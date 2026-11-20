@@ -52,7 +52,7 @@ ROOT = Path(__file__).resolve().parents[2]
 CASES = ("poiseuille", "heated_rod", "layered_conduction", "heated_pipe", "womersley",
          "stenosis", "stenosis_pulsatile", "rect_duct", "mms", "turbulent_pipe", "square_bend",
          "helical_pipe", "junction_loss", "turbulent_bend",
-         "fenicsx_second_order")
+         "fenicsx_second_order", "code_saturne_poiseuille", "su2_poiseuille")
 
 SIZE, DPI = (8.0, 5.0), 200          # 1600 × 1000 px
 GRAPHS_START, GRAPHS_END = "<!-- graphs:start -->", "<!-- graphs:end -->"
@@ -852,6 +852,71 @@ def turbulent_bend(data, out):
                     out / "figure.png"),
             "The axial velocity across the bend plane at the six LDA planes: the measurements, "
             "each level, and the paper's own k-ω SST."]
+
+
+def code_saturne_poiseuille(data, out):
+    lv = sorted((l for l in data["levels"] if "k" in l and "case" not in l),
+                key=lambda l: l["k"])
+    fig, ax = _figure()
+    convergence(ax[0, 0], [
+        {"label": "Δp, at U_b over πR²", "h": _h(lv), "err": _col(lv, "dp_err")},
+        {"label": "Δp, at the inlet velocity", "h": _h(lv), "err": _col(lv, "dp_err_at_u_in")}],
+        ylabel="|error| against Poiseuille (%)", band=(0.02, "gate: finest level < 2 %"))
+    return [_finish(fig, "code_saturne_poiseuille", "Laminar Poiseuille in code_saturne 9.2.0 "
+                    "on the .unv, k = 1, 2, 3.  Gate: Δp within 2 % at the finest level; the "
+                    "order reported.", out / "figure.png"),
+            "code_saturne's Δp error against cell size: second order to the exact value."] \
+        + code_saturne_mms(data, out)
+
+
+def code_saturne_mms(data, out):
+    """The MMS L2 order in the fitting under test (k 2 → 4), code_saturne
+    beside OpenFOAM on the same meshes (task 0181)."""
+    mms = data["extra"].get("mms")
+    if not mms:
+        return []
+    cases = list(mms)[::-1]                     # alphabetical, top to bottom
+    y = np.arange(len(cases))
+    fig, ax = _figure()
+    ax = ax[0, 0]
+    for i, (label, key, face) in enumerate((("code_saturne 9.2.0", "focus_l2_orders", None),
+                                             ("OpenFOAM v2406 (validation/mms)",
+                                              "openfoam_focus_l2_orders", "white"))):
+        st = style(None, i)
+        xs = [mms[c][key][-1] if mms[c].get(key) else np.nan for c in cases]
+        ax.plot(xs, y + (0.15 if i else -0.15), linestyle="none", marker=st["marker"],
+                markersize=6, color=st["color"], markerfacecolor=face or st["color"],
+                markeredgewidth=1.2, label=label, zorder=3)
+    for p, ls in ((1, (0, (5, 3))), (2, (0, (1, 2)))):
+        ax.axvline(p, color="0.45", linewidth=1, linestyle=ls, label=f"order {p}", zorder=1)
+    ax.set_yticks(y)
+    ax.set_yticklabels(cases)
+    ax.set_xlim(0, 2.3)
+    _axes(ax, "observed L2 order of T in the fitting under test, k = 2 → 4", "")
+    _legend(ax, loc="center left")              # the empty middle; the wyes sit lower left
+    return [_finish(fig, "code_saturne_poiseuille", "MMS conduction (validation/mms's field, "
+                    "wave numbers and meshes) in code_saturne on the .unv, beside laplacianFoam "
+                    "on the same meshes.  Reported, not gated.  OpenFOAM's duct taps didn't "
+                    "converge at k = 4 (no point).  The wyes' split isn't refined by refined(k).",
+                    out / "img" / "mms.png"),
+            "The manufactured solution's order in each fitting, code_saturne beside OpenFOAM: "
+            "second order wherever the mesh is refined, where OpenFOAM's wall gradient drops "
+            "to first."]
+
+
+def su2_poiseuille(data, out):
+    lv = sorted(data["levels"], key=lambda l: l["k"])
+    fig, ax = _figure()
+    convergence(ax[0, 0], [
+        {"label": "Δp", "h": _h(lv), "err": _col(lv, "dp_err")},
+        {"label": "u_max", "h": _h(lv), "err": _col(lv, "u_max_err")},
+        {"label": "inlet flux deficit", "h": _h(lv), "err": _col(lv, "inlet_deficit")}],
+        ylabel="|error| (%)", band=(0.02, "gate: finest level < 2 % (Δp, u_max)"))
+    return [_finish(fig, "su2_poiseuille", "Laminar Poiseuille in SU2 v8.6.0 on the .su2, "
+                    "k = 1, 2, 3, against Poiseuille at the realised bulk velocity.  The inlet's "
+                    "deficit is the vertex-based inlet's no-slip wall nodes (not gated).",
+                    out / "figure.png"),
+            "SU2's Δp and u_max errors, and the inlet's flux deficit, against cell size."]
 
 
 def draw(case: str) -> list[tuple[str, str]]:

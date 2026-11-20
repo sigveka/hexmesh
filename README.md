@@ -363,6 +363,12 @@ next setup).  Neither do you get OpenFOAM.  hexmesh writes OpenFOAM's input
 without it.  To *run* a case or a study's solves, install OpenFOAM
 yourself (Docker is enough; [validation/README.md](validation/README.md#what-you-need)).
 
+**Other solvers:** `write("….unv")`, `"….su2"` or `"….cgns"` writes
+gmsh's other formats with the group names.  They are **experimental**:
+checked in code_saturne and SU2 (the groups, the hex cells, a laminar
+solve), not in Fluent or STAR-CCM+; a Fluent `.msh` is not a gmsh
+`.msh` ([GUIDE](docs/GUIDE.md#other-solvers-experimental)).
+
 **Check it works**, from any folder:
 
 ```bash

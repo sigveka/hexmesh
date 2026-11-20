@@ -10,6 +10,8 @@ files here, and the installed tool itself, are the source of truth.
 |---|---|---|---|
 | gmsh (+ OpenCASCADE) | **Backend**: realises geometry and mesh | [gmsh.md](gmsh.md) | 4.12.1 / OCC 7.6.3 (apt) |
 | OpenFOAM | **Consumer**: reads hexmesh output | [openfoam.md](openfoam.md) | v1912 (Debian `openfoam` 1912.200626) |
+| code_saturne | **Consumer**: reads `.unv`; an export check, locally (task 0181) | [code_saturne.md](code_saturne.md) | 9.2.0 (Docker, `simvia/code_saturne`) |
+| SU2 | **Consumer**: reads `.su2`; an export check, locally (task 0183) | [su2.md](su2.md) | v8.6.0 (Docker, built from the release zip) |
 | PCF (Isogen piping component file) | **Input format**: plant piping data | [pcf.md](pcf.md) | Reference Guide 2016 (13.0), rev. 2018 |
 | Linux, macOS, Windows | **Platforms** the suite and the Docker runner run on (decision 0039) | [platforms.md](platforms.md) | GitHub Actions `*-latest`, Python 3.11 and 3.x |
 | GitHub (Actions, branch protection) | **Host and CI**: runs the tests; keeps `main` to commits CI passed (decision 0052) | [github.md](github.md) | github.com, 2026-11-13 |
