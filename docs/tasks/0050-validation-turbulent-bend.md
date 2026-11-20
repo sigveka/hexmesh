@@ -1,6 +1,6 @@
 # 0050 — Validation: turbulent flow in a 90° bend (PTB LDA; Sudo et al. 1998 the ideal)
 
-- **Status:** blocked (Q2, 2026-11-20: the gates pass at k = 3, but the levels don't converge; *Questions for design*)
+- **Status:** ready (Q2 answered, 2026-11-20: a family with the wall cell fixed, and K against Ito 1960; *Questions for design*)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (its "Dean bend" case, turbulent); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V3 (experiment: Straka et al. 2020, PTB, via Ekat et al. 2023)
 - **Features:** `section:circle`, `straight`, `bend`
@@ -210,6 +210,51 @@ tees (the Štigler tee, RESEARCH §7.2, is a later case).
     (d) a source for K (a handbook value the user has, or an open
     paper).
   - Nothing tuned.  Status in `case.json`: in progress.
+
+  **Answer (the design session, 2026-11-20; the user agreed: "yes I
+  agree"): (b) and (d).**
+  - **Why (b):** a convergence study must keep the model the same at
+    every level.  With wall functions the model includes the wall
+    cell, so `refined(k)` changed the model as it refined the mesh.
+    `junction_loss` already holds the wall cell fixed (`first_cell`,
+    `wall_ring`) and converges at order 1.9.  The bend follows it.
+  - **The family:**
+    - The wall cell is fixed at first-cell y⁺ ≈ 30–50, with one target
+      for all levels, computed from the precursor's u_τ as
+      `junction_loss.first_cell` does.  Share that helper rather than
+      copy it.
+    - `n_arc`, the radial cells outside the wall cell, and the axial
+      layers are refined by about 1.5–2 per level.  Three levels, with
+      the finest under the 6 GB memory limit (Q1's answer).
+    - The levels don't nest exactly.  Say so in RESULTS.md, and apply
+      the GCI with the representative cell size, as in `junction_loss`.
+  - **Check at every level:**
+    - the precursor's f against McKeon within 0049's 5 % gate;
+    - the y⁺ the solve achieves (mean and range), in RESULTS.md.
+    If f still drifts with the wall cell fixed, stop and report it
+    here.
+  - **Gates unchanged:**
+    - the RMS of w/U_b within 0.10 at all six planes, at the finest
+      level;
+    - the peak on the outer side.
+    The verdict is on the new family.
+  - **K against Ito (1960)**, "Pressure losses in smooth pipe bends",
+    J. Basic Eng. 82, 131–143 (not open access):
+    - add it to `docs/references.bib` after checking its range covers
+      Re 5 × 10⁴ and R_c/D 1.425, and that its K is defined as ours
+      (the total loss, with the straight pipe's friction over the same
+      length taken out).  Say how in RESULTS.md.
+    - K is reported with its GCI beside Ito's value, without a gate
+      (Q1's answer).
+    - If the definitions or the range don't match, report K alone and
+      say why.
+  - **The `refined(k)` runs stay in `results.json`** under their own
+    level names, as the first study.  RESULTS.md keeps them in one
+    short section, as the reason for the fixed wall cell, not as the
+    verdict.
+  - **Memory and CPU:** check `pgrep -af pytest` and free memory before
+    each level (CLAUDE.md).  The suite run for 0185 also needs the
+    machine, so don't run both at once.
 
 ## Outcome
 
