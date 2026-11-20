@@ -1644,6 +1644,36 @@ The fittings below the straight's order, and why (the design checks):
 - **gmshToFoam's orientation test** flips valid warped hexes
   (`docs/integrations/openfoam.md`, 2026-11-06); the drivers use
   `-keepOrientation` where every hex is right-handed (task 0108).
+- **The same meshes in a second code (task 0181, 2026-11-20).**
+  code_saturne solved the same manufactured problem on the 16 meshes of
+  `validation/mms` at k = 1, 2, 4, imported through `.unv`
+  (`validation/exports/code_saturne/RESULTS.md` has the table).
+  - **12 fittings reach order 1.85–1.99 (k 2→4),** including the five
+    OpenFOAM left near first order on the same meshes:
+
+    | fitting | code_saturne | OpenFOAM |
+    |---|---|---|
+    | miter | 1.97 | 1.14 |
+    | reducer | 1.85 | 0.95 |
+    | transition | 1.94 | 0.97 |
+    | tee | 1.97 | 1.03 |
+    | tee_shells | 1.95 | 1.04 |
+
+  - **That settles 0109's cause from the other side.**  The meshes
+    support second order on sloped and kinked walls.  The first-order
+    error is OpenFOAM's `fixedValue` wall gradient, which ignores the
+    cell centre's tangential offset, not the geometry.  The reducer
+    control (held above) is no longer needed to tell the two apart.
+  - **The duct taps** reach 1.87 at k = 4 in code_saturne, where
+    OpenFOAM's didn't converge.  So their aspect isn't the limit.
+  - **The wyes stay low in both codes:** code_saturne 0.27–0.49 and
+    OpenFOAM 0.34–0.51.  That fits the cause given above (`n_split`
+    isn't refined with k), and it's a property of the mesh family, not
+    of either solver.
+  - **For users:** on sloped walls, OpenFOAM's Dirichlet walls are
+    first-order at any mesh density, so a convergence study there
+    shows order about 1, which is not a mesh defect.  A wall
+    treatment that corrects for non-orthogonality is out of scope here.
 
 ### 7.15 Second-order export verified with FEniCSx (task 0077)
 
