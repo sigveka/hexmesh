@@ -1,6 +1,6 @@
 # 0185 — Every level in `results.json` records how long its run took
 
-- **Status:** in progress
+- **Status:** done (2026-11-20)
 - **Decision:** [0044](../decisions/0044-volunteer-runs.md), note of
   2026-11-19
 - **Depends on:** 0184 (done: the store already knows when a run starts).
@@ -100,6 +100,10 @@ solver chunk.
 
 ## Outcome
 
+- **Verified in CI:** run 44716344111 at f268501, green on all 8 jobs,
+  promoted (the full suite here was stopped for low memory; the first
+  push, run 44694117515, failed on a stale agent manifest from tasks
+  0050/0181/0183, fixed in f268501).
 - **Files:** `validation/tools/results.py` (`Store.begin`, `put`'s
   `wall_s`/`cores`, `run_level(cores=)`, `clock_s`),
   `validation/results.schema.json` (the three fields, optional),
