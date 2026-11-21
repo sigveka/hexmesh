@@ -556,7 +556,64 @@ levels = [asm, asm.refined(2), asm.refined(4)]   # 1×, 8×, 64× the cells
 ```
 
 A spec built with `first_cell=` keeps its resolved progression, so the
-refined first cell is smaller.
+refined first cell is smaller.  With wall functions that changes the
+model at each level: see [From our validation](#from-our-validation-what-to-watch).
+
+---
+
+## From our validation: what to watch
+
+hexmesh's validation cases ([validation/](../validation/)) found these
+traps.  Each one is something a user would meet too.
+
+**Wall functions and `refined(k)`.**  *Symptom:* a convergence study
+with wall functions that won't converge, or converges to the wrong
+friction.  *Cause:* `refined(k)` splits every cell, the wall cell too,
+so the first-cell y⁺ falls as 1/k and each level runs a different
+near-wall model.  In the bend case y⁺ went 23, 11.6, 7.8 at k = 1, 2, 3,
+and the pipe friction drifted from McKeon by +0.6 %, +6.1 %, +9.0 %.
+*What to do:* build each level yourself with the same `first_cell=`,
+and `n_arc`, `n_radial` and the axial counts × k.  Held that way, the
+bend's y⁺ stayed at 23.2 and 23.3 and its friction within +0.8 %
+([turbulent_bend](../validation/turbulent_bend/RESULTS.md)).
+
+```python
+def level(k, first=1e-3):
+    spec = PipeSpec(n_arc=8 * k).core("fluid", radius=0.05, n_radial=1 + 7 * k,
+                                     first_cell=first)
+    asm = Assembly(spec, direction=[1, 0, 0], up=[0, 0, 1])
+    asm.add(Straight(1.0, n_layers=20 * k))
+    return asm
+```
+
+The levels don't nest, so use the representative cell size
+h = (V/N)^(1/3) for the GCI.
+
+**About order 1 next to sloped walls, in OpenFOAM.**  *Symptom:* a
+convergence study at a tee, reducer, transition or miter shows order
+about 1, not 2.  *Cause:* OpenFOAM's `fixedValue` wall gradient has no
+non-orthogonal correction, so it is first order next to a sloped or
+kinked wall at any refinement.  On the same meshes, code_saturne holds
+order 1.85–2.0 (tee: OpenFOAM 1.03, code_saturne 1.97).  *What to do:*
+expect it; it isn't the mesh
+([code_saturne's MMS](../validation/exports/code_saturne/RESULTS.md)).
+
+**Wyes don't fully refine.**  `refined(k)` caps a wye's `n_split`
+(`refined`'s docstring), so the split region keeps its cells and a
+study's order there stays low: 0.27–0.51 at k 2 → 4, in both codes
+([mms](../validation/mms/RESULTS.md)).
+
+**`potentialFoam` in thin wall cells.**  *Symptom:* `simpleFoam` blows
+up in its first steps.  *Cause:* on a fine bend mesh with thin wall cells,
+`potentialFoam` gave velocities of 2.7 × 10⁴ m/s there.  *What to do:*
+start from rest (U = 0 inside, the profile at the inlet), which worked.
+
+**A decomposed periodic precursor that never stops.**  *Symptom:* a
+fully developed pipe on several processes runs to its last iteration.
+*Cause:* the cross-flow velocity components, zero on average, floored
+their residuals at 2–5 × 10⁻⁷ on 4 processes, above a `residualControl`
+of 10⁻⁷.  *What to do:* run the small precursor on one process (it
+converged in 3245 steps), or leave Uy and Uz out of `residualControl`.
 
 ---
 
@@ -796,7 +853,9 @@ python3 -m hexmesh.study export study.json                  # aligned arrays
   run stage refuses while other pytest or OpenFOAM runs are active,
   unless `--force`.
 
-Schema and options: [API.md](../API.md#study-runner-hexmeshstudy).
+Schema and options: [API.md](../API.md#study-runner-hexmeshstudy).  For a
+convergence study with wall functions, read [From our
+validation](#from-our-validation-what-to-watch) first.
 
 ## Reading plant data
 

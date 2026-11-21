@@ -46,5 +46,12 @@
       "quantity": "reported, not gated: realizable k–ε with wall functions at one level (their model); the 45° points (no equal lateral in hexmesh); cells, wall time and peak memory per level (finest under about 6 GB)",
       "limit": "reported"
     }
+  ],
+  "lessons": [
+    {
+      "id": "refined_splits_wall_cell",
+      "text": "These levels set first_cell at k = 1 and call refined(k), which splits the wall cell, so y+ falls as 1/k and the order 1.9 doesn't show grid convergence of one model (RESEARCH section 7.2 correction; task 0186 reruns it with the wall cell fixed).",
+      "link": "docs/RESEARCH.md"
+    }
   ]
 }

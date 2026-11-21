@@ -142,6 +142,20 @@
       "description": "Optional: the result in one line, for the README's validation table, e.g. \"reattachment 10.97 D vs the database's 11.03 D (−0.5 %)\"; its numbers from RESULTS.md (task 0078).",
       "type": "string",
       "minLength": 1
+    },
+    "lessons": {
+      "description": "Optional: what this case taught that a user or an agent would meet too (decision 0058, task 0188): a short id, one sentence, and its evidence as a repo-relative link.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "text", "link"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+          "text": {"type": "string", "minLength": 20},
+          "link": {"type": "string", "pattern": "^[A-Za-z0-9_./#-]+$"}
+        }
+      }
     }
   },
   "if": {"required": ["kind"], "properties": {"kind": {"const": "export"}}},

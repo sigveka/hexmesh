@@ -49,6 +49,7 @@ def _case(name: str, path: Path) -> tuple[dict, list]:
         out.update(category=meta["category"],
                    gates=[{"quantity": g["quantity"], "limit": g["limit"]}
                           for g in meta["gates"]])
+    out["lessons"] = meta.get("lessons", [])                # decision 0058, task 0188
     results = path / "results.json"
     if results.exists():
         levels = json.loads(results.read_text(encoding="utf-8"))["levels"]

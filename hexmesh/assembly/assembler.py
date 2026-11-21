@@ -256,7 +256,13 @@ class Assembly:
         **Cost:** k³ × the cells (``refined(2)`` has 8×).
 
         A spec built with ``first_cell=`` stores its resolved ``radial_grading``, so
-        the refined first cell is smaller, not the requested height.
+        the refined first cell is smaller, not the requested height: the wall
+        cell splits into about k cells.  **With wall functions that changes
+        the model at each level**: the first-cell y⁺ falls as 1/k (the
+        validation bend: 23, 11.6, 7.8 at k = 1, 2, 3, and f drifting from
+        +0.6 % to +9 %; task 0050).  For a study there, build each level
+        yourself with the same ``first_cell=`` and ``n_arc``, ``n_radial``
+        and the axial counts × k (GUIDE, "From our validation").
 
         Use it for grid-convergence studies (decision 0015).  It refines
         the whole network: ``n_arc`` and every layer's ``n_radial`` are the same

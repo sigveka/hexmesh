@@ -46,5 +46,22 @@
       "quantity": "reported, not gated: the bend's loss coefficient K with GCI (k = 1, 2, 3); the peak $w$ at 2.43 D and 10.7 D with GCI; Ekat et al.'s own k-ω SST RMS per plane beside ours",
       "limit": "reported"
     }
+  ],
+  "lessons": [
+    {
+      "id": "refined_splits_wall_cell",
+      "text": "refined(k) splits the wall cell k ways, so with wall functions the first-cell y+ falls as 1/k (23, 11.6, 7.8 here) and f drifts from McKeon (+0.6 %, +6.1 %, +9.0 %): for a study, fix first_cell and refine the rest.",
+      "link": "validation/turbulent_bend/RESULTS.md"
+    },
+    {
+      "id": "potentialfoam_thin_wall_cells",
+      "text": "potentialFoam as the initial field gave 2.7e4 m/s in thin wall cells of a fine bend mesh and simpleFoam blew up at step 1; starting from rest worked.",
+      "link": "docs/tasks/0050-validation-turbulent-bend.md"
+    },
+    {
+      "id": "decomposed_precursor_residual_floor",
+      "text": "A periodic precursor decomposed on 4 processes floored its cross-flow residuals (Uy, Uz) at 2-5e-7, above residualControl 1e-7, and never stopped; on one process it converged in 3245 steps.",
+      "link": "docs/tasks/0050-validation-turbulent-bend.md"
+    }
   ]
 }

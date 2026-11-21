@@ -25,6 +25,7 @@
      "quantity": "extrapolated solid $\\Delta T$s"
     }
    ],
+   "lessons": [],
    "levels": 3,
    "status": "accepted",
    "task": "0035",
@@ -43,6 +44,7 @@
      "quantity": "extrapolated centre excess $\\Delta T_0$"
     }
    ],
+   "lessons": [],
    "levels": 10,
    "status": "accepted",
    "task": "0033",
@@ -73,6 +75,7 @@
      "quantity": "reported, not gated: the digitised measured points (Fig. 12); f per pair of consecutive turns"
     }
    ],
+   "lessons": [],
    "levels": 12,
    "status": "accepted",
    "task": "0075",
@@ -101,6 +104,13 @@
     {
      "limit": "reported",
      "quantity": "reported, not gated: realizable k–ε with wall functions at one level (their model); the 45° points (no equal lateral in hexmesh); cells, wall time and peak memory per level (finest under about 6 GB)"
+    }
+   ],
+   "lessons": [
+    {
+     "id": "refined_splits_wall_cell",
+     "link": "docs/RESEARCH.md",
+     "text": "These levels set first_cell at k = 1 and call refined(k), which splits the wall cell, so y+ falls as 1/k and the order 1.9 doesn't show grid convergence of one model (RESEARCH section 7.2 correction; task 0186 reruns it with the wall cell fixed)."
     }
    ],
    "levels": 5,
@@ -133,6 +143,7 @@
      "quantity": "L2 order per region"
     }
    ],
+   "lessons": [],
    "levels": 6,
    "status": "accepted",
    "task": "0034",
@@ -149,6 +160,18 @@
     {
      "limit": "falls with refinement (orders reported, not gated)",
      "quantity": "volume-weighted L2 error of T, every case"
+    }
+   ],
+   "lessons": [
+    {
+     "id": "openfoam_fixedvalue_wall_first_order",
+     "link": "validation/exports/code_saturne/RESULTS.md",
+     "text": "Next to sloped or kinked walls OpenFOAM's fixedValue wall gradient is first order at any refinement: expect order about 1 there (tee 1.03, reducer 0.95), while code_saturne on the same meshes holds 1.85-2.0; it isn't the mesh."
+    },
+    {
+     "id": "wye_split_not_refined",
+     "link": "validation/mms/RESULTS.md",
+     "text": "refined(k) caps a wye's n_split, so its split region isn't refined and its order stays low in both OpenFOAM and code_saturne (0.27-0.51 at k 2 to 4)."
     }
    ],
    "levels": 123,
@@ -181,6 +204,7 @@
      "quantity": "$u_\\mathrm{max}$ observed order"
     }
    ],
+   "lessons": [],
    "levels": 3,
    "status": "accepted",
    "task": "0020",
@@ -223,6 +247,7 @@
      "quantity": "hexmesh O-H levels"
     }
    ],
+   "lessons": [],
    "levels": 30,
    "status": "accepted",
    "task": "0071",
@@ -249,6 +274,7 @@
      "quantity": "reported, not gated: X_H = −0.50 (the calibration station); $U/V_c$ RMS difference per station (5 % comparison, floor: the upstream mismatch); the rig inlet (plug at 7.5 $D_h$) as a sensitivity run"
     }
    ],
+   "lessons": [],
    "levels": 6,
    "status": "accepted",
    "task": "0072",
@@ -271,6 +297,7 @@
      "quantity": "centreline velocity, $x/D = -2 \\ldots 15$"
     }
    ],
+   "lessons": [],
    "levels": 3,
    "status": "accepted",
    "task": "0032",
@@ -293,6 +320,7 @@
      "quantity": "flow features of the paper's §3.1 (jet in acceleration, post-stenotic separation in late deceleration, upstream separation at $-1\\,D$ and $-2\\,D$, no permanent recirculation, laminar and axisymmetric)"
     }
    ],
+   "lessons": [],
    "levels": 4,
    "status": "accepted",
    "task": "0068",
@@ -317,6 +345,23 @@
     {
      "limit": "reported",
      "quantity": "reported, not gated: the bend's loss coefficient K with GCI (k = 1, 2, 3); the peak $w$ at 2.43 D and 10.7 D with GCI; Ekat et al.'s own k-ω SST RMS per plane beside ours"
+    }
+   ],
+   "lessons": [
+    {
+     "id": "refined_splits_wall_cell",
+     "link": "validation/turbulent_bend/RESULTS.md",
+     "text": "refined(k) splits the wall cell k ways, so with wall functions the first-cell y+ falls as 1/k (23, 11.6, 7.8 here) and f drifts from McKeon (+0.6 %, +6.1 %, +9.0 %): for a study, fix first_cell and refine the rest."
+    },
+    {
+     "id": "potentialfoam_thin_wall_cells",
+     "link": "docs/tasks/0050-validation-turbulent-bend.md",
+     "text": "potentialFoam as the initial field gave 2.7e4 m/s in thin wall cells of a fine bend mesh and simpleFoam blew up at step 1; starting from rest worked."
+    },
+    {
+     "id": "decomposed_precursor_residual_floor",
+     "link": "docs/tasks/0050-validation-turbulent-bend.md",
+     "text": "A periodic precursor decomposed on 4 processes floored its cross-flow residuals (Uy, Uz) at 2-5e-7, above residualControl 1e-7, and never stopped; on one process it converged in 3245 steps."
     }
    ],
    "levels": 5,
@@ -349,6 +394,7 @@
      "quantity": "reported, not gated: $U_c/U_b$ against the DNS (3 % comparison, missed: k-ω SST's wake); u⁺(y⁺) against the DNS; the `nutkWallFunction` and `nutUWallFunction` variants"
     }
    ],
+   "lessons": [],
    "levels": 14,
    "status": "accepted",
    "task": "0049",
@@ -379,6 +425,7 @@
      "quantity": "periodicity"
     }
    ],
+   "lessons": [],
    "levels": 4,
    "status": "accepted",
    "task": "0067",
@@ -414,6 +461,7 @@
     "extension": ".unv",
     "version": "I-DEAS universal: datasets 2411, 2412, 2477"
    },
+   "lessons": [],
    "levels": 51,
    "status": "passes",
    "task": "0181",
@@ -450,6 +498,7 @@
     "extension": ".msh",
     "version": "4.1"
    },
+   "lessons": [],
    "levels": 18,
    "status": "passes",
    "task": "0077",
@@ -483,6 +532,7 @@
     "extension": ".su2",
     "version": "SU2 native ASCII (NDIME 3, VTK cell types)"
    },
+   "lessons": [],
    "levels": 3,
    "status": "passes",
    "task": "0183",

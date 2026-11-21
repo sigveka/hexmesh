@@ -46,6 +46,14 @@ SU2 v8.6.0 the `.su2`, and each solves laminar Poiseuille on it
 (`validation/exports/code_saturne/`, `validation/exports/su2/`).  Not
 checked in Fluent or STAR-CCM+.
 
+**Docs: what our validation found, as hints** (task 0188, decision
+0058).  A GUIDE section, "From our validation: what to watch":
+`refined(k)` splits the wall cell (with wall functions y⁺ falls as 1/k;
+fix `first_cell=` instead), OpenFOAM's first-order wall gradient by
+sloped walls, the wyes' unrefined split, and two OpenFOAM starts.  The
+same in `refined()`'s and `first_cell`'s docstrings, and as `lessons`
+per case in `hexmesh/agent/validation.json`.
+
 ## 0.8.0 (2026-11-18)
 
 The API review before the 1.0 freeze (decisions 0042 and 0053): the

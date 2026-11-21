@@ -353,6 +353,9 @@ class PipeSpec:
             task 0088); mutually exclusive with ``radial_grading``
             (docs/tasks/0002).  On an H core: the end cell of every side,
             at all four walls, resolved here to ``wall_bump`` (task 0084).
+            The spec keeps the resolved grading, not the height:
+            ``Assembly.refined(k)`` splits this cell into about k (see its
+            docstring for what that does to wall functions).
         layout : str, optional
             The section layout (decision 0036): ``"h"``, one Cartesian
             patch, the default for a rectangular core (since 0.4.0, task
