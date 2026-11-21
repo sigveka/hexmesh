@@ -1,6 +1,6 @@
 # 0050 — Validation: turbulent flow in a 90° bend (PTB LDA; Sudo et al. 1998 the ideal)
 
-- **Status:** blocked (Q4, 2026-11-21: the wall at 25 doesn't converge and fails f; which wall for the transient run; *Questions for design*)
+- **Status:** ready (Q4 answered, 2026-11-21: the transient run on the wall at 50; *Questions for design*)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (its "Dean bend" case, turbulent); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V3 (experiment: Straka et al. 2020, PTB, via Ekat et al. 2023)
 - **Features:** `section:circle`, `straight`, `bend`
@@ -363,6 +363,38 @@ tees (the Štigler tee, RESEARCH §7.2, is a later case).
     (b) the wall at 25 (639 k): what Q3 named, but it fails f anyway.
     The run needs your go-ahead and the user's.  The cost is reported
     before levels 1 and 3, as Q3 says.
+
+  **Answer (the design session, 2026-11-21): (a), the wall at 50.**
+  - **Why:** step 1 of the ladder (decision 0058) requires the model to
+    stay the same and valid at every level.  Only the wall at 50 passes
+    0049's f gate.  A transient run on a wall that fails f would mix
+    two causes, unsteadiness and the wall model, which the ladder exists
+    to keep apart.  It is also the cheaper mesh.  Q3's answer meant
+    "the stored state" as `fixed_k2`, and that holds.
+  - **The driver's default** goes back to the wall at 50.
+    `fixed_wall_25` stays as an option, and `fixed25_k2` stays in
+    `results.json`, flagged.
+  - **The transient run:** as Q3 step 3 says.
+    - Start from `fixed_k2`'s stored state.
+    - Run until the statistics of K and the six planes' profiles
+      settle: the running mean changes by less than 1 % over the last
+      quarter.
+    - Report K's mean and range, a frequency if one shows, and the
+      gates on the time-averaged profiles.  Report the cost per level
+      before levels 1 and 3.
+  - **Reading, fixed before the run:**
+    - If K's mean lies within the steady plateau's range (0.227–0.271)
+      and the flow is periodic or broadband, the plateau is physical
+      unsteadiness.  The bend's verdict then comes from time-averaged
+      levels.
+    - If the transient settles to a steady state, the plateau was the
+      steady solver's, and its K is the level-2 value.
+  - **Lesson for 0188** (add it): with Spalding's wall function and SST
+    in OpenFOAM, a wall cell whose centre sits in the buffer layer
+    (y⁺ ≈ 8–12) gives f 6–9 % high in the developed pipe.  Keep the
+    first cell's centre at y⁺ ≳ 20.  Evidence: 0050's precursors at
+    y⁺ 7.8, 11.6, 12.0 and 23.2.
+  - The run needs the user's go-ahead.
 
 ## Outcome
 
