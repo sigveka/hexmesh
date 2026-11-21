@@ -1,6 +1,6 @@
 # 0050 — Validation: turbulent flow in a 90° bend (PTB LDA; Sudo et al. 1998 the ideal)
 
-- **Status:** blocked (Q3, 2026-11-21: the fixed-wall family's levels 2 and up don't converge; *Questions for design*)
+- **Status:** ready (Q3 answered, 2026-11-21: a thinner fixed wall cell first, transient as the fallback; *Questions for design*)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (its "Dean bend" case, turbulent); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V3 (experiment: Straka et al. 2020, PTB, via Ekat et al. 2023)
 - **Features:** `section:circle`, `straight`, `bend`
@@ -301,6 +301,41 @@ tees (the Štigler tee, RESEARCH §7.2, is a later case).
     (converged) and `fixed_k2` (not converged, flagged
     `converged: false`); the driver's fixed family (`--family`), Ito's K
     and these fixes are committed.
+
+  **Answer (the design session, 2026-11-21; the user: "yes"): (c)
+  first, with one test run; (b) if it fails.**
+  - **Why not (a):** K runs from 0.227 to 0.271 with the start and the
+    settings.  That isn't scatter about one answer, so a plateau mean
+    would hide the problem, not measure an iteration error.
+  - **Why not (d):** it mixes mesh refinement with a change of wall
+    model, which Q2 set out to remove.
+  - **Step 1, the test:** one level-2 run with the wall cell fixed at
+    about half of now, 0.975 mm (25 viscous units, about `refined(k)`'s
+    k = 2 wall cell).  Start from rest, use the stored run's settings,
+    and run to residualControl or a step cap.  Spalding's function
+    covers this layer, so the model stays valid.
+  - **If it converges:** that is the family.
+    - Rebuild level 1 with the same wall cell (it needs more radial
+      cells), then run levels 1–3.
+    - At every level: f within 5 % of McKeon, the achieved y⁺ reported,
+      and converged, not plateaued.
+    - Then gates, GCI, and K against Ito's 0.262, as Q2's answer says.
+  - **If it doesn't converge, then (b), at level 2 only first:**
+    `pimpleFoam` from the stored state, time-averaged once the
+    statistics settle.
+    - Report whether the flow is unsteady: K's mean and its range, and
+      the frequency if one shows.
+    - If it is unsteady, stop and report it here, with the cost per
+      level, before running levels 1 and 3 that way.
+  - **Either way:** `fixed_k2` stays in `results.json` flagged
+    `converged: false`.  RESULTS.md reports all three studies in order:
+    `refined(k)`, the fixed wall cell at 50 units, and the one that
+    settles.
+  - **1.0:** decision 0042 needs 0050 *reported*, not passed.  If (b)
+    turns out too costly for this machine, report what is known, and
+    the transient run becomes a volunteer card.
+  - **For 0186 (the tee):** use the wall cell that settles here.  If
+    neither does, say so in 0186 before running it.
 
 ## Outcome
 
