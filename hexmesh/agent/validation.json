@@ -369,7 +369,7 @@
      "text": "A periodic precursor decomposed on 4 processes floored its cross-flow residuals (Uy, Uz) at 2-5e-7, above residualControl 1e-7, and never stopped; on one process it converged in 3245 steps."
     }
    ],
-   "levels": 6,
+   "levels": 7,
    "status": "in progress",
    "task": "0050",
    "title": "Turbulent flow in a 90° bend, k-ω SST, against the PTB LDA"

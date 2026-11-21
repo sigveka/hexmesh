@@ -1,6 +1,6 @@
 # 0050 — Validation: turbulent flow in a 90° bend (PTB LDA; Sudo et al. 1998 the ideal)
 
-- **Status:** ready (Q5 answered, 2026-11-21: a SIMPLEC test at level 2 first; time-accurate with a convergence stop as the fallback; *Questions for design*)
+- **Status:** ready (Q5's SIMPLEC test failed; every level time-accurate with the convergence stop; the runs wait for the user's go-ahead)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (its "Dean bend" case, turbulent); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V3 (experiment: Straka et al. 2020, PTB, via Ekat et al. 2023)
 - **Features:** `section:circle`, `straight`, `bend`
@@ -232,6 +232,25 @@ OpenFOAM's face-flux (Rhie-Chow) interpolation depends on the
 relaxation factor and the time step, which counts most on a coarse
 mesh.  Level 2 will show whether the spread shrinks with refinement.
 Q5's single method for all levels keeps the spread out of the GCI.
+
+**Q5's test at level 2 (`simplec_k2`, stored, `converged: false`):**
+- 6 000 steps from rest on 4 processes, 1.63 h; residualControl not met.
+- K 0.2708, +3.2 % from the transient's 0.26233.
+- f +0.77 %; RMS 0.074, 0.074, 0.060, 0.071, 0.090, 0.095, every peak
+  on the outer side.
+So SIMPLEC stalls too, and it fails both of Q5's conditions.  Q5's
+step 2 follows: every level `--transient` with the convergence stop.
+
+**Q5's convergence stop (`--transient`, now the default stop):**
+- After each half flow-through, over the last flow-through, K must stay
+  within 1e-4 relative and every LDA point's w within 0.001 U_b
+  (`steadiness`).
+- The gates read the final fields; the time mean is kept beside them.
+- The window-stopped level-2 run is kept as `transient_window_fixed_k2`.
+- **Check at level 1** (scratch): converged at 2 flow-throughs, K band
+  2.2e-6, w band 8.8e-4; K 0.2201; RMS 0.083, 0.080, 0.061, 0.072,
+  0.096, 0.102; 0.05 h per flow-through.  At 1.5 flow-throughs the
+  bands were 1.7e-3 and 1.4e-2: the second flow-through is needed.
 
 ## Questions for design
 

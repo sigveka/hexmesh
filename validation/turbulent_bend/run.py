@@ -764,6 +764,27 @@ def settledness(h: dict, avg_start: float) -> dict:
             "change": change, "max_change": max(change.values())}
 
 
+#: Q5's convergence stop: over the last flow-through, K within this
+#: relative band and w at every LDA point within this fraction of U_b
+K_TOL, W_TOL = 1e-4, 1e-3
+
+
+def steadiness(h: dict) -> dict:
+    """K's relative band and the widest band of w/U_b at the LDA points
+    over the last flow-through; ``converged`` once both are inside
+    :data:`K_TOL` and :data:`W_TOL` (none before a flow-through has run)."""
+    t = h["t"]
+    if len(t) == 0 or t[-1] < FLOW_THROUGH:
+        return {"k_band": None, "w_band": None, "converged": False}
+    last = t >= t[-1] - FLOW_THROUGH
+    k = h["k_bend"][last]
+    w = h["w"][last]
+    k_band = float((k.max() - k.min()) / abs(k[-1]))
+    w_band = float(np.nanmax(np.nanmax(w, axis=0) - np.nanmin(w, axis=0)))
+    return {"k_band": k_band, "w_band": w_band,
+            "converged": k_band < K_TOL and w_band < W_TOL}
+
+
 def spectrum(h: dict, avg_start: float) -> dict:
     """K's range over the average, and its spectrum's strongest peak:
     frequency, Strouhal number f D / U_b, and its power over the median."""
@@ -787,13 +808,16 @@ def spectrum(h: dict, avg_start: float) -> dict:
 
 def transient(k: int, fam: str, work: Path, n_proc: int, *, chunk_ft: float = 0.5,
               washout_ft: float = 1.0, min_window_ft: float = 1.0,
-              max_ft: float = 12.0, max_hours: float = 12.0) -> dict:
+              max_ft: float = 12.0, max_hours: float = 12.0, stop: str = "converged") -> dict:
     """Q3's step 3, Q4's set-up: the steady bend from rest for
     :data:`STEADY_START` iterations, then pimpleFoam from its state, in
     chunks of *chunk_ft* flow-throughs, U and p averaged after
     *washout_ft*, until K's and the planes' running means change by less
     than :data:`SETTLE` over the last quarter (at least *min_window_ft*
-    averaged), or *max_ft* flow-throughs, or *max_hours*."""
+    averaged; *stop* ``"window"``, Q4), or by default (*stop*
+    ``"converged"``, Q5) until K and the LDA points stop moving
+    (:func:`steadiness`); or *max_ft* flow-throughs, or *max_hours*.
+    The gates read the final fields, the time mean is kept beside them."""
     d = work / f"{level_name(k, fam)}_transient"
     t0 = time.monotonic()
     meta = setup(d, k, END_TIME, fam)
@@ -823,20 +847,27 @@ def transient(k: int, fam: str, work: Path, n_proc: int, *, chunk_ft: float = 0.
                 shutil.rmtree(t)
         h = histories(case, steady["precursor"]["f"])
         state = settledness(h, avg_start)
+        conv = steadiness(h)
         chunks.append({"end_s": end, "steps": steps, "wall_s": time.monotonic() - c0,
                        "co_max": max(cos) if cos else None,
-                       "max_change": state.get("max_change")})
+                       "max_change": state.get("max_change"),
+                       "k_band": conv["k_band"], "w_band": conv["w_band"]})
         print(f"[{d.name}] t {end:.1f} s ({end / FLOW_THROUGH:.1f} FT): {steps} steps, "
               f"{chunks[-1]['wall_s'] / 60:.1f} min, Co {chunks[-1]['co_max']}, K now "
               f"{h['k_bend'][-1]:.3f}, mean {state.get('k_mean', float('nan')):.3f}, "
-              f"change {state.get('max_change')}", flush=True)
-        done = (state["window_s"] >= min_window_ft * FLOW_THROUGH
-                and state["max_change"] is not None and state["max_change"] < SETTLE)
+              f"change {state.get('max_change')}; last FT: K band {conv['k_band']}, w band "
+              f"{conv['w_band']}", flush=True)
+        if stop == "converged":                          # design answer Q5
+            done = conv["converged"]
+        else:                                            # Q4: the running means settle
+            done = (state["window_s"] >= min_window_ft * FLOW_THROUGH
+                    and state["max_change"] is not None and state["max_change"] < SETTLE)
         hours = (time.monotonic() - t0) / 3600
         if done or end >= max_ft * FLOW_THROUGH - 1e-9 or hours >= max_hours:
             break
     h = histories(case, steady["precursor"]["f"])
     mean = results(case, k, steady["precursor"], u="UMean", p="pMean")
+    final = results(case, k, steady["precursor"])
     wall = sum(c["wall_s"] for c in chunks)
     sim = end
     return {"k": k, "family": fam, "cells": meta["cells"], "start": "steady from rest",
@@ -844,6 +875,7 @@ def transient(k: int, fam: str, work: Path, n_proc: int, *, chunk_ft: float = 0.
             "steady_wall_s": t_steady, "precursor": steady["precursor"],
             "zones": info["zones"], "flow_through_s": FLOW_THROUGH, "max_co": MAX_CO,
             "avg_start_s": avg_start, "end_s": end, "settled": bool(done),
+            "stop": stop, "steadiness": steadiness(h), "final": final,
             "settle": state, "spectrum": spectrum(h, avg_start), "chunks": chunks,
             "transient_steps": sum(c["steps"] for c in chunks), "transient_wall_s": wall,
             "wall_s_per_flow_through": wall / (sim / FLOW_THROUGH),
@@ -1060,11 +1092,11 @@ def main(argv=None) -> dict:
             store.put_extra(name, r)
             if not args.keep_work:
                 shutil.rmtree(args.work / f"{level_name(k, args.family)}_transient")
-            sp, mean = r["spectrum"], r["time_mean"]
+            sp, mean = r["spectrum"], r["final"]
             peak = ("no peak" if sp["peak_strouhal"] is None else
                     f"peak St {sp['peak_strouhal']:.3f}, x{sp['peak_over_median']:.0f} the median")
-            print(f"[{name}] settled {r['settled']} at {r['end_s'] / FLOW_THROUGH:.1f} FT; "
-                  f"K mean {mean['k_bend']:.3f} (range {sp['k_min']:.3f}-{sp['k_max']:.3f}, "
+            print(f"[{name}] converged {r['settled']} at {r['end_s'] / FLOW_THROUGH:.1f} FT; "
+                  f"K {mean['k_bend']:.4f} (range {sp['k_min']:.3f}-{sp['k_max']:.3f}, "
                   f"{peak}); RMS " + ", ".join(f"{z} {v['rms']:.4f}"
                                                for z, v in mean["planes"].items())
                   + f"; {r['wall_s_per_flow_through'] / 3600:.2f} h per flow-through",
