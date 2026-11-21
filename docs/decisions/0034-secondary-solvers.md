@@ -201,3 +201,8 @@ checks the second-order `.msh` export, so it moves to
 `validation/exports/fenicsx/` as an export check (task 0182).  Its
 results and status are unchanged.  Nek5000/NekRS, still proposed here,
 is listed in 0057 as an export-check consumer for after 1.0, if asked.
+
+## Note (2026-11-21): Nek taken up
+
+The Nek5000/NekRS proposal is taken up by decision 0058 as an export
+check for Hex27 (task 0189).  It is the ladder's higher-order step.

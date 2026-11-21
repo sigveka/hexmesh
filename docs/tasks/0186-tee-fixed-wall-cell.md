@@ -6,8 +6,8 @@
   judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md);
   follows task 0162
 - **Depends on:** 0050 (its fixed-wall family, the way the levels are built).
-- **Blocks:** none.  Not a 1.0 criterion: 0162 is reported, and the
-  correction in RESEARCH §7.2 says what isn't shown.
+- **Blocks:** 0187; 1.0 (decision 0058, 2026-11-21: it is the tee's
+  ladder step 1).
 
 Ground rules for all tasks: [README](README.md#ground-rules).
 

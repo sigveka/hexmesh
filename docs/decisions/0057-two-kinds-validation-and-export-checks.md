@@ -129,3 +129,10 @@ Today:
     with its markers (0183 checks);
   - that both have a container image that can be pinned, or can be
     built and pinned.  Each task records it.
+
+## Note (2026-11-21): a second code inside validation, before 1.0
+
+Rule 1's second code inside a validation case becomes step 3 of
+decision 0058's ladder.  It runs before 1.0 on the tee (task 0187).
+Rule 3's list gains Nek5000/NekRS (Hex27) before 1.0, as the ladder's
+step 5 tool (task 0189).

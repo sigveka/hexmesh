@@ -72,6 +72,7 @@ rejected.  Records are written in design sessions, and they are the only way
 | [0055](0055-cards-for-every-case-ci-without-openfoam.md) | A card for every validation case and one command to re-run it; CI without OpenFOAM, a local check | accepted (other solvers: proposed) |
 | [0056](0056-other-solvers-mesh-formats.md) | Meshes for other solvers: `.unv` experimental, checked with code_saturne; CGNS checked; no Fluent writer for now | accepted |
 | [0057](0057-two-kinds-validation-and-export-checks.md) | Two kinds of checks: validation (OpenFOAM) and export checks (one consumer per format: FEniCSx, code_saturne, SU2); export checks before 1.0 | accepted |
+| [0058](0058-diagnosis-ladder-and-user-hints.md) | When a validation case misses: a diagnosis ladder (converged, setup, solver, model, discretisation), and its findings as user hints; before 1.0 | accepted |
 
 ## Future expansions
 
