@@ -1,6 +1,6 @@
 # 0050 — Validation: turbulent flow in a 90° bend (PTB LDA; Sudo et al. 1998 the ideal)
 
-- **Status:** ready (Q3 answered, 2026-11-21: a thinner fixed wall cell first, transient as the fallback; *Questions for design*)
+- **Status:** blocked (Q4, 2026-11-21: the wall at 25 doesn't converge and fails f; which wall for the transient run; *Questions for design*)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (its "Dean bend" case, turbulent); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V3 (experiment: Straka et al. 2020, PTB, via Ekat et al. 2023)
 - **Features:** `section:circle`, `straight`, `bend`
@@ -336,6 +336,33 @@ tees (the Štigler tee, RESEARCH §7.2, is a later case).
     the transient run becomes a volunteer card.
   - **For 0186 (the tee):** use the wall cell that settles here.  If
     neither does, say so in 0186 before running it.
+
+- **Q4 (2026-11-21, coding session). Q3's test: the wall at 25 doesn't
+  converge, and it fails f.  Which wall cell for the transient run?**
+  - **The test** (`fixed25_k2`: 0.975 mm, n_arc 16, n_radial 23, axial
+    D/8; 639 360 cells, from rest, 4 processes, 6 000 steps, 2 h 3 min):
+    - not converged: the p residual 3.2e-2 at step 1 000, 3.0e-2 at
+      6 000; Uz 6.3e-3 at the end.  The same plateau as the wall at 50.
+    - K 0.246 at step 6 000; RMS 0.051, 0.082, 0.053, 0.069, 0.094,
+      0.099 at the six planes.
+    - **The precursor's f: +5.9 % against McKeon, first-cell y⁺ 12.0**,
+      over 0049's 5 %.  It converged (3 550 steps, one process).
+  - **Reading.**  A wall cell of 25 viscous units puts its centre at
+    y⁺ about 12, in the buffer layer, as `refined(k)`'s k = 2 did
+    (y⁺ 11.6, f +6.1 %).  So Q3's step 2 can't hold here: this family
+    fails f at every level by construction.  Only the wall at 50 keeps
+    f (+0.55 %, +0.77 %).  The steady plateau is there with both walls;
+    only `refined(k)`'s k = 2 and 3 converged.
+  - **Stored:** `fixed25_k2` in `results.json`, `converged: false`.
+    The driver takes `--family fixed_wall_25` (committed with this
+    question); the default stays on it until you choose.
+  - **The question:** Q3's step 3 (pimpleFoam at level 2,
+    time-averaged).  Which wall?
+    (a) **the wall at 50** (`fixed_k2`, 450 k cells): the only fixed
+    wall that keeps f, and the cheaper mesh.  Recommended.
+    (b) the wall at 25 (639 k): what Q3 named, but it fails f anyway.
+    The run needs your go-ahead and the user's.  The cost is reported
+    before levels 1 and 3, as Q3 says.
 
 ## Outcome
 

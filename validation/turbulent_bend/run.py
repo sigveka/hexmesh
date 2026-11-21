@@ -134,9 +134,9 @@ def design_u_tau() -> float:
     return U_B * math.sqrt(tp.mckeon(RE) / 8)
 
 
-def first_cell() -> float:
-    """The wall cell's height: WALL_YPLUS viscous units at the design u_τ."""
-    return WALL_YPLUS * NU / design_u_tau()
+def first_cell(yplus: float = WALL_YPLUS) -> float:
+    """The wall cell's height: *yplus* viscous units at the design u_τ."""
+    return yplus * NU / design_u_tau()
 
 
 def _ring(first: float) -> int:
@@ -152,12 +152,12 @@ def _ring(first: float) -> int:
     raise ValueError(f"no ring for a first cell of {first}")
 
 
-def spec(k: int = 1) -> PipeSpec:
-    """The section of the fixed-wall family at level *k* (design answer
-    Q2): n_arc and the radial cells outside the wall cell × k, the wall
-    cell the same height at every level.  At k = 1 it is the k = 1
-    section of the ``refined(k)`` family too."""
-    first = first_cell()
+def spec(k: int = 1, yplus: float = WALL_YPLUS) -> PipeSpec:
+    """The section of a fixed-wall family at level *k* (design answers Q2,
+    Q3): n_arc and the radial cells outside the wall cell × k, the wall
+    cell *yplus* viscous units high at every level.  At k = 1 and
+    WALL_YPLUS it is the k = 1 section of ``refined(k)`` too."""
+    first = first_cell(yplus)
     n = 1 + (_ring(first) - 1) * k
     return PipeSpec(n_arc=N_ARC * k).core("fluid", radius=R, n_radial=n, first_cell=first)
 
@@ -175,23 +175,26 @@ def _network(sp: PipeSpec, k: int) -> Assembly:
     return asm
 
 
-def assembly(k: int = 1, fixed: bool = False) -> Assembly:
-    """The bend network at level *k*: ``refined(k)`` of k = 1 (the first
-    study, which shrinks the wall cell as 1/k), or with *fixed* the
-    fixed-wall family."""
-    if fixed:
-        return _network(spec(k), k)
+def assembly(k: int = 1, fam: str = None) -> Assembly:
+    """The bend network at level *k* of family *fam* (:data:`FAMILIES`):
+    ``refined(k)`` of k = 1 (the first study, which shrinks the wall cell
+    as 1/k), or a fixed-wall family."""
+    yplus = FAMILIES[fam or REFINED]
+    if yplus is not None:
+        return _network(spec(k, yplus), k)
     asm = _network(spec(1), 1)
     return asm if k == 1 else asm.refined(k)
 
 
-def precursor(k: int = 1, fixed: bool = False) -> Assembly:
+def precursor(k: int = 1, fam: str = None) -> Assembly:
     """The periodic pipe on the same section, placed so its inlet is the
     bend network's (task 0049's two layers at k = 1)."""
-    asm = Assembly(spec(k if fixed else 1), position=[0, 0, 0], direction=[1, 0, 0],
+    yplus = FAMILIES[fam or REFINED]
+    m = 1 if yplus is None else k
+    asm = Assembly(spec(m, yplus or WALL_YPLUS), position=[0, 0, 0], direction=[1, 0, 0],
                    up=[0, 0, 1])
-    asm.add(Straight(PRECURSOR, n_layers=tp.N_LAYERS * (k if fixed else 1)))
-    return asm if fixed or k == 1 else asm.refined(k)
+    asm.add(Straight(PRECURSOR, n_layers=tp.N_LAYERS * m))
+    return asm if yplus is not None or k == 1 else asm.refined(k)
 
 
 def meshes():
@@ -417,7 +420,7 @@ def _mesh(case: Path, asm: Assembly, name: str) -> dict:
     return {"cells": cells, "min_sj": q.worst, "min_sicn": sicn, "msh": msh}
 
 
-def setup(d: Path, k: int, end_time: int, fixed: bool = False) -> dict:
+def setup(d: Path, k: int, end_time: int, fam: str = None) -> dict:
     """Mesh and set up the precursor (d/precursor) and the bend (d/bend)."""
     pre, bend = d / "precursor", d / "bend"
     for c in (pre, bend):
@@ -425,16 +428,18 @@ def setup(d: Path, k: int, end_time: int, fixed: bool = False) -> dict:
             shutil.rmtree(c)
         c.mkdir(parents=True)
     write_precursor(pre, end_time)
-    mp = _mesh(pre, precursor(k, fixed), f"bend-precursor-{k}")
+    fam = fam or REFINED
+    mp = _mesh(pre, precursor(k, fam), f"bend-precursor-{k}")
     of.foam("createPatch -overwrite", pre, "log.createPatch")
     _common(bend, end_time)
-    asm = assembly(k, fixed)
+    asm = assembly(k, fam)
     mb = _mesh(bend, asm, f"bend-{k}")
     check = of.check_mesh(bend)
-    meta = {"k": k, "family": FIXED if fixed else REFINED, "cells": mb["cells"],
+    meta = {"k": k, "family": fam, "cells": mb["cells"],
             "precursor_cells": mp["cells"], "min_sj": mb["min_sj"], "min_sicn": mb["min_sicn"],
             "check": check, "counts": stored.counts(asm),
-            "first_cell": first_cell() if fixed else None}    # refined(k): splits it k ways
+            "first_cell": (None if FAMILIES[fam] is None              # refined(k): split k ways
+                           else first_cell(FAMILIES[fam]))}
     (d / "setup.json").write_text(json.dumps(meta, indent=1), encoding="utf-8")
     return meta
 
@@ -474,23 +479,30 @@ def solve(d: Path, k: int, end_time: int, n_proc: int) -> dict:
     return out
 
 
-def run_level(k: int, work: Path, end_time: int, n_proc: int, fixed: bool = False) -> dict:
-    d = work / level_name(k, fixed)
-    meta = setup(d, k, end_time, fixed)
+def run_level(k: int, work: Path, end_time: int, n_proc: int, fam: str = None) -> dict:
+    d = work / level_name(k, fam)
+    meta = setup(d, k, end_time, fam)
     print(f"[k={k}] {meta['cells']} cells (precursor {meta['precursor_cells']}), "
           f"min SJ {meta['min_sj']:.3f}, max non-orthogonality "
           f"{meta['check']['max_non_orthogonality']:.1f}", flush=True)
     return solve(d, k, end_time, n_proc)
 
 
-# --- the two families -------------------------------------------------------------------
+# --- the families -------------------------------------------------------------------
 
-REFINED, FIXED = "refined", "fixed_wall"
+REFINED, FIXED, FIXED25 = "refined", "fixed_wall", "fixed_wall_25"
+#: family → the fixed wall cell's height in viscous units (None: refined(k) splits it)
+FAMILIES = {REFINED: None, FIXED: WALL_YPLUS, FIXED25: 25}
+#: family → its level names' prefix
+PREFIX = {REFINED: "", FIXED: "fixed_", FIXED25: "fixed25_"}
+#: the studies in order (design answer Q3): refined(k), the wall at 50, the wall at 25
+STUDIES = (REFINED, FIXED, FIXED25)
 
 
-def level_name(k: int, fixed: bool) -> str:
-    """``k<k>`` (``refined(k)``, the first study) or ``fixed_k<k>``."""
-    return f"fixed_k{k}" if fixed else f"k{k}"
+def level_name(k: int, fam: str = None) -> str:
+    """``k<k>`` (``refined(k)``), ``fixed_k<k>`` (the wall at 50) or
+    ``fixed25_k<k>`` (the wall at 25)."""
+    return f"{PREFIX[fam or REFINED]}k{k}"
 
 
 def family(levels: list[dict], name: str) -> list[dict]:
@@ -538,8 +550,8 @@ def recheck(data: dict) -> list[dict]:
     out = []
     # the verdict is on the fixed-wall family once it has levels (design
     # answer Q2); refined(k) is the first study
-    name = FIXED if family(data["levels"], FIXED) else REFINED
-    tag = "fixed wall, " if name == FIXED else ""
+    name = next(f for f in reversed(STUDIES) if family(data["levels"], f) or f == REFINED)
+    tag = "" if name == REFINED else f"wall y+ {FAMILIES[name]:g}, "
     for q, r in analyse(data["levels"], name).items():
         out.append(stored.row(f"{q} ({tag}k = 1, 2, 3)", rich=r,
                               note=f"GCI {r['gci_fine']:.2%}" if r["status"] == "converging"
@@ -576,7 +588,7 @@ def table(levels: list[dict]) -> str:
     lines = ["| family | k | cells | steps | K | "
              + " | ".join(f"RMS {z:g} D" for z in PLANES) + " |",
              "|---|---|---|---|---|" + "---|" * len(PLANES)]
-    for r in family(levels, REFINED) + family(levels, FIXED):
+    for r in [r for f in STUDIES for r in family(levels, f)]:
         lines.append(f"| {r.get('family', REFINED)} | {r['k']} | {r['cells']} | {r['steps']} | "
                      f"{r['k_bend']:.3f} | "
                      + " | ".join(f"{r['planes'][f'{z:g}']['rms']:.4f}" for z in PLANES) + " |")
@@ -588,13 +600,13 @@ def table(levels: list[dict]) -> str:
 END_TIME = 20000
 
 
-def _parse(level: str) -> tuple[int, bool]:
-    """(k, fixed) of a level name."""
-    m = re.fullmatch(r"(fixed_)?k([1-9])", level)
+def _parse(level: str) -> tuple[int, str]:
+    """(k, family) of a level name."""
+    m = re.fullmatch(r"(fixed25_|fixed_)?k([1-9])", level)
     if not m:
-        raise ValueError(f"turbulent_bend has no level {level!r}: fixed_k1 … fixed_k9 (the "
-                         "wall cell fixed) or k1 … k9 (refined(k))")
-    return int(m[2]), bool(m[1])
+        raise ValueError(f"turbulent_bend has no level {level!r}: fixed25_k1 … (the wall cell "
+                         "at 25), fixed_k1 … (at 50) or k1 … k9 (refined(k))")
+    return int(m[2]), {v: f for f, v in PREFIX.items()}[m[1] or ""]
 
 
 def check_level(level: str) -> None:
@@ -605,14 +617,14 @@ def check_level(level: str) -> None:
 def prepare(level: str, d: Path, mesh_only: bool = False) -> dict:
     """Mesh *level*, and unless *mesh_only* set up its precursor and
     bend.  Returns ``{"msh": path, "check": …}``."""
-    k, fixed = _parse(level)
+    k, fam = _parse(level)
     d.mkdir(parents=True, exist_ok=True)
     if mesh_only:
         msh = d / f"{level}.msh"
         with Session(f"bend-{k}"):
-            assembly(k, fixed).write_openfoam(str(msh))
+            assembly(k, fam).write_openfoam(str(msh))
         return {"msh": msh, "check": None}
-    meta = setup(d, k, END_TIME, fixed)
+    meta = setup(d, k, END_TIME, fam)
     return {"msh": d / "bend" / "mesh.msh", "check": meta["check"]}
 
 
@@ -632,8 +644,7 @@ def collect(level: str, d: Path) -> dict:
 def recompute(values: dict) -> dict:
     """What a level's stored numbers must equal, from its own values."""
     ref = json.loads(REFERENCE.read_text(encoding="utf-8"))
-    fixed = values.get("family", REFINED) == FIXED
-    out = {"cells": assembly(values["k"], fixed).cell_count()}
+    out = {"cells": assembly(values["k"], values.get("family", REFINED)).cell_count()}
     for z, pl in values["planes"].items():
         err = np.array(pl["w_over_ub"], float) - np.array(ref["planes"][z]["w_over_wvol"])
         out[f"rms_{z}"] = float(np.sqrt(np.nanmean(err ** 2)))
@@ -645,10 +656,10 @@ def main(argv=None) -> dict:
     ap.add_argument("--levels", nargs="+", type=int, default=list(LEVELS),
                     help="refinement levels k (refined(k): every count ×k, so 8× the cells "
                          "per doubling); default %(default)s; k = 4 is 3.8 M cells")
-    ap.add_argument("--family", choices=(FIXED, REFINED), default=FIXED,
-                    help="fixed_wall: the wall cell the same height at every level, the rest "
-                         "× k (design answer Q2, the verdict); refined: refined(k), the first "
-                         "study; default %(default)s")
+    ap.add_argument("--family", choices=STUDIES, default=FIXED25,
+                    help="fixed_wall_25 / fixed_wall: the wall cell 25 / 50 viscous units high "
+                         "at every level, the rest × k (design answers Q2, Q3); refined: "
+                         "refined(k), the first study; default %(default)s")
     ap.add_argument("--work", type=Path, default=HERE / "work",
                     help="folder for each level's OpenFOAM cases (default: "
                          "validation/turbulent_bend/work/, not committed); a level's cases "
@@ -665,21 +676,20 @@ def main(argv=None) -> dict:
     store = stored.Store(args.json, "turbulent_bend")
     store.put_extra("reference", {"lda": str(REFERENCE.relative_to(ROOT).as_posix()),
                                   "planes_D": list(PLANES), "rms_gate": RMS_GATE})
-    fixed = args.family == FIXED
     for k in args.levels:
-        name = level_name(k, fixed)
+        name = level_name(k, args.family)
         r = stored.run_level(store, name,
                              lambda k=k: run_level(k, args.work, args.end_time, args.n_proc,
-                                                   fixed),
+                                                   args.family),
                              args.work / name, args.keep_work, cores=args.n_proc)
         print(f"[{name}] f {r['precursor']['f_err_mckeon']:+.4f} (y+ "
               f"{r['precursor']['yplus_first_mean']:.1f}), K {r['k_bend']:.3f}, RMS "
               + ", ".join(f"{z:g} D {r['planes'][f'{z:g}']['rms']:.4f}" for z in PLANES)
               + f", steps {r['steps']}", flush=True)
-    for name in (REFINED, FIXED):
+    for name in STUDIES:
         rich = analyse(store.levels(), name)
         if rich:
-            store.put_extra("richardson" if name == REFINED else "richardson_fixed_wall", rich)
+            store.put_extra("richardson" if name == REFINED else f"richardson_{name}", rich)
     print(table(store.levels()))
     return analyse(store.levels(), args.family)
 
