@@ -208,6 +208,31 @@ tees (the Štigler tee, RESEARCH §7.2, is a later case).
   dies out.  That is 1.92 h per flow-through over the run and about
   1.0 h once settled; 4.3 h in all with the start.
 
+**SIMPLEC (Q5's test; 2026-11-21).**  A family of its own,
+`fixed_wall_simplec` (levels `simplec_k<k>`), so `fixed_k2`'s SIMPLE
+record stays.  The bend's dictionaries:
+- the transient's spatial schemes (no `bounded`), steady in time;
+- `consistent yes`, p unrelaxed, U, k and ω at 0.9;
+- the p solve's relTol 0.005 (from 0.05);
+- residualControl as task 0049's.
+The precursor is unchanged.
+
+**Check at level 1** (scratch, not stored): converged in 374 steps;
+K 0.2269, f +0.55 %, RMS 0.082, 0.077, 0.060, 0.070, 0.089, 0.094.
+So level 1 has three converged K values from three algorithms:
+
+| algorithm | K at level 1 |
+|---|---|
+| SIMPLE (bounded schemes) | 0.222 |
+| pimpleFoam | 0.2201 |
+| SIMPLEC | 0.2269 |
+
+That is a 3 % spread.  The likely cause, not verified, is that
+OpenFOAM's face-flux (Rhie-Chow) interpolation depends on the
+relaxation factor and the time step, which counts most on a coarse
+mesh.  Level 2 will show whether the spread shrinks with refinement.
+Q5's single method for all levels keeps the spread out of the GCI.
+
 ## Questions for design
 
 - **Q1 (2026-11-15, coding session). The reference isn't available

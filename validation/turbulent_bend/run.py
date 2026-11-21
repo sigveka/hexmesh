@@ -476,6 +476,10 @@ def solve(d: Path, k: int, end_time: int, n_proc: int, bend_steps: int | None = 
     pr["converged"] = "solution converged in" in log
     inlet = inlet_values(pre, bend, k)
     write_bend(bend, bend_steps or end_time, inlet)
+    if meta.get("family") == SIMPLEC:                   # design answer Q5
+        for name, text in (("fvSchemes", SIMPLEC_SCHEMES), ("fvSolution", SIMPLEC_SOLUTION)):
+            (bend / "system" / name).write_text(H("dictionary", name, "system") + text,
+                                                encoding="utf-8")
     # from rest (U = 0 inside, the precursor's profile at the inlet), no
     # potentialFoam: on fixed_k2 its first Phi solve stalled at 1000
     # iterations and its velocity reached 2.7e4 m/s in the thin wall cells,
@@ -565,6 +569,19 @@ relaxationFactors
     equations       { ".*" 1; }
 }
 """
+
+
+#: design answer Q5's steady test: the transient's spatial schemes (no
+#: ``bounded``), steady in time; SIMPLEC (consistent) with p unrelaxed, the
+#: equations at 0.9, and the p solve ten times tighter (relTol 0.005);
+#: residualControl as task 0049's
+SIMPLEC_SCHEMES = PIMPLE_SCHEMES.replace("default backward;", "default steadyState;")
+SIMPLEC_SOLUTION = (tp.SOLUTION
+                    .replace("        relTol          0.05;", "        relTol          0.005;", 1)
+                    .replace("SIMPLE\n{", "SIMPLE\n{\n    consistent      yes;", 1)
+                    .replace("    fields          { p 0.3; }\n", "", 1)
+                    .replace('equations       { U 0.7; "(k|omega)" 0.7; }',
+                             'equations       { U 0.9; "(k|omega)" 0.9; }', 1))
 
 
 def _pimple_control(end: float, avg_start: float, probes: np.ndarray) -> str:
@@ -838,12 +855,14 @@ def transient(k: int, fam: str, work: Path, n_proc: int, *, chunk_ft: float = 0.
 # --- the families -------------------------------------------------------------------
 
 REFINED, FIXED, FIXED25 = "refined", "fixed_wall", "fixed_wall_25"
+SIMPLEC = "fixed_wall_simplec"
 #: family → the fixed wall cell's height in viscous units (None: refined(k) splits it)
-FAMILIES = {REFINED: None, FIXED: WALL_YPLUS, FIXED25: 25}
+FAMILIES = {REFINED: None, FIXED: WALL_YPLUS, FIXED25: 25, SIMPLEC: WALL_YPLUS}
 #: family → its level names' prefix
-PREFIX = {REFINED: "", FIXED: "fixed_", FIXED25: "fixed25_"}
-#: the studies in order (design answer Q3): refined(k), the wall at 50, the wall at 25
-STUDIES = (REFINED, FIXED, FIXED25)
+PREFIX = {REFINED: "", FIXED: "fixed_", FIXED25: "fixed25_", SIMPLEC: "simplec_"}
+#: the studies in order (design answers Q3, Q5): refined(k), the wall at 50,
+#: the wall at 25, the wall at 50 solved with SIMPLEC
+STUDIES = (REFINED, FIXED, FIXED25, SIMPLEC)
 
 
 def level_name(k: int, fam: str = None) -> str:
@@ -950,7 +969,7 @@ END_TIME = 20000
 
 def _parse(level: str) -> tuple[int, str]:
     """(k, family) of a level name."""
-    m = re.fullmatch(r"(fixed25_|fixed_)?k([1-9])", level)
+    m = re.fullmatch(r"(fixed25_|fixed_|simplec_)?k([1-9])", level)
     if not m:
         raise ValueError(f"turbulent_bend has no level {level!r}: fixed25_k1 … (the wall cell "
                          "at 25), fixed_k1 … (at 50) or k1 … k9 (refined(k))")
