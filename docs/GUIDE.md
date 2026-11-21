@@ -589,6 +589,14 @@ def level(k, first=1e-3):
 The levels don't nest, so use the representative cell size
 h = (V/N)^(1/3) for the GCI.
 
+**Keep the wall cell out of the buffer layer.**  With Spalding's wall
+function and k-ω SST, the bend's precursor read the pipe friction high
+whenever the first cell's centre sat at y⁺ 8–12: +9.0 % at 7.8, +6.1 %
+at 11.6, +5.9 % at 12.0, against +0.55 % at 23.2.  *What to do:* size
+`first_cell=` so the centre is at y⁺ ≳ 20 (a cell about 50 viscous
+units high), or resolve the wall (y⁺ ≲ 1) with a low-Reynolds
+treatment ([turbulent_bend](../validation/turbulent_bend/RESULTS.md)).
+
 **About order 1 next to sloped walls, in OpenFOAM.**  *Symptom:* a
 convergence study at a tee, reducer, transition or miter shows order
 about 1, not 2.  *Cause:* OpenFOAM's `fixedValue` wall gradient has no

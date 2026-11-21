@@ -354,6 +354,11 @@
      "text": "refined(k) splits the wall cell k ways, so with wall functions the first-cell y+ falls as 1/k (23, 11.6, 7.8 here) and f drifts from McKeon (+0.6 %, +6.1 %, +9.0 %): for a study, fix first_cell and refine the rest."
     },
     {
+     "id": "wall_cell_in_buffer_layer",
+     "link": "validation/turbulent_bend/RESULTS.md",
+     "text": "With Spalding's wall function and k-omega SST, a first-cell centre at y+ 8-12 read the pipe friction 6-9 % high (+9.0 % at 7.8, +6.1 % at 11.6, +5.9 % at 12.0, +0.55 % at 23.2): keep the centre at y+ >= 20."
+    },
+    {
      "id": "potentialfoam_thin_wall_cells",
      "link": "docs/tasks/0050-validation-turbulent-bend.md",
      "text": "potentialFoam as the initial field gave 2.7e4 m/s in thin wall cells of a fine bend mesh and simpleFoam blew up at step 1; starting from rest worked."

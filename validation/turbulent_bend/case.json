@@ -54,6 +54,11 @@
       "link": "validation/turbulent_bend/RESULTS.md"
     },
     {
+      "id": "wall_cell_in_buffer_layer",
+      "text": "With Spalding's wall function and k-omega SST, a first-cell centre at y+ 8-12 read the pipe friction 6-9 % high (+9.0 % at 7.8, +6.1 % at 11.6, +5.9 % at 12.0, +0.55 % at 23.2): keep the centre at y+ >= 20.",
+      "link": "validation/turbulent_bend/RESULTS.md"
+    },
+    {
       "id": "potentialfoam_thin_wall_cells",
       "text": "potentialFoam as the initial field gave 2.7e4 m/s in thin wall cells of a fine bend mesh and simpleFoam blew up at step 1; starting from rest worked.",
       "link": "docs/tasks/0050-validation-turbulent-bend.md"
