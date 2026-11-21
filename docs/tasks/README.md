@@ -195,7 +195,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0034](0034-validation-layered-conduction.md) | Validation: conduction through a heated multi-layer cylinder (CHT, solids) | V1 | done | 0012 |
 | [0035](0035-validation-heated-pipe-cht.md) | Validation: heated multi-layer pipe with laminar flow (full CHT) | V1 | done | 0012 |
 | [0049](0049-validation-turbulent-pipe.md) | Validation: fully developed turbulent pipe flow (RANS, k-ω SST) | V2 | done | 0012, 0015 |
-| [0050](0050-validation-turbulent-bend.md) | Validation: turbulent flow in a 90° bend (PTB LDA, Re 5 × 10⁴; Sudo et al. 1998 the ideal) | V3 | ready (Q4 answered: transient on the wall at 50) | 0012, 0015 |
+| [0050](0050-validation-turbulent-bend.md) | Validation: turbulent flow in a 90° bend (PTB LDA, Re 5 × 10⁴; Sudo et al. 1998 the ideal) | V3 | blocked (Q5: level-2 transient steady, K 0.262, gates pass; how to run levels 1 and 3) | 0012, 0015 |
 | [0067](0067-validation-womersley.md) | Validation: Womersley flow (pulsatile laminar pipe flow, exact solution) | V1 | done | 0012, 0015 |
 | [0068](0068-validation-pulsatile-stenosis.md) | Validation: pulsatile flow through the cosine stenosis (Varghese et al., Part 2) | V2 | done | 0012, 0015 |
 | [0071](0071-validation-rectangular-duct.md) | Validation: fully developed laminar flow in rectangular ducts | V1 | done | 0012, 0015 |

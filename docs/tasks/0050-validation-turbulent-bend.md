@@ -1,6 +1,6 @@
 # 0050 — Validation: turbulent flow in a 90° bend (PTB LDA; Sudo et al. 1998 the ideal)
 
-- **Status:** ready (Q4 answered: the transient run on the wall at 50; driver built and checked at level 1; the level-2 run waits for the user's go-ahead)
+- **Status:** blocked (Q5, 2026-11-21: the level-2 transient settles to a steady state, K 0.262, every gate passed; how to run levels 1 and 3; *Questions for design*)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (its "Dean bend" case, turbulent); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V3 (experiment: Straka et al. 2020, PTB, via Ekat et al. 2023)
 - **Features:** `section:circle`, `straight`, `bend`
@@ -173,6 +173,40 @@ tees (the Štigler tee, RESEARCH §7.2, is a later case).
   **Level 3** (3.3× level 2, the step ÷1.5): about 3-5 h per
   flow-through, so roughly 15-25 h.  Measured numbers come with the
   level-2 run, before levels 1 and 3 (Q4).
+
+**The level-2 transient (2026-11-21; stored as `transient_fixed_k2`).**
+- **The steady start:** the precursor, f +0.77 % and y⁺ 23.3 as before,
+  converged on one process in 76 s.  Then the steady bend from rest,
+  2 000 steps, K 0.246; 0.49 h.
+- **pimpleFoam:** 4 chunks, 25.6 s (2 flow-throughs), 4 746 steps at
+  Co 1.0.  K after the start: 0.243 at 1 s, 0.253 at 2 s, 0.260 at
+  6.4 s, 0.2623 at 12.8 s, then flat.
+- **Settled to a steady state:** over the averaged flow-through K is
+  0.262330 ± 7.8e-7 (range 0.262329-0.262333), with no spectrum to
+  read.  Every running mean changed by under 1e-4 over the last
+  quarter.
+- **The time-mean gates (level 2) all pass:**
+
+  | plane | RMS | peak x/R | the LDA's |
+  |---|---|---|---|
+  | 2.43 D | 0.0727 | -0.748 | -0.828 |
+  | 5.56 D | 0.0738 | -0.828 | -0.828 |
+  | 10.7 D | 0.0598 | -0.309 | -0.657 |
+  | 15.69 D | 0.0705 | -0.439 | -0.555 |
+  | 20.82 D | 0.0906 | -0.439 | -0.439 |
+  | 30.82 D | 0.0958 | -0.439 | -0.163 |
+
+  Every peak is on the outer side (x/R < 0).
+- **K 0.2623 against Ito's 0.2626 (-0.1 %).**  Not gated.  The
+  closeness is one level's number, not yet a converged one.
+- **The reading** (fixed before the run, Q4): a transient that settles
+  to steady means the plateau was the steady solver's.  So SIMPLE
+  stalls on this mesh; the flow is steady.  The plateau's K values
+  (0.227-0.271) were the stalled solver's, not the flow's.
+- **Cost, measured:** the chunks took 112, 56, 33 and 30 min for the
+  same ~1 190 steps each, so the solver's work falls as the transient
+  dies out.  That is 1.92 h per flow-through over the run and about
+  1.0 h once settled; 4.3 h in all with the start.
 
 ## Questions for design
 
@@ -435,6 +469,27 @@ tees (the Štigler tee, RESEARCH §7.2, is a later case).
     first cell's centre at y⁺ ≳ 20.  Evidence: 0050's precursors at
     y⁺ 7.8, 11.6, 12.0 and 23.2.
   - The run needs the user's go-ahead.
+
+- **Q5 (2026-11-21, coding session). The flow is steady; how to run
+  levels 1 and 3?**  The level-2 transient settles to a steady state
+  (above): K 0.2623, every gate passed.
+  - **The catch:** at level 1, steady SIMPLE converges (K 0.222).  But
+    the transient check there (pimpleFoam, its own schemes without
+    `bounded`) gave K 0.2201, 1 % lower.  Mixing the two methods across
+    levels would put that 1 % into the GCI.
+  - **Options:**
+    (a) **every level through `--transient`** (pimpleFoam until steady),
+    the same method and schemes throughout.  Costs: level 1 about
+    0.15 h; level 2 done (4.3 h); level 3 (1.49 M cells, 3.3× the
+    cells, the step ÷1.5) about 5 h per settled flow-through and more
+    at the start, so about 20-25 h.  Memory is about 3 GB.
+    Recommended.
+    (b) the same with a shorter minimum window for level 3 (half a
+    flow-through averaged once K is flat): about 12-15 h.
+    (c) find why SIMPLE stalls (SIMPLEC, `consistent`, a tighter p
+    solve), then rerun steady.  Cheaper per level if it works, but
+    unproven, and level 2 would need rerunning to match.
+  - Levels 1 and 3 need the user's go-ahead after this.
 
 ## Outcome
 
