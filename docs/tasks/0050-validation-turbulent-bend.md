@@ -1,6 +1,6 @@
 # 0050 — Validation: turbulent flow in a 90° bend (PTB LDA; Sudo et al. 1998 the ideal)
 
-- **Status:** blocked (Q5, 2026-11-21: the level-2 transient settles to a steady state, K 0.262, every gate passed; how to run levels 1 and 3; *Questions for design*)
+- **Status:** ready (Q5 answered, 2026-11-21: a SIMPLEC test at level 2 first; time-accurate with a convergence stop as the fallback; *Questions for design*)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (its "Dean bend" case, turbulent); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V3 (experiment: Straka et al. 2020, PTB, via Ekat et al. 2023)
 - **Features:** `section:circle`, `straight`, `bend`
@@ -490,6 +490,39 @@ tees (the Štigler tee, RESEARCH §7.2, is a later case).
     solve), then rerun steady.  Cheaper per level if it works, but
     unproven, and level 2 would need rerunning to match.
   - Levels 1 and 3 need the user's go-ahead after this.
+
+  **Answer (the design session, 2026-11-21; the user: "yes"): (c) as a
+  test first, then (a) with a convergence stop.**
+  - **One method for all three levels:** the levels must be run the
+    same way, since the methods differ by 1 % at level 1.
+  - **Step 1, the test (about an hour):** level 2, steady, with
+    SIMPLEC (`consistent yes`) and a tighter p solve, from rest or from
+    `fixed_k2`'s state.  Use the same schemes as the transient run, so
+    the only change is the algorithm.
+    - It passes if the residuals meet residualControl (no plateau)
+      **and** K agrees with the transient's 0.26233 within 0.1 %.
+    - If it passes, run levels 1 and 3 the same way, then the GCI.  The
+      transient level 2 stays in `results.json` as the cross-check.
+  - **Step 2, if the test fails:** every level through `--transient`.
+    The flow is steady, so stop on convergence, not on an averaging
+    window:
+    - stop when K changes by less than 10⁻⁴ (relative) over one
+      flow-through, and the six planes' profiles by less than 0.1 % of
+      U_b;
+    - record the stop and the cost per level;
+    - level 1 is rerun this way so all three match.
+  - **Either way:**
+    - report K with its GCI against Ito's 0.2626, without a gate;
+    - judge the gates at the finest level;
+    - give each level's f, y⁺, `wall_s` and method in RESULTS.md;
+    - all studies stay in order (`refined(k)`, the plateau, the
+      transient, the final family).
+  - **Lessons for 0188**, after the result:
+    - a steady SIMPLE plateau in a bend isn't the flow's own
+      unsteadiness;
+    - how to tell: a transient run from the plateau that settles;
+    - the fix, if step 1 finds one.
+  - The runs need the user's go-ahead (CLAUDE.md: long CPU runs).
 
 ## Outcome
 
