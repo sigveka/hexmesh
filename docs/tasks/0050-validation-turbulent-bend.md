@@ -1,6 +1,6 @@
 # 0050 — Validation: turbulent flow in a 90° bend (PTB LDA; Sudo et al. 1998 the ideal)
 
-- **Status:** ready (Q4 answered, 2026-11-21: the transient run on the wall at 50; *Questions for design*)
+- **Status:** ready (Q4 answered: the transient run on the wall at 50; driver built and checked at level 1; the level-2 run waits for the user's go-ahead)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (its "Dean bend" case, turbulent); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V3 (experiment: Straka et al. 2020, PTB, via Ekat et al. 2023)
 - **Features:** `section:circle`, `straight`, `bend`
@@ -133,6 +133,46 @@ tees (the Štigler tee, RESEARCH §7.2, is a later case).
   level's `wall_s`.
 - **For RESEARCH (design session):** the measurements are in
   `validation/turbulent_bend/RESULTS.md`; nothing written to RESEARCH here.
+
+**The transient run (Q3 step 3, Q4; 2026-11-21).**  `run.py --transient`:
+- **Start:** the precursor as before, then the steady bend from rest for
+  2 000 iterations (`STEADY_START`), and pimpleFoam from its last state.
+  Q4 says "from fixed_k2's state"; that case wasn't kept, and from rest
+  the plateau sets in by about step 400, so 2 000 steps reach the same
+  state.  This is a deviation, noted here.
+- **pimpleFoam:** backward in time; linearUpwind as the steady runs
+  (without `bounded`); PIMPLE 2 outer × 2 pressure correctors, one
+  non-orthogonal; relaxation 1; Courant 1 (adjustTimeStep).
+- **Monitored every step:** K from the volume-mean p in cell zones on
+  `results`' own slabs (`k_slabs`, now shared), and U at the 114 LDA
+  points (probes, cell values).  U and p are averaged (`fieldAverage`)
+  from 1 flow-through (12.8 s).
+- **Stop:** in chunks of half a flow-through, when K's running mean and
+  each plane's RMS (of the probes' time mean against the LDA) change by
+  less than 1 % between the window's first three quarters and all of
+  it, with at least one flow-through averaged; else at 12 flow-throughs
+  or 12 h.
+- **Gates:** on `UMean`/`pMean` through the same `results` as the
+  steady levels.
+- **Reported:** K's mean, its range, std and the spectrum's strongest
+  peak (frequency, Strouhal number, power over the median; none when K
+  is flat), cost per chunk and per flow-through.
+- **Check at level 1** (59 200 cells, 4 processes, 2 flow-throughs;
+  scratch, not stored):
+  - the transient stays steady: K 0.2201 throughout (steady 0.222),
+    change 9e-5 over the last quarter;
+  - time-mean RMS 0.083, 0.080, 0.061, 0.072, 0.096, 0.102;
+  - Co 1.0, 381 steps (dt 0.017 s) and 1.1-1.9 min per half
+    flow-through: 0.05 h per flow-through;
+  - the average carries across the chunk restarts (iterations 382 at
+    the start of the third chunk).
+- **Cost estimate, level 2** (7.6× the cells, the step about half):
+  about 15× level 1, so 0.6-1 h per flow-through.  With the precursor
+  and the steady start (about 1 h), a run that settles after 2-4
+  flow-throughs takes 3-5 h; the 12-flow-through cap, about 8-12 h.
+  **Level 3** (3.3× level 2, the step ÷1.5): about 3-5 h per
+  flow-through, so roughly 15-25 h.  Measured numbers come with the
+  level-2 run, before levels 1 and 3 (Q4).
 
 ## Questions for design
 

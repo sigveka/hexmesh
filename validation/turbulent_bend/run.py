@@ -350,19 +350,40 @@ def inlet_values(pre: Path, bend: Path, k: int) -> dict:
             "map_distance_max": float(dist.max())}
 
 
+K_LENGTH = K_BEFORE * D + R_K * math.pi / 2 + K_AFTER * D    # the taps' distance along the axis
+
+
+def k_slabs(cc: np.ndarray, k: int) -> tuple[np.ndarray, np.ndarray]:
+    """K's two slabs, one axial cell thick: 1 D before the bend and 30 D
+    after (masks over the cell centres *cc*)."""
+    after = cc[:, 0] > CENTRE[0] + 0.5 * R_K
+    before = np.abs(cc[:, 0] - (UPSTREAM - K_BEFORE * D)) < 0.5 * AXIAL / k
+    later = after & (np.abs(cc[:, 1] - (BEND_END_Y + K_AFTER * D)) < 0.5 * AXIAL / k)
+    return before, later
+
+
+def k_of(p1, p2, f: float):
+    """(K_total, K_bend) from the slabs' mean p: the pipe's friction over
+    the taps' distance taken out."""
+    k_total = (np.asarray(p1) - np.asarray(p2)) / (0.5 * U_B ** 2)
+    return k_total, k_total - f * K_LENGTH / D
+
+
 def _mean_p(cc, vol, p, mask) -> float:
     return float(np.sum(p[mask] * vol[mask]) / vol[mask].sum())
 
 
-def results(case: Path, k: int, pre: dict) -> dict:
-    """The six planes' w at the LDA points, the RMS and peak side, and K."""
+def results(case: Path, k: int, pre: dict, u: str = "U", p: str = "p") -> dict:
+    """The six planes' w at the LDA points, the RMS and peak side, and K,
+    from the latest time's fields *u* and *p* (the transient run's
+    ``UMean`` and ``pMean``)."""
     from scipy.interpolate import LinearNDInterpolator
     ref = json.loads(REFERENCE.read_text(encoding="utf-8"))
     g = geometry(case)
     cc, vol = g["cc"], g["vol"]
     t = of.latest_time(case)
-    U = of.read_internal(t / "U", 3)
-    p = of.read_internal(t / "p", 1).ravel()
+    U = of.read_internal(t / u, 3)
+    p = of.read_internal(t / p, 1).ravel()
     after = cc[:, 0] > CENTRE[0] + 0.5 * R_K          # past the bend: the downstream pipe
     planes = {}
     for z in PLANES:
@@ -377,16 +398,12 @@ def results(case: Path, k: int, pre: dict) -> dict:
                             "rms": float(np.sqrt(np.nanmean(err ** 2))),
                             "peak_x_over_r": peak, "peak_w": float(np.nanmax(w)),
                             "lda_peak_x_over_r": float(xr[int(np.argmax(lda["w_over_wvol"]))])}
-    # K between 1 D before the bend and 30 D after: area-mean p in slabs one axial cell thick
-    before = (np.abs(cc[:, 0] - (UPSTREAM - K_BEFORE * D)) < 0.5 * AXIAL / k)
-    later = after & (np.abs(cc[:, 1] - (BEND_END_Y + K_AFTER * D)) < 0.5 * AXIAL / k)
+    before, later = k_slabs(cc, k)
     p1, p2 = _mean_p(cc, vol, p, before), _mean_p(cc, vol, p, later)
-    length = K_BEFORE * D + R_K * math.pi / 2 + K_AFTER * D
-    q = 0.5 * U_B ** 2
-    k_total = (p1 - p2) / q
-    k_bend = k_total - pre["f"] * length / D
-    return {"planes": planes, "p_before": p1, "p_after": p2, "k_total": k_total,
-            "k_bend": k_bend, "k_length_m": length}
+    k_total, k_bend = k_of(p1, p2, pre["f"])
+    length = K_LENGTH
+    return {"planes": planes, "p_before": p1, "p_after": p2, "k_total": float(k_total),
+            "k_bend": float(k_bend), "k_length_m": length}
 
 
 def precursor_results(case: Path, log: str) -> dict:
@@ -444,8 +461,9 @@ def setup(d: Path, k: int, end_time: int, fam: str = None) -> dict:
     return meta
 
 
-def solve(d: Path, k: int, end_time: int, n_proc: int) -> dict:
-    """The precursor, the mapping, then the bend; returns the level."""
+def solve(d: Path, k: int, end_time: int, n_proc: int, bend_steps: int | None = None) -> dict:
+    """The precursor, the mapping, then the bend (*bend_steps* iterations
+    if given, else up to *end_time*); returns the level."""
     pre, bend = d / "precursor", d / "bend"
     meta = json.loads((d / "setup.json").read_text(encoding="utf-8"))
     t0 = time.monotonic()
@@ -457,7 +475,7 @@ def solve(d: Path, k: int, end_time: int, n_proc: int) -> dict:
     pr["steps"] = int(re.findall(r"^Time = (\d+)", log, re.M)[-1])
     pr["converged"] = "solution converged in" in log
     inlet = inlet_values(pre, bend, k)
-    write_bend(bend, end_time, inlet)
+    write_bend(bend, bend_steps or end_time, inlet)
     # from rest (U = 0 inside, the precursor's profile at the inlet), no
     # potentialFoam: on fixed_k2 its first Phi solve stalled at 1000
     # iterations and its velocity reached 2.7e4 m/s in the thin wall cells,
@@ -486,6 +504,335 @@ def run_level(k: int, work: Path, end_time: int, n_proc: int, fam: str = None) -
           f"min SJ {meta['min_sj']:.3f}, max non-orthogonality "
           f"{meta['check']['max_non_orthogonality']:.1f}", flush=True)
     return solve(d, k, end_time, n_proc)
+
+
+# --- the transient run (design answers Q3, Q4) ---------------------------------------
+
+#: the steady iterations from rest before the transient starts: Q4 starts it
+#: from fixed_k2's state, which wasn't kept; from rest the plateau sets in
+#: by about step 400 (fixed_k2, fixed25_k2)
+STEADY_START = 2000
+#: inlet to outlet at the bulk velocity [s]
+FLOW_THROUGH = (UPSTREAM + R_K * math.pi / 2 + DOWNSTREAM + TAIL) / U_B
+MAX_CO = 1.0
+#: the running means' change over the last quarter of the average (Q4)
+SETTLE = 0.01
+
+PIMPLE_SCHEMES = (BEND_SCHEMES.replace("default steadyState;", "default backward;")
+                  .replace("bounded Gauss", "Gauss"))
+PIMPLE_SOLUTION = """solvers
+{
+    p
+    {
+        solver          GAMG;
+        smoother        GaussSeidel;
+        tolerance       1e-7;
+        relTol          0.01;
+    }
+    pFinal
+    {
+        solver          GAMG;
+        smoother        GaussSeidel;
+        tolerance       1e-7;
+        relTol          0;
+    }
+    "(U|k|omega)"
+    {
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
+        tolerance       1e-9;
+        relTol          0.1;
+    }
+    "(U|k|omega)Final"
+    {
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
+        tolerance       1e-9;
+        relTol          0;
+    }
+}
+PIMPLE
+{
+    momentumPredictor yes;
+    nOuterCorrectors 2;
+    nCorrectors     2;
+    nNonOrthogonalCorrectors 1;
+    pRefCell        0;
+    pRefValue       0;
+}
+relaxationFactors
+{
+    equations       { ".*" 1; }
+}
+"""
+
+
+def _pimple_control(end: float, avg_start: float, probes: np.ndarray) -> str:
+    """pimpleFoam's controlDict: Courant-limited steps, a write at *end*,
+    K's two slabs and the LDA points every step, U and p averaged from
+    *avg_start*."""
+    pts = "\n".join(f"            ({x!r} {y!r} {z!r})" for x, y, z in probes)
+    slab = """    {name}
+    {{
+        type            volFieldValue;
+        libs            (fieldFunctionObjects);
+        writeControl    timeStep;
+        writeInterval   1;
+        log             false;
+        writeFields     false;
+        regionType      cellZone;
+        name            {zone};
+        operation       volAverage;
+        fields          (p);
+    }}
+"""
+    return (f"""application     pimpleFoam;
+startFrom       latestTime;
+startTime       0;
+stopAt          endTime;
+endTime         {end!r};
+deltaT          1e-3;
+adjustTimeStep  yes;
+maxCo           {MAX_CO!r};
+maxDeltaT       1;
+writeControl    adjustableRunTime;
+writeInterval   {end!r};
+purgeWrite      1;
+writeFormat     ascii;
+writePrecision  12;
+timeFormat      general;
+timePrecision   10;
+runTimeModifiable false;
+functions
+{{
+""" + slab.format(name="pBefore", zone="kBefore") + slab.format(name="pAfter", zone="kAfter")
+            + f"""    lda
+    {{
+        type            probes;
+        libs            (sampling);
+        writeControl    timeStep;
+        writeInterval   1;
+        fields          (U);
+        probeLocations
+        (
+{pts}
+        );
+    }}
+    average
+    {{
+        type            fieldAverage;
+        libs            (fieldFunctionObjects);
+        timeStart       {avg_start!r};
+        writeControl    writeTime;
+        fields
+        (
+            U {{ mean on; prime2Mean off; base time; }}
+            p {{ mean on; prime2Mean off; base time; }}
+        );
+    }}
+}}
+""")
+
+
+def _cell_zones(case: Path, k: int) -> dict:
+    """K's slabs as the cell zones kBefore and kAfter (the masks
+    ``results`` uses); returns their cell counts."""
+    g = geometry(case)
+    zones = dict(zip(("kBefore", "kAfter"), k_slabs(g["cc"], k)))
+    body = f"{len(zones)}\n(\n"
+    for name, mask in zones.items():
+        idx = np.flatnonzero(mask)
+        body += (f"{name}\n{{\n    type cellZone;\ncellLabels      List<label> {len(idx)}\n(\n"
+                 + "\n".join(map(str, idx)) + "\n)\n;\n}\n")
+    (case / "constant/polyMesh/cellZones").write_text(
+        H("regIOobject", "cellZones", "constant/polyMesh") + body + ")\n", encoding="utf-8")
+    return {n: int(m.sum()) for n, m in zones.items()}
+
+
+def _lda_points() -> tuple[np.ndarray, list[tuple[str, int]]]:
+    """Every plane's LDA points, and (plane, count) in their order."""
+    ref = json.loads(REFERENCE.read_text(encoding="utf-8"))
+    pts, order = [], []
+    for z in PLANES:
+        xr = ref["planes"][f"{z:g}"]["x_over_R"]
+        pts.append(plane_points(z, xr))
+        order.append((f"{z:g}", len(xr)))
+    return np.vstack(pts), order
+
+
+def write_transient(steady: Path, case: Path, k: int, avg_start: float, end: float) -> dict:
+    """The pimpleFoam case: the steady bend's mesh and last fields as its
+    time 0, the transient schemes and solution, the zones and probes."""
+    if case.exists():
+        shutil.rmtree(case)
+    (case / "0").mkdir(parents=True)
+    shutil.copytree(steady / "constant", case / "constant")
+    (case / "system").mkdir()
+    t = of.latest_time(steady)
+    for f in FIELDS:
+        text = (t / f).read_text(encoding="utf-8")
+        (case / "0" / f).write_text(re.sub(r'location\s+"[^"]*";', 'location    "0";', text),
+                                    encoding="utf-8")
+    zones = _cell_zones(case, k)
+    files = {"controlDict": _pimple_control(end, avg_start, _lda_points()[0]),
+             "fvSchemes": PIMPLE_SCHEMES, "fvSolution": PIMPLE_SOLUTION}
+    for name, text in files.items():
+        (case / "system" / name).write_text(H("dictionary", name, "system") + text,
+                                            encoding="utf-8")
+    return {"steady_steps": int(float(t.name)), "zones": zones}
+
+
+def _series_files(case: Path, name: str, file: str) -> list[Path]:
+    root = case / "postProcessing" / name
+    return sorted(root.glob(f"*/{file}"), key=lambda q: float(q.parent.name))
+
+
+def _history(case: Path, name: str, file: str) -> tuple[np.ndarray, np.ndarray]:
+    """A function object's (time, values) over every restart, later
+    restarts overriding the times they repeat."""
+    rows = {}
+    for path in _series_files(case, name, file):
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not line.strip() or line.lstrip().startswith("#"):
+                continue
+            head, _, rest = line.strip().partition(" ")
+            vals = [float(v) for v in re.findall(r"[-+\d.eE]+", rest)]
+            rows[float(head)] = vals
+    t = np.array(sorted(rows))
+    return t, np.array([rows[x] for x in t])
+
+
+def histories(case: Path, f: float) -> dict:
+    """K_bend(t) and w/U_b at the LDA points (time × points)."""
+    t1, p1 = _history(case, "pBefore", "volFieldValue.dat")
+    t2, p2 = _history(case, "pAfter", "volFieldValue.dat")
+    tu, u = _history(case, "lda", "U")
+    n = min(len(t1), len(t2), len(tu))
+    _, kb = k_of(p1[:n, 0], p2[:n, 0], f)
+    w = u[:n].reshape(n, -1, 3)[:, :, 1] / U_B
+    w[np.abs(w) > 1e3] = np.nan                     # a probe outside the mesh
+    return {"t": t1[:n], "k_bend": kb, "w": w}
+
+
+def _plane_rms(w_mean: np.ndarray) -> dict:
+    ref = json.loads(REFERENCE.read_text(encoding="utf-8"))
+    out, i = {}, 0
+    for z, n in _lda_points()[1]:
+        err = w_mean[i:i + n] - np.array(ref["planes"][z]["w_over_wvol"])
+        out[z] = float(np.sqrt(np.nanmean(err ** 2)))
+        i += n
+    return out
+
+
+def settledness(h: dict, avg_start: float) -> dict:
+    """The running means over [avg_start, end] against those over its
+    first three quarters: K's and each plane's RMS (of the time-mean w at
+    the LDA points, cell values), relative changes."""
+    t = h["t"]
+    on = t >= avg_start
+    if on.sum() < 8:
+        return {"window_s": 0.0, "change": None}
+    end = t[-1]
+    early = on & (t <= avg_start + 0.75 * (end - avg_start))
+    dt = np.gradient(t)                                 # the steps vary (adjustTimeStep)
+
+    def mean(x, m):
+        return np.sum(x[m] * dt[m, None] if x.ndim > 1 else x[m] * dt[m], axis=0) / dt[m].sum()
+
+    k_all, k_early = mean(h["k_bend"], on), mean(h["k_bend"], early)
+    r_all, r_early = _plane_rms(mean(h["w"], on)), _plane_rms(mean(h["w"], early))
+    change = {"k_bend": abs(k_all / k_early - 1),
+              **{f"rms_{z}": abs(r_all[z] / r_early[z] - 1) for z in r_all}}
+    return {"window_s": float(end - avg_start), "k_mean": float(k_all), "rms_probe": r_all,
+            "change": change, "max_change": max(change.values())}
+
+
+def spectrum(h: dict, avg_start: float) -> dict:
+    """K's range over the average, and its spectrum's strongest peak:
+    frequency, Strouhal number f D / U_b, and its power over the median."""
+    on = h["t"] >= avg_start
+    t, kb = h["t"][on], h["k_bend"][on]
+    n = len(t)
+    grid = np.linspace(t[0], t[-1], n)
+    x = np.interp(grid, t, kb)
+    x = x - x.mean()
+    power = np.abs(np.fft.rfft(x * np.hanning(n))) ** 2
+    freq = np.fft.rfftfreq(n, grid[1] - grid[0])
+    i = 1 + int(np.argmax(power[1:]))
+    out = {"k_min": float(kb.min()), "k_max": float(kb.max()), "k_std": float(kb.std()),
+           "peak_hz": None, "peak_strouhal": None, "peak_over_median": None,
+           "resolution_hz": float(freq[1])}
+    if kb.std() > 1e-4 * abs(kb.mean()):                # steady: no spectrum to read
+        out.update(peak_hz=float(freq[i]), peak_strouhal=float(freq[i] * D / U_B),
+                   peak_over_median=float(power[i] / np.median(power[1:])))
+    return out
+
+
+def transient(k: int, fam: str, work: Path, n_proc: int, *, chunk_ft: float = 0.5,
+              washout_ft: float = 1.0, min_window_ft: float = 1.0,
+              max_ft: float = 12.0, max_hours: float = 12.0) -> dict:
+    """Q3's step 3, Q4's set-up: the steady bend from rest for
+    :data:`STEADY_START` iterations, then pimpleFoam from its state, in
+    chunks of *chunk_ft* flow-throughs, U and p averaged after
+    *washout_ft*, until K's and the planes' running means change by less
+    than :data:`SETTLE` over the last quarter (at least *min_window_ft*
+    averaged), or *max_ft* flow-throughs, or *max_hours*."""
+    d = work / f"{level_name(k, fam)}_transient"
+    t0 = time.monotonic()
+    meta = setup(d, k, END_TIME, fam)
+    steady = solve(d, k, END_TIME, n_proc, bend_steps=STEADY_START)
+    t_steady = time.monotonic() - t0
+    print(f"[{d.name}] steady from rest: {steady['steps']} steps, K {steady['k_bend']:.3f}, "
+          f"f {steady['precursor']['f_err_mckeon']:+.4f}; {t_steady / 3600:.2f} h", flush=True)
+    case = d / "transient"
+    avg_start = washout_ft * FLOW_THROUGH
+    chunk = chunk_ft * FLOW_THROUGH
+    info = write_transient(d / "bend", case, k, avg_start, chunk)
+    chunks, state, end = [], {"max_change": None}, 0.0
+    while True:
+        end += chunk
+        ctl = case / "system/controlDict"
+        ctl.write_text(re.sub(r"^endTime\s+[^;]+;", f"endTime         {end!r};",
+                              re.sub(r"^writeInterval\s+[^;]+;", f"writeInterval   {chunk!r};",
+                                     ctl.read_text(encoding="utf-8"), flags=re.M), flags=re.M),
+                       encoding="utf-8")
+        c0 = time.monotonic()
+        log = of.run_solver(case, "pimpleFoam", n_proc=n_proc, log=f"log.pimpleFoam.{len(chunks)}")
+        steps = len(re.findall(r"^Time = ", log, re.M))
+        cos = [float(v) for v in re.findall(r"^Courant Number mean: \S+ max: (\S+)", log, re.M)]
+        last = of.latest_time(case)
+        for t in case.iterdir():                        # each chunk's state: about 120 MB at k = 2
+            if t != last and t.name != "0" and re.fullmatch(r"[\d.e+-]+", t.name):
+                shutil.rmtree(t)
+        h = histories(case, steady["precursor"]["f"])
+        state = settledness(h, avg_start)
+        chunks.append({"end_s": end, "steps": steps, "wall_s": time.monotonic() - c0,
+                       "co_max": max(cos) if cos else None,
+                       "max_change": state.get("max_change")})
+        print(f"[{d.name}] t {end:.1f} s ({end / FLOW_THROUGH:.1f} FT): {steps} steps, "
+              f"{chunks[-1]['wall_s'] / 60:.1f} min, Co {chunks[-1]['co_max']}, K now "
+              f"{h['k_bend'][-1]:.3f}, mean {state.get('k_mean', float('nan')):.3f}, "
+              f"change {state.get('max_change')}", flush=True)
+        done = (state["window_s"] >= min_window_ft * FLOW_THROUGH
+                and state["max_change"] is not None and state["max_change"] < SETTLE)
+        hours = (time.monotonic() - t0) / 3600
+        if done or end >= max_ft * FLOW_THROUGH - 1e-9 or hours >= max_hours:
+            break
+    h = histories(case, steady["precursor"]["f"])
+    mean = results(case, k, steady["precursor"], u="UMean", p="pMean")
+    wall = sum(c["wall_s"] for c in chunks)
+    sim = end
+    return {"k": k, "family": fam, "cells": meta["cells"], "start": "steady from rest",
+            "steady_steps": steady["steps"], "steady_k_bend": steady["k_bend"],
+            "steady_wall_s": t_steady, "precursor": steady["precursor"],
+            "zones": info["zones"], "flow_through_s": FLOW_THROUGH, "max_co": MAX_CO,
+            "avg_start_s": avg_start, "end_s": end, "settled": bool(done),
+            "settle": state, "spectrum": spectrum(h, avg_start), "chunks": chunks,
+            "transient_steps": sum(c["steps"] for c in chunks), "transient_wall_s": wall,
+            "wall_s_per_flow_through": wall / (sim / FLOW_THROUGH),
+            "n_proc": n_proc, "time_mean": mean,
+            "k_bend_series": {"t": h["t"][::max(1, len(h["t"]) // 2000)].tolist(),
+                              "k": h["k_bend"][::max(1, len(h["t"]) // 2000)].tolist()}}
 
 
 # --- the families -------------------------------------------------------------------
@@ -550,7 +897,8 @@ def recheck(data: dict) -> list[dict]:
     out = []
     # the verdict is on the fixed-wall family once it has levels (design
     # answer Q2); refined(k) is the first study
-    name = next(f for f in reversed(STUDIES) if family(data["levels"], f) or f == REFINED)
+    # the wall at 25 is a stored test only (Q4: it fails f by construction)
+    name = FIXED if family(data["levels"], FIXED) else REFINED
     tag = "" if name == REFINED else f"wall y+ {FAMILIES[name]:g}, "
     for q, r in analyse(data["levels"], name).items():
         out.append(stored.row(f"{q} ({tag}k = 1, 2, 3)", rich=r,
@@ -656,7 +1004,7 @@ def main(argv=None) -> dict:
     ap.add_argument("--levels", nargs="+", type=int, default=list(LEVELS),
                     help="refinement levels k (refined(k): every count ×k, so 8× the cells "
                          "per doubling); default %(default)s; k = 4 is 3.8 M cells")
-    ap.add_argument("--family", choices=STUDIES, default=FIXED25,
+    ap.add_argument("--family", choices=STUDIES, default=FIXED,
                     help="fixed_wall_25 / fixed_wall: the wall cell 25 / 50 viscous units high "
                          "at every level, the rest × k (design answers Q2, Q3); refined: "
                          "refined(k), the first study; default %(default)s")
@@ -669,6 +1017,14 @@ def main(argv=None) -> dict:
                          "earlier once its residuals converge")
     ap.add_argument("--np", type=int, default=1, dest="n_proc",
                     help="MPI processes per solve (check other runs first, CLAUDE.md)")
+    ap.add_argument("--transient", action="store_true",
+                    help="pimpleFoam from the steady state, time-averaged until the running "
+                         "means settle (design answers Q3, Q4); stored as transient_<level>")
+    ap.add_argument("--max-flow-throughs", type=float, default=12.0,
+                    help="the transient run's limit in flow-throughs (default %(default)s)")
+    ap.add_argument("--max-hours", type=float, default=12.0,
+                    help="the transient run's limit in wall hours, checked after each "
+                         "half flow-through (default %(default)s)")
     stored.add_arguments(ap, HERE)
     stored.add_openfoam_argument(ap, of.V2406)
     args = ap.parse_args(argv)
@@ -676,6 +1032,26 @@ def main(argv=None) -> dict:
     store = stored.Store(args.json, "turbulent_bend")
     store.put_extra("reference", {"lda": str(REFERENCE.relative_to(ROOT).as_posix()),
                                   "planes_D": list(PLANES), "rms_gate": RMS_GATE})
+    if args.transient:
+        out = {}
+        for k in args.levels:
+            name = f"transient_{level_name(k, args.family)}"
+            r = transient(k, args.family, args.work, args.n_proc,
+                          max_ft=args.max_flow_throughs, max_hours=args.max_hours)
+            store.put_extra(name, r)
+            if not args.keep_work:
+                shutil.rmtree(args.work / f"{level_name(k, args.family)}_transient")
+            sp, mean = r["spectrum"], r["time_mean"]
+            peak = ("no peak" if sp["peak_strouhal"] is None else
+                    f"peak St {sp['peak_strouhal']:.3f}, x{sp['peak_over_median']:.0f} the median")
+            print(f"[{name}] settled {r['settled']} at {r['end_s'] / FLOW_THROUGH:.1f} FT; "
+                  f"K mean {mean['k_bend']:.3f} (range {sp['k_min']:.3f}-{sp['k_max']:.3f}, "
+                  f"{peak}); RMS " + ", ".join(f"{z} {v['rms']:.4f}"
+                                               for z, v in mean["planes"].items())
+                  + f"; {r['wall_s_per_flow_through'] / 3600:.2f} h per flow-through",
+                  flush=True)
+            out[name] = r
+        return out
     for k in args.levels:
         name = level_name(k, args.family)
         r = stored.run_level(store, name,
