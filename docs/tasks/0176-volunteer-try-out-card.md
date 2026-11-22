@@ -1,6 +1,6 @@
 # 0176 — A try-out volunteer card: the whole workflow in a minute or two
 
-- **Status:** in progress (done but for the full suite: a run here was stopped for low memory, 2026-11-22; the Windows run is still to do)
+- **Status:** done (2026-11-22; the user's native Windows run is under way, its time to be added below)
 - **Decision:** [0044](../decisions/0044-volunteer-runs.md), its note of
   2026-11-18 (every heavy case gets a card, and one card to try the
   workflow); [0054](../decisions/0054-validation-needs-a-checkout.md)
@@ -140,3 +140,19 @@ or benchmarking the volunteer's machine.
 ## Questions for design
 
 ## Outcome
+
+- **Files:** `validation/poiseuille/run.py` (`setup_case`,
+  `level_values`, the hooks), `validation/poiseuille/volunteer.json`
+  (new), `validation/volunteer.py` (try-out levels in `check`, `collect`,
+  `list`, `info`, VOLUNTEERS.md; `_log_tail`; `_value` in minutes),
+  `validation/turbulent_bend/run.py` (`steps`, `converged`),
+  `validation/VOLUNTEERS.md` (regenerated), README, CHANGELOG,
+  `tests/test_volunteer.py` (+9 tests).
+- **Measured:** the try-out end to end in 15.8 s here (prepare 5.1, job
+  7.9, collect 2.0, check 0.9); dp on 2 against 1 processes +7e-11.
+- **Tests:** the full suite, 4 780 passed and 18 skipped (57 min, 2
+  workers).  An earlier run was stopped by the machine's low memory.
+- **Surprises:** two bugs any real contribution would have hit (the log
+  tail, and the bend's missing `steps`/`converged`); see the notes.
+- **Follow-ups:** the Windows run's time here when the user reports it;
+  `prepare --dir a/b` with no `a` (task 0190's notes).
