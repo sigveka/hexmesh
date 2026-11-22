@@ -75,7 +75,7 @@
     },
     {
       "id": "algorithm_spread_coarse_mesh",
-      "text": "On the 59 k-cell bend mesh four converged algorithms gave K 0.2201 (pimpleFoam, Co 1), 0.2223 (SIMPLE), 0.2257 (localEuler) and 0.2269 (SIMPLEC), ddtCorr on: use one algorithm at every level of a study.",
+      "text": "On the 59 k-cell bend mesh four converged algorithms gave K 0.2201 (pimpleFoam, Co 1), 0.2223 (SIMPLE), 0.2257 (localEuler) and 0.2269 (SIMPLEC); pimpleFoam's ddtCorr alone moved K by 3.4 % and isn't the cause: use one algorithm and one ddtCorr setting at every level of a study.",
       "link": "validation/turbulent_bend/RESULTS.md"
     }
   ]

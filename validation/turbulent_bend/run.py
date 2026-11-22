@@ -678,7 +678,7 @@ def _lda_points() -> tuple[np.ndarray, list[tuple[str, int]]]:
 
 
 def write_transient(steady: Path, case: Path, k: int, avg_start: float, end: float,
-                    lts: bool = False) -> dict:
+                    lts: bool = False, ddt_corr: bool = True) -> dict:
     """The pimpleFoam case: the steady bend's mesh and last fields as its
     time 0, the transient schemes and solution, the zones and probes."""
     if case.exists():
@@ -695,6 +695,9 @@ def write_transient(steady: Path, case: Path, k: int, avg_start: float, end: flo
     files = {"controlDict": _pimple_control(end, avg_start, _lda_points()[0], lts),
              "fvSchemes": LTS_SCHEMES if lts else PIMPLE_SCHEMES,
              "fvSolution": LTS_SOLUTION if lts else PIMPLE_SOLUTION}
+    if not ddt_corr:                # task 0190: PIMPLE's ddtCorr (v2406's default: true)
+        files["fvSolution"] = files["fvSolution"].replace(
+            "PIMPLE\n{\n", "PIMPLE\n{\n    ddtCorr         false;\n", 1)
     for name, text in files.items():
         (case / "system" / name).write_text(H("dictionary", name, "system") + text,
                                             encoding="utf-8")
@@ -823,7 +826,7 @@ def spectrum(h: dict, avg_start: float) -> dict:
 def transient(k: int, fam: str, work: Path, n_proc: int, *, chunk_ft: float = 0.5,
               washout_ft: float = 1.0, min_window_ft: float = 1.0,
               max_ft: float = 12.0, max_hours: float = 12.0, stop: str = "converged",
-              lts: bool = False) -> dict:
+              lts: bool = False, ddt_corr: bool = True) -> dict:
     """Q3's step 3, Q4's set-up: the steady bend from rest for
     :data:`STEADY_START` iterations, then pimpleFoam from its state, in
     chunks of *chunk_ft* flow-throughs, U and p averaged after
@@ -835,7 +838,7 @@ def transient(k: int, fam: str, work: Path, n_proc: int, *, chunk_ft: float = 0.
     The gates read the final fields, the time mean is kept beside them.
     With *lts* (Q6) the pseudo-transient instead: localEuler, chunks of
     :data:`LTS_CHUNK` iterations, the stop over the last :data:`LTS_WINDOW`."""
-    d = work / f"{level_name(k, fam)}_{'lts' if lts else 'transient'}"
+    d = work / f"{level_name(k, fam)}_{'lts' if lts else 'transient'}{'' if ddt_corr else '_noddtcorr'}"
     t0 = time.monotonic()
     meta = setup(d, k, END_TIME, fam)
     steady = solve(d, k, END_TIME, n_proc, bend_steps=STEADY_START)
@@ -847,7 +850,7 @@ def transient(k: int, fam: str, work: Path, n_proc: int, *, chunk_ft: float = 0.
     chunk = LTS_CHUNK if lts else chunk_ft * FLOW_THROUGH
     window = LTS_WINDOW if lts else FLOW_THROUGH
     limit = LTS_MAX if lts else max_ft * FLOW_THROUGH
-    info = write_transient(d / "bend", case, k, avg_start, chunk, lts)
+    info = write_transient(d / "bend", case, k, avg_start, chunk, lts, ddt_corr)
     chunks, state, end = [], {"max_change": None}, 0.0
     while True:
         end += chunk
@@ -895,7 +898,8 @@ def transient(k: int, fam: str, work: Path, n_proc: int, *, chunk_ft: float = 0.
             "zones": info["zones"], "flow_through_s": FLOW_THROUGH, "max_co": MAX_CO,
             "avg_start_s": avg_start, "end_s": end, "settled": bool(done),
             "stop": stop, "steadiness": steadiness(h, window), "final": final,
-            "scheme": "localEuler" if lts else "backward", "ddt_corr": "on (OpenFOAM's default)",
+            "scheme": "localEuler" if lts else "backward",
+            "ddt_corr": "on (OpenFOAM's default)" if ddt_corr else "off (PIMPLE ddtCorr false)",
             "settle": state, "spectrum": spectrum(h, avg_start), "chunks": chunks,
             "transient_steps": sum(c["steps"] for c in chunks), "transient_wall_s": wall,
             "wall_s_per_flow_through": wall / (sim / FLOW_THROUGH),
@@ -1139,6 +1143,9 @@ def main(argv=None) -> dict:
     ap.add_argument("--lts", action="store_true",
                     help="with --transient: local time-stepping (localEuler, design answer "
                          "Q6), stored as lts_<level>")
+    ap.add_argument("--no-ddtcorr", action="store_true",
+                    help="with --transient: PIMPLE's ddtCorr off (task 0190); stored with the "
+                         "suffix _noddtcorr")
     ap.add_argument("--max-flow-throughs", type=float, default=12.0,
                     help="the transient run's limit in flow-throughs (default %(default)s)")
     ap.add_argument("--max-hours", type=float, default=12.0,
@@ -1155,12 +1162,14 @@ def main(argv=None) -> dict:
         out = {}
         for k in args.levels:
             kind = "lts" if args.lts else "transient"
-            name = f"{kind}_{level_name(k, args.family)}"
+            tail = "_noddtcorr" if args.no_ddtcorr else ""
+            name = f"{kind}_{level_name(k, args.family)}{tail}"
             r = transient(k, args.family, args.work, args.n_proc, lts=args.lts,
+                          ddt_corr=not args.no_ddtcorr,
                           max_ft=args.max_flow_throughs, max_hours=args.max_hours)
             store.put_extra(name, r)
             if not args.keep_work:
-                shutil.rmtree(args.work / f"{level_name(k, args.family)}_{kind}")
+                shutil.rmtree(args.work / f"{level_name(k, args.family)}_{kind}{tail}")
             sp, mean = r["spectrum"], r["final"]
             peak = ("no peak" if sp["peak_strouhal"] is None else
                     f"peak St {sp['peak_strouhal']:.3f}, x{sp['peak_over_median']:.0f} the median")

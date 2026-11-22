@@ -82,19 +82,21 @@ asymmetry they report for SST on full domains.
 
 On the level-1 mesh every one of these converges, to a different K:
 
-| algorithm | K | from the time-accurate |
-|---|---|---|
-| pimpleFoam, time-accurate, Co 1 (the verdict's) | 0.2201 | — |
-| simpleFoam, SIMPLE, bounded schemes (the first study) | 0.2223 | +1.0 % |
-| pimpleFoam, local time-stepping (localEuler), Co 5 | 0.2257 | +2.5 % |
-| simpleFoam, SIMPLEC (consistent) | 0.2269 | +3.1 % |
+| algorithm | K | from the time-accurate | K, ddtCorr off |
+|---|---|---|---|
+| pimpleFoam, time-accurate, Co 1 (the verdict's) | 0.2201 | — | 0.2127 |
+| simpleFoam, SIMPLE, bounded schemes (the first study) | 0.2223 | +1.0 % | (no ddtCorr) |
+| pimpleFoam, local time-stepping (localEuler), Co 5 | 0.2257 | +2.5 % | 0.2225 |
+| simpleFoam, SIMPLEC (consistent) | 0.2269 | +3.1 % | (no ddtCorr) |
 
-- ddtCorr was on in all of them: OpenFOAM's default, not set in
-  `fvSchemes`.
-- The spread follows the size of the step: smallest for the small time
-  step, largest for SIMPLEC (no pressure relaxation) and the large
-  local steps.  That is what a step-dependent face-flux (Rhie-Chow)
-  correction gives, but it wasn't tested with ddtCorr off.
+- ddtCorr is pimpleFoam's `PIMPLE` switch, on by default; simpleFoam
+  has none (`docs/integrations/openfoam.md`).
+- **ddtCorr isn't the cause** (task 0190): with it off the spread is
+  wider (0.2127-0.2269, 6.7 %).  On its own it moves the time-accurate K
+  by 3.4 %.  The likely reading is that on this coarse mesh the face
+  flux's momentum interpolation is a discretisation error of several
+  percent in K, which should shrink with refinement.  Level 2 wasn't
+  checked.
 - On a coarse mesh this is about 3 % of K; level 2 wasn't checked for
   it.  The verdict uses one algorithm at every level, so the spread
   stays out of the comparison between levels.

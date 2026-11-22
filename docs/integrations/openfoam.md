@@ -713,6 +713,25 @@ All v1912, gmsh 4.12.1, 2026-10-25.
     (`rm -rf processor*`, log `log.<solver>.clean`).  Host code must
     not walk or delete processor directories that a container wrote.
 
+- **`ddtCorr` is a PIMPLE switch, on by default, and it moves a
+  steady answer** (v2406 in Docker, 2026-11-22, task 0190).
+  - pimpleFoam adds `fvc::ddtCorr` to the face flux only when
+    `pimple.ddtCorr()` is true.  It is read from the `PIMPLE`
+    dictionary, `ddtCorr` (`getOrDefault("ddtCorr", true)` in
+    `pimpleControl.C`).  It is not an `fvSchemes` entry.
+  - simpleFoam's `pEqn.H` never calls it, and `steadyStateDdtScheme`'s
+    `fvcDdtPhiCorr` returns zero.  So SIMPLE and SIMPLEC have no
+    ddtCorr to switch off.
+  - Its effect on a converged steady state (`turbulent_bend`, level 1,
+    59 200 cells; K the bend's loss coefficient):
+    - pimpleFoam time-accurate (Co 1): 0.2201 on, 0.2127 off (−3.4 %);
+    - pimpleFoam with `localEuler` (Co 5): 0.2257 on, 0.2225 off;
+    - simpleFoam gives 0.2223 with SIMPLE and 0.2269 with SIMPLEC.
+  - So ddtCorr doesn't explain the spread between the algorithms; with it
+    off the spread is wider (0.2127-0.2269).  On a coarse mesh the face
+    flux's momentum interpolation moves K by several percent.  Use one
+    algorithm, with one ddtCorr setting, at every level of a study.
+
 ## Gaps in hexmesh's OpenFOAM support
 
 - **`hexmesh/io/writers/openfoam.py` (`write_openfoam_case`)** — noted

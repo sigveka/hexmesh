@@ -77,7 +77,7 @@ in a committed RESULTS.md, task file or RESEARCH.
 | `potentialFoam` can blow up in thin wall cells | 0050: U up to 2.7e4 m/s on the fixed-wall k = 2 bend; simpleFoam floating-point exception at step 1, with and without -writep; from rest it runs | OpenFOAM user | GUIDE, `lessons` in turbulent_bend |
 | a decomposed precursor floors Uy/Uz above `residualControl` | 0050: 2-5e-7 on 4 processes against 1e-7; one process converges in 3 245 steps | OpenFOAM user | GUIDE, `lessons` in turbulent_bend |
 | a steady-solver plateau isn't proof of unsteadiness; a time-accurate run tells | 0050: SIMPLE and SIMPLEC stall at level 2 (K 0.227-0.271); pimpleFoam settles to K 0.26233, band 1.3e-7 over a flow-through | OpenFOAM user, agent | GUIDE, `lessons` in turbulent_bend |
-| four steady algorithms converge to K 0.2201-0.2269 on one coarse mesh (ddtCorr on) | 0050 level 1: pimpleFoam 0.2201, SIMPLE 0.2223, localEuler 0.2257, SIMPLEC 0.2269 | OpenFOAM user, agent | GUIDE, `lessons` in turbulent_bend |
+| four steady algorithms converge to K 0.2201-0.2269 on one coarse mesh (ddtCorr on); ddtCorr off moves K 3.4 % and widens it | 0050 level 1: pimpleFoam 0.2201, SIMPLE 0.2223, localEuler 0.2257, SIMPLEC 0.2269; 0190: ddtCorr off 0.2127 and 0.2225 | OpenFOAM user, agent | GUIDE, `lessons` in turbulent_bend |
 
 - `lessons` is an optional field in `case.json` (schema: id
   `^[a-z0-9_]+$`, text, a repo-relative link); `validation.tools.summary`

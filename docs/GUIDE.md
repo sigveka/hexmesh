@@ -612,8 +612,10 @@ a finer mesh ([turbulent_bend](../validation/turbulent_bend/RESULTS.md)).
 On one 59 k-cell bend mesh, four algorithms each converged, to K
 0.2201 (`pimpleFoam`, time-accurate), 0.2223 (SIMPLE), 0.2257 (local
 time-stepping) and 0.2269 (SIMPLEC): a 3 % spread, with ddtCorr on (the
-default).  *What to do:* in a convergence study, use one algorithm at
-every level, and count the spread as a solver-side uncertainty.
+default).  Switching pimpleFoam's `ddtCorr` off moved K by 3.4 % on its
+own and widened the spread, so it isn't the cause.  *What to do:* in a
+convergence study, use one algorithm and one `ddtCorr` setting at every
+level, and count the spread as a solver-side uncertainty.
 
 **About order 1 next to sloped walls, in OpenFOAM.**  *Symptom:* a
 convergence study at a tee, reducer, transition or miter shows order

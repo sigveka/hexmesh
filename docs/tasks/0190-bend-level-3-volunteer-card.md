@@ -1,6 +1,6 @@
 # 0190 — The bend's level 3 as a volunteer card; does `ddtCorr` cause the algorithm spread?
 
-- **Status:** ready
+- **Status:** in progress (step 1 done 2026-11-22: ddtCorr isn't the cause; steps 2-7 next)
 - **Decision:** [0044](../decisions/0044-volunteer-runs.md),
   [0055](../decisions/0055-cards-for-every-case-ci-without-openfoam.md)
   (cards), [0058](../decisions/0058-diagnosis-ladder-and-user-hints.md)
@@ -58,6 +58,36 @@ for its cause.
 **Out of scope.**  Running level 3 to the end here; LES.
 
 ## Agent notes
+
+**Step 1, ddtCorr off at level 1 (2026-11-22; `transient_fixed_k1_noddtcorr`,
+`lts_fixed_k1_noddtcorr` in `results.json`).**
+- In v2406 ddtCorr is a `PIMPLE` switch (`ddtCorr`, default true), read
+  in `pimpleControl.C`.  simpleFoam has none (`steadyStateDdtScheme`'s
+  correction is zero), so "SIMPLE with ddtCorr off" is SIMPLE as run.
+  The two runs off: pimpleFoam time-accurate and pimpleFoam with
+  localEuler.  `run.py --transient --no-ddtcorr`.
+- Results (both converged by Q5's stop):
+
+  | algorithm | K, ddtCorr on | K, ddtCorr off |
+  |---|---|---|
+  | pimpleFoam, time-accurate, Co 1 | 0.2201 | 0.2127 |
+  | pimpleFoam, localEuler, Co 5 | 0.2257 | 0.2225 |
+  | simpleFoam, SIMPLE | 0.2223 | (none to switch) |
+  | simpleFoam, SIMPLEC | 0.2269 | (none to switch) |
+
+- **The spread doesn't shrink** (task's test: below 0.5 %): with ddtCorr
+  off it is 0.2127-0.2269, 6.7 %, against 3.1 % on.  ddtCorr isn't the
+  cause.  ddtCorr alone moves the time-accurate K by 3.4 %, and localEuler
+  off lands on SIMPLE (0.2225 against 0.2223).  The reading, not proven:
+  at level 1 the face flux's momentum interpolation is a discretisation
+  error of several percent in K.  It should shrink with refinement;
+  level 2 wasn't checked.
+- RMS with ddtCorr off (time-accurate): 0.080, 0.079, 0.059, 0.072,
+  0.100, 0.106.  The profiles move less than K.
+- Recorded in `docs/integrations/openfoam.md`; RESULTS.md's spread table
+  has the off column; 0188's lesson updated (one algorithm and one
+  ddtCorr setting per study).
+- The verdict's runs are unchanged (ddtCorr on, the default).
 
 ## Questions for design
 
