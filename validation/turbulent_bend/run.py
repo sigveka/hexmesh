@@ -959,11 +959,56 @@ def analyse(levels: list[dict], name: str = REFINED) -> dict:
             for q in SERIES}
 
 
+def accurate(data: dict) -> list[dict]:
+    """The time-accurate levels (``transient_fixed_k<k>``, design answers
+    Q5, Q6), coarse to fine: each with ``k``, ``precursor`` and ``final``."""
+    ex = data.get("extra", {})
+    return sorted((ex[n] for n in ex if re.fullmatch(r"transient_fixed_k\d", n)),
+                  key=lambda r: r["k"])
+
+
+def _recheck_accurate(levels: list[dict]) -> list[dict]:
+    """Q6's report: the gates at the finest time-accurate level, f and K
+    at each, no GCI from two levels."""
+    ref = json.loads(REFERENCE.read_text(encoding="utf-8"))
+    out, tag = [], "time-accurate, "
+    for r in levels:
+        p = r["precursor"]
+        out.append(stored.row(f"precursor f against McKeon ({tag}k = {r['k']})",
+                              gate=f"|e| <= {F_GATE:g} (task 0049)",
+                              ok=abs(p["f_err_mckeon"]) <= F_GATE,
+                              value=f"{p['f_err_mckeon']:+.4f}",
+                              note=f"first-cell y+ {p['yplus_first_mean']:.1f} mean"))
+    lv = levels[-1]
+    fin = lv["final"]
+    for z in PLANES:
+        pl = fin["planes"][f"{z:g}"]
+        theirs = ref["sst_ekat"]["planes"][f"{z:g}"]["rms_vs_lda"]
+        out.append(stored.row(f"{z:g} D: RMS of w/w_vol along y = 0 ({tag}k = {lv['k']})",
+                              gate=f"<= {RMS_GATE:g}", ok=pl["rms"] <= RMS_GATE,
+                              value=f"{pl['rms']:.4f}",
+                              note=f"Ekat et al.'s SST: {theirs:.4f}"))
+        out.append(stored.row(f"{z:g} D: the peak's side ({tag}k = {lv['k']})",
+                              gate="outer wall, as measured",
+                              ok=(pl["peak_x_over_r"] < 0) == (pl["lda_peak_x_over_r"] < 0),
+                              value=f"x/R {pl['peak_x_over_r']:+.3f}",
+                              note=f"LDA x/R {pl['lda_peak_x_over_r']:+.3f}"))
+    for r in levels:
+        out.append(stored.row(f"K of the bend ({tag}k = {r['k']})",
+                              value=f"{r['final']['k_bend']:.4f}",
+                              note=f"Ito (1960): {ito_k():.4f}; reported, no gate; two "
+                                   "levels, no GCI (Q6)"))
+    return out
+
+
 def recheck(data: dict) -> list[dict]:
     """The gates at the finest stored level (task 0050, design answer
     Q1): the RMS of w along y = 0 within 10 % of w_vol, and the peak on
     the measured side, at each plane; K and the peaks' convergence
-    reported (GCI), with the paper's SST RMS beside ours."""
+    reported (GCI), with the paper's SST RMS beside ours.  Once the
+    time-accurate levels are stored the verdict is theirs (Q5, Q6)."""
+    if accurate(data):
+        return _recheck_accurate(accurate(data))
     ref = json.loads(REFERENCE.read_text(encoding="utf-8"))
     out = []
     # the verdict is on the fixed-wall family once it has levels (design

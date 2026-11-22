@@ -828,9 +828,14 @@ def turbulent_bend(data, out):
     Ekat et al.'s own k-ω SST."""
     ref = json.loads((ROOT / "validation/turbulent_bend/reference/lda_fig3.json")
                      .read_text(encoding="utf-8"))
-    # the refined(k) study; the fixed-wall family waits on task 0050's Q3
-    lv = sorted((l for l in data["levels"] if l.get("family", "refined") == "refined"),
-                key=lambda l: l["k"])
+    # the verdict's levels: time-accurate to steady, the wall cell fixed (task
+    # 0050, Q5, Q6); before them, the refined(k) study
+    ex = data.get("extra", {})
+    acc = sorted((ex[n] for n in ex if re.fullmatch(r"transient_fixed_k\d", n)),
+                 key=lambda r: r["k"])
+    lv = ([{"k": r["k"], "planes": r["final"]["planes"]} for r in acc] or
+          sorted((l for l in data["levels"] if l.get("family", "refined") == "refined"),
+                 key=lambda l: l["k"]))
     planes = sorted(lv[0]["planes"], key=float)
     fig, ax = _figure(2, 3, sharey=True)
     for i, z in enumerate(planes):
@@ -848,9 +853,11 @@ def turbulent_bend(data, out):
         _axes(a, "x / R   (−1: the outer wall)", "w / U_b" if i % 3 == 0 else "")
         a.set_ylim(0.3, 1.32)                      # room for the legend under the curves
         a.legend(fontsize=5.5, frameon=False, loc="lower center", ncol=2)
-    return [_finish(fig, "turbulent_bend", "k-ω SST, Spalding wall functions, Re 50 000.  "
-                    "Gates at the finest level: the RMS difference over the 19 LDA points "
-                    "within 0.10 of U_b at each plane, and the peak on the measured (outer) side.",
+    how = "; pimpleFoam to a steady state, the wall cell fixed at 50 viscous units" if acc else ""
+    return [_finish(fig, "turbulent_bend", "k-ω SST, Spalding wall functions, Re 50 000"
+                    + how + ".  Gates at the finest level: the RMS difference over the 19 LDA "
+                    "points within 0.10 of U_b at each plane, and the peak on the measured "
+                    "(outer) side.",
                     out / "figure.png"),
             "The axial velocity across the bend plane at the six LDA planes: the measurements, "
             "each level, and the paper's own k-ω SST."]

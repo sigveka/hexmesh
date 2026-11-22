@@ -1,6 +1,6 @@
 # 0050 — Validation: turbulent flow in a 90° bend (PTB LDA; Sudo et al. 1998 the ideal)
 
-- **Status:** ready (Q6 answered, 2026-11-22: local time-stepping, checked at levels 1 and 2 first; two levels and a volunteer card as the fallback; *Questions for design*)
+- **Status:** done (2026-11-22: reported with two levels, Q6's fallback; the level-3 volunteer card is a proposed follow-up)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (its "Dean bend" case, turbulent); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V3 (experiment: Straka et al. 2020, PTB, via Ekat et al. 2023)
 - **Features:** `section:circle`, `straight`, `bend`
@@ -673,4 +673,61 @@ step 2 follows: every level `--transient` with the convergence stop.
 
 ## Outcome
 
-_Not done._
+**Reported with two levels (Q6's fallback, the user chose it on
+2026-11-22).**
+- **Verdict:** the wall cell fixed at 50 viscous units, pimpleFoam
+  time-accurate to a steady state, with the convergence stop.  At level 2
+  (449 920 cells) all twelve gates pass: RMS 0.0727, 0.0738, 0.0598,
+  0.0705, 0.0906, 0.0958 of U_b, and every peak on the outer side.
+  Level 2 isn't the finest planned level.
+- **Precursor f against McKeon:** +0.55 % and +0.77 % (y⁺ 23.2, 23.3).
+- **K:** 0.2201 and 0.2623; Ito (1960) 0.2626.  Not gated, and no GCI
+  from two levels.
+- **Solver-side uncertainty at level 1:** four converged algorithms
+  give K 0.2201-0.2269 (ddtCorr on).
+- **Status in `case.json`: left "in progress".**  "Accepted" would claim
+  the finest level; "missed" would claim a failed gate.  Which word fits
+  a reported, two-level case is for design (decision 0058 asks for it
+  reported).
+
+**Files:**
+- `validation/turbulent_bend/run.py`:
+  - the families by name (`refined`, `fixed_wall`, `fixed_wall_25`,
+    `fixed_wall_simplec`);
+  - `--transient` (pimpleFoam from the steady state; the window stop,
+    Q4, and the convergence stop, Q5) and `--lts` (localEuler, Q6);
+  - K's slabs shared with the transient's cell zones;
+  - the recheck on the time-accurate levels;
+  - Ito's K.
+- `results.json`: every study's levels and the time-accurate and LTS
+  runs as extras.
+- `RESULTS.md`: rewritten, with the studies in order.
+- README, `case.json` (headline, lessons), `figure.png` (the
+  time-accurate levels).
+- `validation/tools/plots.py`; `docs/references.bib` (Ito 1960,
+  Villegas-León et al. 2021).
+- 0188's lessons: the wall-cell trap, the buffer layer, the plateau,
+  the algorithm spread.
+
+**Tests:** the validation meta, agent manifest and README tests pass
+(158).
+
+**Surprises:**
+- SIMPLE and SIMPLEC stall on a fine bend mesh with a thick wall cell,
+  and the stalled K looks plausible (0.227-0.271).  Only the time-accurate
+  run showed the flow is steady.
+- The time-accurate cost grows much faster than the cells: about 10×
+  per step from level 2 to 3, for 3.3× the cells.
+- Local time-stepping wasn't cheaper here, and it converged 2.5 % away.
+- `refined(k)` splitting the wall cell set off the whole chain: the
+  junction-loss study is affected too (task 0186).
+
+**Proposed follow-ups:**
+- **Level 3 as a volunteer card** (Q6 step 3): time-accurate from
+  level 2's mapped solution.  It needs a resumable transient (saves
+  every 50 steps), `mapFields` from level 2, measured requirements
+  (about 56 s per step at 4 processes early on, memory under 6 GB, disk
+  about 2 GB), and a volunteer tag on `main`.  A task of its own.
+- **ddtCorr off at level 1:** one 30-minute run to test whether ddtCorr
+  causes the algorithm spread.
+- **The case status** for a reported, two-level case (above).

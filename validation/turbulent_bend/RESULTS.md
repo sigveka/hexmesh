@@ -1,17 +1,23 @@
 # Results: turbulent flow in a 90° bend
 
-**Status: in progress.**  At the finest level (k = 3, 1.6 M cells) both
-gates pass at all six planes: the RMS difference from the LDA is 0.020
-to 0.072 of U_b (gate 0.10), and every peak is on the outer wall, as
-measured.  But the three levels don't converge asymptotically.  The
-wall cell shrinks with `refined(k)`, so the wall functions move from
-the log layer (first-cell y⁺ 23 at k = 1) into the buffer layer (7.8 at
-k = 3): the precursor's f drifts from McKeon by +0.6 %, +6.1 %, +9.0 %,
-and K is oscillatory.  Whether the case is accepted on these gates is a
-question for design (task 0050, Q2).  Run on 2026-11-19 with OpenFOAM
-v2406 (Docker) and gmsh 4.12.1, at hexmesh e64ff49.  The numbers below
-are recomputed from `results.json` by `python3 -m validation.tools.recheck
-turbulent_bend`.
+**Status: reported with two levels (task 0050, design answer Q6).**
+- **The verdict's levels:** the wall cell fixed at 50 viscous units, solved
+  time-accurately (pimpleFoam) to a steady state.  At level 2 (450 k
+  cells) both gates pass at all six planes: the RMS difference from the
+  LDA is 0.060 to 0.096 of U_b (gate 0.10), and every peak is on the
+  outer wall, as measured.
+- **Not the finest planned level.**  Level 3 (1.49 M cells) would take
+  roughly 40-150 h this way on 4 processes; it was stopped, and is left
+  for a volunteer run.  With two levels there is no GCI.
+- **K:** 0.2201 at level 1, 0.2623 at level 2; Ito (1960) gives 0.2626.
+  Reported, not gated.  A third level is needed before the agreement at
+  level 2 means anything.
+- **Solver-side uncertainty:** on the level-1 mesh, four converged
+  algorithms give K from 0.2201 to 0.2269 (below).
+
+Run on 2026-11-21 and 22 with OpenFOAM v2406 (Docker) and gmsh 4.12.1,
+at hexmesh 618e166.  The gate and K numbers below are recomputed from
+`results.json` by `python3 -m validation.tools.recheck turbulent_bend`.
 
 <!-- graphs:start -->
 ## Graphs
@@ -26,14 +32,16 @@ The axial velocity across the bend plane at the six LDA planes: the measurements
 
 ## Gate: RMS of w/U_b against the LDA, per plane
 
-| plane | k = 1 | k = 2 | **k = 3** | Ekat et al.'s SST |
-|---|---|---|---|---|
-| 2.43 D | 0.0875 | 0.0492 | **0.0719** | 0.0554 |
-| 5.56 D | 0.0817 | 0.0658 | **0.0285** | 0.0654 |
-| 10.7 D | 0.0614 | 0.0580 | **0.0317** | 0.0504 |
-| 15.69 D | 0.0714 | 0.0740 | **0.0267** | 0.0718 |
-| 20.82 D | 0.0929 | 0.0982 | **0.0197** | 0.1032 |
-| 30.82 D | 0.0984 | 0.1002 | **0.0365** | 0.1086 |
+Time-accurate, the wall cell fixed (`transient_fixed_k1`, `transient_fixed_k2`):
+
+| plane | level 1 | **level 2** | Ekat et al.'s SST |
+|---|---|---|---|
+| 2.43 D | 0.0829 | **0.0727** | 0.0554 |
+| 5.56 D | 0.0802 | **0.0738** | 0.0654 |
+| 10.7 D | 0.0609 | **0.0598** | 0.0504 |
+| 15.69 D | 0.0718 | **0.0705** | 0.0718 |
+| 20.82 D | 0.0959 | **0.0906** | 0.1032 |
+| 30.82 D | 0.1023 | **0.0958** | 0.1086 |
 
 Ekat et al.'s SST (their mesh 3c, a half domain with a symmetry plane,
 OpenFOAM v1812) is read from the same figure at the LDA points
@@ -42,45 +50,105 @@ asymmetry they report for SST on full domains.
 
 ## Gate: the side of the peak (x/R; negative is the outer wall)
 
-| plane | LDA | k = 1 | k = 2 | **k = 3** |
-|---|---|---|---|---|
-| 2.43 D | −0.828 | −0.748 | −0.748 | **−0.748** |
-| 5.56 D | −0.828 | −0.828 | −0.899 | **−0.828** |
-| 10.7 D | −0.657 | −0.309 | −0.309 | **−0.163** |
-| 15.69 D | −0.555 | −0.439 | −0.555 | **−0.309** |
-| 20.82 D | −0.439 | −0.555 | −0.555 | **−0.309** |
-| 30.82 D | −0.163 | −0.439 | −0.439 | **−0.309** |
+| plane | LDA | level 1 | **level 2** |
+|---|---|---|---|
+| 2.43 D | −0.828 | −0.748 | **−0.748** |
+| 5.56 D | −0.828 | −0.828 | **−0.828** |
+| 10.7 D | −0.657 | −0.309 | **−0.309** |
+| 15.69 D | −0.555 | −0.439 | **−0.439** |
+| 20.82 D | −0.439 | −0.555 | **−0.439** |
+| 30.82 D | −0.163 | −0.439 | **−0.439** |
 
-## Reported: K and the convergence
+## Reported: f, K and how each level converged
 
-| k | cells | f (precursor) vs McKeon | first-cell y⁺ (mean) | K | peak w/U_b at 2.43 D | at 10.7 D | steps |
+| level | cells | n_arc, n_radial, axial cell | f (precursor) vs McKeon | first-cell y⁺ | K | peak w/U_b at 2.43 D | at 10.7 D |
 |---|---|---|---|---|---|---|---|
-| 1 | 59 200 | +0.55 % | 23.2 | 0.222 | 1.222 | 1.083 | 708 |
-| 2 | 473 600 | +6.1 % | 11.6 | 0.261 | 1.239 | 1.089 | 1 880 |
-| 3 | 1 598 400 | +9.0 % | 7.8 | 0.254 | 1.247 | 1.126 | 1 586 |
+| 1 | 59 200 | 8, 8, D/4 | +0.55 % | 23.2 | 0.2201 | 1.220 | 1.084 |
+| 2 | 449 920 | 16, 15, D/8 | +0.77 % | 23.3 | 0.2623 | 1.242 | 1.071 |
 
-Richardson (k = 1, 2, 3): K **oscillatory** (within 0.222–0.261); the
-peak at 10.7 D **diverging** (no asymptotic range); the peak at 2.43 D
-converging at order 0.64 (extrapolated 1.271, GCI 2.5 %).  No cited
-bend-loss correlation is in the references yet (Q2).
+- **Ito (1960):** K = 0.2626 for this bend (r/D 1.425, Re 5 × 10⁴),
+  from the correlation as Villegas-León et al. (2021) give it.
+- **Two levels, so no Richardson or GCI.**  The levels don't nest: the
+  wall cell is the same at both, so the ring's cells grow 1.127 per cell
+  away from the wall at level 1 and shrink slightly (0.97 per cell) at
+  level 2.
+- **Convergence:** each level was run from the steady solver's state to
+  a steady flow.  The stop: over the last flow-through (12.8 s), K moved
+  by less than 1e-4 relative and w at every LDA point by less than
+  0.001 U_b.  Level 1 stopped at 2.0 flow-throughs (bands 2.2e-6 and
+  8.8e-4), level 2 at 2.5 (1.3e-7 and 2.0e-6).
+
+## Solver-side uncertainty: one mesh, four algorithms
+
+On the level-1 mesh every one of these converges, to a different K:
+
+| algorithm | K | from the time-accurate |
+|---|---|---|
+| pimpleFoam, time-accurate, Co 1 (the verdict's) | 0.2201 | — |
+| simpleFoam, SIMPLE, bounded schemes (the first study) | 0.2223 | +1.0 % |
+| pimpleFoam, local time-stepping (localEuler), Co 5 | 0.2257 | +2.5 % |
+| simpleFoam, SIMPLEC (consistent) | 0.2269 | +3.1 % |
+
+- ddtCorr was on in all of them: OpenFOAM's default, not set in
+  `fvSchemes`.
+- The spread follows the size of the step: smallest for the small time
+  step, largest for SIMPLEC (no pressure relaxation) and the large
+  local steps.  That is what a step-dependent face-flux (Rhie-Chow)
+  correction gives, but it wasn't tested with ddtCorr off.
+- On a coarse mesh this is about 3 % of K; level 2 wasn't checked for
+  it.  The verdict uses one algorithm at every level, so the spread
+  stays out of the comparison between levels.
+
+## The studies, in order
+
+1. **`refined(k)`** (levels `k1`-`k3`, 2026-11-19; the figure's first
+   version).  The gates passed at k = 3 (RMS 0.020-0.072).  But
+   `refined(k)` splits the wall cell, so first-cell y⁺ fell 23, 11.6,
+   7.8 and the precursor's f drifted +0.6 %, +6.1 %, +9.0 % from McKeon:
+   each level ran a different near-wall model.  K was 0.222, 0.261,
+   0.254 (oscillatory).  This is why the verdict holds the wall cell
+   fixed (Q2).
+2. **The wall cell fixed at 50 viscous units, SIMPLE** (`fixed_k1`,
+   `fixed_k2`).  f held (+0.55 %, +0.77 %).  But level 2 never met
+   residualControl: its residuals sat on a plateau, and K wandered
+   0.227-0.271 with the start and the relaxation.
+3. **The wall cell at 25** (`fixed25_k2`, Q3's test).  The same
+   plateau, and f +5.9 % (first-cell y⁺ 12.0): the buffer layer again.
+4. **pimpleFoam, time-accurate** (Q4).  Level 2 settled to a steady state
+   with K 0.26233 (`transient_window_fixed_k2`, stopped on running means).
+   So the plateau was the steady solver's, not an unsteady flow.
+5. **SIMPLEC** (`simplec_k2`, Q5's test): stalled too, K 0.2708 after
+   6 000 steps.
+6. **pimpleFoam, time-accurate, with the convergence stop** (Q5): levels
+   1 and 2, the verdict above.  Level 2 matched step 4's K to five
+   digits.  Level 3 ran 135 steps in 2.1 h (56 s per step at a 0.0026 s
+   step) and was stopped: about 9 800 steps would be needed.
+7. **Local time-stepping** (`lts_fixed_k1`, Q6's test).  It converged at
+   level 1, but to K 0.2257 (+2.5 %), and was no cheaper (2 000
+   iterations, 30 min, against 5.5 min).  So level 3 wasn't run this way.
+
+The tables of the superseded studies are in `results.json` and task
+0050's notes.
 
 ## Mesh
 
-| k | min scaled Jacobian | min SICN | max non-orthogonality | max skewness | max aspect ratio |
+| level | min scaled Jacobian | min SICN | max non-orthogonality | max skewness | max aspect ratio |
 |---|---|---|---|---|---|
 | 1 | 0.770 | 0.051 | 28.1° | 0.61 | 49.7 |
-| 2 | 0.740 | 0.048 | 36.0° | 0.56 | 51.6 |
-| 3 | 0.730 | 0.048 | 38.9° | 0.55 | 52.3 |
+| 2 | 0.740 | 0.061 | 36.0° | 0.98 | 51.6 |
 
-`checkMesh` passes at every level.
+`checkMesh` passes at both.  Level 2's ring has 15 cells over the same
+wall cell, so it grows slightly inward (ratio 0.97 per cell); its skewness
+is 0.98 where the first study's k = 2 had 0.56.
 
 ## Cost (4 processes)
 
-| k | precursor | bend solve |
+| level | precursor and steady start | pimpleFoam to steady |
 |---|---|---|
-| 1 | 26 s | 85 s |
-| 2 | 13 min | 44 min |
-| 3 | 34 min | 1 h 50 min |
+| 1 | 1 min | 5.5 min (1 535 steps) |
+| 2 | 29 min | 4 h 51 min (5 929 steps) |
+| 3 | not recorded | stopped after 135 steps in 2.1 h; estimated 40-150 h |
 
-These levels ran before task 0185, so they record the two solves
-(`precursor.wall_s`, `bend_wall_s`), not the whole level's time.
+Level 2's chunks of half a flow-through took 124, 62, 37, 34 and 34
+min for about 1 190 steps each: the pressure solve's work falls as the
+flow settles.
