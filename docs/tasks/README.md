@@ -184,7 +184,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0187](0187-tee-diagnosis-ladder.md) | The tee's miss, diagnosed: setup sensitivity, code_saturne SST on the same mesh, k-ε on the fixed-wall level | ready (after 0186; before 1.0) | 0058 |
 | [0188](0188-hints-from-validation.md) | Hints from validation: a GUIDE section, docstrings at the traps, `lessons` for agents | in progress (first pass done; before 1.0) | 0058 |
 | [0189](0189-export-check-nek.md) | Export check: Hex27 in Nek5000 or NekRS (the ladder's higher-order step), with a stop rule | ready (before 1.0) | 0058, 0057, 0034 |
-| [0190](0190-bend-level-3-volunteer-card.md) | The bend's level 3 as a volunteer card (resumable transient, mapFields from level 2); `ddtCorr` off to test the algorithm spread | in progress | 0044, 0055, 0058 |
+| [0190](0190-bend-level-3-volunteer-card.md) | The bend's level 3 as a volunteer card (resumable transient, mapFields from level 2); `ddtCorr` off to test the algorithm spread | done | 0044, 0055, 0058 |
 
 ### Validation
 

@@ -1,6 +1,6 @@
 # 0190 — The bend's level 3 as a volunteer card; does `ddtCorr` cause the algorithm spread?
 
-- **Status:** in progress (steps 1-4 and 7 done 2026-11-22; the tag (step 5) waits for the user's OK)
+- **Status:** done (2026-11-22; step 6 waits for a contribution)
 - **Decision:** [0044](../decisions/0044-volunteer-runs.md),
   [0055](../decisions/0055-cards-for-every-case-ci-without-openfoam.md)
   (cards), [0058](../decisions/0058-diagnosis-ladder-and-user-hints.md)
@@ -192,3 +192,27 @@ it (accepted; the values take 0.12 MB of the 1 MB limit at level 2).
 ## Questions for design
 
 ## Outcome
+
+- **Step 1:** `ddtCorr` isn't the cause of the algorithm spread: off, the
+  spread at level 1 widens to 0.2127-0.2269 (6.7 %).  In RESEARCH §7.17,
+  `docs/integrations/openfoam.md`, the GUIDE and 0188's lessons.
+- **Steps 2-3:** `transient_run` is resumable (phases on disk, one chunk
+  per solver run) and can start from a coarser level by `mapFields`.  A
+  restart test at level 1 converges to K 0.220123 (-3e-5 from the
+  uninterrupted run); the 1 → 1 mapped start reaches it to 8 digits.
+  `timePrecision 17` (a restart missed its own time directory at 10).
+- **Step 4:** the card `validation/turbulent_bend/volunteer.json`,
+  `transient_fixed_k3`: measured 67, 49, 45 s per step at 4 processes,
+  2.4 GB memory, 3.5 GB disk; 150 h stated as the bound (30-150 h).
+  `prepare` and a killed-and-resumed `job.sh` checked.  The contribution
+  lacked `steps` and `converged`, which the schema requires; fixed in
+  task 0176, with a test.
+- **Step 5:** tag `volunteer-bend-1` on `main` at abd771b (the user's
+  OK, 2026-11-22); it also carries the try-out (task 0176).
+- **Step 7:** VOLUNTEERS.md, RESULTS.md and the README say level 3 is
+  open to volunteers.
+- **Tests:** the full suite at abd771b, 4 780 passed and 18 skipped; CI
+  green on 8 jobs.
+- **Follow-ups:** step 6 when a contribution arrives; a 1 → 2 mapped
+  check (about 2 h), not run; `prepare --dir a/b` fails when `a` is
+  missing (the volunteer tool).
