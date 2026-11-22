@@ -1807,6 +1807,62 @@ turbulent_pipe uses; one request could cover them all):
 - **More straight-pipe DNS** (Yao et al. 2023 to Re_τ 5200; Eggels
   Re 5300, open on 4TU) adds little to turbulent_pipe.
 
+### 7.17 Turbulent 90° bend against the PTB LDA (task 0050)
+
+Re 5 × 10⁴, R_c/D 1.425, k–ω SST with Spalding wall functions; the LDA
+of Straka et al. 2020 via Ekat et al. 2023 at six planes to 31 D.
+Reported with two levels on 2026-11-22.  Details are in
+`validation/turbulent_bend/RESULTS.md`.
+
+**The verdict.**  The wall cell is fixed at 50 viscous units, and
+pimpleFoam runs time-accurately to a steady state.
+- **Level 2 (450 k cells):** all twelve gates pass.  The RMS of w/U_b
+  is 0.060–0.096 against 0.10, and every peak is on the outer side.
+  Level 2 isn't the finest planned level: level 3 (1.49 M) is left for
+  a volunteer (task 0190).
+- **K:** 0.2201 at level 1 and 0.2623 at level 2, against Ito (1960)
+  0.2626 (via Villegas-León et al. 2021).  No gate, and no GCI from two
+  levels.  The −0.1 % at level 2 is one level's agreement, inside the
+  solver-side spread below; it isn't a converged result.
+
+**How it got there: four studies, each fixing what the last showed (the
+diagnosis ladder's step 1, decision 0058).**
+
+| study | wall cell | outcome |
+|---|---|---|
+| `refined(k)`, k = 1–3 | split with the mesh: y⁺ 23 → 11.6 → 7.8 | gates pass at k = 3, but f drifts +0.55 → +9.0 % and K oscillates: the model changed with the level |
+| fixed at 50 units, steady SIMPLE | y⁺ 23 at every level | f holds (+0.55, +0.77 %), but level 2 plateaus; K 0.227–0.271 with the start |
+| fixed at 25 units | y⁺ 12 | plateaus too, and f +5.9 %: the buffer layer |
+| fixed at 50 units, time-accurate | y⁺ 23 | settles to a steady state (K band 8 × 10⁻⁷): the plateau was SIMPLE's |
+
+**Solver-side uncertainty.**  At level 1, four converged algorithms with
+the same schemes and mesh give K = 0.2201 (pimpleFoam, time-accurate),
+0.2223 (SIMPLE), 0.2257 (localEuler) and 0.2269 (SIMPLEC).  That is a
+3 % spread, with `ddtCorr` on (the default).  It is small beside the
+level 1 → 2 change (0.22 → 0.26), but much larger than the 0.1 % gap to
+Ito.  So on a coarse mesh, a K from any one OpenFOAM algorithm carries a
+few percent of solver-side uncertainty.  Whether `ddtCorr` causes it is
+untested (task 0190, step 1).
+
+**Cost.**  Time-accurate runs grow much faster than the cell count:
+about 10× per step from level 2 to 3 for 3.3× the cells (the pressure
+solve's iterations grow).  Level 3 would be 40–150 h on 4 processes
+here.  Local time-stepping wasn't cheaper (30 min against 5.5 at
+level 1).
+
+**Lessons for users** (in the GUIDE, task 0188):
+- with wall functions, fix the wall cell and refine the rest;
+- keep the first cell's centre at y⁺ ≳ 20 with Spalding and SST;
+- a steady solver's plateau isn't proof of unsteady flow;
+- K from different OpenFOAM algorithms differs by a few percent on a
+  coarse mesh.
+
+**The case's status stays "in progress"** (design, 2026-11-22).  Its
+finest planned level is pending.  "Accepted" would claim a converged
+study, and "missed" a failed gate; neither is true.  The headline says
+"two levels; level 3 left for volunteers".  Decision 0058's 1.0
+criterion ("reported") is met by RESULTS.md, not by the status word.
+
 ## 8. Proposed hexmesh actions
 
 | Area | Action | Source |

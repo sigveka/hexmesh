@@ -671,6 +671,13 @@ step 2 follows: every level `--transient` with the convergence stop.
     by a few percent on a coarse mesh.
   - Each run needs the user's go-ahead.
 
+  **After the Outcome (the design session, 2026-11-22):**
+  - **(1) Status:** keep "in progress".  The finest planned level is
+    pending, and the headline already says so.  Decision 0058's
+    "reported" is met by RESULTS.md (RESEARCH §7.17).
+  - **(2) and (3):** both in task 0190.  The volunteer card is steps
+    2–6; `ddtCorr` off at level 1 is step 1.
+
 ## Outcome
 
 **Reported with two levels (Q6's fallback, the user chose it on
