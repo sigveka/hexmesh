@@ -276,6 +276,34 @@ step 2 follows: every level `--transient` with the convergence stop.
   flow-through, not converged.  My estimate (20-25 h) scaled the cost
   per step with the cells (3.3×); it grew about 10×.
 
+**Q6's check at level 1: localEuler (`--transient --lts`; stored as
+`lts_fixed_k1`; 2026-11-22).**
+- **Set-up:** the transient's schemes with `ddtSchemes localEuler`;
+  PIMPLE as the transient, plus maxCo 5, rDeltaTSmoothingCoeff 0.02,
+  rDeltaTDampingCoeff 1, maxDeltaT 1.  Chunks of 500 iterations; the
+  stop over the last 1 000.  ddtCorr isn't set, so OpenFOAM's default
+  applies: on.  The same holds for the time-accurate runs and SIMPLEC.
+- **Result:** converged after 2 000 iterations (K band 2.2e-6, w band
+  5.9e-5), but K is **0.2257, +2.5 % from the time-accurate 0.22013**,
+  against the 0.1 % allowed.  It fails Q6's check at level 1, so level 2
+  wasn't run.  RMS 0.084, 0.081, 0.063, 0.072, 0.093, 0.099.
+- **Not cheaper either:** 30 min for 2 000 iterations, against 1 535
+  time-accurate steps in 6 min at the same level.  Each iteration solves
+  p to 1e-7 like a time step.
+- **Level 1, four converged algorithms, four K values:**
+
+  | algorithm | K | from 0.22013 |
+  |---|---|---|
+  | pimpleFoam, time-accurate (Co 1) | 0.22013 | — |
+  | SIMPLE (bounded schemes) | 0.222 | +0.9 % |
+  | SIMPLEC | 0.2269 | +3.1 % |
+  | pimpleFoam, localEuler (Co 5) | 0.2257 | +2.5 % |
+
+  The spread follows the effective step: largest for SIMPLEC (no p
+  relaxation) and localEuler (large local steps), smallest for small
+  time steps.  That is what ddtCorr/Rhie-Chow step dependence would
+  give; it isn't tested with ddtCorr off.
+
 ## Questions for design
 
 - **Q1 (2026-11-15, coding session). The reference isn't available

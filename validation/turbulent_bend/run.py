@@ -584,7 +584,7 @@ SIMPLEC_SOLUTION = (tp.SOLUTION
                              'equations       { U 0.9; "(k|omega)" 0.9; }', 1))
 
 
-def _pimple_control(end: float, avg_start: float, probes: np.ndarray) -> str:
+def _pimple_control(end: float, avg_start: float, probes: np.ndarray, lts: bool = False) -> str:
     """pimpleFoam's controlDict: Courant-limited steps, a write at *end*,
     K's two slabs and the LDA points every step, U and p averaged from
     *avg_start*."""
@@ -608,11 +608,11 @@ startFrom       latestTime;
 startTime       0;
 stopAt          endTime;
 endTime         {end!r};
-deltaT          1e-3;
-adjustTimeStep  yes;
+deltaT          {1 if lts else 1e-3};
+adjustTimeStep  {"no" if lts else "yes"};
 maxCo           {MAX_CO!r};
 maxDeltaT       1;
-writeControl    adjustableRunTime;
+writeControl    {"timeStep" if lts else "adjustableRunTime"};
 writeInterval   {end!r};
 purgeWrite      1;
 writeFormat     ascii;
@@ -677,7 +677,8 @@ def _lda_points() -> tuple[np.ndarray, list[tuple[str, int]]]:
     return np.vstack(pts), order
 
 
-def write_transient(steady: Path, case: Path, k: int, avg_start: float, end: float) -> dict:
+def write_transient(steady: Path, case: Path, k: int, avg_start: float, end: float,
+                    lts: bool = False) -> dict:
     """The pimpleFoam case: the steady bend's mesh and last fields as its
     time 0, the transient schemes and solution, the zones and probes."""
     if case.exists():
@@ -691,8 +692,9 @@ def write_transient(steady: Path, case: Path, k: int, avg_start: float, end: flo
         (case / "0" / f).write_text(re.sub(r'location\s+"[^"]*";', 'location    "0";', text),
                                     encoding="utf-8")
     zones = _cell_zones(case, k)
-    files = {"controlDict": _pimple_control(end, avg_start, _lda_points()[0]),
-             "fvSchemes": PIMPLE_SCHEMES, "fvSolution": PIMPLE_SOLUTION}
+    files = {"controlDict": _pimple_control(end, avg_start, _lda_points()[0], lts),
+             "fvSchemes": LTS_SCHEMES if lts else PIMPLE_SCHEMES,
+             "fvSolution": LTS_SOLUTION if lts else PIMPLE_SOLUTION}
     for name, text in files.items():
         (case / "system" / name).write_text(H("dictionary", name, "system") + text,
                                             encoding="utf-8")
@@ -764,19 +766,31 @@ def settledness(h: dict, avg_start: float) -> dict:
             "change": change, "max_change": max(change.values())}
 
 
+#: design answer Q6: pseudo-transient local time-stepping (localEuler), each
+#: cell at its own Courant number; "time" is the iteration.  Chunks of
+#: LTS_CHUNK iterations, the convergence stop over the last LTS_WINDOW,
+#: at most LTS_MAX
+LTS_CO = 5.0
+LTS_CHUNK, LTS_WINDOW, LTS_MAX = 500, 1000, 20000
+LTS_SCHEMES = PIMPLE_SCHEMES.replace("default backward;", "default localEuler;")
+LTS_SOLUTION = PIMPLE_SOLUTION.replace(
+    "    pRefValue       0;\n}",
+    f"    pRefValue       0;\n    maxCo           {LTS_CO!r};\n    rDeltaTSmoothingCoeff 0.02;\n"
+    "    rDeltaTDampingCoeff 1;\n    maxDeltaT       1;\n}", 1)
+
 #: Q5's convergence stop: over the last flow-through, K within this
 #: relative band and w at every LDA point within this fraction of U_b
 K_TOL, W_TOL = 1e-4, 1e-3
 
 
-def steadiness(h: dict) -> dict:
+def steadiness(h: dict, window: float = FLOW_THROUGH) -> dict:
     """K's relative band and the widest band of w/U_b at the LDA points
     over the last flow-through; ``converged`` once both are inside
     :data:`K_TOL` and :data:`W_TOL` (none before a flow-through has run)."""
     t = h["t"]
-    if len(t) == 0 or t[-1] < FLOW_THROUGH:
+    if len(t) == 0 or t[-1] < window:
         return {"k_band": None, "w_band": None, "converged": False}
-    last = t >= t[-1] - FLOW_THROUGH
+    last = t >= t[-1] - window
     k = h["k_bend"][last]
     w = h["w"][last]
     k_band = float((k.max() - k.min()) / abs(k[-1]))
@@ -808,7 +822,8 @@ def spectrum(h: dict, avg_start: float) -> dict:
 
 def transient(k: int, fam: str, work: Path, n_proc: int, *, chunk_ft: float = 0.5,
               washout_ft: float = 1.0, min_window_ft: float = 1.0,
-              max_ft: float = 12.0, max_hours: float = 12.0, stop: str = "converged") -> dict:
+              max_ft: float = 12.0, max_hours: float = 12.0, stop: str = "converged",
+              lts: bool = False) -> dict:
     """Q3's step 3, Q4's set-up: the steady bend from rest for
     :data:`STEADY_START` iterations, then pimpleFoam from its state, in
     chunks of *chunk_ft* flow-throughs, U and p averaged after
@@ -817,8 +832,10 @@ def transient(k: int, fam: str, work: Path, n_proc: int, *, chunk_ft: float = 0.
     averaged; *stop* ``"window"``, Q4), or by default (*stop*
     ``"converged"``, Q5) until K and the LDA points stop moving
     (:func:`steadiness`); or *max_ft* flow-throughs, or *max_hours*.
-    The gates read the final fields, the time mean is kept beside them."""
-    d = work / f"{level_name(k, fam)}_transient"
+    The gates read the final fields, the time mean is kept beside them.
+    With *lts* (Q6) the pseudo-transient instead: localEuler, chunks of
+    :data:`LTS_CHUNK` iterations, the stop over the last :data:`LTS_WINDOW`."""
+    d = work / f"{level_name(k, fam)}_{'lts' if lts else 'transient'}"
     t0 = time.monotonic()
     meta = setup(d, k, END_TIME, fam)
     steady = solve(d, k, END_TIME, n_proc, bend_steps=STEADY_START)
@@ -826,9 +843,11 @@ def transient(k: int, fam: str, work: Path, n_proc: int, *, chunk_ft: float = 0.
     print(f"[{d.name}] steady from rest: {steady['steps']} steps, K {steady['k_bend']:.3f}, "
           f"f {steady['precursor']['f_err_mckeon']:+.4f}; {t_steady / 3600:.2f} h", flush=True)
     case = d / "transient"
-    avg_start = washout_ft * FLOW_THROUGH
-    chunk = chunk_ft * FLOW_THROUGH
-    info = write_transient(d / "bend", case, k, avg_start, chunk)
+    avg_start = LTS_CHUNK if lts else washout_ft * FLOW_THROUGH
+    chunk = LTS_CHUNK if lts else chunk_ft * FLOW_THROUGH
+    window = LTS_WINDOW if lts else FLOW_THROUGH
+    limit = LTS_MAX if lts else max_ft * FLOW_THROUGH
+    info = write_transient(d / "bend", case, k, avg_start, chunk, lts)
     chunks, state, end = [], {"max_change": None}, 0.0
     while True:
         end += chunk
@@ -847,7 +866,7 @@ def transient(k: int, fam: str, work: Path, n_proc: int, *, chunk_ft: float = 0.
                 shutil.rmtree(t)
         h = histories(case, steady["precursor"]["f"])
         state = settledness(h, avg_start)
-        conv = steadiness(h)
+        conv = steadiness(h, window)
         chunks.append({"end_s": end, "steps": steps, "wall_s": time.monotonic() - c0,
                        "co_max": max(cos) if cos else None,
                        "max_change": state.get("max_change"),
@@ -863,7 +882,7 @@ def transient(k: int, fam: str, work: Path, n_proc: int, *, chunk_ft: float = 0.
             done = (state["window_s"] >= min_window_ft * FLOW_THROUGH
                     and state["max_change"] is not None and state["max_change"] < SETTLE)
         hours = (time.monotonic() - t0) / 3600
-        if done or end >= max_ft * FLOW_THROUGH - 1e-9 or hours >= max_hours:
+        if done or end >= limit - 1e-9 or hours >= max_hours:
             break
     h = histories(case, steady["precursor"]["f"])
     mean = results(case, k, steady["precursor"], u="UMean", p="pMean")
@@ -875,7 +894,8 @@ def transient(k: int, fam: str, work: Path, n_proc: int, *, chunk_ft: float = 0.
             "steady_wall_s": t_steady, "precursor": steady["precursor"],
             "zones": info["zones"], "flow_through_s": FLOW_THROUGH, "max_co": MAX_CO,
             "avg_start_s": avg_start, "end_s": end, "settled": bool(done),
-            "stop": stop, "steadiness": steadiness(h), "final": final,
+            "stop": stop, "steadiness": steadiness(h, window), "final": final,
+            "scheme": "localEuler" if lts else "backward", "ddt_corr": "on (OpenFOAM's default)",
             "settle": state, "spectrum": spectrum(h, avg_start), "chunks": chunks,
             "transient_steps": sum(c["steps"] for c in chunks), "transient_wall_s": wall,
             "wall_s_per_flow_through": wall / (sim / FLOW_THROUGH),
@@ -1071,6 +1091,9 @@ def main(argv=None) -> dict:
     ap.add_argument("--transient", action="store_true",
                     help="pimpleFoam from the steady state, time-averaged until the running "
                          "means settle (design answers Q3, Q4); stored as transient_<level>")
+    ap.add_argument("--lts", action="store_true",
+                    help="with --transient: local time-stepping (localEuler, design answer "
+                         "Q6), stored as lts_<level>")
     ap.add_argument("--max-flow-throughs", type=float, default=12.0,
                     help="the transient run's limit in flow-throughs (default %(default)s)")
     ap.add_argument("--max-hours", type=float, default=12.0,
@@ -1086,12 +1109,13 @@ def main(argv=None) -> dict:
     if args.transient:
         out = {}
         for k in args.levels:
-            name = f"transient_{level_name(k, args.family)}"
-            r = transient(k, args.family, args.work, args.n_proc,
+            kind = "lts" if args.lts else "transient"
+            name = f"{kind}_{level_name(k, args.family)}"
+            r = transient(k, args.family, args.work, args.n_proc, lts=args.lts,
                           max_ft=args.max_flow_throughs, max_hours=args.max_hours)
             store.put_extra(name, r)
             if not args.keep_work:
-                shutil.rmtree(args.work / f"{level_name(k, args.family)}_transient")
+                shutil.rmtree(args.work / f"{level_name(k, args.family)}_{kind}")
             sp, mean = r["spectrum"], r["final"]
             peak = ("no peak" if sp["peak_strouhal"] is None else
                     f"peak St {sp['peak_strouhal']:.3f}, x{sp['peak_over_median']:.0f} the median")
