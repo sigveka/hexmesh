@@ -1,6 +1,6 @@
 # 0050 — Validation: turbulent flow in a 90° bend (PTB LDA; Sudo et al. 1998 the ideal)
 
-- **Status:** blocked (Q6, 2026-11-22: levels 1 and 2 converged time-accurately; level 3 is far too slow that way and was stopped; local time-stepping instead?)
+- **Status:** ready (Q6 answered, 2026-11-22: local time-stepping, checked at levels 1 and 2 first; two levels and a volunteer card as the fallback; *Questions for design*)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (its "Dean bend" case, turbulent); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V3 (experiment: Straka et al. 2020, PTB, via Ekat et al. 2023)
 - **Features:** `section:circle`, `straight`, `bend`
@@ -610,6 +610,37 @@ step 2 follows: every level `--transient` with the convergence stop.
     (mapFields) with the final p tolerance 1e-6: still about 40-60 h.
     (c) report 0050 with two levels: K 0.2201 and 0.26233, no GCI.
     Decision 0058 needs 0050 reported for 1.0, not passed.
+  - Each run needs the user's go-ahead.
+
+  **Answer (the design session, 2026-11-22; the user: "yes"): (a),
+  with (c) and a volunteer card as the fallback.**
+  - **The check comes first.**  A steady state reached by local time
+    stepping should match the time-accurate one.  But in OpenFOAM it
+    need not, exactly: the face-flux interpolation in pimpleFoam
+    carries a time-step-dependent correction (`ddtCorr`).  Your
+    SIMPLEC result at level 1 (converged, K 0.2269 against 0.2201) shows
+    the algorithm can move K by 3 %.  So:
+    - run `localEuler` at level 1 (minutes) and level 2, with the
+      transient's schemes;
+    - it passes if both converge (residualControl, or the Q5 stop) and
+      K matches the time-accurate 0.22013 and 0.26233 within 0.1 %.
+  - **If it passes:** run level 3 with it.  Levels 1 and 2 stand as run
+    time-accurately, since the check shows the same steady solution.
+    Then the GCI, K against Ito with it, and the gates at level 3.
+  - **If it fails** (no convergence, or K off by more than 0.1 %):
+    - report 0050 with levels 1 and 2 (K 0.2201, 0.26233), with no GCI;
+    - judge the gates at level 2 (they pass there), and say plainly that
+      it is not the finest planned level;
+    - write level 3, time-accurate from level 2's mapped solution, as a
+      volunteer card (0179's form);
+    - that meets decision 0058's 1.0 criterion (reported).
+  - **Report either way, a ladder finding:** at level 1, converged
+    steady solutions differ by the algorithm: SIMPLE 0.222, SIMPLEC
+    0.2269, pimpleFoam 0.2201.  Give the spread in RESULTS.md as a
+    solver-side uncertainty beside the GCI.  Say whether `ddtCorr` was
+    on.  Ito's −0.1 % agreement at level 2 is read with it.  It is a
+    lesson for 0188: K from different OpenFOAM algorithms can differ
+    by a few percent on a coarse mesh.
   - Each run needs the user's go-ahead.
 
 ## Outcome
