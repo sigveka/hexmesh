@@ -1230,6 +1230,7 @@ def accurate_values(r: dict) -> dict:
     """A time-accurate level's values for the store: the run's record, and
     at the top what ``check`` compares (task 0190)."""
     return {**r, "k_bend": r["final"]["k_bend"],
+            "steps": r["transient_steps"], "converged": r["settled"],   # the contribution's schema
             **{f"rms_{z}": pl["rms"] for z, pl in r["final"]["planes"].items()}}
 
 

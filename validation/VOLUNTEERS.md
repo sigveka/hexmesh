@@ -14,6 +14,22 @@ Some validation cases need more computer than we have.  If you have cluster time
 
 The general guide to running validation cases is [validation/README.md](README.md).
 
+## Try the workflow first
+
+Before a long run, try the whole workflow on the try-out level, `poiseuille try_np2`: the coarse laminar pipe (5 184 cells), solved by simpleFoam on 2 processes, then collected and checked as a real level is.  It takes at most 3 min on 2 cores once the OpenFOAM image is downloaded.  It needs the same setup as a real run (above, and a clone as in the five commands below), and it validates nothing.
+
+```bash
+python3 -m validation.volunteer prepare poiseuille try_np2 --dir try/
+bash try/job.sh            # Windows: python -m validation.volunteer run try\
+python3 -m validation.volunteer collect try/ --delete
+python3 -m validation.volunteer check poiseuille-try_np2.contrib.json
+```
+
+On Windows (PowerShell), write `python` for `python3` and `try\` for `try/`.
+
+- **Accepted** means the file has the right form, the mesh is ours (its fingerprint matches the one `check` makes), the numbers agree with each other, and dp agrees with our reference within 1e-05 of itself.  Your setup works, and a real level runs the same way.  You needn't send the file, and `check --merge` refuses it: nothing is stored.
+- **If a step fails,** its error names the problem; for OpenFOAM, the runner and its own message.  Check the runner first (is Docker started?  `--runner` picks another).  If that isn't it, open an issue with the error and the run directory's `case/log.*` files.
+
 ## The five commands
 
 ```bash
@@ -53,7 +69,7 @@ python3 -m validation.volunteer prepare helical_pipe re3000_n24 --dir run/
 |---|---|---|---|
 | cores (MPI processes) | 4 | measured | our runs of this level at Re 1800 and 2400 used 4 processes on one 8-core desktop; any count from 1 works, more is faster |
 | wall time at 4 cores | 12 h | estimated | an upper bound from a measured start of this level at 4 processes (desktop, 2026-11-10): the coarse solve converged in 788 steps at 5.4 s/step (1.2 h); the first 50 fine steps took 70 s/step, while other jobs shared the machine; the fine solve's steps are scaled from Re 2400 (398 fine steps after 563 coarse ones) to about 560, so 10.8 h.  At Re 2400's fine rate (51 s/step) it would be about 9 h |
-| time to prepare (one core, no MPI) | 0.45 h | measured | making, converting and checking both meshes and preparing the coarse start: 27 min (desktop, 2026-11-10) |
+| time to prepare (one core, no MPI) | 27 min | measured | making, converting and checking both meshes and preparing the coarse start: 27 min (desktop, 2026-11-10) |
 | peak memory | 3.6 GB | measured | the run's processes and Docker containers summed, sampled every 2 s (desktop, 2026-11-10): 2.6 GB preparing, 1.1 GB in the coarse solve, 1.8 GB mapping, 3.6 GB in the fine solve at 4 processes |
 | peak disk | 2.4 GB | measured | the run's directory, sampled every 20 s through preparing, the coarse solve, mapping and the first fine chunk (desktop, 2026-11-10): 2.4 GB at most; later chunks keep only the latest result, so it stays there |
 | cells | 2,711,232 | measured | the fine mesh's exact count (the coarse start has 803328) |
@@ -87,7 +103,7 @@ python3 -m validation.volunteer prepare turbulent_bend transient_fixed_k3 --dir 
 |---|---|---|---|
 | cores (MPI processes) | 4 | measured | our runs of the first two levels and the start of this one used 4 processes on one 8-core desktop; any count from 1 works, more is faster |
 | wall time at 4 cores | 150 h | estimated | an upper bound from measured parts at 4 processes (desktop, 2026-11-21 and 22): the second level from rest to steady, 5.3 h; the third level's start (its inlet precursor and the mapping), 0.3 h; its first three 50-step chunks, 67, 49 and 45 s per step, falling as the flow settles.  The third level needs about 1.5 to 2.5 flow-throughs at about 4 600 steps each.  At 45 s per step that is 87 to 144 h; if the steps fall to 15 s, as the second level's fell 3.7-fold, about 30 to 50 h |
-| time to prepare (one core, no MPI) | 0.12 h | measured | making, converting and checking the third level's mesh (5.4 min) and the second level's (1.6 min) on the desktop, 2026-11-22 |
+| time to prepare (one core, no MPI) | 7 min | measured | making, converting and checking the third level's mesh (5.4 min) and the second level's (1.6 min) on the desktop, 2026-11-22 |
 | peak memory | 3 GB | estimated | measured 2.4 GB in a 50-step chunk of the third level at 4 processes: the run's processes and Docker containers summed, sampled every 2 s (desktop, 2026-11-22); the mapping step wasn't metered, so 3 GB leaves room for it |
 | peak disk | 3.6 GB | measured | the third level's directory, sampled every 20 s through its start and three chunks (desktop, 2026-11-22): 3.5 GB while a chunk's per-process copies exist, 1.8 GB between chunks; the second level's case is smaller and is deleted once mapped |
 | cells | 1,491,840 | measured | the third level's exact count (the second level, solved first, has 449920) |

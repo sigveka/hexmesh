@@ -1,6 +1,6 @@
 # 0176 — A try-out volunteer card: the whole workflow in a minute or two
 
-- **Status:** ready
+- **Status:** in progress (done but for the full suite: a run here was stopped for low memory, 2026-11-22; the Windows run is still to do)
 - **Decision:** [0044](../decisions/0044-volunteer-runs.md), its note of
   2026-11-18 (every heavy case gets a card, and one card to try the
   workflow); [0054](../decisions/0054-validation-needs-a-checkout.md)
@@ -83,6 +83,59 @@ the same card serves them all, and the user reports what works.  Timing
 or benchmarking the volunteer's machine.
 
 ## Agent notes
+
+**2026-11-22, the coding session.**
+- **The level, `try_np2`:** Poiseuille's coarse mesh (5 184 cells), not
+  too small to decompose: 2 slabs along the pipe.  `run_level` is split
+  into `setup_case` (mesh, case, convert, checkMesh, topoSet) and
+  `level_values` (the log's convergence and `results`), so the stored
+  levels and `main()` give what they did; the hooks (`check_level`,
+  `prepare`, `run`, `collect`, `recompute`) reuse them.  `run` passes
+  `n_proc` to `run_solver`; a run cut short starts again from the
+  initial fields (seconds).
+- **The reference in the card** (the level's own `reproduce`, with
+  `value`), not `results.json`: `check` then needs no store and no
+  gates for a try-out.  dp 8.036058237403601e-05 on 2 processes; on 1
+  process 8.03605823685401e-05, +7e-11 (129 against 125 iterations;
+  u_max +8e-11, q +5e-11).  Tolerance 1e-5.
+- **Card format:** a level may carry `"try": true` and its own
+  `reproduce`.  `list` shows try-outs first under "Try the workflow";
+  `info` says there are no pass/fail limits; VOLUNTEERS.md gets "Try the
+  workflow first" after "Before you start" (the setup it needs) and
+  before the five commands; a card with only try-out levels gets no
+  case section.
+- **`check`:** a try-out is compared with the card's reference after the
+  schema, the mesh hash and `recompute`, and ends "accepted" with "a
+  try-out: no pass/fail limits, nothing is stored".  `--merge` is
+  refused before anything else.  `collect` says the file needn't be
+  sent.
+- **`_value`** shows hours under 1 as minutes ("3 min").
+- **Found on the way:**
+  - The contribution's `log_tail` was checkMesh's log for a case without
+    `log.simpleFoam.all`: `_log_tail` took the first `case/log.*`
+    alphabetically.  It now prefers `case/log.simpleFoam`.
+  - The contribution schema requires `steps` and `converged`.  Poiseuille
+    calls the first `iterations`; the bend's time-accurate record had
+    neither (`transient_steps`, `settled`), so a level-3 contribution
+    would have been rejected by `check` after days of running.  Both
+    drivers now add them; a test builds a bend contribution from the
+    stored level-2 run and checks it.
+- **Measured here** (desktop, OpenFOAM v2406 in Docker, the image
+  already pulled), with the tool's own commands: prepare 5.1 s, `bash
+  job.sh` 7.9 s (2 processes), collect 2.0 s, check 0.9 s: 15.8 s in
+  all.  The card states 3 min as a bound.  Disk 1.7 MB.  Peak memory is
+  stated as an estimate (1 GB bound): the tool samples every 2 s, and
+  saw 0.03 GB over a 6 s solve.
+- **The tag:** the card names `volunteer-bend-1`, the tag still to come
+  for the bend's card (task 0190), so one tag carries both.  If the user
+  wants the try-out under another tag, only the card's `hexmesh.tag`
+  changes.
+- **Windows:** the native run in the user's Windows session is still to
+  do.
+- **For 0178:** the try-out is scriptable as the task asks: `prepare
+  poiseuille try_np2 --dir D --runner R`, `run D`, `collect D --out O
+  --delete`, `check O/poiseuille-try_np2.contrib.json`; each exits
+  non-zero on failure, and `check` exits 0 only on "accepted".
 
 ## Questions for design
 

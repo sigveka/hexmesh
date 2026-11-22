@@ -1,0 +1,77 @@
+{
+  "format": "hexmesh.validation.volunteer-card",
+  "version": 1,
+  "case": "poiseuille",
+  "title": "Laminar flow in a straight pipe (the try-out)",
+  "summary": "Not a validation run: a check that your setup works, before a long run.  The coarsest mesh of the laminar pipe case (Re 100, 5 184 cells) is solved on 2 MPI processes, so every step a real level takes runs once: meshing, gmshToFoam, checkMesh, decomposePar, mpirun, reconstructPar and the clean-up.  The pressure drop it gives is compared with ours.",
+  "openfoam": {
+    "version": "v2406",
+    "image": "opencfd/openfoam-default:2406"
+  },
+  "hexmesh": {
+    "tag": "volunteer-bend-1",
+    "note": "clone this tag with git clone --branch, as in the five commands: the mesh check needs the same meshing code as ours"
+  },
+  "gmsh": {
+    "version": "4.12.1",
+    "note": "the version our meshes were made with; if the mesh check fails, install gmsh 4.12.1"
+  },
+  "returns": "nothing: `collect` writes `poiseuille-try_np2.contrib.json` (about 25 kB) for `check`, and it needn't be sent",
+  "levels": {
+    "try_np2": {
+      "try": true,
+      "title": "the coarse pipe on 2 processes",
+      "what": "the coarse laminar pipe (5 184 cells), solved by simpleFoam on 2 processes, then collected and checked as a real level is.",
+      "reproduce": {
+        "quantity": "dp",
+        "value": 8.036058237403601e-05,
+        "rel_tol": 1e-05,
+        "how": "our run on 2 processes (desktop, OpenFOAM v2406 in Docker, 2026-11-22); the same level on 1 process differs by 7e-11 of itself, so 1e-5 leaves room for other platforms and MPI builds, while a wrong mesh or case moves dp by per cent"
+      },
+      "requirements": {
+        "cores": {
+          "label": "cores (MPI processes)",
+          "value": 2,
+          "unit": "",
+          "basis": "measured",
+          "how": "the level is decomposed into 2 slabs along the pipe; prepare --np changes it"
+        },
+        "wall_time": {
+          "label": "wall time",
+          "value": 0.05,
+          "unit": "h",
+          "basis": "measured",
+          "how": "prepare 4.6 s, bash job.sh 7.8 s, collect 1.9 s, check about 4 s on the desktop (2026-11-22), once the OpenFOAM image is downloaded; 3 min leaves room for a slower machine"
+        },
+        "prepare_time": {
+          "label": "time to prepare",
+          "value": 0.002,
+          "unit": "h",
+          "basis": "measured",
+          "how": "meshing, gmshToFoam, checkMesh and topoSet: 4.6 s on the desktop (2026-11-22)"
+        },
+        "peak_memory": {
+          "label": "peak memory",
+          "value": 1,
+          "unit": "GB",
+          "basis": "estimated",
+          "how": "a bound: the tool's 2 s sampling saw 0.03 GB over the 6 s solve, too short to measure; 5 184 cells on 2 processes need far less than 1 GB"
+        },
+        "peak_disk": {
+          "label": "peak disk",
+          "value": 0.002,
+          "unit": "GB",
+          "basis": "measured",
+          "how": "the run directory after the solve: 1.7 MB (desktop, 2026-11-22); the OpenFOAM image takes about 1.5 GB on the first run"
+        },
+        "cells": {
+          "label": "cells",
+          "value": 5184,
+          "unit": "",
+          "basis": "measured",
+          "how": "the coarse level's exact count"
+        }
+      }
+    }
+  }
+}

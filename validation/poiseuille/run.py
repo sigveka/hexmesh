@@ -58,7 +58,7 @@ from hexmesh import Assembly, PipeSpec, Session, Straight      # noqa: E402
 from hexmesh.study.openfoam import (                           # noqa: E402
     convert, foam, header as _header, latest_time as _latest_time,
     read_faces, read_internal, read_labels, read_patch_faces, read_patch_values,
-    openfoam_version, read_points, read_zone, runner,
+    openfoam_version, read_points, read_zone, run_solver, runner,
 )
 
 # Richardson / GCI, shared by every case (task 0089).
@@ -309,8 +309,10 @@ def results(case: Path) -> dict:
     }
 
 
-def run_level(name: str, factor: int, work: Path, end_time: int) -> dict:
-    case = work / name
+def setup_case(case: Path, name: str, factor: int, end_time: int, keep_msh: bool = False) -> dict:
+    """Mesh level *factor* into a new *case*, write the dictionaries,
+    convert, checkMesh and topoSet.  Returns the mesh's values, which
+    :func:`level_values` completes after the solve."""
     if case.exists():
         shutil.rmtree(case)
     case.mkdir(parents=True)
@@ -321,16 +323,16 @@ def run_level(name: str, factor: int, work: Path, end_time: int) -> dict:
         msh = case / "pipe.msh"
         asm.write_openfoam(msh)
         sj = asm.check_quality("scaled_jacobian").worst
+        counts = stored.counts(asm)
     write_case(case, end_time)
     # every hex right-handed: skip gmshToFoam's orientation test (task 0108)
     retyped = convert(case, msh, keep_orientation=sj > 0)
+    if not keep_msh:
+        msh.unlink()
     check = foam("checkMesh", case, "log.checkMesh")
     foam("topoSet", case, "log.topoSet")
-    solve = foam("simpleFoam", case, "log.simpleFoam")
-    m = re.search(r"SIMPLE solution converged in (\d+) iterations", solve)
-    times = re.findall(r"^Time = (\d+)$", solve, re.M)
-    out = {
-        "level": name, "factor": factor, "cells": cells, **stored.counts(asm),
+    return {
+        "level": name, "factor": factor, "cells": cells, **counts,
         "cells_foam": int(re.search(r"cells:\s+(\d+)", check).group(1)),
         "mesh_ok": "Mesh OK." in check, "retyped": retyped,
         "patches": sorted(re.findall(r"^\s+(fluid_\w+)\s*$",
@@ -339,11 +341,24 @@ def run_level(name: str, factor: int, work: Path, end_time: int) -> dict:
         "max_non_orthogonality": float(
             re.search(r"non-orthogonality Max: ([\d.e+-]+)", check).group(1)),
         "max_skewness": float(re.search(r"Max skewness = ([\d.e+-]+)", check).group(1)),
-        "converged": m is not None,
-        "iterations": int(m.group(1)) if m else int(times[-1]),
     }
+
+
+def level_values(case: Path, mesh: dict, solve: str) -> dict:
+    """*mesh* (from :func:`setup_case`), the solve's convergence from its
+    log, and the flow's values from the case."""
+    m = re.search(r"SIMPLE solution converged in (\d+) iterations", solve)
+    times = re.findall(r"^Time = (\d+)$", solve, re.M)
+    out = {**mesh, "converged": m is not None,
+           "iterations": int(m.group(1)) if m else int(times[-1])}
     out.update(results(case))
     return out
+
+
+def run_level(name: str, factor: int, work: Path, end_time: int) -> dict:
+    case = work / name
+    mesh = setup_case(case, name, factor, end_time, keep_msh=True)
+    return level_values(case, mesh, foam("simpleFoam", case, "log.simpleFoam"))
 
 
 def orders(rows: list[dict], key: str) -> list[float]:
@@ -517,6 +532,84 @@ def recheck(data: dict) -> list[dict]:
             out.append(stored.row("u_max, observed order", rich=rich, gate="≥ 1.5", ok=ok,
                                   value=conv.describe(rich)))
     return out
+
+
+# --- the volunteer try-out (decision 0044's note of 2026-11-18; task 0176) ----------------
+#
+# The coarse mesh on 2 processes: decomposePar, mpirun and reconstructPar
+# run, in a minute or two.  It validates nothing (the stored levels do);
+# `check` compares it with the reference in the card.
+
+TRY = {"try_np2": "coarse"}      # level → the stored level whose mesh it solves
+END_TIME = 20000                 # main()'s default
+
+
+def check_level(level: str) -> None:
+    """Raise ``ValueError`` unless *level* is one the volunteer tool can
+    run (no gmsh, no OpenFOAM)."""
+    if level not in TRY:
+        raise ValueError(f"poiseuille has no volunteer level {level!r} (levels: {', '.join(TRY)})")
+
+
+def prepare(level: str, d: Path, mesh_only: bool = False) -> dict:
+    """Mesh *level* into ``d/case`` and set the case up, or with
+    *mesh_only* only write its mesh.  Returns ``{"msh": path, "check":
+    …}``; the tool hashes the mesh and deletes it."""
+    check_level(level)
+    d.mkdir(parents=True, exist_ok=True)
+    factor = LEVELS[TRY[level]]
+    if mesh_only:
+        msh = d / f"{level}.msh"
+        with Session(f"poiseuille-{level}"):
+            assembly(factor).write_openfoam(str(msh))
+        return {"msh": msh, "check": None}
+    mesh = setup_case(d / "case", level, factor, END_TIME, keep_msh=True)
+    (d / "case" / "mesh.json").write_text(json.dumps(mesh), encoding="utf-8")
+    return {"msh": d / "case" / "pipe.msh",
+            "check": {k: mesh[k] for k in ("mesh_ok", "cells_foam", "max_non_orthogonality",
+                                           "max_skewness")}}
+
+
+def run(level: str, d: Path, n_proc: int) -> None:
+    """Solve *level* on *n_proc* processes.  A run cut short starts again
+    from the initial fields: it takes seconds."""
+    check_level(level)
+    case = d / "case"
+    log = case / "log.simpleFoam"
+    if log.exists() and "SIMPLE solution converged" in log.read_text(encoding="utf-8"):
+        return
+    for t in case.iterdir():                   # an earlier attempt's times and processors
+        if t.is_dir() and (t.name.startswith("processor")
+                           or (t.name != "0" and re.fullmatch(r"[\d.e+-]+", t.name))):
+            shutil.rmtree(t)
+    run_solver(case, "simpleFoam", n_proc=n_proc, log="log.simpleFoam")
+
+
+def collect(level: str, d: Path) -> dict:
+    """The solved level's values, as :func:`run_level` returns them.
+    Refuses a level that hasn't converged."""
+    check_level(level)
+    case = d / "case"
+    log = case / "log.simpleFoam"
+    if not log.exists():
+        raise ValueError(f"{level} hasn't run: run the job first")
+    mesh = json.loads((case / "mesh.json").read_text(encoding="utf-8"))
+    values = level_values(case, mesh, log.read_text(encoding="utf-8"))
+    if not values["converged"]:
+        raise ValueError(f"{level} didn't converge in {values['iterations']} iterations")
+    return {"values": {**values, "steps": values["iterations"]}, "extra": {}}   # the schema's name
+
+
+def recompute(values: dict) -> dict:
+    """What a level's numbers must equal, from its Δp, u_max and flow
+    rates (``check`` compares them)."""
+    dp_e = (values["dp"] - DP_EXACT) / DP_EXACT
+    u_e = (values["u_max"] - U_MAX_EXACT) / U_MAX_EXACT
+    return {"dp_err": abs(dp_e), "dp_err_signed": dp_e,
+            "u_max_err": abs(u_e), "u_max_err_signed": u_e,
+            "dp_err_mesh": (values["dp"] - values["dp_ref_mesh"]) / values["dp_ref_mesh"],
+            "mass_err": abs(values["q_out"] - values["q_in"]) / values["q_in"],
+            "cells": assembly(LEVELS[TRY.get(values["level"], values["level"])]).cell_count()}
 
 
 if __name__ == "__main__":

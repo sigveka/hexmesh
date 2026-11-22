@@ -451,3 +451,106 @@ def test_an_older_run_directory_is_stamped_at_collect_with_a_note(capsys, tmp_pa
     contrib, err = _collected(capsys, tmp_path, d)
     assert contrib["environment"]["hexmesh"] == "ccccccc"
     assert contrib["run"]["environment_from"] == "collect" and "environment prepare had" in err
+
+
+# --- the try-out (task 0176) -----------------------------------------------------------
+
+TRY = "try_np2"
+
+
+def _try_contribution() -> dict:
+    """A try-out contribution as collect writes it: the card's reference
+    Δp, and the values the driver derives from it."""
+    drv = vol.driver("poiseuille")
+    ref = vol.card("poiseuille")["levels"][TRY]["reproduce"]["value"]
+    q = 1.55291427066748e-06
+    values = {"level": TRY, "converged": True, "steps": 129, "iterations": 129,
+              "dp": ref, "u_max": 0.009906547641186144, "dp_ref_mesh": 8.0e-05,
+              "q_in": q * (1 - 3e-11), "q_out": q}
+    values.update(drv.recompute(values))
+    return {"format": vol.CONTRIB_FORMAT, "version": 1, "case": "poiseuille", "level": TRY,
+            "results": values, "extra": {},
+            "environment": {"hexmesh": "aaaaaaa", "gmsh": "4.12.1", "python": "3.12.0",
+                            "openfoam": "v2406", "runner": "path", "date": "2026-11-22"},
+            "mesh": {"sha256": HASH, "method": vol.HASH_METHOD,
+                     "check": {"mesh_ok": True, "cells_foam": values["cells"]}},
+            "run": {"cores": 2, "runs": 1, "wall_s": 8.0, "peak_memory_gb": None,
+                    "peak_memory_how": "test", "allow_version": False},
+            "log_tail": ["End"]}
+
+
+@pytest.fixture
+def poiseuille_copy(tmp_path):
+    path = tmp_path / "poiseuille-results.json"
+    shutil.copy(ROOT / "validation/poiseuille/results.json", path)
+    return path
+
+
+def test_the_try_out_is_listed_first_and_not_as_a_case():
+    lines = vol.list_lines()
+    assert lines[0].startswith("Try the workflow") and f"poiseuille {TRY}" in lines[1]
+    assert not any(x.startswith("poiseuille:") for x in lines)
+    md = vol.render()
+    assert md.index("## Try the workflow first") < md.index("## The five commands")
+    assert "(`poiseuille`)" not in md                      # no case section for it
+
+
+def test_a_try_out_is_accepted_and_nothing_is_stored(tmp_path, poiseuille_copy):
+    before = poiseuille_copy.read_bytes()
+    ok, lines = _check(tmp_path, _try_contribution(), poiseuille_copy)
+    assert ok, lines
+    assert lines[-1] == "accepted" and any("card's reference" in x for x in lines)
+    assert not any(x.startswith("gates") for x in lines)
+    assert poiseuille_copy.read_bytes() == before
+
+
+def test_merge_refuses_a_try_out(tmp_path, poiseuille_copy):
+    before = poiseuille_copy.read_bytes()
+    ok, lines = _check(tmp_path, _try_contribution(), poiseuille_copy, merge=True)
+    assert not ok and lines[0].startswith("refused:") and "try-out" in lines[0]
+    assert poiseuille_copy.read_bytes() == before
+
+
+@pytest.mark.parametrize("tamper, says", [
+    (lambda c: c["results"].update(dp_err=0.001), "results: dp_err is"),
+    (lambda c: c["results"].update(dp=c["results"]["dp"] * 1.01,
+                                   **vol.driver("poiseuille").recompute(
+                                       {**c["results"], "dp": c["results"]["dp"] * 1.01})),
+     "doesn't reproduce the reference"),
+    (lambda c: c["mesh"].update(sha256="cd" * 32), "mesh hash"),
+])
+def test_a_tampered_try_out_is_rejected(tmp_path, poiseuille_copy, tamper, says):
+    contrib = _try_contribution()
+    tamper(contrib)
+    ok, lines = _check(tmp_path, contrib, poiseuille_copy)
+    assert not ok and any(says in x for x in lines), lines
+
+
+def test_collect_says_a_try_out_needn_t_be_sent(capsys, tmp_path, head, monkeypatch):
+    monkeypatch.setattr(vol, "driver", lambda case: _Driver(head))
+    d = tmp_path / "run"
+    assert vol.main(["prepare", "poiseuille", TRY, "--dir", str(d)]) == 0
+    capsys.readouterr()
+    assert vol.main(["collect", str(d), "--out", str(tmp_path), "--delete"]) == 0
+    assert "a try-out, so you needn't send it" in capsys.readouterr().out
+
+
+# --- the bend's level 3 (task 0190) ------------------------------------------------------
+
+def test_a_bend_level_3_contribution_matches_the_schema_and_is_checked(tmp_path):
+    """A contribution from the time-accurate driver, built from the stored
+    level-2 run under level 3's name: the schema needs ``steps`` and
+    ``converged``, which the run's record calls otherwise."""
+    results = tmp_path / "bend-results.json"
+    shutil.copy(ROOT / "validation/turbulent_bend/results.json", results)
+    bend = vol.driver("turbulent_bend")
+    data = json.loads(results.read_text(encoding="utf-8"))
+    values = bend.accurate_values(data["extra"]["transient_fixed_k2"])
+    contrib = {**_try_contribution(), "case": "turbulent_bend", "level": "transient_fixed_k3",
+               "results": values,
+               "mesh": {"sha256": HASH, "method": vol.HASH_METHOD,
+                        "check": {"mesh_ok": True, "cells_foam": values["cells"]}}}
+    jsonschema.validate(contrib, json.loads(vol.SCHEMA.read_text(encoding="utf-8")))
+    assert len(json.dumps(contrib)) < vol.MAX_CONTRIB_BYTES
+    ok, lines = _check(tmp_path, contrib, results)
+    assert ok, lines

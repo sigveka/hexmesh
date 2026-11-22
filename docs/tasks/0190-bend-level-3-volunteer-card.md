@@ -181,6 +181,14 @@ measurement).**  `validation/turbulent_bend/volunteer.json`, 0055's form
   --dir a/b` fails with `FileNotFoundError` when `a` doesn't exist: its
   free-disk check reads the parent before making the directory.
 
+**After step 4 (2026-11-22, found in task 0176).**  The contribution
+schema requires `steps` and `converged` in a level's values; the
+time-accurate record had `transient_steps` and `settled` only, so
+`check` would have rejected a level-3 contribution.  `accurate_values`
+now adds both.  A test builds a contribution from the stored level-2
+run under level 3's name, validates it against the schema and checks
+it (accepted; the values take 0.12 MB of the 1 MB limit at level 2).
+
 ## Questions for design
 
 ## Outcome

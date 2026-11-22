@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+**A try-out for volunteers** (task 0176).  `python3 -m validation.volunteer
+prepare poiseuille try_np2` runs the whole volunteer workflow on the
+coarse laminar pipe, on 2 MPI processes, in well under a minute: `list`
+shows it first, `check` compares it with a stored reference, and
+`--merge` refuses it.  VOLUNTEERS.md starts with it.
+
 **Behaviour: a gridded seabed is interpolated bilinearly** (task 0171).
 `read_bathymetry` interpolated every surface on Qhull's Delaunay
 triangulation, which cuts a grid's cells along either diagonal as

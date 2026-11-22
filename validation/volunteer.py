@@ -147,6 +147,21 @@ def offered_level(case: str, level: str) -> dict | None:
     return None
 
 
+def is_try(case: str, level: str) -> bool:
+    """Whether *level* of *case* is a try-out (``"try": true`` on the card,
+    task 0176): it checks a volunteer's setup and validates nothing."""
+    return bool(cards().get(case, {}).get("levels", {}).get(level, {}).get("try"))
+
+
+def _real_levels(c: dict) -> dict:
+    return {n: lv for n, lv in c["levels"].items() if not lv.get("try")}
+
+
+def _try_levels() -> list[tuple[str, str, dict]]:
+    return [(case, n, lv) for case, c in cards().items()
+            for n, lv in c["levels"].items() if lv.get("try")]
+
+
 def gates(case: str) -> list[dict]:
     """The case's gates, quoted from its ``case.json``."""
     meta = json.loads((VALIDATION / case / "case.json").read_text(encoding="utf-8"))
@@ -155,6 +170,8 @@ def gates(case: str) -> list[dict]:
 
 def _value(req: dict) -> str:
     v = req["value"]
+    if req["unit"] == "h" and v < 1:                       # the try-out's minutes
+        return f"{round(v * 60):g} min"
     num = f"{v:,}" if isinstance(v, int) else f"{v:g}" if isinstance(v, float) else f"{v}"
     return f"{num} {req['unit']}".strip()
 
@@ -429,7 +446,8 @@ def cmd_run(args) -> int:
 # --- collect --------------------------------------------------------------------------
 
 def _log_tail(d: Path) -> list[str]:
-    logs = (sorted(Path(d).glob("case/log.simpleFoam.all")) or sorted(Path(d).glob("case/log.*"))
+    logs = (sorted(Path(d).glob("case/log.simpleFoam.all"))
+            or sorted(Path(d).glob("case/log.simpleFoam")) or sorted(Path(d).glob("case/log.*"))
             or sorted((q for q in Path(d).glob("level/transient/log.pimpleFoam.*")   # task 0190
                        if not q.name.endswith((".decomposePar", ".reconstructPar", ".clean"))),
                       key=lambda q: q.stat().st_mtime, reverse=True))
@@ -472,7 +490,11 @@ def cmd_collect(args) -> int:
     out = (args.out or Path.cwd()) / f"{state['case']}-{state['level']}.contrib.json"
     text = stored.dumps(contrib)
     out.write_text(text, encoding="utf-8", newline="\n")
-    print(f"wrote {out} ({len(text.encode('utf-8')) / 1e3:.0f} kB): send this file back")
+    if is_try(state["case"], state["level"]):
+        print(f"wrote {out} ({len(text.encode('utf-8')) / 1e3:.0f} kB): a try-out, so you "
+              f"needn't send it; check it with {PROG} check {out}")
+    else:
+        print(f"wrote {out} ({len(text.encode('utf-8')) / 1e3:.0f} kB): send this file back")
     if args.delete or (sys.stdin.isatty() and
                        input(f"delete the run directory {d}? [y/N] ").strip().lower() == "y"):
         shutil.rmtree(d)
@@ -542,6 +564,10 @@ def check(path: Path, *, results: Path | None = None, merge: bool = False,
     case, level, values = contrib["case"], contrib["level"], contrib["results"]
     if case not in cards():
         return False, [f"rejected: no volunteer card for case {case!r}"]
+    trial = is_try(case, level)
+    if trial and merge:
+        return False, [f"refused: {case} {level} is a try-out; --merge stores nothing for it "
+                       "and it gives no credit.  Check it without --merge"]
     c = cards()[case]
     drv = driver(case)
     report.append(f"{case} {level}: OpenFOAM {contrib['environment']['openfoam']} "
@@ -570,6 +596,16 @@ def check(path: Path, *, results: Path | None = None, merge: bool = False,
         elif not _close(values[key], want):
             problems.append(f"results: {key} is {values[key]!r}, but the level's own numbers "
                             f"give {want!r}")
+    if trial:
+        ref = c["levels"][level]["reproduce"]
+        q, tol = ref["quantity"], ref["rel_tol"]
+        dev = values[q] / ref["value"] - 1
+        line = f"{q} {values[q]!r} vs the card's reference {ref['value']!r}: {dev:+.2e} (tolerance {tol:g})"
+        (report if abs(dev) <= tol else problems).append(
+            line if abs(dev) <= tol else f"{line}: doesn't reproduce the reference")
+        if problems:
+            return False, report + ["rejected:"] + [f"  {p}" for p in problems]
+        return True, report + ["a try-out: no pass/fail limits, nothing is stored", "accepted"]
     rec = c.get("reproduce")
     store = stored.Store(results or VALIDATION / case / "results.json", case)
     old = store.level(level)
@@ -624,12 +660,22 @@ def list_lines() -> list[str]:
     """``list``: per case its title, and per level one line of what it
     costs and the ``prepare`` command to copy."""
     out = []
+    tries = _try_levels()
+    if tries:
+        out += ["Try the workflow (a few minutes; validates nothing, checks your setup):"]
+        for case, name, lv in tries:
+            r = lv["requirements"]
+            out += [f"  {case} {name}: {_short(r['cores'])} cores, {_short(r['wall_time'])}",
+                    f"    {PROG} prepare {case} {name} --dir run/"]
+        out += [""]
     for case, c in cards().items():
+        if not _real_levels(c):
+            continue
         out += [f"{case}: {c['title']}"]
         if c["hexmesh"]["tag"]:
             out += [f"  hexmesh: git clone --branch {c['hexmesh']['tag']} "
                     "https://github.com/sigveka/hexmesh"]
-        for name, lv in c["levels"].items():
+        for name, lv in _real_levels(c).items():
             r = lv["requirements"]
             out += [f"  {name}: {_short(r['cores'])} cores, {_short(r['wall_time'])}, "
                     f"{_short(r['peak_memory'])} memory, {_short(r['peak_disk'])} disk, "
@@ -670,9 +716,13 @@ def info_lines(case: str, level: str | None = None) -> list[str]:
                 f"  {PROG} prepare {case} {name} --dir run/"]
         for req in lv["requirements"].values():
             out += _wrap(f"{req['label']}: {_value(req)}, {req['basis']}: {req['how']}", "  - ", "")
-    out += ["", "Pass/fail limits (fixed before any run; reported whether passed or not):"]
-    out += [line for g in gates(case)
-            for line in _wrap(f"{g['quantity']}: {g['limit']}", "  - ", "")]
+    if _real_levels(c):
+        out += ["", "Pass/fail limits (fixed before any run; reported whether passed or not):"]
+        out += [line for g in gates(case)
+                for line in _wrap(f"{g['quantity']}: {g['limit']}", "  - ", "")]
+    else:
+        out += ["", *_wrap("A try-out: no pass/fail limits.  check compares the result with "
+                           "the card's reference, and nothing is stored.")]
     out += ["", *_wrap(f"Sent back: {c['returns']}")]
     return [line.replace("`", "").replace("$", "") for line in out]   # Markdown and TeX marks
 
@@ -710,7 +760,7 @@ def render() -> str:
            "- **Resources:** check the card's cores, memory, disk and wall time below "
            "against what you have before you start.", "",
            "The general guide to running validation cases is "
-           "[validation/README.md](README.md).", "",
+           "[validation/README.md](README.md).", "", *_try_section(),
            "## The five commands", "",
            "```bash",
            "git clone --branch <tag> https://github.com/sigveka/hexmesh && cd hexmesh",
@@ -748,13 +798,15 @@ def render() -> str:
            "fingerprint and check, cores, wall time and peak memory, and the last 200 lines "
            "of the solver log.  No fields, no mesh: well under 1 MB.", ""]
     for case, c in cards().items():
+        if not _real_levels(c):
+            continue
         out += [f"## {c['title']} (`{case}`)", "", c["summary"], "",
                 f"- **OpenFOAM:** {c['openfoam']['version']} (image "
                 f"`{c['openfoam']['image']}`)",
                 f"- **hexmesh:** {c['hexmesh']['tag'] or 'the first release with this tool'} "
                 f"({c['hexmesh']['note']})",
                 f"- **gmsh:** {c['gmsh']['version']} ({c['gmsh']['note']})", ""]
-        for name, lv in c["levels"].items():
+        for name, lv in _real_levels(c).items():
             out += [f"### Level `{name}`: {lv['title']}", "", lv["what"], "",
                     f"```bash\npython3 -m validation.volunteer prepare {case} {name} "
                     f"--dir run/\n```", "", *requirements_table(lv), ""]
@@ -768,6 +820,37 @@ def render() -> str:
         raise ValueError(f"VOLUNTEERS.md would show raw {raw}: GitHub strips them as HTML; "
                          f"quote them in a code span in the card (task 0137)")
     return text
+
+
+def _try_section() -> list[str]:
+    """VOLUNTEERS.md's "Try the workflow first", from the try-out levels."""
+    tries = _try_levels()
+    if not tries:
+        return []
+    case, name, lv = tries[0]
+    r, ref = lv["requirements"], lv["reproduce"]
+    return ["## Try the workflow first", "",
+            f"Before a long run, try the whole workflow on the try-out level, `{case} {name}`: "
+            f"{lv['what']}  It takes at most {_value(r['wall_time'])} on {_value(r['cores'])} "
+            "cores once the "
+            "OpenFOAM image is downloaded.  It needs the same setup as a real run (above, and a "
+            "clone as in the five commands below), and it validates nothing.", "",
+            "```bash",
+            f"python3 -m validation.volunteer prepare {case} {name} --dir try/",
+            "bash try/job.sh            # Windows: python -m validation.volunteer run try\\",
+            "python3 -m validation.volunteer collect try/ --delete",
+            f"python3 -m validation.volunteer check {case}-{name}.contrib.json",
+            "```", "",
+            "On Windows (PowerShell), write `python` for `python3` and `try\\` for `try/`.", "",
+            f"- **Accepted** means the file has the right form, the mesh is ours (its "
+            f"fingerprint matches the one `check` makes), the numbers agree with each other, "
+            f"and {ref['quantity']} agrees with our reference within {ref['rel_tol']:g} of "
+            "itself.  Your setup works, and a real level runs the same way.  You needn't "
+            "send the file, and `check --merge` refuses it: nothing is stored.",
+            "- **If a step fails,** its error names the problem; for OpenFOAM, the runner and "
+            "its own message.  Check the runner first (is Docker started?  `--runner` picks "
+            "another).  If that isn't it, open an issue with the error and the run "
+            "directory's `case/log.*` files.", ""]
 
 
 def _raw_placeholders(md: str) -> list[str]:

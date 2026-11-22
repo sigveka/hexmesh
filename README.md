@@ -435,7 +435,10 @@ The first command lists each volunteer case, with what it costs and the
 Poiseuille pipe with OpenFOAM in Docker: about 15 s once the image is
 downloaded.  It prints a table whose `e(Δp), circle` column is about
 +0.45 %.  `--json check.json` keeps the stored results untouched.
-Delete `check.json` afterwards.
+Delete `check.json` afterwards.  Before a volunteer run, [try the
+workflow](validation/VOLUNTEERS.md#try-the-workflow-first): the same
+pipe on 2 MPI processes, through `prepare`, `run`, `collect` and
+`check`, in well under a minute.
 
 **Windows:**
 - The volunteer's `job.sh` needs bash.  Run the same step with
