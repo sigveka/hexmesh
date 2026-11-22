@@ -1841,8 +1841,18 @@ the same schemes and mesh give K = 0.2201 (pimpleFoam, time-accurate),
 3 % spread, with `ddtCorr` on (the default).  It is small beside the
 level 1 → 2 change (0.22 → 0.26), but much larger than the 0.1 % gap to
 Ito.  So on a coarse mesh, a K from any one OpenFOAM algorithm carries a
-few percent of solver-side uncertainty.  Whether `ddtCorr` causes it is
-untested (task 0190, step 1).
+few percent of solver-side uncertainty.
+- **`ddtCorr` isn't the cause** (task 0190 step 1, 2026-11-22).  With it
+  off at level 1, pimpleFoam time-accurate gives 0.2127 (−3.4 %) and
+  localEuler 0.2225, so the spread widens to 0.2127–0.2269 (6.5 %).
+  `ddtCorr` is a PIMPLE switch, on by default, and simpleFoam doesn't
+  have it (v2406).  The verdict's runs keep it on, as the default a user
+  gets.  The cause of the spread is still open.  At level 1 it is about
+  a sixth of the change to level 2.
+
+**Level 3 is open to volunteers** (task 0190): a resumable transient
+started from a coarser level by `mapFields`.  Measured at 4 processes:
+45–67 s per step, 2.4 GB peak memory, 3.5 GB peak disk, 30–150 h.
 
 **Cost.**  Time-accurate runs grow much faster than the cell count:
 about 10× per step from level 2 to 3 for 3.3× the cells (the pressure
