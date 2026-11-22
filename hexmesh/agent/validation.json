@@ -367,6 +367,16 @@
      "id": "decomposed_precursor_residual_floor",
      "link": "docs/tasks/0050-validation-turbulent-bend.md",
      "text": "A periodic precursor decomposed on 4 processes floored its cross-flow residuals (Uy, Uz) at 2-5e-7, above residualControl 1e-7, and never stopped; on one process it converged in 3245 steps."
+    },
+    {
+     "id": "steady_plateau_not_unsteady",
+     "link": "validation/turbulent_bend/RESULTS.md",
+     "text": "simpleFoam (SIMPLE and SIMPLEC) stalled on a residual plateau at 450 k cells with K wandering 0.227-0.271, but pimpleFoam from that state settled to a steady flow (K 0.26233, constant to 1e-6): a plateau isn't proof of unsteadiness; a time-accurate run tells."
+    },
+    {
+     "id": "algorithm_spread_coarse_mesh",
+     "link": "validation/turbulent_bend/RESULTS.md",
+     "text": "On the 59 k-cell bend mesh four converged algorithms gave K 0.2201 (pimpleFoam, Co 1), 0.2223 (SIMPLE), 0.2257 (localEuler) and 0.2269 (SIMPLEC), ddtCorr on: use one algorithm at every level of a study."
     }
    ],
    "levels": 7,

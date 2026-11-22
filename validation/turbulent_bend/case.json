@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "title": "Turbulent flow in a 90° bend, k-ω SST, against the PTB LDA",
-  "headline": "at 1.6 M cells, within 0.02–0.07 U_b RMS of the LDA at six planes, peaks on the measured side; the levels not yet asymptotic (wall-function y⁺ drift)",
+  "headline": "two levels, time-accurate to steady: at 450 k cells within 0.060–0.096 U_b RMS of the LDA at six planes, peaks on the measured side; K 0.262 (Ito 0.263); level 3 left for volunteers",
   "category": "V3",
   "references": [
     {
@@ -67,6 +67,16 @@
       "id": "decomposed_precursor_residual_floor",
       "text": "A periodic precursor decomposed on 4 processes floored its cross-flow residuals (Uy, Uz) at 2-5e-7, above residualControl 1e-7, and never stopped; on one process it converged in 3245 steps.",
       "link": "docs/tasks/0050-validation-turbulent-bend.md"
+    },
+    {
+      "id": "steady_plateau_not_unsteady",
+      "text": "simpleFoam (SIMPLE and SIMPLEC) stalled on a residual plateau at 450 k cells with K wandering 0.227-0.271, but pimpleFoam from that state settled to a steady flow (K 0.26233, constant to 1e-6): a plateau isn't proof of unsteadiness; a time-accurate run tells.",
+      "link": "validation/turbulent_bend/RESULTS.md"
+    },
+    {
+      "id": "algorithm_spread_coarse_mesh",
+      "text": "On the 59 k-cell bend mesh four converged algorithms gave K 0.2201 (pimpleFoam, Co 1), 0.2223 (SIMPLE), 0.2257 (localEuler) and 0.2269 (SIMPLEC), ddtCorr on: use one algorithm at every level of a study.",
+      "link": "validation/turbulent_bend/RESULTS.md"
     }
   ]
 }

@@ -597,6 +597,24 @@ at 11.6, +5.9 % at 12.0, against +0.55 % at 23.2.  *What to do:* size
 units high), or resolve the wall (y⁺ ≲ 1) with a low-Reynolds
 treatment ([turbulent_bend](../validation/turbulent_bend/RESULTS.md)).
 
+**A steady solver that stalls isn't proof of unsteady flow.**
+*Symptom:* `simpleFoam` never meets `residualControl`; its residuals sit
+on a plateau, and the quantity you want (here the bend's loss
+coefficient K) depends on the start and the relaxation (0.227–0.271).
+SIMPLEC did the same.  *How to tell:* run `pimpleFoam` time-accurately
+from the stalled state.  On the bend at 450 k cells it settled to a
+steady flow (K constant to 1e-6 over a flow-through), so the plateau
+was the solver's.  *What to do:* keep `pimpleFoam` running to that
+steady state; it cost about 5 h on 4 processes here, and much more on
+a finer mesh ([turbulent_bend](../validation/turbulent_bend/RESULTS.md)).
+
+**Different steady algorithms, different answers on a coarse mesh.**
+On one 59 k-cell bend mesh, four algorithms each converged, to K
+0.2201 (`pimpleFoam`, time-accurate), 0.2223 (SIMPLE), 0.2257 (local
+time-stepping) and 0.2269 (SIMPLEC): a 3 % spread, with ddtCorr on (the
+default).  *What to do:* in a convergence study, use one algorithm at
+every level, and count the spread as a solver-side uncertainty.
+
 **About order 1 next to sloped walls, in OpenFOAM.**  *Symptom:* a
 convergence study at a tee, reducer, transition or miter shows order
 about 1, not 2.  *Cause:* OpenFOAM's `fixedValue` wall gradient has no
