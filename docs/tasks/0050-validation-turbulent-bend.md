@@ -1,6 +1,6 @@
 # 0050 — Validation: turbulent flow in a 90° bend (PTB LDA; Sudo et al. 1998 the ideal)
 
-- **Status:** ready (Q5's SIMPLEC test failed; every level time-accurate with the convergence stop; the runs wait for the user's go-ahead)
+- **Status:** blocked (Q6, 2026-11-22: levels 1 and 2 converged time-accurately; level 3 is far too slow that way and was stopped; local time-stepping instead?)
 - **Decision:** [0012 — OpenFOAM validation cases](../decisions/0012-openfoam-validation-cases.md) (its "Dean bend" case, turbulent); judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md) as amended
 - **Category:** V3 (experiment: Straka et al. 2020, PTB, via Ekat et al. 2023)
 - **Features:** `section:circle`, `straight`, `bend`
@@ -251,6 +251,30 @@ step 2 follows: every level `--transient` with the convergence stop.
   2.2e-6, w band 8.8e-4; K 0.2201; RMS 0.083, 0.080, 0.061, 0.072,
   0.096, 0.102; 0.05 h per flow-through.  At 1.5 flow-throughs the
   bands were 1.7e-3 and 1.4e-2: the second flow-through is needed.
+
+**Levels 1-3 time-accurate with the convergence stop (2026-11-21/22).**
+
+| level | stopped at | K | last flow-through: K band, w band | wall time |
+|---|---|---|---|---|
+| 1 (`transient_fixed_k1`) | 2.0 flow-throughs | 0.22013 | 2.2e-6, 8.8e-4 | 0.12 h |
+| 2 (`transient_fixed_k2`) | 2.5 flow-throughs | 0.26233 | 1.3e-7, 2.0e-6 | 5.34 h |
+| 3 | stopped by the coding session, the user's OK | — | — | 3.8 h used |
+
+- Level 2 reproduces the window-stopped run's K to five digits, and
+  its gates pass again: RMS 0.073, 0.074, 0.060, 0.071, 0.091, 0.096,
+  every peak outer.
+- **Level 3 is far too slow time-accurately:**
+  - the precursor and the steady start finished at 06:29;
+  - pimpleFoam then ran 135 steps in 2.1 h, about 56 s per step, to
+    0.36 s of the first 6.4 s chunk;
+  - the step was 0.0026 s at Co 1, so 2 flow-throughs are about
+    9 800 steps;
+  - the final p solve (tolerance 1e-7, relTol 0) took up to 188 GAMG
+    iterations.
+  Even with level 2's speed-up after the start (about 3.7×), that is
+  roughly 40-150 h; the 36 h cap would have stopped it at about one
+  flow-through, not converged.  My estimate (20-25 h) scaled the cost
+  per step with the cells (3.3×); it grew about 10×.
 
 ## Questions for design
 
@@ -567,6 +591,26 @@ step 2 follows: every level `--transient` with the convergence stop.
     - how to tell: a transient run from the plateau that settles;
     - the fix, if step 1 finds one.
   - The runs need the user's go-ahead (CLAUDE.md: long CPU runs).
+
+- **Q6 (2026-11-22, coding session). Level 3 can't be run
+  time-accurately here; how to reach its steady state?**
+  The flow is steady (level 2: K band 1.3e-7), so time accuracy buys
+  nothing but cost.
+  - **Options:**
+    (a) **pseudo-transient local time-stepping**: pimpleFoam with
+    `ddtSchemes localEuler`, each cell at its own Courant number
+    (`maxCo` about 5-10 with PIMPLE's outer correctors).  It is
+    OpenFOAM's standard route to a steady state when SIMPLE stalls.
+    The same convergence stop, measured in iterations, not seconds.
+    One method for all levels means rerunning levels 1 and 2 (about
+    1-3 h together, if it is as fast as it should be).  The method is
+    unproven here: a level-2 test against 0.26233 comes first, as with
+    SIMPLEC.  Recommended.
+    (b) time-accurate, but level 3 started from level 2's solution
+    (mapFields) with the final p tolerance 1e-6: still about 40-60 h.
+    (c) report 0050 with two levels: K 0.2201 and 0.26233, no GCI.
+    Decision 0058 needs 0050 reported for 1.0, not passed.
+  - Each run needs the user's go-ahead.
 
 ## Outcome
 
