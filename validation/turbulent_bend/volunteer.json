@@ -1,0 +1,74 @@
+{
+  "format": "hexmesh.validation.volunteer-card",
+  "version": 1,
+  "case": "turbulent_bend",
+  "title": "Turbulent flow in a 90° bend",
+  "summary": "Water at Re 50 000 through a 90° bend of curvature radius 1.425 D, meshed by hexmesh, with k-ω SST and wall functions, against laser-Doppler measurements at six planes after the bend.  Two mesh levels are done (60 k and 450 k cells): the velocity profiles pass at the second, and the bend's loss coefficient is 0.262, against 0.263 from Ito's correlation.  The steady solvers stall on these meshes, so each level runs time-accurately until the flow stops changing; the third level (1.5 M cells) needs days on 4 cores, which our one desktop can't spare.  It decides whether the loss coefficient and the profiles have converged.",
+  "openfoam": {
+    "version": "v2406",
+    "image": "opencfd/openfoam-default:2406"
+  },
+  "hexmesh": {
+    "tag": "volunteer-bend-1",
+    "note": "clone this tag with git clone --branch, as in the five commands: the mesh check needs the same meshing code as ours"
+  },
+  "gmsh": {
+    "version": "4.12.1",
+    "note": "the version our meshes were made with; other versions aren't checked for this case yet, so if the mesh check fails, install gmsh 4.12.1"
+  },
+  "returns": "one file, `turbulent_bend-transient_fixed_k3.contrib.json`, about 150 kB",
+  "reproduce": {
+    "quantity": "k_bend",
+    "rel_tol": 0.0001
+  },
+  "levels": {
+    "transient_fixed_k3": {
+      "title": "the third mesh level (1.5 million cells), time-accurate to a steady flow",
+      "what": "The run first solves the second level (450 k cells) from rest to a steady flow, maps it onto the third level, and continues there until, over the last flow-through (12.8 s of flow), the loss coefficient moves by less than 1e-4 of itself and the velocity at every measurement point by less than 0.1 % of the bulk velocity.  It stops at 12 flow-throughs if that never happens.  The state is saved every 50 time steps, so the run can be stopped and started again.",
+      "requirements": {
+        "cores": {
+          "label": "cores (MPI processes)",
+          "value": 4,
+          "unit": "",
+          "basis": "measured",
+          "how": "our runs of the first two levels and the start of this one used 4 processes on one 8-core desktop; any count from 1 works, more is faster"
+        },
+        "wall_time": {
+          "label": "wall time at 4 cores",
+          "value": 150,
+          "unit": "h",
+          "basis": "estimated",
+          "how": "an upper bound from measured parts at 4 processes (desktop, 2026-11-21 and 22): the second level from rest to steady, 5.3 h; the third level's start (its inlet precursor and the mapping), 0.3 h; its first three 50-step chunks, 67, 49 and 45 s per step, falling as the flow settles.  The third level needs about 1.5 to 2.5 flow-throughs at about 4 600 steps each.  At 45 s per step that is 87 to 144 h; if the steps fall to 15 s, as the second level's fell 3.7-fold, about 30 to 50 h"
+        },
+        "prepare_time": {
+          "label": "time to prepare (one core, no MPI)",
+          "value": 0.12,
+          "unit": "h",
+          "basis": "measured",
+          "how": "making, converting and checking the third level's mesh (5.4 min) and the second level's (1.6 min) on the desktop, 2026-11-22"
+        },
+        "peak_memory": {
+          "label": "peak memory",
+          "value": 3,
+          "unit": "GB",
+          "basis": "estimated",
+          "how": "measured 2.4 GB in a 50-step chunk of the third level at 4 processes: the run's processes and Docker containers summed, sampled every 2 s (desktop, 2026-11-22); the mapping step wasn't metered, so 3 GB leaves room for it"
+        },
+        "peak_disk": {
+          "label": "peak disk",
+          "value": 3.6,
+          "unit": "GB",
+          "basis": "measured",
+          "how": "the third level's directory, sampled every 20 s through its start and three chunks (desktop, 2026-11-22): 3.5 GB while a chunk's per-process copies exist, 1.8 GB between chunks; the second level's case is smaller and is deleted once mapped"
+        },
+        "cells": {
+          "label": "cells",
+          "value": 1491840,
+          "unit": "",
+          "basis": "measured",
+          "how": "the third level's exact count (the second level, solved first, has 449920)"
+        }
+      }
+    }
+  }
+}

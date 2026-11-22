@@ -66,3 +66,36 @@ python3 -m validation.volunteer prepare helical_pipe re3000_n24 --dir run/
 - reported, not gated: the digitised measured points (Fig. 12); f per pair of consecutive turns: reported
 
 **Sent back:** one file, `helical_pipe-<level>.contrib.json`, about 100 kB
+
+## Turbulent flow in a 90° bend (`turbulent_bend`)
+
+Water at Re 50 000 through a 90° bend of curvature radius 1.425 D, meshed by hexmesh, with k-ω SST and wall functions, against laser-Doppler measurements at six planes after the bend.  Two mesh levels are done (60 k and 450 k cells): the velocity profiles pass at the second, and the bend's loss coefficient is 0.262, against 0.263 from Ito's correlation.  The steady solvers stall on these meshes, so each level runs time-accurately until the flow stops changing; the third level (1.5 M cells) needs days on 4 cores, which our one desktop can't spare.  It decides whether the loss coefficient and the profiles have converged.
+
+- **OpenFOAM:** v2406 (image `opencfd/openfoam-default:2406`)
+- **hexmesh:** volunteer-bend-1 (clone this tag with git clone --branch, as in the five commands: the mesh check needs the same meshing code as ours)
+- **gmsh:** 4.12.1 (the version our meshes were made with; other versions aren't checked for this case yet, so if the mesh check fails, install gmsh 4.12.1)
+
+### Level `transient_fixed_k3`: the third mesh level (1.5 million cells), time-accurate to a steady flow
+
+The run first solves the second level (450 k cells) from rest to a steady flow, maps it onto the third level, and continues there until, over the last flow-through (12.8 s of flow), the loss coefficient moves by less than 1e-4 of itself and the velocity at every measurement point by less than 0.1 % of the bulk velocity.  It stops at 12 flow-throughs if that never happens.  The state is saved every 50 time steps, so the run can be stopped and started again.
+
+```bash
+python3 -m validation.volunteer prepare turbulent_bend transient_fixed_k3 --dir run/
+```
+
+| requirement | value | basis | where it comes from |
+|---|---|---|---|
+| cores (MPI processes) | 4 | measured | our runs of the first two levels and the start of this one used 4 processes on one 8-core desktop; any count from 1 works, more is faster |
+| wall time at 4 cores | 150 h | estimated | an upper bound from measured parts at 4 processes (desktop, 2026-11-21 and 22): the second level from rest to steady, 5.3 h; the third level's start (its inlet precursor and the mapping), 0.3 h; its first three 50-step chunks, 67, 49 and 45 s per step, falling as the flow settles.  The third level needs about 1.5 to 2.5 flow-throughs at about 4 600 steps each.  At 45 s per step that is 87 to 144 h; if the steps fall to 15 s, as the second level's fell 3.7-fold, about 30 to 50 h |
+| time to prepare (one core, no MPI) | 0.12 h | measured | making, converting and checking the third level's mesh (5.4 min) and the second level's (1.6 min) on the desktop, 2026-11-22 |
+| peak memory | 3 GB | estimated | measured 2.4 GB in a 50-step chunk of the third level at 4 processes: the run's processes and Docker containers summed, sampled every 2 s (desktop, 2026-11-22); the mapping step wasn't metered, so 3 GB leaves room for it |
+| peak disk | 3.6 GB | measured | the third level's directory, sampled every 20 s through its start and three chunks (desktop, 2026-11-22): 3.5 GB while a chunk's per-process copies exist, 1.8 GB between chunks; the second level's case is smaller and is deleted once mapped |
+| cells | 1,491,840 | measured | the third level's exact count (the second level, solved first, has 449920) |
+
+**Pass/fail limits** (fixed before any run; a result is reported whether it passes or not):
+
+- axial velocity $w/W_{vol}$ on the horizontal line through the axis, at the six LDA planes (2.43 to 30.82 D after the bend), finest level: RMS difference over the 19 LDA points of each plane within 0.10
+- the side of the peak of $w$ at each plane, finest level: the measured side (the outer wall)
+- reported, not gated: the bend's loss coefficient K with GCI (k = 1, 2, 3); the peak $w$ at 2.43 D and 10.7 D with GCI; Ekat et al.'s own k-ω SST RMS per plane beside ours: reported
+
+**Sent back:** one file, `turbulent_bend-transient_fixed_k3.contrib.json`, about 150 kB

@@ -16,8 +16,9 @@ python3 validation/turbulent_bend/run.py --family refined --np 4   # the first s
 OpenFOAM v2406 in Docker by default (`--openfoam`).  Cases go to
 `validation/turbulent_bend/work/` (git-ignored), or `--work DIR`, and are
 deleted once their level is stored.  Level 2 takes about 5.3 h on 4
-processes here.  Level 3 (1.49 M cells) would take roughly 40-150 h
-time-accurately, so it is left for a volunteer run.
+processes here.  Level 3 (1.49 M cells) would take roughly 30-150 h
+time-accurately, so it is open to volunteers: `python3 -m
+validation.volunteer info turbulent_bend`.
 
 ## Method
 

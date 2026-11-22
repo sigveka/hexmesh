@@ -854,6 +854,9 @@ def spectrum(h: dict, avg_start: float) -> dict:
     on = h["t"] >= avg_start
     t, kb = h["t"][on], h["k_bend"][on]
     n = len(t)
+    if n < 8:                                       # stopped before the average began
+        return {"k_min": None, "k_max": None, "k_std": None, "peak_hz": None,
+                "peak_strouhal": None, "peak_over_median": None, "resolution_hz": None}
     grid = np.linspace(t[0], t[-1], n)
     x = np.interp(grid, t, kb)
     x = x - x.mean()

@@ -120,7 +120,7 @@ def test_every_requirement_says_where_it_comes_from():
     for case, card in cards.items():
         drv = vol.driver(case)
         for name, level in card["levels"].items():
-            drv._parse(name)                                   # a level the driver knows
+            drv.check_level(name)                              # a level the driver knows
             assert {"cores", "wall_time", "peak_memory", "peak_disk"} <= set(level["requirements"])
             for key, req in level["requirements"].items():
                 assert req["basis"] in vol.BASES, (case, name, key)

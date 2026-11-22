@@ -7,8 +7,10 @@
   LDA is 0.060 to 0.096 of U_b (gate 0.10), and every peak is on the
   outer wall, as measured.
 - **Not the finest planned level.**  Level 3 (1.49 M cells) would take
-  roughly 40-150 h this way on 4 processes; it was stopped, and is left
-  for a volunteer run.  With two levels there is no GCI.
+  roughly 30-150 h this way on 4 processes; it was stopped.  It is open
+  to volunteers (`validation/VOLUNTEERS.md`): the run solves level 2,
+  maps it onto level 3 and runs there to the same convergence stop,
+  saving its state every 50 steps.  With two levels there is no GCI.
 - **K:** 0.2201 at level 1, 0.2623 at level 2; Ito (1960) gives 0.2626.
   Reported, not gated.  A third level is needed before the agreement at
   level 2 means anything.
@@ -150,7 +152,10 @@ is 0.98 where the first study's k = 2 had 0.56.
 | 1 | 1 min | 5.5 min (1 535 steps) |
 | 2 | 29 min | 4 h 51 min (5 929 steps) |
 | 3 | not recorded | stopped after 135 steps in 2.1 h; estimated 40-150 h |
+| 3, mapped from level 1 | 16 min (precursor and mapping) | 150 steps, 2.2 h: 67, 49 and 45 s per step by 50-step chunk |
 
 Level 2's chunks of half a flow-through took 124, 62, 37, 34 and 34
 min for about 1 190 steps each: the pressure solve's work falls as the
-flow settles.
+flow settles.  Level 3 started from a mapped solution falls the same way
+at first.  The volunteer card puts the run at 30-150 h on 4 processes:
+about 1.5-2.5 flow-throughs of 4 600 steps, at 15-45 s per step.

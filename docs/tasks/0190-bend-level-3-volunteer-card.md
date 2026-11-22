@@ -1,6 +1,6 @@
 # 0190 — The bend's level 3 as a volunteer card; does `ddtCorr` cause the algorithm spread?
 
-- **Status:** in progress (steps 1-3 done 2026-11-22; the card's level-3 measurement waits for the user's go-ahead)
+- **Status:** in progress (steps 1-4 and 7 done 2026-11-22; the tag (step 5) waits for the user's OK)
 - **Decision:** [0044](../decisions/0044-volunteer-runs.md),
   [0055](../decisions/0055-cards-for-every-case-ci-without-openfoam.md)
   (cards), [0058](../decisions/0058-diagnosis-ladder-and-user-hints.md)
@@ -140,6 +140,46 @@ for its cause.
     `level/transient/log.pimpleFoam.*`.
 - Tests: validation meta, agent manifest, README and volunteer (199)
   pass.
+
+**Step 4, the card (2026-11-22; the user's go-ahead for the level-3
+measurement).**  `validation/turbulent_bend/volunteer.json`, 0055's form
+(0179 hasn't landed), one level `transient_fixed_k3`, tag
+`volunteer-bend-1` (not yet made).
+- **Measured, 4 processes, the desktop:**
+  - level 1 from rest to converged: 8.4 min (the source used here, as
+    the 2 → 3 source would take 5.3 h);
+  - preparing (mesh, convert, check): level 3 5.4 min, level 2 1.6 min;
+  - level 3's start: precursor (20 000 steps, residuals flat at
+    p 1.4e-4 and U 7e-5 from step 4 000, the pressure gradient
+    constant to 10 digits) and mapping, 16 min;
+  - three 50-step chunks: 67, 49, 45 s per step (Co 1.003; GAMG about
+    95 iterations per pressure solve in the first chunk); K 0.246,
+    0.236, 0.232 at t 0.14, 0.28, 0.40 s, falling from the level-1
+    start toward level 2's 0.262 or below;
+  - peak memory 2.4 GB (the volunteer tool's meter, a chunk); peak disk
+    3.5 GB (with the per-process copies), 1.8 GB between chunks.
+- **Estimated:** 150 h at 4 cores as the upper bound.  A flow-through is
+  about 4 600 steps at level 3 (dt about 0.0028 s); a mapped start took
+  1.43 flow-throughs at 1 → 1, so 1.5-2.5.  At 45 s per step that's
+  87-144 h, plus 5.6 h for the level-2 source and start; if the steps
+  fall to 15 s, as level 2's fell 3.7-fold, about 30-50 h.  Memory 3 GB
+  (2.4 measured, the mapping not metered).  The job script asks for
+  1.5× both: 225 h and 5 GB.
+- **Changes:**
+  - `spectrum` returns empty values when the run stops before its
+    averaging window starts (a short run crashed on it);
+  - the card test calls `check_level` (the driver's public hook) rather
+    than `_parse`, which the bend's driver hasn't got.
+- **`prepare` and a short `run`:** `prepare turbulent_bend
+  transient_fixed_k3 --runner docker:…` wrote `level/`, `source/` and
+  `job.sh` (`--time=225:00:00`, `--mem=5G`, 4 tasks).  `bash job.sh`
+  solved the level-2 source's start (0.47 h) and two 50-step chunks
+  (9.5 and 7.7 min); killed, then run again, it skipped the start and
+  continued from t 0.527 s with a third chunk (7.9 min).  Stopped
+  there, as the task says.
+- **Found, not fixed (a follow-up for the volunteer tool):** `prepare
+  --dir a/b` fails with `FileNotFoundError` when `a` doesn't exist: its
+  free-disk check reads the parent before making the directory.
 
 ## Questions for design
 
