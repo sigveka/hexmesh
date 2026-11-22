@@ -137,8 +137,11 @@ date and names the command that refreshes it.
 ## Sending results back
 
 - **A heavy level we can't run ourselves:** see
-  [VOLUNTEERS.md](VOLUNTEERS.md).  You send one small file, which is
-  checked mechanically; you can run the same check yourself first.
+  [VOLUNTEERS.md](VOLUNTEERS.md), and start with its
+  [step-by-step guide](VOLUNTEERS.md#step-by-step-try-the-workflow-first),
+  every command for Linux, macOS and Windows.  You send one small file,
+  which is checked mechanically; you can run the same check yourself
+  first.
 - **Anything else** (a rerun, another OpenFOAM version, a finer level):
   open a pull request with the case's updated `results.json`, the
   regenerated graphs (`plots`) and gallery text

@@ -6,7 +6,9 @@
 prepare poiseuille try_np2` runs the whole volunteer workflow on the
 coarse laminar pipe, on 2 MPI processes, in well under a minute: `list`
 shows it first, `check` compares it with a stored reference, and
-`--merge` refuses it.  VOLUNTEERS.md starts with it.
+`--merge` refuses it.  VOLUNTEERS.md starts with a step-by-step guide built on
+it, every command for Linux, macOS and Windows with what it prints, and each
+command prints the next one as your system types it.
 
 **Behaviour: a gridded seabed is interpolated bilinearly** (task 0171).
 `read_bathymetry` interpolated every surface on Qhull's Delaunay

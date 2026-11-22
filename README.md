@@ -396,6 +396,11 @@ or `pip install -e ".[study]"` from a clone):
 
 ### Validate or volunteer
 
+> **To volunteer a run, start with the
+> [step-by-step guide](validation/VOLUNTEERS.md#step-by-step-try-the-workflow-first):**
+> every command from the clone to the checked result, for Linux, macOS
+> and Windows, with what each prints.  Its try-out takes about a minute.
+
 The validation cases, and `validation.volunteer` for
 [volunteer runs](validation/VOLUNTEERS.md), are **not in the
 package**.  They are 12 MB of case drivers, reference data and results
@@ -435,10 +440,7 @@ The first command lists each volunteer case, with what it costs and the
 Poiseuille pipe with OpenFOAM in Docker: about 15 s once the image is
 downloaded.  It prints a table whose `e(Δp), circle` column is about
 +0.45 %.  `--json check.json` keeps the stored results untouched.
-Delete `check.json` afterwards.  Before a volunteer run, [try the
-workflow](validation/VOLUNTEERS.md#try-the-workflow-first): the same
-pipe on 2 MPI processes, through `prepare`, `run`, `collect` and
-`check`, in well under a minute.
+Delete `check.json` afterwards.
 
 **Windows:**
 - The volunteer's `job.sh` needs bash.  Run the same step with

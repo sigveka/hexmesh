@@ -6,6 +6,164 @@ Some validation cases need more computer than we have.  If you have cluster time
 
 **This is a trial.**  The volunteer framework is new: a test of whether people with more computing power can take the validation cases beyond what the maintainer can run on one desktop.  Expect rough edges, and tell us what went wrong (an issue) as well as what worked.
 
+## Step by step: try the workflow first
+
+Start here.  The try-out runs every step of a volunteer run on a small case: the coarse laminar pipe (5 184 cells), solved by simpleFoam on 2 processes, then collected and checked as a real level is.  It takes about a minute once OpenFOAM is downloaded, validates nothing, and shows that your setup works.  A real level then runs with the same commands and other names.
+
+**You need** Python 3.11 or later, git, and [Docker](https://docs.docker.com/get-started/get-docker/) running (Docker Desktop or Rancher Desktop on Windows and macOS).  Commands are typed as shown: `list`, `prepare` and the others come after a **space**, not a dot.
+
+### 1. Get the code (once)
+
+In a folder of your choice; on Windows, not under OneDrive.
+
+Linux and macOS:
+
+```bash
+git clone --branch volunteer-bend-1 https://github.com/sigveka/hexmesh
+cd hexmesh
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .
+```
+
+Windows (PowerShell):
+
+```powershell
+git clone --branch volunteer-bend-1 https://github.com/sigveka/hexmesh
+cd hexmesh
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -e .
+```
+
+If Windows refuses to run `Activate.ps1`, run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once, then the line again.  Next time, only `cd` into `hexmesh` and activate (the fourth line).
+
+### 2. Choose OpenFOAM in Docker (each new terminal)
+
+Linux and macOS:
+
+```bash
+export HEXMESH_OPENFOAM=docker:opencfd/openfoam-default:2406
+docker pull opencfd/openfoam-default:2406
+```
+
+Windows (PowerShell):
+
+```powershell
+$env:HEXMESH_OPENFOAM = "docker:opencfd/openfoam-default:2406"
+docker pull opencfd/openfoam-default:2406
+```
+
+The pull is needed once (about 1.5 GB).
+
+### 3. See what is on offer
+
+Linux and macOS:
+
+```bash
+python3 -m validation.volunteer list
+python3 -m validation.volunteer info poiseuille
+```
+
+Windows (PowerShell):
+
+```powershell
+python -m validation.volunteer list
+python -m validation.volunteer info poiseuille
+```
+
+`list` starts with "Try the workflow" and `poiseuille try_np2`.  `info` prints the card: what the level does, what it needs, and how it is checked.
+
+### 4. Prepare: the mesh and the case
+
+Linux and macOS:
+
+```bash
+python3 -m validation.volunteer prepare poiseuille try_np2 --dir try/
+```
+
+Windows (PowerShell):
+
+```powershell
+python -m validation.volunteer prepare poiseuille try_np2 --dir try
+```
+
+It prints, after a few seconds:
+
+```text
+OpenFOAM v2406 (docker:opencfd/openfoam-default:2406)
+prepared poiseuille try_np2 in …
+mesh sha256 …
+next: …
+```
+
+and the `next:` line is the command for step 5, as your system types it.  If it says the folder is already prepared, delete `try` and run it again.
+
+### 5. Run: solve
+
+Linux and macOS:
+
+```bash
+bash try/job.sh
+```
+
+Windows (PowerShell):
+
+```powershell
+python -m validation.volunteer run try
+```
+
+It runs OpenFOAM on 2 processes for a few seconds and ends with `finished; next: …`.  On a cluster, `sbatch try/job.sh` submits the same job.
+
+### 6. Collect: write the result file
+
+Linux and macOS:
+
+```bash
+python3 -m validation.volunteer collect try/ --delete
+```
+
+Windows (PowerShell):
+
+```powershell
+python -m validation.volunteer collect try --delete
+```
+
+It writes `poiseuille-try_np2.contrib.json` in the folder you are in, deletes `try`, and says the file needn't be sent.
+
+### 7. Check the file
+
+Linux and macOS:
+
+```bash
+python3 -m validation.volunteer check poiseuille-try_np2.contrib.json
+```
+
+Windows (PowerShell):
+
+```powershell
+python -m validation.volunteer check poiseuille-try_np2.contrib.json
+```
+
+It ends with:
+
+```text
+mesh hash matches (…)
+dp … vs the card's reference …: … (tolerance 1e-05)
+a try-out: no pass/fail limits, nothing is stored
+accepted
+```
+
+**Accepted** means the file has the right form, the mesh is ours (its fingerprint matches the one `check` makes), the numbers agree with each other, and dp agrees with our reference within 1e-05 of itself.  Your setup works.  Delete the file: a try-out isn't sent, and `check --merge` refuses it.
+
+### 8. A real level
+
+The same steps, with the case and level from `list`, and a clone of the tag that case's card names (step 1).  Check the card's cores, memory, disk and wall time first (`info`).  After step 7, send the `.contrib.json` file: attach it to an issue labelled `volunteer-run` at [github.com/sigveka/hexmesh/issues](https://github.com/sigveka/hexmesh/issues), or open a pull request, or e-mail it.
+
+### If a step fails
+
+Its error names the problem; for OpenFOAM, the runner and its own message.  Check that Docker is running first.  If that isn't it, open an issue with the command, its whole output, and the run folder's `case/log.*` files.
+
 ## Before you start
 
 - **Python 3.11 or later and git.**  `pip install -e .` brings hexmesh and gmsh.
@@ -13,22 +171,6 @@ Some validation cases need more computer than we have.  If you have cluster time
 - **Resources:** check the card's cores, memory, disk and wall time below against what you have before you start.
 
 The general guide to running validation cases is [validation/README.md](README.md).
-
-## Try the workflow first
-
-Before a long run, try the whole workflow on the try-out level, `poiseuille try_np2`: the coarse laminar pipe (5 184 cells), solved by simpleFoam on 2 processes, then collected and checked as a real level is.  It takes at most 3 min on 2 cores once the OpenFOAM image is downloaded.  It needs the same setup as a real run (above, and a clone as in the five commands below), and it validates nothing.
-
-```bash
-python3 -m validation.volunteer prepare poiseuille try_np2 --dir try/
-bash try/job.sh            # Windows: python -m validation.volunteer run try\
-python3 -m validation.volunteer collect try/ --delete
-python3 -m validation.volunteer check poiseuille-try_np2.contrib.json
-```
-
-On Windows (PowerShell), write `python` for `python3` and `try\` for `try/`.
-
-- **Accepted** means the file has the right form, the mesh is ours (its fingerprint matches the one `check` makes), the numbers agree with each other, and dp agrees with our reference within 1e-05 of itself.  Your setup works, and a real level runs the same way.  You needn't send the file, and `check --merge` refuses it: nothing is stored.
-- **If a step fails,** its error names the problem; for OpenFOAM, the runner and its own message.  Check the runner first (is Docker started?  `--runner` picks another).  If that isn't it, open an issue with the error and the run directory's `case/log.*` files.
 
 ## The five commands
 

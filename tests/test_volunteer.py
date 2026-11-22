@@ -491,7 +491,7 @@ def test_the_try_out_is_listed_first_and_not_as_a_case():
     assert lines[0].startswith("Try the workflow") and f"poiseuille {TRY}" in lines[1]
     assert not any(x.startswith("poiseuille:") for x in lines)
     md = vol.render()
-    assert md.index("## Try the workflow first") < md.index("## The five commands")
+    assert md.index("## Step by step: try the workflow first") < md.index("## Before you start")
     assert "(`poiseuille`)" not in md                      # no case section for it
 
 

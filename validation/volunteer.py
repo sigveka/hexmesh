@@ -84,6 +84,12 @@ PROG = "python3 -m validation.volunteer"
 WIDTH = 100                             # list and info fit a terminal this wide
 
 
+def _here() -> str:
+    """The command as this platform types it, for the next-step lines:
+    ``python`` on Windows, ``python3`` elsewhere."""
+    return ("python" if os.name == "nt" else "python3") + " -m validation.volunteer"
+
+
 class VolunteerError(Exception):
     """A person's mistake (a wrong name, a missing directory): the command
     line prints it as one line and exits 2, without a traceback."""
@@ -389,8 +395,11 @@ def cmd_prepare(args) -> int:
     (d / STATE).write_text(json.dumps(state, indent=1), encoding="utf-8")
     (d / "job.sh").write_text(job_script(args.case, args.level, d, req, n_proc), encoding="utf-8")
     (d / "job.sh").chmod(0o755)
-    print(f"prepared {args.case} {args.level} in {d}\nmesh sha256 {h}\n"
-          f"next: sbatch {d / 'job.sh'}   (or: bash {d / 'job.sh'})")
+    print(f"prepared {args.case} {args.level} in {d}\nmesh sha256 {h}")
+    if os.name == "nt":                                    # no bash, no Slurm
+        print(f"next: {_here()} run {d}")
+    else:
+        print(f"next: bash {d / 'job.sh'}   (or on a cluster: sbatch {d / 'job.sh'})")
     return 0
 
 
@@ -439,7 +448,7 @@ def cmd_run(args) -> int:
             state["peak_memory_bytes"] = max(state["peak_memory_bytes"] or 0, meter.peak)
             state["peak_memory_how"] = meter.how
         (d / STATE).write_text(json.dumps(state, indent=1), encoding="utf-8")
-    print(f"finished; next: python3 -m validation.volunteer collect {d}")
+    print(f"finished; next: {_here()} collect {d}")
     return 0
 
 
@@ -492,9 +501,12 @@ def cmd_collect(args) -> int:
     out.write_text(text, encoding="utf-8", newline="\n")
     if is_try(state["case"], state["level"]):
         print(f"wrote {out} ({len(text.encode('utf-8')) / 1e3:.0f} kB): a try-out, so you "
-              f"needn't send it; check it with {PROG} check {out}")
+              f"needn't send it\nnext: {_here()} check {out}")
     else:
-        print(f"wrote {out} ({len(text.encode('utf-8')) / 1e3:.0f} kB): send this file back")
+        print(f"wrote {out} ({len(text.encode('utf-8')) / 1e3:.0f} kB)\n"
+              f"next: {_here()} check {out}\n"
+              "then send the file: attach it to an issue labelled volunteer-run at "
+              "https://github.com/sigveka/hexmesh/issues (see validation/VOLUNTEERS.md)")
     if args.delete or (sys.stdin.isatty() and
                        input(f"delete the run directory {d}? [y/N] ").strip().lower() == "y"):
         shutil.rmtree(d)
@@ -747,7 +759,7 @@ def render() -> str:
            "**This is a trial.**  The volunteer framework is new: a test of whether people "
            "with more computing power can take the validation cases beyond what the "
            "maintainer can run on one desktop.  Expect rough edges, and tell us what went "
-           "wrong (an issue) as well as what worked.", "",
+           "wrong (an issue) as well as what worked.", "", *_try_section(),
            "## Before you start", "",
            "- **Python 3.11 or later and git.**  `pip install -e .` brings hexmesh and "
            "gmsh.",
@@ -760,7 +772,7 @@ def render() -> str:
            "- **Resources:** check the card's cores, memory, disk and wall time below "
            "against what you have before you start.", "",
            "The general guide to running validation cases is "
-           "[validation/README.md](README.md).", "", *_try_section(),
+           "[validation/README.md](README.md).", "",
            "## The five commands", "",
            "```bash",
            "git clone --branch <tag> https://github.com/sigveka/hexmesh && cd hexmesh",
@@ -823,34 +835,93 @@ def render() -> str:
 
 
 def _try_section() -> list[str]:
-    """VOLUNTEERS.md's "Try the workflow first", from the try-out levels."""
+    """VOLUNTEERS.md's step-by-step walkthrough, on the first try-out level:
+    setup to ``check``, for Linux and macOS and for Windows, with what each
+    step prints (task 0176; the user asked for it, 2026-11-22)."""
     tries = _try_levels()
     if not tries:
         return []
     case, name, lv = tries[0]
-    r, ref = lv["requirements"], lv["reproduce"]
-    return ["## Try the workflow first", "",
-            f"Before a long run, try the whole workflow on the try-out level, `{case} {name}`: "
-            f"{lv['what']}  It takes at most {_value(r['wall_time'])} on {_value(r['cores'])} "
-            "cores once the "
-            "OpenFOAM image is downloaded.  It needs the same setup as a real run (above, and a "
-            "clone as in the five commands below), and it validates nothing.", "",
-            "```bash",
-            f"python3 -m validation.volunteer prepare {case} {name} --dir try/",
-            "bash try/job.sh            # Windows: python -m validation.volunteer run try\\",
-            "python3 -m validation.volunteer collect try/ --delete",
-            f"python3 -m validation.volunteer check {case}-{name}.contrib.json",
-            "```", "",
-            "On Windows (PowerShell), write `python` for `python3` and `try\\` for `try/`.", "",
-            f"- **Accepted** means the file has the right form, the mesh is ours (its "
-            f"fingerprint matches the one `check` makes), the numbers agree with each other, "
-            f"and {ref['quantity']} agrees with our reference within {ref['rel_tol']:g} of "
-            "itself.  Your setup works, and a real level runs the same way.  You needn't "
-            "send the file, and `check --merge` refuses it: nothing is stored.",
-            "- **If a step fails,** its error names the problem; for OpenFOAM, the runner and "
-            "its own message.  Check the runner first (is Docker started?  `--runner` picks "
-            "another).  If that isn't it, open an issue with the error and the run "
-            "directory's `case/log.*` files.", ""]
+    c, r, ref = card(case), lv["requirements"], lv["reproduce"]
+    tag, image = c["hexmesh"]["tag"], c["openfoam"]["image"]
+    clone = f"git clone --branch {tag} https://github.com/sigveka/hexmesh"
+    file = f"{case}-{name}.contrib.json"
+
+    def both(unix: list[str], win: list[str]) -> list[str]:
+        return ["Linux and macOS:", "", "```bash", *unix, "```", "",
+                "Windows (PowerShell):", "", "```powershell", *win, "```", ""]
+
+    return [
+        "## Step by step: try the workflow first", "",
+        f"Start here.  The try-out runs every step of a volunteer run on a small case: "
+        f"{lv['what']}  It takes about a minute once OpenFOAM is downloaded, "
+        "validates nothing, and shows that your setup works.  A real level then runs "
+        "with the same commands and other names.", "",
+        "**You need** Python 3.11 or later, git, and "
+        "[Docker](https://docs.docker.com/get-started/get-docker/) running (Docker "
+        "Desktop or Rancher Desktop on Windows and macOS).  Commands are typed as shown: "
+        "`list`, `prepare` and the others come after a **space**, not a dot.", "",
+        "### 1. Get the code (once)", "",
+        "In a folder of your choice; on Windows, not under OneDrive.", "",
+        *both([clone, "cd hexmesh", "python3 -m venv .venv", "source .venv/bin/activate",
+               "pip install -e ."],
+              [clone, "cd hexmesh", "python -m venv .venv", r".venv\Scripts\Activate.ps1",
+               "pip install -e ."]),
+        "If Windows refuses to run `Activate.ps1`, run `Set-ExecutionPolicy -Scope "
+        "CurrentUser RemoteSigned` once, then the line again.  Next time, only `cd` into "
+        "`hexmesh` and activate (the fourth line).", "",
+        "### 2. Choose OpenFOAM in Docker (each new terminal)", "",
+        *both([f"export HEXMESH_OPENFOAM=docker:{image}", f"docker pull {image}"],
+              [f'$env:HEXMESH_OPENFOAM = "docker:{image}"', f"docker pull {image}"]),
+        "The pull is needed once (about 1.5 GB).", "",
+        "### 3. See what is on offer", "",
+        *both(["python3 -m validation.volunteer list",
+               f"python3 -m validation.volunteer info {case}"],
+              ["python -m validation.volunteer list",
+               f"python -m validation.volunteer info {case}"]),
+        f"`list` starts with \"Try the workflow\" and `{case} {name}`.  `info` prints "
+        "the card: what the level does, what it needs, and how it is checked.", "",
+        "### 4. Prepare: the mesh and the case", "",
+        *both([f"python3 -m validation.volunteer prepare {case} {name} --dir try/"],
+              [f"python -m validation.volunteer prepare {case} {name} --dir try"]),
+        "It prints, after a few seconds:", "",
+        "```text", f"OpenFOAM {c['openfoam']['version']} (docker:{image})",
+        f"prepared {case} {name} in …", "mesh sha256 …", "next: …", "```", "",
+        "and the `next:` line is the command for step 5, as your system types it.  If it "
+        "says the folder is already prepared, delete `try` and run it again.", "",
+        "### 5. Run: solve", "",
+        *both(["bash try/job.sh"], ["python -m validation.volunteer run try"]),
+        f"It runs OpenFOAM on {_value(r['cores'])} processes for a few seconds and ends "
+        "with `finished; next: …`.  On a cluster, `sbatch try/job.sh` submits the same "
+        "job.", "",
+        "### 6. Collect: write the result file", "",
+        *both(["python3 -m validation.volunteer collect try/ --delete"],
+              ["python -m validation.volunteer collect try --delete"]),
+        f"It writes `{file}` in the folder you are in, deletes `try`, and says the file "
+        "needn't be sent.", "",
+        "### 7. Check the file", "",
+        *both([f"python3 -m validation.volunteer check {file}"],
+              [f"python -m validation.volunteer check {file}"]),
+        "It ends with:", "",
+        "```text", "mesh hash matches (…)",
+        f"{ref['quantity']} … vs the card's reference …: … (tolerance {ref['rel_tol']:g})",
+        "a try-out: no pass/fail limits, nothing is stored", "accepted", "```", "",
+        f"**Accepted** means the file has the right form, the mesh is ours (its "
+        f"fingerprint matches the one `check` makes), the numbers agree with each other, "
+        f"and {ref['quantity']} agrees with our reference within {ref['rel_tol']:g} of "
+        "itself.  Your setup works.  Delete the file: a try-out isn't sent, and `check "
+        "--merge` refuses it.", "",
+        "### 8. A real level", "",
+        "The same steps, with the case and level from `list`, and a clone of the tag "
+        "that case's card names (step 1).  Check the card's cores, memory, disk and wall "
+        "time first (`info`).  After step 7, send the `.contrib.json` file: attach it to "
+        "an issue labelled `volunteer-run` at "
+        "[github.com/sigveka/hexmesh/issues](https://github.com/sigveka/hexmesh/issues), "
+        "or open a pull request, or e-mail it.", "",
+        "### If a step fails", "",
+        "Its error names the problem; for OpenFOAM, the runner and its own message.  "
+        "Check that Docker is running first.  If that isn't it, open an issue with the "
+        "command, its whole output, and the run folder's `case/log.*` files.", ""]
 
 
 def _raw_placeholders(md: str) -> list[str]:

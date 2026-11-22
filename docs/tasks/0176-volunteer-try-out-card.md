@@ -137,6 +137,28 @@ or benchmarking the volunteer's machine.
   --delete`, `check O/poiseuille-try_np2.contrib.json`; each exits
   non-zero on failure, and `check` exits 0 only on "accepted".
 
+**After done: the user's request (2026-11-22).**  The user, trying the
+try-out on Windows: "I still need more handholding for running
+volunteer cases.  Commands for info, prepare, run, check and upload has
+to be spoonfed", then "these steps should be clearly documented and
+easy to find".
+- VOLUNTEERS.md now opens with "Step by step: try the workflow first":
+  the clone, the venv, the runner, `list`/`info`, `prepare`, `run`,
+  `collect`, `check`, each for Linux and macOS and for Windows
+  (PowerShell), with what each prints; then "A real level" (the same
+  steps, and how to send the file) and "If a step fails".  It replaces
+  the short "Try the workflow first".  Generated from the try-out card.
+- README *Validate or volunteer* starts with a link to it, and
+  validation/README.md's *Sending results back* links it too.
+- Each command prints the next as this platform types it: `prepare`
+  gives `python -m validation.volunteer run DIR` on Windows (it said
+  `sbatch`/`bash`), and `bash job.sh` first elsewhere; `run` and
+  `collect` say `python` on Windows; `collect` of a real level prints
+  the `check` command and where to send the file.
+- What tripped the user: `python -m validation.volunteer.list` (a dot,
+  not a space) fails with "`__path__` attribute not found on
+  'validation.volunteer'"; the guide says "after a space, not a dot".
+
 ## Questions for design
 
 ## Outcome
