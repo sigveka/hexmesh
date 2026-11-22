@@ -429,7 +429,10 @@ def cmd_run(args) -> int:
 # --- collect --------------------------------------------------------------------------
 
 def _log_tail(d: Path) -> list[str]:
-    logs = sorted(Path(d).glob("case/log.simpleFoam.all")) or sorted(Path(d).glob("case/log.*"))
+    logs = (sorted(Path(d).glob("case/log.simpleFoam.all")) or sorted(Path(d).glob("case/log.*"))
+            or sorted((q for q in Path(d).glob("level/transient/log.pimpleFoam.*")   # task 0190
+                       if not q.name.endswith((".decomposePar", ".reconstructPar", ".clean"))),
+                      key=lambda q: q.stat().st_mtime, reverse=True))
     if not logs:
         return []
     return logs[0].read_text(encoding="utf-8", errors="replace").splitlines()[-LOG_LINES:]

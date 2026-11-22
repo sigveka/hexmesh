@@ -732,6 +732,19 @@ All v1912, gmsh 4.12.1, 2026-10-25.
     flux's momentum interpolation moves K by several percent.  Use one
     algorithm, with one ddtCorr setting, at every level of a study.
 
+- **A restart from an adjustable-time-step write can miss its own time
+  directory** (v2406 in Docker, 2026-11-22, task 0190).
+  - pimpleFoam with `adjustTimeStep yes`, `writeControl timeStep` and
+    `timePrecision 10` wrote the time `1.5065849792`: 11 significant
+    digits, as OpenFOAM widens a name when it needs to.
+  - Restarted with `startFrom latestTime` (after `decomposePar -force
+    -latestTime`), it formats the time it read at `timePrecision` and
+    looks for `processor*/1.506584979/p`, which doesn't exist:
+    `FOAM FATAL ERROR: cannot find file ".../processor2/1.506584979/p"`.
+  - Writes that land on a round `endTime` don't show it.
+  - Fix: `timePrecision 17`.  A double then names itself exactly, and
+    the name reads back the same.
+
 ## Gaps in hexmesh's OpenFOAM support
 
 - **`hexmesh/io/writers/openfoam.py` (`write_openfoam_case`)** — noted

@@ -461,20 +461,60 @@ def setup(d: Path, k: int, end_time: int, fam: str = None) -> dict:
     return meta
 
 
+def run_precursor(d: Path, k: int) -> tuple[dict, dict, str]:
+    """The periodic pipe in d/precursor, solved; (its results, the bend's
+    inlet values, its log)."""
+    pre = d / "precursor"
+    # one process: decomposed, the cross-flow residuals (Uy, Uz, zero on
+    # average) floor at 2-5e-7, above residualControl (fixed_k2, 2026-11-20)
+    log = of.run_solver(pre, "simpleFoam", n_proc=1)
+    pr = precursor_results(pre, log)
+    pr["steps"] = int(re.findall(r"^Time = (\d+)", log, re.M)[-1])
+    pr["converged"] = "solution converged in" in log
+    return pr, inlet_values(pre, d / "bend", k), log
+
+
+def _block(text: str, name: str) -> tuple[int, int]:
+    """Where patch *name*'s ``{ … }`` entry is in a field file's text."""
+    m = re.search(rf"^\s*{name}\s*\{{", text, re.M)
+    if not m:
+        raise ValueError(f"no {name} entry")
+    depth, i = 0, m.end() - 1
+    for j in range(i, len(text)):
+        depth += {"{": 1, "}": -1}.get(text[j], 0)
+        if depth == 0:
+            return m.start(), j + 1
+    raise ValueError(f"{name}'s entry isn't closed")
+
+
+def mapped_start(d: Path, k: int, src: Path) -> dict:
+    """Task 0190's start: this level's precursor and inlet, the bend at
+    rest written, then the source case's latest fields mapped onto it
+    (``mapFields -consistent``: the same geometry, another mesh).  The
+    inlet keeps this level's precursor profile."""
+    pr, inlet, _ = run_precursor(d, k)
+    bend = d / "bend"
+    write_bend(bend, END_TIME, inlet)
+    own = {f: (bend / "0" / f).read_text(encoding="utf-8") for f in ("U", "k", "omega")}
+    src = Path(src).resolve()
+    of.foam(f"mapFields {src} -consistent -sourceTime latestTime", bend, "log.mapFields",
+            mounts=[src])
+    for f, text in own.items():
+        mapped = (bend / "0" / f).read_text(encoding="utf-8")
+        a, b = _block(mapped, "fluid_inlet")
+        c, e = _block(text, "fluid_inlet")
+        (bend / "0" / f).write_text(mapped[:a] + text[c:e] + mapped[b:], encoding="utf-8")
+    return {"precursor": pr, "steps": 0, "k_bend": None,
+            "start": f"mapped from {src.parent.name}"}
+
+
 def solve(d: Path, k: int, end_time: int, n_proc: int, bend_steps: int | None = None) -> dict:
     """The precursor, the mapping, then the bend (*bend_steps* iterations
     if given, else up to *end_time*); returns the level."""
     pre, bend = d / "precursor", d / "bend"
     meta = json.loads((d / "setup.json").read_text(encoding="utf-8"))
     t0 = time.monotonic()
-    # one process: decomposed, the cross-flow residuals (Uy, Uz, zero on
-    # average) floor at 2-5e-7, above residualControl (fixed_k2, 2026-11-20)
-    log = of.run_solver(pre, "simpleFoam", n_proc=1)
-    pre_log = log
-    pr = precursor_results(pre, log)
-    pr["steps"] = int(re.findall(r"^Time = (\d+)", log, re.M)[-1])
-    pr["converged"] = "solution converged in" in log
-    inlet = inlet_values(pre, bend, k)
+    pr, inlet, pre_log = run_precursor(d, k)
     write_bend(bend, bend_steps or end_time, inlet)
     if meta.get("family") == SIMPLEC:                   # design answer Q5
         for name, text in (("fvSchemes", SIMPLEC_SCHEMES), ("fvSolution", SIMPLEC_SOLUTION)):
@@ -584,10 +624,11 @@ SIMPLEC_SOLUTION = (tp.SOLUTION
                              'equations       { U 0.9; "(k|omega)" 0.9; }', 1))
 
 
-def _pimple_control(end: float, avg_start: float, probes: np.ndarray, lts: bool = False) -> str:
-    """pimpleFoam's controlDict: Courant-limited steps, a write at *end*,
-    K's two slabs and the LDA points every step, U and p averaged from
-    *avg_start*."""
+def _pimple_control(chunk: int, avg_start: float, probes: np.ndarray, lts: bool = False) -> str:
+    """pimpleFoam's controlDict: Courant-limited steps, a write every
+    *chunk* steps and a stop at the next one (each run is one resumable
+    chunk; task 0190), K's two slabs and the LDA points every step, U and
+    p averaged from *avg_start*."""
     pts = "\n".join(f"            ({x!r} {y!r} {z!r})" for x, y, z in probes)
     slab = """    {name}
     {{
@@ -606,19 +647,19 @@ def _pimple_control(end: float, avg_start: float, probes: np.ndarray, lts: bool 
     return (f"""application     pimpleFoam;
 startFrom       latestTime;
 startTime       0;
-stopAt          endTime;
-endTime         {end!r};
+stopAt          nextWrite;
+endTime         1e9;
 deltaT          {1 if lts else 1e-3};
 adjustTimeStep  {"no" if lts else "yes"};
 maxCo           {MAX_CO!r};
 maxDeltaT       1;
-writeControl    {"timeStep" if lts else "adjustableRunTime"};
-writeInterval   {end!r};
+writeControl    timeStep;
+writeInterval   {chunk};
 purgeWrite      1;
 writeFormat     ascii;
 writePrecision  12;
 timeFormat      general;
-timePrecision   10;
+timePrecision   17;
 runTimeModifiable false;
 functions
 {{
@@ -677,7 +718,7 @@ def _lda_points() -> tuple[np.ndarray, list[tuple[str, int]]]:
     return np.vstack(pts), order
 
 
-def write_transient(steady: Path, case: Path, k: int, avg_start: float, end: float,
+def write_transient(steady: Path, case: Path, k: int, avg_start: float, chunk: int,
                     lts: bool = False, ddt_corr: bool = True) -> dict:
     """The pimpleFoam case: the steady bend's mesh and last fields as its
     time 0, the transient schemes and solution, the zones and probes."""
@@ -692,7 +733,7 @@ def write_transient(steady: Path, case: Path, k: int, avg_start: float, end: flo
         (case / "0" / f).write_text(re.sub(r'location\s+"[^"]*";', 'location    "0";', text),
                                     encoding="utf-8")
     zones = _cell_zones(case, k)
-    files = {"controlDict": _pimple_control(end, avg_start, _lda_points()[0], lts),
+    files = {"controlDict": _pimple_control(chunk, avg_start, _lda_points()[0], lts),
              "fvSchemes": LTS_SCHEMES if lts else PIMPLE_SCHEMES,
              "fvSolution": LTS_SOLUTION if lts else PIMPLE_SOLUTION}
     if not ddt_corr:                # task 0190: PIMPLE's ddtCorr (v2406's default: true)
@@ -705,8 +746,13 @@ def write_transient(steady: Path, case: Path, k: int, avg_start: float, end: flo
 
 
 def _series_files(case: Path, name: str, file: str) -> list[Path]:
+    """A function object's files, oldest first: a restart from a time that
+    already has a directory writes ``<stem>_<time><ext>`` beside the first."""
     root = case / "postProcessing" / name
-    return sorted(root.glob(f"*/{file}"), key=lambda q: float(q.parent.name))
+    stem, dot, ext = file.partition(".")
+    pattern = f"*/{stem}_*{dot}{ext}" if dot else f"*/{stem}_*"
+    return sorted(set(root.glob(f"*/{file}")) | set(root.glob(pattern)),
+                  key=lambda q: q.stat().st_mtime)
 
 
 def _history(case: Path, name: str, file: str) -> tuple[np.ndarray, np.ndarray]:
@@ -717,7 +763,7 @@ def _history(case: Path, name: str, file: str) -> tuple[np.ndarray, np.ndarray]:
         for line in path.read_text(encoding="utf-8").splitlines():
             if not line.strip() or line.lstrip().startswith("#"):
                 continue
-            head, _, rest = line.strip().partition(" ")
+            head, _, rest = line.strip().replace("\t", " ").partition(" ")
             vals = [float(v) for v in re.findall(r"[-+\d.eE]+", rest)]
             rows[float(head)] = vals
     t = np.array(sorted(rows))
@@ -823,89 +869,132 @@ def spectrum(h: dict, avg_start: float) -> dict:
     return out
 
 
-def transient(k: int, fam: str, work: Path, n_proc: int, *, chunk_ft: float = 0.5,
-              washout_ft: float = 1.0, min_window_ft: float = 1.0,
-              max_ft: float = 12.0, max_hours: float = 12.0, stop: str = "converged",
-              lts: bool = False, ddt_corr: bool = True) -> dict:
-    """Q3's step 3, Q4's set-up: the steady bend from rest for
-    :data:`STEADY_START` iterations, then pimpleFoam from its state, in
-    chunks of *chunk_ft* flow-throughs, U and p averaged after
-    *washout_ft*, until K's and the planes' running means change by less
-    than :data:`SETTLE` over the last quarter (at least *min_window_ft*
-    averaged; *stop* ``"window"``, Q4), or by default (*stop*
-    ``"converged"``, Q5) until K and the LDA points stop moving
-    (:func:`steadiness`); or *max_ft* flow-throughs, or *max_hours*.
-    The gates read the final fields, the time mean is kept beside them.
-    With *lts* (Q6) the pseudo-transient instead: localEuler, chunks of
-    :data:`LTS_CHUNK` iterations, the stop over the last :data:`LTS_WINDOW`."""
-    d = work / f"{level_name(k, fam)}_{'lts' if lts else 'transient'}{'' if ddt_corr else '_noddtcorr'}"
-    t0 = time.monotonic()
-    meta = setup(d, k, END_TIME, fam)
-    steady = solve(d, k, END_TIME, n_proc, bend_steps=STEADY_START)
-    t_steady = time.monotonic() - t0
-    print(f"[{d.name}] steady from rest: {steady['steps']} steps, K {steady['k_bend']:.3f}, "
-          f"f {steady['precursor']['f_err_mckeon']:+.4f}; {t_steady / 3600:.2f} h", flush=True)
+def _json(path: Path, make):
+    """*path*'s JSON, or *make()*'s value, written there first: one
+    resumable phase."""
+    if path.exists():
+        return json.loads(path.read_text(encoding="utf-8"))
+    value = make()
+    path.write_text(json.dumps(value), encoding="utf-8")
+    return value
+
+
+#: steps per resumable chunk: here, and on a volunteer's machine (task 0190)
+CHUNK_STEPS, VOLUNTEER_CHUNK = 500, 50
+
+
+def transient_run(d: Path, k: int, fam: str, n_proc: int, *, chunk_steps: int = CHUNK_STEPS,
+                  washout_ft: float = 1.0, min_window_ft: float = 1.0, max_ft: float = 12.0,
+                  max_hours: float = 12.0, stop: str = "converged", lts: bool = False,
+                  ddt_corr: bool = True, init_from: Path | None = None) -> dict:
+    """One level in *d*, resumably (task 0190): run it again after a stop
+    and it continues from the last chunk.
+    - the start: the steady bend from rest for :data:`STEADY_START`
+      iterations, or with *init_from* a finished case mapped onto this
+      mesh (:func:`mapped_start`); ``start.json``;
+    - pimpleFoam from it in chunks of *chunk_steps* steps (``chunks.json``;
+      K and the LDA points every step under ``postProcessing``), U and p
+      averaged after *washout_ft* flow-throughs;
+    - the stop: by default (*stop* ``"converged"``, Q5) K and the LDA
+      points still over the last flow-through (:func:`steadiness`); with
+      ``"window"`` (Q4) the running means settle over the last quarter
+      (at least *min_window_ft* averaged); or *max_ft* flow-throughs, or
+      *max_hours* of chunks;
+    - with *lts* (Q6) the pseudo-transient: localEuler, the stop over the
+      last :data:`LTS_WINDOW` iterations, at most :data:`LTS_MAX`.
+    The gates read the final fields; the time mean is kept beside them.
+    Returns the level, also written to ``result.json``."""
+    if (d / "result.json").exists():
+        return json.loads((d / "result.json").read_text(encoding="utf-8"))
+    d.mkdir(parents=True, exist_ok=True)
+    if not (d / "setup.json").exists():
+        setup(d, k, END_TIME, fam)
+    meta = json.loads((d / "setup.json").read_text(encoding="utf-8"))
+
+    def start():
+        s0 = time.monotonic()
+        if init_from is None:
+            st = solve(d, k, END_TIME, n_proc, bend_steps=STEADY_START)
+            out = {"precursor": st["precursor"], "steps": st["steps"],
+                   "k_bend": st["k_bend"], "start": "steady from rest"}
+        else:
+            out = mapped_start(d, k, init_from)
+        return {**out, "wall_s": time.monotonic() - s0}
+
+    first = _json(d / "start.json", start)
+    f = first["precursor"]["f"]
+    print(f"[{d.name}] start ({first['start']}): {first['steps']} steps, K "
+          f"{first['k_bend']}, f {first['precursor']['f_err_mckeon']:+.4f}; "
+          f"{first['wall_s'] / 3600:.2f} h", flush=True)
     case = d / "transient"
     avg_start = LTS_CHUNK if lts else washout_ft * FLOW_THROUGH
-    chunk = LTS_CHUNK if lts else chunk_ft * FLOW_THROUGH
     window = LTS_WINDOW if lts else FLOW_THROUGH
     limit = LTS_MAX if lts else max_ft * FLOW_THROUGH
-    info = write_transient(d / "bend", case, k, avg_start, chunk, lts, ddt_corr)
-    chunks, state, end = [], {"max_change": None}, 0.0
+    info = _json(d / "zones.json", lambda: write_transient(d / "bend", case, k, avg_start,
+                                                           chunk_steps, lts, ddt_corr))
+    chunks_path = d / "chunks.json"
+    chunks = json.loads(chunks_path.read_text(encoding="utf-8")) if chunks_path.exists() else []
     while True:
-        end += chunk
-        ctl = case / "system/controlDict"
-        ctl.write_text(re.sub(r"^endTime\s+[^;]+;", f"endTime         {end!r};",
-                              re.sub(r"^writeInterval\s+[^;]+;", f"writeInterval   {chunk!r};",
-                                     ctl.read_text(encoding="utf-8"), flags=re.M), flags=re.M),
-                       encoding="utf-8")
+        h = histories(case, f) if (case / "postProcessing").exists() else None
+        state = settledness(h, avg_start) if h is not None else {"max_change": None}
+        conv = steadiness(h, window) if h is not None else {"converged": False}
+        if stop == "converged":                          # design answer Q5
+            done = conv["converged"]
+        else:                                            # Q4: the running means settle
+            done = (state.get("window_s", 0) >= min_window_ft * FLOW_THROUGH
+                    and state["max_change"] is not None and state["max_change"] < SETTLE)
+        end = float(of.latest_time(case).name)
+        if done or end >= limit - 1e-9 or sum(c["wall_s"] for c in chunks) >= max_hours * 3600:
+            break
         c0 = time.monotonic()
-        log = of.run_solver(case, "pimpleFoam", n_proc=n_proc, log=f"log.pimpleFoam.{len(chunks)}")
+        log = of.run_solver(case, "pimpleFoam", n_proc=n_proc,     # named by its start: unique
+                            log=f"log.pimpleFoam.{of.latest_time(case).name}")
         steps = len(re.findall(r"^Time = ", log, re.M))
         cos = [float(v) for v in re.findall(r"^Courant Number mean: \S+ max: (\S+)", log, re.M)]
         last = of.latest_time(case)
         for t in case.iterdir():                        # each chunk's state: about 120 MB at k = 2
             if t != last and t.name != "0" and re.fullmatch(r"[\d.e+-]+", t.name):
                 shutil.rmtree(t)
-        h = histories(case, steady["precursor"]["f"])
-        state = settledness(h, avg_start)
+        h = histories(case, f)
         conv = steadiness(h, window)
-        chunks.append({"end_s": end, "steps": steps, "wall_s": time.monotonic() - c0,
-                       "co_max": max(cos) if cos else None,
-                       "max_change": state.get("max_change"),
+        chunks.append({"end_s": float(last.name), "steps": steps,
+                       "wall_s": time.monotonic() - c0, "co_max": max(cos) if cos else None,
                        "k_band": conv["k_band"], "w_band": conv["w_band"]})
-        print(f"[{d.name}] t {end:.1f} s ({end / FLOW_THROUGH:.1f} FT): {steps} steps, "
-              f"{chunks[-1]['wall_s'] / 60:.1f} min, Co {chunks[-1]['co_max']}, K now "
-              f"{h['k_bend'][-1]:.3f}, mean {state.get('k_mean', float('nan')):.3f}, "
-              f"change {state.get('max_change')}; last FT: K band {conv['k_band']}, w band "
-              f"{conv['w_band']}", flush=True)
-        if stop == "converged":                          # design answer Q5
-            done = conv["converged"]
-        else:                                            # Q4: the running means settle
-            done = (state["window_s"] >= min_window_ft * FLOW_THROUGH
-                    and state["max_change"] is not None and state["max_change"] < SETTLE)
-        hours = (time.monotonic() - t0) / 3600
-        if done or end >= limit - 1e-9 or hours >= max_hours:
-            break
-    h = histories(case, steady["precursor"]["f"])
-    mean = results(case, k, steady["precursor"], u="UMean", p="pMean")
-    final = results(case, k, steady["precursor"])
+        chunks_path.write_text(json.dumps(chunks), encoding="utf-8")
+        print(f"[{d.name}] t {float(last.name):.4g} ({float(last.name) / FLOW_THROUGH:.2f} FT): "
+              f"{steps} steps, {chunks[-1]['wall_s'] / 60:.1f} min, K now {h['k_bend'][-1]:.4f}; "
+              f"last window: K band {conv['k_band']}, w band {conv['w_band']}", flush=True)
+    h = histories(case, f)
+    mean = (results(case, k, first["precursor"], u="UMean", p="pMean")
+            if (of.latest_time(case) / "UMean").exists() else None)
+    final = results(case, k, first["precursor"])
     wall = sum(c["wall_s"] for c in chunks)
-    sim = end
-    return {"k": k, "family": fam, "cells": meta["cells"], "start": "steady from rest",
-            "steady_steps": steady["steps"], "steady_k_bend": steady["k_bend"],
-            "steady_wall_s": t_steady, "precursor": steady["precursor"],
-            "zones": info["zones"], "flow_through_s": FLOW_THROUGH, "max_co": MAX_CO,
-            "avg_start_s": avg_start, "end_s": end, "settled": bool(done),
-            "stop": stop, "steadiness": steadiness(h, window), "final": final,
-            "scheme": "localEuler" if lts else "backward",
-            "ddt_corr": "on (OpenFOAM's default)" if ddt_corr else "off (PIMPLE ddtCorr false)",
-            "settle": state, "spectrum": spectrum(h, avg_start), "chunks": chunks,
-            "transient_steps": sum(c["steps"] for c in chunks), "transient_wall_s": wall,
-            "wall_s_per_flow_through": wall / (sim / FLOW_THROUGH),
-            "n_proc": n_proc, "time_mean": mean,
-            "k_bend_series": {"t": h["t"][::max(1, len(h["t"]) // 2000)].tolist(),
-                              "k": h["k_bend"][::max(1, len(h["t"]) // 2000)].tolist()}}
+    out = {"k": k, "family": fam, "cells": meta["cells"], "start": first["start"],
+           "steady_steps": first["steps"], "steady_k_bend": first["k_bend"],
+           "steady_wall_s": first["wall_s"], "precursor": first["precursor"],
+           "zones": info["zones"], "flow_through_s": FLOW_THROUGH, "max_co": MAX_CO,
+           "avg_start_s": avg_start, "end_s": end, "settled": bool(done),
+           "stop": stop, "steadiness": steadiness(h, window), "final": final,
+           "scheme": "localEuler" if lts else "backward",
+           "ddt_corr": "on (OpenFOAM's default)" if ddt_corr else "off (PIMPLE ddtCorr false)",
+           "settle": state, "spectrum": spectrum(h, avg_start), "chunks": chunks,
+           "chunk_steps": chunk_steps,
+           "transient_steps": sum(c["steps"] for c in chunks), "transient_wall_s": wall,
+           "wall_s_per_flow_through": wall / max(end / FLOW_THROUGH, 1e-12),
+           "n_proc": n_proc, "time_mean": mean,
+           "k_bend_series": {"t": h["t"][::max(1, len(h["t"]) // 2000)].tolist(),
+                             "k": h["k_bend"][::max(1, len(h["t"]) // 2000)].tolist()}}
+    (d / "result.json").write_text(json.dumps(stored._finite(out)), encoding="utf-8")
+    return out
+
+
+def transient(k: int, fam: str, work: Path, n_proc: int, *, lts: bool = False,
+              ddt_corr: bool = True, **kw) -> dict:
+    """:func:`transient_run` in ``work/<level>_transient`` (``_lts``,
+    ``_noddtcorr``)."""
+    d = work / (f"{level_name(k, fam)}_{'lts' if lts else 'transient'}"
+                f"{'' if ddt_corr else '_noddtcorr'}")
+    return transient_run(d, k, fam, n_proc, lts=lts, ddt_corr=ddt_corr, **kw)
 
 
 # --- the families -------------------------------------------------------------------
@@ -967,8 +1056,10 @@ def accurate(data: dict) -> list[dict]:
     """The time-accurate levels (``transient_fixed_k<k>``, design answers
     Q5, Q6), coarse to fine: each with ``k``, ``precursor`` and ``final``."""
     ex = data.get("extra", {})
-    return sorted((ex[n] for n in ex if re.fullmatch(r"transient_fixed_k\d", n)),
-                  key=lambda r: r["k"])
+    by_k = {r["k"]: r for n, r in ex.items() if re.fullmatch(r"transient_fixed_k\d", n)}
+    by_k.update({lv["k"]: lv for lv in data["levels"]      # a volunteer's, merged (task 0190)
+                 if re.fullmatch(r"transient_fixed_k\d", lv["name"])})
+    return [by_k[k] for k in sorted(by_k)]
 
 
 def _recheck_accurate(levels: list[dict]) -> list[dict]:
@@ -1077,16 +1168,29 @@ def _parse(level: str) -> tuple[int, str]:
     return int(m[2]), {v: f for f, v in PREFIX.items()}[m[1] or ""]
 
 
+def _accurate_k(level: str) -> int | None:
+    """k of a time-accurate level name, ``transient_fixed_k<k>`` (task 0190)."""
+    m = re.fullmatch(r"transient_fixed_k([1-9])", level)
+    return int(m[1]) if m else None
+
+
 def check_level(level: str) -> None:
     """Raise ``ValueError`` unless this driver can build *level*."""
-    _parse(level)
+    if _accurate_k(level) is None:
+        _parse(level)
 
 
 def prepare(level: str, d: Path, mesh_only: bool = False) -> dict:
     """Mesh *level*, and unless *mesh_only* set up its precursor and
     bend.  Returns ``{"msh": path, "check": …}``."""
-    k, fam = _parse(level)
+    acc = _accurate_k(level)
+    k, fam = (acc, FIXED) if acc else _parse(level)
     d.mkdir(parents=True, exist_ok=True)
+    if acc and not mesh_only:            # task 0190: the level, and the level below as its start
+        meta = setup(d / "level", k, END_TIME, FIXED)
+        if k > 1:
+            setup(d / "source", k - 1, END_TIME, FIXED)
+        return {"msh": d / "level" / "bend" / "mesh.msh", "check": meta["check"]}
     if mesh_only:
         msh = d / f"{level}.msh"
         with Session(f"bend-{k}"):
@@ -1097,12 +1201,45 @@ def prepare(level: str, d: Path, mesh_only: bool = False) -> dict:
 
 
 def run(level: str, d: Path, n_proc: int) -> None:
-    """Solve *level* in *d*; the values go to d/level.json for collect."""
+    """Solve *level* in *d*; the values go to d/level.json for collect.
+    A time-accurate level (task 0190) resumes: the level below first
+    (``source/``), mapped onto this one, then this one, each in chunks of
+    :data:`VOLUNTEER_CHUNK` steps; the source is deleted once mapped."""
+    acc = _accurate_k(level)
+    if acc:
+        kw = {"chunk_steps": VOLUNTEER_CHUNK, "max_hours": float("inf")}
+        src = None
+        if acc > 1 and not (d / "level" / "start.json").exists():
+            r = transient_run(d / "source", acc - 1, FIXED, n_proc, **kw)
+            (d / "source.json").write_text(json.dumps(stored._finite({
+                "k": acc - 1, "k_bend": r["final"]["k_bend"], "settled": r["settled"],
+                "end_s": r["end_s"], "steps": r["transient_steps"],
+                "wall_s": r["steady_wall_s"] + r["transient_wall_s"]})), encoding="utf-8")
+            src = d / "source" / "transient"
+        transient_run(d / "level", acc, FIXED, n_proc, init_from=src, **kw)
+        shutil.rmtree(d / "source", ignore_errors=True)
+        return
     k, _ = _parse(level)
     (d / "level.json").write_text(json.dumps(solve(d, k, END_TIME, n_proc)), encoding="utf-8")
 
 
+def accurate_values(r: dict) -> dict:
+    """A time-accurate level's values for the store: the run's record, and
+    at the top what ``check`` compares (task 0190)."""
+    return {**r, "k_bend": r["final"]["k_bend"],
+            **{f"rms_{z}": pl["rms"] for z, pl in r["final"]["planes"].items()}}
+
+
 def collect(level: str, d: Path) -> dict:
+    if _accurate_k(level):
+        path = d / "level" / "result.json"
+        if not path.exists():
+            raise ValueError(f"{level} isn't finished: run the job again; it resumes")
+        src = d / "source.json"
+        extra = ({"map_sources": {level: json.loads(src.read_text(encoding="utf-8"))}}
+                 if src.exists() else {})
+        return {"values": accurate_values(json.loads(path.read_text(encoding="utf-8"))),
+                "extra": extra}
     path = d / "level.json"
     if not path.exists():
         raise ValueError(f"{level} isn't finished: run the job again")
@@ -1113,7 +1250,11 @@ def recompute(values: dict) -> dict:
     """What a level's stored numbers must equal, from its own values."""
     ref = json.loads(REFERENCE.read_text(encoding="utf-8"))
     out = {"cells": assembly(values["k"], values.get("family", REFINED)).cell_count()}
-    for z, pl in values["planes"].items():
+    planes = values["planes"] if "planes" in values else values["final"]["planes"]
+    if "final" in values:                                # time-accurate (task 0190)
+        fin = values["final"]
+        out["k_bend"] = float(k_of(fin["p_before"], fin["p_after"], values["precursor"]["f"])[1])
+    for z, pl in planes.items():
         err = np.array(pl["w_over_ub"], float) - np.array(ref["planes"][z]["w_over_wvol"])
         out[f"rms_{z}"] = float(np.sqrt(np.nanmean(err ** 2)))
     return out

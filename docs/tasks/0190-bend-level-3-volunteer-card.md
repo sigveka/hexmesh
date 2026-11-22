@@ -1,6 +1,6 @@
 # 0190 — The bend's level 3 as a volunteer card; does `ddtCorr` cause the algorithm spread?
 
-- **Status:** in progress (step 1 done 2026-11-22: ddtCorr isn't the cause; steps 2-7 next)
+- **Status:** in progress (steps 1-3 done 2026-11-22; the card's level-3 measurement waits for the user's go-ahead)
 - **Decision:** [0044](../decisions/0044-volunteer-runs.md),
   [0055](../decisions/0055-cards-for-every-case-ci-without-openfoam.md)
   (cards), [0058](../decisions/0058-diagnosis-ladder-and-user-hints.md)
@@ -88,6 +88,58 @@ for its cause.
   has the off column; 0188's lesson updated (one algorithm and one
   ddtCorr setting per study).
 - The verdict's runs are unchanged (ddtCorr on, the default).
+
+**Steps 2 and 3, the resumable transient and the mapped start
+(2026-11-22).**
+- `transient_run(d, …)` keeps each phase on disk: `setup.json`;
+  `start.json` (the steady start, or the mapped one); `zones.json` (the
+  pimpleFoam case written); `chunks.json`; the K and probe histories
+  under `postProcessing` (as before); `result.json` at the end.  A
+  rerun skips what is done and continues from the latest written time.
+- Each solver run is one chunk: `stopAt nextWrite`, `writeControl
+  timeStep`, `writeInterval` = the chunk (500 steps here, 50 for
+  volunteers).  Chunk logs are named by their start time, so a rerun
+  doesn't overwrite them.  A function object's later files
+  (`<stem>_<time>`, after a restart from a time that already has a
+  directory) are read too, oldest first.
+- **Two fixes found by the test:**
+  - The time names: with adjustable steps and `timePrecision 10`, a
+    restart looked for `processor*/1.506584979` where the write was
+    `1.5065849792`.  Now 17 digits; recorded in
+    `docs/integrations/openfoam.md`.
+  - The `.dat` parser split on a space; the columns are tab-separated
+    without padding at 17 digits.
+- **Restart test, level 1, chunks of 100 steps:**
+  - a crash after a chunk's solve, before `chunks.json` was written;
+  - then a kill 20 s into a chunk, with the processor directories left.
+  Each rerun resumed: the start phase skipped, the run continued from
+  the last written time.  It converged at 2.08 flow-throughs, K
+  0.220123 against the uninterrupted 0.22013 (−3e-5).  A chunk cut
+  short isn't in `chunks.json`, so its steps and wall time are missing
+  from the level's own counts.  The volunteer tool's `wall_s` counts
+  them.
+- **Mapped start (`mapped_start`):** this level's precursor and inlet,
+  the bend at rest written, then `mapFields -consistent -sourceTime
+  latestTime` from the source case.  The inlet entries of U, k and ω are
+  put back to this level's precursor profile (checked: identical).
+  - **Identity check at level 1 → 1** (the task's 2 → 2 would need a
+    5 h source): K 0.220123031 against the source's 0.220123033, and
+    converged at 1.43 flow-throughs instead of 2.08.
+  - A 1 → 2 check (a real refinement, against 0.26233) would take
+    about 1.5-2.5 h; not run.
+- **Volunteer hooks** for `transient_fixed_k<k>`:
+  - `prepare` sets up `level/` and, for k > 1, `source/` (level k − 1);
+  - `run` solves the source (resumable), maps it, deletes it, and
+    solves the level (resumable), in 50-step chunks;
+  - `collect` returns the result, with `k_bend` and `rms_<plane>` at the
+    top for `check`, and the source's K as `map_sources`;
+  - `recompute` rederives `k_bend` from the stored slab pressures and f,
+    and the RMS from the stored profiles;
+  - the verdict reads merged `transient_fixed_k<k>` levels too;
+  - `validation/volunteer.py`'s log tail falls back to the newest
+    `level/transient/log.pimpleFoam.*`.
+- Tests: validation meta, agent manifest, README and volunteer (199)
+  pass.
 
 ## Questions for design
 
