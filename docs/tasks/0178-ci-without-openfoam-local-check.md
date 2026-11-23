@@ -1,6 +1,6 @@
 # 0178 — CI without OpenFOAM; a local check that runs it
 
-- **Status:** ready
+- **Status:** blocked (2026-11-23: steps 1-5 done, step 6 run; stored levels the code no longer reproduces, see Questions for design)
 - **Decision:** [0055](../decisions/0055-cards-for-every-case-ci-without-openfoam.md)
   rules 3 and 4
 - **Depends on:** 0176 for the try-out level.  Until 0176 lands, the
@@ -89,6 +89,78 @@ local check (only the cheapest).  A self-hosted CI runner.
   levels.  `validation/tools/cases.py` lists the checks
   (`names("export")`) and where each lives (`path(name)`).
 
+**The coding session, 2026-11-23.**
+- **Step 1:** the `openfoam-docker` job is gone from
+  `.github/workflows/tests.yml`, and its header says where OpenFOAM runs.
+  CI now has 7 jobs.  Text that said 8, or named the job:
+  `docs/RELEASING.md`'s branch-protection list (now seven checks; `main`
+  has no protection or ruleset today, checked with `gh api`, so nothing
+  waits for the removed check).  CLAUDE.md says "every job" without a
+  count: nothing to change.  Task files that record "all 8 jobs" are
+  history and stay.
+- **Step 2, `tools/local_check.py`:** steps a (the `openfoam` tests),
+  b (the try-out through the volunteer tool), c (the 16 MMS `_k1`
+  levels, `--order` adds `_k2`, in parallel, `--jobs`), d (every card's
+  levels known to its driver; it runs today on the 3 cards there are),
+  e (each export check's coarsest level when its Docker image is on the
+  machine; `--no-exports`).  Each level runs its driver as a subprocess
+  with `--json` into a temporary directory, so nothing reaches the
+  cases' `results.json`; the levels are compared with the stored ones
+  key by key, floats within 1e-6 relative.  Left out of the comparison:
+  what a run records about itself (`environment`, `wall_s`, `solve_s`,
+  `cores`, FEniCSx's `seconds` and `peak_rss_gb`) and
+  `last_initial_residual` (round-off, 2e-15 to 1e-14, different every
+  run).  A key only in the new values is allowed (a driver that records
+  more: today's MMS adds `check_max_aspect_ratio`); one only in the
+  stored values is a difference.  Programs are resolved on `PATH` first
+  (task 0173).
+- **Step 3, `tools/hooks/pre-push`:** lists the pushed files per ref
+  (`git diff` against the remote's sha, or the commits not on any remote
+  for a new branch; `?` when it can't), and the check's `--if-touched`
+  runs only when one is under `hexmesh/study/`,
+  `hexmesh/assembly/_output.py` or `validation/`.
+- **Step 4:** CONTRIBUTING (what CI runs, the local check, when, the
+  hook) and README *Develop* (one line).
+- **Step 5:** `tests/test_local_check.py`, 16 tests: the runner choice,
+  the skip path (Docker faked absent; `--require`), the filter, the
+  hook end to end on a scratch repository (POSIX only), the comparison.
+  One found a bug: `pick_runner`'s default bound the original
+  `docker_answers`, so faking it had no effect.
+- **Step 6, run here** (desktop, 8 cores, Docker, 2026-11-23): 201 s in
+  all.  a 33 s (5 tests); b 18 s (accepted); c 32 s for the 16 levels,
+  8 at a time (each 4-11 s; tee_shells the slowest); d under 1 s; e 119
+  s (code_saturne 110, FEniCSx 119, SU2 77, at once).  Without e, about
+  85 s.  The Windows run is still to do.
+- **What it found:** stored levels the code no longer reproduces (see
+  Questions for design).  Passing: a, b, d; the 12 other MMS fittings;
+  code_saturne; FEniCSx's straight and bend.
+
 ## Questions for design
+
+**Q1 (2026-11-23): stored levels that today's code doesn't reproduce.**
+The local check's first run fails on these, and on nothing else:
+
+| stored level | stored | differs | likely cause |
+|---|---|---|---|
+| MMS `tee_k1`, `tee_shells_k1` | 2026-11-06, 42357ca | L2 +2.4 %, +1.4 %; max non-orthogonality 62.26° vs 62.42° (24 keys) | tasks 0122 and 0145 changed the tee's interior (11-10 to 11-12) |
+| MMS `duct_tap_rect_k1`, `duct_tap_round_k1` | 2026-11-06 | L2 -2.3e-6, -7.2e-6 (10 keys) | task 0135, the duct-tap stations de-duplicated (11-11) |
+| FEniCSx `tee_k1_Hex8`, `tee_k1_Hex27` | 2026-11-10, f91e22b | L2 up to +1.1 %, H1 up to +0.5 %; same 2 160 cells | as the MMS tee |
+| SU2 `k1` | 2026-11-19, 3680ced | `steps` 20 000 vs 2 000; dp agrees to 4e-10 | `ITER = 2000` since task 0183 |
+
+The k = 2 and 4 levels of the same fittings (and the MMS variants
+`tee_loc` and so on) were stored with them and are presumably stale too;
+the check doesn't run them.  Options:
+- **A.** Rerun the stale levels (the MMS tee, tee_shells and duct taps
+  at k = 1, 2, 4 with their variants; FEniCSx's tee at k = 1, 2, 4;
+  SU2's three levels), update the numbers quoted from them (RESEARCH,
+  the cases' RESULTS), then rerun the check.  My estimate: under an
+  hour of machine time; the text is the larger part.
+- **B.** As A, but MMS and FEniCSx only; SU2's `steps` is a run setting,
+  and the check could leave `steps` out for SU2.
+- **C.** Keep the stored levels and let the check tolerate them (a list
+  of known differences).  Not recommended: the check then can't tell
+  these from a new break.
+My recommendation: A, as its own task, after which 0178 is done.  The
+check itself needs no change for it.
 
 ## Outcome

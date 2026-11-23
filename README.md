@@ -467,6 +467,7 @@ git clone https://github.com/sigveka/hexmesh && cd hexmesh
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"       # + pytest, pytest-xdist, jsonschema, matplotlib
 python3 -m pytest -q          # the fast suite, in parallel: a few minutes
+python3 tools/local_check.py  # OpenFOAM, which CI doesn't run: about 5 minutes with Docker
 ```
 
 **You get** the previous setup plus the test tools.  The suite's

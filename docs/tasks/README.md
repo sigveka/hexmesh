@@ -173,7 +173,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0175](0175-volunteer-machine-record.md) | Volunteer runs record the machine (an allow-list) and the solver time | ready (after 0174) | 0044 |
 | [0176](0176-volunteer-try-out-card.md) | A try-out volunteer card: Poiseuille on 2 processes, the whole workflow in about 2 minutes, run in CI | done | 0044, 0054 |
 | [0177](0177-caller-gmsh-before-load.md) | gmsh started by the caller before hexmesh loads it counts as a session (0167 bug; `test_build_sync.py` alone fails) | done (in 0.8.0) | — |
-| [0178](0178-ci-without-openfoam-local-check.md) | CI without OpenFOAM; `tools/local_check.py` (runner tests, the cheapest case end to end) and an opt-in pre-push hook | ready | 0055 |
+| [0178](0178-ci-without-openfoam-local-check.md) | CI without OpenFOAM; `tools/local_check.py` (runner tests, the cheapest case end to end) and an opt-in pre-push hook | blocked | 0055 |
 | [0179](0179-case-cards-and-rerun-command.md) | A card for every validation case, and `python3 -m validation run <case>` / `list` | ready (after 0176) | 0055, 0044 |
 | [0181](0181-unv-experimental-code-saturne.md) | Export check: `.unv` in code_saturne (import, Poiseuille, MMS on the fittings); experimental label until it passes; does the pip gmsh write CGNS? | done | 0056, 0057 |
 | [0182](0182-export-checks-framework.md) | Export checks: `kind` in the case schema, `validation/exports/`, FEniCSx moved there, two tables | done | 0057 |

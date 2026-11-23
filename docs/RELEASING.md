@@ -30,13 +30,14 @@ promoted commit (step 6).
 
 Protection makes the rule GitHub's, not only a habit.  An admin sets it:
 Settings → Branches → Add branch ruleset (or classic rule) for `main`:
-- **Require status checks to pass**, with these eight checks (the job
+- **Require status checks to pass**, with these seven checks (the job
   names in `.github/workflows/tests.yml`; source: GitHub Actions):
   `ubuntu-latest, Python 3.11`, `ubuntu-latest, Python 3.x`,
   `macos-latest, Python 3.11`, `macos-latest, Python 3.x`,
   `windows-latest, Python 3.11`, `windows-latest, Python 3.x`,
-  `ubuntu-latest, Python 3.12, gmsh 4.12.1`,
-  `OpenFOAM v2406 in Docker (Linux)`;
+  `ubuntu-latest, Python 3.12, gmsh 4.12.1`.  OpenFOAM isn't one: it
+  runs in the local check, `python3 tools/local_check.py` (decision
+  0055);
 - **Do not allow bypassing the above settings** (include
   administrators): the maintainer and the agents push with admin rights;
 - no force pushes, no deletion.
@@ -52,8 +53,7 @@ gh api -X PUT repos/sigveka/hexmesh/branches/main/protection --input - <<'JSON'
    {"context": "macos-latest, Python 3.x", "app_id": 15368},
    {"context": "windows-latest, Python 3.11", "app_id": 15368},
    {"context": "windows-latest, Python 3.x", "app_id": 15368},
-   {"context": "ubuntu-latest, Python 3.12, gmsh 4.12.1", "app_id": 15368},
-   {"context": "OpenFOAM v2406 in Docker (Linux)", "app_id": 15368}]},
+   {"context": "ubuntu-latest, Python 3.12, gmsh 4.12.1", "app_id": 15368}]},
  "enforce_admins": true, "required_pull_request_reviews": null,
  "restrictions": null, "allow_force_pushes": false, "allow_deletions": false}
 JSON

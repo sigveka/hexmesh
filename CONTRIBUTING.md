@@ -76,6 +76,7 @@ are responsible for the change, and it must follow the same rules.
 pip install -e ".[dev]"     # from a checkout
 python3 -m pytest -q        # the suite, in parallel; OpenFOAM and slow tests excluded
 python3 -m pytest -q -m openfoam   # needs an installed OpenFOAM: most of these skip with Docker only
+python3 tools/local_check.py       # what CI doesn't run: OpenFOAM, in about 5 minutes (below)
 python3 -m pytest -q -m slow       # the package installed into a venv; the README example meshed
 ```
 
@@ -124,6 +125,31 @@ both).  Without arguments they run `JUNCTIONS` in `noxfile.py`: the tee,
 equal-tee, wye, duct-tap, branch-grading, junction-quality, PCF-junction
 and unit tests, at `-n 2`.  (`pip install nox` works too, in place of
 `uvx`.)
+
+**What CI runs, and what the local check runs.**  CI (`.github/workflows/tests.yml`)
+runs the suite on Linux, macOS and Windows, and on Linux with gmsh
+4.12.1.  It doesn't run OpenFOAM (decision 0055).  OpenFOAM runs in the
+**local check**, about 5 minutes with Docker:
+
+```bash
+python3 tools/local_check.py              # every step
+python3 tools/local_check.py --order      # and the MMS k = 2 levels (an order per fitting)
+```
+
+It runs the OpenFOAM runner and recipe tests; the volunteer try-out
+(`prepare`, `run`, `collect`, `check`); every fitting's coarsest MMS
+level, compared with its stored values; every volunteer card against
+its driver; and each export check's coarsest level, when its image is on
+the machine.  It writes nothing to the cases' `results.json`.  The
+runner is `HEXMESH_OPENFOAM`, or Docker's OpenFOAM if `docker` answers;
+with neither, the OpenFOAM steps say "skipped" (`--require` makes that a
+failure).
+
+**When to run it:** before a push that changes `hexmesh/study/`, the
+OpenFOAM writer (`hexmesh/assembly/_output.py`) or `validation/`.  The
+same `core.hooksPath` as above enables a **pre-push hook** that runs it
+for such a push and stops the push if it fails; `git push --no-verify`
+skips it once.
 
 Questions about the code are welcome as issues too.
 

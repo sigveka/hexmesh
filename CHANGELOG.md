@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+**CI no longer runs OpenFOAM; a local check does** (task 0178).
+`python3 tools/local_check.py` runs the OpenFOAM tests, the volunteer
+try-out, every fitting's coarsest MMS level and each export check's
+coarsest level, comparing each with its stored values, in about 3-4
+minutes with Docker.  An opt-in pre-push hook runs it for pushes that
+change `hexmesh/study/`, the OpenFOAM writer or `validation/`.
+
 **A try-out for volunteers** (task 0176).  `python3 -m validation.volunteer
 prepare poiseuille try_np2` runs the whole volunteer workflow on the
 coarse laminar pipe, on 2 MPI processes, in well under a minute: `list`

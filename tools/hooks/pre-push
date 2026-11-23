@@ -1,0 +1,26 @@
+#!/bin/sh
+# hexmesh pre-push hook (decision 0055; task 0178): the local check,
+# `python3 tools/local_check.py`, when the pushed commits change
+# hexmesh/study/, the OpenFOAM writer (hexmesh/assembly/_output.py) or
+# validation/.  CI doesn't run OpenFOAM; this does, in about 5 minutes.
+#
+# Opt in, per clone:   git config core.hooksPath tools/hooks
+# Skip it once:        git push --no-verify
+# Another Python:      PYTHON=python git push ...
+#
+# Without an OpenFOAM runner (HEXMESH_OPENFOAM, or Docker running) its
+# OpenFOAM steps say "skipped" and the push goes ahead.
+cd "$(git rev-parse --show-toplevel)" || exit 1
+zero=0000000000000000000000000000000000000000
+# git gives one line per pushed ref: <local ref> <local sha> <remote ref> <remote sha>
+while read -r _ local_sha _ remote_sha; do
+    [ "$local_sha" = "$zero" ] && continue                      # a deletion
+    if [ "$remote_sha" = "$zero" ]; then                        # a new branch
+        git log --name-only --format= "$local_sha" --not --remotes || echo "?"
+    else
+        git diff --name-only "$remote_sha" "$local_sha" 2>/dev/null || echo "?"
+    fi
+done | "${PYTHON:-python3}" tools/local_check.py --if-touched || {
+    echo "pre-push: the local check failed; fix it, or push with --no-verify" >&2
+    exit 1
+}

@@ -1,8 +1,10 @@
 # The test suite on Linux, macOS and Windows (decision 0039; task 0092),
 # with the gmsh `pip install` gives, and on Linux with gmsh 4.12.1, the
 # reference the gallery and validation cases were made with (task 0145).
-# OpenFOAM tests are excluded by default (pyproject addopts); Linux runs
-# the quick Docker ones against opencfd/openfoam-default:2406 as well.
+# OpenFOAM tests are excluded (pyproject addopts): CI doesn't depend on
+# OpenFOAM (decision 0055).  They run in the local check,
+# `python3 tools/local_check.py` (task 0178), before a push that touches
+# hexmesh/study/, the OpenFOAM writer or validation/.
 name: tests
 
 on:
@@ -40,20 +42,3 @@ jobs:
         run: python -c "import sys, gmsh, hexmesh; print(sys.version, gmsh.__version__, hexmesh.__version__)"
       - name: Test
         run: python -m pytest -q
-
-  openfoam-docker:
-    name: OpenFOAM v2406 in Docker (Linux)
-    runs-on: ubuntu-latest
-    env:
-      HEXMESH_OPENFOAM: docker:opencfd/openfoam-default:2406
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
-      - run: sudo apt-get update && sudo apt-get install -y libglu1-mesa libxrender1 libxcursor1 libxft2 libxinerama1
-      - run: python -m pip install -e ".[dev,study]"
-      - run: docker pull opencfd/openfoam-default:2406
-      # The runner and recipe-block tests take seconds; the validation
-      # cases take hours and stay on a workstation.
-      - run: python -m pytest -q -m openfoam tests/test_openfoam_runner.py tests/test_msh_recipe.py
