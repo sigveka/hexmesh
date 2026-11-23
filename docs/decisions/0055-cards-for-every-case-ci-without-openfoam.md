@@ -183,3 +183,16 @@ consumer per export format an *export check* (FEniCSx, code_saturne,
 SU2 before 1.0), run locally under rule 3.  The OpenFOAM Foundation
 build and a second RANS code inside a validation case (the tee in
 code_saturne) stay proposed, for after 1.0.
+
+## Note (2026-11-23): a mesh change reruns what it makes stale
+
+Task 0178 found stored levels that today's code no longer reproduced.
+They had gone stale silently after the mesh changes of tasks 0122,
+0145, 0135 and 0183, and were caught only when the local check compared
+them.  The user (2026-11-23) agreed to a ground rule, now in the tasks
+README:
+- a task that changes what hexmesh meshes runs the local check before
+  it is done;
+- stale levels are rerun in the same task, or a follow-up task is
+  opened before the push, naming them.
+The local check stays local (rule 3).  CI doesn't run OpenFOAM.

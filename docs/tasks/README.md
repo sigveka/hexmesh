@@ -302,6 +302,17 @@ These apply to every task.
 - **Pushing** (since 2026-11-13, decision 0052): to `next`, then
   `tools/promote.py` moves `main` to the green commit.  See CLAUDE.md,
   "Both sessions, pushing".
+- **Stored results stay reproducible** (since 2026-11-23, decision 0055
+  note).
+  - A task that changes what hexmesh meshes runs `python3
+    tools/local_check.py` before it is marked done.  That covers
+    `hexmesh/` mesh code, fitting fills, specs and refinement.
+  - Any case or export check whose stored levels no longer match is
+    rerun in the same task, and its RESULTS and figures are updated.
+  - If that is too costly (long levels), open a follow-up task before
+    the push and name the stale levels in the *Outcome*.
+  - The local check covers coarse levels only.  When a change reaches
+    a case's fine levels too, say so and rerun what is affordable.
 - **Validation cases show their meshes** (since 2026-10-28).
   `validation/<case>/run.py` defines `meshes()`, returning
   `(label, caption, build)` per mesh to show; the first gets an overview
