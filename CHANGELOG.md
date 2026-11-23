@@ -5,9 +5,14 @@
 **CI no longer runs OpenFOAM; a local check does** (task 0178).
 `python3 tools/local_check.py` runs the OpenFOAM tests, the volunteer
 try-out, every fitting's coarsest MMS level and each export check's
-coarsest level, comparing each with its stored values, in about 3-4
+coarsest level, comparing each with its stored values, in about 3-5
 minutes with Docker.  An opt-in pre-push hook runs it for pushes that
 change `hexmesh/study/`, the OpenFOAM writer or `validation/`.
+Its first run found stored levels that today's meshes no longer
+reproduce; they are rerun: the MMS tee, tee_shells and duct taps (the
+tees' fitting orders 1.03, 1.04 → 1.06, 1.07), FEniCSx's tee (errors
+in the third digit) and SU2's levels (now 2000 iterations; values
+within 3e-7).
 
 **A try-out for volunteers** (task 0176).  `python3 -m validation.volunteer
 prepare poiseuille try_np2` runs the whole volunteer workflow on the

@@ -6,7 +6,10 @@ and Neumann.  With the exact wall's flux, Q2 on the Hex8 meshes is
 visibly lower: order 2.0 on the bend, 2.3–2.6 on the straight and tee.
 Run on 2026-11-10 and 11 with dolfinx v0.11.0 (Docker, pinned by
 digest) and gmsh 4.12.1, at hexmesh f91e22b and 5952340 (the second
-changed docs only: identical meshes).  The numbers below are recomputed
+changed docs only: identical meshes).  The tee was rerun on 2026-11-23
+at hexmesh 367b7e6 (task 0178): its mesh had changed since (tasks 0122
+and 0145); its errors moved in the third digit and its orders not at
+all.  The numbers below are recomputed
 from `results.json` by `python3 -m validation.tools.recheck
 fenicsx_second_order`.
 
@@ -76,12 +79,12 @@ Orders are between k = 1 → 2 and 2 → 4.
 
 | mesh, element | variant | k = 1 | k = 2 | k = 4 |
 |---|---|---|---|---|
-| Q1 on Hex8 | Dirichlet | 1.622e-01 | 3.978e-02 | 9.900e-03 |
-| Q2 on Hex8 | Dirichlet | 1.637e-02 | 2.354e-03 | 3.041e-04 |
-| Q2 on Hex27 | Dirichlet | 1.638e-02 | 2.355e-03 | 3.042e-04 |
-| Q1 on Hex8 | Neumann | 1.426e-01 | 3.337e-02 | 8.189e-03 |
-| Q2 on Hex8 | Neumann | 1.817e-02 | 2.909e-03 | 5.145e-04 |
-| Q2 on Hex27 | Neumann | 1.617e-02 | 2.351e-03 | 3.041e-04 |
+| Q1 on Hex8 | Dirichlet | 1.632e-01 | 3.995e-02 | 9.936e-03 |
+| Q2 on Hex8 | Dirichlet | 1.638e-02 | 2.355e-03 | 3.042e-04 |
+| Q2 on Hex27 | Dirichlet | 1.639e-02 | 2.355e-03 | 3.043e-04 |
+| Q1 on Hex8 | Neumann | 1.442e-01 | 3.364e-02 | 8.251e-03 |
+| Q2 on Hex8 | Neumann | 1.817e-02 | 2.909e-03 | 5.146e-04 |
+| Q2 on Hex27 | Neumann | 1.617e-02 | 2.352e-03 | 3.042e-04 |
 
 ## Cost
 

@@ -9,6 +9,9 @@ and gmsh 4.12.1, at hexmesh 42357ca with this task's uncommitted changes.
 k = 4 ran on 4 MPI processes.  Error = T − T_m at the cell centres; the
 field's amplitude is 1.  The numbers below are recomputed from
 `results.json` by `python3 -m validation.tools.recheck mms`.
+The tee, tee_shells and duct-tap levels, with their `_loc`, `_lsq`,
+`_skew` and `_lim` series, were rerun on 2026-11-23 at hexmesh 367b7e6
+(task 0178): the tee's mesh had changed since (tasks 0122, 0145, 0135).
 
 <!-- graphs:start -->
 ## Graphs
@@ -44,8 +47,8 @@ than 0.3 below the straight's last order (1.60).
 | spline | 1, 2, 4 | 124416 | 0.0246, 0.00717, 0.00193 | 1.78, 1.89 | 1.77, 1.90 | 1.21, 1.49 | SplinePipe1 (boundary cell) |  |
 | reducer | 1, 2, 4 | 82944 | 0.0133, 0.00442, 0.00181 | 1.59, 1.28 | 0.93, 0.95 | 0.71, 0.91 | Reducer1 (boundary cell) | **yes** |
 | transition | 1, 2, 4 | 66816 | 0.0284, 0.0113, 0.00524 | 1.33, 1.11 | 0.97, 0.97 | 0.71, 0.50 | Transition1 | **yes** |
-| tee | 1, 2, 4 | 152064 | 0.0132, 0.00471, 0.00199 | 1.49, 1.24 | 1.28, 1.03 | 0.72, 0.83 | Tee1 | **yes** |
-| tee_shells | 1, 2, 4 | 284160 | 0.0146, 0.00519, 0.0022 | 1.49, 1.24 | 1.29, 1.04 | 0.57, 0.71 | Tee1 | **yes** |
+| tee | 1, 2, 4 | 152064 | 0.0135, 0.00482, 0.00201 | 1.49, 1.26 | 1.31, 1.06 | 0.73, 0.85 | Tee1 | **yes** |
+| tee_shells | 1, 2, 4 | 284160 | 0.0148, 0.00519, 0.00216 | 1.51, 1.27 | 1.33, 1.07 | 0.58, 0.72 | Tee1 | **yes** |
 | stack_change | 1, 2, 4 | 92160 | 0.0166, 0.00421, 0.0012 | 1.98, 1.81 | 1.98, 1.81 | 1.36, 1.37 | Straight0 (boundary cell) |  |
 | wye60 | 1, 2, 4 | 193536 | 0.0126, 0.00588, 0.00393 | 1.10, 0.58 | 0.81, 0.46 | 0.69, −0.07 | Wye1 | **yes** |
 | wye90 | 1, 2, 4 | 221184 | 0.0117, 0.00536, 0.00344 | 1.13, 0.64 | 0.80, 0.51 | 0.17, 0.24 | Wye1 | **yes** |
@@ -73,7 +76,7 @@ than 0.3 below the straight's last order (1.60).
   are refined and the split region is not, so their error in the split
   region is not verified.
 - **The tees, the transition and the reducer converge at about first
-  order** (0.93–1.28).  Their fitting cells keep a constant worst scaled
+  order** (0.93–1.33).  Their fitting cells keep a constant worst scaled
   Jacobian under refinement (tee 0.258, transition 0.577).  Gauss-linear
   gradients on skewed faces are first order.
 - **The duct taps don't converge at k = 3 or 4.**  `laplacianFoam`'s
@@ -115,11 +118,11 @@ The reducer's stations are evenly spaced at every k (neighbour ratio
   - reducer 0.54, 0.48, 0.51 (the same cells as the straight's);
   - miter 0.67 at every k;
   - transition 2.14 → 2.28;
-  - tee 1.61 → 1.90;
-  - tee_shells 2.59 → 2.94.
+  - tee 1.60 → 1.89;
+  - tee_shells 2.55 → 2.92.
 - **Block interfaces** (cells with a face between two gmsh volumes):
-  - in the tee, the error in those cells converges at 0.84 (k 2 → 4)
-    and in the rest at 1.04, so it isn't concentrated there;
+  - in the tee, the error in those cells converges at 0.88 (k 2 → 4)
+    and in the rest at 1.10, so it isn't concentrated there;
   - the reducer and the miter are built as one volume per station slab,
     so every cell touches an interface, and in the transition 87 % do
     (42 092 of 48 384 at k = 4).  For these the split says nothing.
@@ -130,8 +133,8 @@ The reducer's stations are evenly spaced at every k (neighbour ratio
 |---|---|---|---|---|
 | straight | 1.60 | | 1.83 | — |
 | miter | 1.14 | 1.14 | 1.67 | 0.16 |
-| tee_shells | 1.04 | 1.04 | 1.49 | 0.34 |
-| tee | 1.03 | 1.03 | 1.32 | 0.51 |
+| tee_shells | 1.07 | 1.07 | 1.51 | 0.32 |
+| tee | 1.06 | 1.06 | 1.30 | 0.53 |
 | transition | 0.97 | 0.97 | 1.24 | 0.59 |
 | reducer | 0.95 | 0.95 | 0.97 | 0.86 |
 
@@ -152,7 +155,7 @@ The reducer's stations are evenly spaced at every k (neighbour ratio
   | bend | 1.3°, 1.2°, 1.3° | 1.9° → 1.7° |
   | reducer | 21°, 23°, 24° | 29° → 32° |
   | transition | 13°, 14°, 12° | 44° → 52° |
-  | tee | 9.4°, 8.9°, 9.1° (p90 27°, 22°, 23°) | 61° → 67° |
+  | tee | 9.5°, 9.7°, 9.3° (p90 25° at each k) | 60° → 67° |
 
 - The wall is in the right place.  But on a sloped wall, or one that
   turns into the branch, the near-wall cells follow the axis, not the

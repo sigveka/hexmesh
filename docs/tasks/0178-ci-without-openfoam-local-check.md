@@ -1,6 +1,6 @@
 # 0178 — CI without OpenFOAM; a local check that runs it
 
-- **Status:** blocked (2026-11-23: steps 1-5 done, step 6 run; stored levels the code no longer reproduces, see Questions for design)
+- **Status:** done (2026-11-23)
 - **Decision:** [0055](../decisions/0055-cards-for-every-case-ci-without-openfoam.md)
   rules 3 and 4
 - **Depends on:** 0176 for the try-out level.  Until 0176 lands, the
@@ -163,4 +163,68 @@ the check doesn't run them.  Options:
 My recommendation: A, as its own task, after which 0178 is done.  The
 check itself needs no change for it.
 
+**The reruns (Q1's option A, 2026-11-23, at 367b7e6).**  Each into a
+scratch JSON, compared with the stored level, then merged by name.
+- **MMS, 33 levels** (tee and tee_shells with `_loc`, `_lsq`, `_skew`;
+  the duct taps with `_lim`): the tee's errors moved 1-14 % (most in the
+  boundary cells and the junction block), the cell counts not at all,
+  and tee k = 4 takes 14 % fewer steps.  The duct taps at k = 1, 2 moved
+  by 1e-5 to 5e-5; k = 3 and 4 still don't converge, as stored.  The
+  orders that RESULTS quotes: tee's fitting L2 1.28, 1.03 → 1.31, 1.06;
+  tee_shells' 1.29, 1.04 → 1.33, 1.07; under `pointCellsLeastSquares`
+  tee 1.32 → 1.30 and tee_shells 1.49 → 1.51.  Time: about 1 h for 31
+  levels, 4 at a time, then 3.5 h and 4 h for the duct taps' k = 4 (3
+  MPI processes each, barely faster than 1: 200 steps of about 225 CG
+  iterations).  My Q1 estimate of under an hour was wrong by that much.
+- **FEniCSx tee, k = 1, 2, 4:** errors moved by up to 1.1 % (Hex8) and
+  0.3 % (Hex27); the orders are unchanged to two decimals.  29 minutes,
+  beside the OpenFOAM runs.
+- **SU2, k = 1, 2, 3** at 2000 iterations: every value within 3e-7 of
+  the 20 000-iteration levels; orders unchanged.  91 minutes on 2
+  threads beside the OpenFOAM runs.
+- **Text updated:** `validation/mms/RESULTS.md` (the orders table, the
+  first-order range 0.93-1.33, Check 2's skewness and block-interface
+  orders, Check 3's table, the tee's wall non-orthogonality),
+  `validation/exports/fenicsx/RESULTS.md` (the tee's error table),
+  `validation/exports/su2/RESULTS.md` (the runs paragraph); each header
+  says what was rerun.  Figures and `hexmesh/agent/validation.json`
+  regenerated.  `validation/exports/code_saturne/RESULTS.md`'s column of
+  OpenFOAM's orders on the same meshes: tee and tee_shells updated.
+  **For the design session:** `docs/RESEARCH.md` quotes the old tee
+  orders at two places: the table of fittings below the straight's
+  order ("1.03 / 1.04", least squares "1.32 / 1.49"; now 1.06 / 1.07
+  and 1.30 / 1.51) and the code_saturne comparison (tee 1.03,
+  tee_shells 1.04; now 1.06, 1.07).  No reading changes: the tees are
+  still near first order, and least squares still doesn't recover them.
+
+**Answer (the user, 2026-11-23):** "rerun the stale levels first, then
+push".  Option A, in this task: the stale levels are rerun before 0178's
+commits are pushed.
+
 ## Outcome
+
+- **Files:** `.github/workflows/tests.yml` (no OpenFOAM job; 7 jobs),
+  `tools/local_check.py`, `tools/hooks/pre-push`,
+  `tests/test_local_check.py` (16 tests), CONTRIBUTING, README,
+  `docs/RELEASING.md`, CHANGELOG; the rerun levels in
+  `validation/mms/results.json`, `validation/exports/fenicsx/results.json`
+  and `validation/exports/su2/results.json`, with their RESULTS and
+  figures.
+- **The local check passes here** after the reruns: 279 s (a 32, b 18,
+  c 57, d 0, e 171 s); the first run's 201 s had e at 119 s.  Within
+  the 5 minutes, but e is most of it; `--no-exports` gives about 110 s.
+- **Tests:** the validation, agent, volunteer and local-check tests,
+  402 passed.
+- **Not done here:** the Windows run of the check (step 6; the user's
+  session has the try-out to run first).
+- **Follow-ups:**
+  - the gallery pages are behind the cases (`docs/gallery/VALIDATION.md`
+    counts 13 cases and 1 export check; there are 14 and 3);
+    `docs/gallery/build.py` regenerates them;
+  - `docs/gallery/build.py --validation <case>` prints the case's old
+    path (`validation/fenicsx_second_order/README.md`) though it writes
+    the right file;
+  - a stored level can go stale silently whenever a fitting's mesh
+    changes; the hook catches it only at push time.  Rerunning the
+    affected cases' levels could be part of a mesh-changing task's
+    acceptance (for design).
