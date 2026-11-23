@@ -1,13 +1,15 @@
 # 0168 — A volunteer card for the junction-flow benchmark
 
-- **Status:** ready (the user, 2026-11-18: the 20 points are to run as
-  volunteer levels on more powerful hardware; the hold of 0162's Q3
-  answer is lifted.  The level-3 point is done, so *Do* 1's gate is met)
+- **Status:** ready (after 0186; retargeted 2026-11-23 by the user to 0186's
+  fixed-wall family: its level 3 and the 20-point sweep)
 - **Decision:** [0044](../decisions/0044-volunteer-runs.md) (volunteer
   runs: one tool, a card per case, a mechanical check)
 - **Case:** `validation/junction_loss/` (task 0162)
-- **Depends on:** 0162 (the driver, the gates, the level-3 point and
-  the "close" criterion); 0119 and 0160 (the tool).
+- **Depends on:** 0186 (the fixed-wall family, its method, and levels 1–2
+  stored); 0190 (the resumable transient and `mapFields` start); 0119
+  and 0160 (the tool).
+- **Blocks:** none.  Not a 1.0 criterion: the tee is reported with 0186's
+  two levels, as the bend was.
 
 Ground rules for all tasks: [README](README.md#ground-rules).
 
@@ -16,6 +18,29 @@ machine (about 3 h a point at 3 processes), and the k–ε comparison and
 the Re check add more.  The points are independent, so they split
 naturally into volunteer levels.  The user asked for a card for each
 validation case (2026-11-16).
+
+**Retargeted (the design session, 2026-11-23; the user: "yes").**
+Steps 1 and 3 below were written for 0162's `refined(k)` levels, which
+change the wall model with refinement (RESEARCH §7.2's correction).
+They now read:
+- **Levels offered:**
+  - `fixed_k3` for 0162's main point (Div a, q 0.6), the tee's grid
+    study's finest level;
+  - then the 20-point sweep at the fixed-wall level 2: the four
+    configurations × five q, with the k–ε point and the two Re-check
+    points on the same family.
+  - The `refined(k)` levels are **not** offered.
+- **Method:** whichever 0186 settled on (steady, or time-accurate with
+  0050's convergence stop), resumable, with level 3 started from level 2
+  by `mapFields`, as 0190 built for the bend.
+- **Step 1's gate** becomes: offered once 0186 has stored levels 1 and 2.
+- **Requirements:** measured here at level 3 for a few chunks, as 0190
+  did (s per step at a stated core count, peak memory, peak disk), and
+  stated as a range.  The sweep's levels are measured from 0186's
+  level 2.
+- **The tag** (step 5) is `volunteer-junction-1`, on a `main` commit
+  carrying the card, with the user's OK.
+- **The dry run** (step 6) is on level 1 of the fixed-wall family.
 
 **Do.**
 1. **Gate on 0162:** the card's 20-point levels are offered only once

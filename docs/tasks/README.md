@@ -163,7 +163,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0165](0165-profile-type-and-section-kind.md) | A public `Profile` for reducers; a section kind in the description (before the 0.8.0 tag) | done | 0053 |
 | [0166](0166-rename-jargon-arguments.md) | Rename the mesh-jargon names (`nang` → `n_arc`, `nrad` → `n_radial`, `mprg` → `radial_grading`, …; `lc` removed) | done | 0053 |
 | [0167](0167-build-without-session.md) | Meshing without managing `Session`: a spike, then the API | done | 0053 |
-| [0168](0168-volunteer-card-junction-loss.md) | A volunteer card for the junction-flow benchmark (one level per point) | ready (the user asked for the 20 points, 2026-11-18) | 0044 |
+| [0168](0168-volunteer-card-junction-loss.md) | A volunteer card for the junction-flow benchmark (one level per point) | ready (after 0186; retargeted to the fixed-wall family: level 3 and the sweep) | 0044 |
 | [0169](0169-volunteer-card-turbulent-bend.md) | A volunteer card for the turbulent bend | ready (after 0050's driver) | 0044 |
 | [0170](0170-validation-setup-docs.md) | Validation needs a checkout: three setups in the docs, Windows forms, a test of the boundary | ready | 0054 |
 | [0171](0171-bathymetry-platform-independent.md) | The bathymetry reader gives the same route on every platform (bilinear on grids; a platform test over the examples) | done | — |
@@ -180,7 +180,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0183](0183-export-check-su2.md) | Export check: `.su2` in SU2 (format test, Poiseuille with its order) | done | 0057 |
 | [0184](0184-stamp-environment-at-run-start.md) | `results.json` records the code that ran: the environment taken at the start of a run (drivers, volunteer `prepare`/`collect`, FEniCSx) | done | — |
 | [0185](0185-level-run-length.md) | Every level in `results.json` records how long its run took (`wall_s`; `cores` and `solve_s` where known) | done | 0044 |
-| [0186](0186-tee-fixed-wall-cell.md) | The tee benchmark with the wall cell fixed: is 0162's order 1.9 a mesh convergence? (y⁺ fell as 1/k) | ready (after 0050; before 1.0, decision 0058) | 0012, 0015, 0058 |
+| [0186](0186-tee-fixed-wall-cell.md) | The tee benchmark with the wall cell fixed: is 0162's order 1.9 a mesh convergence? (y⁺ fell as 1/k) | ready (levels 1–2 here, level 3 by volunteers; before 1.0, decision 0058) | 0012, 0015, 0058 |
 | [0187](0187-tee-diagnosis-ladder.md) | The tee's miss, diagnosed: setup sensitivity, code_saturne SST on the same mesh, k-ε on the fixed-wall level | ready (after 0186; before 1.0) | 0058 |
 | [0188](0188-hints-from-validation.md) | Hints from validation: a GUIDE section, docstrings at the traps, `lessons` for agents | in progress (first pass done; before 1.0) | 0058 |
 | [0189](0189-export-check-nek.md) | Export check: Hex27 in Nek5000 or NekRS (the ladder's higher-order step), with a stop rule | ready (before 1.0) | 0058, 0057, 0034 |
