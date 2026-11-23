@@ -185,6 +185,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0188](0188-hints-from-validation.md) | Hints from validation: a GUIDE section, docstrings at the traps, `lessons` for agents | in progress (first pass done; before 1.0) | 0058 |
 | [0189](0189-export-check-nek.md) | Export check: Hex27 in Nek5000 or NekRS (the ladder's higher-order step), with a stop rule | ready (before 1.0) | 0058, 0057, 0034 |
 | [0190](0190-bend-level-3-volunteer-card.md) | The bend's level 3 as a volunteer card (resumable transient, mapFields from level 2); `ddtCorr` off to test the algorithm spread | done | 0044, 0055, 0058 |
+| [0191](0191-gallery-in-step-with-cases.md) | The gallery in step with the cases: regenerate, fix the printed path, a stale test | ready | — |
 
 ### Validation
 

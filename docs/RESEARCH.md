@@ -1612,7 +1612,7 @@ The fittings below the straight's order, and why (the design checks):
 | miter | 1.14 | no | **recovers** (1.67 vs 1.83 straight) | — |
 | reducer (cosine) | 0.95 | no (chord gap falls at 2nd order) | 0.97 | 21–24° |
 | transition | 0.97 | no (ruled blend, exact wall) | 1.24 | 12–14° |
-| tee, with/without shells | 1.03 / 1.04 | no | 1.32 / 1.49 | 9° |
+| tee, with/without shells | 1.06 / 1.07 | no | 1.30 / 1.51 | 9° |
 | straight / bend | 1.60 / 1.72 | — | 1.83 (straight) | ≈ 0° / 1.3° |
 
 - **The miter** is the scheme on kinked grid lines: least squares
@@ -1668,8 +1668,13 @@ The fittings below the straight's order, and why (the design checks):
     | miter | 1.97 | 1.14 |
     | reducer | 1.85 | 0.95 |
     | transition | 1.94 | 0.97 |
-    | tee | 1.97 | 1.03 |
-    | tee_shells | 1.95 | 1.04 |
+    | tee | 1.97 | 1.06 |
+    | tee_shells | 1.95 | 1.07 |
+
+    The OpenFOAM tee orders are from the levels rerun in task 0178
+    (2026-11-23): 1.06 and 1.07, against 1.03 and 1.04 stored before.
+    The stored levels had gone stale after mesh changes.  The reading is
+    unchanged.
 
   - **That settles 0109's cause from the other side.**  The meshes
     support second order on sloped and kinked walls.  The first-order
