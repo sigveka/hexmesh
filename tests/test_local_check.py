@@ -26,9 +26,17 @@ import subprocess
 import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+PREFIX = "hexmesh-local-check-"
 _spec = importlib.util.spec_from_file_location("local_check", ROOT / "tools/local_check.py")
 lc = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(lc)
+
+
+@pytest.fixture(autouse=True)
+def _temp_in_tmp_path(monkeypatch, tmp_path):
+    """The check's own temporary directory lands in *tmp_path*, not the
+    system's (task 0195)."""
+    monkeypatch.setattr(lc.tempfile, "tempdir", str(tmp_path))
 
 
 # --- the runner ---------------------------------------------------------------------
@@ -74,6 +82,26 @@ def test_no_runner_skips_the_openfoam_steps(monkeypatch, capsys, require, code):
 ])
 def test_the_hook_runs_the_check_only_for_watched_paths(files, hits):
     assert lc.touched(files) == hits
+
+
+def test_a_failed_run_keeps_its_logs_but_no_empty_directory(monkeypatch, capsys, tmp_path):
+    """``--require`` without a runner fails with no log written: nothing to
+    keep, so no empty directory is left (task 0195).  A step that wrote a
+    log keeps it."""
+    monkeypatch.delenv("HEXMESH_OPENFOAM", raising=False)
+    monkeypatch.setattr(lc, "docker_answers", lambda: False)
+    assert lc.main(["--steps", "a", "--require"]) == 1
+    assert list(tmp_path.glob(PREFIX + "*")) == []
+    assert "logs kept" not in capsys.readouterr().out
+
+    def writes_a_log(runner, tmp, args):
+        (tmp / "x.log").write_text("why", encoding="utf-8")
+        return lc.FAIL, "failed"
+    monkeypatch.setattr(lc, "STEPS", (("d", "a step", writes_a_log, False),))
+    assert lc.main(["--steps", "d"]) == 1
+    kept = list(tmp_path.glob(PREFIX + "*"))
+    assert len(kept) == 1 and (kept[0] / "x.log").exists()
+    assert f"logs kept in {kept[0]}" in capsys.readouterr().out
 
 
 def test_if_touched_says_not_needed(monkeypatch, capsys):

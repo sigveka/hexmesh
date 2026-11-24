@@ -1,6 +1,6 @@
 # 0195 — A local-check test leaves an empty temporary directory on every run
 
-- **Status:** ready
+- **Status:** done (2026-11-24)
 - **Decision:** none needed (test hygiene).
 - **Depends on:** none.
 - **Blocks:** none.
@@ -29,6 +29,27 @@ limited disk (CLAUDE.md), tests write only to `tmp_path`.
 
 ## Agent notes
 
+- **The cause** was `tools/local_check.py`, not the test: a failed run
+  keeps its temporary directory for the logs, and `--require` without a
+  runner fails every OpenFOAM step before any writes one, so the kept
+  directory was empty.  Now a failed (or `--keep`) run keeps it only if
+  something is in it.
+- **The tests:** an autouse fixture in `tests/test_local_check.py` points
+  `tempfile.tempdir` at `tmp_path`, so the check's `mkdtemp` never lands
+  in the system's temporary directory.  A new test runs the `--require`
+  case and finds no directory left, and a failing step that writes a log
+  keeps it, named in "logs kept in".
+- **Checked:** the system's `hexmesh-local-check-*` listing before and
+  after `tests/test_local_check.py` is the same (25 passed).
+- **Strays removed** by exact path with `rmdir` (empty only): three
+  from 2026-11-24 08:10, 08:15 and 15:17, empty, so from runs without a
+  log (this test's `--require` case).
+
 ## Questions for design
 
 ## Outcome
+
+- **Files:** `tools/local_check.py` (no empty directory kept),
+  `tests/test_local_check.py` (the fixture, one test).
+- **Tests:** `tests/test_local_check.py`, 25 passed; no new directory in
+  the system's temporary directory.

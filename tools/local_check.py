@@ -423,7 +423,7 @@ def main(argv=None) -> int:
              if any(r[2] == SKIP for r in rows) else ""))
     if args.record:
         (tmp / "times.json").write_text(json.dumps(args.record, indent=1), encoding="utf-8")
-    if failed or args.keep:
+    if (failed or args.keep) and any(tmp.iterdir()):     # nothing to keep: no step wrote a log
         print(f"  logs kept in {tmp}")
     else:
         shutil.rmtree(tmp, ignore_errors=True)
