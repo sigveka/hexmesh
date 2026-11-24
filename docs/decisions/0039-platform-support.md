@@ -137,3 +137,35 @@ CI was also red on every job for an unrelated test bug (NumPy 2's
    oldest one still in its upstream support window.  When it reaches end
    of life, it is dropped in the next release, by a task under this
    decision (no new decision needed).
+
+## Amendment 2: Python 3.12 is the oldest supported, from before 1.0 (2026-11-24; the user: "Remove 3.11")
+
+**Context.**  CI on ce6de5f failed on all three Python 3.11 jobs.  A
+nested f-string reused its quote character, which only 3.12 allows
+(PEP 701).  The machine here runs 3.12, so local tests didn't see it.
+The design session laid out the trade-off:
+- **For dropping:** before 1.0 is the cheapest moment, three CI jobs
+  go, and the scientific-Python norm (SPEC 0) is already past 3.11.
+- **Against:** volunteers on lagging clusters (a `python/3.11` module)
+  or Debian 12 lose `pip install`.  3.11 has upstream security support
+  until October 2027.
+The user chose to drop it.
+
+**Decided:**
+1. `requires-python = ">=3.12"`.  CI's oldest version is 3.12, beside
+   the newest (`3.x`), on all three platforms.  The gmsh 4.12.1 job
+   stays as it is.
+2. Code kept only for 3.11 may go.  3.12 syntax (PEP 701 f-strings,
+   PEP 695 type parameters) is allowed.  No behaviour changes.
+3. The docs, badges and generated volunteer pages say 3.12.  CHANGELOG
+   states the drop under *Unreleased* as breaking for 3.11 users, and
+   the 1.0 release notes repeat it.
+4. **Rule 4 above still holds from here on.**  This drop is earlier than
+   rule 4 asks, by the user's choice before 1.0.  3.12 is next dropped
+   in the first release after its end of life (October 2028).
+5. **Existing volunteer tags** (`volunteer-bend-1` and older) keep their
+   3.11 floor.  A tag is a fixed commit, and its docs match it.
+6. **The required checks** for `main`'s protection (RELEASING, task 0161)
+   name 3.12 instead of 3.11.  If protection is already set, the
+   maintainer updates it in the same change, or the promotion would wait
+   on checks that never run.
