@@ -91,3 +91,19 @@ an existing release.  (Task 0149.)
   choice (`docs/RELEASING.md` gives both); task 0156 asks.
 - **Tree matching:** the cause of the same-tree pass is assumed, not
   documented; nothing here depends on it.
+
+## Actions: a matrix `include` that matches a combination merges into it (2026-11-24)
+
+- **Found by:** the coding session, task 0194 (since withdrawn), while
+  moving the floor.
+- **What happens:** in `strategy.matrix`, an `include` entry whose `os`
+  and `python` equal an existing combination (e.g. `ubuntu-latest`,
+  `3.12`) is merged into that job, adding its extra keys.  It doesn't
+  add a job.  So with the matrix `["3.12", "3.x"]`, the `3.12, gmsh
+  4.12.1` include would have silently replaced the plain 3.12 Ubuntu job.
+- **Fix if needed:** an extra axis with a blank value (`gmsh: [""]`) keeps
+  every combination distinct, so the include adds a job.
+- **Today:** the matrix is `["3.11", "3.x"]`, so the include (3.12) is a
+  job of its own.  It matters only if the floor moves to 3.12.
+- **Source:** GitHub's documentation on `jobs.<id>.strategy.matrix.include`.
+  Seen in the job list the change would have produced; not pushed.
