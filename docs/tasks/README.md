@@ -187,7 +187,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0190](0190-bend-level-3-volunteer-card.md) | The bend's level 3 as a volunteer card (resumable transient, mapFields from level 2); `ddtCorr` off to test the algorithm spread | done | 0044, 0055, 0058 |
 | [0191](0191-gallery-in-step-with-cases.md) | The gallery in step with the cases: regenerate, fix the printed path, a stale test | ready | — |
 | [0192](0192-animated-hero-for-1-0.md) | An animated hero for 1.0: a hot front through the insulated network (CHT), two versions (B: field; C: mesh fading into field) for the user to pick | done | — |
-| [0193](0193-hero-polish-dark-mode-ghosting.md) | The animated hero, polished: no ghosting, a matching still, a dark-theme version, `--social` | ready (before the 1.0 release) | — |
+| [0193](0193-hero-polish-dark-mode-ghosting.md) | The animated hero, polished: no ghosting, a matching still, a dark-theme version, `--social` | done | — |
 
 ### Validation
 

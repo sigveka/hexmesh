@@ -27,7 +27,9 @@ transfer.
 
 <p>
 <picture>
+<source media="(prefers-color-scheme: dark) and (prefers-reduced-motion: reduce)" srcset="docs/gallery/img/hero-dark.png">
 <source media="(prefers-reduced-motion: reduce)" srcset="docs/gallery/img/hero.png">
+<source media="(prefers-color-scheme: dark)" srcset="docs/gallery/img/hero-dark.webp" type="image/webp">
 <source srcset="docs/gallery/img/hero.webp" type="image/webp">
 <img src="docs/gallery/img/hero.png" width="66%" alt="An insulated header with a tee and a wye, a quarter cut away to show the fluid's O-grid core, the steel wall and the insulation, all hexahedra; animated, the mesh fades into the temperature as hot water fills the cold network">
 </picture>

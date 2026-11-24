@@ -84,6 +84,7 @@ import importlib.util
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -551,14 +552,66 @@ def hero_scene(xyz, materials: list[str], cells: dict):
     return ren, parts
 
 
-def hero_worker(out: Path) -> None:
-    """``img/hero.png``: :data:`HERO` with the quarter towards the viewer
-    (y < 0, z > 0) cut away, whole cells, so the O-H core, the steel and
-    the insulation show through the header, the tee and the wye; faces
-    coloured by material as in the section images (task 0078)."""
-    ren, _ = hero_scene(*hero_mesh())
-    snapshot(ren, out, (2 * HERO_SIZE[0], 2 * HERO_SIZE[1]))
-    crop_to_content(out, HERO_SIZE[0], 0.03)
+# Light and dark versions of the hero (task 0193): the dark one on GitHub's
+# dark background, with light ink for the overlays.
+HERO_THEMES = {"light": {"bg": "#ffffff", "ink": (40, 44, 52), "suffix": ""},
+               "dark": {"bg": "#0d1117", "ink": (230, 237, 243), "suffix": "-dark"}}
+HERO_MATERIAL_LABEL = {"fluid": "fluid", "steel": "steel wall",
+                       "insulation": "insulation"}
+
+
+def hero_window(ren):
+    """An off-screen window at twice :data:`HERO_SIZE` and a function that
+    renders *ren* on a theme's background and returns the image."""
+    import vtk
+    import vtk.util.numpy_support                                   # noqa: F401
+    from PIL import Image
+    win = vtk.vtkRenderWindow()
+    win.SetOffScreenRendering(1)
+    win.SetMultiSamples(8)
+    win.AddRenderer(ren)
+    win.SetSize(2 * HERO_SIZE[0], 2 * HERO_SIZE[1])
+
+    def grab(theme: str = "light"):
+        ren.SetBackground(*rgb(HERO_THEMES[theme]["bg"]))
+        win.Render()
+        g = vtk.vtkWindowToImageFilter()
+        g.SetInput(win)
+        g.ReadFrontBufferOff()
+        g.Update()
+        img = g.GetOutput()
+        w, h, _ = img.GetDimensions()
+        a = vtk.util.numpy_support.vtk_to_numpy(img.GetPointData().GetScalars())
+        return Image.fromarray(a.reshape(h, w, -1)[::-1, :, :3].copy())
+    return grab
+
+
+def hero_materials(materials: list[str], cells: dict) -> dict[str, str]:
+    """Each drawn material's colour, as in the section images."""
+    return {name: PALETTE[materials.index(name) % len(PALETTE)] for name in cells}
+
+
+def hero_opening(grab, colours: dict, box=None):
+    """The opening frame in each theme, material colours with a legend,
+    and the crop box (from the light render) every frame shares."""
+    first = grab("light")
+    box = box or content_box(first, 0.03)
+    return {theme: hero_legend(crop_scaled(first if theme == "light" else grab(theme),
+                                           box, HERO_SIZE[0]), colours, theme)
+            for theme in HERO_THEMES}, box
+
+
+def hero_worker(out_dir: Path) -> None:
+    """``img/hero.png`` and ``img/hero-dark.png``: :data:`HERO` with the
+    quarter towards the viewer (y < 0, z > 0) cut away, whole cells, so the
+    O-H core, the steel and the insulation show through the header, the tee
+    and the wye; faces coloured by material as in the section images, with
+    a legend (task 0078).  The animation opens on the same frame (0193)."""
+    xyz, materials, cells = hero_mesh()
+    ren, _ = hero_scene(xyz, materials, cells)
+    frames, _ = hero_opening(hero_window(ren), hero_materials(materials, cells))
+    for theme, im in frames.items():
+        im.save(out_dir / f"hero{HERO_THEMES[theme]['suffix']}.png")
 
 
 # The animated hero (task 0192): docs/gallery/hero_run.py's case, rendered
@@ -581,13 +634,13 @@ def hero_times(case: Path) -> list[tuple[float, str]]:
 
 
 def hero_anim_worker(case: Path, out: Path) -> None:
-    """Render the frames of the animated hero into *out*: ``mesh.png``
-    (hero.png's colours) and ``field_NNN.png`` (temperature), all cropped
-    to the same box at :data:`HERO_SIZE`, plus ``frames.json``."""
+    """Render the frames of the animated hero into *out*, in each theme
+    (``-dark`` for the dark one): ``open.png`` (``hero.png``) and
+    ``field_NNN.png`` (temperature, no overlay yet), all cropped to the
+    same box at :data:`HERO_SIZE`, plus ``frames.json``."""
     import numpy as np
     import vtk
     from matplotlib import colormaps
-    from PIL import Image
     from scipy.spatial import cKDTree
     from hexmesh.study import openfoam as of
     sys.path.insert(0, str(HERE))
@@ -608,27 +661,11 @@ def hero_anim_worker(case: Path, out: Path) -> None:
         worst = max(worst, float((d / np.cbrt(vol[i])).max()))
         which[name] = i
 
-    win = vtk.vtkRenderWindow()
-    win.SetOffScreenRendering(1)
-    win.SetMultiSamples(8)
-    win.AddRenderer(ren)
-    win.SetSize(2 * HERO_SIZE[0], 2 * HERO_SIZE[1])
-
-    def grab():
-        win.Render()
-        g = vtk.vtkWindowToImageFilter()
-        g.SetInput(win)
-        g.ReadFrontBufferOff()
-        g.Update()
-        img = g.GetOutput()
-        w, h, _ = img.GetDimensions()
-        a = vtk.util.numpy_support.vtk_to_numpy(img.GetPointData().GetScalars())
-        return Image.fromarray(a.reshape(h, w, -1)[::-1, :, :3].copy())
-
-    import vtk.util.numpy_support                                   # noqa: F401
-    first = grab()
-    box = content_box(first, 0.03)
-    crop_scaled(first, box, HERO_SIZE[0]).save(out / "mesh.png")
+    grab = hero_window(ren)
+    colours = hero_materials(materials, cells)
+    opening, box = hero_opening(grab, colours)
+    for theme, im in opening.items():
+        im.save(out / f"open{HERO_THEMES[theme]['suffix']}.png")
 
     cmap = colormaps[HERO_CMAP]
     lut = vtk.vtkLookupTable()
@@ -661,12 +698,12 @@ def hero_anim_worker(case: Path, out: Path) -> None:
             grid.Modified()
             if region == "fluid":
                 share = float((T > hot).mean())
-        crop_scaled(grab(), box, HERO_SIZE[0]).save(out / f"field_{n:03d}.png")
-        frames.append({"t": t, "file": f"field_{n:03d}.png", "fluid_hot_share": share})
+        for theme in HERO_THEMES:
+            crop_scaled(grab(theme), box, HERO_SIZE[0]).save(
+                out / f"field_{n:03d}{HERO_THEMES[theme]['suffix']}.png")
+        frames.append({"t": t, "file": f"field_{n:03d}", "fluid_hot_share": share})
     (out / "frames.json").write_text(json.dumps(
-        {"frames": frames, "match_worst": worst, "cmap": HERO_CMAP,
-         "materials": {name: PALETTE[materials.index(name) % len(PALETTE)]
-                       for name in parts},
+        {"frames": frames, "match_worst": worst, "cmap": HERO_CMAP, "materials": colours,
          "t_amb": hero_run.T_AMB, "t_hot": hero_run.T_HOT}, indent=1), encoding="utf-8")
 
 
@@ -680,13 +717,13 @@ def _font(size: int):
     return ImageFont.load_default()
 
 
-def hero_overlay(im, t: float, info: dict):
+def hero_overlay(im, t: float, info: dict, theme: str = "light"):
     """*im* with the clock (simulated time) and a small colour bar."""
     from matplotlib import colormaps
     from PIL import ImageDraw
     im = im.copy()
     d = ImageDraw.Draw(im)
-    ink = (40, 44, 52)
+    ink = HERO_THEMES[theme]["ink"]
     d.text((18, 14), f"t = {t:,.0f} s", fill=ink, font=_font(22))
     cmap = colormaps[info["cmap"]]
     x0, y0, w, h = im.width - 46, 24, 14, 150
@@ -702,17 +739,13 @@ def hero_overlay(im, t: float, info: dict):
     return im
 
 
-HERO_MATERIAL_LABEL = {"fluid": "fluid", "steel": "steel wall",
-                       "insulation": "insulation"}
-
-
-def hero_legend(im, info: dict):
-    """*im* (the mesh frame) with a swatch and label per material."""
+def hero_legend(im, colours: dict[str, str], theme: str = "light"):
+    """*im* (the opening frame) with a swatch and label per material."""
     from PIL import ImageDraw
     im = im.copy()
     d = ImageDraw.Draw(im)
-    ink, f = (40, 44, 52), _font(17)
-    labels = [(HERO_MATERIAL_LABEL.get(n, n), c) for n, c in info["materials"].items()]
+    ink, f = HERO_THEMES[theme]["ink"], _font(17)
+    labels = [(HERO_MATERIAL_LABEL.get(n, n), c) for n, c in colours.items()]
     x0 = im.width - 28 - 26 - max(d.textlength(t, font=f) for t, _ in labels)
     for k, (label, colour) in enumerate(labels):
         y = 22 + 30 * k
@@ -721,57 +754,150 @@ def hero_legend(im, info: dict):
     return im
 
 
-def hero_animation(frames_dir: Path, out_dir: Path) -> dict:
-    """Assemble ``hero.webp`` from :func:`hero_anim_worker`'s frames: the
-    mesh image with a material legend, a crossfade into the field at t = 0,
-    then the field with a short hold on its last frame (version C, the
-    user's pick, task 0192)."""
+def hero_blank(frames, bg: str, margin: int = 4):
+    """The pixels that are *bg* in every one of *frames*, at least *margin*
+    pixels from anything drawn: where an encoding must leave background."""
+    import numpy as np
+    from PIL import Image, ImageFilter
+    drawn = np.zeros(frames[0].size[::-1], dtype=bool)
+    ref = np.array(Image.new("RGB", (1, 1), bg))[0, 0].astype(int)
+    for im in frames:
+        drawn |= (np.abs(np.asarray(im, dtype=int) - ref) > 0).any(axis=2)
+    grown = Image.fromarray(drawn.astype(np.uint8) * 255).filter(
+        ImageFilter.MaxFilter(2 * margin + 1))
+    return ~np.asarray(grown, dtype=bool), ref
+
+
+def hero_residue(path: Path, blank, ref) -> int:
+    """The largest deviation from the background, in 8-bit levels, over
+    the *blank* pixels (one mask, or one per frame) of every frame of the
+    animation at *path*, each frame shown on the background (as a page
+    shows a transparent one)."""
+    import numpy as np
+    from PIL import Image, ImageSequence
+    worst = 0
+    with Image.open(path) as anim:
+        for k, frame in enumerate(ImageSequence.Iterator(anim)):
+            mask = blank[k] if isinstance(blank, list) else blank
+            a = np.asarray(frame.convert("RGBA"), dtype=float)[mask]
+            shown = np.rint(a[:, :3] * a[:, 3:] / 255 + ref * (1 - a[:, 3:] / 255))
+            worst = max(worst, int(np.abs(shown - ref).max()) if a.size else 0)
+    return worst
+
+
+# Lossy WebP leaves residue on the background at any quality: ringing by
+# the overlays, and blocks the inter-frame coding carries over (task 0193;
+# up to 26 levels at quality 80-100).  So the background is transparent
+# instead: the alpha plane is lossless, and the page's own colour (white,
+# or GitHub's dark #0d1117) shows through exactly.
+HERO_ENCODING = {"quality": 80, "method": 6}
+HERO_MAX_BYTES = 3_000_000
+
+
+def hero_animation(frames_dir: Path, out_dir: Path, theme: str = "light") -> dict:
+    """Assemble ``hero.webp`` (``hero-dark.webp`` for *theme* dark) from
+    :func:`hero_anim_worker`'s frames: the opening frame (``hero.png``),
+    a crossfade into the field at t = 0, then the field with a short hold
+    on its last frame (version C, the user's pick, task 0192)."""
     from PIL import Image
+    sfx = HERO_THEMES[theme]["suffix"]
     info = json.loads((frames_dir / "frames.json").read_text(encoding="utf-8"))
     frames = info["frames"]
-    field = [hero_overlay(Image.open(frames_dir / f["file"]).convert("RGB"), f["t"], info)
-             for f in frames]
+    raw = [Image.open(frames_dir / f"{f['file']}{sfx}.png").convert("RGB") for f in frames]
+    field = [hero_overlay(im, f["t"], info, theme) for im, f in zip(raw, frames)]
     front = [i for i, f in enumerate(frames) if f["fluid_hot_share"] is not None]
     mid = min(front, key=lambda i: abs(frames[i]["fluid_hot_share"] - 0.5))
-    mesh = hero_legend(Image.open(frames_dir / "mesh.png").convert("RGB"), info)
-    fade = [Image.blend(mesh, field[0], a / 10) for a in range(1, 10)]
-    seq = [mesh] + fade + field + [field[-1]]
+    opening = Image.open(frames_dir / f"open{sfx}.png").convert("RGB")
+    fade = [Image.blend(opening, field[0], a / 10) for a in range(1, 10)]
+    seq = [opening] + fade + field + [field[-1]]
     ms = [2500] + [70] * len(fade) + [90] * len(field) + [1500]
+    # each frame's own background (the clock's text changes), so no pixel
+    # another frame draws on stays opaque and lossy here
+    blank, rgba = [], []
+    for im in seq:
+        mask, ref = hero_blank([im], HERO_THEMES[theme]["bg"], margin=1)
+        blank.append(mask)
+        im = im.convert("RGBA")
+        im.putalpha(Image.fromarray((~mask).astype("uint8") * 255))
+        rgba.append(im)
     out_dir.mkdir(parents=True, exist_ok=True)
-    path = out_dir / "hero.webp"
-    seq[0].save(path, save_all=True, append_images=seq[1:], duration=ms, loop=0,
-                quality=80, method=6)
-    return {"path": str(path), "bytes": path.stat().st_size, "seconds": sum(ms) / 1000,
-            "frames": len(field), "mid_t": frames[mid]["t"],
-            "t_end": frames[-1]["t"]}
+    path = out_dir / f"hero{sfx}.webp"
+    rgba[0].save(path, save_all=True, append_images=rgba[1:], duration=ms, loop=0,
+                 **HERO_ENCODING)
+    size, residue = path.stat().st_size, hero_residue(path, blank, ref)
+    if residue or size > HERO_MAX_BYTES:
+        raise SystemExit(f"{path.name}: {size:,} bytes, residue {residue} on the background")
+    return {"path": str(path), "bytes": size, "seconds": sum(ms) / 1000,
+            "frames": len(field), "mid_t": frames[mid]["t"], "mid_frame": 1 + len(fade) + mid,
+            "t_end": frames[-1]["t"], "encoding": {**HERO_ENCODING, "residue": residue}}
+
+
+SOCIAL_SIZE = (1280, 640)
+
+
+def run_social(out: Path) -> None:
+    """A 1280×640 PNG for the repository's social preview: the mid-front
+    frame of ``img/hero.webp`` (``img/hero.json`` says which), centred on
+    white."""
+    from PIL import Image
+    meta = IMG / "hero.json"
+    if not meta.exists():
+        raise SystemExit(f"{meta.name}: missing; run build.py --hero-anim CASE first")
+    n = json.loads(meta.read_text(encoding="utf-8"))["light"]["mid_frame"]
+    with Image.open(IMG / "hero.webp") as anim:
+        anim.seek(n)
+        frame = anim.convert("RGBA")                    # the background is transparent
+    canvas = Image.new("RGB", SOCIAL_SIZE, "white")
+    if frame.width > SOCIAL_SIZE[0] or frame.height > SOCIAL_SIZE[1]:
+        frame.thumbnail(SOCIAL_SIZE, Image.LANCZOS)
+    canvas.paste(frame, ((SOCIAL_SIZE[0] - frame.width) // 2,
+                         (SOCIAL_SIZE[1] - frame.height) // 2), frame)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    canvas.save(out)
+    print(f"wrote {out}", flush=True)
 
 
 def run_hero() -> None:
-    """Render ``img/hero.png`` in its own process (one GMSH session)."""
+    """Render ``img/hero.png`` and ``img/hero-dark.png`` in their own
+    process (one GMSH session)."""
     IMG.mkdir(parents=True, exist_ok=True)
     env = dict(os.environ, PYTHONPATH=str(ROOT))
-    p = subprocess.run([sys.executable, __file__, "--hworker", str(IMG / "hero.png")],
+    p = subprocess.run([sys.executable, __file__, "--hworker", str(IMG)],
                        env=env, capture_output=True, text=True)
     if p.returncode:
         raise SystemExit(f"hero: FAILED\n{p.stderr[-2000:]}")
-    print(f"wrote {(IMG / 'hero.png').relative_to(ROOT)}", flush=True)
+    for theme in HERO_THEMES:
+        print(f"wrote {(IMG / f'hero{HERO_THEMES[theme]['suffix']}.png').relative_to(ROOT)}",
+              flush=True)
 
 
-def run_hero_anim(case: Path, out: Path) -> dict:
+def run_hero_anim(case: Path, out: Path, keep: Path | None = None) -> dict:
     """Render the animated hero from *case* (``docs/gallery/hero_run.py``'s)
     into *out*: the frames in their own process (one GMSH session), then
-    ``hero.webp``."""
+    ``hero.webp`` and ``hero-dark.webp``, their opening frames as
+    ``hero.png`` and ``hero-dark.png``, and ``hero.json``.  With *keep*,
+    the frames stay there."""
     if not (case / "constant/fluid/polyMesh").is_dir():
         raise SystemExit(f"{case}: no hero run there; run "
                          f"python3 docs/gallery/hero_run.py --work {case} first")
     env = dict(os.environ, PYTHONPATH=str(ROOT))
     with tempfile.TemporaryDirectory(dir=out if out.is_dir() else None) as tmp:
-        p = subprocess.run([sys.executable, __file__, "--haworker", str(case), tmp],
-                           env=env, capture_output=True, text=True)
-        if p.returncode:
-            raise SystemExit(f"hero animation: FAILED\n{p.stderr[-2000:]}")
-        result = hero_animation(Path(tmp), out)
+        frames = keep or Path(tmp)
+        frames.mkdir(parents=True, exist_ok=True)
+        if not (frames / "frames.json").exists():
+            p = subprocess.run([sys.executable, __file__, "--haworker", str(case), str(frames)],
+                               env=env, capture_output=True, text=True)
+            if p.returncode:
+                raise SystemExit(f"hero animation: FAILED\n{p.stderr[-2000:]}")
+        result = {theme: hero_animation(frames, out, theme) for theme in HERO_THEMES}
+        for theme in HERO_THEMES:
+            sfx = HERO_THEMES[theme]["suffix"]
+            shutil.copyfile(frames / f"open{sfx}.png", out / f"hero{sfx}.png")
+    meta = {theme: {k: r[k] for k in ("frames", "mid_frame", "mid_t", "t_end", "encoding")}
+            for theme, r in result.items()}
+    (out / "hero.json").write_text(json.dumps(meta, indent=1) + "\n", encoding="utf-8")
     print(json.dumps(result, indent=1), flush=True)
+    return result
     return result
 
 
@@ -1615,6 +1741,10 @@ def main() -> None:
                          "(task 0192)")
     ap.add_argument("--anim-out", type=Path, default=IMG,
                     help="where --hero-anim writes (default: %(default)s)")
+    ap.add_argument("--anim-frames", type=Path, metavar="DIR",
+                    help="keep --hero-anim's frames in DIR, and reuse them if there")
+    ap.add_argument("--social", type=Path, metavar="OUT",
+                    help="write the 1280x640 social-preview PNG from img/hero.webp to OUT")
     ap.add_argument("--worker", nargs=2, help=argparse.SUPPRESS)
     ap.add_argument("--hworker", nargs=1, help=argparse.SUPPRESS)
     ap.add_argument("--haworker", nargs=2, help=argparse.SUPPRESS)
@@ -1637,7 +1767,10 @@ def main() -> None:
         run_hero()
         return
     if args.hero_anim:
-        run_hero_anim(args.hero_anim, args.anim_out)
+        run_hero_anim(args.hero_anim, args.anim_out, args.anim_frames)
+        return
+    if args.social:
+        run_social(args.social)
         return
 
     from hexmesh.examples import ALL

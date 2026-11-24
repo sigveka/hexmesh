@@ -1,0 +1,24 @@
+{
+ "light": {
+  "frames": 56,
+  "mid_frame": 32,
+  "mid_t": 880.0,
+  "t_end": 6000.0,
+  "encoding": {
+   "quality": 80,
+   "method": 6,
+   "residue": 0
+  }
+ },
+ "dark": {
+  "frames": 56,
+  "mid_frame": 32,
+  "mid_t": 880.0,
+  "t_end": 6000.0,
+  "encoding": {
+   "quality": 80,
+   "method": 6,
+   "residue": 0
+  }
+ }
+}

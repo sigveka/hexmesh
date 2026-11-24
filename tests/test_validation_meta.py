@@ -111,6 +111,67 @@ def test_the_animated_hero_without_a_run_says_what_to_run(build, tmp_path):
         build.run_hero_anim(tmp_path / "case", tmp_path)
 
 
+def _hero_frames(build, d: Path) -> Path:
+    """A stand-in for hero_anim_worker's output: an opening frame and four
+    field frames per theme, a shape on the background, no solve."""
+    from PIL import Image, ImageDraw
+    d.mkdir()
+    shares = [0.2, 0.5, 0.8, None]
+    for spec in build.HERO_THEMES.values():
+        for n, name in enumerate(["open"] + [f"field_{k:03d}" for k in range(len(shares))]):
+            im = Image.new("RGB", (400, 220), spec["bg"])
+            ImageDraw.Draw(im).ellipse([60, 70, 300, 200], fill=(40 + 50 * n, 20, 200 - 40 * n))
+            im.save(d / f"{name}{spec['suffix']}.png")
+    (d / "frames.json").write_text(json.dumps({
+        "frames": [{"t": 100.0 * k, "file": f"field_{k:03d}", "fluid_hot_share": s}
+                   for k, s in enumerate(shares)],
+        "cmap": "plasma", "materials": {"fluid": "#3b7dd8", "steel": "#d9822b"},
+        "t_amb": 293.15, "t_hot": 353.15}), encoding="utf-8")
+    return d
+
+
+def test_the_animated_hero_leaves_the_background_clean(build, tmp_path):
+    from PIL import Image
+    frames, out = _hero_frames(build, tmp_path / "frames"), tmp_path / "out"
+    for theme, spec in build.HERO_THEMES.items():
+        r = build.hero_animation(frames, out, theme)
+        assert r["encoding"]["residue"] == 0 and r["bytes"] < build.HERO_MAX_BYTES
+        assert r["mid_frame"] == 1 + 9 + 1                      # opening, fade, then share 0.5
+        with Image.open(out / f"hero{spec['suffix']}.webp") as anim:
+            assert anim.n_frames == 1 + 9 + 4              # the hold merges into the last
+
+
+def test_a_planted_smudge_on_the_background_is_residue(build, tmp_path):
+    from PIL import Image
+    frames = _hero_frames(build, tmp_path / "frames")
+    seq = [Image.open(frames / f"field_{k:03d}.png").convert("RGB") for k in range(4)]
+    blank, ref = build.hero_blank(seq, "#ffffff")
+    assert blank[5, 5] and not blank[135, 180]
+    clean, smudged = tmp_path / "clean.webp", tmp_path / "smudged.webp"
+    seq[0].save(clean, save_all=True, append_images=seq[1:], lossless=True)
+    dirty = seq[2].copy()
+    dirty.putpixel((20, 15), (238, 236, 200))
+    (seq[:2] + [dirty] + seq[3:])[0].save(smudged, save_all=True,
+                                          append_images=seq[1:2] + [dirty] + seq[3:],
+                                          lossless=True)
+    assert build.hero_residue(clean, blank, ref) == 0
+    assert build.hero_residue(smudged, blank, ref) == 55
+
+
+def test_the_social_preview_is_the_mid_front_frame(build, monkeypatch, tmp_path):
+    from PIL import Image
+    monkeypatch.setattr(build, "IMG", tmp_path / "img")
+    with pytest.raises(SystemExit, match="--hero-anim CASE first"):
+        build.run_social(tmp_path / "social.png")
+    r = build.hero_animation(_hero_frames(build, tmp_path / "frames"), tmp_path / "img")
+    (tmp_path / "img" / "hero.json").write_text(json.dumps({"light": r}), encoding="utf-8")
+    build.run_social(tmp_path / "social.png")
+    with Image.open(tmp_path / "social.png") as im:
+        assert im.size == build.SOCIAL_SIZE
+        assert im.getpixel((5, 5)) == (255, 255, 255)
+        assert im.getpixel((640, 320)) != (255, 255, 255)        # the frame, centred
+
+
 def test_planned_tasks_carry_known_features(build):
     planned = build.planned_cases({build.case_meta(c)["task"] for c in build.case_dirs()})
     assert {p["task"] for p in planned} >= {"0079"}           # 0050, 0072 have case directories

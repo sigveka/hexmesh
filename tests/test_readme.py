@@ -132,6 +132,21 @@ def test_every_relative_link_resolves(doc):
     assert broken(doc) == []
 
 
+def test_the_hero_picks_its_theme_and_motion():
+    """Task 0193: the first matching <source> wins, so the most specific
+    come first; the <img> is the still."""
+    picture = re.search(r"<picture>(.*?)</picture>", README.read_text(encoding="utf-8"), re.S)
+    sources = re.findall(r'<source(?: media="([^"]*)")? srcset="([^"]+)"', picture.group(1))
+    img = "docs/gallery/img/"
+    assert sources == [
+        ("(prefers-color-scheme: dark) and (prefers-reduced-motion: reduce)", img + "hero-dark.png"),
+        ("(prefers-reduced-motion: reduce)", img + "hero.png"),
+        ("(prefers-color-scheme: dark)", img + "hero-dark.webp"),
+        ("", img + "hero.webp")]
+    assert re.search(r'<img src="docs/gallery/img/hero.png"', picture.group(1))
+    assert {src for _, src in sources} <= set(links(README))
+
+
 def test_a_planted_broken_link_and_anchor(tmp_path):
     (tmp_path / "a.md").write_text("# Top\n\n## Two words\n", encoding="utf-8")
     doc = tmp_path / "doc.md"

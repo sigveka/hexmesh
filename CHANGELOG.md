@@ -81,6 +81,13 @@ time; an illustration, not a validation case (`docs/gallery/img/hero.webp`,
 1.3 MB; `docs/gallery/hero_run.py`, then `build.py --hero-anim CASE`).
 `hero.png` stays as the fallback.
 
+**Docs: the hero, polished** (task 0193).  A dark-theme version
+(`hero-dark.webp`, `hero-dark.png`), and stills for reduced motion; the
+still is the animation's opening frame, with its material legend.  The
+WebP's background is transparent, so lossy coding leaves no residue
+on it (checked per frame).  `build.py --social OUT` writes the
+1280×640 social-preview image.
+
 ## 0.8.0 (2026-11-18)
 
 The API review before the 1.0 freeze (decisions 0042 and 0053): the
