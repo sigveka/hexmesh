@@ -137,7 +137,12 @@ Images in the notes use the tag's raw URL, so an old release never
 shows a newer picture:
 `https://raw.githubusercontent.com/sigveka/hexmesh/vX.Y.Z/docs/gallery/img/hero.webp`.
 For a major release (1.0 and on), open the notes with the animated hero
-(task 0192) and its caption.
+(task 0192) and its caption.  **Copy the README's whole `<picture>`
+block, not a bare image link**, with each `srcset` made absolute at the
+tag.  The WebPs have a transparent background (task 0193), so the light
+version's dark clock and labels vanish on a dark page.  The `<picture>`
+sends dark-theme readers `hero-dark.webp`.  Anywhere a `<picture>` isn't
+allowed, use `hero.png`, which is opaque.
 
 **The social preview** (the maintainer, in the repository's Settings →
 General → Social preview).  At a major release, or when the hero
