@@ -26,9 +26,18 @@ with fluid, wall and insulation as separate regions for conjugate heat
 transfer.
 
 <p>
-<picture><source srcset="docs/gallery/img/hero.webp" type="image/webp"><img src="docs/gallery/img/hero.png" width="66%" alt="An insulated header with a tee and a wye, a quarter cut away: the fluid's O-grid core, the steel wall and the insulation, all hexahedra. Animated: the mesh fades into the temperature as 80 °C water (laminar, Re 300) enters the cold network; the front fills the core in about 25 minutes, then the heat soaks into the steel and insulation up to 100 minutes. An illustration, not a validation case."></picture>
+<picture>
+<source media="(prefers-reduced-motion: reduce)" srcset="docs/gallery/img/hero.png">
+<source srcset="docs/gallery/img/hero.webp" type="image/webp">
+<img src="docs/gallery/img/hero.png" width="66%" alt="An insulated header with a tee and a wye, a quarter cut away to show the fluid's O-grid core, the steel wall and the insulation, all hexahedra; animated, the mesh fades into the temperature as hot water fills the cold network">
+</picture>
 <img src="docs/gallery/img/insulated_tee_section.png" width="30%" alt="Cross-section: O-grid fluid core, steel wall, insulation">
 </p>
+
+<sub>Hot water entering a cold insulated network: fluid, steel and
+insulation in one conformal hex mesh.  80 °C water at Re 300 (laminar),
+chtMultiRegionFoam, 100 minutes simulated.  An illustration, not a
+validation result; rebuilt by <code>docs/gallery/hero_run.py</code>.</sub>
 
 <!-- readme:features:start -->
 | | |

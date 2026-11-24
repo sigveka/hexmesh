@@ -133,6 +133,19 @@ made absolute at the tag
 (`https://github.com/sigveka/hexmesh/blob/vX.Y.Z/API.md`).  Check the
 release with `gh release view vX.Y.Z`.
 
+Images in the notes use the tag's raw URL, so an old release never
+shows a newer picture:
+`https://raw.githubusercontent.com/sigveka/hexmesh/vX.Y.Z/docs/gallery/img/hero.webp`.
+For a major release (1.0 and on), open the notes with the animated hero
+(task 0192) and its caption.
+
+**The social preview** (the maintainer, in the repository's Settings →
+General → Social preview).  At a major release, or when the hero
+changes, upload a still of the hero at 1280×640: the mid-front frame,
+centred on white.  GitHub shows it wherever the repository's link is
+shared.  `docs/gallery/build.py --social` writes it to a path you give
+(task 0193); it isn't committed.
+
 Publishing the release starts the `release` workflow
 (`.github/workflows/release.yml`, task 0149):
 - it builds the wheel and the sdist at the tag, and checks them
