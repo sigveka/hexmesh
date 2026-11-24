@@ -866,9 +866,9 @@ def run_hero() -> None:
                        env=env, capture_output=True, text=True)
     if p.returncode:
         raise SystemExit(f"hero: FAILED\n{p.stderr[-2000:]}")
-    for theme in HERO_THEMES:
-        print(f"wrote {(IMG / f'hero{HERO_THEMES[theme]['suffix']}.png').relative_to(ROOT)}",
-              flush=True)
+    for spec in HERO_THEMES.values():
+        path = IMG / f"hero{spec['suffix']}.png"
+        print(f"wrote {path.relative_to(ROOT)}", flush=True)
 
 
 def run_hero_anim(case: Path, out: Path, keep: Path | None = None) -> dict:
