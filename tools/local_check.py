@@ -21,10 +21,14 @@ repository root::
     python3 tools/local_check.py --require    # no OpenFOAM runner is a failure
 
 ``tools/hooks/pre-push`` (opt-in) runs it before a push whose commits
-touch :data:`WATCHED`: ``git config core.hooksPath tools/hooks``.
+touch :data:`WATCHED`, and step s alone before one that touches other
+Python files: ``git config core.hooksPath tools/hooks``.
 
 Steps:
 
+s. every Python file parses at the oldest supported Python
+   (``requires-python``), by ruff's version-aware syntax errors (task
+   0194): syntax newer than the floor fails here, not in CI's oldest job;
 a. the ``openfoam``-marked runner and recipe tests (what CI's OpenFOAM
    job ran);
 b. the volunteer try-out end to end: ``prepare``, ``run``, ``collect``
@@ -56,6 +60,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -89,6 +94,32 @@ def touched(files) -> list[str]:
     check covers; :data:`UNKNOWN` among them counts as one."""
     return [f for f in (x.strip() for x in files)
             if f == UNKNOWN or any(f == w or f.startswith(w) for w in WATCHED)]
+
+
+def python_floor() -> str:
+    """The oldest supported Python as ruff's target, from ``requires-python``
+    (``>=3.11`` gives ``py311``)."""
+    spec = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    major, minor = spec["project"]["requires-python"].removeprefix(">=").split(".")[:2]
+    return f"py{major}{minor}"
+
+
+def ruff_argv() -> list[str] | None:
+    """How to run ruff (``dev`` pins it): this Python's module, else ``PATH``."""
+    if importlib.util.find_spec("ruff"):
+        return [sys.executable, "-m", "ruff"]
+    return ["ruff"] if shutil.which("ruff") else None
+
+
+def syntax_errors(files: list[str]) -> tuple[int, str]:
+    """Ruff's syntax errors in *files* at :func:`python_floor`: its exit
+    status and report.  ``--select E902`` (a file it can't read) turns every
+    lint rule off, so only syntax is checked; ``--isolated`` ignores any
+    configuration."""
+    argv = [*ruff_argv(), "check", "--isolated", "--no-cache", "--target-version",
+            python_floor(), "--select", "E902", "--output-format", "concise", *files]
+    p = subprocess.run(argv, cwd=ROOT, capture_output=True, text=True)
+    return p.returncode, (p.stdout + p.stderr).strip()
 
 
 def _load(name: str, rel: str):
@@ -193,6 +224,20 @@ def compare_levels(new_file: Path, stored_file: Path, rel: float = REL_TOL,
 
 
 # --- the steps ----------------------------------------------------------------------------
+
+def step_syntax(runner: str | None, tmp: Path, args) -> tuple[str, str]:
+    if ruff_argv() is None:
+        return FAIL, "ruff isn't installed: pip install -e \".[dev]\""
+    files = subprocess.run(["git", "ls-files", "-z", "*.py"], cwd=ROOT, capture_output=True,
+                           text=True, check=True).stdout.split("\0")
+    files = [f for f in files if f]
+    rc, report = syntax_errors(files)
+    if rc == 0:
+        return PASS, f"{len(files)} files parse as Python {python_floor()[2]}.{python_floor()[3:]}"
+    errors = [line for line in report.splitlines() if "invalid-syntax" in line]
+    return FAIL, "; ".join(errors[:3] or report.splitlines()[-3:]) + \
+        (f" (and {len(errors) - 3} more)" if len(errors) > 3 else "")
+
 
 def step_tests(runner: str, tmp: Path, args) -> tuple[str, str]:
     log = tmp / "a-tests.log"
@@ -305,7 +350,8 @@ def step_exports(runner: str | None, tmp: Path, args) -> tuple[str, str]:
     return status, "; ".join(parts)
 
 
-STEPS = (("a", "OpenFOAM runner and recipe tests", step_tests, True),
+STEPS = (("s", "syntax at the Python floor", step_syntax, False),
+         ("a", "OpenFOAM runner and recipe tests", step_tests, True),
          ("b", "volunteer try-out end to end", step_try, True),
          ("c", "every fitting (MMS k = 1)", step_fittings, True),
          ("d", "volunteer cards and levels", step_cards, False),
@@ -321,24 +367,33 @@ def main(argv=None) -> int:
     ap.add_argument("--require", action="store_true",
                     help="fail, rather than skip, when there is no OpenFOAM runner")
     ap.add_argument("--no-exports", action="store_true", help="leave out step e")
-    ap.add_argument("--steps", default="abcde", help="the steps to run (default %(default)s)")
+    ap.add_argument("--steps", default="sabcde", help="the steps to run (default %(default)s)")
     ap.add_argument("--jobs", type=int, default=physical_cores(),
                     help="levels run at once in step c (default: the physical cores, "
                          "%(default)s); check for other runs first")
     ap.add_argument("--keep", action="store_true", help="keep the temporary directory")
     ap.add_argument("--if-touched", action="store_true",
                     help="read the pushed files from stdin, one per line (the pre-push "
-                         "hook), and run only if one is under " + ", ".join(WATCHED))
+                         "hook), and run only if one is under " + ", ".join(WATCHED)
+                         + "; step s alone if only other Python files are")
     args = ap.parse_args(argv)
     args.record = {}
     if args.if_touched:
-        hits = touched(sys.stdin.read().splitlines())
-        if not hits:
+        pushed = [f.strip() for f in sys.stdin.read().splitlines()]
+        hits = touched(pushed)
+        python = [f for f in pushed if f.endswith(".py")]
+        if not hits and not python:
             print("local check: not needed (the push changes nothing under "
-                  f"{', '.join(WATCHED)})")
+                  f"{', '.join(WATCHED)}, and no Python file)")
             return 0
-        print(f"local check: the push changes {hits[0]}"
-              + (f" and {len(hits) - 1} more" if len(hits) > 1 else ""), flush=True)
+        if not hits:
+            print(f"local check: the push changes {python[0]}"
+                  + (f" and {len(python) - 1} more" if len(python) > 1 else "")
+                  + "; step s only", flush=True)
+            args.steps = "s"
+        else:
+            print(f"local check: the push changes {hits[0]}"
+                  + (f" and {len(hits) - 1} more" if len(hits) > 1 else ""), flush=True)
     runner = pick_runner()
     print(f"OpenFOAM runner: {runner or 'none (set HEXMESH_OPENFOAM, or start Docker)'}",
           flush=True)

@@ -3,6 +3,8 @@
 # `python3 tools/local_check.py`, when the pushed commits change
 # hexmesh/study/, the OpenFOAM writer (hexmesh/assembly/_output.py) or
 # validation/.  CI doesn't run OpenFOAM; this does, in about 5 minutes.
+# A push that changes other Python files gets its syntax step only: every
+# file parses at the oldest supported Python (task 0194).
 #
 # Opt in, per clone:   git config core.hooksPath tools/hooks
 # Skip it once:        git push --no-verify

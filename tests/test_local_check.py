@@ -83,6 +83,56 @@ def test_if_touched_says_not_needed(monkeypatch, capsys):
     assert "not needed" in capsys.readouterr().out
 
 
+def test_python_files_outside_the_watched_paths_run_step_s_only(monkeypatch, capsys):
+    """ce6de5f broke CI's 3.11 jobs from docs/gallery/build.py, which no
+    OpenFOAM step watches (task 0194)."""
+    monkeypatch.setattr(lc.sys, "stdin", io.StringIO("README.md\ndocs/gallery/build.py\n"))
+    monkeypatch.setattr(lc, "pick_runner", lambda: None)
+    ran = []
+    monkeypatch.setattr(lc, "STEPS", tuple(
+        (k, t, lambda *a, k=k: ran.append(k) or (lc.PASS, "ran"), needs)
+        for k, t, _, needs in lc.STEPS))
+    assert lc.main(["--if-touched"]) == 0
+    assert ran == ["s"]
+    assert "docs/gallery/build.py; step s only" in capsys.readouterr().out
+
+
+# --- step s: syntax at the Python floor (task 0194) ---------------------------------
+
+def test_the_floor_is_requires_python():
+    assert lc.python_floor() == "py311"
+
+
+needs_ruff = pytest.mark.skipif(lc.ruff_argv() is None, reason="ruff isn't installed (dev)")
+
+
+@needs_ruff
+@pytest.mark.parametrize("source, why", [
+    ('d = {"a": 1}\nx = f"{d["a"]}"\n', "reuse outer quote character in f-strings"),  # 3.12, ce6de5f
+    ("type X = int\n", "`type` alias statement"),                                     # 3.12
+    ("def f[T = int](x: T) -> T:\n    return x\n", "default type for a type parameter"),  # 3.13
+    ("try:\n    pass\nexcept ValueError, TypeError:\n    pass\n", "must be parenthesized"),  # 3.14
+])
+def test_a_planted_construct_newer_than_the_floor_fails(tmp_path, source, why):
+    planted = tmp_path / "planted.py"
+    planted.write_text(source, encoding="utf-8")
+    rc, report = lc.syntax_errors([str(planted)])
+    assert rc == 1 and "invalid-syntax" in report and why in report, report
+
+
+@needs_ruff
+def test_lint_is_not_checked_only_syntax(tmp_path):
+    ok = tmp_path / "ok.py"
+    ok.write_text("import os\nx = f'{1}'\n", encoding="utf-8")       # F401 under ruff's defaults
+    assert lc.syntax_errors([str(ok)]) == (0, "All checks passed!")
+
+
+@needs_ruff
+def test_every_python_file_parses_at_the_floor():
+    status, detail = lc.step_syntax(None, None, None)
+    assert status == lc.PASS, detail
+
+
 @pytest.mark.posix_only
 def test_the_hook_passes_the_pushed_files(tmp_path):
     """The hook itself: a push of a commit that changes a watched path

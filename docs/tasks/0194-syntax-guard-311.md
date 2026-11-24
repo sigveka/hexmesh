@@ -1,6 +1,6 @@
 # 0194 — A syntax guard at the Python floor (3.11), run before a push
 
-- **Status:** ready
+- **Status:** done (2026-11-24)
 - **Decision:** [0039](../decisions/0039-platform-support.md) (3.11 is the
   floor; the user kept it, 2026-11-24)
 - **Depends on:** none.
@@ -52,6 +52,42 @@ should catch 3.12-only syntax before a push.
 
 ## Agent notes
 
+- **The guard: (a), ruff 0.17.6**, verified on planted files
+  (2026-11-24): at `--target-version py311` it reports the PEP 701
+  f-string ("Cannot reuse outer quote character in f-strings on Python
+  3.11"), the `type` alias (3.12), a type-parameter default (3.13) and
+  `except A, B` (3.14) as `invalid-syntax`, and passes at `py312` on the
+  f-string.  ce6de5f's `docs/gallery/build.py` fails at 870:57; today's
+  258 files pass in 0.5 s.  `ast.parse(feature_version=(3, 11))` accepts
+  the f-string on 3.12.3 and 3.14.3 (recorded in `platforms.md`).
+- **Only syntax:** `--isolated --select E902` (a file it can't read):
+  ruff's defaults would add lint findings; `E999` is removed in 0.17 and
+  can't be selected.  A test checks an unused import passes.
+- **Where:** `tools/local_check.py` step s, first, no OpenFOAM; and in
+  the suite (`tests/test_local_check.py`), skipped where ruff isn't
+  installed.  CI installs `dev`, so it runs there on every job.
+- **The hook:** ce6de5f changed `docs/gallery/build.py`, outside
+  `WATCHED`, so the hook would have skipped the check.  A push that
+  changes Python files outside `WATCHED` now runs step s alone.
+- ruff is found as this Python's module, else on `PATH`.  This machine
+  has neither yet (`pip install` here refuses: PEP 668, an
+  externally-managed Python); I tested with a binary in my scratchpad on
+  `PATH`.
+
 ## Questions for design
 
 ## Outcome
+
+- **Files:** `tools/local_check.py` (`python_floor`, `ruff_argv`,
+  `syntax_errors`, `step_syntax`; step s first; the hook's routing),
+  `tools/hooks/pre-push` (comment), `pyproject.toml` (`ruff==0.17.6` in
+  `dev`), `tests/test_local_check.py` (7 tests: the floor, four planted
+  constructs, lint not checked, the tree passes, a Python-only push runs
+  step s only), CONTRIBUTING, `docs/integrations/platforms.md`, CHANGELOG.
+- **Tests:** `tests/test_local_check.py`, `test_readme.py`,
+  `test_architecture.py`: 143 passed with ruff on `PATH`; without it, 6
+  skipped.
+- **Follow-up:** `test_no_runner_skips_the_openfoam_steps[True-1]`
+  leaves an empty `/tmp/hexmesh-local-check-*` per run (the failed
+  check keeps its logs).  Point the check's temporary directory at
+  `tmp_path` in the tests.

@@ -40,6 +40,7 @@ dev = [
     "pytest-xdist>=3",
     "jsonschema>=4.10", # case.json and hexmesh.agent schema tests (skipped without)
     "matplotlib>=3.5",  # hexmesh.agent.preview tests (skipped without)
+    "ruff==0.17.6",     # syntax at the Python floor (tools/local_check.py step s; task 0194)
 ]
 
 [project.scripts]

@@ -188,7 +188,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0191](0191-gallery-in-step-with-cases.md) | The gallery in step with the cases: regenerate, fix the printed path, a stale test | ready | — |
 | [0192](0192-animated-hero-for-1-0.md) | An animated hero for 1.0: a hot front through the insulated network (CHT), two versions (B: field; C: mesh fading into field) for the user to pick | done | — |
 | [0193](0193-hero-polish-dark-mode-ghosting.md) | The animated hero, polished: no ghosting, a matching still, a dark-theme version, `--social` | done | — |
-| [0194](0194-syntax-guard-311.md) | A syntax guard at the Python floor (3.11): catch 3.12-only syntax (PEP 701) before a push | ready | 0039 |
+| [0194](0194-syntax-guard-311.md) | A syntax guard at the Python floor (3.11): catch 3.12-only syntax (PEP 701) before a push | done | 0039 |
 
 ### Validation
 

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+**Development: syntax at the Python floor** (task 0194).  The local check
+and its pre-push hook first parse every Python file at the oldest
+supported Python (`requires-python`), with ruff's version-aware syntax
+errors (`ruff==0.17.6` in `dev`).  It catches the nested same-quote
+f-string that broke CI's 3.11 jobs on ce6de5f, which the stdlib's
+`ast.parse(feature_version=(3, 11))` accepts.
+
 **CI no longer runs OpenFOAM; a local check does** (task 0178).
 `python3 tools/local_check.py` runs the OpenFOAM tests, the volunteer
 try-out, every fitting's coarsest MMS level and each export check's

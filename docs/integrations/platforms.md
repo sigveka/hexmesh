@@ -112,6 +112,26 @@ heights then differed on macOS by up to about 2.5e-3 m (CI run
 (`tests/test_intent.py`) builds every example on every CI job and
 compares it with `tests/data/examples_built.json`.
 
+### Syntax newer than the floor: ruff catches it, `ast` doesn't always — *verified*
+2026-11-24, task 0194.  CI on ce6de5f failed on its three Python 3.11
+jobs: `f'hero{HERO_THEMES[theme]['suffix']}.png'` nested inside an
+f-string, the same quote inside (PEP 701, Python 3.12).  Local tests on
+3.12 passed.
+- **The stdlib's `ast.parse(source, feature_version=(3, 11))` accepts
+  it**, on 3.12.3 and on 3.14.3.  It is best effort: on 3.14.3 at (3, 12)
+  it does reject 3.13's type-parameter defaults, 3.14's `except A, B` and
+  t-strings, and at (3, 11) 3.12's `type` alias.
+- **ruff 0.17.6**, `ruff check --isolated --target-version py311
+  --select E902`, reports each as `invalid-syntax`: "Cannot reuse outer
+  quote character in f-strings on Python 3.11 (syntax was added in Python
+  3.12)", and likewise the `type` alias, type-parameter defaults (3.13)
+  and unparenthesised `except` (3.14).  At `py312` the f-string passes.
+  `--select E902` (a file it can't read) leaves out every lint rule, so
+  only syntax is checked; `E999` was removed from ruff and can't be
+  selected.  The repository's 258 files take 0.5 s.
+- `tools/local_check.py` step s runs it at the floor read from
+  `requires-python`.
+
 ## Open questions
 
 - The gallery's rendering on Windows is untested (task 0092, out of

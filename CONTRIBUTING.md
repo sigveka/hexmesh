@@ -136,7 +136,10 @@ python3 tools/local_check.py              # every step
 python3 tools/local_check.py --order      # and the MMS k = 2 levels (an order per fitting)
 ```
 
-It runs the OpenFOAM runner and recipe tests; the volunteer try-out
+It first checks that every Python file parses at the oldest supported
+Python (`requires-python`, with the `dev` extra's ruff): syntax newer than
+that fails here rather than in CI's oldest job.  Then it runs the
+OpenFOAM runner and recipe tests; the volunteer try-out
 (`prepare`, `run`, `collect`, `check`); every fitting's coarsest MMS
 level, compared with its stored values; every volunteer card against
 its driver; and each export check's coarsest level, when its image is on
@@ -148,8 +151,9 @@ failure).
 **When to run it:** before a push that changes `hexmesh/study/`, the
 OpenFOAM writer (`hexmesh/assembly/_output.py`) or `validation/`.  The
 same `core.hooksPath` as above enables a **pre-push hook** that runs it
-for such a push and stops the push if it fails; `git push --no-verify`
-skips it once.
+for such a push and stops the push if it fails; for a push that changes
+other Python files, it runs the syntax step alone.  `git push
+--no-verify` skips it once.
 
 Questions about the code are welcome as issues too.
 
