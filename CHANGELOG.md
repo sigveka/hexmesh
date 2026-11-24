@@ -74,6 +74,13 @@ sloped walls, the wyes' unrefined split, and two OpenFOAM starts.  The
 same in `refined()`'s and `first_cell`'s docstrings, and as `lessons`
 per case in `hexmesh/agent/validation.json`.
 
+**Docs: an animated hero** (task 0192).  The README's hero opens on the
+mesh, with its materials labelled, and fades into a hot front through it:
+`chtMultiRegionFoam`, laminar water at Re 300, 100 minutes of simulated
+time; an illustration, not a validation case (`docs/gallery/img/hero.webp`,
+1.3 MB; `docs/gallery/hero_run.py`, then `build.py --hero-anim CASE`).
+`hero.png` stays as the fallback.
+
 ## 0.8.0 (2026-11-18)
 
 The API review before the 1.0 freeze (decisions 0042 and 0053): the

@@ -26,7 +26,7 @@ with fluid, wall and insulation as separate regions for conjugate heat
 transfer.
 
 <p>
-<img src="docs/gallery/img/hero.png" width="66%" alt="An insulated header with a tee and a wye, a quarter cut away: the fluid's O-grid core, the steel wall and the insulation, all hexahedra">
+<picture><source srcset="docs/gallery/img/hero.webp" type="image/webp"><img src="docs/gallery/img/hero.png" width="66%" alt="An insulated header with a tee and a wye, a quarter cut away: the fluid's O-grid core, the steel wall and the insulation, all hexahedra. Animated: the mesh fades into the temperature as 80 °C water (laminar, Re 300) enters the cold network; the front fills the core in about 25 minutes, then the heat soaks into the steel and insulation up to 100 minutes. An illustration, not a validation case."></picture>
 <img src="docs/gallery/img/insulated_tee_section.png" width="30%" alt="Cross-section: O-grid fluid core, steel wall, insulation">
 </p>
 

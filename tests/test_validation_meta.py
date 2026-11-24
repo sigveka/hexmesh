@@ -106,6 +106,11 @@ def test_missing_or_invalid_case_json_stops_the_gallery(build, monkeypatch, tmp_
         build.case_meta("x")
 
 
+def test_the_animated_hero_without_a_run_says_what_to_run(build, tmp_path):
+    with pytest.raises(SystemExit, match=r"run python3 docs/gallery/hero_run.py --work .* first"):
+        build.run_hero_anim(tmp_path / "case", tmp_path)
+
+
 def test_planned_tasks_carry_known_features(build):
     planned = build.planned_cases({build.case_meta(c)["task"] for c in build.case_dirs()})
     assert {p["task"] for p in planned} >= {"0079"}           # 0050, 0072 have case directories

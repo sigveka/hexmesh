@@ -1,6 +1,6 @@
 # 0192 — An animated hero for 1.0: a hot front through the insulated network, in two versions for the user to pick
 
-- **Status:** ready
+- **Status:** done (2026-11-24)
 - **Decision:** none needed (gallery and README only; no API).
 - **Depends on:** none.  It shares the machine with 0186: run its solve
   when 0186's runs aren't using the CPU.
@@ -88,6 +88,54 @@ already drives `chtMultiRegionFoam` on layered pipes.
 
 ## Agent notes
 
+- 2026-11-23/24, the run (`docs/gallery/hero_run.py`): `insulated_network`
+  as the gallery builds it, 18012 cells (min scaled Jacobian 0.156);
+  `chtMultiRegionFoam` (v2406, Docker, 1 process), laminar, Re 300 in the
+  header (1.5 mm/s), water in, steel k 50, insulation k 0.04, outer loss
+  h 10 W/m²K to 20 °C; 80 °C at the inlet from t = 0.  Fixed Δt 2 s.
+  Two phases: the front to 1500 s written every 20 s, the soak to 6000 s
+  every 250 s.  ASCII output: `of.read_internal` reads ASCII only.
+- Wall time about 2.7 h on one core (front 23 min; the soak in two parts,
+  37 min and 100 min, the first cut by my own one-hour timeout and
+  resumed from 2750 s: `startFrom latestTime`, and the script now skips a
+  phase that is already written).  The 10-step probe (0.1–0.3 s/step)
+  underestimated by about 10x: the PIMPLE steps grow to about 1.8 s once
+  the front moves.  Case 163 MB.  Peak memory not measured: the run's
+  child is the Docker client, whose RSS (41 MB) says nothing about the
+  solver.
+- Rendering (`build.py --hero-anim CASE`): 56 frames (front every 40 s,
+  soak every 250 s), 1 min 43 s.  B: 1.08 MB, 6.5 s a loop.  C: 1.30 MB,
+  8.4 s a loop.  The front's midpoint (half the fluid above the mid
+  temperature) is at t = 880 s.
+- 2026-11-24, the pick: **C**.  The user asked for a legend on the opening
+  mesh image (the colours of fluid, steel wall and insulation) and a
+  longer hold on it: 2.5 s, not step 3's 1–1.5 s.  The legend fades out
+  with the material colours.  `--hero-anim` now writes only `hero.webp`
+  (version C); B and the stills were for the pick and aren't kept.
+- README: a `<picture>` with `hero.webp` as its `<source>` and `hero.png`
+  as the `<img>`, so a renderer that drops `<picture>` still shows the
+  static image.  The link test now also reads `<source srcset>`.
+
 ## Questions for design
 
 ## Outcome
+
+- **Files:** `docs/gallery/hero_run.py` (new: the run, phases, resume);
+  `docs/gallery/build.py` (`hero_mesh`/`hero_scene` split out of
+  `hero_worker`, with `hero.png` pixel-identical; `hero_anim_worker`,
+  `hero_overlay`, `hero_legend`, `hero_animation`, `--hero-anim CASE`,
+  `--anim-out`); `docs/gallery/img/hero.webp` (1.31 MB, 56 field frames,
+  9.7 s a loop); README hero; `tests/test_readme.py` (links in
+  `<source srcset>`, with a planted one); `tests/test_validation_meta.py`
+  (`--hero-anim` without a run names the command to run first);
+  CHANGELOG.
+- **Tests:** `tests/test_readme.py` and `tests/test_validation_meta.py`,
+  149 passed.  No OpenFOAM in CI: the animation is built locally.
+- **Measurements:** the solve took about 2.7 h on one core (Agent notes);
+  rendering took 1 min 43 s.
+- **Surprise:** the 10-step probe underestimated the solve about 10x.  A
+  probe has to run past the start-up transient before it means anything.
+- **Disk:** the case (163 MB), the frames and the try-out renders are
+  deleted.
+- **Follow-up:** none needed.  Rebuilding the animation takes the 2.7 h
+  solve; the script resumes from the latest written time if it's cut off.

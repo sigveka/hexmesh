@@ -108,6 +108,7 @@ def links(path: Path) -> list[str]:
     text = _strip_code(path.read_text(encoding="utf-8"))
     found = re.findall(r"\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)", text)
     found += re.findall(r'<img[^>]*\bsrc="([^"]+)"', text)
+    found += re.findall(r'<source[^>]*\bsrcset="([^"\s]+)', text)
     found += re.findall(r'<a[^>]*\bhref="([^"]+)"', text)
     return [u for u in found if not re.match(r"^[a-z]+:", u)]   # http:, mailto:, ...
 
@@ -135,10 +136,12 @@ def test_a_planted_broken_link_and_anchor(tmp_path):
     (tmp_path / "a.md").write_text("# Top\n\n## Two words\n", encoding="utf-8")
     doc = tmp_path / "doc.md"
     doc.write_text("[ok](a.md#two-words) [self](#here) [gone](b.md) [bad](a.md#nope) "
-                   '<img src="c.png"> `[code](x.md)` [web](https://example.com)\n\n'
+                   '<img src="c.png"> <source srcset="d.webp"> `[code](x.md)` '
+                   '[web](https://example.com)\n\n'
                    "## Here\n", encoding="utf-8")
     assert sorted(broken(doc)) == ["a.md#nope: no heading #nope in a.md",
-                                   "b.md: no such file", "c.png: no such file"]
+                                   "b.md: no such file", "c.png: no such file",
+                                   "d.webp: no such file"]
 
 
 # --- versions --------------------------------------------------------------------

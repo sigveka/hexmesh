@@ -198,18 +198,32 @@ def snapshot(ren, path: Path, size) -> None:
     writer.Write()
 
 
+def content_box(im, pad: float) -> tuple[int, int, int, int] | None:
+    """*im*'s non-white content plus a margin of *pad* × its larger side."""
+    from PIL import Image, ImageChops
+    box = ImageChops.difference(im, Image.new("RGB", im.size, "white")).getbbox()
+    if not box:
+        return None
+    m = int(pad * max(box[2] - box[0], box[3] - box[1]))
+    return (max(box[0] - m, 0), max(box[1] - m, 0),
+            min(box[2] + m, im.width), min(box[3] + m, im.height))
+
+
+def crop_scaled(im, box, width: int):
+    """*im* cropped to *box* (if any) and scaled to *width*."""
+    from PIL import Image
+    if box:
+        im = im.crop(box)
+        im = im.resize((width, max(1, round(im.height * width / im.width))), Image.LANCZOS)
+    return im
+
+
 def crop_to_content(path: Path, width: int, pad: float) -> None:
     """Crop the PNG at *path* to its non-white content plus a margin of
     *pad* × its larger side, then scale it to *width*, in place."""
-    from PIL import Image, ImageChops
+    from PIL import Image
     im = Image.open(path).convert("RGB")
-    box = ImageChops.difference(im, Image.new("RGB", im.size, "white")).getbbox()
-    if box:
-        m = int(pad * max(box[2] - box[0], box[3] - box[1]))
-        im = im.crop((max(box[0] - m, 0), max(box[1] - m, 0),
-                      min(box[2] + m, im.width), min(box[3] + m, im.height)))
-        im = im.resize((width, max(1, round(im.height * width / im.width))), Image.LANCZOS)
-    im.save(path)
+    crop_scaled(im, content_box(im, pad), width).save(path)
 
 
 # --------------------------------------------------------------------------
@@ -456,14 +470,15 @@ def worker(qualname: str, out: Path) -> None:
 HERO = "sections.insulated_network"
 
 
-def hero_worker(out: Path) -> None:
-    """``img/hero.png``: :data:`HERO` with the quarter towards the viewer
-    (y < 0, z > 0) cut away, whole cells, so the O-H core, the steel and
-    the insulation show through the header, the tee and the wye; faces
-    coloured by material as in the section images (task 0078)."""
+HERO_SIZE = (1000, 560)
+
+
+def hero_mesh():
+    """:data:`HERO` meshed: its node coordinates, its materials in the
+    assembly's order, and each material's hexes with the quarter towards
+    the viewer (y < 0, z > 0) cut away, whole cells."""
     import gmsh
     import numpy as np
-    import vtk
     from hexmesh import Session
 
     module = importlib.import_module(f"hexmesh.examples.{HERO}")
@@ -487,15 +502,24 @@ def hero_worker(out: Path) -> None:
                     if typ == 5:                              # 8-node hexahedron
                         hexes.append(np.asarray(conn, dtype=np.int64).reshape(-1, 8))
             cells[name] = np.vectorize(index.get)(np.vstack(hexes))
+    for name, conn in cells.items():
+        c = xyz[conn].mean(axis=1)
+        cells[name] = conn[~((c[:, 1] < 0) & (c[:, 2] > 0))]   # the quarter cut away
+    return xyz, materials, cells
+
+
+def hero_scene(xyz, materials: list[str], cells: dict):
+    """A renderer with one actor per material, coloured as in the section
+    images, under :data:`HERO`'s camera; returns it and each material's
+    grid and actor (the animation colours them by temperature)."""
+    import numpy as np
+    import vtk
 
     points = vtk_points(xyz)
     ren = vtk.vtkRenderer()
     ren.SetBackground(1, 1, 1)
-    kept = []
+    parts = {}
     for name, conn in cells.items():
-        c = xyz[conn].mean(axis=1)
-        conn = conn[~((c[:, 1] < 0) & (c[:, 2] > 0))]      # the quarter cut away
-        kept.append(conn)
         grid = vtk.vtkUnstructuredGrid()
         grid.SetPoints(points)
         for h in conn:                    # gmsh's hex node order is VTK's
@@ -504,6 +528,7 @@ def hero_worker(out: Path) -> None:
         surface.SetInputData(grid)
         mapper = vtk.vtkDataSetMapper()
         mapper.SetInputConnection(surface.GetOutputPort())
+        mapper.ScalarVisibilityOff()
         actor = vtk.vtkActor()
         actor.SetMapper(mapper)
         prop = actor.GetProperty()
@@ -512,8 +537,9 @@ def hero_worker(out: Path) -> None:
         prop.SetEdgeColor(*rgb(EDGE))
         prop.SetLineWidth(0.5)
         ren.AddActor(actor)
+        parts[name] = (grid, actor)
 
-    pts = xyz[np.unique(np.vstack(kept))]
+    pts = xyz[np.unique(np.vstack(list(cells.values())))]
     centre = pts.mean(axis=0)
     cam = ren.GetActiveCamera()
     d = np.array([-0.35, -1.0, 0.75])
@@ -522,9 +548,202 @@ def hero_worker(out: Path) -> None:
     cam.SetViewUp(0, 0, 1)
     ren.ResetCamera()
     cam.Zoom(1.2)
-    size = (1000, 560)
-    snapshot(ren, out, (2 * size[0], 2 * size[1]))
-    crop_to_content(out, size[0], 0.03)
+    return ren, parts
+
+
+def hero_worker(out: Path) -> None:
+    """``img/hero.png``: :data:`HERO` with the quarter towards the viewer
+    (y < 0, z > 0) cut away, whole cells, so the O-H core, the steel and
+    the insulation show through the header, the tee and the wye; faces
+    coloured by material as in the section images (task 0078)."""
+    ren, _ = hero_scene(*hero_mesh())
+    snapshot(ren, out, (2 * HERO_SIZE[0], 2 * HERO_SIZE[1]))
+    crop_to_content(out, HERO_SIZE[0], 0.03)
+
+
+# The animated hero (task 0192): docs/gallery/hero_run.py's case, rendered
+# under hero.png's camera.  Frames: every other write of the front, every
+# write of the soak (hero_run.PHASES).
+HERO_CMAP = "plasma"                  # perceptually uniform, sequential
+HERO_FRONT_EVERY = 2
+HERO_FIELD_EDGE = "#1c1530"           # cell edges over the field, faint after downscaling
+
+
+def hero_times(case: Path) -> list[tuple[float, str]]:
+    """The case's written times to animate, (seconds, directory name)."""
+    sys.path.insert(0, str(HERE))
+    import hero_run
+    times = sorted((float(d.name), d.name) for d in case.iterdir()
+                   if re.fullmatch(r"[\d.]+", d.name) and (d / "fluid").is_dir())
+    front_end = hero_run.PHASES[0][0]
+    front = [t for t in times if t[0] <= front_end]
+    return front[::HERO_FRONT_EVERY] + [t for t in times if t[0] > front_end]
+
+
+def hero_anim_worker(case: Path, out: Path) -> None:
+    """Render the frames of the animated hero into *out*: ``mesh.png``
+    (hero.png's colours) and ``field_NNN.png`` (temperature), all cropped
+    to the same box at :data:`HERO_SIZE`, plus ``frames.json``."""
+    import numpy as np
+    import vtk
+    from matplotlib import colormaps
+    from PIL import Image
+    from scipy.spatial import cKDTree
+    from hexmesh.study import openfoam as of
+    sys.path.insert(0, str(HERE))
+    import hero_run
+
+    xyz, materials, cells = hero_mesh()
+    ren, parts = hero_scene(xyz, materials, cells)
+    # each drawn hex's OpenFOAM cell, by centroid (splitMeshRegions renumbers)
+    which, worst = {}, 0.0
+    for name, conn in cells.items():
+        mesh = case / f"constant/{name}/polyMesh"
+        pts, faces = of.read_points(mesh / "points"), of.read_faces(mesh / "faces")
+        owner, neigh = of.read_labels(mesh / "owner"), of.read_labels(mesh / "neighbour")
+        fc, sf = of.face_geometry(pts, faces)
+        cc, vol = of.cell_geometry(fc, sf, owner, neigh, int(owner.max()) + 1)
+        d, i = cKDTree(cc).query(xyz[conn].mean(axis=1))
+        assert len(set(i.tolist())) == len(i), f"{name}: two hexes on one cell"
+        worst = max(worst, float((d / np.cbrt(vol[i])).max()))
+        which[name] = i
+
+    win = vtk.vtkRenderWindow()
+    win.SetOffScreenRendering(1)
+    win.SetMultiSamples(8)
+    win.AddRenderer(ren)
+    win.SetSize(2 * HERO_SIZE[0], 2 * HERO_SIZE[1])
+
+    def grab():
+        win.Render()
+        g = vtk.vtkWindowToImageFilter()
+        g.SetInput(win)
+        g.ReadFrontBufferOff()
+        g.Update()
+        img = g.GetOutput()
+        w, h, _ = img.GetDimensions()
+        a = vtk.util.numpy_support.vtk_to_numpy(img.GetPointData().GetScalars())
+        return Image.fromarray(a.reshape(h, w, -1)[::-1, :, :3].copy())
+
+    import vtk.util.numpy_support                                   # noqa: F401
+    first = grab()
+    box = content_box(first, 0.03)
+    crop_scaled(first, box, HERO_SIZE[0]).save(out / "mesh.png")
+
+    cmap = colormaps[HERO_CMAP]
+    lut = vtk.vtkLookupTable()
+    lut.SetNumberOfTableValues(256)
+    for j in range(256):
+        lut.SetTableValue(j, *cmap(j / 255)[:3], 1.0)
+    lut.SetRange(hero_run.T_AMB, hero_run.T_HOT)
+    lut.Build()
+    for name, (grid, actor) in parts.items():
+        mapper = actor.GetMapper()
+        mapper.SetLookupTable(lut)
+        mapper.SetScalarModeToUseCellData()
+        mapper.UseLookupTableScalarRangeOn()
+        mapper.ScalarVisibilityOn()
+        actor.GetProperty().SetEdgeColor(*rgb(HERO_FIELD_EDGE))
+
+    frames = []
+    hot = 0.5 * (hero_run.T_AMB + hero_run.T_HOT)
+    for n, (t, name) in enumerate(hero_times(case)):
+        share = None
+        for region, (grid, actor) in parts.items():
+            path = case / name / region / "T"
+            uniform = re.search(r"internalField\s+uniform\s+([\d.eE+-]+)",
+                                path.read_text(encoding="utf-8"))
+            T = (np.full(int(which[region].max()) + 1, float(uniform.group(1))) if uniform
+                 else of.read_internal(path, 1))
+            arr = vtk.util.numpy_support.numpy_to_vtk(T[which[region]].astype(float), deep=1)
+            arr.SetName("T")
+            grid.GetCellData().SetScalars(arr)
+            grid.Modified()
+            if region == "fluid":
+                share = float((T > hot).mean())
+        crop_scaled(grab(), box, HERO_SIZE[0]).save(out / f"field_{n:03d}.png")
+        frames.append({"t": t, "file": f"field_{n:03d}.png", "fluid_hot_share": share})
+    (out / "frames.json").write_text(json.dumps(
+        {"frames": frames, "match_worst": worst, "cmap": HERO_CMAP,
+         "materials": {name: PALETTE[materials.index(name) % len(PALETTE)]
+                       for name in parts},
+         "t_amb": hero_run.T_AMB, "t_hot": hero_run.T_HOT}, indent=1), encoding="utf-8")
+
+
+def _font(size: int):
+    from PIL import ImageFont
+    for name in ("DejaVuSans.ttf", "Arial.ttf", "arial.ttf"):
+        try:
+            return ImageFont.truetype(name, size)
+        except OSError:
+            pass
+    return ImageFont.load_default()
+
+
+def hero_overlay(im, t: float, info: dict):
+    """*im* with the clock (simulated time) and a small colour bar."""
+    from matplotlib import colormaps
+    from PIL import ImageDraw
+    im = im.copy()
+    d = ImageDraw.Draw(im)
+    ink = (40, 44, 52)
+    d.text((18, 14), f"t = {t:,.0f} s", fill=ink, font=_font(22))
+    cmap = colormaps[info["cmap"]]
+    x0, y0, w, h = im.width - 46, 24, 14, 150
+    for j in range(h):
+        c = cmap(1 - j / (h - 1))
+        d.line([(x0, y0 + j), (x0 + w, y0 + j)], fill=tuple(int(255 * v) for v in c[:3]))
+    d.rectangle([x0, y0, x0 + w, y0 + h], outline=ink)
+    f = _font(15)
+    for value, y in ((info["t_hot"], y0), (info["t_amb"], y0 + h)):
+        label = f"{value - 273.15:.0f} °C"
+        tw = d.textlength(label, font=f)
+        d.text((x0 - 8 - tw, y - 8), label, fill=ink, font=f)
+    return im
+
+
+HERO_MATERIAL_LABEL = {"fluid": "fluid", "steel": "steel wall",
+                       "insulation": "insulation"}
+
+
+def hero_legend(im, info: dict):
+    """*im* (the mesh frame) with a swatch and label per material."""
+    from PIL import ImageDraw
+    im = im.copy()
+    d = ImageDraw.Draw(im)
+    ink, f = (40, 44, 52), _font(17)
+    labels = [(HERO_MATERIAL_LABEL.get(n, n), c) for n, c in info["materials"].items()]
+    x0 = im.width - 28 - 26 - max(d.textlength(t, font=f) for t, _ in labels)
+    for k, (label, colour) in enumerate(labels):
+        y = 22 + 30 * k
+        d.rectangle([x0, y, x0 + 18, y + 18], fill=colour, outline=EDGE)
+        d.text((x0 + 26, y - 1), label, fill=ink, font=f)
+    return im
+
+
+def hero_animation(frames_dir: Path, out_dir: Path) -> dict:
+    """Assemble ``hero.webp`` from :func:`hero_anim_worker`'s frames: the
+    mesh image with a material legend, a crossfade into the field at t = 0,
+    then the field with a short hold on its last frame (version C, the
+    user's pick, task 0192)."""
+    from PIL import Image
+    info = json.loads((frames_dir / "frames.json").read_text(encoding="utf-8"))
+    frames = info["frames"]
+    field = [hero_overlay(Image.open(frames_dir / f["file"]).convert("RGB"), f["t"], info)
+             for f in frames]
+    front = [i for i, f in enumerate(frames) if f["fluid_hot_share"] is not None]
+    mid = min(front, key=lambda i: abs(frames[i]["fluid_hot_share"] - 0.5))
+    mesh = hero_legend(Image.open(frames_dir / "mesh.png").convert("RGB"), info)
+    fade = [Image.blend(mesh, field[0], a / 10) for a in range(1, 10)]
+    seq = [mesh] + fade + field + [field[-1]]
+    ms = [2500] + [70] * len(fade) + [90] * len(field) + [1500]
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / "hero.webp"
+    seq[0].save(path, save_all=True, append_images=seq[1:], duration=ms, loop=0,
+                quality=80, method=6)
+    return {"path": str(path), "bytes": path.stat().st_size, "seconds": sum(ms) / 1000,
+            "frames": len(field), "mid_t": frames[mid]["t"],
+            "t_end": frames[-1]["t"]}
 
 
 def run_hero() -> None:
@@ -536,6 +755,24 @@ def run_hero() -> None:
     if p.returncode:
         raise SystemExit(f"hero: FAILED\n{p.stderr[-2000:]}")
     print(f"wrote {(IMG / 'hero.png').relative_to(ROOT)}", flush=True)
+
+
+def run_hero_anim(case: Path, out: Path) -> dict:
+    """Render the animated hero from *case* (``docs/gallery/hero_run.py``'s)
+    into *out*: the frames in their own process (one GMSH session), then
+    ``hero.webp``."""
+    if not (case / "constant/fluid/polyMesh").is_dir():
+        raise SystemExit(f"{case}: no hero run there; run "
+                         f"python3 docs/gallery/hero_run.py --work {case} first")
+    env = dict(os.environ, PYTHONPATH=str(ROOT))
+    with tempfile.TemporaryDirectory(dir=out if out.is_dir() else None) as tmp:
+        p = subprocess.run([sys.executable, __file__, "--haworker", str(case), tmp],
+                           env=env, capture_output=True, text=True)
+        if p.returncode:
+            raise SystemExit(f"hero animation: FAILED\n{p.stderr[-2000:]}")
+        result = hero_animation(Path(tmp), out)
+    print(json.dumps(result, indent=1), flush=True)
+    return result
 
 
 def load_case(case: str):
@@ -1373,8 +1610,14 @@ def main() -> None:
                          "(all cases with meshes() if none named)")
     ap.add_argument("--hero", action="store_true",
                     help="render only img/hero.png (a full run renders it too)")
+    ap.add_argument("--hero-anim", type=Path, metavar="CASE",
+                    help="render img/hero.webp from docs/gallery/hero_run.py's case "
+                         "(task 0192)")
+    ap.add_argument("--anim-out", type=Path, default=IMG,
+                    help="where --hero-anim writes (default: %(default)s)")
     ap.add_argument("--worker", nargs=2, help=argparse.SUPPRESS)
     ap.add_argument("--hworker", nargs=1, help=argparse.SUPPRESS)
+    ap.add_argument("--haworker", nargs=2, help=argparse.SUPPRESS)
     ap.add_argument("--vworker", nargs=3, help=argparse.SUPPRESS)
     args = ap.parse_args()
 
@@ -1387,8 +1630,14 @@ def main() -> None:
     if args.hworker:
         hero_worker(Path(args.hworker[0]))
         return
+    if args.haworker:
+        hero_anim_worker(Path(args.haworker[0]), Path(args.haworker[1]))
+        return
     if args.hero:
         run_hero()
+        return
+    if args.hero_anim:
+        run_hero_anim(args.hero_anim, args.anim_out)
         return
 
     from hexmesh.examples import ALL
