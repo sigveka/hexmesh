@@ -135,10 +135,10 @@ def meshes():
 
 CONTROL = """application     pimpleFoam;
 startFrom       latestTime;
-startTime       {t0!r};
+startTime       {of.num(t0)};
 stopAt          endTime;
-endTime         {end!r};
-deltaT          {dt!r};
+endTime         {of.num(end)};
+deltaT          {of.num(dt)};
 writeControl    timeStep;
 writeInterval   {write};
 purgeWrite      0;
@@ -218,7 +218,7 @@ boundaryField
 
 
 def _vectors(a) -> str:
-    return "\n".join(f"({x!r} {y!r} {z!r})" for x, y, z in a)
+    return "\n".join(f"({of.num(x)} {of.num(y)} {of.num(z)})" for x, y, z in a)
 
 
 def time_name(t: float) -> str:
@@ -249,7 +249,7 @@ def write_case(case: Path, factor: int, dt: float, end: float, inlet_times) -> d
         + "actions\n(\n" + "\n".join(ZONE.format(n=n, x0=x - 1e-3 * D, x1=x + 1e-3 * D)
                                      for n, x in PLANES.items()) + "\n);\n",
         "constant/transportProperties": _header("dictionary", "transportProperties", "constant")
-        + f"transportModel  Newtonian;\nnu              {NU!r};\n",
+        + f"transportModel  Newtonian;\nnu              {of.num(NU)};\n",
         "constant/turbulenceProperties": _header("dictionary", "turbulenceProperties", "constant")
         + "simulationType  laminar;\n",
         "constant/momentumTransport": _header("dictionary", "momentumTransport", "constant")
@@ -380,7 +380,7 @@ def warm_start(src: Path, case: Path, dt: float) -> float:
     tfile = case / last.name / "uniform/time"
     # a restart takes deltaT from uniform/time, not controlDict; deltaT0
     # stays the old step, which backward handles
-    tfile.write_text(re.sub(r"^(deltaT\s+)[^;]+;", rf"\g<1>{dt!r};", tfile.read_text(encoding="utf-8"),
+    tfile.write_text(re.sub(r"^(deltaT\s+)[^;]+;", rf"\g<1>{of.num(dt)};", tfile.read_text(encoding="utf-8"),
                             count=1, flags=re.M), encoding="utf-8")
     return float(last.name)
 

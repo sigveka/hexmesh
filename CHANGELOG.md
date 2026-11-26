@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+**Fixed: under NumPy 2, numbers went into OpenFOAM text as
+`np.float64(…)`** (task 0196).  The bend's volunteer run stopped after
+its steady start: its probes were unreadable, so the first pimpleFoam
+chunk wrote no rows, and reading those (a 1-D empty array) crashed with
+`IndexError: too many indices`.  `hexmesh.study.openfoam.num(x)` now
+writes every number the drivers and case templates put into OpenFOAM
+text; a chunk that writes no rows stops with the log to read; a run
+directory left by the crash resumes, keeping its steady start.  The
+bend's card moves to the tag `volunteer-bend-2`.
+
 **Development: syntax at the Python floor** (task 0194).  The local check
 and its pre-push hook first parse every Python file at the oldest
 supported Python (`requires-python`), with ruff's version-aware syntax

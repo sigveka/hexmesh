@@ -335,9 +335,9 @@ def boundary(field: str, branch: str, flow: float, pressure: bool, area: float) 
         if pressure:
             return "type pressureInletOutletVelocity; value uniform (0 0 0);"
         if inlet:
-            return f"type flowRateInletVelocity; volumetricFlowRate constant {-flow!r}; " \
+            return f"type flowRateInletVelocity; volumetricFlowRate constant {of.num(-flow)}; " \
                    "value uniform (0 0 0);"
-        return f"type flowRateOutletVelocity; volumetricFlowRate constant {flow!r}; " \
+        return f"type flowRateOutletVelocity; volumetricFlowRate constant {of.num(flow)}; " \
                "value uniform (0 0 0);"
     if field == "p":
         return "type fixedValue; value uniform 0;" if pressure else "type zeroGradient;"
@@ -345,8 +345,8 @@ def boundary(field: str, branch: str, flow: float, pressure: bool, area: float) 
         return "type calculated; value uniform 0;"
     value = {"k": k, "omega": omega, "epsilon": epsilon}[field]
     if inlet:
-        return f"type fixedValue; value uniform {value!r};"
-    return f"type inletOutlet; inletValue uniform {value!r}; value uniform {value!r};"
+        return f"type fixedValue; value uniform {of.num(value)};"
+    return f"type inletOutlet; inletValue uniform {of.num(value)}; value uniform {of.num(value)};"
 
 
 WALL = {"U": "type noSlip;", "p": "type zeroGradient;",
@@ -385,15 +385,15 @@ def write_case(case: Path, flows: dict, pressure_branch: str, area: float, end_t
         "system/fvSchemes": H("dictionary", "fvSchemes", "system") + schemes,
         "system/fvSolution": H("dictionary", "fvSolution", "system") + solution,
         "constant/transportProperties": H("dictionary", "transportProperties", "constant")
-        + f"transportModel  Newtonian;\nnu              {nu(re)!r};\n",
+        + f"transportModel  Newtonian;\nnu              {of.num(nu(re))};\n",
         "constant/turbulenceProperties": H("dictionary", "turbulenceProperties", "constant")
         + TURBULENCE.format(ras=ras),
     }
     for name, text in files.items():
         (case / name).write_text(text, encoding="utf-8")
     k0, omega0, epsilon0 = turbulence(U_TOTAL)
-    internal = {"U": "uniform (0 0 0)", "p": "uniform 0", "k": f"uniform {k0!r}",
-                "omega": f"uniform {omega0!r}", "epsilon": f"uniform {epsilon0!r}",
+    internal = {"U": "uniform (0 0 0)", "p": "uniform 0", "k": f"uniform {of.num(k0)}",
+                "omega": f"uniform {of.num(omega0)}", "epsilon": f"uniform {of.num(epsilon0)}",
                 "nut": "uniform 0"}
     for f, dims in DIMS.items():
         if f in ("omega", "epsilon") and f != extra:
@@ -402,7 +402,7 @@ def write_case(case: Path, flows: dict, pressure_branch: str, area: float, end_t
         rows = [f"    {PATCH[b]:12s} {{ {boundary(f, b, flows[b], b == pressure_branch, area)} }}"
                 for b in ("a", "b", "c")]
         cond = NUT_WALL[wall] if f == "nut" else WALL[f]
-        rows.append(f'    "fluid_wall.*" {{ {cond.format(k=repr(k0), omega=repr(omega0), epsilon=repr(epsilon0))} }}')
+        rows.append(f'    "fluid_wall.*" {{ {cond.format(k=of.num(k0), omega=of.num(omega0), epsilon=of.num(epsilon0))} }}')
         text = (H(cls, f, "0") + f"dimensions      {dims};\ninternalField   {internal[f]};\n"
                 "boundaryField\n{\n" + "\n".join(rows) + "\n}\n")
         (case / "0" / f).write_text(text, encoding="utf-8")

@@ -719,9 +719,16 @@ def substitute_case(case: Path, params: dict) -> list[str]:
     return changed
 
 
+def num(x) -> str:
+    """*x* as OpenFOAM reads a number: the shortest text that gives the same
+    double.  Not ``repr(x)``: under NumPy 2 a NumPy scalar's repr is
+    ``np.float64(0.1)``, which OpenFOAM can't read (task 0196)."""
+    return repr(float(x))
+
+
 def _format(v) -> str:
     if isinstance(v, bool):
         return "true" if v else "false"
-    if isinstance(v, float):
-        return repr(v)
+    if isinstance(v, float):                # NumPy's float64 is one too
+        return num(v)
     return str(v)

@@ -307,7 +307,7 @@ boundaryField
 
 
 def _vec(v) -> str:
-    return "vector({!r}, {!r}, {!r})".format(*map(float, v))
+    return "vector({}, {}, {})".format(*map(of.num, v))
 
 
 def write_case(case: Path, re_: float, end_time: int) -> None:
@@ -320,11 +320,11 @@ def write_case(case: Path, re_: float, end_time: int) -> None:
         "system/fvSchemes": HDR("dictionary", "fvSchemes", "system") + SCHEMES,
         "system/fvSolution": HDR("dictionary", "fvSolution", "system") + SOLUTION,
         "constant/transportProperties": HDR("dictionary", "transportProperties", "constant")
-        + f"transportModel  Newtonian;\nnu              {U_B * D / re_!r};\n",
+        + f"transportModel  Newtonian;\nnu              {of.num(U_B * D / re_)};\n",
         "constant/turbulenceProperties": HDR("dictionary", "turbulenceProperties", "constant")
         + "simulationType  laminar;\n",
         "0/U": HDR("volVectorField", "U", "0") + U0.format(
-            u2=repr(2 * U_B), c=_vec(helix(0.0) - L_IN * t0), t=_vec(t0), a2=repr(A * A)),
+            u2=of.num(2 * U_B), c=_vec(helix(0.0) - L_IN * t0), t=_vec(t0), a2=of.num(A * A)),
         "0/p": HDR("volScalarField", "p", "0") + P0,
     }
     for name, text in files.items():

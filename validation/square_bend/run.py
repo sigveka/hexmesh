@@ -251,10 +251,10 @@ def write_case(case: Path, end_time: int) -> None:
         "system/fvSchemes": HDR("dictionary", "fvSchemes", "system") + SCHEMES,
         "system/fvSolution": HDR("dictionary", "fvSolution", "system") + SOLUTION,
         "constant/transportProperties": HDR("dictionary", "transportProperties", "constant")
-        + f"transportModel  Newtonian;\nnu              {NU!r};\n",
+        + f"transportModel  Newtonian;\nnu              {of.num(NU)};\n",
         "constant/turbulenceProperties": HDR("dictionary", "turbulenceProperties", "constant")
         + "simulationType  laminar;\n",
-        "0/U": HDR("volVectorField", "U", "0") + U0.format(u=repr(V_C)),
+        "0/U": HDR("volVectorField", "U", "0") + U0.format(u=of.num(V_C)),
         "0/p": HDR("volScalarField", "p", "0") + P0,
     }
     for name, text in files.items():

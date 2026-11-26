@@ -19,7 +19,7 @@ In a folder of your choice; on Windows, not under OneDrive.
 Linux and macOS:
 
 ```bash
-git clone --branch volunteer-bend-1 https://github.com/sigveka/hexmesh
+git clone --branch volunteer-bend-2 https://github.com/sigveka/hexmesh
 cd hexmesh
 python3 -m venv .venv
 source .venv/bin/activate
@@ -29,7 +29,7 @@ pip install -e .
 Windows (PowerShell):
 
 ```powershell
-git clone --branch volunteer-bend-1 https://github.com/sigveka/hexmesh
+git clone --branch volunteer-bend-2 https://github.com/sigveka/hexmesh
 cd hexmesh
 python -m venv .venv
 .venv\Scripts\Activate.ps1
@@ -230,7 +230,7 @@ python3 -m validation.volunteer prepare helical_pipe re3000_n24 --dir run/
 Water at Re 50 000 through a 90° bend of curvature radius 1.425 D, meshed by hexmesh, with k-ω SST and wall functions, against laser-Doppler measurements at six planes after the bend.  Two mesh levels are done (60 k and 450 k cells): the velocity profiles pass at the second, and the bend's loss coefficient is 0.262, against 0.263 from Ito's correlation.  The steady solvers stall on these meshes, so each level runs time-accurately until the flow stops changing; the third level (1.5 M cells) needs days on 4 cores, which our one desktop can't spare.  It decides whether the loss coefficient and the profiles have converged.
 
 - **OpenFOAM:** v2406 (image `opencfd/openfoam-default:2406`)
-- **hexmesh:** volunteer-bend-1 (clone this tag with git clone --branch, as in the five commands: the mesh check needs the same meshing code as ours)
+- **hexmesh:** volunteer-bend-2 (clone this tag with git clone --branch, as in the five commands: the mesh check needs the same meshing code as ours.  Not volunteer-bend-1: it crashes after the steady start; a run directory it left resumes on this tag)
 - **gmsh:** 4.12.1 (the version our meshes were made with; other versions aren't checked for this case yet, so if the mesh check fails, install gmsh 4.12.1)
 
 ### Level `transient_fixed_k3`: the third mesh level (1.5 million cells), time-accurate to a steady flow

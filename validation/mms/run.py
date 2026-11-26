@@ -292,17 +292,17 @@ def exact(x: np.ndarray, w: np.ndarray) -> np.ndarray:
 
 def _expr(w: np.ndarray, scale: float = 1.0) -> str:
     """T_m (times *scale*) as an OpenFOAM expression of ``pos()``."""
-    parts = [f"sin({w[i]!r}*pos().{c}()+{PHASES[i]!r})" for i, c in enumerate("xyz")]
-    return "*".join([repr(scale)] + parts)
+    parts = [f"sin({of.num(w[i])}*pos().{c}()+{of.num(PHASES[i])})" for i, c in enumerate("xyz")]
+    return "*".join([of.num(scale)] + parts)
 
 
 def _grad_expr(w: np.ndarray) -> str:
     """n·∇T_m on a patch, as an OpenFOAM expression of ``pos()`` and
     ``normal()``."""
-    s = [f"sin({w[i]!r}*pos().{c}()+{PHASES[i]!r})" for i, c in enumerate("xyz")]
-    c = [f"cos({w[i]!r}*pos().{x}()+{PHASES[i]!r})" for i, x in enumerate("xyz")]
-    parts = [f"{w[0]!r}*{c[0]}*{s[1]}*{s[2]}", f"{w[1]!r}*{s[0]}*{c[1]}*{s[2]}",
-             f"{w[2]!r}*{s[0]}*{s[1]}*{c[2]}"]
+    s = [f"sin({of.num(w[i])}*pos().{c}()+{of.num(PHASES[i])})" for i, c in enumerate("xyz")]
+    c = [f"cos({of.num(w[i])}*pos().{x}()+{of.num(PHASES[i])})" for i, x in enumerate("xyz")]
+    parts = [f"{of.num(w[0])}*{c[0]}*{s[1]}*{s[2]}", f"{of.num(w[1])}*{s[0]}*{c[1]}*{s[2]}",
+             f"{of.num(w[2])}*{s[0]}*{s[1]}*{c[2]}"]
     return f"normal() & vector({', '.join(parts)})"
 
 

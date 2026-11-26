@@ -395,6 +395,11 @@ def main(argv=None) -> int:
             print(f"local check: the push changes {hits[0]}"
                   + (f" and {len(hits) - 1} more" if len(hits) > 1 else ""), flush=True)
     runner = pick_runner()
+    import numpy
+    print(f"NumPy {numpy.__version__}", flush=True)
+    if int(numpy.__version__.split(".")[0]) < 2:          # task 0196: users get 2.x from pip
+        print("  warning: NumPy 1; pip gives users 2, so its faults won't show here: run this "
+              "from a venv made with pip install -e \".[dev,study]\"", flush=True)
     print(f"OpenFOAM runner: {runner or 'none (set HEXMESH_OPENFOAM, or start Docker)'}",
           flush=True)
     tmp = Path(tempfile.mkdtemp(prefix="hexmesh-local-check-"))

@@ -1,6 +1,6 @@
 # 0196 — Volunteer runs under NumPy 2 write `np.float64(…)` into OpenFOAM dictionaries; the bend's run then crashes on an empty history
 
-- **Status:** ready (the user to place it against 0186; the design
+- **Status:** in progress (2026-11-26; the user to place it against 0186; the design
   session suggests first)
 - **Decision:** [0044](../decisions/0044-volunteer-runs.md) (volunteer
   runs), [0055](../decisions/0055-cards-for-every-case-ci-without-openfoam.md)
@@ -129,18 +129,36 @@ goes into commits, task files or messages (the repository is public).
   The loop's top already took None as "no history yet".  After a chunk:
   `SystemExit` "[source] the chunk from t = <t> wrote no pBefore/pAfter/lda
   rows; see transient/log.pimpleFoam.<t>"; the final call alike.
-- **Step 4, where the empty series came from:** `write_transient`
-  copies only `constant/`, so `postProcessing` was written by a chunk.
-  A pimpleFoam that constructs its function objects (they write their
-  file headers) and then fails before its first step leaves header-only
-  files: likely the user's first chunk.  Waiting for the user's log tail
-  (via the design session) to confirm the cause.
-- **Step 5, resume:** yes.  The user checks out `volunteer-bend-2` in
-  their clone (`git fetch --tags`, `git checkout volunteer-bend-2`) and
-  runs the same `python -m validation.volunteer run --np 16 <dir>`:
-  `start.json` keeps the steady start (0.28 h), the loop sees no history
-  and runs the first chunk.  If that chunk fails again, the new message
-  names its log.  Tested with a stand-in solver.
+- **Step 0, the root cause** (the user's log, via the design session):
+  `hexmesh.study.openfoam.num(x)` = `repr(float(x))`, the one way to put
+  a number into OpenFOAM text.  The library's `_format` (case-template
+  parameters) used `repr` on any `float`, and NumPy's `float64` is one,
+  so the study sampler's values were exposed too; it uses `num` now.  In
+  the drivers, every `{x!r}`/`repr(x)` that writes OpenFOAM text is
+  `of.num(x)`: turbulent_bend (probes, `timeStart`, `maxCo`, `nu`, `k`,
+  `omega`, fields), turbulent_pipe, square_bend, stenosis_pulsatile,
+  womersley, junction_loss, mms (the source terms' `w[i]`) and
+  helical_pipe.  Error messages keep `!r`.  SU2's config (`{u!r}`) takes
+  module constants, plain floats: unchanged.  code_saturne already
+  wrapped them in `float()`.
+- **The test under NumPy 2:** CI has NumPy 2, but this machine has 1.26,
+  so `tests/test_bend_history.py` uses `Np2`, a `float` whose repr is
+  NumPy 2's, on the bend's `_pimple_control`, MMS's `_expr` and
+  `_grad_expr`, and helical's `_vec`: it fails on the old code on any
+  NumPy.  Plus `of.num` and `_format` on real NumPy scalars.
+- **The local check prints NumPy's version**, and below 2 warns to run
+  it from a venv with the pip dependencies (design's answer, under
+  *Questions for design*).
+- **Step 4:** confirmed by the log (above).  The function objects
+  wrote their headers, then every rank stopped: header-only series.
+- **Step 5, resume:** yes.  `write_transient` is cached by `zones.json`,
+  so `transient_run` now rewrites `system/controlDict` on every start
+  (it is the same for every chunk).  The user checks out
+  `volunteer-bend-2` in their clone (`git fetch --tags`, `git checkout
+  volunteer-bend-2`) and reruns `python -m validation.volunteer run --np
+  16 <dir>`: `start.json` keeps the steady start (0.28 h), the controlDict
+  is rewritten, the first chunk runs.  Tested with a stand-in solver that
+  rejects the NumPy 2 text, as pimpleFoam did.
 - **Step 7:** both cards that name the tag (the bend's, and the
   Poiseuille try-out's) say `volunteer-bend-2`; the bend's note says not
   to use `-1`.  Nothing under `hexmesh/` changed since `volunteer-bend-1`,
@@ -155,4 +173,31 @@ goes into commits, task files or messages (the repository is public).
 
 ## Questions for design
 
+- *(Not blocking.)*  The local check runs this machine's `python3`
+  (NumPy 1.26).  To run it with what pip gives users, it could make a
+  venv (`python3 -m venv`, `pip install -e .[dev,study]`, about 0.5 GB,
+  like the nox sessions) and run steps a-e in it.  That is more than a
+  few lines and costs disk, so: should it, always or with a flag
+  (`--venv`)?  For now it prints NumPy's version.
+  - **Design (2026-11-26):** no mandatory venv for now.  The check
+    prints NumPy's version and, below 2, warns in one line to run it from
+    a venv made with `pip install -e ".[dev,study]"`.  A `--venv` that
+    builds a throwaway one can be its own task if the warning proves too
+    easy to ignore.  *Done that way.*
+
 ## Outcome
+
+- **Files:** `hexmesh/study/openfoam.py` (`num`; `_format` uses it);
+  `validation/turbulent_bend/run.py` (`_history`, `empty_series`,
+  `histories`, the call sites, the controlDict rewritten on every start,
+  `of.num`); the seven other drivers' OpenFOAM text (`of.num`);
+  `tools/local_check.py` (NumPy's version, the warning);
+  `tests/test_bend_history.py` (10 tests); both cards on
+  `volunteer-bend-2`, `VOLUNTEERS.md` regenerated; `platforms.md`;
+  CHANGELOG.
+- **Tests:** `tests/test_bend_history.py`, `test_local_check.py` and
+  `test_volunteer.py`, 84 passed.  The full suite was stopped here for
+  low memory (the machine, not the run); at the user's word it runs in
+  CI instead.
+- **Left:** the tag `volunteer-bend-2`, on the `main` commit with this
+  fix, with the user's OK; then the user's rerun of their directory.

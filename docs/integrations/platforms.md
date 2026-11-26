@@ -64,6 +64,18 @@ failed on every CI job (runs 42476909094 and 42478255352, 2026-11-08;
 fixed in task 0113).  Format `float(x)`, or `x.tolist()` values, in
 text that's parsed back.
 
+It came back in OpenFOAM text, where no CI job reads it (task 0196,
+2026-11-26).  A volunteer's venv (NumPy 2 from pip) wrote the bend's LDA
+probes as `(np.float64(…) …)`; every rank of the first pimpleFoam chunk
+stopped with `FOAM FATAL IO ERROR … file: …/functions/lda/probeLocations
+… operator>>(Istream&, doubleScalar&)` (v2406).  This machine's `python3`
+has NumPy 1.26.4, so no local run, local check or volunteer check here
+saw it.  `hexmesh.study.openfoam.num(x)` is now the one way to put a
+number into OpenFOAM text (`repr(float(x))`); `_format` uses it too, as
+NumPy's `float64` is a `float`.  `tests/test_bend_history.py` checks the
+writers with a float that prints as NumPy 2 does, so it bites on NumPy 1
+as well.  The local check prints NumPy's version.
+
 ### Windows: `subprocess.run(["bash", …])` starts WSL's launcher, not Git's bash — *verified*
 `subprocess.run(["bash", "-n", r"C:\…\job.sh"])` exited 1 on both
 `windows-latest` jobs (run 43185960002, 2026-11-12, commit c1c7c9f;

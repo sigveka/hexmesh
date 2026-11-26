@@ -9,8 +9,8 @@
     "image": "opencfd/openfoam-default:2406"
   },
   "hexmesh": {
-    "tag": "volunteer-bend-1",
-    "note": "clone this tag with git clone --branch, as in the five commands: the mesh check needs the same meshing code as ours"
+    "tag": "volunteer-bend-2",
+    "note": "clone this tag with git clone --branch, as in the five commands: the mesh check needs the same meshing code as ours.  Not volunteer-bend-1: it crashes after the steady start; a run directory it left resumes on this tag"
   },
   "gmsh": {
     "version": "4.12.1",

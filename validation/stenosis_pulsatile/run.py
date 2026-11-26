@@ -109,12 +109,12 @@ CONTROL = """application     pimpleFoam;
 startFrom       latestTime;
 startTime       0;
 stopAt          endTime;
-endTime         {end!r};
-deltaT          {dt!r};
+endTime         {of.num(end)};
+deltaT          {of.num(dt)};
 adjustTimeStep  yes;
-maxCo           {co!r};
+maxCo           {of.num(co)};
 writeControl    adjustableRunTime;
-writeInterval   {write!r};
+writeInterval   {of.num(write)};
 purgeWrite      0;
 writeFormat     ascii;
 writePrecision  12;
@@ -198,7 +198,7 @@ def write_case(case: Path, dt: float) -> None:
         "system/fvSolution": of.header("dictionary", "fvSolution", "system") + wom.SOLUTION,
         "constant/transportProperties": of.header("dictionary", "transportProperties",
                                                   "constant")
-        + f"transportModel  Newtonian;\nnu              {NU!r};\n",
+        + f"transportModel  Newtonian;\nnu              {of.num(NU)};\n",
         "constant/turbulenceProperties": of.header("dictionary", "turbulenceProperties",
                                                    "constant")
         + "simulationType  laminar;\n",

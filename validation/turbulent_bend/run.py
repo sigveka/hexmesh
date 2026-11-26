@@ -243,7 +243,7 @@ def _common(case: Path, end_time: int) -> None:
         "system/fvSchemes": H("dictionary", "fvSchemes", "system") + BEND_SCHEMES,
         "system/fvSolution": H("dictionary", "fvSolution", "system") + BEND_SOLUTION,
         "constant/transportProperties": H("dictionary", "transportProperties", "constant")
-        + f"transportModel  Newtonian;\nnu              {NU!r};\n",
+        + f"transportModel  Newtonian;\nnu              {of.num(NU)};\n",
         "constant/turbulenceProperties": H("dictionary", "turbulenceProperties", "constant")
         + tp.TURBULENCE,
     }
@@ -261,16 +261,16 @@ def write_precursor(case: Path, end_time: int) -> None:
     _common(case, end_time)
     (case / "system/createPatchDict").write_text(
         H("dictionary", "createPatchDict", "system")
-        + tp.CREATE_PATCH.format(L=repr(PRECURSOR)), encoding="utf-8")
+        + tp.CREATE_PATCH.format(L=of.num(PRECURSOR)), encoding="utf-8")
     (case / "constant/fvOptions").write_text(
-        H("dictionary", "fvOptions", "constant") + tp.FVOPTIONS.format(u=repr(U_B)),
+        H("dictionary", "fvOptions", "constant") + tp.FVOPTIONS.format(u=of.num(U_B)),
         encoding="utf-8")
     k, omega = _start()
-    internal = {"U": f"uniform ({U_B!r} 0 0)", "p": "uniform 0", "k": f"uniform {k!r}",
-                "omega": f"uniform {omega!r}", "nut": "uniform 0"}
+    internal = {"U": f"uniform ({of.num(U_B)} 0 0)", "p": "uniform 0", "k": f"uniform {of.num(k)}",
+                "omega": f"uniform {of.num(omega)}", "nut": "uniform 0"}
     for f in FIELDS:
         cls = "volVectorField" if f == "U" else "volScalarField"
-        w = tp.WALL["wfs"][f].format(k=repr(k), omega=repr(omega))
+        w = tp.WALL["wfs"][f].format(k=of.num(k), omega=of.num(omega))
         (case / "0" / f).write_text(
             H(cls, f, "0") + f"dimensions      {tp.DIMS[f]};\ninternalField   {internal[f]};\n"
             "boundaryField\n{\n    cyc_in      { type cyclic; }\n"
@@ -280,9 +280,9 @@ def write_precursor(case: Path, end_time: int) -> None:
 
 def _nonuniform(values: np.ndarray) -> str:
     if values.ndim == 1:
-        body = "\n".join(repr(float(v)) for v in values)
+        body = "\n".join(of.num(v) for v in values)
         return f"nonuniform List<scalar> {len(values)}\n(\n{body}\n)"
-    body = "\n".join("(" + " ".join(repr(float(c)) for c in v) + ")" for v in values)
+    body = "\n".join("(" + " ".join(of.num(c) for c in v) + ")" for v in values)
     return f"nonuniform List<vector> {len(values)}\n(\n{body}\n)"
 
 
@@ -292,8 +292,8 @@ def write_bend(case: Path, end_time: int, inlet: dict) -> None:
     Spalding set."""
     _common(case, end_time)
     k, omega = _start()
-    internal = {"U": "uniform (0 0 0)", "p": "uniform 0", "k": f"uniform {k!r}",
-                "omega": f"uniform {omega!r}", "nut": "uniform 0"}
+    internal = {"U": "uniform (0 0 0)", "p": "uniform 0", "k": f"uniform {of.num(k)}",
+                "omega": f"uniform {of.num(omega)}", "nut": "uniform 0"}
     inl = {"U": f"type fixedValue; value {_nonuniform(inlet['U'])};",
            "p": "type zeroGradient;",
            "k": f"type fixedValue; value {_nonuniform(inlet['k'])};",
@@ -301,12 +301,12 @@ def write_bend(case: Path, end_time: int, inlet: dict) -> None:
            "nut": "type calculated; value uniform 0;"}
     out = {"U": "type inletOutlet; inletValue uniform (0 0 0); value uniform (0 0 0);",
            "p": "type fixedValue; value uniform 0;",
-           "k": f"type inletOutlet; inletValue uniform {k!r}; value uniform {k!r};",
-           "omega": f"type inletOutlet; inletValue uniform {omega!r}; value uniform {omega!r};",
+           "k": f"type inletOutlet; inletValue uniform {of.num(k)}; value uniform {of.num(k)};",
+           "omega": f"type inletOutlet; inletValue uniform {of.num(omega)}; value uniform {of.num(omega)};",
            "nut": "type calculated; value uniform 0;"}
     for f in FIELDS:
         cls = "volVectorField" if f == "U" else "volScalarField"
-        w = tp.WALL["wfs"][f].format(k=repr(k), omega=repr(omega))
+        w = tp.WALL["wfs"][f].format(k=of.num(k), omega=of.num(omega))
         (case / "0" / f).write_text(
             H(cls, f, "0") + f"dimensions      {tp.DIMS[f]};\ninternalField   {internal[f]};\n"
             f"boundaryField\n{{\n    fluid_inlet  {{ {inl[f]} }}\n"
@@ -629,7 +629,7 @@ def _pimple_control(chunk: int, avg_start: float, probes: np.ndarray, lts: bool 
     *chunk* steps and a stop at the next one (each run is one resumable
     chunk; task 0190), K's two slabs and the LDA points every step, U and
     p averaged from *avg_start*."""
-    pts = "\n".join(f"            ({x!r} {y!r} {z!r})" for x, y, z in probes)
+    pts = "\n".join(f"            ({of.num(x)} {of.num(y)} {of.num(z)})" for x, y, z in probes)
     slab = """    {name}
     {{
         type            volFieldValue;
@@ -651,7 +651,7 @@ stopAt          nextWrite;
 endTime         1e9;
 deltaT          {1 if lts else 1e-3};
 adjustTimeStep  {"no" if lts else "yes"};
-maxCo           {MAX_CO!r};
+maxCo           {of.num(MAX_CO)};
 maxDeltaT       1;
 writeControl    timeStep;
 writeInterval   {chunk};
@@ -680,7 +680,7 @@ functions
     {{
         type            fieldAverage;
         libs            (fieldFunctionObjects);
-        timeStart       {avg_start!r};
+        timeStart       {of.num(avg_start)};
         writeControl    writeTime;
         fields
         (
@@ -757,7 +757,8 @@ def _series_files(case: Path, name: str, file: str) -> list[Path]:
 
 def _history(case: Path, name: str, file: str) -> tuple[np.ndarray, np.ndarray]:
     """A function object's (time, values) over every restart, later
-    restarts overriding the times they repeat."""
+    restarts overriding the times they repeat.  The values are 2-D even
+    with no rows, ``(0, 0)`` (task 0196)."""
     rows = {}
     for path in _series_files(case, name, file):
         for line in path.read_text(encoding="utf-8").splitlines():
@@ -767,15 +768,26 @@ def _history(case: Path, name: str, file: str) -> tuple[np.ndarray, np.ndarray]:
             vals = [float(v) for v in re.findall(r"[-+\d.eE]+", rest)]
             rows[float(head)] = vals
     t = np.array(sorted(rows))
-    return t, np.array([rows[x] for x in t])
+    return t, (np.array([rows[x] for x in t]) if rows else np.empty((0, 0)))
 
 
-def histories(case: Path, f: float) -> dict:
-    """K_bend(t) and w/U_b at the LDA points (time × points)."""
-    t1, p1 = _history(case, "pBefore", "volFieldValue.dat")
-    t2, p2 = _history(case, "pAfter", "volFieldValue.dat")
-    tu, u = _history(case, "lda", "U")
+#: the time series :func:`histories` reads: (function object, file)
+HISTORIES = (("pBefore", "volFieldValue.dat"), ("pAfter", "volFieldValue.dat"), ("lda", "U"))
+
+
+def empty_series(case: Path) -> list[str]:
+    """The :data:`HISTORIES` with no rows yet: missing, empty or header only."""
+    return [name for name, file in HISTORIES if not len(_history(case, name, file)[0])]
+
+
+def histories(case: Path, f: float) -> dict | None:
+    """K_bend(t) and w/U_b at the LDA points (time × points); None while
+    any series has no rows (:func:`empty_series`): a crashed or
+    interrupted chunk, or a resume before the first chunk wrote one."""
+    (t1, p1), (t2, p2), (tu, u) = (_history(case, name, file) for name, file in HISTORIES)
     n = min(len(t1), len(t2), len(tu))
+    if n == 0:
+        return None
     _, kb = k_of(p1[:n, 0], p2[:n, 0], f)
     w = u[:n].reshape(n, -1, 3)[:, :, 1] / U_B
     w[np.abs(w) > 1e3] = np.nan                     # a probe outside the mesh
@@ -824,7 +836,7 @@ LTS_CHUNK, LTS_WINDOW, LTS_MAX = 500, 1000, 20000
 LTS_SCHEMES = PIMPLE_SCHEMES.replace("default backward;", "default localEuler;")
 LTS_SOLUTION = PIMPLE_SOLUTION.replace(
     "    pRefValue       0;\n}",
-    f"    pRefValue       0;\n    maxCo           {LTS_CO!r};\n    rDeltaTSmoothingCoeff 0.02;\n"
+    f"    pRefValue       0;\n    maxCo           {of.num(LTS_CO)};\n    rDeltaTSmoothingCoeff 0.02;\n"
     "    rDeltaTDampingCoeff 1;\n    maxDeltaT       1;\n}", 1)
 
 #: Q5's convergence stop: over the last flow-through, K within this
@@ -935,6 +947,11 @@ def transient_run(d: Path, k: int, fam: str, n_proc: int, *, chunk_steps: int = 
     limit = LTS_MAX if lts else max_ft * FLOW_THROUGH
     info = _json(d / "zones.json", lambda: write_transient(d / "bend", case, k, avg_start,
                                                            chunk_steps, lts, ddt_corr))
+    # the same for every chunk, so rewritten on every start: a directory left
+    # by a broken one (NumPy 2's probes, task 0196) resumes on the fix
+    (case / "system" / "controlDict").write_text(
+        H("dictionary", "controlDict", "system")
+        + _pimple_control(chunk_steps, avg_start, _lda_points()[0], lts), encoding="utf-8")
     chunks_path = d / "chunks.json"
     chunks = json.loads(chunks_path.read_text(encoding="utf-8")) if chunks_path.exists() else []
     while True:
@@ -950,8 +967,9 @@ def transient_run(d: Path, k: int, fam: str, n_proc: int, *, chunk_steps: int = 
         if done or end >= limit - 1e-9 or sum(c["wall_s"] for c in chunks) >= max_hours * 3600:
             break
         c0 = time.monotonic()
+        begin = of.latest_time(case).name
         log = of.run_solver(case, "pimpleFoam", n_proc=n_proc,     # named by its start: unique
-                            log=f"log.pimpleFoam.{of.latest_time(case).name}")
+                            log=f"log.pimpleFoam.{begin}")
         steps = len(re.findall(r"^Time = ", log, re.M))
         cos = [float(v) for v in re.findall(r"^Courant Number mean: \S+ max: (\S+)", log, re.M)]
         last = of.latest_time(case)
@@ -959,6 +977,10 @@ def transient_run(d: Path, k: int, fam: str, n_proc: int, *, chunk_steps: int = 
             if t != last and t.name != "0" and re.fullmatch(r"[\d.e+-]+", t.name):
                 shutil.rmtree(t)
         h = histories(case, f)
+        if h is None:                                   # it ran, yet wrote nothing to judge
+            raise SystemExit(f"[{d.name}] the chunk from t = {begin} wrote no "
+                             f"{'/'.join(empty_series(case))} rows; see "
+                             f"{case.name}/log.pimpleFoam.{begin}")
         conv = steadiness(h, window)
         chunks.append({"end_s": float(last.name), "steps": steps,
                        "wall_s": time.monotonic() - c0, "co_max": max(cos) if cos else None,
@@ -968,6 +990,9 @@ def transient_run(d: Path, k: int, fam: str, n_proc: int, *, chunk_steps: int = 
               f"{steps} steps, {chunks[-1]['wall_s'] / 60:.1f} min, K now {h['k_bend'][-1]:.4f}; "
               f"last window: K band {conv['k_band']}, w band {conv['w_band']}", flush=True)
     h = histories(case, f)
+    if h is None:
+        raise SystemExit(f"[{d.name}] no {'/'.join(empty_series(case))} rows to judge the "
+                         f"level by; see the last {case.name}/log.pimpleFoam.*")
     mean = (results(case, k, first["precursor"], u="UMean", p="pMean")
             if (of.latest_time(case) / "UMean").exists() else None)
     final = results(case, k, first["precursor"])

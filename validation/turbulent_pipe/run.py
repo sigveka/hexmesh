@@ -316,13 +316,13 @@ def write_system(case: Path, end_time: int, nu: float) -> None:
         "system/fvSchemes": H("dictionary", "fvSchemes", "system") + SCHEMES,
         "system/fvSolution": H("dictionary", "fvSolution", "system") + SOLUTION,
         "system/createPatchDict": H("dictionary", "createPatchDict", "system")
-        + CREATE_PATCH.format(L=repr(LENGTH)),
+        + CREATE_PATCH.format(L=of.num(LENGTH)),
         "constant/transportProperties": H("dictionary", "transportProperties", "constant")
-        + f"transportModel  Newtonian;\nnu              {nu!r};\n",
+        + f"transportModel  Newtonian;\nnu              {of.num(nu)};\n",
         "constant/turbulenceProperties": H("dictionary", "turbulenceProperties", "constant")
         + TURBULENCE,
         "constant/fvOptions": H("dictionary", "fvOptions", "constant")
-        + FVOPTIONS.format(u=repr(U_B)),
+        + FVOPTIONS.format(u=of.num(U_B)),
     }
     for name, text in files.items():
         (case / name).write_text(text, encoding="utf-8")
@@ -332,11 +332,11 @@ def write_fields(case: Path, wall: str) -> None:
     """Initial fields: U_b everywhere, 5 % intensity, a 0.07 D mixing length."""
     k = 1.5 * (0.05 * U_B) ** 2
     omega = math.sqrt(k) / (0.09 ** 0.25 * 0.07 * D)
-    internal = {"U": f"uniform ({U_B!r} 0 0)", "p": "uniform 0", "k": f"uniform {k!r}",
-                "omega": f"uniform {omega!r}", "nut": "uniform 0"}
+    internal = {"U": f"uniform ({of.num(U_B)} 0 0)", "p": "uniform 0", "k": f"uniform {of.num(k)}",
+                "omega": f"uniform {of.num(omega)}", "nut": "uniform 0"}
     for f, dims in DIMS.items():
         cls = "volVectorField" if f == "U" else "volScalarField"
-        w = WALL[wall][f].format(k=repr(k), omega=repr(omega))
+        w = WALL[wall][f].format(k=of.num(k), omega=of.num(omega))
         text = (H(cls, f, "0") + f"dimensions      {dims};\ninternalField   {internal[f]};\n"
                 "boundaryField\n{\n    cyc_in      { type cyclic; }\n"
                 f"    cyc_out     {{ type cyclic; }}\n    fluid_wall  {{ {w} }}\n}}\n")
