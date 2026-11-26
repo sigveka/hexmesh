@@ -1,7 +1,6 @@
 # 0196 — Volunteer runs under NumPy 2 write `np.float64(…)` into OpenFOAM dictionaries; the bend's run then crashes on an empty history
 
-- **Status:** in progress (2026-11-26; the user to place it against 0186; the design
-  session suggests first)
+- **Status:** done (2026-11-26)
 - **Decision:** [0044](../decisions/0044-volunteer-runs.md) (volunteer
   runs), [0055](../decisions/0055-cards-for-every-case-ci-without-openfoam.md)
 - **Depends on:** none.
@@ -199,5 +198,9 @@ goes into commits, task files or messages (the repository is public).
   `test_volunteer.py`, 84 passed.  The full suite was stopped here for
   low memory (the machine, not the run); at the user's word it runs in
   CI instead.
-- **Left:** the tag `volunteer-bend-2`, on the `main` commit with this
-  fix, with the user's OK; then the user's rerun of their directory.
+- **CI:** run 45897292236 on 7488897, green on 7 jobs (the full suite);
+  `main` is 7488897.
+- **The tag:** `volunteer-bend-2` on 7488897, annotated, pushed with the
+  user's OK (2026-11-26).
+- **Left with the user:** rerunning their directory on the tag (or the
+  design session's stopgap on `-1`, NumPy < 2; either resumes on `-2`).
