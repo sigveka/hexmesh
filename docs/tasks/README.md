@@ -190,7 +190,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0193](0193-hero-polish-dark-mode-ghosting.md) | The animated hero, polished: no ghosting, a matching still, a dark-theme version, `--social` | done | — |
 | [0194](0194-syntax-guard-311.md) | A syntax guard at the Python floor (3.11): catch 3.12-only syntax (PEP 701) before a push | done | 0039 |
 | [0195](0195-local-check-test-temp-dirs.md) | A local-check test leaves an empty temporary directory on every run | done | — |
-| [0196](0196-bend-volunteer-empty-history.md) | The bend's volunteer run crashes when a history series has no rows (fix, resume, `volunteer-bend-2`) | ready | 0044, 0055 |
+| [0196](0196-bend-volunteer-empty-history.md) | Volunteer runs under NumPy 2 write `np.float64(…)` into OpenFOAM dictionaries (all drivers); the bend then crashes on an empty history; resume, `volunteer-bend-2` | ready | 0044, 0055 |
 
 ### Validation
 
