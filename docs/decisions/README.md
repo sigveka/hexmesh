@@ -73,6 +73,7 @@ rejected.  Records are written in design sessions, and they are the only way
 | [0056](0056-other-solvers-mesh-formats.md) | Meshes for other solvers: `.unv` experimental, checked with code_saturne; CGNS checked; no Fluent writer for now | accepted |
 | [0057](0057-two-kinds-validation-and-export-checks.md) | Two kinds of checks: validation (OpenFOAM) and export checks (one consumer per format: FEniCSx, code_saturne, SU2); export checks before 1.0 | accepted |
 | [0058](0058-diagnosis-ladder-and-user-hints.md) | When a validation case misses: a diagnosis ladder (converged, setup, solver, model, discretisation), and its findings as user hints; before 1.0 | accepted |
+| [0059](0059-after-1-0-roadmap.md) | After 1.0: F (mesh quality), then C's additive part (vascular, pipe-in-pipe), then B (geometry) in 1.x; the general section makes 2.0; D (agent SDK, surrogate suite) after it | accepted (open items) |
 
 ## Future expansions
 
