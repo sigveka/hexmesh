@@ -38,6 +38,23 @@ The other cards are covered elsewhere:
   duct (0180): each task writes its own card.
 
 **Do.**
+0. **First, here: the steady stenosis's k2–k4 on v2406** (the user,
+   2026-11-27), so the volunteer levels extend a series made on the
+   same version.
+   - **Cost:** 760 s, 5 647 s and 17 705 s on 4 cores on v1912, about
+     6.7 h in all.  Check `pgrep -af pytest` and free memory first, and
+     don't time it while another session's heavy run is on.
+   - **Stored:** with `wall_s` and `cores` (0185) and the environment
+     (0184).  The v1912 levels are replaced, not kept beside them.
+     `RESULTS.md` keeps a short table of the v1912 values for comparison.
+   - **Report:** each quantity, v1912 against v2406.  Is the series still
+     oscillatory?  Do the gates still pass (u_peak, both reattachment
+     lengths)?  A gate that changes verdict goes under *Questions for
+     design*, and the card waits.
+   - **The run directories:** deleted after collecting.
+   - **Not in scope:** the other v1912 cases (Poiseuille, heated rod,
+     layered conduction).  They are cheap and converged.  Moving them is
+     a separate question.
 1. **Hooks** for both drivers: `check_level`, `prepare`, `run`,
    `collect`, `recompute`, as in the bend's (`validation/turbulent_bend/run.py`).
    `main()` and the stored levels stay unchanged.
@@ -47,10 +64,9 @@ The other cards are covered elsewhere:
      card's stated limit;
    - **start:** from rest, or by `mapFields` from k4's stored state if it
      can be recreated cheaply.  Say which;
-   - **the version:** the stored levels are **v1912**.  The card runs
-     k5 on v1912 if the image can still be pulled.  Otherwise put the
-     choice under *Questions for design*: rerun k3–k4 on v2406 here,
-     or accept a mixed series with a stated reason;
+   - **the version (the user, 2026-11-27: "We should rerun the lower
+     levels locally now"):** the stored levels are **v1912**.  The card
+     runs on **v2406**, so step 0 reruns the lower levels here first;
    - **the result:** whether k3–k5 (and k4–k6) are monotone, and if so
      the order, the extrapolation and the GCI, by the same method as
      the stored ones.
