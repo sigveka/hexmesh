@@ -1,6 +1,6 @@
 # 0169 — A volunteer card for the turbulent bend
 
-- **Status:** ready (after 0050's driver and its first level)
+- **Status:** superseded by [0190](0190-bend-level-3-volunteer-card.md) (the design session, 2026-11-27: 0190 built the bend's card, tags `volunteer-bend-1` and `-2`)
 - **Decision:** [0044](../decisions/0044-volunteer-runs.md)
 - **Case:** `validation/turbulent_bend/` (task 0050: the PTB bend,
   Re 50 000)

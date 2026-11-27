@@ -164,7 +164,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0166](0166-rename-jargon-arguments.md) | Rename the mesh-jargon names (`nang` → `n_arc`, `nrad` → `n_radial`, `mprg` → `radial_grading`, …; `lc` removed) | done | 0053 |
 | [0167](0167-build-without-session.md) | Meshing without managing `Session`: a spike, then the API | done | 0053 |
 | [0168](0168-volunteer-card-junction-loss.md) | A volunteer card for the junction-flow benchmark (one level per point) | ready (after 0186; retargeted to the fixed-wall family: level 3 and the sweep) | 0044 |
-| [0169](0169-volunteer-card-turbulent-bend.md) | A volunteer card for the turbulent bend | ready (after 0050's driver) | 0044 |
+| [0169](0169-volunteer-card-turbulent-bend.md) | A volunteer card for the turbulent bend | superseded by 0190 (2026-11-27) | 0044 |
 | [0170](0170-validation-setup-docs.md) | Validation needs a checkout: three setups in the docs, Windows forms, a test of the boundary | ready | 0054 |
 | [0171](0171-bathymetry-platform-independent.md) | The bathymetry reader gives the same route on every platform (bilinear on grids; a platform test over the examples) | done | — |
 | [0172](0172-docs-site-next-essens.md) | The docs site on the next Essens release: `--layout`, MathML in place of KaTeX, the stylesheet; CONTRIBUTING names v0.1.4 now | ready (step 1; the rest after a release) | 0049 |
@@ -191,6 +191,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0194](0194-syntax-guard-311.md) | A syntax guard at the Python floor (3.11): catch 3.12-only syntax (PEP 701) before a push | done | 0039 |
 | [0195](0195-local-check-test-temp-dirs.md) | A local-check test leaves an empty temporary directory on every run | done | — |
 | [0196](0196-bend-volunteer-empty-history.md) | Volunteer runs under NumPy 2 write `np.float64(…)` into OpenFOAM dictionaries (all drivers); the bend then crashes on an empty history; resume, `volunteer-bend-2` | done | 0044, 0055 |
+| [0197](0197-volunteer-cards-stenosis.md) | Volunteer cards for the two stenosis cases: steady k5/k6 (the series is oscillatory), pulsatile k4 (k1 is outside the asymptotic range) | ready | 0044, 0055 |
 
 ### Validation
 
