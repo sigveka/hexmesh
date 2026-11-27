@@ -614,7 +614,7 @@ def main(argv=None) -> dict:
     ap.add_argument("--np", type=int, default=1, dest="n_proc",
                     help="MPI processes for pimpleFoam (levels other than coarse)")
     stored.add_arguments(ap, HERE)
-    stored.add_openfoam_argument(ap, "native")
+    stored.add_openfoam_argument(ap, of.V2406)
     ap.add_argument("--repost", action="store_true",
                     help="don't run: measure the latest fields of the stored levels again "
                          "(their cases in --work, kept with --keep-work)")

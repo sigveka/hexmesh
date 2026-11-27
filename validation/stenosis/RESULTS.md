@@ -4,8 +4,11 @@
 task).  Steady state reached by `pimpleFoam` from rest (`simpleFoam`
 doesn't converge on this case: `docs/integrations/openfoam.md`).
 
-Run 2026-10-29/30: hexmesh a92840c plus this driver, gmsh 4.12.1,
-OpenFOAM v1912, 4 MPI processes (`decomposePar` method simple).
+Run 2026-11-27: hexmesh c5790d9, gmsh 4.12.1, OpenFOAM v2406
+(`opencfd/openfoam-default:2406` in Docker), 4 MPI processes
+(`decomposePar` method simple), from rest (task 0197).  The first run,
+2026-10-29/30 on a native v1912, gave the same results: see *v1912 and
+v2406* below.
 Reference: Purdue database, `Axi_stdy/Re500/vel.dat`: DNS peak centreline
 4.596 U (at the x = 0 station); reattachment 11.025 D by the database's
 measure (axial velocity at r = 0.48 D turning positive, between the 1 D
@@ -34,17 +37,18 @@ minimum resolution for this case, not a solver failure.
 
 | Level | Cells | min SJ | max non-orth. (°) | max skewness | steady from t | time steps | wall time (s) | mass balance |
 |---|---|---|---|---|---|---|---|---|
-| k2 | 122 688 | 0.732 | 34.7 | 0.484 | 10 | 4328 | 760 | 1.5e-10 |
-| k3 | 414 072 | 0.718 | 38.3 | 0.504 | 15 | 8891 | 5647 | 2.0e-11 |
-| k4 | 981 504 | 0.710 | 40.2 | 0.515 | 15 | 11 972 | 17 705 | 3.8e-11 |
+| k2 | 122 688 | 0.732 | 34.7 | 0.484 | 10 | 4328 | 684 | 1.5e-10 |
+| k3 | 414 072 | 0.718 | 38.3 | 0.504 | 15 | 8891 | 5924 | 1.3e-11 |
+| k4 | 981 504 | 0.710 | 40.2 | 0.515 | 15 | 11 972 | 17 042 | 3.8e-11 |
 
 - **Steady:** the centreline (largest change, of the peak) and both
   reattachment measures change by less than 0.1 % over 5 time units
   (D/U); "steady from t" is the first state of the pair that passed.
   At the last check every change is below 5e-4, and the final initial
   residuals are at most 1.1e-4 (p) and 3.3e-6 (U).
-- **Wall time:** the whole run from rest, on 4 cores.  Each level ran
-  to t = 15 (k2) or 20 (k3, k4).
+- **Wall time:** the solver's, from rest, on 4 cores.  Each level ran
+  to t = 15 (k2) or 20 (k3, k4).  With meshing and conversion,
+  `results.json`'s `wall_s`: 769, 6235 and 17 685 s (6.9 h in all).
 
 ## Flow
 
@@ -100,8 +104,8 @@ paper's "≈ 10 D" (§3.1) is read off a figure and carries no gate.
 
 ## Cost per variant (for the planned surrogate study)
 
-k2 is the cheapest steady level: 13 min on 4 cores from rest, 122 688
-cells.  A variant started from a neighbouring variant's steady state
+k2 is the cheapest steady level: 11 min of solver time on 4 cores from
+rest, 122 688 cells.  A variant started from a neighbouring variant's steady state
 would need fewer time units; not measured.
 
 ## Measures
@@ -119,10 +123,24 @@ would need fewer time units; not measured.
 - **Wall shear stress:** ν u_t / d from each wall cell, averaged per
   axial position.
 
-## Cross-check on OpenFOAM v2406
+## v1912 and v2406
 
-Decision 0012's toolchain amendment (task 0035): the k2 re-run
-end to end on v2406 (`opencfd/openfoam-default:2406` in Docker,
-conversion included), 2026-10-31.  **The results agree with v1912** to
-the digits reported: u_peak 4.7038 U, x_sep 0.225 D, reattachment 11.123 / 10.981 / 10.982 D, max centreline error 1.32 % at x = 0, steady from t = 10, mass balance 1.5e-10; 683 s against 760 s.  The v1912 results above stay the
-recorded ones.
+The levels were first run on a native OpenFOAM v1912 (2026-10-29/30,
+hexmesh a92840c; stored values reposted from the fields, task 0093),
+and k2 alone checked end to end on v2406 (2026-10-31, task 0035).  All
+three were rerun on v2406 (2026-11-27, task 0197), so that the volunteer
+levels extend a series made on the version they run.  **They agree**:
+
+| Level | quantity | v1912 | v2406 |
+|---|---|---|---|
+| k2, k4 | every stored quantity | | bit-identical |
+| k3 | u_peak / U | 4.723710492759 | 4.723710493112 |
+| k3 | x_reatt / D, τ_w = 0 | 11.405468790 | 11.405468819 |
+| k3 | x_reatt / D, u(0.48 D) = 0 | 11.019001647 | 11.019001702 |
+| k3 | mass balance | 2.0e-11 | 1.3e-11 |
+| k2, k3, k4 | time steps, steady from t | 4328, 8891, 11 972; 10, 15, 15 | the same |
+| k2, k3, k4 | solver wall time (s) | 760, 5647, 17 705 | 684, 5924, 17 042 |
+
+The series' convergence is still oscillatory (u_peak 4.7038, 4.7237,
+4.7168; τ_w reattachment 11.123, 11.405, 11.402), and the gates' verdicts
+are unchanged.

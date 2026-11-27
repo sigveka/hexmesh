@@ -11,7 +11,10 @@ python3 validation/stenosis/run.py --repost out.json --json new.json  # re-measu
 python3 -m pytest -m openfoam tests/test_validation.py -k stenosis
 ```
 
-Needs OpenFOAM v1912 (`/usr/share/openfoam/etc/bashrc`).  Cases go to
+Runs OpenFOAM v2406 in Docker (`opencfd/openfoam-default:2406`) by
+default; `--openfoam` or `HEXMESH_OPENFOAM` choose another runner.  The
+stored levels are v2406's; v1912 gave the same results
+([RESULTS.md](RESULTS.md#v1912-and-v2406)).  Cases go to
 `validation/stenosis/work/<level>/` (git-ignored), or to `--work DIR`.
 
 **Status: accepted** ([RESULTS.md](RESULTS.md)): reattachment 10.97 D

@@ -1,6 +1,6 @@
 # 0197 — Volunteer cards for the two stenosis cases: the level each study lacks
 
-- **Status:** ready
+- **Status:** in progress (2026-11-27)
 - **Decision:** [0044](../decisions/0044-volunteer-runs.md) (volunteer
   runs); [0055](../decisions/0055-cards-for-every-case-ci-without-openfoam.md)
   (the card format)
@@ -100,6 +100,30 @@ The other cards are covered elsewhere:
 - The v1912 question answered or asked.
 
 ## Agent notes
+
+- **Step 0 done (2026-11-27):** k2-k4 rerun here on v2406
+  (`opencfd/openfoam-default:2406`, Docker), 4 processes, from rest,
+  hexmesh c5790d9; `--json` to a scratch file, then it replaced
+  `validation/stenosis/results.json` (same `extra`; the levels now carry
+  `wall_s` 769, 6235 and 17 685 s, `cores` 4, the environment, and no
+  `source` caveat: the v1912 values had been reposted from fields).
+  Nothing else was running; 6.9 h in all.
+- **v1912 against v2406:** k2 and k4 bit-identical in every stored
+  quantity; k3 from the 9th-10th significant digit (u_peak
+  4.723710492759 → …493112; τ_w reattachment 11.405468790 → …819; the
+  probe's 11.019001647 → …702; mass balance 2.0e-11 → 1.3e-11).  Time
+  steps and "steady from t" the same; solver time 760/5647/17 705 s →
+  684/5924/17 042 s.  Checked that the old levels ran on a native v1912
+  and the new on v2406 (their `environment`).
+- **The series** converges oscillatorily as before (u_peak 4.7038,
+  4.7237, 4.7168; τ_w reattachment 11.123, 11.405, 11.402).  **The
+  gates' verdicts are unchanged**: no question for design.
+- **Follow-on edits:** `RESULTS.md` (the run note, the Levels table's
+  solver times, a "v1912 and v2406" table in place of the k2-only
+  cross-check), figure regenerated (`validation.tools.plots`);
+  `case.json`'s toolchain v2406/docker and the driver's default runner
+  `of.V2406`, like the other v2406 cases; README.  The run directories
+  were deleted by the driver as each level was stored.
 
 ## Questions for design
 
