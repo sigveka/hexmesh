@@ -1,0 +1,363 @@
+<title>Turbulent Bend Case Sheet</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one engineering data sheet; a narrow reading column, figures break wider; summary before detail. */
+:root{
+  --bg:#f4f6f8; --paper:#ffffff; --ink:#18212b; --muted:#5b6876; --rule:#d9dee4;
+  --accent:#1d6a86; --l1:#9aa6b3; --lda:#18212b; --sst:#a0662a;
+  --pass:#2d7a4d; --pass-bg:#e3f1e8; --wait:#8a6413; --wait-bg:#f6ecd6;
+  --gate:#c9861a; --gate-band:rgba(201,134,26,.13); --chip:#e8eef3;
+  --f-head:"Archivo","Segoe UI",system-ui,sans-serif;
+  --f-body:"Source Sans 3","Segoe UI",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11161c; --paper:#182029; --ink:#e4e9ee; --muted:#9aa7b4; --rule:#2c3642;
+  --accent:#5fb3d0; --l1:#6c7a89; --lda:#e4e9ee; --sst:#d79a5a;
+  --pass:#6cc993; --pass-bg:#173326; --wait:#e0b55a; --wait-bg:#3a2e14;
+  --gate:#e0a440; --gate-band:rgba(224,164,64,.16); --chip:#222c37; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11161c; --paper:#182029; --ink:#e4e9ee; --muted:#9aa7b4; --rule:#2c3642;
+  --accent:#5fb3d0; --l1:#6c7a89; --lda:#e4e9ee; --sst:#d79a5a;
+  --pass:#6cc993; --pass-bg:#173326; --wait:#e0b55a; --wait-bg:#3a2e14;
+  --gate:#e0a440; --gate-band:rgba(224,164,64,.16); --chip:#222c37; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:17px/1.55 var(--f-body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 64px}
+.sheet{max-width:960px;margin:0 auto;display:grid;gap:28px}
+h1,h2,h3{font-family:var(--f-head);text-wrap:balance;margin:0;line-height:1.2}
+h1{font-size:clamp(26px,4vw,36px);font-weight:700}
+h2{font-size:21px;font-weight:600}
+h3{font-size:15px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+p{margin:0;max-width:68ch}
+.mono,code,td.num{font-family:var(--f-mono);font-size:.86em}
+.num{font-variant-numeric:tabular-nums}
+.mock{border:1px dashed var(--gate);background:var(--gate-band);border-radius:6px;padding:10px 14px;font-size:14px;color:var(--ink)}
+.mock b{font-family:var(--f-head)}
+header{display:grid;gap:12px}
+.eyebrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
+.chip{font-family:var(--f-mono);font-size:12px;padding:2px 8px;border-radius:4px;background:var(--chip);color:var(--ink)}
+.question{font-size:20px;line-height:1.45;max-width:62ch}
+.verdict{display:grid;grid-template-columns:auto 1fr;gap:14px 18px;align-items:start;background:var(--paper);border:1px solid var(--rule);border-left:6px solid var(--pass);border-radius:6px;padding:18px 20px}
+.stamp{font-family:var(--f-head);font-weight:700;font-size:15px;letter-spacing:.06em;text-transform:uppercase;color:var(--pass);background:var(--pass-bg);padding:6px 10px;border-radius:4px;white-space:nowrap}
+.verdict ul{margin:0;padding-left:18px;display:grid;gap:4px}
+.verdict .sure{grid-column:1/-1;border-top:1px solid var(--rule);padding-top:12px;font-size:15px;color:var(--muted)}
+section{display:grid;gap:14px}
+.card{background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:18px 20px;display:grid;gap:12px;min-width:0}
+.two{display:grid;grid-template-columns:1.25fr 1fr;gap:18px}
+@media (max-width:760px){.two{grid-template-columns:1fr}.verdict{grid-template-columns:1fr}}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-family:var(--f-head);font-weight:600;font-size:13px;color:var(--muted);letter-spacing:.03em}
+.scroll{overflow-x:auto}
+svg{display:block;width:100%;height:auto;overflow:visible}
+svg text{fill:var(--muted);font-family:var(--f-mono);font-size:11px}
+svg .lbl{fill:var(--ink);font-family:var(--f-body);font-size:13px}
+.caption{font-size:14px;color:var(--muted)}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tabs button{font:500 13px var(--f-mono);border:1px solid var(--rule);background:var(--paper);color:var(--ink);padding:5px 10px;border-radius:4px;cursor:pointer}
+.tabs button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--paper)}
+.tabs button:focus-visible,.term:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:18px;height:0;border-top:2px solid}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--lda)}
+.placeholder{border:1px dashed var(--rule);border-radius:6px;min-height:180px;display:grid;place-items:center;text-align:center;padding:18px;color:var(--muted);font-size:14px}
+.stages{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+@media (max-width:760px){.stages{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stage{border:1px solid var(--rule);border-radius:5px;padding:10px;background:var(--paper);display:grid;gap:4px;align-content:start}
+.stage b{font-family:var(--f-mono);font-size:13px}
+.stage span{font-size:13px;color:var(--muted)}
+.stage.neutral{border-top:3px solid var(--accent)}
+.stage.solver{border-top:3px solid var(--sst)}
+pre{margin:0;font:13px/1.6 var(--f-mono);background:var(--chip);padding:12px 14px;border-radius:5px;overflow-x:auto}
+.term{border-bottom:1px dotted var(--muted);cursor:help;position:relative}
+.term .tip{display:none;position:absolute;left:0;top:1.6em;z-index:5;width:min(300px,80vw);background:var(--ink);color:var(--paper);font:14px/1.45 var(--f-body);padding:9px 11px;border-radius:5px}
+.term:hover .tip,.term:focus .tip{display:block}
+footer{font-size:13px;color:var(--muted);border-top:1px solid var(--rule);padding-top:14px}
+a{color:var(--accent)}
+</style>
+
+<div class="sheet">
+  <div class="mock"><b>Mock-up</b> of the case sheet in decision 0060. The numbers and curves are the stored results of <code>validation/turbulent_bend</code>. The flow picture, the bundle and the commands are placeholders for what tasks 0198–0200 build.</div>
+
+  <header>
+    <div class="eyebrow"><span class="chip">turbulent_bend</span><span class="chip">V3 · experiment</span><span class="chip">k-ω SST, wall functions</span><span class="chip">OpenFOAM v2406</span></div>
+    <h1>Turbulent flow through a 90° bend</h1>
+    <p class="question">Does a hexmesh bend mesh, with a standard turbulence model, reproduce how a 90° bend pushes the fastest flow against the outer wall, as laser measurements at PTB Berlin show it?</p>
+  </header>
+
+  <div class="verdict" role="region" aria-label="Verdict">
+    <div class="stamp">Passes both gates</div>
+    <ul>
+      <li>At level 2 (450 k cells) the velocity profiles are within <b class="num">0.060–0.096</b> <span class="term" tabindex="0">U<sub>b</sub><span class="tip">The bulk velocity: the flow rate divided by the pipe's area. 0.40 m/s here.</span></span> of the measurements at all six planes. The <span class="term" tabindex="0">gate<span class="tip">A pass/fail limit written down before any run. A case that misses is reported as a miss, not tuned until it passes.</span></span> is 0.10.</li>
+      <li>The fastest flow sits on the outer wall at every plane, as measured.</li>
+      <li>The bend's loss coefficient K is <b class="num">0.262</b>; Ito's correlation gives <b class="num">0.263</b>. Reported, not gated.</li>
+    </ul>
+    <p class="sure"><b>How sure:</b> two mesh levels, so no <span class="term" tabindex="0">GCI<span class="tip">Grid convergence index: an error band estimated from three or more mesh levels. With two levels it can't be computed.</span></span> yet. K moved 19 % between the levels, so the close match to Ito at level 2 may be partly luck. Level 3 (1.5 M cells) is open to <a href="#volunteer">volunteers</a>.</p>
+  </div>
+
+  <section>
+    <h2>The setup</h2>
+    <div class="card">
+      <h3>Geometry</h3>
+      <svg id="geom" viewBox="0 0 760 250" role="img" aria-label="Pipe: 7 D straight, a 90° bend of radius 1.425 D, then 42 D straight with six measurement planes."></svg>
+      <p class="caption">Water enters from below, turns right through the bend and leaves 42 D later. The last 10 D (shaded) have cells that grow toward the outlet, to keep the outlet away from the measurements. D = 0.1 m.</p>
+    </div>
+    <div class="two">
+      <div class="card">
+        <h3>Boundary conditions, in words</h3>
+        <div class="scroll"><table>
+          <tr><th>Boundary</th><th>What happens there</th></tr>
+          <tr><td>inlet</td><td>Fully developed turbulent pipe flow at U<sub>b</sub> = 0.40 m/s, computed first in a short periodic pipe on the same mesh section.</td></tr>
+          <tr><td>wall</td><td>No slip. The first cell is 50 <span class="term" tabindex="0">viscous units<span class="tip">The near-wall length scale ν/u<sub>τ</sub>. A first-cell centre at y⁺ 20–30 suits wall functions.</span></span> thick at every level, so the wall model stays the same as the mesh is refined.</td></tr>
+          <tr><td>outlet</td><td>Pressure 0. Backflow, if any, enters at the inside values.</td></tr>
+          <tr><td>fluid</td><td>Water at 30 °C, ν = 8.0 × 10⁻⁷ m²/s. Re = 50 000.</td></tr>
+        </table></div>
+      </div>
+      <div class="card">
+        <h3>Mesh section, level 1</h3>
+        <svg id="section" viewBox="0 0 240 240" role="img" aria-label="The O-H cross-section: a square core and a ring of cells graded toward the wall."></svg>
+        <p class="caption">Drawn from the level's parameters: 32 cells around, 8 across the ring, a square core. Level 2 doubles them, keeping the wall cell.</p>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Reference and gates</h3>
+      <p>Laser-Doppler measurements of the axial velocity along the horizontal line through the axis, at six planes after the bend (Straka et al. 2020, as Ekat et al. 2023 Fig. 3 report them). Gates, judged at the finest level: at each plane the RMS difference is within 0.10 U<sub>b</sub>, and the peak is on the outer wall.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>The results</h2>
+    <div class="card">
+      <h3>Velocity profiles against the measurements</h3>
+      <div class="tabs" id="planeTabs" role="group" aria-label="Measurement plane"></div>
+      <svg id="profile" viewBox="0 0 720 330" role="img" aria-label="Axial velocity profile at the selected plane"></svg>
+      <div class="legend"><span><i class="dot"></i>LDA measurement</span><span><i class="sw" style="border-color:var(--accent)"></i>level 2</span><span><i class="sw" style="border-color:var(--l1);border-top-style:dashed"></i>level 1</span><span><i class="sw" style="border-color:var(--sst);border-top-style:dotted"></i>Ekat et al.'s own SST</span></div>
+      <p class="caption" id="profileCap"></p>
+    </div>
+    <div class="two">
+      <div class="card">
+        <h3>Gate margin per plane</h3>
+        <svg id="margin" viewBox="0 0 420 250" role="img" aria-label="RMS difference per plane against the 0.10 gate"></svg>
+        <p class="caption">Bars: level 2's RMS difference. Ticks: level 1. Every bar left of the gate line passes. The far planes are closest to the limit.</p>
+      </div>
+      <div class="card">
+        <h3>Convergence of K</h3>
+        <svg id="conv" viewBox="0 0 420 250" role="img" aria-label="Loss coefficient K per level against Ito's correlation"></svg>
+        <p class="caption">K per level against the cell size. Three levels would give an extrapolated value and a GCI band here. Level 3 is the volunteers' run.</p>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Run history, level 2</h3>
+      <svg id="hist" viewBox="0 0 720 250" role="img" aria-label="K against time in flow-throughs, with the averaging window and the stop"></svg>
+      <p class="caption">K over the time-accurate run, in <span class="term" tabindex="0">flow-throughs<span class="tip">The time the flow takes to cross the measured length once: 12.8 s here.</span></span>. It settles within one flow-through. The stop rule: K changes by under 10⁻⁴ over the last flow-through, met at 2.5.</p>
+    </div>
+    <div class="two">
+      <div class="card">
+        <h3>The flow</h3>
+        <div class="placeholder">Secondary flow at 2.43 D: two vortices that carry fast fluid to the outer wall.<br><br><span class="mono">rendered from level 2's slice at the next run (decision 0060: no rerun only for a picture)</span></div>
+      </div>
+      <div class="card">
+        <h3>Solver-side spread, level 1</h3>
+        <div class="scroll"><table>
+          <tr><th>Algorithm</th><th class="num">K</th></tr>
+          <tr><td>time-accurate (the verdict's)</td><td class="num">0.2201</td></tr>
+          <tr><td>steady SIMPLE</td><td class="num">0.2223</td></tr>
+          <tr><td>local time-stepping</td><td class="num">0.2257</td></tr>
+          <tr><td>steady SIMPLEC</td><td class="num">0.2269</td></tr>
+        </table></div>
+        <p class="caption">On one mesh, four converged algorithms differ by 3 %. Every level uses the same algorithm, so this spread stays out of the comparison between levels.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Run it</h2>
+    <div class="stages" aria-label="The six stages">
+      <div class="stage neutral"><b>mesh</b><span>hexmesh only → mesh files, mesh.json</span></div>
+      <div class="stage solver"><b>setup</b><span>problem.json → OpenFOAM case</span></div>
+      <div class="stage solver"><b>run</b><span>resumable chunks, stop rule</span></div>
+      <div class="stage solver"><b>extract</b><span>→ samples.csv, a slice</span></div>
+      <div class="stage neutral"><b>evaluate</b><span>→ quantities, gates</span></div>
+      <div class="stage neutral"><b>plot</b><span>→ this sheet</span></div>
+    </div>
+    <p class="caption">Blue-topped stages are the same for every solver; brown-topped ones are OpenFOAM's. Another solver replaces the brown ones and hands its samples to <code>evaluate</code>.</p>
+    <div class="two">
+      <div class="card">
+        <h3>Here, with OpenFOAM</h3>
+<pre>python3 -m validation run turbulent_bend --level 1 --np 4
+python3 -m validation run turbulent_bend --stage plot</pre>
+        <p class="caption">Level 1: about 7 min on 4 cores. Level 2: about 5.3 h.</p>
+      </div>
+      <div class="card">
+        <h3>In your own solver</h3>
+<pre>python3 -m validation bundle turbulent_bend --level 2
+# mesh (.msh .unv .su2 .cgns), problem.json,
+# lda.csv, samples layout
+python3 -m validation compare turbulent_bend my_samples.csv</pre>
+        <p class="caption">You get the same verdict table and these plots with your curve added.</p>
+      </div>
+    </div>
+    <div class="card" id="volunteer">
+      <h3>Level 3, for volunteers</h3>
+      <p>1.49 M cells, started from level 2 and saved every 50 steps. Estimated 30–150 h on 4 cores, 2.4 GB memory, 3.5 GB disk. <span class="mono">python3 -m validation.volunteer info turbulent_bend</span></p>
+    </div>
+  </section>
+
+  <footer>Run 2026-11-21/22 with OpenFOAM v2406 (Docker), gmsh 4.12.1. Full method, the earlier studies and every number: <code>RESULTS.md</code>. Terms with a dotted underline are explained in the glossary.</footer>
+</div>
+
+<script>
+const D = {"x":[-0.9601,-0.8985,-0.8282,-0.7482,-0.6574,-0.5549,-0.4393,-0.3092,-0.1634,-0.0,0.1633,0.3092,0.4392,0.5548,0.6574,0.7481,0.8281,0.8985,0.96],"planes":["2.43","5.56","10.7","15.69","20.82","30.82"],"lda":{"2.43":[1.1106,1.2416,1.2417,1.2007,1.1259,1.0196,0.9057,0.8424,0.8292,0.8465,0.8795,0.9001,0.9193,0.9332,0.9427,0.9399,0.9246,0.8718,0.7727],"5.56":[0.9387,1.0787,1.1032,1.0779,1.0408,1.0169,1.0013,1.0046,1.0136,1.0232,1.0271,1.0278,1.0271,1.0298,1.0266,1.0099,0.979,0.9184,0.8051],"10.7":[0.8406,0.9762,1.0584,1.095,1.1052,1.1042,1.096,1.0918,1.0888,1.0847,1.0771,1.0676,1.0594,1.0365,1.0113,0.975,0.932,0.8625,0.7376],"15.69":[0.7968,0.952,1.0376,1.0984,1.131,1.1389,1.135,1.1248,1.1204,1.1091,1.0922,1.0721,1.0532,1.0382,1.01,0.9767,0.9149,0.8539,0.7445],"20.82":[0.7854,0.9214,1.01,1.0766,1.1304,1.1504,1.1638,1.1595,1.1402,1.1307,1.1207,1.0972,1.0848,1.0561,1.0209,0.9974,0.9422,0.8611,0.7467],"30.82":[0.7538,0.8849,0.9672,1.0412,1.0927,1.1419,1.171,1.1948,1.1968,1.1774,1.1599,1.1317,1.12,1.0962,1.0539,0.9988,0.9414,0.8703,0.7543]},"sst":{"2.43":[1.0682,1.1901,1.2216,1.2289,1.2096,1.1109,0.9415,0.8473,0.8519,0.8795,0.9033,0.9169,0.9182,0.9076,0.8842,0.8494,0.8103,0.7814,0.7608],"5.56":[1.0009,1.0811,1.0708,1.0379,1.0007,0.9765,0.9749,0.986,0.9981,1.007,1.0098,1.0041,0.9891,0.9641,0.9294,0.8887,0.8454,0.802,0.7167],"10.7":[0.8987,1.0167,1.052,1.0694,1.08,1.0875,1.092,1.0933,1.0907,1.0829,1.0694,1.0493,1.0222,0.9883,0.9472,0.8989,0.842,0.7671,0.6355],"15.69":[0.8878,1.0327,1.0856,1.1118,1.126,1.1318,1.1292,1.1195,1.1048,1.0841,1.0585,1.0286,0.9947,0.9566,0.9146,0.8666,0.8097,0.7343,0.6034],"20.82":[0.8716,1.0266,1.0961,1.1294,1.1462,1.1509,1.1441,1.1273,1.1041,1.0754,1.0423,1.0068,0.9688,0.9279,0.8842,0.8361,0.7798,0.7061,0.5788],"30.82":[0.8399,0.9941,1.0774,1.1261,1.1543,1.1681,1.1696,1.1592,1.1374,1.1065,1.0702,1.0317,0.9911,0.9478,0.902,0.8525,0.794,0.7208,0.5941]},"l1":{"2.43":{"w":[0.9772,1.1655,1.2099,1.2195,1.1986,1.1111,0.9444,0.8264,0.8201,0.8583,0.8837,0.9026,0.9147,0.9162,0.9113,0.8893,0.8386,0.7294,0.5308],"rms":0.0829,"peak":-0.7482},"5.56":{"w":[0.916,1.0642,1.0704,1.0391,0.9998,0.9706,0.9675,0.9774,0.989,0.9989,1.0049,1.0048,0.9959,0.9761,0.9493,0.9068,0.8452,0.7547,0.5911],"rms":0.0802,"peak":-0.8282},"10.7":{"w":[0.8066,0.9897,1.0389,1.0583,1.0701,1.0777,1.0825,1.0843,1.0827,1.0764,1.0644,1.0458,1.0194,0.984,0.944,0.8954,0.8362,0.7525,0.5703],"rms":0.0609,"peak":-0.3092},"15.69":{"w":[0.798,1.0001,1.0677,1.0987,1.1164,1.1251,1.1253,1.1185,1.1062,1.0879,1.064,1.0354,1.0016,0.9621,0.9188,0.8695,0.8116,0.7301,0.5519],"rms":0.0718,"peak":-0.4393},"20.82":{"w":[0.789,0.996,1.0751,1.1152,1.1381,1.1487,1.1471,1.1349,1.1148,1.0877,1.0556,1.0209,0.983,0.9416,0.897,0.8476,0.7905,0.711,0.5386],"rms":0.0959,"peak":-0.5549},"30.82":{"w":[0.7642,0.9681,1.0563,1.1089,1.1439,1.1646,1.1715,1.1649,1.146,1.116,1.0796,1.041,1.0002,0.9567,0.9105,0.8602,0.8027,0.7233,0.5549],"rms":0.1023,"peak":-0.4393}},"l2":{"2.43":{"w":[1.0242,1.1909,1.2302,1.2422,1.2354,1.1825,1.024,0.8722,0.8066,0.8439,0.8829,0.9083,0.9226,0.9251,0.9154,0.8864,0.8297,0.7575,0.6789],"rms":0.0727,"peak":-0.7482},"5.56":{"w":[0.9607,1.1083,1.1141,1.0841,1.037,0.9891,0.9599,0.9575,0.9696,0.9814,0.9881,0.9871,0.9772,0.9576,0.9281,0.8865,0.8364,0.7813,0.6682],"rms":0.0738,"peak":-0.8282},"10.7":{"w":[0.8418,1.0015,1.0424,1.0579,1.0643,1.0672,1.0694,1.0709,1.0698,1.0636,1.0513,1.0322,1.006,0.9729,0.933,0.8858,0.8303,0.7586,0.6085],"rms":0.0598,"peak":-0.3092},"15.69":{"w":[0.8226,0.9986,1.0594,1.0903,1.1074,1.1158,1.1167,1.1108,1.0993,1.0816,1.0581,1.0296,0.996,0.9577,0.9144,0.8652,0.8077,0.7332,0.5772],"rms":0.0705,"peak":-0.4393},"20.82":{"w":[0.8157,0.996,1.0674,1.1076,1.1309,1.1422,1.1427,1.1327,1.1145,1.0891,1.0584,1.0241,0.9865,0.9455,0.9008,0.851,0.7936,0.7196,0.5666],"rms":0.0906,"peak":-0.4393},"30.82":{"w":[0.7961,0.9756,1.0556,1.1073,1.1416,1.1623,1.1709,1.1671,1.1505,1.1216,1.0858,1.0472,1.0063,0.9631,0.9173,0.8671,0.8097,0.7356,0.5852],"rms":0.0958,"peak":-0.4393}},"hist":{"t":[0.001,0.191,0.403,0.608,0.813,1.02,1.227,1.423,1.616,1.807,2.002,2.201,2.397,2.598,2.805,3.012,3.218,3.421,3.626,3.832,4.038,4.243,4.449,4.655,4.861,5.067,5.273,5.478,5.684,5.89,6.096,6.302,6.507,6.713,6.918,7.124,7.33,7.535,7.741,7.946,8.152,8.357,8.563,8.768,8.974,9.18,9.385,9.591,9.796,10.002,10.207,10.413,10.618,10.824,11.03,11.235,11.441,11.646,11.852,12.057,12.263,12.468,12.674,12.88,13.085,13.291,13.496,13.702,13.907,14.113,14.318,14.524,14.73,14.935,15.141,15.346,15.552,15.757,15.963,16.168,16.374,16.579,16.785,16.991,17.196,17.402,17.607,17.813,18.018,18.224,18.429,18.635,18.841,19.046,19.252,19.457,19.663,19.868,20.074,20.279,20.485,20.691,20.896,21.102,21.307,21.513,21.718,21.924,22.129,22.335,22.541,22.746,22.952,23.157,23.363,23.568,23.774,23.979,24.185,24.391,24.596,24.802,25.007,25.213,25.418,25.624,25.829,26.035,26.241,26.446,26.652,26.857,27.063,27.268,27.474,27.679,27.885,28.09,28.296,28.502,28.707,28.913,29.118,29.324,29.529,29.735,29.94,30.146,30.352,30.557,30.763,30.968,31.174,31.379,31.585,31.79,31.996],"k":[0.51054,0.23991,0.24008,0.24038,0.24081,0.24292,0.24649,0.24956,0.25152,0.25247,0.25309,0.25388,0.25456,0.25513,0.25568,0.25644,0.25742,0.25839,0.25915,0.2596,0.25984,0.25993,0.25992,0.25982,0.25972,0.25973,0.25989,0.26011,0.26026,0.26036,0.26037,0.26022,0.26025,0.26073,0.26113,0.26117,0.26121,0.26114,0.26086,0.26073,0.26086,0.26092,0.26113,0.26136,0.26157,0.26171,0.26172,0.26168,0.26168,0.26176,0.26189,0.26203,0.26213,0.2622,0.26225,0.26228,0.26231,0.26232,0.26232,0.26232,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233,0.26233],"ft":12.798397593526348,"avg":12.798397593526348,"end":31.99599398381587},"K":{"l1":0.2201251225205706,"l2":0.2623293391994552,"ito":0.2626}};
+const NS="http://www.w3.org/2000/svg";
+function el(tag, attrs, parent, text){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(text!=null)e.textContent=text;if(parent)parent.appendChild(e);return e;}
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+/* geometry */
+(function(){
+  const s=document.getElementById("geom"), u=14, x0=60, yBase=228, Rc=1.425*u, half=u/2;
+  const yb=yBase-7*u;            // bend start (inlet top)
+  const cx=x0+Rc, cy=yb;          // centre of curvature
+  const yOut=cy-Rc;               // downstream centreline y
+  const xd=cx;                    // downstream start x
+  const L=42*u;
+  const g=el("g",{},s);
+  const wall={stroke:css("--ink"),"stroke-width":1.6,fill:"none"};
+  // shaded growth zone
+  el("rect",{x:xd+32*u,y:yOut-half,width:10*u,height:u,fill:css("--chip")},g);
+  // inlet walls
+  el("line",{x1:x0-half,y1:yBase,x2:x0-half,y2:yb,...wall},g);
+  el("line",{x1:x0+half,y1:yBase,x2:x0+half,y2:yb,...wall},g);
+  // bend walls (outer radius Rc+half, inner Rc-half)
+  el("path",{d:`M ${x0-half} ${yb} A ${Rc+half} ${Rc+half} 0 0 1 ${cx} ${cy-Rc-half}`,...wall},g);
+  el("path",{d:`M ${x0+half} ${yb} A ${Rc-half} ${Rc-half} 0 0 1 ${cx} ${cy-Rc+half}`,...wall},g);
+  // downstream walls
+  el("line",{x1:xd,y1:yOut-half,x2:xd+L,y2:yOut-half,...wall},g);
+  el("line",{x1:xd,y1:yOut+half,x2:xd+L,y2:yOut+half,...wall},g);
+  // centreline
+  el("path",{d:`M ${x0} ${yBase} L ${x0} ${yb} A ${Rc} ${Rc} 0 0 1 ${cx} ${yOut} L ${xd+L} ${yOut}`,stroke:css("--muted"),"stroke-dasharray":"6 4","stroke-width":.8,fill:"none"},g);
+  // flow arrows
+  el("path",{d:`M ${x0} ${yBase+16} l 0 -12 m -4 5 l 4 -5 l 4 5`,stroke:css("--accent"),"stroke-width":1.6,fill:"none"},g);
+  el("path",{d:`M ${xd+L+6} ${yOut} l 14 0 m -5 -4 l 5 4 l -5 4`,stroke:css("--accent"),"stroke-width":1.6,fill:"none"},g);
+  // planes
+  const planes=[2.43,5.56,10.7,15.69,20.82,30.82];
+  planes.forEach((p,i)=>{const x=xd+p*u;el("line",{x1:x,y1:yOut-half-6,x2:x,y2:yOut+half+6,stroke:css("--accent"),"stroke-width":1.4},g);
+    el("text",{x:x,y:yOut-half-12-(i%2)*12,"text-anchor":"middle"},g,p+" D");});
+  el("text",{class:"lbl",x:xd+14*u,y:yOut+half+30,"text-anchor":"middle"},g,"LDA planes, measured from the end of the bend");
+  // dimension: inlet 7 D
+  el("line",{x1:x0-half-14,y1:yBase,x2:x0-half-14,y2:yb,stroke:css("--muted"),"stroke-width":.8},g);
+  el("text",{x:x0-half-18,y:(yBase+yb)/2,"text-anchor":"end"},g,"7 D");
+  el("text",{x:cx-Rc+half+6,y:cy-6},g,"r = 1.425 D");
+  el("text",{x:xd+37*u,y:yOut+half+16,"text-anchor":"middle"},g,"10 D, cells grow 4×");
+  el("text",{x:xd+21*u,y:yOut+half+48,"text-anchor":"middle"},g,"42 D downstream · D = 0.1 m");
+  el("text",{class:"lbl",x:x0+half+8,y:yBase-4},g,"inlet");
+  el("text",{x:xd+2,y:yOut-half-34},g,"outer wall (x/R = −1)");
+})();
+
+/* O-H section, drawn from the level-1 parameters */
+(function(){
+  const s=document.getElementById("section"), c=120, R=104, nArc=8, nRad=8, grow=1.127;
+  const ringW=(()=>{let w=1,sum=0;for(let i=0;i<nRad;i++){sum+=w;w*=grow;}return sum;})();
+  // wall cell fraction of ring so that the ring spans ~half the radius
+  const ringT=0.49*R, h0=ringT/ringW, a=(R-ringT)/Math.SQRT2*1.18;
+  const N=4*nArc, line={stroke:css("--muted"),"stroke-width":.7,fill:"none"};
+  const pts=[];
+  for(let j=0;j<=nRad;j++){const row=[];let dist=0,w=h0;for(let i=0;i<j;i++){dist+=w;w*=grow;}
+    const f=dist/ringT; // 0 at wall .. 1 at core
+    for(let i=0;i<N;i++){const side=Math.floor(i/nArc), k=i%nArc, rot=side*Math.PI/2;
+      const t=-Math.PI/4+rot+k*(Math.PI/2)/nArc;
+      const bx=a, by=-a+2*a*k/nArc, q=[bx*Math.cos(rot)-by*Math.sin(rot), bx*Math.sin(rot)+by*Math.cos(rot)];
+      const wx=R*Math.cos(t), wy=R*Math.sin(t);row.push([c+wx+(q[0]-wx)*f, c-(wy+(q[1]-wy)*f)]);}
+    pts.push(row);}
+  el("circle",{cx:c,cy:c,r:R,fill:css("--chip"),stroke:css("--ink"),"stroke-width":1.4},s);
+  pts.forEach((row,j)=>{if(j===0)return;el("polygon",{points:row.map(p=>p.join(",")).join(" "),...line},s);});
+  for(let i=0;i<N;i++){el("polyline",{points:pts.map(r=>r[i].join(",")).join(" "),...line},s);}
+  // core grid
+  for(let k=0;k<=nArc;k++){const v=-a+2*a*k/nArc;
+    el("line",{x1:c-a,y1:c-v,x2:c+a,y2:c-v,...line},s);el("line",{x1:c+v,y1:c-a,x2:c+v,y2:c+a,...line},s);}
+  el("text",{x:c,y:236,"text-anchor":"middle"},s,"wall cell: 50 viscous units");
+})();
+
+/* chart helpers */
+function axes(s,W,H,m,xr,yr,xt,yt,xl,yl){
+  const X=v=>m.l+(v-xr[0])/(xr[1]-xr[0])*(W-m.l-m.r), Y=v=>H-m.b-(v-yr[0])/(yr[1]-yr[0])*(H-m.t-m.b);
+  const g=el("g",{},s);
+  yt.forEach(v=>{el("line",{x1:m.l,x2:W-m.r,y1:Y(v),y2:Y(v),stroke:css("--rule"),"stroke-width":.7},g);el("text",{x:m.l-6,y:Y(v)+4,"text-anchor":"end"},g,v.toFixed(v<1&&yr[1]<1?2:1).replace(/\.0$/,v%1?"":".0"));});
+  xt.forEach(v=>{el("line",{x1:X(v),x2:X(v),y1:H-m.b,y2:H-m.b+4,stroke:css("--muted")},g);el("text",{x:X(v),y:H-m.b+17,"text-anchor":"middle"},g,typeof v==="number"?String(v):v);});
+  el("line",{x1:m.l,x2:W-m.r,y1:H-m.b,y2:H-m.b,stroke:css("--muted")},g);
+  if(xl)el("text",{class:"lbl",x:(m.l+W-m.r)/2,y:H-4,"text-anchor":"middle"},g,xl);
+  if(yl)el("text",{class:"lbl",x:12,y:m.t-8},g,yl);
+  return {X,Y,g};
+}
+const path=(xs,ys,X,Y)=>xs.map((x,i)=>(i?"L":"M")+X(x).toFixed(1)+" "+Y(ys[i]).toFixed(1)).join(" ");
+
+/* profile with tabs */
+const tabs=document.getElementById("planeTabs");
+let current="2.43";
+function drawProfile(z){
+  const s=document.getElementById("profile");s.replaceChildren();
+  const W=720,H=330,m={l:52,r:16,t:30,b:44};
+  const a=axes(s,W,H,m,[-1,1],[0.4,1.4],[-1,-0.5,0,0.5,1],[0.4,0.6,0.8,1.0,1.2,1.4],"x/R   (−1 outer wall, +1 inner wall)","w / U_b");
+  const x=D.x;
+  el("path",{d:path(x,D.sst[z],a.X,a.Y),stroke:css("--sst"),"stroke-width":1.6,"stroke-dasharray":"2 4",fill:"none"},s);
+  el("path",{d:path(x,D.l1[z].w,a.X,a.Y),stroke:css("--l1"),"stroke-width":1.6,"stroke-dasharray":"6 4",fill:"none"},s);
+  el("path",{d:path(x,D.l2[z].w,a.X,a.Y),stroke:css("--accent"),"stroke-width":2.4,fill:"none"},s);
+  D.lda[z].forEach((w,i)=>el("circle",{cx:a.X(x[i]),cy:a.Y(w),r:3.6,fill:css("--lda")},s));
+  el("text",{class:"lbl",x:a.X(-0.98),y:m.t+6},s,"outer");
+  el("text",{class:"lbl",x:a.X(0.98),y:m.t+6,"text-anchor":"end"},s,"inner");
+  const rms=D.l2[z].rms, pk=D.l2[z].peak;
+  document.getElementById("profileCap").textContent=
+    `Plane ${z} D after the bend. Level 2's RMS difference from the measurements: ${rms.toFixed(3)} U_b (gate 0.10, passes). Its peak is at x/R = ${pk.toFixed(2)}, on the outer wall.`;
+}
+D.planes.forEach(z=>{const b=document.createElement("button");b.type="button";b.textContent=z+" D";b.id="plane-"+z.replace(".","_");
+  b.setAttribute("aria-pressed",z===current);b.onclick=()=>{current=z;[...tabs.children].forEach(c=>c.setAttribute("aria-pressed",c===b));drawProfile(z);};tabs.appendChild(b);});
+drawProfile(current);
+
+/* gate margin */
+(function(){
+  const s=document.getElementById("margin"),W=420,H=250,m={l:62,r:18,t:18,b:40};
+  const X=v=>m.l+v/0.12*(W-m.l-m.r), rowH=(H-m.t-m.b)/6;
+  el("rect",{x:X(0.10),y:m.t-6,width:X(0.12)-X(0.10),height:H-m.t-m.b+6,fill:css("--gate-band")},s);
+  [0,0.04,0.08,0.12].forEach(v=>{el("text",{x:X(v),y:H-m.b+16,"text-anchor":"middle"},s,v.toFixed(2));});
+  D.planes.forEach((z,i)=>{const y=m.t+i*rowH+rowH/2;
+    el("text",{x:m.l-8,y:y+4,"text-anchor":"end"},s,z+" D");
+    el("rect",{x:X(0),y:y-7,width:X(D.l2[z].rms)-X(0),height:14,fill:css("--accent"),rx:2},s);
+    el("line",{x1:X(D.l1[z].rms),x2:X(D.l1[z].rms),y1:y-10,y2:y+10,stroke:css("--l1"),"stroke-width":2.2},s);
+  });
+  el("line",{x1:X(0.10),x2:X(0.10),y1:m.t-6,y2:H-m.b,stroke:css("--gate"),"stroke-width":2},s);
+  el("text",{x:X(0.10),y:m.t-10,"text-anchor":"middle",fill:css("--gate")},s,"gate 0.10");
+  el("text",{class:"lbl",x:(m.l+W-m.r)/2,y:H-6,"text-anchor":"middle"},s,"RMS of w/U_b − LDA");
+})();
+
+/* convergence of K */
+(function(){
+  const s=document.getElementById("conv"),W=420,H=250,m={l:52,r:18,t:28,b:42};
+  const cells=[59200,449920,1490000], h=cells.map(c=>Math.cbrt(1/c)*100);
+  const a=axes(s,W,H,m,[0,2.8],[0.20,0.28],[],[0.20,0.22,0.24,0.26,0.28],"cell size  h ∝ cells^(−1/3)","K");
+  el("line",{x1:m.l,x2:W-m.r,y1:a.Y(0.2626),y2:a.Y(0.2626),stroke:css("--gate"),"stroke-width":1.4,"stroke-dasharray":"5 4"},s);
+  el("text",{x:W-m.r,y:a.Y(0.2626)-6,"text-anchor":"end"},s,"Ito (1960) 0.263");
+  const pts=[[h[0],D.K.l1,"level 1"],[h[1],D.K.l2,"level 2"]];
+  el("path",{d:`M ${a.X(h[0])} ${a.Y(D.K.l1)} L ${a.X(h[1])} ${a.Y(D.K.l2)}`,stroke:css("--accent"),"stroke-width":1.6,fill:"none"},s);
+  pts.forEach(([x,y,l])=>{el("circle",{cx:a.X(x),cy:a.Y(y),r:5,fill:css("--accent")},s);el("text",{x:a.X(x)+8,y:a.Y(y)+16},s,l+" · "+y.toFixed(3));});
+  el("circle",{cx:a.X(h[2]),cy:a.Y(0.262),r:6,fill:"none",stroke:css("--muted"),"stroke-dasharray":"2 2","stroke-width":1.4},s);
+  el("text",{x:a.X(h[2])+9,y:a.Y(0.262)-10},s,"level 3: volunteers");
+  [[h[0],"59 k"],[h[1],"450 k"],[h[2],"1.5 M"]].forEach(([x,l])=>el("text",{x:a.X(x),y:H-m.b+16,"text-anchor":"middle"},s,l));
+})();
+
+/* history */
+(function(){
+  const s=document.getElementById("hist"),W=720,H=250,m={l:52,r:18,t:24,b:42};
+  const ft=D.hist.ft, t=D.hist.t.map(v=>v/ft), k=D.hist.k;
+  const a=axes(s,W,H,m,[0,2.6],[0.23,0.27],[0,0.5,1,1.5,2,2.5],[0.23,0.24,0.25,0.26,0.27],"time, flow-throughs","K");
+  el("rect",{x:a.X(D.hist.end/ft-1),y:m.t,width:a.X(D.hist.end/ft)-a.X(D.hist.end/ft-1),height:H-m.t-m.b,fill:css("--gate-band")},s);
+  el("text",{x:a.X(D.hist.end/ft-0.5),y:m.t+14,"text-anchor":"middle"},s,"last flow-through: the stop test");
+  const xs=[],ys=[];t.forEach((v,i)=>{if(k[i]>=0.23&&k[i]<=0.27){xs.push(v);ys.push(k[i]);}});
+  el("path",{d:path(xs,ys,a.X,a.Y),stroke:css("--accent"),"stroke-width":2,fill:"none"},s);
+  el("line",{x1:a.X(D.hist.end/ft),x2:a.X(D.hist.end/ft),y1:m.t,y2:H-m.b,stroke:css("--pass"),"stroke-width":1.6},s);
+  el("text",{x:a.X(D.hist.end/ft)-6,y:H-m.b-8,"text-anchor":"end",fill:css("--pass")},s,"stopped: K 0.2623");
+  el("text",{x:a.X(0.04),y:H-m.b-8},s,"from the steady solver's state");
+})();
+</script>

@@ -14,6 +14,22 @@ Ground rules for all tasks: [README](README.md#ground-rules).
 for humans (both the code, setup and results)", and asked for more
 visualisation.
 
+**The layout is settled** (the user, 2026-11-28: "very nice"): the
+mock-up in [`docs/mockups/bend-case-sheet.html`](../mockups/bend-case-sheet.html),
+drawn from the bend's stored results.  Follow its order and parts:
+- the question;
+- the verdict box with "How sure";
+- the setup (dimensioned geometry, boundary conditions in words, the
+  section drawn from the level's parameters, reference and gates);
+- the results (profiles per station, gate margins, convergence, run
+  history, the flow picture, the solver-side spread);
+- "Run it" (the six stages, here and in your own solver, the volunteer
+  level);
+- glossary terms as inline explanations on hover or tap.
+The generator writes the sheet as a page on the docs site, with a short
+Markdown summary in the README.  The mock-up is a reference, not a
+template to copy by hand.
+
 **Do.**
 1. **The glossary** (`validation/GLOSSARY.md`, and on the docs site), in
    plain words, a short paragraph each, with a small picture where it
