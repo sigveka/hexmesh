@@ -180,7 +180,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0183](0183-export-check-su2.md) | Export check: `.su2` in SU2 (format test, Poiseuille with its order) | done | 0057 |
 | [0184](0184-stamp-environment-at-run-start.md) | `results.json` records the code that ran: the environment taken at the start of a run (drivers, volunteer `prepare`/`collect`, FEniCSx) | done | — |
 | [0185](0185-level-run-length.md) | Every level in `results.json` records how long its run took (`wall_s`; `cores` and `solve_s` where known) | done | 0044 |
-| [0186](0186-tee-fixed-wall-cell.md) | The tee benchmark with the wall cell fixed: is 0162's order 1.9 a mesh convergence? (y⁺ fell as 1/k) | ready (levels 1–2 here, level 3 by volunteers; before 1.0, decision 0058) | 0012, 0015, 0058 |
+| [0186](0186-tee-fixed-wall-cell.md) | The tee benchmark with the wall cell fixed: is 0162's order 1.9 a mesh convergence? (y⁺ fell as 1/k) | blocked (Q1, 2026-11-28: level 1's time-accurate run cycles; levels 1–2 here, level 3 by volunteers; before 1.0, decision 0058) | 0012, 0015, 0058 |
 | [0187](0187-tee-diagnosis-ladder.md) | The tee's miss, diagnosed: setup sensitivity, code_saturne SST on the same mesh, k-ε on the fixed-wall level | ready (after 0186; before 1.0) | 0058 |
 | [0188](0188-hints-from-validation.md) | Hints from validation: a GUIDE section, docstrings at the traps, `lessons` for agents | in progress (first pass done; before 1.0) | 0058 |
 | [0189](0189-export-check-nek.md) | Export check: Hex27 in Nek5000 or NekRS (the ladder's higher-order step), with a stop rule | ready (before 1.0) | 0058, 0057, 0034 |

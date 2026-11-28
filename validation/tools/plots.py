@@ -727,7 +727,12 @@ def junction_loss(data, out):
     # T: their CFD's largest miss over the five q (run.py's tolerances())
     gate = {c: max(abs(r["cfd"] - r["measured"]) for r in rows if r["coefficient"] == c)
             for c in ref}
-    sst = sorted(_levels(data, config="div_a", model="sst"), key=lambda l: l["k"])
+    # refined(k), steady (task 0162); the fixed-wall family (task 0186) apart
+    sst = sorted((l for l in _levels(data, config="div_a", model="sst")
+                  if "family" not in l and l.get("solver", "simpleFoam") == "simpleFoam"),
+                 key=lambda l: l["k"])
+    fixed = sorted((l for l in _levels(data, config="div_a", model="sst", family="fixed_wall")),
+                   key=lambda l: (l["k"], l.get("method", "steady")))
     rke = [l for l in _levels(data, config="div_a", model="rke")
            if l.get("solver", "simpleFoam") == "simpleFoam"]
     walls = {"spalding": (3, "Spalding"), "nutk": (2, "nutkWallFunction")}
@@ -756,6 +761,16 @@ def junction_loss(data, out):
         a.plot(h, _col(sst, f"{coef}_mckeon"), color=st["color"], marker=st["marker"],
                linewidth=1, markerfacecolor="white", zorder=3,
                label="ours, SST, McKeon's gradient (not gated)")
+        for i, l in enumerate(fixed):
+            st = style(None, 4 + i)
+            mean = l.get("time_mean", {}).get(coef)
+            how = ("time-accurate, time mean ± std" if mean
+                   else "steady, plateau mean")
+            a.errorbar(_h([l]), [mean["mean"] if mean else l[coef]],
+                       yerr=[mean["std"] if mean else l.get(f"{coef}_spread") or 0],
+                       color=st["color"], marker=st["marker"], linestyle="none", capsize=2,
+                       zorder=4, label=f"ours, SST, wall cell fixed (y⁺ 50), k = {l['k']}, "
+                                       f"{how} (not gated)")
         for l in rke:
             slot, wall = walls[l.get("wall", "spalding")]
             st = style(None, slot)

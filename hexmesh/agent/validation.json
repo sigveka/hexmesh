@@ -85,7 +85,7 @@
    "case": "junction_loss",
    "category": "V3",
    "cells": [
-    65792,
+    54848,
     1776384
    ],
    "gates": [
@@ -113,7 +113,7 @@
      "text": "These levels set first_cell at k = 1 and call refined(k), which splits the wall cell, so y+ falls as 1/k and the order 1.9 doesn't show grid convergence of one model (RESEARCH section 7.2 correction; task 0186 reruns it with the wall cell fixed)."
     }
    ],
-   "levels": 5,
+   "levels": 7,
    "status": "missed",
    "task": "0162",
    "title": "Equal-diameter 90° tee: loss coefficients, k-ω SST"
