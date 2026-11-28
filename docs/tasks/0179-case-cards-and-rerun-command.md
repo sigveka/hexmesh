@@ -101,3 +101,11 @@ stored results.
 ## Questions for design
 
 ## Outcome
+
+## Note (2026-11-28, the design session): the command moves to 0198
+
+Decision 0060 makes `python3 -m validation run` the stage pipeline's
+command (task 0198), which takes over step 2's spec.  This task keeps the
+cards (step 1, step 3's cards and the reproduce table), written so the
+stage command reads them.  If 0198 lands first, step 2 here is done by
+it.

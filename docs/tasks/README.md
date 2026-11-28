@@ -174,7 +174,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0176](0176-volunteer-try-out-card.md) | A try-out volunteer card: Poiseuille on 2 processes, the whole workflow in about 2 minutes, run in CI | done | 0044, 0054 |
 | [0177](0177-caller-gmsh-before-load.md) | gmsh started by the caller before hexmesh loads it counts as a session (0167 bug; `test_build_sync.py` alone fails) | done (in 0.8.0) | — |
 | [0178](0178-ci-without-openfoam-local-check.md) | CI without OpenFOAM; `tools/local_check.py` (runner tests, the cheapest case end to end) and an opt-in pre-push hook | done | 0055 |
-| [0179](0179-case-cards-and-rerun-command.md) | A card for every validation case, and `python3 -m validation run <case>` / `list` | ready (after 0176) | 0055, 0044 |
+| [0179](0179-case-cards-and-rerun-command.md) | A card for every validation case, and `python3 -m validation run <case>` / `list` | ready (its `run` command moves to 0198, decision 0060) (after 0176) | 0055, 0044 |
 | [0181](0181-unv-experimental-code-saturne.md) | Export check: `.unv` in code_saturne (import, Poiseuille, MMS on the fittings); experimental label until it passes; does the pip gmsh write CGNS? | done | 0056, 0057 |
 | [0182](0182-export-checks-framework.md) | Export checks: `kind` in the case schema, `validation/exports/`, FEniCSx moved there, two tables | done | 0057 |
 | [0183](0183-export-check-su2.md) | Export check: `.su2` in SU2 (format test, Poiseuille with its order) | done | 0057 |
@@ -192,6 +192,10 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0195](0195-local-check-test-temp-dirs.md) | A local-check test leaves an empty temporary directory on every run | done | — |
 | [0196](0196-bend-volunteer-empty-history.md) | Volunteer runs under NumPy 2 write `np.float64(…)` into OpenFOAM dictionaries (all drivers); the bend then crashes on an empty history; resume, `volunteer-bend-2` | done | 0044, 0055 |
 | [0197](0197-volunteer-cards-stenosis.md) | Volunteer cards for the two stenosis cases: steady k5/k6 (the series is oscillatory), pulsatile k4 (k1 is outside the asymptotic range) | ready | 0044, 0055 |
+| [0198](0198-validation-stage-pipeline.md) | The validation stage pipeline (mesh, setup, run, extract, evaluate, plot), `problem.json`, `samples.csv`, stamps; proved on Poiseuille | ready (before 1.0) | 0060 |
+| [0199](0199-case-sheets-plots-glossary.md) | Case sheets, standard plots (gate band, convergence, time history, flow pictures), a glossary and a scorecard for every case | ready (before 1.0) | 0060 |
+| [0200](0200-validation-bundles-compare.md) | Bundles for other solvers and `validation compare`: Poiseuille, the bend and the tee | ready (after 0198; the tee after 0186, 0187; before 1.0) | 0060 |
+| [0201](0201-validation-stages-remaining.md) | The remaining validation cases on stages, with bundles | ready (after 1.0) | 0060 |
 
 ### Validation
 
