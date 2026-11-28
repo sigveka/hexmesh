@@ -662,6 +662,22 @@ has the full tables.
 - **Steady SST doesn't settle** at any level: the coefficients oscillate
   with a period of about 1200 iterations (ξ_PG ± 0.01 at k = 2), and the
   values are window means.  k–ε's steady solve settles (to 10⁻⁵).
+- **Time-accurate SST cycles, and its mean differs from the steady
+  plateau** (task 0186, 2026-11-28; the fixed-wall family, wall cell at
+  50 viscous units, level 1, 54 848 cells):
+  - pimpleFoam from a steady start, 12 flow-throughs (6.1 h on 4
+    processes).  The coefficients swing with a steady band (ξ_PG
+    0.6503–0.6558, ξ_MGb 0.4498–0.4531) and no trend.  The sampled peak
+    is at 0.38 Hz, possibly an alias.  Whether the cycle is physical
+    is checked next in 0186.
+  - The time mean is stable to about 3 × 10⁻⁴: **ξ_PG 0.6531, ξ_MGb
+    0.4514.**  The steady plateau on the same mesh gives 0.6704 and
+    0.4483 (+2.6 %, −0.7 %).
+  - So steady against transient, listed above as part of the gap to the
+    paper's CFD, is worth about −0.017 in ξ_PG at level 1.  That's a
+    fifth of the 0.07 left after the wall treatment.
+  - In the bend (§7.17) the two agreed.  In the tee they don't.  Since
+    0186, the tee's levels are read from the time mean.
 - **Not run:** the other 19 points of the planned 20 (about 80 h at
   k = 2), the Com a convergence point and the Re check.  They would show
   the curves' shape, not change the verdict.

@@ -1,8 +1,9 @@
 # 0186 — The tee benchmark with the wall cell fixed: is its order 1.9 a mesh convergence?
 
-- **Status:** blocked (2026-11-28: Q1, level 1's time-accurate run cycles
-  and never meets the convergence stop; revised 2026-11-23 with 0050's
-  lessons; level 3 moves to the volunteer card, task 0168)
+- **Status:** ready (Q1 answered 2026-11-28, the user: "I agree": option
+  A, after a check of the cycle; level 2 time-accurate, about 30–40 h here;
+  revised 2026-11-23 with 0050's lessons; level 3 moves to the volunteer
+  card, task 0168)
 - **Decision:** [0012](../decisions/0012-openfoam-validation-cases.md),
   judged per [0015](../decisions/0015-exact-straight-slabs-and-convergence-studies.md);
   follows task 0162
@@ -195,5 +196,46 @@ other 19 points of 0162's sweep (both in task 0168's card).
     and a Strouhal number to compare.
   The task is blocked until this is answered; nothing else in it waits
   on a run.
+
+  **Answer (the design session, 2026-11-28; the user: "I agree").  A,
+  after a check of the cycle.**
+  1. **First, the cycle, at level 1 (about 2 h):**
+     - restart from the stored level 1's last state.  Write p at the
+       stations every step, for one flow-through, for the true frequency
+       and amplitude (no aliasing) and a Strouhal number on the branch
+       diameter and U in a;
+     - then the same with Δt halved (Co 0.5), for one flow-through after
+       half a flow-through to adjust;
+     - **physical** (in the URANS sense) if the frequency and the band
+       change by under about 10 %.  Then go on.  **Numerical** if they
+       move with Δt: stop and write it here, before level 2;
+     - record the Strouhal number and both runs in *Agent notes*.
+  2. **The levels:**
+     - time-accurate as level 1, with `fieldAverage` of p every step
+       from 2 flow-throughs;
+     - the coefficients from pMean;
+     - the stop: both running means change by under 1e-3 relative over
+       the last flow-through, with a cap at 8 flow-throughs;
+     - stored with the mean's statistical uncertainty (batch means over
+       flow-throughs) beside the GCI, and `converged` read as "the mean
+       met the stop".
+     - Level 1 is rerun this way only if its stored time mean, taken from
+       the sampled p, differs.  Its samples are 0.875 s apart over 10
+       flow-throughs, so recompute from the check's every-step p if
+       that's simpler.
+  3. **Level 2:** the user accepts about 30–40 h on 4 cores here.
+     - Resumable per chunk, as now.
+     - Measure the first chunk and update the estimate in *Agent notes*.
+       If it projects above 60 h, say so before going on.
+  4. **The gate** reads the time mean.  The steady levels stay stored as
+     the plateau's record, with the bias reported: ξ_PG +2.6 %, ξ_MGb
+     −0.7 % at level 1.
+  5. **The rule for the cases** (for 0188's hints, and RESEARCH §7.2):
+     with SST on separated flow, the answer is the time-accurate mean.
+     A steady plateau stands in for it only where a case shows the two
+     agree, as the bend did (K 0.2623 against 0.2626).  The tee shows
+     they can differ by 2–3 % with no warning from the residuals.
+  6. **0168** (level 3 for volunteers) uses this method.  Its card
+     states the cost as days on 16 cores, measured from level 2.
 
 ## Outcome
