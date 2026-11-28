@@ -6,7 +6,7 @@
   (the site from the Markdown)
 - **Depends on:** an Essens release after v0.1.4 (`gh release list
   --repo Essens-lang/essens`).  Step 1 doesn't.
-- **Blocks:** none.  Not part of 1.0's exit criteria.
+- **Blocks:** 1.0 (decision 0042 note 2026-11-28; the user: "Doc site will be updated").
 
 Ground rules for all tasks: [README](README.md#ground-rules).
 

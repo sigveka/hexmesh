@@ -114,13 +114,11 @@ open (below).  It's recorded as a note on 0042 once settled.
 
 ## Open items
 
-1. **E's scope before 1.0:** all three cases to results, or the Taylor
-   bubble and the KTH duct to results, with the Vattenfall case counting
-   once its case and volunteer card exist (its LES is for volunteers,
-   task 0120)?
-2. **The docs site before 1.0:** ship on Essens v0.1.4 as it is, or wait
-   for the Essens release with `folder-pages` (task 0137), an external
-   timeline?
+1. ~~E's scope before 1.0.~~  **Settled (2026-11-28, the user: "Yes I
+   want them before 1.0"):** all three cases with results, the
+   Vattenfall LES by a volunteer (task 0202).  Note on 0042.
+2. ~~The docs site before 1.0.~~  **Settled (the user: "Doc site will be
+   updated"):** on the next Essens release.  Note on 0042.
 3. **A (reach)** isn't placed: PyPI, 0032's network interchange.  The
    design session suggests it runs alongside every theme.
 4. **Release cadence in 1.x:** a minor release per theme milestone is

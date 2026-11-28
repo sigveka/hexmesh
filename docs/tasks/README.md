@@ -196,6 +196,7 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0199](0199-case-sheets-plots-glossary.md) | Case sheets, standard plots (gate band, convergence, time history, flow pictures), a glossary and a scorecard for every case | ready (before 1.0) | 0060 |
 | [0200](0200-validation-bundles-compare.md) | Bundles for other solvers and `validation compare`: Poiseuille, the bend and the tee | ready (after 0198; the tee after 0186, 0187; before 1.0) | 0060 |
 | [0201](0201-validation-stages-remaining.md) | The remaining validation cases on stages, with bundles | ready (after 1.0) | 0060 |
+| [0202](0202-validation-vattenfall-stage-b-les.md) | Validation: the Vattenfall T-junction, stage (b): the LES by a volunteer, and the comparison | ready (after 0120; before 1.0) | 0012, 0044, 0042 |
 
 ### Validation
 
@@ -215,12 +216,12 @@ reads it); everything else is **development**.  Numbers are shared.
 | [0074](0074-validation-mms-conduction.md) | Verification: manufactured solutions for conduction on every fitting's mesh | V1 | done | 0012, 0015 |
 | [0075](0075-validation-helical-pipe.md) | Validation: laminar flow in a helical pipe (spline pipe) | V3 | done (accepted 2026-11-18: f within 0.6 % of Ito at n_arc 24, every gate passes) | 0012, 0015 |
 | [0077](0077-validation-fenicsx-second-order.md) | Verification: FEniCSx toolchain, and second-order export checked end to end | V1 | done | 0034, 0012, 0015 |
-| [0079](0079-validation-taylor-bubble.md) | Validation: a Taylor bubble rising in stagnant liquid (VOF) | V3 | ready (v2406 runner) | 0012, 0015 |
+| [0079](0079-validation-taylor-bubble.md) | Validation: a Taylor bubble rising in stagnant liquid (VOF) | V3 | ready (v2406 runner; before 1.0) | 0012, 0015 |
 | [0099](0099-validation-graphs.md) | Validation results as graphs: convergence, layouts, the stenosis against DNS | docs | done | 0012, 0015, 0036 |
-| [0120](0120-validation-vattenfall-tjunction-stage-a.md) | Validation: the Vattenfall T-junction (thermal mixing), stage (a): case, mesh, data and volunteer card | V3 | ready (after 0119) | 0012, 0044 |
+| [0120](0120-validation-vattenfall-tjunction-stage-a.md) | Validation: the Vattenfall T-junction (thermal mixing), stage (a): case, mesh, data and volunteer card | V3 | ready (after 0119; before 1.0) | 0012, 0044 |
 | [0108](0108-gmshtofoam-inversion-audit.md) | Audit the validation cases for gmshToFoam's silent inversions | V1 | done | 0012 |
 | [0109](0109-mms-wall-slope.md) | MMS: does the order track the wall slope? | V1 | done | 0012 |
-| [0180](0180-validation-kth-duct-dns.md) | Validation: turbulent rectangular ducts against the KTH DNS (Reynolds-stress RANS here; wall-resolved LES as a volunteer card) | V2 | ready (after 0176) | 0012, 0015, 0044, 0055 |
+| [0180](0180-validation-kth-duct-dns.md) | Validation: turbulent rectangular ducts against the KTH DNS (Reynolds-stress RANS here; wall-resolved LES as a volunteer card) | V2 | ready (before 1.0; after 0176) | 0012, 0015, 0044, 0055 |
 | [0162](0162-validation-junction-flow-stigler.md) | Validation: loss coefficients of equal-diameter tees and laterals (Štigler et al. 2014) | V3 | done (missed: ξ_PG 0.605 against 0.50, grid-converged; k–ε 0.575, with nutkWallFunction 0.567) | 0042, 0012, 0015 |
 
 
